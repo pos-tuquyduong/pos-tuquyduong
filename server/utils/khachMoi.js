@@ -1,7 +1,7 @@
 /**
  * KHACH-APP-1 (C) — MỘT hàm tạo khách cho MỌI đường ghi pos_customers của POS: quầy (POST /customers + người nhận, POST /:id/children),
  * "Thêm khách" (POST /registrations), ghi địa chỉ / ghi chú cho SĐT chưa là khách (customers-v2.js), App (maKhach.js xacMinhMa) và bước
- * chép lần cuối (nang_cap/020, 021). Ngoài: sync.js POST /import (nhập file SX — để việc sau).
+ * chép lần cuối (nang_cap/020, 022). Ngoài: sync.js POST /import (nhập file SX — để việc sau).
  * - SĐT: normalizePhone + isValidPhone (cùng cặp chuanSdt của App). Tên trim, không rỗng.
  * - Mặc định (chủ quán Q2 07.11): customer_type 'retail' → sync_status 'retail_only'; loại khác → 'new' (sync.js xuất sang SX như cũ).
  *   Bước chép SX truyền rõ sync_status / sx_status.

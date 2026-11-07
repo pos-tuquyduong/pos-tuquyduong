@@ -17,7 +17,7 @@ sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DK, KM, MK = 'server/utils/docKhach.js', 'server/utils/khachMoi.js', 'server/utils/maKhach.js'
 C1, C2, RG = 'server/routes/customers.js', 'server/routes/customers-v2.js', 'server/routes/registrations.js'
-CH, N20, N21 = 'server/nang_cap/chay.js', 'server/nang_cap/020_chep_khach_sx.js', 'server/nang_cap/021_chep_dang_ky_qr.js'
+CH, N20, N22 = 'server/nang_cap/chay.js', 'server/nang_cap/020_chep_khach_sx.js', 'server/nang_cap/022_chep_dang_ky_qr.js'
 CHEP = ['server', 'client/src', 'cong_cu', 'kiem_tra_truoc_khi_giao.js', 'HOP_DONG_API_KH.md']
 T = 'thu_KHACHAPP1.js'
 GOI_SX = 'await require("../utils/sxApi").callSxApi("/api/pos/customers/export").catch(() => []);\n    '
@@ -61,7 +61,7 @@ DOT_BIEN = [
   ('BV-V2-CHEN-RIENG', [(C2, '  const t = await taoKhach({ phone, name: "Khách hàng", created_by: nguoi });\n  return t.loi || null;',
                          '  await run("INSERT INTO pos_customers (phone, name, created_at) VALUES (?, ?, ?)", [phone, "Khách hàng", getNow()]);\n  return null;', 1)],
    r'✗ C8 ', T),
-  # ── B: khung HOÃN + bước 020 / 021 ──
+  # ── B: khung HOÃN + bước 020 / 022 ──
   ('BV-HOAN', [(CH, '      if (duLieu && duLieu.hoan) {', '      if (false) {', 1)], r'✗ B3 ', T),
   ('VS-NEM-THANH-HOAN', [(CH, '      await tx.rollback();\n      return { hong: `${ten}: ${e.message}` };', '      await tx.rollback();\n      continue;', 1)], r'✗ B7 ', T),
   ('VS-HOAN-GOI-LAI-SX', [(CH, "      if ((await query('SELECT 1 FROM pos_nang_cap WHERE so = ?', [Number(so)])).length) continue;\n", '', 1)], r'✗ B2 ', T),
@@ -72,17 +72,17 @@ DOT_BIEN = [
   ('BV-CHEP-NHAT-KY', [(N20, "VALUES ('chep_khach_sx', ?, ?, 'success', 'nang_cap', ?)`, [so.them, JSON.stringify(ghi), getNow()]);",
                         "VALUES ('chep_khach_sx', ?, ?, 'success', 'nang_cap', ?)`, [so.them, JSON.stringify(so), getNow()]);", 1)], r'✗ B1e ', T),
   ('VS-CHEP-RONG-LA-XONG', [(N20, 'if (!Array.isArray(ds) || ds.length === 0)', 'if (!Array.isArray(ds))', 1)], r'✗ B3c ', T),
-  ('VS-021-DOI-COT', [(N21, "UPDATE pos_customers SET qr_code = ? WHERE id = ? AND (qr_code IS NULL OR qr_code = '')",
+  ('VS-022-DOI-COT', [(N22, "UPDATE pos_customers SET qr_code = ? WHERE id = ? AND (qr_code IS NULL OR qr_code = '')",
                        "UPDATE pos_customers SET qr_code = ?, updated_at = '2026-11-07T00:00:00' WHERE id = ?", 1)], r'✗ B6 ', T),
-  ('BV-021-DANG-KY', [(N21, "SELECT * FROM pos_registrations WHERE status = 'pending'", "SELECT * FROM pos_registrations WHERE 0 AND status = 'pending'", 1)], r'✗ B6b ', T),
-  ('VS-021-CHEP-DA-XUAT', [(N21, "WHERE status = 'pending'\n    AND phone NOT IN", 'WHERE phone NOT IN', 1)], r'✗ B6b ', T),
+  ('BV-022-DANG-KY', [(N22, "SELECT * FROM pos_registrations WHERE status = 'pending'", "SELECT * FROM pos_registrations WHERE 0 AND status = 'pending'", 1)], r'✗ B6b ', T),
+  ('VS-022-CHEP-DA-XUAT', [(N22, "WHERE status = 'pending'\n    AND phone NOT IN", 'WHERE phone NOT IN', 1)], r'✗ B6b ', T),
   # ── vòng sửa 1 (soát độc lập 07.11): lỗ bài thử C3 (so định danh qua `??`) và thu_KHO1 B1c (tập miễn HOÃN sinh từ file) ──
   ('VS-APP-SAI-KHACH', [(MK, "    const kh = await tx.queryOne('SELECT id FROM pos_customers WHERE phone = ?', [sdt]);\n    if (!kh)",
                          "    const kh = await tx.queryOne('SELECT id FROM pos_customers ORDER BY id LIMIT 1', []);\n    if (!kh)", 1)], r'✗ C3 ', T),
   ('VS-BUOC-KHAC-HOAN', [('server/nang_cap/019_so_hoa_don.js', 'module.exports.chay = async (tx, { themCot }) => {',
                           "module.exports.truoc = async () => ({ hoan: 'thử' });\nmodule.exports.chay = async (tx, { themCot }) => {", 1)],
    r'✗ B1c ', 'thu_KHO1.js'),
-  ('BV-021-CAP-QR', [(N21, "WHERE qr_code IS NULL OR qr_code = '' ORDER BY id", "WHERE 0 ORDER BY id", 1)], r'✗ B6 ', T),
+  ('BV-022-CAP-QR', [(N22, "WHERE qr_code IS NULL OR qr_code = '' ORDER BY id", "WHERE 0 ORDER BY id", 1)], r'✗ B6 ', T),
 ]
 
 

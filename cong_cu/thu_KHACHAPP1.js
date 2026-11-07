@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  THỬ KHACH-APP-1 — khách MỘT nguồn pos_customers: (A) một hàm đọc · (B) bước chép lần cuối 020 / 021 + trạng thái HOÃN của khung
+ *  THỬ KHACH-APP-1 — khách MỘT nguồn pos_customers: (A) một hàm đọc · (B) bước chép lần cuối 020 / 022 + trạng thái HOÃN của khung
  *  nâng cấp · (C) một hàm tạo khách · (D) quầy + App tạo khách giống nhau, hiện / tìm / quét QR / mở hồ sơ khi SX thiếu họ và khi SX tắt.
  * ═══════════════════════════════════════════════════════════════════════════
- *  PHẢI ĐỎ trên code chưa vá (đọc khách từ SX, bộ đệm ghi đè tên, hai đường tạo khách lệch cột, chưa có bước 020 / 021). Xanh ngay = vô
+ *  PHẢI ĐỎ trên code chưa vá (đọc khách từ SX, bộ đệm ghi đè tên, hai đường tạo khách lệch cột, chưa có bước 020 / 022). Xanh ngay = vô
  *  giá trị (K3). Chạy ở gốc kho:  node cong_cu/thu_KHACHAPP1.js   — bản đột biến: --goc <thư mục kho chép>.
  *  Máy chủ: database.js thật + libsql trên file kho TẠM; SX giả (sxApi.js thay trong require.cache): 'ds' trả danh sách KHÔNG có khách
  *  mới · 'loi' ném (SX tắt / treo). Đếm mọi lượt gọi SX của đường đọc khách.
@@ -77,11 +77,11 @@ async function main() {
   const mot = (sql, a = []) => db.queryOne(sql, a);
   const chu = await mot("SELECT id, username FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const tk = jwt.sign({ userId: chu.id }, KHOA_NV, { expiresIn: '1h' });
-  const goi = async (method, url, body) => {
+  const goi = async (method, url, body, tkGoi = tk) => {
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk } });
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tkGoi } });
       let j = {}; try { j = await r.json(); } catch { /* không phải JSON */ }
       return { j, status: r.status };
     } catch (e) { return { status: 0, j: { error: e.message } }; } finally { noiLai(); }
@@ -181,9 +181,20 @@ async function main() {
     const dk = await mot('SELECT * FROM pos_registrations WHERE phone = ?', ['0938100008']);
     k('C7 "Thêm khách" (POST /registrations) tạo khách THẬT (có QR, retail_only) và vẫn ghi đăng ký chờ (Q1)', r.status === 200 && !!d && QR_MOI.test(d.qr_code || '')
       && d.sync_status === 'retail_only' && d.requested_cycles === 2 && dk?.status === 'pending', `${moTa(r)} · ${JSON.stringify(d)}`);
-    const lai = await goi('POST', '/pos/registrations', { phone: SDT_Q, name: 'Đã là khách' });
+    // Q7 (chủ quán 07.11): GIỮ CHẶN — khách đã có tài khoản thì bán gói ở màn Bán hàng; 409 mã riêng, câu rõ, không lưu gì
+    const tenTruoc = (await mot('SELECT name FROM pos_customers WHERE phone = ?', [SDT_Q])).name;
+    const lai = await goi('POST', '/pos/registrations', { phone: SDT_Q, name: 'Đã là khách', requested_product: 'Nước ép' });
     const dk2 = await mot('SELECT 1 AS co FROM pos_registrations WHERE phone = ?', [SDT_Q]);
-    k('C7b đăng ký SĐT đã là khách → 400 SDT_DA_CO, không ghi đăng ký', lai.status === 400 && lai.j.code === 'SDT_DA_CO' && !dk2, moTa(lai));
+    const tenSau = (await mot('SELECT name FROM pos_customers WHERE phone = ?', [SDT_Q])).name;
+    k('C7b "Thêm khách" SĐT đã là khách → 409 KHACH_DA_CO_TAI_KHOAN, câu chủ quán chốt, không ghi đăng ký, khách giữ nguyên (Q7)', lai.status === 409
+      && lai.j.code === 'KHACH_DA_CO_TAI_KHOAN' && lai.j.error === 'Khách đã có tài khoản — tìm khách ở màn Bán hàng để bán gói' && !dk2 && tenSau === tenTruoc, moTa(lai));
+    const sd = '0938100019';
+    const dua = await Promise.all([1, 2, 3].map((i) => goi('POST', '/pos/registrations', { phone: sd, name: 'Đua Đăng Ký ' + i })));
+    const nDk = Number((await mot('SELECT COUNT(*) AS n FROM pos_registrations WHERE phone = ?', [sd])).n);
+    const nKh = Number((await mot('SELECT COUNT(*) AS n FROM pos_customers WHERE phone = ?', [sd])).n);
+    k('C7c ba "Thêm khách" cùng SĐT mới cùng lúc → một 200, còn lại 400 / 409 có code hoặc câu rõ (không 500); một đăng ký, một khách', nDk === 1 && nKh === 1
+      && dua.filter((r) => r.status === 200).length === 1 && dua.every((r) => r.status === 200 || ((r.status === 400 || r.status === 409) && !!r.j.error)),
+      `${nDk} đk · ${nKh} khách · ${dua.map(moTa).join(' · ')}`);
     const s = '0938100018';
     const dc = await goi('PUT', `/pos/v2/customers/${s}/address`, { address: '9 Hai Bà' });
     const ck = await goi('PUT', '/pos/v2/customers/0938100028/discount', { discount_note: 'Ít đá' });
@@ -191,6 +202,106 @@ async function main() {
     k('C8 ghi địa chỉ / ghi chú cho SĐT chưa là khách → tạo qua hàm chung (có QR, retail_only) rồi ghi', dc.status === 200 && ck.status === 200
       && QR_MOI.test(d1?.qr_code || '') && QR_MOI.test(d2?.qr_code || '') && d1?.address === '9 Hai Bà' && d2?.discount_note === 'Ít đá' && d1?.sync_status === 'retail_only',
       `${moTa(dc)} · ${JSON.stringify(d1)}`);
+  });
+
+  muc('[R] Màn Đăng ký: sửa / xoá đăng ký chờ (Q6, chủ quán 07.11)');
+  const taoNV = async (ten, vai) => jwt.sign({ userId: Number((await db.run(
+    "INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES (?, 'x', ?, ?, 1)", [ten, ten, vai])).lastInsertRowid) }, KHOA_NV, { expiresIn: '1h' });
+  const tkNV = await taoNV('nv_thu_khachapp1', 'staff'), tkQL = await taoNV('ql_thu_khachapp1', 'manager');
+  const dangKy = (s, ten, t) => goi('POST', '/pos/registrations', { phone: s, name: ten, requested_product: 'Nước ép' }, t);
+  const idDk = async (s) => (await mot('SELECT id FROM pos_registrations WHERE phone = ?', [s]))?.id;
+  const khachCua = (s) => mot('SELECT * FROM pos_customers WHERE phone = ?', [s]);
+  const soNhatKy = async () => Number((await mot("SELECT COUNT(*) AS n FROM pos_sync_logs WHERE type = 'xoa_khach'")).n);
+  const xoaDk = async (s, t) => goi('DELETE', '/pos/registrations/' + await idDk(s), undefined, t);
+  await thu('R1', async () => {
+    const s = '0938100051';
+    await dangKy(s, 'Tên Đăng Ký');
+    const truoc = await khachCua(s), q0 = (await khachCua(SDT_Q)).name;
+    const r = await goi('PUT', '/pos/registrations/' + await idDk(s), { name: 'Tên Đã Sửa', notes: 'ghi mới', parent_phone: '0938100007', relationship: 'con' });
+    const sau = await khachCua(s);
+    k('R1 sửa đăng ký CHỜ → dòng khách cùng SĐT đổi tên / ghi chú / SĐT mẹ / quan hệ; cột khác (QR, loại) giữ (Q6a)', r.status === 200 && sau?.name === 'Tên Đã Sửa'
+      && sau.notes === 'ghi mới' && sau.parent_phone === '0938100007' && sau.relationship === 'con' && sau.qr_code === truoc?.qr_code && sau.customer_type === truoc?.customer_type,
+      `${moTa(r)} · ${JSON.stringify(sau)}`);
+    k('R1b sửa đăng ký không đụng khách khác', (await khachCua(SDT_Q)).name === q0);
+    k('R1c danh sách / ô tìm hiện tên mới', (await dsKhach()).find((c) => c.phone === s)?.name === 'Tên Đã Sửa' && (await tim(s)).some((c) => c.name === 'Tên Đã Sửa'));
+    await db.run("UPDATE pos_registrations SET status = 'exported' WHERE phone = ?", [s]);
+    const x = await goi('PUT', '/pos/registrations/' + await idDk(s), { name: 'Sửa Sau Xuất' });
+    k('R1d đăng ký đã xuất → 400, khách không đổi', x.status === 400 && (await khachCua(s)).name === 'Tên Đã Sửa', moTa(x));
+  });
+  await thu('R2', async () => {
+    const s = '0938100052';
+    await dangKy(s, 'Nhập Nhầm');
+    const n0 = await soNhatKy();
+    const r = await xoaDk(s);
+    k('R2 chủ quán xoá đăng ký chờ, khách trắng do chính đăng ký tạo → xoá cả đăng ký lẫn khách (Q6b)', r.status === 200 && !(await idDk(s)) && !(await khachCua(s)), moTa(r));
+    const nk = await mot("SELECT * FROM pos_sync_logs WHERE type = 'xoa_khach' ORDER BY id DESC LIMIT 1");
+    let ct = {}; try { ct = JSON.parse(nk?.details || '{}'); } catch { /* hỏng */ }
+    k('R2b nhật ký xoá khách: ai (created_by), lúc nào (giờ VN dạng T), SĐT, tên, lý do', (await soNhatKy()) === n0 + 1 && nk.created_by === chu.username
+      && DANG_T.test(nk.created_at || '') && ct.phone === s && ct.name === 'Nhập Nhầm' && typeof ct.ly_do === 'string' && ct.ly_do.length > 0, nk ? JSON.stringify(nk) : 'không có dòng');
+    const lai = await dangKy(s, 'Nhập Lại Đúng');
+    k('R2c nhập lại cùng SĐT sau khi xoá → 200, khách mới', lai.status === 200 && (await khachCua(s))?.name === 'Nhập Lại Đúng', moTa(lai));
+  });
+  await thu('R3', async () => {
+    const s = '0938100053';
+    await dangKy(s, 'Nhân Viên Xoá', tkNV);
+    const n0 = await soNhatKy();
+    const r = await xoaDk(s, tkNV);
+    k('R3 NHÂN VIÊN xoá đăng ký → chỉ xoá đăng ký, khách giữ nguyên, không nhật ký xoá khách', r.status === 200 && !(await idDk(s)) && !!(await khachCua(s)) && (await soNhatKy()) === n0, moTa(r));
+    const s2 = '0938100054';
+    await dangKy(s2, 'Quản Lý Xoá', tkNV);
+    const r2 = await xoaDk(s2, tkQL);
+    k('R3b QUẢN LÝ xoá đăng ký chờ (nhân viên nhập), khách trắng → xoá khách', r2.status === 200 && !(await idDk(s2)) && !(await khachCua(s2)), moTa(r2));
+  });
+  await thu('R4', async () => {
+    // mỗi dấu vết một ca: khách có dấu vết đó → chủ quán xoá đăng ký thì CHỈ xoá đăng ký, khách giữ
+    const chen = async (bang, cot, s) => {
+      const cots = (await db.query(`PRAGMA table_info(${bang})`)).filter((c) => c.notnull && c.dflt_value == null && !c.pk && c.name !== cot);
+      const gt = cots.map((c) => (/INT|REAL/i.test(c.type) ? 1 : 'thu_' + Math.random().toString(36).slice(2)));
+      await db.run(`INSERT INTO ${bang} (${[cot, ...cots.map((c) => c.name)].join(', ')}) VALUES (${['?', ...cots.map(() => '?')].join(', ')})`, [s, ...gt]);
+    };
+    const DAU_VET = [
+      ['đơn', (s) => chen('pos_orders', 'customer_phone', s)],
+      ['ví còn tiền', (s) => db.run('INSERT INTO pos_wallets (phone, balance, created_at) VALUES (?, 5000, ?)', [s, '2026-11-01T08:00:00'])],
+      ['giao dịch ví (ví về 0)', async (s) => { await db.run('INSERT INTO pos_wallets (phone, balance, created_at) VALUES (?, 0, ?)', [s, '2026-11-01T08:00:00']);
+        await chen('pos_balance_transactions', 'customer_phone', s); }],
+      ['điểm', (s) => chen('pos_point_transactions', 'customer_phone', s)],
+      ['gói', (s) => chen('pos_customer_packages', 'customer_phone', s)],
+      ['thẻ hạng', (s) => chen('pos_membership_purchases', 'customer_phone', s)],
+      ['người nhận gắn SĐT', (s) => db.run("INSERT INTO pos_customers (phone, name, parent_phone, created_at) VALUES (?, 'Con Gắn', ?, '2026-11-01T08:00:00')", ['0938109' + s.slice(-3), s])],
+      ['mã đăng nhập App', (s) => chen('pos_kh_ma_dang_nhap', 'sdt', s)],
+    ];
+    let i = 0;
+    for (const [ten, them] of DAU_VET) {
+      const s = '09381006' + String(++i).padStart(2, '0');
+      await dangKy(s, 'Có ' + ten);
+      await them(s);
+      const r = await xoaDk(s);
+      k(`R4 khách có ${ten} → chủ quán xoá đăng ký: chỉ xoá đăng ký, khách GIỮ`, r.status === 200 && !(await idDk(s)) && !!(await khachCua(s)), moTa(r));
+    }
+  });
+  await thu('R5', async () => {
+    const s = '0938100071';
+    await appTao(s, 'Khách App Có Đăng Ký Cũ', 'anh');
+    await db.run("INSERT INTO pos_registrations (phone, name, status, created_by, created_at) VALUES (?, 'Đăng Ký Cũ', 'pending', ?, '2026-10-01T00:00:00')", [s, chu.username]);
+    const r = await xoaDk(s);
+    k('R5 khách App (created_by app_kh) → chủ quán xoá đăng ký cũ: khách GIỮ', r.status === 200 && !(await idDk(s)) && !!(await khachCua(s)), moTa(r));
+    const s2 = '0938100072';
+    await db.run("INSERT INTO pos_customers (phone, name, qr_code, created_by, created_at) VALUES (?, 'Khách Có Trước', 'TQD-CCCCCCCCCCCC', ?, '2026-09-01T00:00:00')", [s2, chu.username]);
+    await db.run("INSERT INTO pos_registrations (phone, name, status, created_by, created_at) VALUES (?, 'Đăng Ký Sau', 'pending', ?, '2026-10-01T00:00:00')", [s2, chu.username]);
+    const r2 = await xoaDk(s2);
+    k('R5b khách có TRƯỚC đăng ký (cùng người nhập) → khách GIỮ', r2.status === 200 && !(await idDk(s2)) && !!(await khachCua(s2)), moTa(r2));
+    const s3 = '0938100073';
+    await dangKy(s3, 'Đã Xuất SX');
+    await db.run("UPDATE pos_registrations SET status = 'exported' WHERE phone = ?", [s3]);
+    const r3 = await xoaDk(s3);
+    k('R5c đăng ký đã xuất (không phải CHỜ) → chỉ xoá đăng ký, khách GIỮ', r3.status === 200 && !(await idDk(s3)) && !!(await khachCua(s3)), moTa(r3));
+    const r4 = await goi('DELETE', '/pos/registrations/999999');
+    k('R5d xoá đăng ký không có → 404', r4.status === 404, moTa(r4));
+  });
+  await thu('R6', async () => {
+    const so = fs.readdirSync(path.join(MAY_CHU, 'nang_cap')).filter((f) => /^\d{3}_/.test(f)).map((f) => f.slice(0, 3));
+    k('R6 server/nang_cap: không hai file cùng số (021 thuộc GIAO-1 — bước đăng ký chờ là 022)', new Set(so).size === so.length
+      && fs.existsSync(path.join(MAY_CHU, 'nang_cap', '022_chep_dang_ky_qr.js')) && !fs.existsSync(path.join(MAY_CHU, 'nang_cap', '021_chep_dang_ky_qr.js')), so.join(','));
   });
 
   // dữ liệu kèm: ví, điểm, ngày sinh, mẹ có ví
@@ -253,12 +364,12 @@ async function main() {
     k('A8b khách chỉ có ở SX KHÔNG tự chép vào kho khi tải danh sách', !(await mot('SELECT 1 AS co FROM pos_customers WHERE phone = ?', [SDT_SX])));
   });
 
-  muc('[B] Bước chép lần cuối (020 khách SX · 021 đăng ký chờ + cấp QR ô trống) và trạng thái HOÃN');
+  muc('[B] Bước chép lần cuối (020 khách SX · 022 đăng ký chờ + cấp QR ô trống) và trạng thái HOÃN');
   await thu('B3', async () => {
     k('B3 lúc khởi động SX tắt: khung KHÔNG hỏng (kho không 503)', hongLucDau === null, String(hongLucDau));
     const d20 = await mot('SELECT 1 AS co FROM pos_nang_cap WHERE so = 20');
-    const d21 = await mot('SELECT 1 AS co FROM pos_nang_cap WHERE so = 21');
-    k('B3b bước 020 (SX) HOÃN — chưa ghi pos_nang_cap; bước 021 sau nó vẫn chạy', !d20 && !!d21, `${!!d20} ${!!d21}`);
+    const d22 = await mot('SELECT 1 AS co FROM pos_nang_cap WHERE so = 22');
+    k('B3b bước 020 (SX) HOÃN — chưa ghi pos_nang_cap; bước 022 sau nó vẫn chạy', !d20 && !!d22, `${!!d20} ${!!d22}`);
     k('B5 trong lúc 020 chưa xong, danh sách vẫn 200', (await goi('GET', '/pos/v2/customers')).status === 200);
     sx.che = 'ds'; const dsCu = sx.ds; sx.ds = [];
     imLang(); const rr = await nangCap(); noiLai();
@@ -295,17 +406,17 @@ async function main() {
     k('B2 chạy khung lần hai: không gọi SX, không thêm khách, không thêm nhật ký', r2.hong === null && sx.goi === 0 && sau2 === sau && soLog === 1, `${sx.goi} lượt · ${sau}→${sau2} · ${soLog} log`);
   });
   await thu('B6', async () => {
-    // 021: đăng ký chờ chưa là khách → chép; dòng khách qr_code trống → cấp mã (chỉ ô trống)
+    // 022: đăng ký chờ chưa là khách → chép; dòng khách qr_code trống → cấp mã (chỉ ô trống)
     await db.run("INSERT INTO pos_customers (phone, name, qr_code, notes, updated_at, created_at) VALUES ('0938100041', 'Cũ Không QR', NULL, 'giữ', '2026-10-01T00:00:00', '2026-10-01T00:00:00')");
     await db.run("INSERT INTO pos_customers (phone, name, qr_code, created_at) VALUES ('0938100042', 'Cũ QR Rỗng', '', '2026-10-01T00:00:00')");
     await db.run("INSERT INTO pos_customers (phone, name, qr_code, created_at) VALUES ('0938100043', 'Cũ QR Kiểu Cũ', 'QR-0938100043', '2026-10-01T00:00:00')");
     await db.run("INSERT INTO pos_registrations (phone, name, notes, requested_cycles, status, created_by, created_at) VALUES ('0938100044', 'Đăng Ký Cũ', 'ghi', 3, 'pending', 'nv_cu', '2026-10-01T00:00:00')");
     await db.run("INSERT INTO pos_registrations (phone, name, status, created_at) VALUES ('0938100045', 'Đã Xuất', 'exported', '2026-10-01T00:00:00')");
-    await db.run('DELETE FROM pos_nang_cap WHERE so = 21');
+    await db.run('DELETE FROM pos_nang_cap WHERE so = 22');
     imLang(); const r = await nangCap(); noiLai();
     const c1 = await mot("SELECT * FROM pos_customers WHERE phone = '0938100041'"), c2 = await mot("SELECT qr_code FROM pos_customers WHERE phone = '0938100042'");
     const c3 = await mot("SELECT qr_code FROM pos_customers WHERE phone = '0938100043'"), dk = await mot("SELECT * FROM pos_customers WHERE phone = '0938100044'");
-    k('B6 bước 021: cấp QR cho dòng qr_code NULL / rỗng; không đổi cột khác (updated_at, notes); không đụng mã đã có', r.hong === null && QR_MOI.test(c1?.qr_code || '') && QR_MOI.test(c2?.qr_code || '')
+    k('B6 bước 022: cấp QR cho dòng qr_code NULL / rỗng; không đổi cột khác (updated_at, notes); không đụng mã đã có', r.hong === null && QR_MOI.test(c1?.qr_code || '') && QR_MOI.test(c2?.qr_code || '')
       && c1.updated_at === '2026-10-01T00:00:00' && c1.notes === 'giữ' && c3?.qr_code === 'QR-0938100043', `${String(r.hong)} · ${JSON.stringify(c1)} · ${c2?.qr_code}`);
     k('B6b đăng ký CHỜ chưa là khách → thành khách (QR, retail_only, created_by của đăng ký); đăng ký đã xuất không chép', !!dk && QR_MOI.test(dk.qr_code || '') && dk.sync_status === 'retail_only'
       && dk.requested_cycles === 3 && dk.created_by === 'nv_cu' && !(await mot("SELECT 1 AS co FROM pos_customers WHERE phone = '0938100045'")), JSON.stringify(dk));
@@ -313,10 +424,10 @@ async function main() {
     k('B6c quét QR mới cấp ra đúng khách cũ', quet.status === 200 && quet.j.phone === '0938100041', moTa(quet));
     const log = await mot("SELECT * FROM pos_sync_logs WHERE type = 'chep_khach_dang_ky' ORDER BY id DESC LIMIT 1");
     let ct = {}; try { ct = JSON.parse(log?.details || '{}'); } catch { /* hỏng */ }
-    k('B6d nhật ký 021: them_dang_ky ≥ 1, cap_qr ≥ 2', ct.them_dang_ky >= 1 && ct.cap_qr >= 2 && log.record_count === ct.them_dang_ky, log ? log.details : 'không có dòng');
+    k('B6d nhật ký 022: them_dang_ky ≥ 1, cap_qr ≥ 2', ct.them_dang_ky >= 1 && ct.cap_qr >= 2 && log.record_count === ct.them_dang_ky, log ? log.details : 'không có dòng');
     const dem = Number((await mot('SELECT COUNT(*) AS n FROM pos_customers')).n);
     imLang(); await nangCap(); noiLai();
-    k('B6e chạy khung lần hai: 021 không chạy lại (số khách không đổi)', Number((await mot('SELECT COUNT(*) AS n FROM pos_customers')).n) === dem);
+    k('B6e chạy khung lần hai: 022 không chạy lại (số khách không đổi)', Number((await mot('SELECT COUNT(*) AS n FROM pos_customers')).n) === dem);
   });
   await thu('B7', async () => {
     // khung: trạng thái HOÃN do bước TỰ trả về ≠ ném lỗi (ném vẫn rollback + dừng + hong)
