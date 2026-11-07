@@ -31,7 +31,13 @@ Khách mở Lịch sử đơn trên App là thấy ngay mỗi đơn: mua ở đ�
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
+- server/routes/hoaDon.js
 
+<!-- Chủ quán 06.11 (câu hỏi kế hoạch f3a09c2):
+     1 A — thêm server/routes/hoaDon.js: export dungThanhToan, tách tinhGiam(o); hoá đơn quầy gọi lại đúng hai hàm đó (in ra y như cũ, bài thử so
+       trước / sau). KHÔNG chép công thức sang donApp.js, KHÔNG gọi dungHoaDon cho từng đơn. GIAO-1 cũng sửa hoaDon.js (2 dòng) — chỉ sửa đúng chỗ
+       cần, chat lo phần đụng nhau khi gộp.
+     2 Đồng ý cách của máy: đơn quầy có phí giao → cach_nhan 'giao', còn lại 'tai_quan'; null chỉ khi không có dữ liệu đơn. -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_KHTOMTAT1.js` ĐỎ trên code gốc: đơn quầy tiền mặt / QR / ví / ví + QR / có giảm hạng + mã, đơn App lấy tại quầy và giao → đủ trường
 đúng giá trị; tổng `tra[]` = số đã trả; đơn cũ thiếu dữ liệu → `null`; đơn của SĐT khác không lộ; `hoa_don[]` có dòng cách trả + giảm.
