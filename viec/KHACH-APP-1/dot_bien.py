@@ -19,7 +19,7 @@ DK, KM, MK = 'server/utils/docKhach.js', 'server/utils/khachMoi.js', 'server/uti
 C1, C2, RG = 'server/routes/customers.js', 'server/routes/customers-v2.js', 'server/routes/registrations.js'
 CH, N20, N21 = 'server/nang_cap/chay.js', 'server/nang_cap/020_chep_khach_sx.js', 'server/nang_cap/021_chep_dang_ky_qr.js'
 CHEP = ['server', 'client/src', 'cong_cu', 'kiem_tra_truoc_khi_giao.js', 'HOP_DONG_API_KH.md']
-T, G = 'thu_KHACHAPP1.js', 'thu_GIOVN1.js'
+T = 'thu_KHACHAPP1.js'
 GOI_SX = 'await require("../utils/sxApi").callSxApi("/api/pos/customers/export").catch(() => []);\n    '
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
@@ -38,13 +38,13 @@ DOT_BIEN = [
   ('VS-DOC-SO-DU-ME', [(DK, 'parent_balance: me ? vi[me]?.balance || 0 : 0', 'parent_balance: me ? vi[d.phone]?.balance || 0 : 0', 1)], r'✗ A13 ', T),
   ('BV-DOC-XUNG-HO', [(DK, ', xung_ho: c.xung_ho ?? null,', ',', 1)], r'✗ A12 ', T),
   # ── C: một hàm tạo ──
-  ('BV-TAO-MAC-DINH', [(KM, "const LOAI_MAC_DINH = 'retail';", "const LOAI_MAC_DINH = 'subscription';", 1)], r'✗ C1 so ', T),
+  ('BV-TAO-MAC-DINH', [(KM, "const LOAI_MAC_DINH = 'retail';", "const LOAI_MAC_DINH = 'subscription';", 1)], r'✗ C1 mặc định ', T),
   ('BV-TAO-QR-KHONG-KIEM', [(KM, 'k.xung_ho || null, k.address || null, await sinhQrKhongTrung(db.queryOne),',
                              "k.xung_ho || null, k.address || null, require('./helpers').generateQRCode(),", 1)], r'✗ C2b App', T),
   ('BV-TAO-TRUNG-NGOAI-CAU', [(KM, 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(phone) DO NOTHING',
                                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 1)], r'✗ C4 ', T),
-  ('VS-QUAY-TRUNG-SAI-MA', [(C1, "if (kq.trung) return res.status(400).json({ error: 'Số điện thoại đã tồn tại trong hệ thống', code: 'SDT_DA_CO' });\n\n",
-                             "if (kq.trung) return res.status(400).json({ error: 'Số điện thoại đã tồn tại trong hệ thống' });\n\n", 1)], r'✗ C4b ', T),
+  ('VS-QUAY-TRUNG-SAI-MA', [(C1, "if (kq.trung) return res.status(400).json({ error: 'Số điện thoại đã tồn tại trong hệ thống', code: 'SDT_DA_CO' });\n\n    // Người nhận",
+                             "if (kq.trung) return res.status(400).json({ error: 'Số điện thoại đã tồn tại trong hệ thống' });\n\n    // Người nhận", 1)], r'✗ C4b ', T),
   ('BV-QUAY-MAC-DINH-CU', [(C1, 'const kq = await taoKhach({ phone, name, notes, parent_phone, relationship, customer_type,',
                             "const kq = await taoKhach({ phone, name, notes, parent_phone, relationship, customer_type: customer_type || 'subscription',", 1)],
    r'✗ C1 so ', T),
@@ -71,7 +71,7 @@ DOT_BIEN = [
   ('BV-CHEP-SAO-LUU', [(N20, "  if (truoc > 0) await tx.run('CREATE TABLE IF NOT EXISTS _sao_luu_020_pos_customers AS SELECT * FROM pos_customers');\n", '', 1)], r'✗ B1d ', T),
   ('BV-CHEP-NHAT-KY', [(N20, "VALUES ('chep_khach_sx', ?, ?, 'success', 'nang_cap', ?)`, [so.them, JSON.stringify(ghi), getNow()]);",
                         "VALUES ('chep_khach_sx', ?, ?, 'success', 'nang_cap', ?)`, [so.them, JSON.stringify(so), getNow()]);", 1)], r'✗ B1e ', T),
-  ('VS-CHEP-RONG-LA-XONG', [(N20, 'if (!Array.isArray(ds) || ds.length === 0)', 'if (!Array.isArray(ds))', 1)], r'✗ A2j ', G),
+  ('VS-CHEP-RONG-LA-XONG', [(N20, 'if (!Array.isArray(ds) || ds.length === 0)', 'if (!Array.isArray(ds))', 1)], r'✗ B3c ', T),
   ('VS-021-DOI-COT', [(N21, "UPDATE pos_customers SET qr_code = ? WHERE id = ? AND (qr_code IS NULL OR qr_code = '')",
                        "UPDATE pos_customers SET qr_code = ?, updated_at = '2026-11-07T00:00:00' WHERE id = ?", 1)], r'✗ B6 ', T),
   ('BV-021-DANG-KY', [(N21, "SELECT * FROM pos_registrations WHERE status = 'pending'", "SELECT * FROM pos_registrations WHERE 0 AND status = 'pending'", 1)], r'✗ B6b ', T),
