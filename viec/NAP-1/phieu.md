@@ -59,6 +59,8 @@ doanh thu thật không bị đội.
 - cong_cu/thu_KHMUA1.js
 - cong_cu/thu_DOISOAT1.js
 - kiem_tra_truoc_khi_giao.js
+- server/routes/damages.js
+- server/routes/packages.js
 
 <!-- Chủ quán 05.11 (3 câu kế hoạch d5ddc8f):
      1 CÓ — thêm diemThat.js, cong_cu/gia_lap/bat_bien.js và 7 bài cũ (thu_P20, thu_P2223, thu_P24, thu_DIEMTHAT1, thu_P3, thu_KHMUA1, thu_DOISOAT1):
@@ -72,6 +74,11 @@ doanh thu thật không bị đội.
        soát lại một lần rồi đi tiếp (soát bảo mật, cổng chạy, báo cáo 7 mục, Bài học).
      2 — Tạo / sửa / bật / tắt GÓI NẠP chỉ CHỦ QUÁN (owner) và phải gõ PIN CHỦ QUÁN (dùng lại khoá PIN của HANG-1 — server/utils/pinChuQuan.js,
        chỉ gọi, không sửa), máy chủ chặn — không chỉ giấu nút. Quản lý / nhân viên vẫn BÁN gói ở quầy như phiếu. Không đặt trần % thưởng. -->
+
+<!-- Chủ quán 06.11 (câu hỏi 06.11 (3), nhánh 90a2181): (a) + thêm hai file — đền bù trả vào tài khoản (damages.js) và kết thúc gói có hoàn tiền
+     vào tài khoản (packages.js) TRỪ ĐIỂM giống duyệt hoàn: theo phần tiền trả vào tài khoản, chia tỷ lệ, làm tròn lên, cho âm như P24; dùng lại
+     ĐÚNG hàm vừa viết (một quy tắc — một hàm). Ca thử đỏ / xanh + đột biến cho từng lối; soát bảo mật lại một lần; rồi đi tiếp (cổng chạy, báo cáo
+     7 mục, Bài học). GIAO-1 cũng sửa damages.js — chỉ sửa đúng chỗ cần, chat lo phần đụng nhau khi gộp. -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_NAP1.js` ĐỎ trên code gốc: tạo gói + giá trị sai 400; bán gói tiền mặt / QR → số dư tăng đúng hai ngăn; chặn trả gói bằng ví / mã;
 trả đơn bằng ví trừ đúng tỷ lệ; hoàn trả đúng ngăn; bất biến hai ngăn = balance qua chuỗi nạp → trả → hoàn → ví mẹ; điểm cộng khi trả ví, không
