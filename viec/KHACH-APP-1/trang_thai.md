@@ -10,10 +10,33 @@
   267348c TIEN-DO: TINGEE-1 chay that; CT-1b luat sinh 29/02 -> 28/02; mo KHACH-APP-1 (khach App hien o POS); quyet dinh 03 + 06.11 — so v56
   ```
 
+## Bước 1 — lần làm tiếp (07.11.2026, sau khi chủ quán duyệt)
+- nhánh `viec/KHACH-APP-1`, cây sạch; `git rev-parse --short HEAD FETCH_HEAD`: HEAD `37d195b` · FETCH_HEAD `37d195b` (bằng nhau).
+- `git log --oneline -3`:
+  ```
+  37d195b PHIEU: KHACH-APP-1 chu quan duyet ke hoach + tra loi Q1-Q4 07.11 (them file vao Pham vi)
+  dc6c85d KHACH-APP-1: ghi ket qua npm test sau buoc 3 (kho nong -> unshallow)
+  05764eb KHACH-APP-1: ke hoach + cau hoi (cho chu quan duyet)
+  ```
+
 ## Đang ở bước
-Bước 3 xong — kế hoạch `ke_hoach.md`. Phiếu dặn "lập kế hoạch rồi DỪNG chờ duyệt" (việc [T]) → **DỪNG, chờ chủ quán duyệt + trả lời Câu hỏi**.
+Bước 4–5 xong (bài thử đỏ trên gốc → code vá → `thu_KHACHAPP1` 68/68, `thu_GIOVN1` 61/61, đột biến 30/30 BẮT). Bước 6 `npm test` ĐỎ ở MỘT
+bài cũ ngoài Phạm vi — `cong_cu/thu_KHO1.js` B1, B2 (Câu hỏi Q5) → **DỪNG chờ chủ quán** (phiếu: "Bài cũ khác đỏ thì vẫn DỪNG hỏi").
 
 ## Câu hỏi
+- **Q5 (07.11, lần làm tiếp) — bài cũ `cong_cu/thu_KHO1.js` đỏ vì hành vi HOÃN chủ quán đã duyệt.**
+  `npm test` → `✗ bài chạy thật cong_cu/thu_KHO1.js` → `✗ B1 khởi động lần 1: pos_nang_cap đủ mọi bước, bước 1 là 001_kho — [... {"so":19,…},
+  {"so":21,"ten":"021_chep_dang_ky_qr"}]` và `✗ B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng`.
+  Lý do (đọc `cong_cu/thu_KHO1.js:247–251`): B1 / B2 đòi số dòng `pos_nang_cap` = số file `NNN_*.js`. Kho thử của bài không có SX → bước 020
+  HOÃN (đúng nghiệm thu B: "SX không trả lời / không có khoá → bước chưa coi là xong") → 13 dòng cho 14 file. Không có cách nào code đúng
+  phiếu mà B1 xanh — đây là bài sửa vì hành vi ĐÃ DUYỆT đổi (LUAT_XAY_APP §6.8), không phải lỗi code.
+  *Đề xuất:* thêm `cong_cu/thu_KHO1.js` vào Phạm vi; sửa đúng hai dòng 247–251: số bước PHẢI có dòng = số file KHÔNG xuất `truoc` (bước có
+  `truoc` được phép HOÃN khi kho thử không có SX) và tập `so` khớp đúng các file đó (vẫn so BẰNG, không nới thành "ít nhất"); thêm một ca
+  "B1c bước 020 không có dòng pos_nang_cap khi SX không cấu hình" — ca này ĐỎ trên gốc (gốc chưa có 020) để bản sửa có bằng chứng đỏ,
+  ghi `SỐ CA`. Hoặc chat nới B1 / B2 trên main trước (khuôn SUA-*).
+  Ngoài B1, B2: `npm test` PASS 100 · FAIL 1 (chỉ thu_KHO1) · CẢNH BÁO 1 (route GET có lệnh ghi — có sẵn trên gốc).
+
+## Câu hỏi đã trả lời (chủ quán 07.11 — phiếu commit 37d195b)
 Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho chủ quán". Tóm tắt:
 - **Q1 (K1 — phiếu lệch code):** màn Khách hàng ở quầy KHÔNG gọi `POST /customers`. Nút "Thêm khách" (`client/src/pages/Customers.jsx:115`)
   gọi `registrationsApi.create` → `POST /registrations` (`server/routes/registrations.js:218`) → chỉ ghi `pos_registrations` (chờ xuất sang SX),
@@ -47,3 +70,51 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
   `git fetch -q --unshallow origin viec/KHACH-APP-1` (chỉ tải lịch sử) → `npm test` PASS 100 · FAIL 0 · CẢNH BÁO 2. Hai cảnh báo có SẴN trên
   code gốc (nhánh chưa đổi code): route GET có lệnh ghi (3: packages.js:195, products.js:66, sync.js:148) và route ghi không qua loiGhi đếm 54 >
   ngưỡng 50 (có `customers.js:314 POST` — việc này sẽ cho đi qua `loiGhi`). Không nới ngưỡng (K8).
+
+## Chỗ vá → đột biến (`viec/KHACH-APP-1/dot_bien.py`, chạy `python3 viec/KHACH-APP-1/dot_bien.py` — đối chứng 68/68 xanh, 30/30 BẮT)
+| Chỗ vá | Đột biến (ca bắt) |
+|---|---|
+| customers-v2.js `GET /` đọc qua docKhach, không gọi SX | BV-DOC-SX-DANH-SACH (A11) |
+| customers-v2.js `/search` qua docKhach | BV-DOC-SX-TIM (A11) |
+| customers-v2.js `/:phone`, `/:phone/full` qua motKhach | BV-DOC-SX-HO-SO (A11) |
+| docKhach.js đọc MỌI dòng (Q3) | VS-DOC-CHI-ACTIVE (A14) |
+| docKhach.js chọn trường, không rải dòng | VS-DOC-LO-BI-MAT (A12b) |
+| docKhach.js dòng khách thắng đăng ký | VS-DOC-DANG-KY-DE-KHACH (A6b) |
+| docKhach.js điểm còn hạn | VS-DOC-DIEM-HET-HAN (A1b) |
+| docKhach.js số dư mẹ | VS-DOC-SO-DU-ME (A13) |
+| docKhach.js thêm xung_ho | BV-DOC-XUNG-HO (A12) |
+| khachMoi.js mặc định retail (Q2) | BV-TAO-MAC-DINH (C1) |
+| khachMoi.js sinhQrKhongTrung | BV-TAO-QR-KHONG-KIEM (C2b) |
+| khachMoi.js trùng SĐT chặn trong câu ghi | BV-TAO-TRUNG-NGOAI-CAU (C4) |
+| customers.js POST trùng → 400 SDT_DA_CO | VS-QUAY-TRUNG-SAI-MA (C4b) |
+| customers.js POST dùng mặc định chung | BV-QUAY-MAC-DINH-CU (C1) |
+| customers.js POST /:id/children qua taoKhach | BV-NHAN-RIENG-QR (K2c) |
+| maKhach.js App tạo qua taoKhach | BV-APP-TAO-RIENG (C2b) |
+| registrations.js tạo khách thật (Q1) | BV-DK-KHONG-TAO (C7) |
+| registrations.js SĐT đã là khách → 400, không ghi | VS-DK-TRUNG-VAN-GHI (C7b) |
+| customers-v2.js địa chỉ / ghi chú tạo qua taoKhach | BV-V2-CHEN-RIENG (C8) |
+| chay.js trạng thái HOÃN | BV-HOAN (B3) |
+| chay.js bước NÉM vẫn hỏng + dừng | VS-NEM-THANH-HOAN (B7) |
+| chay.js bước đã chạy không gọi truoc | VS-HOAN-GOI-LAI-SX (B2) |
+| 020 chỉ thêm, không ghi đè | VS-CHEP-GHI-DE (B1b) |
+| 020 sao lưu | BV-CHEP-SAO-LUU (B1d) |
+| 020 nhật ký trước / sau | BV-CHEP-NHAT-KY (B1e) |
+| 020 SX trả rỗng → HOÃN | VS-CHEP-RONG-LA-XONG (B3c) |
+| 021 chỉ điền ô QR trống, không đổi cột khác | VS-021-DOI-COT (B6) |
+| 021 chép đăng ký chờ | BV-021-DANG-KY (B6b) |
+| 021 chỉ đăng ký CHỜ | VS-021-CHEP-DA-XUAT (B6b) |
+| 021 cấp QR | BV-021-CAP-QR (B6) |
+
+Tên đột biến: BV-DOC-SX-DANH-SACH, BV-DOC-SX-TIM, BV-DOC-SX-HO-SO, VS-DOC-CHI-ACTIVE, VS-DOC-LO-BI-MAT, VS-DOC-DANG-KY-DE-KHACH,
+VS-DOC-DIEM-HET-HAN, VS-DOC-SO-DU-ME, BV-DOC-XUNG-HO, BV-TAO-MAC-DINH, BV-TAO-QR-KHONG-KIEM, BV-TAO-TRUNG-NGOAI-CAU, VS-QUAY-TRUNG-SAI-MA,
+BV-QUAY-MAC-DINH-CU, BV-APP-TAO-RIENG, BV-NHAN-RIENG-QR, BV-DK-KHONG-TAO, VS-DK-TRUNG-VAN-GHI, BV-V2-CHEN-RIENG, BV-HOAN, VS-NEM-THANH-HOAN,
+VS-HOAN-GOI-LAI-SX, VS-CHEP-GHI-DE, BV-CHEP-SAO-LUU, BV-CHEP-NHAT-KY, VS-CHEP-RONG-LA-XONG, VS-021-DOI-COT, BV-021-DANG-KY,
+VS-021-CHEP-DA-XUAT, BV-021-CAP-QR.
+
+## Ghi chú làm tiếp (07.11)
+- Bộ chạy nâng cấp: HOÃN do bước TỰ trả về qua `truoc()` — gọi NGOÀI giao dịch vì giao dịch ghi Turso (`database.js` beginTransaction →
+  `db.transaction("write")`) không nên mở trong lúc chờ SX (tới 8 s). Bước ném lỗi vẫn rollback + dừng + `hong` (ca B7 khoá).
+- Phần chép không cần SX (đăng ký chờ + cấp QR ô trống) tách thành bước 021 để chạy cả khi 020 HOÃN (Replit không có SX).
+- Bánh cóc `NGUONG_ROUTE_GHI_KHONG_LOIGHI` 50 → 49: bộ kiểm báo đếm 49 sau khi 5 route ghi khách đi qua `loiGhi` (được phép HẠ).
+- `thu_GIOVN1` A2j: bước 020 nạp lúc khởi động TRƯỚC SX giả của bài → bài xoá bộ đệm `require` của 020 rồi chạy khung lại (chỉ sửa bài).
+- `thu_GIOVN1` M5 (phép tĩnh giờ ghi) báo `khachMoi.js` INSERT thiếu `created_at` khi danh sách cột sinh động → viết cột ra hẳn (K8: phép đúng).

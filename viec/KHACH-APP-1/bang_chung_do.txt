@@ -1,0 +1,60 @@
+# KHACH-APP-1 — bằng chứng bài thử ĐỎ trên code gốc (37d195b) và số ca trên code đã vá
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js thu_GIOVN1.js
+#   (bài HIỆN TẠI ở cong_cu/ chạy trên server/ + client/src/ của 37d195b — bài ở commit da1f1df). Dòng dài cắt phần JSON đuôi.
+
+── thu_KHACHAPP1.js (bài HIỆN TẠI trên code 37d195b):
+  ✗ C1 so MỌI cột (trừ id, phone, qr_code, giờ, created_by, xung_ho, address) hai khách bằng nhau  — sync_status: new ≠ retail_only · customer_type: subscription ≠ retail
+  ✗ C1 mặc định chung retail / retail_only (chủ quán Q2)  — subscription/new
+  ✗ C2b App: mã QR trùng mã đã có → sinh lại, tạo được khách (không 500, không mất khách)  — HTTP 500 {"error":"Lỗi máy chủ, thử lại sau","code":"LOI_MAY_CHU"} · undefined
+  ✗ C4 ba quầy cùng SĐT cùng lúc → MỘT khách, một 201, còn lại 400 SDT_DA_CO (không 500)  — HTTP 201 … · HTTP 400 {"error":"Số điện thoại đã tồn tại trong hệ thống"} · HTTP 400 {"error":"Số điện thoại đã tồn tại trong hệ thống"}
+  ✗ C4b quầy tạo SĐT đã có → 400 SDT_DA_CO, câu cũ giữ  — HTTP 400 {"error":"Số điện thoại đã tồn tại trong hệ thống"}
+  ✗ K2 người nhận có SĐT: tạo được, có QR, parent_phone đúng, theo loại của mẹ; người nhận không SĐT bỏ qua (không 500)  — HTTP 500 {"error":"SQLITE_CONSTRAINT_NOTNULL: NOT NULL constraint failed: pos_customers.phone"} · …
+  ✗ K2d POST /:id/children không SĐT → 400 (không 500)  — HTTP 500 {"error":"SQLITE_CONSTRAINT_NOTNULL: NOT NULL constraint failed: pos_customers.phone"}
+  ✗ C7 "Thêm khách" (POST /registrations) tạo khách THẬT (có QR, retail_only) và vẫn ghi đăng ký chờ (Q1)  — HTTP 200 {"success":true,"registration":{…}} · null
+  ✗ C7b đăng ký SĐT đã là khách → 400 SDT_DA_CO, không ghi đăng ký  — HTTP 200 {"success":true,"registration":{"id":2,"phone":"0938100001",…
+  ✗ C8 ghi địa chỉ / ghi chú cho SĐT chưa là khách → tạo qua hàm chung (có QR, retail_only) rồi ghi  — HTTP 200 … · {… "qr_code":null, … "sync_status":"new", … "customer_type":"subscription" …}
+  ✗ A1 (ds) khách quầy + khách App có trong GET /v2/customers  — 4 dòng: 0938100009,0938100008,0938100001,0938100099
+  ✗ A1b (ds) khách App: balance 50000, points 30 (điểm hết hạn không tính), ngay_sinh, xung_ho
+  ✗ A6b (ds) khách tạo qua "Thêm khách" hiện là KHÁCH (id, is_synced), không phải dòng đăng ký chờ  — {"name":"Khách Đăng Ký","phone":"0938100008",…,"is_synced":false,"is_pending":true,…}
+  ✗ A14 (ds) khách SX đã ngừng (sx_status 'expired') vẫn hiện (Q3)  — 4 dòng
+  ✗ A3 (ds) /search theo tên / SĐT / một phần tên (không phân biệt hoa thường) ra đúng khách  — 0/1/0
+  ✗ A13 (ds) người nhận: parent_balance = ví mẹ 120000, parent_name = tên mẹ
+  ✗ A4 (ds) quét QR khách App → SĐT → /search ra khách  — HTTP 200 {"id":2,"phone":"0938100002",…
+  ✗ A5 (ds) GET /:phone khách App 200 + balance, total_topup, xung_ho; /:phone/full khách quầy 200  — HTTP 200 {"phone":"0938100002","source":"pos","is_retail":true,…} · HTTP 200 {"customer":{"name":"Đã là khách",…,"is_pending":true,…
+  ✗ A11 (ds) bốn đường đọc khách KHÔNG gọi SX lần nào  — 10 lượt
+  ✗ A12 (ds) dạng trả ra: danh sách giữ đủ khoá cũ + có xung_ho  —  thiếu xung_ho
+  ✗ A1b (loi) khách App: balance 50000, points 30 (điểm hết hạn không tính), ngay_sinh, xung_ho  — {… thiếu xung_ho …}
+  ✗ A6b (loi) khách tạo qua "Thêm khách" hiện là KHÁCH (id, is_synced), không phải dòng đăng ký chờ  — {…,"is_synced":false,"is_pending":true,…}
+  ✗ A14 (loi) khách SX đã ngừng (sx_status 'expired') vẫn hiện (Q3)  — 13 dòng
+  ✗ A13 (loi) người nhận: parent_balance = ví mẹ 120000, parent_name = tên mẹ  — {…,"parent_name":null,…,"parent_balance":120000,…}
+  ✗ A5 (loi) GET /:phone khách App 200 + balance, total_topup, xung_ho; /:phone/full khách quầy 200  — HTTP 200 {… "so…
+  ✗ A11 (loi) bốn đường đọc khách KHÔNG gọi SX lần nào  — 10 lượt
+  ✗ A12 (loi) dạng trả ra: danh sách giữ đủ khoá cũ + có xung_ho  —  thiếu xung_ho
+  ✗ A8 sau hai lần tải danh sách: tên trong kho + trên danh sách vẫn là tên POS  — Tên Mới Ở POS / Tên Cũ Bên SX
+  ✗ A8b khách chỉ có ở SX KHÔNG tự chép vào kho khi tải danh sách
+  ✗ B3b bước 020 (SX) HOÃN — chưa ghi pos_nang_cap; bước 021 sau nó vẫn chạy  — false false
+  ✗ B1 SX trả lời → bước 020 chạy, khung không hỏng  — null
+  ✗ B1b chỉ THÊM 2 khách thiếu (một SĐT +84 chuẩn hoá); dòng đã có KHÔNG đổi tên / QR  — 13 → 13 · {"name":"Tên POS Đúng","qr_code":"TQD-AAAAAAAAAAAA"}
+  ✗ B1c khách chép có QR mới, parent_phone, synced / active / subscription, giờ dạng T  — null
+  ✗ B1d sao lưu _sao_luu_020_pos_customers = bảng TRƯỚC khi chép  — -1 / 13
+  ✗ B1e nhật ký pos_sync_logs: record_count = 2, {sx 6, da_co 1, them 2, bo_qua 3, truoc, sau}  — không có dòng
+  ✗ B2 chạy khung lần hai: không gọi SX, không thêm khách, không thêm nhật ký  — 0 lượt · 13→13 · 0 log
+  ✗ B6 bước 021: cấp QR cho dòng qr_code NULL / rỗng; không đổi cột khác (updated_at, notes); không đụng mã đã có  — null · {"id":14,"phone":"0938100041",…,"qr_code":null,…} ·
+  ✗ B6b đăng ký CHỜ chưa là khách → thành khách (QR, retail_only, created_by của đăng ký); đăng ký đã xuất không chép  — null
+  ✗ B6c quét QR mới cấp ra đúng khách cũ  — HTTP 404 {"error":"Không tìm thấy khách hàng","code":"QR_KHONG_CO"}
+  ✗ B6d nhật ký 021: them_dang_ky ≥ 1, cap_qr ≥ 2  — không có dòng
+  ✗ B7 bước HOÃN: không ghi gì, không pos_nang_cap; bước sau chạy; bước NÉM → rollback + hong + DỪNG (904 không chạy)  — 901,902 · 901,902 · 903_nem: hỏng thử
+  TỔNG: 27/68 ca đạt
+  ✗ CÓ 41 CA HỎNG
+  thoát 1
+  (ca xanh trên gốc = hồi quy / điều kiện: C0, C2, C3, C5, C5b, C6, C6b, K2b, K2c, A6, A9, A9b, A12b, A1/A3/A4 (loi — đường dự phòng cũ đọc
+   local), B3, B3c, B4, B5, B6e)
+
+── thu_GIOVN1.js (bài HIỆN TẠI trên code 37d195b) — ca A2j sửa theo Q4 (chủ quán 07.11):
+  ✗ A2j bước chép lần cuối khách SX (020): khách mới created_at + dòng nhật ký giờ VN dạng T; khách đã có KHÔNG bị ghi lại  — null · null · {"name":"Khách hàng","a":"2026-11-02T12:00:00","b":"2026-11-02T12:00:00"} → {"name":"Khách hàng","a":"2026-11-02T12:00:00","b":"2026-11-02T12:00:00"}
+  60 đạt · 1 hỏng
+  thoát 1
+
+## Trên code đã vá (HEAD, cùng bài): node cong_cu/thu_KHACHAPP1.js → TỔNG: 68/68 ca đạt · node cong_cu/thu_GIOVN1.js → 61 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHACHAPP1.js: 68
+SỐ CA cong_cu/thu_GIOVN1.js: 61
