@@ -45,7 +45,27 @@ Khách chỉ có MỘT nguồn là `pos_customers`. Mọi khách (tạo ở qu�
 - server/database.js
 - cong_cu/thu_KHACHAPP1.js
 - kiem_tra_truoc_khi_giao.js
+- server/routes/registrations.js
+- cong_cu/thu_GIOVN1.js
 
+<!-- Chủ quán 07.11 (câu hỏi kế hoạch 05764eb) — duyệt kế hoạch với các câu trả lời:
+     Q1 CÓ — thêm server/routes/registrations.js: "Thêm khách" ở quầy (POST /registrations) tạo khách THẬT ngay bằng hàm tạo chung (vẫn ghi
+        pos_registrations như cũ); bước chép lần cuối chép luôn đăng ký đang chờ chưa có trong pos_customers. Danh sách: mỗi SĐT MỘT dòng.
+     Q2 Mặc định chung retail / retail_only (không còn xuất SX); quầy gửi rõ customer_type thì theo đó; sync.js không đổi.
+     Q3 Đọc MỌI dòng pos_customers (khách đã có tiền / điểm không được biến mất).
+     Q4 Sửa ca A2j NGAY trong việc này (đã thêm cong_cu/thu_GIOVN1.js vào Phạm vi) — chuyển sang kiểm giờ ghi (giờ VN, dạng T) của bước chép lần
+        cuối; bản sửa ĐỎ trên gốc, ghi SỐ CA; KHÔNG ghi vào ## Bài thử cũ sửa (cố ý đổi hành vi bài cũ canh) — như NAP-1 sửa thu_P24. Bài cũ
+        khác đỏ thì vẫn DỪNG hỏi như phiếu.
+     Phát hiện — chủ quán chốt:
+     · Người nhận không SĐT: bỏ qua như máy đề xuất (không 500).
+     · PUT /v2/customers/:phone/address và /discount tự chèn khách "Khách hàng": cũng đi qua hàm tạo chung (cùng mặc định, có QR) — MỘT hàm
+       tạo khách cho mọi đường.
+     · Khách cũ qr_code NULL: bước chép lần cuối CẤP mã QR cho dòng đang TRỐNG qr_code (sinhQrKhongTrung) — chỉ điền ô trống, không đổi mã đã
+       có, không đổi cột khác; ghi số dòng đã cấp vào nhật ký. Ca thử: quét QR ra đúng khách cũ.
+     · Bộ chạy nâng cấp (server/nang_cap/chay.js): chỉ THÊM trạng thái HOÃN mà bước TỰ trả về (bước chép SX khi SX không trả lời → lần
+       khởi động sau chạy lại); bước NÉM LỖI vẫn rollback + dừng + kho trả 503 như cũ (có ca thử khoá điều này). Sửa tối thiểu — NAP-1 cũng
+       sửa chay.js, chat lo phần đụng khi gộp.
+     · Nhãn "SX / Đã đồng bộ" trên màn quầy và orders.js:818: để việc sau (chat ghi sổ), không làm ở đây. -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_KHACHAPP1.js` ĐỎ trên code gốc: khách App và khách quầy mới không có trong `GET /v2/customers`, `/search`, `/:phone` (404) khi SX giả
 trả danh sách không có họ; tên sửa ở POS bị SX đè; so cột hai đường tạo khách lệch.
