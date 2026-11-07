@@ -676,3 +676,20 @@ thu_NAP1 87 · 0.
 
 `npm test -- --day-du` trên 1cca289 (sau vòng sửa 1): PASS 103 · FAIL 0 · CẢNH BÁO 2. Đột biến trọn bộ: ĐỐI CHỨNG XANH 87 · 0 — TỔNG 111 · BẮT 111 · SỐNG 0 · HỎNG 0 · LẠC 0.
 Đang soát lại vòng sửa 1.
+
+## Soát lại vòng sửa 1 (/ra-soat, a670b86 → 25f4c00) — tóm tắt báo cáo
+```
+ĐẠT (chỉ còn một chỗ thiếu ca NHẸ)
+LỖI: cong_cu/thu_NAP1.js E16/E16c/E16d — có ca ròng = 0 (chặn) và ròng ≥ 11, chưa có ca NGAY TRÊN ngưỡng (ròng = 1) cho `diemCong - diemTru <= 0`
+  (signup-codes.js:264) — nới thành `<= 10` vẫn xanh. — K3 — NHẸ
+NGHI NGỜ: 'KHONG_THEM_DIEM' viết ở hai chỗ (nhanDiem.js:43 và signup-codes.js:266), mỗi chỗ một lời — cùng tình huống cùng mã (LUAT §2), mã có trong
+  HOP_DONG_API_KH.md:171,227 — không phải lỗi. Rollback sau câu chiếm: người nhập cùng mã đúng lúc có thể nhận "vừa được dùng" dù mã chưa dùng — vô hại.
+NGHIỆM THU: 4/4 (NaN · ròng 0 tiêu mã · kết thúc gói có ca · phần 07.11). thu_NAP1 87 · 0; npm test PASS 99 · FAIL 0; 4 đột biến BẮT 4.
+K4: return sớm trong try tự rollback; rollback lỗi → catch rollback lại → 500. "Trừ sau câu chiếm mã" chỉ một chỗ. K5: ròng > 0 qua (E16, E16d); E16b; khách lẻ;
+  hệ số ×1 chặn sẵn ở nhanDiem.js:43; App KH nhận đúng {error, code}.
+CHƯA SOÁT ĐƯỢC: /api/kh/nhan-diem không ca riêng ròng 0 (chung hàm); Turso thật khi rollback chen một lần nhận mã khác; chưa chạy đột biến `<= 10`.
+BÀI HỌC: NGUYÊN TẮC — sửa thành phép ngưỡng thì cùng vòng thêm ca NGAY TRÊN ngưỡng; return sớm trong giao dịch → kiểm cả ba thứ quay về (mã, dòng điểm, quyền lần đầu).
+```
+Đã thêm (lỗi nhẹ trong Phạm vi): E16g ròng = 1 → 200, báo cộng 1, điểm 2 · đột biến VS-ma-bill-rong-nguong-1 (BẮT). Lần đầu viết số mong đợi 22 (sai phép tính
+của mình — K2: truy nguyên in số thật ra 2, code đúng) → sửa thành 2. Ca này xanh trên code hiện tại là đúng ý (ca "phải KHÔNG bị chặn", canh bằng đột biến).
+thu_NAP1 88 · 0. Đột biến ngưỡng: ĐỐI CHỨNG XANH 88 · BẮT 3.
