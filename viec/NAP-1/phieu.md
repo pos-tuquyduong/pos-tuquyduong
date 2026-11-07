@@ -61,6 +61,9 @@ doanh thu thật không bị đội.
 - kiem_tra_truoc_khi_giao.js
 - server/routes/damages.js
 - server/routes/packages.js
+- server/routes/signup-codes.js
+- server/utils/nhanDiem.js
+- server/routes/hoaDon.js
 
 <!-- Chủ quán 05.11 (3 câu kế hoạch d5ddc8f):
      1 CÓ — thêm diemThat.js, cong_cu/gia_lap/bat_bien.js và 7 bài cũ (thu_P20, thu_P2223, thu_P24, thu_DIEMTHAT1, thu_P3, thu_KHMUA1, thu_DOISOAT1):
@@ -79,6 +82,13 @@ doanh thu thật không bị đội.
      vào tài khoản (packages.js) TRỪ ĐIỂM giống duyệt hoàn: theo phần tiền trả vào tài khoản, chia tỷ lệ, làm tròn lên, cho âm như P24; dùng lại
      ĐÚNG hàm vừa viết (một quy tắc — một hàm). Ca thử đỏ / xanh + đột biến cho từng lối; soát bảo mật lại một lần; rồi đi tiếp (cổng chạy, báo cáo
      7 mục, Bài học). GIAO-1 cũng sửa damages.js — chỉ sửa đúng chỗ cần, chat lo phần đụng nhau khi gộp. -->
+
+<!-- Chủ quán 07.11 (câu hỏi 07.11, nhánh 8c72808): (a) + thêm file — nhận điểm bằng mã bill (signup-codes.js / nhanDiem.js, cả quầy lẫn
+     App) SAU khi đơn đã được đền / kết thúc gói / duyệt hoàn: ngay sau khi cộng, gọi lại ĐÚNG hàm trừ điểm vừa viết trong CÙNG giao dịch;
+     bill / hoá đơn (hoaDon.js) hiện số điểm ĐÃ trừ. Không đổi trường nào của App. Ca thử đỏ / xanh + đột biến; soát bảo mật lại (8b) vì đổi
+     server/; rồi cổng chạy, báo cáo 7 mục, Bài học. hoaDon.js: KH-TOMTAT-1 (export dungThanhToan / tinhGiam) và GIAO-1 cũng sửa — chỉ sửa
+     đúng chỗ cần, chat lo phần đụng khi gộp. Nếu soát còn tìm thêm lối điểm khác: ghi CHƯA KIỂM + Phát hiện, KHÔNG dừng hỏi nữa — đi tiếp tới
+     báo cáo cuối (chat mở việc sau). -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_NAP1.js` ĐỎ trên code gốc: tạo gói + giá trị sai 400; bán gói tiền mặt / QR → số dư tăng đúng hai ngăn; chặn trả gói bằng ví / mã;
 trả đơn bằng ví trừ đúng tỷ lệ; hoàn trả đúng ngăn; bất biến hai ngăn = balance qua chuỗi nạp → trả → hoàn → ví mẹ; điểm cộng khi trả ví, không
