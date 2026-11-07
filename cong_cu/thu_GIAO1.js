@@ -56,6 +56,7 @@ const coBiMat = (s) => Object.values(BI_MAT).some((b) => String(s).includes(b));
 const A = {
   chuyen: new Map(), tao: [], baoPhi: [], huy: [], goiY: [], tokenLan: 0, soChuyen: 0,
   phi: 25000, km: { 'Số 1 Ngõ Gần': 3, 'Số 9 Đường Biên': 5, 'Số 9 Đường Xa': 5.1 }, hong: null, nuot: false, phiHuy: 0, khiTao: null, khiHuy: null,
+  khiDoc: null, nuotHuy: false,   // V5: việc chen đúng lúc máy đọc chuyến; lệnh huỷ Ahamove đã làm nhưng mất mạng trước khi trả lời
 };
 const DIA_CHI_GOI_Y = { G1: { label: 'Số 1 Ngõ Gần, Hà Nội', lat: 21.01, lng: 105.81 }, LAY: { label: 'Quán Tứ Quý Đường', lat: 21.02, lng: 105.82 } };
 
@@ -94,6 +95,7 @@ function dungAhamoveGia(express) {
   });
   g.get('/v3/orders/:id', (req, res) => {
     if (!coToken(req)) return res.status(401).json({ title: 'Token not found' });
+    if (A.khiDoc) { const f = A.khiDoc; A.khiDoc = null; await f(); }
     if (A.hong === 'doc') return res.status(500).json({ title: 'loi doc' });
     const o = A.chuyen.get(req.params.id);
     return o ? res.json(o) : res.status(404).json({ title: 'not found' });
@@ -105,6 +107,7 @@ function dungAhamoveGia(express) {
     if (A.khiHuy) { const f = A.khiHuy; A.khiHuy = null; await f(); }   // J5f: thẻ đổi đúng lúc Ahamove đang huỷ
     A.huy.push({ id: req.params.id, ...req.body });
     Object.assign(o, { status: 'CANCELLED', cancel_by_user: true, cancel_fee: A.phiHuy });
+    if (A.nuotHuy) { A.nuotHuy = false; req.socket.destroy(); return; }
     res.json({ success: true });
   });
   // Gợi ý địa chỉ (cách 1 — AHAMOVE_DIA_CHI_URL + AHAMOVE_DIA_CHI_KHOA)
@@ -772,8 +775,12 @@ async function main() {
     const pf = await donGiao({ sl: 1 });
     await goiXe(pf.id);
     A.khiHuy = () => db.run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi' WHERE order_id = ?", [pf.id]);
+    A.phiHuy = 4500;
     const j5f = await goi('POST', `/giao-hang/${pf.id}/huy-chuyen`, { ly_do: 'khách đổi giờ' }, tk.manager);
-    k('J5f thẻ đổi đúng lúc huỷ chuyến → 409 TRANG_THAI_DA_DOI', j5f.status === 409 && j5f.j.code === 'TRANG_THAI_DA_DOI', `${j5f.status} ${j5f.j.code}`);
+    A.phiHuy = 0;
+    const cpf = await chuyenCua(pf.id);
+    k('J5f thẻ đổi đúng lúc huỷ chuyến → 409 TRANG_THAI_DA_DOI; phí huỷ 4.500 của lệnh huỷ đã thành công VẪN ghi (vòng 5)', j5f.status === 409
+      && j5f.j.code === 'TRANG_THAI_DA_DOI' && cpf?.phi_huy === 4500, `${j5f.status} ${j5f.j.code} ${cpf?.phi_huy}`);
     const j8c = await goi('DELETE', `/orders/${d.id}`);
     k('J8b xoá đơn giao ĐÃ từng gọi xe (sổ phí Ahamove / phí huỷ) → 409 DON_GIAO_DA_GOI_XE, chuyến còn', j8c.status === 409 && j8c.j.code === 'DON_GIAO_DA_GOI_XE'
       && !!(await chuyenCua(d.id)), `${j8c.status} ${j8c.j.code}`);
@@ -813,6 +820,156 @@ async function main() {
     dHuy = [a.code, b.code, d.code, m.code];
   }
 
+  // ═══ V5 · vòng sửa 5 (chủ quán Q8 + Q9 07.11) ══════════════════════════════
+  muc('[V5] Thẻ đã đóng chặn huỷ; phí huỷ theo lệnh của quán (Q9) ghi đúng một lần; Tìm lại không gọi chuyến mới khi chuyến vừa bị huỷ');
+  {
+    const luiGiay = (giay) => new Date(Date.parse(getNow() + 'Z') - giay * 1000).toISOString().slice(0, 19);
+    const the = async (id) => ((await goi('GET', '/giao-hang')).j.chuyen || []).find((x) => x.order_id === id);
+    const moChuyen = async (them) => { const e = await donGiao({ sl: 1, ...them }); await goiXe(e.id); return { ...e, x: (await chuyenCua(e.id))?.ma_ahamove }; };
+    const dat = (ma, them) => { if (A.chuyen.has(ma)) datTrangThai(ma, them); };
+    const timLau = (id) => db.run('UPDATE pos_giao_chuyen SET goi_luc = ?, doc_luc = ? WHERE order_id = ?', [luiGiay(601), getNow(), id]).catch(() => {});
+    const homNay = getNow().slice(0, 10);
+    // V1 (Q8-1): đơn trả bằng tài khoản — giao lỗi → Đóng thẻ → Huỷ đơn phải bị chặn như thẻ giao lỗi (hàng đã theo tài xế đi)
+    const v1 = await moChuyen();
+    dat(v1.x, { status: 'IN PROCESS', supplier_name: 'TX V1', supplier_id: '0977002001' });
+    await baoVe({ _id: v1.x, status: 'IN PROCESS' });
+    dat(v1.x, { status: 'CANCELLED', cancel_by_user: false });
+    await baoVe({ _id: v1.x, status: 'CANCELLED' });
+    const dt1 = await goi('POST', `/giao-hang/${v1.id}/dong-the`, { ly_do: 'đã xử lý với tài xế' }, tk.manager);
+    const vi1 = await soDu();
+    const h1 = await huyDon(v1.id, { reason: 'khách đòi huỷ', do_da_pha: 'bo_di' });
+    const kho1 = await db.query("SELECT id FROM pos_stock_pending WHERE order_id = ? AND direction = 'in'", [v1.id]).catch(() => []);
+    const o1 = await db.queryOne('SELECT status FROM pos_orders WHERE id = ?', [v1.id]);
+    k('V1 đơn tài khoản: Đóng thẻ giao lỗi rồi Huỷ đơn → 409 DANG_GIAO_KHONG_HUY — ví, kho, đơn không đổi', dt1.status === 200 && h1.status === 409
+      && h1.j.code === 'DANG_GIAO_KHONG_HUY' && (await soDu()) === vi1 && kho1.length === 0 && o1?.status === 'completed',
+      `${dt1.status} ${h1.status} ${h1.j.code} ví ${(await soDu()) - vi1} kho ${kho1.length} ${o1?.status}`);
+    // V2 (Q8-2): Tìm lại — Ahamove huỷ chuyến cũ (phí 4.000) nhưng đọc lại lỗi → "phí huỷ chưa rõ", màn hỏi lại thì đọc được, ghi MỘT lần
+    const v2 = await moChuyen();
+    await timLau(v2.id);
+    A.phiHuy = 4000;
+    A.khiHuy = () => { A.hong = 'doc'; };
+    const r2 = await goiXe(v2.id, { tu: 'tim_xe' });
+    A.hong = null; A.phiHuy = 0;
+    const p2a = (await chuyenCua(v2.id))?.phi_huy;
+    const ds2 = giaoHang ? await giaoHang.doiSoatGiao(db.query, homNay, homNay).catch(() => null) : null;
+    await the(v2.id);
+    const p2b = (await chuyenCua(v2.id))?.phi_huy;
+    await the(v2.id);
+    const ds2b = giaoHang ? await giaoHang.doiSoatGiao(db.query, homNay, homNay).catch(() => null) : null;
+    const p2c = (await chuyenCua(v2.id))?.phi_huy;
+    k('V2 Tìm lại: Ahamove huỷ chuyến cũ (phí 4.000) mà đọc lại lỗi → chuyến mới; Đối soát báo 1 chuyến chưa rõ phí huỷ; màn hỏi lại → ghi 4.000 MỘT lần',
+      r2.status === 200 && p2a === 0 && ds2?.phi_huy_chua_ro === 1 && p2b === 4000 && p2c === 4000 && ds2b?.phi_huy_chua_ro === 0,
+      `${r2.status} ${p2a} ${ds2?.phi_huy_chua_ro} ${p2b} ${p2c} ${ds2b?.phi_huy_chua_ro}`);
+    // V3 (Q8-2, Q8-3): quản lý Huỷ chuyến thành công, đúng lúc đó máy khác bấm "Tìm lại" → không gọi chuyến mới, phí huỷ 5.000 không mất, không cộng hai lần
+    const v3 = await moChuyen();
+    await timLau(v3.id);
+    A.phiHuy = 5000;
+    let cu3 = null;
+    A.khiDoc = async () => { cu3 = await goiXe(v3.id, { tu: 'tim_xe' }); };
+    const t3 = A.tao.length;
+    const h3 = await goi('POST', `/giao-hang/${v3.id}/huy-chuyen`, { ly_do: 'khách đổi giờ' }, tk.manager);
+    A.phiHuy = 0; A.khiDoc = null;
+    const c3 = await chuyenCua(v3.id);
+    k('V3 quản lý Huỷ chuyến đúng lúc máy khác bấm Tìm lại → Tìm lại 409, KHÔNG gọi chuyến mới; quản lý 200; chuyen_huy; phí huỷ 5.000 một lần',
+      h3.status === 200 && cu3?.status === 409 && A.tao.length === t3 && c3?.trang_thai === 'chuyen_huy' && c3?.phi_huy === 5000,
+      `${h3.status} ${h3.j.code} ${cu3?.status} ${cu3?.j?.code} tạo ${A.tao.length - t3} ${c3?.trang_thai} ${c3?.phi_huy}`);
+    // V4 (Q8-3): màn máy khác còn hiện "Tìm lại" (tim_xe) trong khi thẻ đã chuyen_huy → không gọi chuyến mới; "Gọi lại" đúng thẻ vẫn được (K5)
+    const t4 = A.tao.length;
+    const s4 = await goiXe(v3.id, { tu: 'tim_xe' });
+    const t4b = A.tao.length;
+    const s4b = await goiXe(v3.id, { tu: 'chuyen_huy' });
+    k('V4 màn cũ bấm "Tìm lại" (tim_xe) mà thẻ đã chuyen_huy → 409 TRANG_THAI_DA_DOI, không tạo chuyến; "Gọi lại" (chuyen_huy) → 200 một chuyến',
+      s4.status === 409 && s4.j.code === 'TRANG_THAI_DA_DOI' && t4b === t4 && s4b.status === 200 && A.tao.length === t4 + 1,
+      `${s4.status} ${s4.j.code} tạo ${t4b - t4} ${s4b.status} ${A.tao.length - t4}`);
+    // V5 (Q9): quán huỷ thẳng trên app Ahamove → Ahamove báo huỷ theo lệnh quán → phí huỷ 6.000; tin lặp không cộng
+    const v5 = await moChuyen();
+    dat(v5.x, { status: 'CANCELLED', cancel_by_user: true, cancel_fee: 6000 });
+    await baoVe({ _id: v5.x, status: 'CANCELLED' });
+    await baoVe({ _id: v5.x, status: 'CANCELLED', sub_status: 'lap' });
+    await the(v5.id);
+    const c5 = await chuyenCua(v5.id);
+    k('V5 quán huỷ trên app Ahamove (báo huỷ theo lệnh quán, phí 6.000) → chuyen_huy, phí huỷ 6.000 một lần', c5?.trang_thai === 'chuyen_huy' && c5?.phi_huy === 6000,
+      `${c5?.trang_thai} ${c5?.phi_huy}`);
+    // V6 (Q9): lệnh Huỷ chuyến mất mạng (Ahamove đã huỷ) → máy báo lỗi; Ahamove báo huỷ theo lệnh quán → phí huỷ 7.000
+    const v6 = await moChuyen();
+    A.phiHuy = 7000; A.nuotHuy = true;
+    const h6 = await goi('POST', `/giao-hang/${v6.id}/huy-chuyen`, { ly_do: 'khách đổi ý' }, tk.manager);
+    A.phiHuy = 0; A.nuotHuy = false;
+    const c6a = await chuyenCua(v6.id);
+    await baoVe({ _id: v6.x, status: 'CANCELLED' });
+    const c6 = await chuyenCua(v6.id);
+    k('V6 lệnh Huỷ chuyến mất mạng (Ahamove đã huỷ) → báo lỗi, thẻ chưa đổi; Ahamove báo huỷ theo lệnh quán → chuyen_huy, phí huỷ 7.000', h6.status !== 200
+      && c6a?.trang_thai === 'tim_xe' && c6?.trang_thai === 'chuyen_huy' && c6?.phi_huy === 7000, `${h6.status} ${c6a?.trang_thai} ${c6?.trang_thai} ${c6?.phi_huy}`);
+    // V7 (Q9 + Q8-3): Tìm lại — lệnh huỷ chuyến cũ mất mạng nhưng Ahamove đã huỷ theo lệnh quán → phí 8.000; không gọi chuyến mới (quầy Gọi lại)
+    const v7 = await moChuyen();
+    await timLau(v7.id);
+    A.phiHuy = 8000; A.nuotHuy = true;
+    const t7 = A.tao.length;
+    const r7 = await goiXe(v7.id, { tu: 'tim_xe' });
+    A.phiHuy = 0; A.nuotHuy = false;
+    const c7 = await chuyenCua(v7.id);
+    k('V7 Tìm lại: lệnh huỷ chuyến cũ mất mạng mà Ahamove đã huỷ theo lệnh quán → 409 CHUYEN_DA_HUY, không tạo chuyến, chuyen_huy, phí huỷ 8.000',
+      r7.status === 409 && r7.j.code === 'CHUYEN_DA_HUY' && A.tao.length === t7 && c7?.trang_thai === 'chuyen_huy' && c7?.phi_huy === 8000,
+      `${r7.status} ${r7.j.code} tạo ${A.tao.length - t7} ${c7?.trang_thai} ${c7?.phi_huy}`);
+    // V8 (Q8-5): tài xế / Ahamove huỷ (KHÔNG theo lệnh quán) kèm phí 3.000 → quán không ghi phí huỷ (tự tìm lại lần đầu, chuyen_huy lần hai)
+    const v8 = await moChuyen();
+    dat(v8.x, { status: 'CANCELLED', cancel_by_user: false, cancel_fee: 3000 });
+    await baoVe({ _id: v8.x, status: 'CANCELLED' });
+    const c8a = await chuyenCua(v8.id);
+    dat(c8a?.ma_ahamove, { status: 'CANCELLED', cancel_by_user: false, cancel_fee: 3000 });
+    await baoVe({ _id: c8a?.ma_ahamove, status: 'CANCELLED' });
+    const c8 = await chuyenCua(v8.id);
+    k('V8 tài xế / Ahamove huỷ (không theo lệnh quán, phí 3.000) → không ghi phí huỷ: tự tìm lại rồi chuyen_huy, phí huỷ 0', c8a?.trang_thai === 'tim_xe'
+      && c8a?.ma_ahamove !== v8.x && c8?.trang_thai === 'chuyen_huy' && c8?.phi_huy === 0, `${c8a?.trang_thai} ${c8?.trang_thai} ${c8?.phi_huy}`);
+    // V9 (Q8-4): thẻ treo vì mất mạng (loi_mang) mà đọc chuyến cũ lỗi → vẫn treo (nút Gọi lại), bấm lại được ngay
+    const v9 = await moChuyen();
+    await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', loi_mang = 1, loi = 'Mất kết nối', goi_luc = ? WHERE order_id = ?", [getNow(), v9.id]).catch(() => {});
+    A.hong = 'doc';
+    const r9a = await goiXe(v9.id);
+    A.hong = null;
+    const y9 = await the(v9.id);
+    const r9b = await goiXe(v9.id);
+    k('V9 thẻ treo vì mất mạng, đọc chuyến cũ lỗi → 502, thẻ VẪN treo (nút Gọi lại); bấm lại → 200 nhận lại chuyến cũ', r9a.status === 502 && y9?.treo === true
+      && r9b.status === 200 && (await chuyenCua(v9.id))?.ma_ahamove === v9.x, `${r9a.status} ${y9?.treo} ${r9b.status}`);
+    // V10 (Q8-4): tin báo tới lúc thẻ đang gọi xe → không đánh dấu đã xử lý (Ahamove gửi lại); tin gửi lại sau khi thẻ về tim_xe được áp
+    const v10 = await moChuyen();
+    await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', goi_luc = ? WHERE order_id = ?", [getNow(), v10.id]).catch(() => {});
+    dat(v10.x, { status: 'ACCEPTED', supplier_name: 'TX V10', supplier_id: '0977002010' });
+    const b10 = await baoVe({ _id: v10.x, status: 'ACCEPTED' });
+    await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'tim_xe' WHERE order_id = ?", [v10.id]).catch(() => {});
+    await baoVe({ _id: v10.x, status: 'ACCEPTED' });
+    const c10 = await chuyenCua(v10.id);
+    k('V10 tin báo lúc thẻ đang gọi xe → 409 DANG_GOI_XE (không ghi sổ chống lặp); tin gửi lại khi thẻ tim_xe → doi_tai_xe + tài xế', b10.status === 409
+      && b10.j.code === 'DANG_GOI_XE' && c10?.trang_thai === 'doi_tai_xe' && c10?.tai_xe_ten === 'TX V10', `${b10.status} ${b10.j.code} ${c10?.trang_thai} ${c10?.tai_xe_ten}`);
+    // V11–V13 (Q8-5): chống đua khi nhận lại chuyến cũ / trả thẻ về — máy khác giành lại thẻ đúng lúc máy này đang đọc Ahamove
+    const v11 = await moChuyen();
+    dat(v11.x, { status: 'ACCEPTED', supplier_name: 'TX V11', supplier_id: '0977002011' });
+    const treoLai = () => db.run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', loi_mang = 0, loi = NULL, ma_ahamove = ?, goi_luc = ? WHERE order_id = ?",
+      [v11.x, luiGiay(190), v11.id]).catch(() => {});
+    const MOC = '2001-01-01T00:00:00';
+    await treoLai();
+    A.khiDoc = () => db.run('UPDATE pos_giao_chuyen SET goi_luc = ? WHERE order_id = ?', [MOC, v11.id]);
+    const t11 = A.tao.length;
+    const r11 = await goiXe(v11.id);
+    const c11 = await chuyenCua(v11.id);
+    k('V11 nhận lại chuyến cũ mà máy khác vừa giành lại thẻ (giờ gọi khác) → 409, thẻ của máy kia giữ nguyên, không tạo chuyến', r11.status === 409
+      && c11?.trang_thai === 'dang_goi' && c11?.goi_luc === MOC && A.tao.length === t11, `${r11.status} ${c11?.trang_thai} ${c11?.goi_luc}`);
+    await treoLai();
+    A.khiDoc = () => db.run("UPDATE pos_giao_chuyen SET ma_ahamove = 'AHA_KHAC' WHERE order_id = ?", [v11.id]);
+    const r12 = await goiXe(v11.id);
+    const c12 = await chuyenCua(v11.id);
+    k('V12 nhận lại chuyến cũ mà thẻ vừa sang mã chuyến khác → 409, thẻ không bị ghi theo chuyến cũ', r12.status === 409 && c12?.trang_thai === 'dang_goi'
+      && c12?.ma_ahamove === 'AHA_KHAC', `${r12.status} ${c12?.trang_thai} ${c12?.ma_ahamove}`);
+    await treoLai();
+    A.hong = 'doc';
+    A.khiDoc = () => db.run('UPDATE pos_giao_chuyen SET goi_luc = ? WHERE order_id = ?', [MOC, v11.id]);
+    const r13 = await goiXe(v11.id);
+    A.hong = null; A.khiDoc = null;
+    const c13 = await chuyenCua(v11.id);
+    k('V13 đọc chuyến cũ lỗi mà máy khác vừa giành lại thẻ → 502, câu trả thẻ về không ghi đè (giờ gọi + lỗi của máy kia giữ nguyên)', r13.status === 502
+      && c13?.goi_luc === MOC && c13?.loi == null, `${r13.status} ${c13?.goi_luc} ${c13?.loi}`);
+  }
+
   // ═══ K · Đối soát ═══════════════════════════════════════════════════════════
   muc('[K] Đối soát ngày: phí khách trả, phí Ahamove thật, quán bù / dư, phí huỷ, đơn giao huỷ');
   {
@@ -836,8 +993,10 @@ async function main() {
     let pk = 0;
     for (const x of daTao) if ((await db.queryOne('SELECT status FROM pos_orders WHERE id = ?', [x.id]))?.status === 'completed') pk += Number(x.phi);
     // Vòng 4: + chuyến đã chạy G8c 25.000, I6 25.000, GL 25.000, DT 25.000 (chênh 0) → phí thật 176.000; phí huỷ chỉ lệnh huỷ của quán: J5 5.000 + I4b 2.000 + J5e 3.000.
-    k('K1 phí khách trả / phí Ahamove thật / quán bù / quán dư / phí huỷ (số cứng: 176.000 · 5.000 · 4.000 · 10.000)', !!g && g.phi_khach === Number(pk)
-      && g.phi_that === 176000 && g.quan_bu === 5000 && g.quan_du === 4000 && g.phi_huy === 10000, J(g).slice(0, 200) + ' khách ' + pk);
+    // Vòng 5: + chuyến đã chạy V1 25.000 → phí thật 201.000; phí huỷ theo lệnh quán (Q9) + J5f 4.500, V2 4.000, V3 5.000, V5 6.000, V6 7.000, V7 8.000 → 44.500
+    // (V8 tài xế huỷ có phí 3.000 → KHÔNG tính).
+    k('K1 phí khách trả / phí Ahamove thật / quán bù / quán dư / phí huỷ (số cứng: 201.000 · 5.000 · 4.000 · 44.500)', !!g && g.phi_khach === Number(pk)
+      && g.phi_that === 201000 && g.quan_bu === 5000 && g.quan_du === 4000 && g.phi_huy === 44500, J(g).slice(0, 200) + ' khách ' + pk);
     const huy = (g?.don_huy || []).map((x) => x.code);
     k('K1 danh sách đơn giao huỷ đủ, kèm "Bỏ đi" / "Dùng cho đơn khác"', dHuy.every((c) => huy.includes(c)) && (g?.don_huy || []).some((x) => x.do_da_pha === 'bo_di'),
       J(g?.don_huy || []).slice(0, 200));
