@@ -693,3 +693,24 @@ BÀI HỌC: NGUYÊN TẮC — sửa thành phép ngưỡng thì cùng vòng thê
 Đã thêm (lỗi nhẹ trong Phạm vi): E16g ròng = 1 → 200, báo cộng 1, điểm 2 · đột biến VS-ma-bill-rong-nguong-1 (BẮT). Lần đầu viết số mong đợi 22 (sai phép tính
 của mình — K2: truy nguyên in số thật ra 2, code đúng) → sửa thành 2. Ca này xanh trên code hiện tại là đúng ý (ca "phải KHÔNG bị chặn", canh bằng đột biến).
 thu_NAP1 88 · 0. Đột biến ngưỡng: ĐỐI CHỨNG XANH 88 · BẮT 3.
+
+## Soát bảo mật — lần 3 (07.11, mốc 04068707^ → 97b9eb5; phần mới `git diff 8c72808 HEAD -- server/` + phần 06.11–07.11 chưa qua lần 2)
+Số lỗi trước lọc: 0 · sau lọc: 0 (không có lỗ hổng nào để lọc — bỏ bước 3). Báo cáo của agent (chép nguyên văn):
+```
+No vulnerabilities found.
+
+Scope: git diff 8c72808 HEAD -- server/ (signup-codes.js, hoaDon.js, diemThat.js); branch changes after security review 2 (de18f4d8) up to 8c72808 —
+truDiemHoan in damages.js, packages.js, refunds.js, plus truDiemDon in orders.js.
+What I checked:
+1. nhanDiemMaBill (signup-codes.js:143-284): App KH path passes phone from login token (kh/index.js:296 nhanQuaToken); counter/service path billSdtKhac
+   (91-93) runs before the transaction. Code claimed first with `changes` checked, then earn, then truDiemHoan, one transaction; net ≤ 0 → rollback + 400
+   KHONG_THEM_DIEM (code and first-time right stay unspent). Deduction uses server's own wallet records and order row (tienTinhDiem(don)); no client number.
+   New error message exposes no PIN, token or other customer's data.
+2. truDiemHoan (diemThat.js:32-52): parameterized SQL; missing 014 returns 0 (no NaN past the ≤ 0 check); cumulative against existing adjust rows.
+3. dungDiem (hoaDon.js:44-52): read-only, parameterized by server's own order row.
+4. damages.js:126-190 manager/owner, SELECT *, deduct only when wallet compensation written, same transaction; packages.js:268-271 right after ghiHoan, same
+   transaction, permission unchanged; refunds.js:176 shared function, status → refunded same transaction; orders.js truDiemDon HAVING SUM(points) > 0, filtered by
+   order_id, grouped by phone.
+Not checked: did not run code for edge cases (many partial compensations then bill-code claim); conclusions from reading code only.
+```
+SOÁT BẢO MẬT: ĐẠT
