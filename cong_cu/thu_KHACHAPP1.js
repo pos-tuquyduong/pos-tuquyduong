@@ -103,8 +103,8 @@ async function main() {
   muc('[C] Một hàm tạo khách — quầy và App');
   let kq = null, ka = null;
   await thu('C1', async () => {
-    kq = await quayTao({ phone: SDT_Q, name: 'Khách Quầy' });
-    ka = await appTao(SDT_A, 'Khách App', 'chi', '1 Lê Lợi');
+    kq = await quayTao({ phone: SDT_Q, name: 'Khách Mới' });   // cùng tên ở hai đường → mọi cột (trừ cột phiếu loại) phải bằng nhau
+    ka = await appTao(SDT_A, 'Khách Mới', 'chi', '1 Lê Lợi');
     k('C0 (điều kiện) quầy 201, App xác minh 200', kq.status === 201 && ka.status === 200, `${moTa(kq)} · ${moTa(ka)}`);
     const q = await mot('SELECT * FROM pos_customers WHERE phone = ?', [SDT_Q]), a = await mot('SELECT * FROM pos_customers WHERE phone = ?', [SDT_A]);
     const BO = ['id', 'phone', 'qr_code', 'created_at', 'updated_at', 'created_by', 'xung_ho', 'address'];
@@ -213,8 +213,8 @@ async function main() {
       k(`A6 (${che}) mỗi SĐT MỘT dòng`, Object.values(dem).every((n) => n === 1), JSON.stringify(Object.entries(dem).filter(([, n]) => n > 1)));
       const dk = ds.find((c) => c.phone === '0938100099');
       k(`A9 (${che}) đăng ký chờ chưa là khách vẫn hiện is_pending + registration_id`, dk?.is_pending === true && !!dk?.registration_id, JSON.stringify(dk));
-      const t1 = await tim('Khách App'), t2 = await tim(SDT_Q), t3 = await tim('quầy');
-      k(`A3 (${che}) /search theo tên / SĐT / một phần tên (không phân biệt hoa thường) ra đúng khách`, t1.some((c) => c.phone === SDT_A) && t2.some((c) => c.phone === SDT_Q) && t3.some((c) => c.phone === SDT_Q),
+      const t1 = await tim('Khách Mới'), t2 = await tim(SDT_Q), t3 = await tim('khách mớ');
+      k(`A3 (${che}) /search theo tên / SĐT / một phần tên (không phân biệt hoa thường) ra đúng khách`, t1.some((c) => c.phone === SDT_A) && t1.some((c) => c.phone === SDT_Q) && t2.some((c) => c.phone === SDT_Q) && t3.some((c) => c.phone === SDT_A),
         `${t1.length}/${t2.length}/${t3.length}`);
       const me = (await tim('0938100017'))[0];
       k(`A13 (${che}) người nhận: parent_balance = ví mẹ 120000, parent_name = tên mẹ`, me?.parent_balance === 120000 && me?.parent_name === 'Mẹ', JSON.stringify(me));
