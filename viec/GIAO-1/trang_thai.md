@@ -518,3 +518,13 @@ VS-doc-lai-khong-xep.
 - Người soát nghi (chưa vá, ngoài 4 điểm): Huỷ chuyến của quản lý sau khi Tìm lại đã huỷ chuyến cũ → Ahamove từ chối → lời báo "có thể tài xế đã
   lấy hàng" sai lý do; nếu Ahamove thật trả 200 khi DELETE chuyến đã huỷ thì Tìm lại có thể gọi chuyến mới ngay sau khi quản lý huỷ. Chờ khoá
   Ahamove thật để đối chiếu.
+
+## Soát bảo mật
+/soat-bao-mat (bước 8b, sau vòng sửa 6, HEAD 5494259): một subagent độc lập chỉ đọc, mốc 977aefa^ (cha commit `PHIEU: GIAO-1` đầu tiên), toàn bộ diff
+server/ + client/src/ + kiem_tra_truoc_khi_giao.js (1878 dòng), lời nhắc tiếng Anh nguyên văn + mục "Tiền lệ của kho này".
+Số lỗi trước lọc: 0 · sau lọc: 0 (bước 2 không tìm được gì nên không chạy bước 3). Báo cáo chép nguyên văn:
+
+Không có lỗ hổng nào.
+
+(Ghi thêm cho chủ quán: subagent chạy 40 s, 10 lần gọi công cụ — đọc nhanh so với 1878 dòng diff; xem mục CHƯA KIỂM.)
+SOÁT BẢO MẬT: ĐẠT
