@@ -25,7 +25,7 @@ router.post('/diem-lay', authenticate, chiQuanLy, boc(async (req, res) => tra(re
 router.post('/bao-phi', authenticate, boc(async (req, res) => tra(res, await gh.taoBaoPhi(req.body, req.user.username))));
 router.get('/', authenticate, boc(async (req, res) => res.json({ success: true, chuyen: await gh.danhSach() })));
 router.post('/:id/nhan', authenticate, boc(async (req, res) => tra(res, await gh.nhanDon(Number(req.params.id)))));
-router.post('/:id/goi-xe', authenticate, boc(async (req, res) => tra(res, await gh.goiXe(Number(req.params.id), req.body?.loai_xe ?? null))));
+router.post('/:id/goi-xe', authenticate, boc(async (req, res) => tra(res, await gh.goiXe(Number(req.params.id), req.body?.loai_xe ?? null, req.body?.tu ?? null))));
 router.post('/:id/huy-chuyen', authenticate, boc(async (req, res) => tra(res, await gh.huyChuyenGiao(Number(req.params.id), req.body?.ly_do, req.user))));
 router.post('/:id/dong-the', authenticate, boc(async (req, res) => tra(res, await gh.dongThe(Number(req.params.id), req.body?.ly_do, req.user))));
 router.post('/:id/in-tem', authenticate, boc(async (req, res) => tra(res, await gh.inTem(Number(req.params.id), req.body?.lai === true))));

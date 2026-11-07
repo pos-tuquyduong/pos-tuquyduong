@@ -412,7 +412,7 @@ export const giaoHangApi = {
   baoPhi: (data) => api.post('/giao-hang/bao-phi', data),
   danhSach: () => api.get('/giao-hang'),
   nhan: (id) => api.post(`/giao-hang/${id}/nhan`, {}),
-  goiXe: (id, loaiXe) => api.post(`/giao-hang/${id}/goi-xe`, loaiXe ? { loai_xe: loaiXe } : {}),
+  goiXe: (id, loaiXe, tu) => api.post(`/giao-hang/${id}/goi-xe`, { ...(loaiXe ? { loai_xe: loaiXe } : {}), tu }),   // tu: trạng thái thẻ màn đang thấy
   huyChuyen: (id, lyDo) => api.post(`/giao-hang/${id}/huy-chuyen`, { ly_do: lyDo }),
   inTem: (id, lai = false) => api.post(`/giao-hang/${id}/in-tem`, { lai }),
   dongThe: (id, lyDo) => api.post(`/giao-hang/${id}/dong-the`, { ly_do: lyDo }),

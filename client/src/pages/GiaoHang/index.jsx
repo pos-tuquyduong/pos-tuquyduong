@@ -78,7 +78,7 @@ export default function GiaoHang() {
     setDang(true); setLoi('');
     try {
       if (viec === 'nhan') await giaoHangApi.nhan(c.order_id);
-      else if (viec === 'goi') await giaoHangApi.goiXe(c.order_id, them.loaiXe);
+      else if (viec === 'goi') await giaoHangApi.goiXe(c.order_id, them.loaiXe, c.trang_thai);
       else if (viec === 'tem' || viec === 'tem_lai') {
         const r = await giaoHangApi.inTem(c.order_id, viec === 'tem_lai');
         if (r.duoc) await inTemTui(c, r.lan);
