@@ -1,0 +1,26 @@
+KH-TOMTAT-1 — bằng chứng bài thử ĐỎ trên code gốc (07.11.2026)
+
+Gốc = commit ae1c072 (cây chưa sửa server/, HOP_DONG_API_KH.md còn v11), chép ra thư mục nháp, bài thử mới chép vào.
+
+$ node cong_cu/thu_KHTOMTAT1.js          (trên gốc)
+  ✗ A1 tiền mặt 2 ly 50.000: ... — chi tiết lệch kenh=undefined,cach_nhan=undefined,tra=undefined,so_mon=undefined,mon_dau=undefined,giam=undefined
+  ✗ A6 giảm hạng + mã 5.000 ... giam=undefined
+  ✗ AP1 ví đủ (đã trả) ... kenh=undefined ...
+  ✗ B1 bốn cách trả cùng lúc ... [null, [...]]
+  ✗ C1 đơn không dòng món, không tổng ... kenh=undefined ...
+  ✗ E3 chính A thấy đơn của mình với đủ 6 trường
+  ✗ K5c phân trang giữ nguyên ... mọi đơn đủ 6 trường
+✗ 8 đạt · 22 hỏng
+(8 ca đạt trên gốc là ca KHÔNG đổi: A0, A6c, A7b, E1, E2, E4, K5a, K5b — chứng tỏ khung chạy đúng; 22 ca đỏ vì thiếu trường.)
+
+$ node cong_cu/thu_HOPDONG_KH.js         (bản mới của bài, trên gốc: hợp đồng còn v11)
+  ✗ v12: khối máy đọc ghi đủ kenh / cach_nhan / tra / so_mon / mon_dau / giam (cả /don, /don/:ma)
+  ✗ v12: hợp đồng có mục "Ghi chú v12" ghi đủ 6 trường
+  86 đạt · 2 hỏng
+
+Sau khi vá (HEAD):
+  node cong_cu/thu_KHTOMTAT1.js  → ✓ 30 đạt · 0 hỏng
+  node cong_cu/thu_HOPDONG_KH.js → 88 đạt · 0 hỏng
+
+SỐ CA thu_KHTOMTAT1.js: 30
+SỐ CA thu_HOPDONG_KH.js: 88
