@@ -806,6 +806,7 @@ chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới
 chayBaiThat('cong_cu/thu_KHOIN1.js');   // KHO-IN-1: cài đặt in phiếu kho (80mm / A5 / A4, số bản), ô khổ hoá đơn mặc định ghi đúng khoá
 chayBaiThat('cong_cu/thu_MANKHACH1.js');   // MANKHACH-1: màn khách — ghép máy, khoá riêng, QR + món lúc thu, nội dung rảnh, cài đặt, thu hồi
 chayBaiThat('cong_cu/thu_KHSDT1.js');   // KH-SDT-1: công cụ dọn dữ liệu thử (chỉ chủ quán, một giao dịch, giữ ví ≠ 0 / phiên / đơn hôm nay)
+chayBaiThat('cong_cu/thu_KHTOMTAT1.js');   // KH-TOMTAT-1: tóm tắt cho App KH
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;
