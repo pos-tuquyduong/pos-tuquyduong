@@ -49,7 +49,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
 Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (chỉ đơn thuộc SĐT trong token). Không đổi trường cũ.
 - `kenh`: `app` (đặt từ App) · `quay` (tạo ở quầy); sau này thêm kênh nền tảng (KENH-1) — App bỏ qua giá trị lạ, hiện nguyên.
 - `cach_nhan`: `tai_quan` · `giao` (đơn quầy có phí giao > 0) · `null` (đơn cũ không ghi phí giao). Quầy không phân biệt "tại chỗ", nên chưa có `tai_cho`.
-  Đơn App luôn `tai_quan`.
+  Đơn App chưa có đơn thật luôn `tai_quan`; đơn App đã trả tính theo phí giao như đơn quầy.
 - `tra[] { cach, so_tien }`: các cách khách ĐÃ trả, đúng các dòng thanh toán của hoá đơn quầy (bỏ dòng ghi nợ), cùng thứ tự: `tai_khoan` (ví) ·
   `tai_khoan_me` (ví mẹ) · `chuyen_khoan` (QR / chuyển khoản) · `tien_mat`. Đơn trả ví + QR → hai dòng. Tổng `so_tien` = `da_tra`. Đơn App chưa trả /
   huỷ trước khi trả → `[]`; đơn cũ thiếu tiền → `null`.

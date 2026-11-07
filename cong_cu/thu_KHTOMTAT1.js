@@ -184,8 +184,15 @@ async function main() {
 
     const o4 = await quay(kh, { items: [monQuay(0, 2)] });
     await datCot(o4.id, { payment_method: 'balance', cash_amount: 0, balance_amount: 20000, transfer_amount: 30000 });
-    await kiem('A4 ví + QR → HAI dòng tra[] (ví 20.000 trước, QR 30.000 sau)', kh, o4.code,
+    const d4 = await kiem('A4 ví + QR → HAI dòng tra[] (ví 20.000 trước, QR 30.000 sau)', kh, o4.code,
       { tra: [{ cach: 'tai_khoan', so_tien: 20000 }, { cach: 'chuyen_khoan', so_tien: 30000 }] });
+    const dong4 = (loai) => d4.hoa_don?.find((d) => d.loai === loai);
+    k('A4b (D) hoa_don[] của đơn ví + QR có dòng cách trả tu_tk 20.000đ và ck 30.000đ, đúng số tra[]', soTu(dong4('tu_tk')?.phai) === 20000 && soTu(dong4('ck')?.phai) === 30000, JSON.stringify([dong4('tu_tk'), dong4('ck')]));
+
+    const oHuy = await quay(kh, { items: [monQuay(2, 1)] });
+    await goi('PUT', `/pos/orders/${oHuy.id}/cancel`, { reason: 'thử KH-TOMTAT-1' }, tkChu);
+    const dHuy = await kiem('A4c đơn quầy đã huỷ: tóm tắt vẫn dựng được, tổng tra[] = da_tra (nhất quán với số đã có, không tự xoá)', kh, oHuy.code, { kenh: 'quay', so_mon: 1 });
+    k('A4d đơn huỷ: tra[] là mảng và tổng bằng da_tra', Array.isArray(dHuy.tra) && dHuy.tra.reduce((x, y) => x + y.so_tien, 0) === dHuy.da_tra, JSON.stringify([dHuy.tra, dHuy.da_tra, dHuy.trang_thai]));
 
     const o5 = await quay(kh, { items: [monQuay(0, 2)] });
     await datCot(o5.id, { cash_amount: 40000, debt_amount: 10000 });
@@ -225,7 +232,7 @@ async function main() {
       if (!bang(TRUONG_MOI.map((f) => d[f]), TRUONG_MOI.map((f) => ct?.[f]))) khac.push(d.ma);
     }
     k(`A10 ${dsKh.length} đơn cùng trang: tóm tắt trong danh sách = tóm tắt trong chi tiết của CHÍNH đơn đó, và các đơn không giống nhau hết`,
-      dsKh.length === 8 && !khac.length && new Set(dsKh.map((d) => JSON.stringify(d.tra))).size > 4, `${dsKh.length} đơn · lệch ${khac}`);
+      dsKh.length === 9 && !khac.length && new Set(dsKh.map((d) => JSON.stringify(d.tra))).size > 4, `${dsKh.length} đơn · lệch ${khac}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
