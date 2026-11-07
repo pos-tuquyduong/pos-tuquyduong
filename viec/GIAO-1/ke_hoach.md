@@ -275,5 +275,18 @@ Các mục dưới đây THẮNG chỗ trái ý ở trên.
   mà chuyến cũ đã huỷ vẫn gọi chuyến mới (J5e).
 - `POST /:id/goi-xe {tu}`: màn gửi trạng thái thẻ đang thấy; khác trạng thái hiện tại → 409 TRANG_THAI_DA_DOI (màn cũ còn "Tìm lại" khi thẻ đã
   chuyen_huy không gọi chuyến mới). Huỷ chuyến mà thẻ đã về chuyen_huy theo chính chuyến đó → 200.
-- Tin báo tới lúc thẻ `dang_goi` → 409 DANG_GOI_XE, KHÔNG ghi sổ chống lặp (Ahamove gửi lại; tin sau được áp).
+- Tin báo tới lúc thẻ `dang_goi` → 409 DANG_GOI_XE, KHÔNG ghi sổ chống lặp (Ahamove có gửi lại tin hay không: CHƯA đối chiếu — tin sau được áp;
+  không có tin sau thì màn Giao hàng đọc lại chuyến quá 60 s).
 - Ca + đột biến: V1–V13, J5f (phí), K1 số mới; đột biến cho chống đua nhận lại (goi_luc, mã chuyến, changes) và câu trả thẻ về.
+
+## 14. Vòng sửa 6 (chủ quán Q10 + Q11 07.11) — THẮNG chỗ trái ý ở trên
+- Gọi lại thẻ treo mà chuyến cũ đã huỷ: quán huỷ (kể cả trên app Ahamove) → phí huỷ; tài xế huỷ → không (code có từ vòng 5 — thêm ca W1 / W2).
+- Q11: Ahamove không gửi `cancel_by_user` → coi là QUÁN huỷ (phí huỷ vào Đối soát, không tự tìm lại) — giữ, ca W3 khoá giá trị mặc định.
+- Chuyến trùng máy thua giành tự huỷ: lệnh huỷ thành công → `ghiPhiHuyLenh` (cùng hàm như Huỷ chuyến / Tìm lại). Lệnh huỷ lỗi → vẫn chỉ ghi nhật ký
+  (Phát hiện — không trong 4 điểm Q10).
+- Kiểm theo mã theo dõi (`taoChuyenMoi`): chuyến tìm thấy chưa huỷ — còn chạy HOẶC đã giao xong — NHẬN LẠI rồi áp trạng thái đọc được
+  (`capNhatTuAhamove`: tài xế / đang giao / xong + phí thật vào Đối soát); chỉ chuyến đã huỷ mới gọi mã mới.
+- "Tìm lại" mà tài xế vừa huỷ chuyến cũ lần đầu → máy đã tự tìm lại một chuyến → trả 200 `{ tu_tim_lai: true }` (không báo "bấm Gọi lại").
+- Phí huỷ chưa rõ: đọc lại dòng chờ lâu nhất trước (`ORDER BY luc`), chưa ra thì đẩy `luc` xuống cuối — dòng đọc mãi không ra không chặn dòng sau;
+  chỉ đọc thấy CANCELLED mới ghi (kể cả phí 0 — hết "chưa rõ").
+- Ca W1–W9; đột biến thêm 12 (84 tổng).

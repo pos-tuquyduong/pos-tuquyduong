@@ -464,3 +464,57 @@ kể cả mất mạng / huỷ trên app Ahamove). Người soát còn thấy v�
   huỷ), rồi KHÔNG soát độc lập lần nữa mà chat soát thay (như LUAT §6.5 vòng cuối), sau đó soát bảo mật + cổng + báo cáo.
 - Q11: Ahamove không gửi trường "ai huỷ" (`cancel_by_user`) thì hiện máy coi là QUÁN huỷ → tính phí huỷ vào Đối soát (phía an toàn: Đối soát
   không thiếu tiền quán trả). Bạn giữ cách này? (Đề xuất: giữ; khi có khoá Ahamove thật thì xem trường thật.)
+
+## Phiên 5 (07.11) — chủ quán trả lời Q10 (đồng ý vòng sửa 6 đúng 4 điểm + ca khoá người soát nêu; sau vòng 6 KHÔNG soát độc lập — chat soát
+## thay) + Q11 (giữ: không có cancel_by_user → tính là quán huỷ)
+### Bước 1 — đối chiếu bản chụp
+- Nhánh viec/GIAO-1, cây sạch. HEAD 9b17c00 · FETCH_HEAD 9b17c00 (bằng nhau, không kéo; hook mở phiên đã kéo 977aefa → 9b17c00).
+- git log --oneline -3:
+  - 9b17c00 GIAO-1: bao cao soat sau vong sua 5 (KHONG DAT, chi loi NHE nhung dung tien) — Cau hoi Q10, Q11, dung o buoc 8
+  - 3fcb7ec GIAO-1: vong sua 5 — dot bien 72/72 BAT (them 15, neo lai 6), bang chung do (goc 5 · 122, truoc 116 · 11, HEAD 127 · 0), ke hoach muc 13, trang thai
+  - 9539c56 GIAO-1: vong sua 5 (chu quan Q8 + Q9) — the da dong chan huy don; phi huy theo lenh quan ghi mot lan moi ma chuyen, ...
+- Câu hỏi Q10, Q11 (phiên 4): ĐÃ TRẢ LỜI.
+
+### Q11 — ghi cho sổ quyết định (chủ quán chốt 07.11)
+Ahamove không gửi trường "ai huỷ" (`cancel_by_user`) → coi là QUÁN huỷ: phí huỷ vào Đối soát, không tự tìm lại. Khi có khoá Ahamove thật thì xem
+trường thật.
+
+### Vòng sửa 6
+- Bài thử viết trước (c03e08d, ea29fea): W1–W9. Đỏ trên code trước vòng 6 (132 · 4: W4, W5, W6, W9), xanh sau (136 · 0); gốc 5 · 131
+  (bang_chung_do.txt). Lần đầu W9 xanh oan (mã kẹt xếp sau theo chỉ mục) — đổi mã kẹt, đỏ đúng.
+- Sửa server/utils/giaoHang.js (chỉ file này):
+  (1) lỗi soát 1 — nhánh Gọi lại thẻ treo theo Q9: code đúng từ vòng 5, thêm ca W1 (quán huỷ → phí 3.500) + W2 (tài xế huỷ → 0);
+  (2) lỗi soát 2 — chuyến trùng máy thua giành tự huỷ: lệnh huỷ thành công → `ghiPhiHuyLenh` (W4). Lệnh huỷ lỗi → vẫn chỉ nhật ký (Phát hiện);
+  (3) lỗi soát 3 — kiểm theo mã theo dõi: chuyến tìm thấy chưa huỷ (còn chạy HOẶC đã giao xong) → nhận lại + áp trạng thái đọc được
+      (`capNhatTuAhamove` — xong + giờ xong + phí thật vào Đối soát), không gọi chuyến mới (W5);
+  (4) lỗi soát 4 — chú thích / lời báo "Ahamove gửi lại" sửa thành "chưa đối chiếu; đọc lại dự phòng 60 s" (giaoHang.js nhanTinBao, ke_hoach.md mục 13);
+      "Tìm lại" mà tài xế vừa huỷ lần đầu → máy đã tự tìm lại → 200 `{ tu_tim_lai: true }` thay vì 409 "bấm Gọi lại" (W6);
+  (5) ca khoá người soát nêu: W3 (Q11 thiếu cancel_by_user → quán huỷ), W7 (đọc lại chưa CANCELLED → "chưa rõ", không khoá phí 0), W8 (phí 0 vẫn
+      hết "chưa rõ"), W9 (3 dòng chờ kẹt không chặn dòng thứ 4 — `docLaiPhiHuy` đọc dòng chờ lâu nhất trước, chưa ra thì đẩy `luc` xuống cuối).
+  Giao diện không đổi (màn gọi goiXe, 200 thì tải lại thẻ — client/src/pages/GiaoHang/index.jsx:81); không build.
+| Chỗ vá vòng 6 | Đột biến | Ca bắt |
+|---|---|---|
+| Gọi lại thẻ treo: quán huỷ → phí (giaoHang.js `if (cu.nguoi_huy_la_quan) await ghiPhiHuy`) | BV-q9-goi-lai-treo | W1 |
+| Gọi lại thẻ treo: tài xế huỷ → không phí | VS-q9-goi-lai-moi-nguoi-huy | W2 |
+| Q11 thiếu cancel_by_user = quán huỷ (ahamove.js tomChuyen) | VS-thieu-ai-huy-la-tai-xe | W3 |
+| chuyến trùng tự huỷ → phí huỷ | BV-phi-huy-chuyen-trung | W4 |
+| mã theo dõi ra chuyến đã giao → nhận lại | BV-nhan-lai-da-giao | W5 |
+| nhận lại theo mã theo dõi → áp trạng thái đọc được | BV-nhan-lai-ap-trang-thai | W5 |
+| Tìm lại, máy đã tự tìm lại → 200 | BV-tim-lai-tu-tim-200 · VS-tim-lai-200-moi-khi | W6 · V3 / V7 |
+| chỉ CANCELLED mới ghi phí (không khoá phí 0) | VS-phi-huy-doc-duoc-la-ghi | W7 |
+| phí 0 vẫn hết "chưa rõ" | VS-phi-huy-chi-khi-co-phi | W8 |
+| dòng chờ chưa ra xếp xuống cuối | BV-doc-lai-xoay-vong · VS-doc-lai-khong-xep | W9 |
+
+Tên đột biến thêm vòng 6: BV-q9-goi-lai-treo, VS-q9-goi-lai-moi-nguoi-huy, VS-thieu-ai-huy-la-tai-xe, BV-phi-huy-chuyen-trung, BV-nhan-lai-da-giao,
+BV-nhan-lai-ap-trang-thai, BV-tim-lai-tu-tim-200, VS-tim-lai-200-moi-khi, VS-phi-huy-doc-duoc-la-ghi, VS-phi-huy-chi-khi-co-phi, BV-doc-lai-xoay-vong,
+VS-doc-lai-khong-xep.
+- Đột biến: 84/84 BẮT (đối chứng XANH 136 · 0). Đột biến cũ không phải neo lại.
+
+## Phát hiện (thêm phiên 5)
+- Chuyến trùng: lệnh huỷ của máy thua LỖI → chuyến thứ hai vẫn chạy, chỉ ghi nhật ký máy chủ (mã chuyến trùng không lưu ở đâu, tin báo về của nó bị
+  bỏ). Đề xuất việc sau: lưu mã chuyến trùng (dấu trong pos_giao_tin) để đọc lại / huỷ lại và đưa phí vào Đối soát. Rất hiếm (hai máy cùng giành sau
+  180 s treo).
+- server/utils/giaoHang.js nay 510 dòng (đã ghi phiên 4: tách phần Ahamove báo về + phí huỷ sang file riêng — việc sau).
+- Người soát nghi (chưa vá, ngoài 4 điểm): Huỷ chuyến của quản lý sau khi Tìm lại đã huỷ chuyến cũ → Ahamove từ chối → lời báo "có thể tài xế đã
+  lấy hàng" sai lý do; nếu Ahamove thật trả 200 khi DELETE chuyến đã huỷ thì Tìm lại có thể gọi chuyến mới ngay sau khi quản lý huỷ. Chờ khoá
+  Ahamove thật để đối chiếu.
