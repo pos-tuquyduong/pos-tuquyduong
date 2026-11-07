@@ -80,7 +80,7 @@ async function main() {
   const { BAT_BIEN } = require(path.join(MAY_CHU, '..', 'cong_cu', 'gia_lap', 'bat_bien.js'));
   const doiSoat = require(path.join(MAY_CHU, 'utils', 'doiSoat.js'));
   const viKhach = thuNap(['utils', 'viKhach.js']) || {};
-  const { tienTinhDiem, diemTruKhiHoan } = require(path.join(MAY_CHU, 'utils', 'diemThat.js'));
+  const { tienTinhDiem, diemTruKhiHoan, truDiemHoan } = require(path.join(MAY_CHU, 'utils', 'diemThat.js'));
   const { getToday } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   noiLai();
 
@@ -641,6 +641,36 @@ async function main() {
     k('E16b K5 đơn chưa đền: nhận mã ×2 → +21 như cũ (42), không dòng trừ, bill ghi cộng 42',
       n16b.status === 200 && n16b.diem_cong === 21 && (e16b.order ? await diemDon(e16b.order.id) : NaN) === 42 && t16b === 0 && b16c?.cong === 42,
       `${moTa(n16b)} cộng ${n16b.diem_cong} · dòng trừ ${t16b} · bill ${JSON.stringify(b16c)}`);
+    // E16c (soát độc lập 07.11 (2)): đền TRỌN rồi nhận mã → ròng 0 → 400 KHONG_THEM_DIEM, mã KHÔNG bị tiêu, không dòng điểm mới (chặn như trước câu chiếm).
+    const s16c = sdtMoi();
+    const e16c = await ban({ customer_phone: s16c, payment_method: 'cash', cash_amount: 21000 });
+    const d16c = e16c.order ? await den(e16c.order, 21000) : e16c;
+    const dong16c = e16c.order ? await so('SELECT COUNT(*) FROM pos_point_transactions WHERE order_id = ?', [e16c.order.id]) : NaN;
+    const n16c = e16c.order ? await goi('POST', '/signup-codes/nhan-diem', { code: e16c.order.signup_code, phone: s16c }) : e16c;
+    const ma16c = e16c.order ? await mot('SELECT diem_nhan_luc, diem_nhan_phone FROM pos_signup_codes WHERE code = ?', [e16c.order.signup_code]) : null;
+    const dong16c2 = e16c.order ? await so('SELECT COUNT(*) FROM pos_point_transactions WHERE order_id = ?', [e16c.order.id]) : NaN;
+    k('E16c đền trọn 21.000 rồi nhận mã → 400 KHONG_THEM_DIEM, mã chưa bị dùng (không ghi SĐT), không thêm dòng điểm, điểm đơn vẫn 0',
+      d16c.status === 200 && n16c.status === 400 && n16c.code === 'KHONG_THEM_DIEM' && ma16c && ma16c.diem_nhan_luc === null && ma16c.diem_nhan_phone === null
+        && dong16c2 === dong16c && (e16c.order ? await diemDon(e16c.order.id) : NaN) === 0,
+      `${moTa(d16c)} · ${moTa(n16c)} · mã ${JSON.stringify(ma16c)} · dòng ${dong16c} → ${dong16c2}`);
+    // E16d: KẾT THÚC GÓI có hoàn (sổ ví 'refund', khác loại với đền 'compensation') rồi nhận mã — gói 30.000 + món 21.000 tiền mặt (51), hoàn 30.000 → 21;
+    // nhận mã ×2: +51, trừ thêm 30 cùng lúc → 42 (báo cộng 21); bill ghi cộng 42.
+    const s16d = sdtMoi();
+    const e16d = await goi('POST', '/orders', { customer_phone: s16d, customer_name: 'Khách NAP-1', items: [mon(0)], package_buy: { package_id: goiE }, payment_method: 'cash',
+      cash_amount: 51000 });
+    const cp16d = e16d.order ? await mot('SELECT id FROM pos_customer_packages WHERE order_id = ?', [e16d.order.id]) : null;
+    const kt16d = cp16d ? await goi('PUT', `/packages/customer-packages/${cp16d.id}/cancel`, { reason: 'thử NAP-1 mã bill sau kết thúc gói', hoan: true }) : { status: 0 };
+    const b16d = e16d.order ? (await goi('GET', `/hoa-don/${e16d.order.id}`)).hoa_don?.diem : null;
+    const n16d = e16d.order ? await goi('POST', '/signup-codes/nhan-diem', { code: e16d.order.signup_code, phone: s16d }) : e16d;
+    const b16e = e16d.order ? (await goi('GET', `/hoa-don/${e16d.order.id}`)).hoa_don?.diem : null;
+    const l16d = e16d.order ? (await lechBB(['I8'])).filter((x) => x.includes(e16d.order.code)) : ['không có đơn'];
+    k('E16d kết thúc gói hoàn 30.000 (51 → 21, bill ghi cộng 21); nhận mã ×2 → báo cộng 21, điểm 42, bill ghi cộng 42; I8 = 0 lệch',
+      kt16d.status === 200 && b16d?.cong === 21 && n16d.status === 200 && n16d.diem_cong === 21 && (e16d.order ? await diemDon(e16d.order.id) : NaN) === 42
+        && b16e?.cong === 42 && l16d.length === 0,
+      `${moTa(kt16d)} · bill trước ${JSON.stringify(b16d)} · ${moTa(n16d)} cộng ${n16d.diem_cong} · bill sau ${JSON.stringify(b16e)} · ${l16d.join(' | ')}`);
+    const fakeTx = { queryOne: async () => null, query: async () => [], run: async () => ({ changes: 0 }) };
+    const r16f = typeof truDiemHoan === 'function' ? await truDiemHoan(fakeTx, { id: 1 }, 'thu', '2026-11-07T00:00:00', 'thử') : 'không có hàm';
+    k('E16f truDiemHoan khi chưa có mốc 014 (bước nâng cấp hỏng, quầy vẫn mở) → trả 0 (không undefined → "NaN điểm")', r16f === 0, String(r16f));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
