@@ -324,3 +324,62 @@ Ngoài ra phí huỷ chuyến có thể bị thiếu trên Đối soát trong ha
   (5) ca thử + đột biến cho mọi chỗ vá vòng 4 còn thiếu (ba đường tài xế huỷ không cộng phí, chống đua khi nhận lại), sửa chú thích.
 - Q9: Ahamove báo chuyến bị huỷ "theo lệnh của quán" (cancel_by_user) nhưng lệnh huỷ của máy bị mất mạng, chưa biết thành công — có tính phí huỷ không?
   Đề xuất: CÓ (Ahamove xác nhận quán huỷ = lệnh của quán thành công). Quán huỷ thẳng trên app Ahamove (không qua POS) cũng tính theo cách này.
+
+## Phiên 4 (07.11) — chủ quán trả lời Q8 (đồng ý vòng sửa 5) + Q9 (CÓ — tính phí huỷ khi Ahamove báo huỷ theo lệnh của quán, kể cả lệnh mất mạng
+## và quán huỷ thẳng trên app Ahamove)
+### Bước 1 — đối chiếu bản chụp
+- Nhánh viec/GIAO-1, cây sạch. HEAD 515a021 · FETCH_HEAD 515a021 (bằng nhau, không kéo).
+- git log --oneline -3:
+  - 515a021 GIAO-1: bao cao soat sau vong sua 4 (KHONG DAT, 2 loi NANG) — Cau hoi Q8, Q9, dung o buoc 8
+  - 2af349d GIAO-1: vong sua 4 — bang chung do (goc 5 · 109, truoc 106 · 8, HEAD 114 · 0), ke hoach muc 12, trang thai, Q7 ghi cho KHO-3
+  - c21ecf4 GIAO-1: vong sua 4 (chu quan Q6) — Goi lai / Tim lai doc chuyen cu: con chay thi nhan lai, da huy thi goi moi; phi huy chi khi lenh huy cua quan thanh cong; khong doc duoc giu goi_luc cu; Dong the giao loi; dot bien them 10
+- Câu hỏi Q8, Q9 (phiên 3): ĐÃ TRẢ LỜI.
+
+### Q9 — ghi cho sổ quyết định (chủ quán chốt 07.11)
+Phí huỷ chuyến quán chịu = chuyến huỷ THEO LỆNH CỦA QUÁN: lệnh huỷ của máy thành công, HOẶC Ahamove báo chuyến huỷ theo lệnh quán (`cancel_by_user`) —
+kể cả lệnh của máy bị mất mạng và quán huỷ thẳng trên app Ahamove. Tài xế / Ahamove tự huỷ → không tính phí huỷ.
+
+### Vòng sửa 5
+- Bài thử viết trước (391a19e, a4336b2): đỏ trên code trước vòng 5 (116 · 11), xanh sau (127 · 0); gốc 5 · 122 (bang_chung_do.txt).
+- Sửa (9539c56):
+  (1) thẻ `da_dong` chặn Huỷ đơn như `giao_loi` (V1 — đơn tài khoản: đóng thẻ rồi huỷ → 409, ví / kho / đơn không đổi);
+  (2) phí huỷ ghi bằng MỘT hàm `ghiPhiHuy` — dấu `PHI_HUY` (mỗi mã chuyến một lần) + cộng phi_huy trong một giao dịch, TÁCH khỏi câu đổi trạng thái thẻ;
+      lệnh huỷ thành công mà không đọc được chuyến → dấu `CHO_PHI_HUY`, Đối soát hiện "n chuyến chưa rõ phí huỷ", màn Giao hàng hỏi thì đọc lại
+      (`docLaiPhiHuy`); Q9: Ahamove báo huỷ theo lệnh quán (capNhatTuAhamove, Gọi lại thẻ treo) cũng ghi qua hàm này; tài xế huỷ → không;
+  (3) "Tìm lại" mà chuyến cũ vừa bị huỷ bởi việc khác (Ahamove từ chối lệnh huỷ của máy này, đọc lại thấy CANCELLED) → KHÔNG gọi chuyến mới, thẻ theo
+      tin huỷ, 409 CHUYEN_DA_HUY; `goi-xe {tu}` — màn gửi trạng thái đang thấy, khác → 409 TRANG_THAI_DA_DOI; Huỷ chuyến mà thẻ đã chuyen_huy theo
+      chính chuyến đó → 200;
+  (4) câu trả thẻ về giữ loi_mang (thẻ treo vì mất mạng vẫn còn nút Gọi lại); tin báo lúc thẻ dang_goi → 409 DANG_GOI_XE, không ghi sổ chống lặp;
+  (5) ca + đột biến cho chỗ vá vòng 4 còn thiếu (V8 tài xế huỷ có phí, V11–V13 chống đua nhận lại / trả thẻ về), sửa chú thích đầu giaoHang.js
+      (da_dong, phí huỷ), chú thích dongChuyenKhiHoan / dongThe, ke_hoach.md mục 12 + mục 13 mới.
+  Giao diện: client/src/utils/api.js (goiXe gửi `tu`), GiaoHang/index.jsx (gửi trạng thái thẻ), DoiSoat.jsx (dòng "chưa rõ phí huỷ"); build dist cùng commit.
+- Neo lại đột biến cũ sau vá (cùng nghĩa, chuỗi mới): BV-phi-huy-tim-lai, BV-nhan-lai-chuyen-cu, VS-nhan-lai-khi-da-huy, VS-phi-huy-moi-lan-doc,
+  BV-giu-goi-luc-cu, BV-trang-thai-da-doi.
+- Đột biến: 72/72 BẮT (đối chứng XANH 127 · 0). npm test -- --day-du: PASS 102 · FAIL 0 · CẢNH BÁO 2 (hai cảnh báo cũ), dist khớp src.
+| Chỗ vá vòng 5 | Đột biến | Ca bắt |
+|---|---|---|
+| da_dong chặn huỷ đơn | BV-da-dong-chan-huy | V1 |
+| phí huỷ ghi ngay sau lệnh, tách câu trạng thái | BV-phi-huy-tach-cau-trang-thai | J5 / J5f |
+| phí huỷ một lần mỗi mã chuyến | VS-phi-huy-moi-lan-doc | J5e / V2 / V3 / V5 |
+| "phí huỷ chưa rõ" khi đọc lỗi | BV-cho-phi-huy | V2 |
+| đọc lại phí huỷ chưa rõ | BV-doc-lai-phi-huy | V2 |
+| Q9 Ahamove báo huỷ theo lệnh quán | BV-q9-huy-theo-lenh-quan | V5 / V6 |
+| tài xế huỷ không phí | VS-phi-huy-moi-nguoi-huy | V8 |
+| Tìm lại không gọi chuyến mới khi chuyến vừa bị huỷ | BV-tim-lai-chuyen-da-huy · VS-nhan-lai-khi-da-huy | V3 / V7 |
+| Huỷ chuyến: thẻ đã chuyen_huy theo chính chuyến → 200 | BV-huy-chuyen-the-da-huy | V3 |
+| `tu` — trạng thái màn đang thấy | BV-tu-trang-thai | V4 |
+| câu trả thẻ về giữ loi_mang | BV-giu-loi-mang | V9 |
+| tin lúc đang gọi không ghi sổ | BV-tin-khi-dang-goi | V10 |
+| nhận lại: điều kiện goi_luc / mã chuyến / changes | VS-nhan-lai-bo-goi-luc · VS-nhan-lai-bo-ma · BV-nhan-lai-changes | V11 / V12 / V11 |
+| câu trả thẻ về: điều kiện trạng thái + goi_luc | VS-tra-ve-bo-dieu-kien | V13 |
+
+Tên đột biến thêm vòng 5: BV-da-dong-chan-huy, BV-phi-huy-tach-cau-trang-thai, BV-cho-phi-huy, BV-doc-lai-phi-huy, VS-phi-huy-moi-nguoi-huy,
+BV-q9-huy-theo-lenh-quan, BV-tim-lai-chuyen-da-huy, BV-huy-chuyen-the-da-huy, BV-tu-trang-thai, BV-giu-loi-mang, BV-tin-khi-dang-goi,
+VS-nhan-lai-bo-goi-luc, VS-nhan-lai-bo-ma, BV-nhan-lai-changes, VS-tra-ve-bo-dieu-kien.
+
+## Phát hiện (thêm phiên 4)
+- server/utils/giaoHang.js nay ~500 dòng (LUAT §3: sắp vượt thì tách theo việc). Đề xuất việc sau: tách phần Ahamove báo về + phí huỷ
+  (`capNhatTuAhamove`, `nhanTinBao`, `ghiPhiHuy*`, `docLaiPhiHuy`) sang file riêng — không làm trong vòng sửa (ngoài 5 điểm Q8).
+- `goi-xe` không gửi `tu` (công cụ cũ / gọi tay) thì không kiểm trạng thái màn — màn quầy luôn gửi; bảo vệ đua thật vẫn ở câu giành + nhánh
+  "chuyến vừa bị huỷ".
+

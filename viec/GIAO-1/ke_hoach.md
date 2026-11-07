@@ -257,8 +257,23 @@ Các mục dưới đây THẮNG chỗ trái ý ở trên.
 ## 12. Vòng sửa 4 (chủ quán Q6 06.11) — THẮNG chỗ trái ý ở trên
 - Thẻ còn mã chuyến cũ (Tìm lại từ tim_xe, hoặc Gọi lại thẻ treo dang_goi): chỉ "Tìm lại" gửi lệnh huỷ. Sau đó ĐỌC chuyến cũ: còn chạy / đã xong →
   NHẬN LẠI (`nhanLaiChuyenCu`: thẻ về tim_xe rồi áp trạng thái đọc được — tài xế, đang giao, xong), không gọi chuyến mới; đã huỷ → gọi chuyến mới.
-  Không đọc được → trả thẻ về như cũ, GIỮ goi_luc cũ (bấm lại được ngay).
+  Không đọc được → trả thẻ về như cũ, GIỮ goi_luc cũ (vòng 5: và loi_mang cũ — thẻ treo vì mất mạng vẫn còn nút Gọi lại, bấm lại được ngay).
 - Phí huỷ chỉ cộng khi CHÍNH lệnh huỷ của quán thành công (Huỷ chuyến, Tìm lại). Bỏ cộng phí huỷ ở các đường tài xế / Ahamove tự huỷ.
+  (Vòng 5 mở rộng theo Q9 — xem mục 13.)
 - "Đóng thẻ" (POST /giao-hang/:id/dong-the, quản lý / chủ quán + lý do): chỉ thẻ giao_loi → trạng thái da_dong (rời màn), không đụng đơn / tiền;
   phí chuyến vẫn ở Đối soát (theo dấu giờ đã chạy).
 - Q7: "Bỏ đi" giữ KHÔNG hoàn kho (kho ra đúng) — KHO-3 xem lại khi POS giữ kho.
+
+## 13. Vòng sửa 5 (chủ quán Q8 + Q9 07.11) — THẮNG chỗ trái ý ở trên
+- Thẻ `da_dong` chặn Huỷ đơn như `giao_loi` (DANG_GIAO_KHONG_HUY) — hàng đã theo tài xế đi, không hoàn ví / kho.
+- Phí huỷ = chuyến huỷ theo lệnh của quán: lệnh Huỷ chuyến / Tìm lại thành công, HOẶC Ahamove báo huỷ với `cancel_by_user` (lệnh mất mạng, quán
+  huỷ trên app Ahamove — Q9). Ghi MỘT lần mỗi mã chuyến bằng `ghiPhiHuy` (dấu `PHI_HUY` trong pos_giao_tin + cộng phi_huy trong một giao dịch), TÁCH
+  khỏi câu đổi trạng thái thẻ (thẻ vừa đổi vẫn không mất phí). Lệnh huỷ thành công mà không đọc được chuyến → dấu `CHO_PHI_HUY` (Đối soát hiện
+  "n chuyến chưa rõ phí huỷ"), màn Giao hàng hỏi thì đọc lại (`docLaiPhiHuy`). Tài xế / Ahamove tự huỷ (cancel_by_user = false) → không phí.
+- "Tìm lại" mà chuyến cũ đã bị huỷ bởi việc khác (Ahamove từ chối lệnh huỷ của máy này, đọc lại thấy CANCELLED — quản lý vừa Huỷ chuyến, tài xế huỷ,
+  lệnh huỷ mất mạng) → KHÔNG gọi chuyến mới: trả thẻ về tim_xe rồi áp tin huỷ (chuyen_huy / tự tìm lại một lần), 409 CHUYEN_DA_HUY. Gọi lại thẻ treo
+  mà chuyến cũ đã huỷ vẫn gọi chuyến mới (J5e).
+- `POST /:id/goi-xe {tu}`: màn gửi trạng thái thẻ đang thấy; khác trạng thái hiện tại → 409 TRANG_THAI_DA_DOI (màn cũ còn "Tìm lại" khi thẻ đã
+  chuyen_huy không gọi chuyến mới). Huỷ chuyến mà thẻ đã về chuyen_huy theo chính chuyến đó → 200.
+- Tin báo tới lúc thẻ `dang_goi` → 409 DANG_GOI_XE, KHÔNG ghi sổ chống lặp (Ahamove gửi lại; tin sau được áp).
+- Ca + đột biến: V1–V13, J5f (phí), K1 số mới; đột biến cho chống đua nhận lại (goi_luc, mã chuyến, changes) và câu trả thẻ về.
