@@ -82,3 +82,7 @@ BÀI HỌC:     KHOÁ 3 (làm luôn) · NGUYÊN TẮC 1 đề xuất · BỎ 1 �
 GIT: 26dcbf7 soat + bao cao; 0be0a45 build dist; 5a7324b sua loi soat 2; 2113a22 dot_bien; fba576b..2e9b5a5 mã (E, A-D, C, F)
 
 HEAD ĐÃ KIỂM: 26dcbf7
+
+
+## Gộp main (chủ quán, chat soát 07.11 — thử gộp trên main 22a9712: cổng tĩnh ĐẠT, --day-du PASS 105 · FAIL 0, thu_BH2 100/0, thu_GIAODIEN1 68/0)
+HEAD ĐÃ KIỂM: a102bb0
