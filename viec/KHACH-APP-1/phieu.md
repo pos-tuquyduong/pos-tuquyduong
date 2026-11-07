@@ -47,6 +47,7 @@ Khách chỉ có MỘT nguồn là `pos_customers`. Mọi khách (tạo ở qu�
 - kiem_tra_truoc_khi_giao.js
 - server/routes/registrations.js
 - cong_cu/thu_GIOVN1.js
+- cong_cu/thu_KHO1.js
 
 <!-- Chủ quán 07.11 (câu hỏi kế hoạch 05764eb) — duyệt kế hoạch với các câu trả lời:
      Q1 CÓ — thêm server/routes/registrations.js: "Thêm khách" ở quầy (POST /registrations) tạo khách THẬT ngay bằng hàm tạo chung (vẫn ghi
@@ -66,6 +67,11 @@ Khách chỉ có MỘT nguồn là `pos_customers`. Mọi khách (tạo ở qu�
        khởi động sau chạy lại); bước NÉM LỖI vẫn rollback + dừng + kho trả 503 như cũ (có ca thử khoá điều này). Sửa tối thiểu — NAP-1 cũng
        sửa chay.js, chat lo phần đụng khi gộp.
      · Nhãn "SX / Đã đồng bộ" trên màn quầy và orders.js:818: để việc sau (chat ghi sổ), không làm ở đây. -->
+
+<!-- Chủ quán 07.11 (câu hỏi Q5, nhánh afe703e): ĐỒNG Ý đề xuất — thêm cong_cu/thu_KHO1.js vào Phạm vi, sửa ĐÚNG B1 / B2 (dòng 247–251):
+     số dòng pos_nang_cap PHẢI BẰNG số file NNN_*.js KHÔNG xuất `truoc` (bước có `truoc` được HOÃN khi kho thử không có SX) và tập `so` khớp
+     ĐÚNG các file đó — vẫn so BẰNG, không nới thành "ít nhất". Thêm ca B1c "bước chép SX không có dòng pos_nang_cap khi SX không cấu hình"
+     (ĐỎ trên gốc), ghi SỐ CA. Không ghi vào ## Bài thử cũ sửa (cố ý đổi hành vi bài cũ canh). -->
 ## Bài thử đỏ
 Có — `cong_cu/thu_KHACHAPP1.js` ĐỎ trên code gốc: khách App và khách quầy mới không có trong `GET /v2/customers`, `/search`, `/:phone` (404) khi SX giả
 trả danh sách không có họ; tên sửa ở POS bị SX đè; so cột hai đường tạo khách lệch.
