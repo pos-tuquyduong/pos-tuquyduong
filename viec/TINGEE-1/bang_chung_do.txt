@@ -1,0 +1,33 @@
+TINGEE-1 — bằng chứng bài thử ĐỎ trên code gốc (06.11.2026)
+
+Bài: cong_cu/thu_TINGEE1.js
+Code gốc: a935313 (main f9fd8b5 đã gộp + tài liệu) — git archive a935313 server cong_cu … vào thư mục nháp, chép bài thử của HEAD vào, chạy:
+  node cong_cu/thu_TINGEE1.js
+
+Trên GỐC → 11 đạt · 46 hỏng (thoát 1) — chạy lại sau vòng sửa 2 (thêm ca F2; C6 "CREDIT" / null; D3 số gốc trùng, chưa cài số VA; F3).
+(Trên gốc mục D dừng ở D1 vì đường chưa có — các ca D sau D1 không in; trên HEAD đủ 75 ca.) Các ca ĐỎ chính:
+  ✗ A1 CONG_QR=tingee đủ biến → tạo phiên QR 200  — HTTP 503 (chưa có cổng tingee)
+  ✗ A3 TINGEE_MOI_TRUONG=production / uat → cài được (200)  — HTTP 503
+  ✗ A5 GET /settings có cong_qr = { ten: 'Tingee', da_cai: true }  — không có trường cong_qr
+  ✗ B1–B5 VietQR tới số VA VQRQANJMG7944 / BIN 970422, chuỗi EMV, CRC, tingee.js không gọi mạng
+  ✗ C1–C9 webhook /api/tingee/webhook — HTTP 404 (chưa có đường)
+  ✗ D1 nội dung "QANJMG7944 TQDNOV06 HD0016" / chữ thường → khớp đúng phiên — HTTP 404
+  ✗ D: bài chạy hết mục (đường chưa có)
+  ✗ E1 nhãn Đối soát "Tingee giao dịch FT…"; E1 "tài khoản khác" của Tingee ở CẦN XEM
+  ✗ E2 phiên ghi tiền 2 lần (đơn Tingee + cộng ví payOS) → ĐỎ "vượt số khoản thật" (gốc gộp Tingee vào cột payOS → lọt)
+  ✗ T1 / T2 index.js chưa gắn thân thô + đường Tingee; T3 bộ kiểm chưa chạy bài; F1 / F2 / F3 chưa có cai_dat_tingee.md
+Các ca XANH trên gốc (11) là ca CHẶN / ca K5, đúng là phải xanh trên cả gốc: A2 (7 ca thiếu / sai biến → 503 — trên gốc
+cổng tingee chưa có nên mọi giá trị đều 503; ý nghĩa thật của chúng do đột biến VS-thieu-client-id-van-cai / VS-moi-truong-la-van-cai
+bắt), A4 (CONG_QR=sepay như cũ), B0 (tự kiểm CRC), X1 / X2 (khoá không lộ — bắt bởi VS-lo-khoa-nhat-ky, BV-luu-client-id).
+
+Trên code ĐÃ VÁ (HEAD) → 75 đạt · 0 hỏng.
+
+SỐ CA cong_cu/thu_TINGEE1.js: 75
+
+Bốn bài dưới đây do việc CK-NOIDUNG-1 sửa (vào nhánh qua lần gộp main f9fd8b5 ở 71c44cb — cổng tính từ mốc e9b7036^ nên thấy chúng).
+TINGEE-1 KHÔNG sửa bốn bài này; bằng chứng đỏ của chúng ở viec/CK-NOIDUNG-1/bang_chung_do.txt. Số ca chạy lại trên HEAD 88a72b4 (06.11),
+khớp số đã ghi ở viec/CK-NOIDUNG-1/bang_chung_do.txt dòng 162–165:
+SỐ CA cong_cu/thu_CKNOIDUNG1.js: 113
+SỐ CA cong_cu/thu_SEPAY1.js: 78
+SỐ CA cong_cu/thu_P26c.js: 157
+SỐ CA cong_cu/thu_KHMUA1.js: 122
