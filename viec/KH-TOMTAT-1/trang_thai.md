@@ -86,3 +86,7 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 2 — xem ## Bài học
 HEAD ĐÃ KIỂM: 276e9f2
 
 HEAD ĐÃ KIỂM: 10cb03c
+
+
+## Gộp main (chủ quán, chat soát 07.11 — thử gộp trên main 86057f9: cổng tĩnh ĐẠT, --day-du PASS 106 · FAIL 0, thu_KHTOMTAT1 33/0 (đã nối vào bộ kiểm), thu_HOPDONG_KH 88/0)
+HEAD ĐÃ KIỂM: e6cb33e
