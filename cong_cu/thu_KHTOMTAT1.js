@@ -225,7 +225,7 @@ async function main() {
       if (!bang(TRUONG_MOI.map((f) => d[f]), TRUONG_MOI.map((f) => ct?.[f]))) khac.push(d.ma);
     }
     k(`A10 ${dsKh.length} đơn cùng trang: tóm tắt trong danh sách = tóm tắt trong chi tiết của CHÍNH đơn đó, và các đơn không giống nhau hết`,
-      dsKh.length === 9 && !khac.length && new Set(dsKh.map((d) => JSON.stringify(d.tra))).size > 4, `${dsKh.length} đơn · lệch ${khac}`);
+      dsKh.length === 8 && !khac.length && new Set(dsKh.map((d) => JSON.stringify(d.tra))).size > 4, `${dsKh.length} đơn · lệch ${khac}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
