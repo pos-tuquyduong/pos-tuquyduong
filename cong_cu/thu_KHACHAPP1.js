@@ -188,6 +188,10 @@ async function main() {
     const tenSau = (await mot('SELECT name FROM pos_customers WHERE phone = ?', [SDT_Q])).name;
     k('C7b "Thêm khách" SĐT đã là khách → 409 KHACH_DA_CO_TAI_KHOAN, câu chủ quán chốt, không ghi đăng ký, khách giữ nguyên (Q7)', lai.status === 409
       && lai.j.code === 'KHACH_DA_CO_TAI_KHOAN' && lai.j.error === 'Khách đã có tài khoản — tìm khách ở màn Bán hàng để bán gói' && !dk2 && tenSau === tenTruoc, moTa(lai));
+    const lan2 = await goi('POST', '/pos/registrations', { phone: '0938100008', name: 'Thêm Lần Hai', requested_product: 'Nước ép' });
+    k('C7d "Thêm khách" lần hai cho SĐT vừa thêm (có cả đăng ký lẫn khách) → cũng 409 KHACH_DA_CO_TAI_KHOAN đúng câu (Q7)', lan2.status === 409
+      && lan2.j.code === 'KHACH_DA_CO_TAI_KHOAN' && lan2.j.error === 'Khách đã có tài khoản — tìm khách ở màn Bán hàng để bán gói'
+      && (await mot('SELECT name FROM pos_registrations WHERE phone = ?', ['0938100008']))?.name === 'Khách Đăng Ký', moTa(lan2));
     const sd = '0938100019';
     const dua = await Promise.all([1, 2, 3].map((i) => goi('POST', '/pos/registrations', { phone: sd, name: 'Đua Đăng Ký ' + i })));
     const nDk = Number((await mot('SELECT COUNT(*) AS n FROM pos_registrations WHERE phone = ?', [sd])).n);
@@ -231,6 +235,7 @@ async function main() {
   await thu('R2', async () => {
     const s = '0938100052';
     await dangKy(s, 'Nhập Nhầm');
+    await db.run("UPDATE pos_customers SET pin_code = 'bam_pin_thu_r2', password = 'mk_thu_r2' WHERE phone = ?", [s]);   // PIN đặt ở quầy không để dấu vết
     const n0 = await soNhatKy();
     const r = await xoaDk(s);
     k('R2 chủ quán xoá đăng ký chờ, khách trắng do chính đăng ký tạo → xoá cả đăng ký lẫn khách (Q6b)', r.status === 200 && !(await idDk(s)) && !(await khachCua(s)), moTa(r));
@@ -238,6 +243,8 @@ async function main() {
     let ct = {}; try { ct = JSON.parse(nk?.details || '{}'); } catch { /* hỏng */ }
     k('R2b nhật ký xoá khách: ai (created_by), lúc nào (giờ VN dạng T), SĐT, tên, lý do', (await soNhatKy()) === n0 + 1 && nk.created_by === chu.username
       && DANG_T.test(nk.created_at || '') && ct.phone === s && ct.name === 'Nhập Nhầm' && typeof ct.ly_do === 'string' && ct.ly_do.length > 0, nk ? JSON.stringify(nk) : 'không có dòng');
+    k('R2d nhật ký KHÔNG chép băm PIN / mật khẩu (GET /sync/logs mọi nhân viên đọc được)', !!nk && !/bam_pin_thu_r2|mk_thu_r2/.test(nk.details || '')
+      && !!ct.khach && !('pin_code' in ct.khach) && !('password' in ct.khach) && ct.khach.phone === s, nk ? nk.details : 'không có dòng');
     const lai = await dangKy(s, 'Nhập Lại Đúng');
     k('R2c nhập lại cùng SĐT sau khi xoá → 200, khách mới', lai.status === 200 && (await khachCua(s))?.name === 'Nhập Lại Đúng', moTa(lai));
   });
@@ -272,6 +279,10 @@ async function main() {
       ['thẻ hạng', (s) => chen('pos_membership_purchases', 'customer_phone', s)],
       ['người nhận gắn SĐT', (s) => db.run("INSERT INTO pos_customers (phone, name, parent_phone, created_at) VALUES (?, 'Con Gắn', ?, '2026-11-01T08:00:00')", ['0938109' + s.slice(-3), s])],
       ['mã đăng nhập App', (s) => chen('pos_kh_ma_dang_nhap', 'sdt', s)],
+      ['voucher', (s) => chen('pos_voucher_grants', 'customer_phone', s)],
+      ['yêu cầu hoàn tiền', (s) => chen('pos_refund_requests', 'customer_phone', s)],
+      ['phiên thanh toán', (s) => chen('pos_phien_thanh_toan', 'phone', s)],
+      ['đơn App', (s) => chen('pos_don_app', 'phone', s)],
     ];
     let i = 0;
     for (const [ten, them] of DAU_VET) {
@@ -353,6 +364,10 @@ async function main() {
       const KHOA_CU = ['name', 'phone', 'balance', 'points', 'source', 'is_synced', 'discount_type', 'discount_value', 'discount_note', 'address', 'ngay_sinh', 'customer_type', 'membership'];
       k(`A12 (${che}) dạng trả ra: danh sách giữ đủ khoá cũ + có xung_ho`, !!q && [...KHOA_CU, 'xung_ho'].every((x) => x in q), q ? KHOA_CU.filter((x) => !(x in q)).join(',') + (('xung_ho' in q) ? '' : ' thiếu xung_ho') : 'không có q');
       k(`A12b (${che}) không lộ mật khẩu / PIN`, !!q && !('password' in q) && !('pin_code' in q));
+      const KHOA_DU = [...KHOA_CU, 'xung_ho'], thieu = (o) => (o ? KHOA_DU.filter((x) => !(x in o)) : ['(không có)']);
+      const tq = t2.find((c) => c.phone === SDT_Q);
+      k(`A12c (${che}) /search, /:phone, /:phone/full giữ đủ khoá cũ + xung_ho`, !thieu(tq).length && !thieu(hs.j).length && !thieu(full.j.customer).length,
+        `search: ${thieu(tq)} · phone: ${thieu(hs.j)} · full: ${thieu(full.j.customer)}`);
     });
   }
 
