@@ -122,6 +122,7 @@ DOT_BIEN = [
   ('VS-tru-diem-moc-thieu-khong-so', [(DT, '  if (!moc) return 0;', '  if (!moc) return;', 1)], r'✗ E16f '),
   ('BV-ma-bill-rong-0', [(SC, '      if (diemCong - diemTru <= 0) {', '      if (false) {', 1)], r'✗ E16c '),
   ('VS-ma-bill-rong-am', [(SC, '      if (diemCong - diemTru <= 0) {', '      if (diemCong - diemTru < 0) {', 1)], r'✗ E16c '),
+  ('VS-ma-bill-rong-nguong-1', [(SC, '      if (diemCong - diemTru <= 0) {', '      if (diemCong - diemTru <= 1) {', 1)], r'✗ E16g '),
   ('VS-bill-diem-bo-refund', [(HD, "WHERE order_id = ? AND type IN ('refund', 'compensation') LIMIT 1\", [o.id]));", "WHERE order_id = ? AND type IN ('compensation') LIMIT 1\", [o.id]));", 1)], r'✗ E16d '),
   ('BV-I8-den', [(BB, "const truHoan = r.status !== 'cancelled' && dungBan > 0", "const truHoan = r.status === 'refunded' && dungBan > 0", 1)], r'✗ E14 '),
   ('VS-I8-bo-den', [(BB, "FROM pos_balance_transactions WHERE type IN ('refund', 'compensation')\n", "FROM pos_balance_transactions WHERE type = 'refund'\n", 1)], r'✗ E14 '),
