@@ -714,3 +714,105 @@ What I checked:
 Not checked: did not run code for edge cases (many partial compensations then bill-code claim); conclusions from reading code only.
 ```
 SOÁT BẢO MẬT: ĐẠT
+
+## Cổng chạy (07.11, HEAD 6236574, cây sạch)
+`node tu_chay/cong.js chay . 04068707^ HEAD viec/NAP-1` (mốc theo luật) — ĐỎ, 19 lý do. Trước khi sửa dòng SỐ CA, nguyên các dòng ✗:
+```
+✗ [A11] bài thử `cong_cu/thu_KHO1.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ [A11] bài thử `cong_cu/thu_KHO2b.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ [A11] bài thử `cong_cu/thu_P26a.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ [A11] bài thử `cong_cu/thu_SAOLUU2.js` XANH trên code gốc — bài thử vô giá trị (K3), phải đỏ trước khi vá
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_CT1a.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_DOISOAT1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_GIOVN1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_HANG1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_HD1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_HDKH1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_HOPDONG_KH.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_KH1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_KHAPI2.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_KHNHANHPOS1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_KHSDT1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt ghi "SỐ CA cong_cu/thu_NAP1.js: 87" ≠ 88 ca ở head — N là số ca bài in khi chạy trên code đã vá: chạy lại bài, chép lại số đó
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_P26c.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_SEPAY1.js: <N>"
+✗ [A16] viec/NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_UUDAI1.js: <N>"
+✗ CỔNG ĐỎ (CHẠY) — 19 lý do
+```
+Truy nguyên (K2): dòng `SỐ CA … thu_NAP1.js: 88` có đuôi chú thích → cổng đọc dòng 87 — LỖI CỦA MÁY, đã sửa (`6236574`). 18 dòng còn lại là bài của VIỆC
+KHÁC (KHO, CT-1a, GIO-VN-1, HANG-1, HD-1, KH-*, SEPAY, P26…): commit gộp `ae19926` (chat đưa main `f464cea` vào nhánh 05.11) nằm SAU mốc 04068707^, nên cổng
+thấy bài đã gộp từ main như thể NAP-1 đổi. `git log --first-parent 04068707^..ae19926`: trước lần gộp nhánh chỉ có phiếu + kế hoạch (`791c62a`, `d5ddc8f`).
+Máy không ghi SỐ CA giả cho bài của việc khác. Đối chiếu phần NAP-1 thật: `node tu_chay/cong.js chay . ae199264 HEAD viec/NAP-1` →
+✓ CỔNG CHẠY ĐẠT
+(Phát hiện cho chat: cổng `chay` với mốc `<PHIEU>^` không trừ commit gộp main — nhánh có "GOP-…" sau mốc sẽ luôn đỏ; đề xuất cổng nhận mốc = commit gộp cuối, hoặc
+trừ cha thứ hai của commit gộp.)
+`npm test` sau cổng (chạy riêng): PASS 99 · FAIL 0 · CẢNH BÁO 2. Một lần hook dừng báo "✗ Cú pháp client/src/App.jsx" lúc cổng đang chạy song song — cây không đổi
+`client/` (`git diff --stat 2f48b42 HEAD -- client/` rỗng); chạy lại riêng xanh.
+
+## Phát hiện (07.11 (2))
+- `cong_cu/thu_HD1.js` A24 / A28b (ngoài Phạm vi) khoá "đơn hoàn tất: bill chỉ đếm earn" bằng dòng 'adjust' chèn tay trên đơn không có tiền trả vào tài khoản —
+  dữ liệu thật không sinh ra được. Máy giữ hai ca xanh bằng cách thu hẹp đúng chữ phiếu; nhánh "nới" (luôn đếm adjust) chỉ thu_HD1 bắt.
+- App KH: `diem_cong` của /nhan-diem nay là số RÒNG (sau trừ phần đã trả vào tài khoản); `diem_goc`, `he_so` giữ như cũ — nếu App hiện "diem_goc × he_so" sẽ lệch
+  với `diem_cong` ở đơn đã được đền / kết thúc gói. Không đổi tên trường; HOP_DONG_API_KH.md:216 không liệt kê trường trả. Chat báo App KH khi gộp.
+- Đơn đã trả lại vào tài khoản trọn → /nhan-diem 400 `KHONG_THEM_DIEM` với lời mới ("Tiền đơn này đã được trả lại vào tài khoản…"); cùng mã với nhanDiem.js:43
+  (lời khác). Mã có sẵn trong hợp đồng.
+- Rollback sau câu chiếm mã: người khác nhập CÙNG mã đúng lúc đó có thể nhận "Mã này vừa được dùng" dù mã chưa dùng — không ai được điểm, vô hại.
+- Lối điểm khác: soát lượt này không tìm thêm lối CỘNG / HIỂN THỊ điểm theo đơn nào (cộng: orders.js:1140 bán, :1431 thu nợ — không thể sau đền, signup-codes.js
+  mã bill — đã xử lý; hiển thị: hoaDon.js dungDiem — đã xử lý, dungMaNhanDiem chỉ khách lẻ).
+
+## Báo cáo 7 mục
+```
+VIỆC:        NAP-1 — Gói nạp tiền ở quầy, ví hai ngăn (tiền nạp / thưởng nạp), điểm khi tiêu ví, sổ sách tiền nạp
+             (+ chủ quán 05–07.11: đền bù / kết thúc gói / duyệt hoàn / nhận điểm mã bill trừ điểm phần trả vào tài khoản; gói nạp chỉ chủ quán + PIN)
+ĐÃ SỬA:      (cả việc — chi tiết các bảng "Chỗ vá" ở trên) server/nang_cap/014_nap.js (bảng gói nạp, cột thuong ví / sổ ví) · server/routes/goi-nap.js
+             (cài gói, owner + PIN) · server/utils/viKhach.js (MỘT hàm trừ / cộng ví hai ngăn theo tỷ lệ) · orders.js / giuCho.js / wallets.js / refunds.js
+             (bán gói nạp, mọi lối trừ / hoàn ví qua viKhach, chặn ví / mã / nợ / gộp món) · diemThat.js (tienTinhDiem có ví; diemTruKhiHoan; truDiemHoan)
+             · damages.js, packages.js, refunds.js (trừ điểm phần trả vào tài khoản) · reports.js / doiSoat.js (sổ sách, thưởng nạp đã dùng, giữ hộ)
+             · backup.js · client/src (nhóm Nạp tiền ở Bán hàng mới, Cài đặt gói nạp) + client/dist.
+             Lượt 07.11 (2): server/routes/signup-codes.js nhanDiemMaBill — sau cộng điểm mã bill, cùng giao dịch truDiemHoan; ròng ≤ 0 → rollback,
+             400 KHONG_THEM_DIEM; diem_cong báo ròng · server/utils/diemThat.js truDiemHoan trả số đã trừ (chưa có mốc → 0) · server/routes/hoaDon.js
+             dungDiem — đơn hoàn tất có sổ ví refund / compensation thì bill đếm cả dòng trừ.
+BÀI THỬ:     cong_cu/thu_NAP1.js — gốc ĐỎ (bang_chung_do.txt; lượt này E16 "điểm 31, đúng 21", E16c "dòng 2 → 4", E16f "undefined") → XANH 88 · 0.
+             Bài cũ sửa thường (đỏ gốc, xanh sau): thu_P20, thu_P2223, thu_P24, thu_DIEMTHAT1, thu_P3, thu_KHMUA1, thu_DOISOAT1 (SỐ CA trong bằng chứng).
+             Đột biến viec/NAP-1/dot_bien.py: ĐỐI CHỨNG XANH — 111 trọn bộ BẮT 111 (trước E16g) + VS-ma-bill-rong-nguong-1 BẮT (đợt 3 tên). npm test PASS 99 ·
+             --day-du PASS 103 · FAIL 0. Cổng phần NAP-1 (gốc ae19926): ĐẠT.
+ĐÃ RÀ K4:    grep "ghiVi(\|ghiHoan(\|hoanVi(" server/ → 12 chỗ: mọi lối trả tiền ví về theo đơn (refunds 2, damages 1, packages 1) gọi truDiemHoan; huỷ / xoá qua
+             truDiemDon; wallets.js nạp / trừ / chỉnh tay không gắn đơn. grep "INSERT INTO pos_point_transactions" → 6 chỗ: bán (orders:1140), thu nợ (:1431 — đền
+             đòi đã thu đủ nên không thể sau đền), mã bill (signup-codes — đã vá), trừ (diemThat, orders:1686), đổi quà (loyalty — không gắn đơn). Hiển thị điểm theo
+             đơn: hoaDon dungDiem (vá; App qua dongHoaDon), dungMaNhanDiem (khách lẻ, không có ví). Hết.
+CHƯA KIỂM:   - Render/Turso thật: lúc bước 014 chạy (mốc luật điểm) khi hai máy chồng nhau; rollback nhận mã chen một lần nhận mã khác; tải trên Turso.
+             - App KH: cách App dùng diem_goc / he_so / diem_cong (kho khác); /api/kh/nhan-diem không có ca riêng (chung hàm nhanDiemMaBill với quầy).
+             - Giao diện thật trên điện thoại: nhóm "Nạp tiền" ở Bán hàng mới, Cài đặt → Gói nạp (PIN), in bill đơn nạp trên máy in nhiệt.
+             - Khôi phục từ file sao lưu xlsx thật có trang "Gói nạp tiền"; production đã đặt PIN chủ quán chưa.
+             - Đơn tạo TRƯỚC khi gộp NAP-1 có đền trước gộp rồi đền / kết thúc gói / nhận mã sau gộp: tổng tiền trả không lọc theo mốc 014 (dữ liệu cũ, hiếm).
+             - Mốc I8 `DIEM_VI_TU` trong bat_bien.js tạm '2026-11-08' — chat đặt đúng ngày gộp.
+             - Cổng `chay` với mốc luật (04068707^) ĐỎ 18 dòng do commit gộp main của chat (xem mục Cổng chạy) — chỉ chạy được đối chiếu từ ae19926.
+GIT:         (xem git log --oneline -2 ở cuối phiên; nhánh viec/NAP-1 đã push)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+```
+Thử tay cho chủ quán (điện thoại, sau khi gộp): (1) Bán hàng mới → nhóm "Nạp tiền" → chọn khách → chọn gói → In: số dư khách tăng đúng "vào tài khoản";
+(2) Cài đặt → Gói nạp → thêm gói (đòi PIN chủ quán); (3) đơn có SĐT → Đền một phần vào tài khoản → in lại bill: dòng "cộng" điểm đã giảm.
+
+## Bài học
+Sự cố lượt này: thu_HD1 A24/A28b đỏ khi hoaDon đếm mọi 'adjust' (bài cũ ngoài Phạm vi khoá luật cũ bằng dữ liệu chèn tay); soát độc lập bắt 3 lỗi nhẹ (return
+không số → NaN; ròng 0 vẫn tiêu mã + quyền lần đầu; đường kết thúc gói không ca) + soát lại bắt thiếu ca ngay trên ngưỡng; tự viết sai số mong đợi E16g (22 thay
+vì 2); người gác chặn 3 lệnh (B-PHANTICH ×2: heredoc + chạy script chung một lệnh, `git status && node …`; B-BIMAT-CHU: chạy thu_NAP1 đang sửa có cụm bí mật
+trước khi commit, và một lần vì lời ghi trạng thái có chữ bí mật in hoa); dòng SỐ CA có đuôi chú thích làm cổng đọc sai; cổng mốc luật đỏ vì commit gộp main;
+hook npm test đỏ khi chạy chồng cổng.
+- KHOÁ (ngoài Phạm vi — đề xuất): `tu_chay/cong.js` A16 — dòng `SỐ CA <bài>: <N>` có chữ thừa sau N thì báo "dòng sai dạng" thay vì im lặng lấy dòng khác
+  (ca đỏ: bằng chứng có `SỐ CA x: 87` rồi `SỐ CA x: 88   (ghi chú)` → hiện báo "87 ≠ 88", phải báo dòng 88 sai dạng).
+- KHOÁ (ngoài Phạm vi — đề xuất): `tu_chay/cong.js chay` — trừ phần cha thứ hai của commit gộp main nằm sau mốc (hoặc nhận mốc = commit "GOP-<MÃ>" cuối);
+  ca đỏ: nhánh viec/NAP-1 hiện tại, mốc 04068707^ → 18 dòng A11/A16 của bài việc khác.
+- NGUYÊN TẮC (K3, đề xuất thêm vào KHUON_LOI.md — ngoài Phạm vi): hàm trả số mà chỗ gọi dùng để tính thì MỌI nhánh return phải trả số, đột biến phủ từng nhánh
+  return (truDiemHoan `if (!moc) return;` → "Đã cộng NaN điểm"). Gộp được vào câu "Giá trị MẶC ĐỊNH là hành vi" của K3.
+- NGUYÊN TẮC (K4 + K5): thêm bước TRỪ sau câu chiếm mã → hỏi "ròng = 0 thì sao": mã và quyền lần đầu bị tiêu mà khách được 0 là đường song song của "chặn
+  TRƯỚC câu chiếm mã"; return sớm trong giao dịch kiểm đủ ba thứ quay về (mã, dòng điểm, quyền lần đầu). Ví dụ: E16c.
+- NGUYÊN TẮC (K4): đổi tập trạng thái mà luật áp (từ "đơn đã rời 'completed'" sang cả đơn 'completed') → grep mọi phép lọc theo trạng thái ở lối CỘNG và lối
+  HIỂN THỊ (signup-codes /nhan-diem, hoaDon dungDiem), không chỉ lối ghi ví. Phiếu nêu N đường (đền / kết thúc gói / duyệt hoàn) → mỗi đường một ca vì sổ ví
+  khác loại ('compensation' / 'refund').
+- BỎ: số mong đợi E16g sai do tính nhầm (đã có "truy nguyên trước" của K2, bắt được ngay).
+- BỎ: hook npm test đỏ khi chồng cổng — đã có câu "ca tín hiệu / thời gian không chạy chung đợt nặng" của K3.
+Dọn: không đề xuất xoá lời dặn nào lượt này.
+Đề xuất ngoài Phạm vi máy KHÔNG tự làm — chat soát duyệt, gom vào việc sau hoặc phiếu HOC-<n>.
+
+HEAD ĐÃ KIỂM: 6236574
