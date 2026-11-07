@@ -93,7 +93,7 @@ function dungAhamoveGia(express) {
     const o = [...A.chuyen.values()].reverse().find((x) => x.tracking_number === req.params.tn);
     return o ? res.json(o) : res.status(404).json({ title: 'not found' });
   });
-  g.get('/v3/orders/:id', (req, res) => {
+  g.get('/v3/orders/:id', async (req, res) => {
     if (!coToken(req)) return res.status(401).json({ title: 'Token not found' });
     if (A.khiDoc) { const f = A.khiDoc; A.khiDoc = null; await f(); }
     if (A.hong === 'doc') return res.status(500).json({ title: 'loi doc' });
