@@ -331,14 +331,19 @@ async function main() {
   try { await doSoNo(); } finally { noiLai(); sxBat = false; }
   const kDs = await motDong("SELECT status, resolved_at AS t FROM pos_stock_pending WHERE order_code = 'GV1DS'");
   k('A2i đẩy sổ nợ tồn sang SX (doSoNo, SX giả) → pos_stock_pending.resolved_at', kDs?.status === 'resolved' && gan(kDs?.t, MOC), JSON.stringify(kDs));
+  // KHACH-APP-1 (Q4 chủ quán 07.11): bộ đệm khách SX (cacheCustomersToLocal) đã bỏ — A2j kiểm giờ ghi của bước chép lần cuối 020
+  // (lúc khởi động SX giả trả rỗng → bước HOÃN; nay SX trả danh sách → chạy khung lại).
   khachSX = [{ phone: '0938000060', name: 'Khách SX mới' }, { phone: '0938111222', name: 'Khách SX đã có' }];
-  await goi('GET', '/api/pos/customers/search/0938');
-  let kSx = null;
-  for (let i = 0; i < 50 && !(kSx?.a); i++) { kSx = await motDong("SELECT created_at AS a, updated_at AS b FROM pos_customers WHERE phone = '0938000060'"); if (!kSx?.a) await new Promise((r) => setTimeout(r, 20)); }
-  const kSx2 = await motDong("SELECT updated_at AS b FROM pos_customers WHERE phone = '0938111222'");
+  const kDcTruoc = await motDong("SELECT name, created_at AS a, updated_at AS b FROM pos_customers WHERE phone = '0938111222'");
+  delete require.cache[require.resolve(path.join(MAY_CHU, 'nang_cap', '020_chep_khach_sx.js'))];   // bước nạp lúc khởi động, TRƯỚC SX giả → nạp lại
+  imLang();
+  try { await require(path.join(MAY_CHU, 'nang_cap', 'chay.js')).chayNangCap({ beginTransaction: db.beginTransaction, query: db.query }); } finally { noiLai(); }
   khachSX = [];
-  k('A2j bộ nhớ đệm khách từ SX (cacheCustomersToLocal): khách mới created_at/updated_at, khách đã có updated_at', gan(kSx?.a, MOC) && gan(kSx?.b, MOC) && gan(kSx2?.b, MOC),
-    `${JSON.stringify(kSx)} · ${kSx2?.b}`);
+  const kSx = await motDong("SELECT created_at AS a FROM pos_customers WHERE phone = '0938000060'");
+  const kSx2 = await motDong("SELECT name, created_at AS a, updated_at AS b FROM pos_customers WHERE phone = '0938111222'");
+  const kLog = await motDong("SELECT created_at AS a FROM pos_sync_logs WHERE type = 'chep_khach_sx' ORDER BY id DESC LIMIT 1");
+  k('A2j bước chép lần cuối khách SX (020): khách mới created_at + dòng nhật ký giờ VN dạng T; khách đã có KHÔNG bị ghi lại', gan(kSx?.a, MOC) && gan(kLog?.a, MOC)
+    && JSON.stringify(kSx2) === JSON.stringify(kDcTruoc), `${JSON.stringify(kSx)} · ${JSON.stringify(kLog)} · ${JSON.stringify(kDcTruoc)} → ${JSON.stringify(kSx2)}`);
 
   muc('C. So giờ quanh 00:00 và 07:00 giờ VN');
   // HANG-1: mua thẻ = chọn GÓI của hạng bán (máy chủ tra giá gói) — dựng gói 3 tháng cho hạng thấp nhất
