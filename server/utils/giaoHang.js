@@ -209,12 +209,14 @@ async function ghiPhiHuy(chuyenId, d) {
 /** Lệnh huỷ của quán vừa thành công: đọc được chuyến đã huỷ → ghi phí ngay; không đọc được → "phí huỷ chưa rõ" (CHO_PHI_HUY), màn hỏi thì đọc lại. */
 const ghiPhiHuyLenh = (chuyenId, ma, d) => (d?.trang_thai === 'CANCELLED' ? ghiPhiHuy(chuyenId, d)
   : run("INSERT OR IGNORE INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, 'CHO_PHI_HUY', ?, ?)", [ma, String(chuyenId), getNow()]));
-const CHO_PHI_HUY = `SELECT ma_ahamove, phu FROM pos_giao_tin t WHERE trang_thai = 'CHO_PHI_HUY'
+const CHO_PHI_HUY = `SELECT t.id, t.ma_ahamove, t.phu FROM pos_giao_tin t WHERE trang_thai = 'CHO_PHI_HUY'
   AND NOT EXISTS (SELECT 1 FROM pos_giao_tin p WHERE p.ma_ahamove = t.ma_ahamove AND p.trang_thai = 'PHI_HUY')`;
+/** Đọc lại chuyến chờ lâu nhất trước; chưa ra (chưa huỷ / Ahamove không trả) thì xếp xuống cuối — chuyến đọc mãi không ra không chặn chuyến sau. */
 async function docLaiPhiHuy() {
-  for (const t of await query(CHO_PHI_HUY + ` LIMIT ${DOC_LAI_TOI_DA}`)) {
+  for (const t of await query(CHO_PHI_HUY + ` ORDER BY t.luc, t.id DESC LIMIT ${DOC_LAI_TOI_DA}`)) {
     const d = await aha.docChuyen(t.ma_ahamove).catch(() => null);
     if (d?.trang_thai === 'CANCELLED') await ghiPhiHuy(Number(t.phu), d);
+    else await run('UPDATE pos_giao_tin SET luc = ? WHERE id = ?', [getNow(), t.id]);
   }
 }
 
@@ -259,7 +261,11 @@ async function goiXe(orderId, loaiXe, tu) {
       if (cu.nguoi_huy_la_quan) await ghiPhiHuy(c.id, cu);
       if (c.trang_thai === 'tim_xe') {
         const v = await run("UPDATE pos_giao_chuyen SET trang_thai = 'tim_xe', goi_luc = ? WHERE id = ? AND trang_thai = 'dang_goi' AND goi_luc = ?", [c.goi_luc, c.id, now]);
-        if (v.changes === 1) await capNhatTuAhamove(await docChuyenDon(c.order_id), cu);
+        if (v.changes === 1) {
+          await capNhatTuAhamove(await docChuyenDon(c.order_id), cu);
+          const sau = await docChuyenDon(c.order_id);   // tài xế huỷ lần đầu → máy vừa tự tìm lại một chuyến
+          if (sau?.trang_thai === 'tim_xe' && sau.ma_ahamove !== c.ma_ahamove) return { ok: true, ma_ahamove: sau.ma_ahamove, tu_tim_lai: true };
+        }
         return loi(409, 'CHUYEN_DA_HUY', 'Chuyến vừa bị huỷ ở Ahamove — xem lại thẻ rồi bấm Gọi lại');
       }
     } else if (cu) {
@@ -288,10 +294,12 @@ async function taoChuyenMoi(c, o, cu, khoa) {
     let tn = c.ma_theo_doi;
     if (tn) {
       const co = await aha.traTheoMa(tn);
-      if (co && co.ma !== c.ma_ahamove && !['CANCELLED', 'COMPLETED'].includes(co.trang_thai)) {
+      if (co && co.ma !== c.ma_ahamove && co.trang_thai !== 'CANCELLED') {   // lần trước đã tạo: còn chạy / đã giao xong → nhận lại, không gọi mới
         const n = await run(`UPDATE pos_giao_chuyen SET ma_ahamove = ?, trang_thai = 'tim_xe', phi_that = COALESCE(?, phi_that), chenh = COALESCE(?, phi_that) - phi_khach,
           loi = NULL, loi_mang = 0, doc_luc = ? WHERE ${giu}`, [co.ma, co.phi, co.phi, getNow(), c.id, khoa]);
-        return n.changes === 1 ? { ok: true, ma_ahamove: co.ma } : thua;
+        if (n.changes !== 1) return thua;
+        await capNhatTuAhamove(await docChuyenDon(c.order_id), co);   // áp trạng thái đọc được (tài xế, đang giao, xong)
+        return { ok: true, ma_ahamove: co.ma, nhan_lai: true };
       }
       if (co) tn = null;
     }
@@ -308,9 +316,10 @@ async function taoChuyenMoi(c, o, cu, khoa) {
     const phi = t.phi ?? bp.phi;
     const n = await run(`UPDATE pos_giao_chuyen SET ma_ahamove = ?, trang_thai = 'tim_xe', phi_that = ?, chenh = ? - phi_khach, loi = NULL, loi_mang = 0, doc_luc = ?,
       tai_xe_ten = NULL, tai_xe_sdt = NULL, tai_xe_bien_so = NULL WHERE ${giu}`, [t.ma, phi, phi, getNow(), c.id, khoa]);
-    if (n.changes !== 1) {   // thua giành: chuyến vừa tạo không ai giữ → huỷ ngay (trừ khi máy thắng đã nhận chính chuyến này qua mã theo dõi)
-      if ((await docChuyenDon(c.order_id))?.ma_ahamove !== t.ma) {
-        await aha.huyChuyen(t.ma, 'Trùng chuyến — quán đã gọi chuyến khác').catch((e) => console.error('GIAO-1: không huỷ được chuyến trùng', t.ma, e.code));
+    if (n.changes !== 1) {   // thua giành: chuyến vừa tạo không ai giữ → huỷ ngay (trừ khi máy thắng đã nhận chính chuyến này qua mã theo dõi);
+      if ((await docChuyenDon(c.order_id))?.ma_ahamove !== t.ma) {   // lệnh huỷ của quán thành công → phí huỷ (Q9)
+        const huy = await aha.huyChuyen(t.ma, 'Trùng chuyến — quán đã gọi chuyến khác').then(() => true, (e) => console.error('GIAO-1: không huỷ được chuyến trùng', t.ma, e.code));
+        if (huy) await ghiPhiHuyLenh(c.id, t.ma, await aha.docChuyen(t.ma).catch(() => undefined));
       }
       return thua;
     }
@@ -396,10 +405,11 @@ async function nhanTinBao(b) {
   const ma = String(b?._id || b?.order_id || '').replace(/-\d+$/, '');
   const c = ma ? await queryOne('SELECT * FROM pos_giao_chuyen WHERE ma_ahamove = ?', [ma]) : null;
   if (!c) return { status: 200, body: { success: true } };   // không phải chuyến của quán (hoặc chuyến cũ đã thay) — bỏ qua
-  // Thẻ đang gọi xe: chưa áp được — KHÔNG ghi sổ chống lặp, trả 409 để Ahamove gửi lại (tin gửi lại sau khi thẻ ra khỏi dang_goi được áp).
-  if (c.trang_thai === 'dang_goi') return loi(409, 'DANG_GOI_XE', 'Thẻ đang gọi xe — gửi lại sau').loi;
+  // Thẻ đang gọi xe: chưa áp được — KHÔNG ghi sổ chống lặp, trả 409 (Ahamove có gửi lại tin hay không: CHƯA đối chiếu). Tin sau cùng chuyến được áp;
+  // không có tin sau thì màn Giao hàng đọc lại chuyến quá DOC_LAI_GIAY (danhSach) — trạng thái không mất.
+  if (c.trang_thai === 'dang_goi') return loi(409, 'DANG_GOI_XE', 'Thẻ đang gọi xe — chưa áp tin').loi;
   let d;
-  try { d = await aha.docChuyen(ma); } catch { return loi(502, 'AHAMOVE_LOI', 'Không đọc lại được chuyến — Ahamove gửi lại sau').loi; }
+  try { d = await aha.docChuyen(ma); } catch { return loi(502, 'AHAMOVE_LOI', 'Không đọc lại được chuyến — màn Giao hàng đọc lại sau').loi; }
   if (!d) return { status: 200, body: { success: true } };
   const moi = await run('INSERT OR IGNORE INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, ?, ?, ?)', [ma, d.trang_thai, `${d.diem_giao}|${d.tai_xe.sdt || ''}`, getNow()]);
   if (moi.changes === 1) await capNhatTuAhamove(c, d);
