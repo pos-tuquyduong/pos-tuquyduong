@@ -39,7 +39,7 @@
 - Kho mở NÔNG lại → `thu_BH2.js` G1 đỏ `bad revision 'cbbb809..HEAD'`; chạy `git fetch -q --unshallow origin viec/KHACH-APP-1` → `npm test` PASS 101 · FAIL 0.
 
 ## Đang ở bước
-Soát vòng 2 KHÔNG ĐẠT → vòng sửa 2b đã làm (bang_chung_do.txt "Vòng sửa 2b"; 99/99, 52/52 BẮT, npm test PASS 102). Tiếp: soát vòng 3.
+XONG. Soát vòng 3 chỉ còn lỗi NHẸ → vòng sửa 4 (LUAT §6.5, chat soát thay); soát bảo mật ĐẠT; báo cáo 7 mục + bài học ở cuối file.
 
 ## Câu hỏi
 (không còn câu nào mở)
@@ -394,7 +394,7 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
   người nhận gắn SĐT — chỉ làm hẹp lại chỗ được xoá (an toàn hơn), không xoá thêm gì.
 - Nhật ký dùng bảng có sẵn `pos_sync_logs` (như `donThu.js` 'don_thu', bước 020 / 022) — không thêm bảng (phiếu: không đổi cấu trúc DB).
 
-## Chỗ vá → đột biến (`viec/KHACH-APP-1/dot_bien.py`, chạy `python3 viec/KHACH-APP-1/dot_bien.py` — đối chứng 99/99 + 112/112 xanh, 52/52 BẮT)
+## Chỗ vá → đột biến (`viec/KHACH-APP-1/dot_bien.py`, chạy `python3 viec/KHACH-APP-1/dot_bien.py` — đối chứng 100/100 + 112/112 xanh, 54/54 BẮT)
 | Chỗ vá | Đột biến (ca bắt) |
 |---|---|
 | customers-v2.js `GET /` đọc qua docKhach, không gọi SX | BV-DOC-SX-DANH-SACH (A11) |
@@ -431,6 +431,8 @@ Chi tiết + đề xuất của mình ở `ke_hoach.md` mục "Câu hỏi cho ch
 | registrations.js DELETE không gói | BV-XOA-BO-GOI (R4 gói) |
 | registrations.js SĐT có đăng ký + là khách → cũng 409 (soát v2 lỗi 1) | VS-DK-DA-DANG-KY-CAU-CU (C7d) |
 | registrations.js nhật ký xoá khách không chép băm PIN (soát v2 lỗi 2) | BV-XOA-LO-PIN (R2d) |
+| registrations.js SĐT có đăng ký, CHƯA là khách → giữ 400 SDT_DA_DANG_KY (soát v3 lỗi 1) | VS-DK-LUON-409 (C7e) |
+| registrations.js nhật ký đúng danh sách trắng cột (soát v3 lỗi 2) | VS-NK-THEM-COT (R2d) |
 | registrations.js DELETE không voucher / hoàn tiền / phiên / đơn App | BV-XOA-BO-VOUCHER, BV-XOA-BO-HOAN-TIEN, BV-XOA-BO-PHIEN, BV-XOA-BO-DON-APP (R4) |
 | customers-v2.js địa chỉ / ghi chú tạo qua taoKhach | BV-V2-CHEN-RIENG (C8) |
 | chay.js trạng thái HOÃN | BV-HOAN (B3) |
@@ -454,7 +456,7 @@ VS-HOAN-GOI-LAI-SX, VS-CHEP-GHI-DE, BV-CHEP-SAO-LUU, BV-CHEP-NHAT-KY, VS-CHEP-RO
 VS-022-CHEP-DA-XUAT, BV-022-CAP-QR, VS-APP-SAI-KHACH, VS-BUOC-KHAC-HOAN, VS-DK-TRUNG-400, BV-DK-DUA-500, BV-DK-SUA-KHONG-KHACH,
 VS-DK-SUA-MOI-KHACH, BV-DK-XOA-KHONG-KHACH, VS-XOA-MOI-VAI, VS-XOA-MOI-TRANG-THAI, BV-XOA-KHONG-NHAT-KY, VS-XOA-KHACH-CUA-NGUOI-KHAC,
 VS-XOA-BO-VI, BV-XOA-BO-DON, BV-XOA-BO-GD-VI, BV-XOA-BO-DIEM, BV-XOA-BO-GOI, VS-DK-DA-DANG-KY-CAU-CU, BV-XOA-LO-PIN, BV-XOA-BO-VOUCHER,
-BV-XOA-BO-HOAN-TIEN, BV-XOA-BO-PHIEN, BV-XOA-BO-DON-APP.
+BV-XOA-BO-HOAN-TIEN, BV-XOA-BO-PHIEN, BV-XOA-BO-DON-APP, VS-DK-LUON-409, VS-NK-THEM-COT.
 
 ## Ghi chú làm tiếp (07.11)
 - Bộ chạy nâng cấp: HOÃN do bước TỰ trả về qua `truoc()` — gọi NGOÀI giao dịch vì giao dịch ghi Turso (`database.js` beginTransaction →
@@ -463,3 +465,92 @@ BV-XOA-BO-HOAN-TIEN, BV-XOA-BO-PHIEN, BV-XOA-BO-DON-APP.
 - Bánh cóc `NGUONG_ROUTE_GHI_KHONG_LOIGHI` 50 → 49: bộ kiểm báo đếm 49 sau khi 5 route ghi khách đi qua `loiGhi` (được phép HẠ).
 - `thu_GIOVN1` A2j: bước 020 nạp lúc khởi động TRƯỚC SX giả của bài → bài xoá bộ đệm `require` của 020 rồi chạy khung lại (chỉ sửa bài).
 - `thu_GIOVN1` M5 (phép tĩnh giờ ghi) báo `khachMoi.js` INSERT thiếu `created_at` khi danh sách cột sinh động → viết cột ra hẳn (K8: phép đúng).
+
+## Soát bảo mật
+Lần 1 (07.11, sau vòng sửa 4, HEAD 4ab503c) — subagent general-purpose, lời nhắc /security-review + "Tiền lệ của kho này". Lỗ hổng trước lọc: 0
+· sau lọc: 0 (không cần bước lọc). Báo cáo nguyên văn:
+```
+Không tìm thấy lỗ hổng.
+
+Mình đã đọc toàn bộ diff phần code từ 9a49cdf^ tới HEAD: customers-v2.js, customers.js, registrations.js, docKhach.js, khachMoi.js, maKhach.js, nang_cap/chay.js, 020_chep_khach_sx.js, 022_chep_dang_ky_qr.js và kiem_tra_truoc_khi_giao.js. Không có lỗ nào mới do nhánh này đưa vào, ở mức tin cậy ≥ 7.
+
+Các điểm đã soát và vì sao không tính là lỗi:
+- **SQL:** mọi giá trị người dùng gửi lên đều đi qua tham số `?`. `CAU_XOA_KHACH_TRANG` (registrations.js) chỉ ghép tên bảng / cột từ hằng số `DAU_VET_KHACH`, không ghép dữ liệu người dùng.
+- **PUT /registrations/:id giờ sửa luôn `pos_customers` theo SĐT** (tên, ghi chú, parent_phone, quan hệ). Route chỉ có `authenticate`, nhưng `PUT /customers/:id` trong customers.js (khoảng dòng 368) vốn đã cho mọi nhân viên đăng nhập sửa đúng các trường này. Vậy không có leo thang quyền mới.
+- **DELETE /registrations/:id xoá luôn khách:**
+  - Chỉ xảy ra khi vai là `owner` hoặc `manager` (`req.user.role`, đúng tên vai trong middleware/auth.js).
+  - Đăng ký phải đang chờ, khách phải do chính đăng ký đó tạo (cùng `created_by`, `created_at` từ lúc đăng ký trở đi) và chưa có dấu vết nào (ví, đơn, điểm, gói…). Điều kiện nằm ngay trong câu DELETE.
+  - Nhật ký chỉ chép cột ở danh sách trắng `COT_NHAT_KY_KHACH`, không có `pin_code` / `password`.
+- **docKhach.js:** chọn từng trường để trả ra, không trả cả dòng, nên không lộ `pin_code` / `password`. Phạm vi dữ liệu trả cho nhân viên đã đăng nhập vẫn như các đường cũ đọc từ SX.
+- **maKhach.js (App KH):** tạo khách qua `taoKhach`, mã QR giờ sinh bằng `sinhQrKhongTrung` thay cho `generateQRCode(sdt)`. Đây là cải thiện về độ khó đoán, không phải lỗi. Việc chiếm mã đăng nhập (`AND dung_luc IS NULL` + kiểm `changes`) giữ nguyên.
+- **Tạo khách ở POST /customers, /:id/children, /registrations:** trước đây cũng chỉ cần đăng nhập. Kiểm trùng giờ nằm trong câu ghi (`ON CONFLICT DO NOTHING`), không mở đường mới.
+- **customers-v2.js address / discount:** vẫn giữ `checkPermission('manage_users')`.
+- **Bước nâng cấp 020 / 022:** dữ liệu vào là SX (gọi bằng khoá API, nguồn tin cậy) và bảng đăng ký nội bộ. Chỉ thêm khách mới, không ghi đè dòng đã có.
+- **kiem_tra_truoc_khi_giao.js:** chỉ hạ ngưỡng bánh cóc từ 50 xuống 47 và sửa chú thích, không tắt phép kiểm nào.
+
+Chưa kiểm: mình chỉ đọc code, không chạy bài thử. Các vùng cũ nằm ngoài diff (vd `PUT /customers/:id` không có `checkPermission`, `parent_phone` do máy khách gửi trong `POST /orders`) không thuộc phạm vi soát này.
+```
+SOÁT BẢO MẬT: ĐẠT
+
+## Báo cáo 7 mục
+SOÁT LẦN CUỐI: chat soát thay (soát vòng 3 chỉ còn lỗi NHẸ → vòng sửa 4 ngay trong phiếu, LUAT §6.5)
+```
+VIỆC:        KHACH-APP-1 — Khách chỉ còn MỘT nguồn POS (danh sách, tìm, QR, hồ sơ đọc pos_customers; chép SX lần cuối; một hàm tạo khách)
+ĐÃ SỬA:      server/utils/docKhach.js (mới) — một hàm đọc khách; customers-v2.js — 4 đường đọc qua docKhach, bỏ fetchSXCustomers /
+             getLocalCachedCustomers / cacheCustomersToLocal; PUT address / discount tạo khách qua taoKhach
+             server/utils/khachMoi.js (mới) — taoKhach: một hàm tạo khách (chuẩn SĐT, trùng SĐT trong câu ghi, sinhQrKhongTrung, mặc định Q2)
+             customers.js POST / người nhận / POST /:id/children · maKhach.js (App) — qua taoKhach
+             registrations.js — POST tạo khách thật (Q1), Q7 409 KHACH_DA_CO_TAI_KHOAN (cả khi SĐT có đăng ký và đã là khách), trùng
+             đăng ký chặn trong câu ghi; PUT sửa luôn dòng khách (Q6a); DELETE xoá khách trắng do đăng ký tạo, chỉ owner / manager, nhật
+             ký pos_sync_logs 'xoa_khach' cột danh sách trắng (Q6b)
+             server/nang_cap/chay.js — trạng thái HOÃN; 020_chep_khach_sx.js — chép SX lần cuối; 022_chep_dang_ky_qr.js (đổi từ 021) —
+             đăng ký chờ → khách + cấp QR ô trống
+             kiem_tra_truoc_khi_giao.js — nối thu_KHACHAPP1, bánh cóc loiGhi 50 → 47; cong_cu/thu_GIOVN1.js A2j (Q4), thu_KHO1.js B1/B2/B1c (Q5)
+BÀI THỬ:     cong_cu/thu_KHACHAPP1.js: trên gốc 37d195b → ĐỎ 34/100 (A1, A3–A5, A11, A12, B*, C1, C2b, C7*, R*, …); sau vá → XANH 100/100.
+             thu_GIOVN1 A2j, thu_KHO1 B1c đỏ trên gốc (bang_chung_do.txt). dot_bien.py 54/54 BẮT, đối chứng 100/100 + 112/112.
+             npm test PASS 102 · FAIL 0; --day-du PASS 106 · FAIL 0 · CẢNH BÁO 1 (route GET có lệnh ghi — có sẵn trước việc).
+ĐÃ RÀ K4:    grep "fetchSXCustomers(" customers-v2.js → 4 chỗ, cả 4 sang docKhach; grep "INSERT INTO pos_customers" server/ → customers.js
+             3, maKhach.js 1, customers-v2.js 3, registrations.js 0 (qua taoKhach), sync.js 1 (ngoài Phạm vi, Phát hiện) — đã chuyển hết
+             trong Phạm vi; route sửa / xoá đăng ký: PUT, DELETE, revert, confirm-export → PUT / DELETE đã nối khách (revert / xuất chỉ đổi
+             trạng thái); "021" trong server / cong_cu / dot_bien → đổi hết sang 022 (hồ sơ cũ giữ làm lịch sử).
+CHƯA KIỂM:   Turso thật (giao dịch dài của 020, đua thật — bài chạy libsql file cục bộ); SX thật trả dạng gì / bao nhiêu khách; chưa gộp
+             thử với main (GIAO-1 021, NAP-1 cùng sửa chay.js — máy không có ref main); không thử tay giao diện (màn Đăng ký, Thêm khách,
+             Tạo nhanh ở Bán hàng); màn Đăng ký không gửi lý do xoá và luôn báo "Đã xóa!" (client Cấm) — lý do trong nhật ký là câu
+             mặc định; production có thể thiếu UNIQUE ở qr_code nếu bảng cũ hơn ràng buộc.
+GIT:         (xem dòng git log --oneline -2 ghi sau commit cuối)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 4 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+Nghiệm thu — đếm từng mục:
+- A (một hàm đọc, 4 đường, mỗi SĐT một dòng, không gọi SX, thêm xung_ho, giữ dạng) — A1, A1b, A3–A6b, A9, A9b, A11, A12, A12b, A12c, A13, A14.
+- B (chép lần cuối, chỉ thêm, sao lưu, nhật ký, SX lỗi → HOÃN, cách đếm) — B1–B1e, B2, B3, B3b, B3c, B4, B5, B7; ke_hoach "Chủ quán đối chiếu".
+- C (một hàm tạo, cùng chuẩn / mặc định / QR, đua không 500) — C0–C6b, C4b, C5b, K2–K2d, C8.
+- D (so cột, hiện / tìm / QR / hồ sơ khi SX thiếu họ và khi SX tắt, tên không bị đè, chép hai lần không đổi) — C1, vòng ds / loi, A8, A8b, B2, B6e.
+- K5 (không đổi luật SĐT, /api/kh, số dư / điểm / hạng, client, sync.js) — `git diff --stat 9a49cdf^ HEAD` không đụng client/, sync.js, routes/kh/,
+  HOP_DONG_API_KH.md; thu_HOPDONG_KH, thu_KHSDT1 xanh trong npm test; A13.
+- Q1 C7, A6b, B6b · Q2 C1, K2b · Q3 A14 · Q4 thu_GIOVN1 A2j · Q5 thu_KHO1 B1, B1c, B2.
+- Phát hiện chủ quán chốt: người nhận không SĐT K2, K2d · address / discount qua hàm chung C8 · cấp QR ô trống B6, B6c · HOÃN ≠ ném B3, B7 · nhãn SX để sau (client không đổi).
+- Q6a R1–R1d · Q6b R2, R2b, R2c, R2d, R3, R3b, R4 × 12, R5–R5d · Q7 C7b, C7d, C7e (nhánh còn lại) · đổi 021 → 022 R6, B3b, B6.
+→ đủ mọi mục, mỗi mục có ca.
+
+## Bài học
+Sự cố của việc: soát vòng 1 bắt K4 (sửa / xoá đăng ký bỏ sót) + K5 (tự chọn chặn Q7); soát vòng 2 bắt hai vị từ cho "SĐT đã có" (Q7 chỉ đúng khi
+không có đăng ký), nhật ký chép cả dòng khách (băm PIN), bài chưa nối bộ kiểm, bánh cóc chưa hạ; soát vòng 3 bắt danh sách trắng không so BẰNG,
+nhánh "giữ câu cũ" không ca. Người gác chặn: `git mv` / `ls-tree` (GIT-LENH — lệnh git con ngoài danh sách), `git fetch origin main` (GIT-KEO),
+chạy bài có cụm bí mật của bài thử trước khi commit (B-BIMAT-CHU), lệnh ghép `&&` sau script (B-PHANTICH), `sed -i` (SED-I). Đột biến LẠC một lần
+(VS-XOA-KHACH-CUA-NGUOI-KHAC: ca R5 bị điều kiện khác che — sửa ca cho chỉ vi phạm một điều kiện). Kho nông lại → unshallow.
+- **KHOÁ (làm trong Phạm vi):** bài thu_KHACHAPP1 nối vào `kiem_tra_truoc_khi_giao.js` (chayBaiThat) — ca R6 "không hai file nâng cấp cùng số"
+  nay chạy ở mọi npm test, kể cả sau khi gộp main (bắt đúng lỗi 021 trùng GIAO-1).
+- **KHOÁ (đề xuất, ngoài Phạm vi — `kiem_tra_truoc_khi_giao.js` phép mới cần chủ quán duyệt danh sách miễn):** mọi `cong_cu/thu_*.js` phải có
+  `chayBaiThat` hoặc nằm trong danh sách miễn có tên; ca đỏ: thêm một bài thử mới không nối → FAIL.
+- **KHOÁ (đề xuất):** phép tĩnh — `INSERT INTO pos_sync_logs` có chép dòng khách phải đi qua một hàm che chung (gom `COT_BI_MAT` của donThu.js và
+  `COT_NHAT_KY_KHACH`) — file `server/utils/` mới + sửa donThu.js; ca đỏ: chép `SELECT * FROM pos_customers` vào details.
+- **NGUYÊN TẮC (K4, đề xuất thêm vào KHUON_LOI.md — ngoài Phạm vi):** đổi đường TẠO của một đối tượng (đăng ký → khách thật) → grep mọi route
+  SỬA / XOÁ của cùng đối tượng, mỗi route một ca. Đã gây: Q6 (màn Đăng ký sửa / xoá không tác dụng lên khách).
+- **NGUYÊN TẮC (K4):** câu chủ quán nói theo ĐỐI TƯỢNG ("SĐT đã là khách") → ca phủ mọi cách đối tượng đó đang có trong kho (có / không đăng ký,
+  khách App, khách chép SX); một vị từ rẽ hai nhánh thì CẢ HAI nhánh có ca + đột biến "đổi nhánh". Đã gây: C7d, C7e.
+- **NGUYÊN TẮC (K3):** danh sách trắng (cột nhật ký, khoá trả ra) so BẰNG `Object.keys`, không chỉ "không có X" (LUAT §6.7 áp cả cho bài mới).
+  Đã gây: R2d bản đầu.
+- **NGUYÊN TẮC (K5):** phép chặn mới mà câu trả lời chủ quán không nhắc tới là chỗ CHƯA CHỐT — hỏi trước khi khoá bằng ca + đột biến. Đã gây: C7b vòng 1.
+- **BỎ:** chuỗi `\n` trong script Python sinh ra xuống dòng thật trong dot_bien.py (một lần, đối chứng bắt ngay). Kho nông (đã có cách xử lý ở skill bước 1.3).
+Dọn: KHUON_LOI.md / CLAUDE.md ngoài Phạm vi — không đề xuất xoá dòng nào lần này.
