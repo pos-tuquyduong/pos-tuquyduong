@@ -31,7 +31,7 @@ const diemTruKhiHoan = (diem, tienHoan, tienDiem) =>
  */
 async function truDiemHoan(tx, don, nguoi, luc, lyDo) {
   const moc = (await tx.queryOne("SELECT luc FROM pos_nang_cap WHERE ten = '014_nap'"))?.luc;
-  if (!moc) return;
+  if (!moc) return 0;
   const tra = await tx.queryOne(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions
     WHERE order_id = ? AND type IN ('refund', 'compensation')`, [don.id]);
   const nhom = await tx.query(`SELECT customer_phone, expires_at, SUM(CASE WHEN type = 'earn' THEN points ELSE 0 END) AS diem, SUM(points) AS con
