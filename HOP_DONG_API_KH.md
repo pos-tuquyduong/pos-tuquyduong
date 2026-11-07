@@ -1,8 +1,8 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 11
-NGAY: 2026-11-05
-DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1) (routes/chuong-trinh.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
+PHIEN_BAN: 12
+NGAY: 2026-11-07
+DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1) (routes/chuong-trinh.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
   nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js, nang_cap/013_hang.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
 
@@ -36,14 +36,26 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1) (rout
 | `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4" |
 | `GET /diem` | có | — | `points`, `history` |
 | `GET /voucher` | có | `?all=1` lấy cả mã đã dùng / hết hạn | `data[]`, `ma_khach_moi` |
-| `GET /don` | có | `?trang=N` (20 đơn / trang) | `trang`, `con_nua`, `data[] { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, cach_tra, giu_vi, con_lai }` — gồm cả đơn App chưa trả (v5); `cach_tra` / `giu_vi` / `con_lai` (v6): xem "Ghi chú v6"; `so_hd`, `tien_ve_da_cong_vi`, `thong_bao_tien_ve` (v10): xem "Ghi chú v10" |
-| `GET /don/:ma` | có | — (`ma` = mã đơn App hoặc mã bill) | `don { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, mon[] { ma, ten, so_luong, don_gia, thanh_tien, ghi_chu }, cach_tra, giu_vi, con_lai, hoa_don[] { loai, trai, phai, dam, gach, ghi_chu } }` — trường v6: xem "Ghi chú v6"; v10: "Ghi chú v10" |
+| `GET /don` | có | `?trang=N` (20 đơn / trang) | `trang`, `con_nua`, `data[] { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, cach_tra, giu_vi, con_lai, kenh, cach_nhan, tra[] { cach, so_tien }, so_mon, mon_dau, giam }` — gồm cả đơn App chưa trả (v5); `kenh` … `giam` (v12): xem "Ghi chú v12"; `cach_tra` / `giu_vi` / `con_lai` (v6): xem "Ghi chú v6"; `so_hd`, `tien_ve_da_cong_vi`, `thong_bao_tien_ve` (v10): xem "Ghi chú v10" |
+| `GET /don/:ma` | có | — (`ma` = mã đơn App hoặc mã bill) | `don { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, mon[] { ma, ten, so_luong, don_gia, thanh_tien, ghi_chu }, cach_tra, giu_vi, con_lai, kenh, cach_nhan, tra[] { cach, so_tien }, so_mon, mon_dau, giam, hoa_don[] { loai, trai, phai, dam, gach, ghi_chu } }` — trường v6: xem "Ghi chú v6"; v10: "Ghi chú v10"; v12: "Ghi chú v12" |
 | `POST /gio/bao-gia` | có | `{ mon[] { ma, so_luong, ghi_chu? }, ma_giam?, cach_nhan: "tai_quan" }` — xem "Đặt đơn" | `dong[] { ma, so_luong, don_gia, thanh_tien }, tam_tinh, giam[] { loai, so_tien }, phi_giao, tong, ma_giam_loi` |
 | `POST /don` | có | thân báo giá + `cach_tra`, `pin?`, `khoa_gui`, `tong_da_xem` — xem "Đặt đơn" | `ma_don, so_hd, tong, giu_vi, con_lai, tien_trinh, qr { chuoi, het_han } \| null, trung` |
 | `POST /don/:ma/huy` | có | — (`ma` = mã đơn App) | `ma_don, tien_trinh` |
 | `POST /nhan-ma-bill` | có | `{ ma }` | kết quả nhận ưu đãi khách mới |
 | `POST /nhan-diem` | có | `{ ma }` | kết quả nhân điểm theo mã trên bill |
 | `PUT /pin` | có | `{ pin, pin_lai }` (4 số) | — |
+
+### Ghi chú v12 — tóm tắt từng đơn ở Lịch sử đơn (KH-TOMTAT-1)
+Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (chỉ đơn thuộc SĐT trong token). Không đổi trường cũ.
+- `kenh`: `app` (đặt từ App) · `quay` (tạo ở quầy); sau này thêm kênh nền tảng (KENH-1) — App bỏ qua giá trị lạ, hiện nguyên.
+- `cach_nhan`: `tai_quan` · `giao` (đơn quầy có phí giao > 0) · `null` (đơn cũ không ghi phí giao). Quầy không phân biệt "tại chỗ", nên chưa có `tai_cho`.
+  Đơn App chưa có đơn thật luôn `tai_quan`; đơn App đã trả tính theo phí giao như đơn quầy.
+- `tra[] { cach, so_tien }`: các cách khách ĐÃ trả, đúng các dòng thanh toán của hoá đơn quầy (bỏ dòng ghi nợ), cùng thứ tự: `tai_khoan` (ví) ·
+  `tai_khoan_me` (ví mẹ) · `chuyen_khoan` (QR / chuyển khoản) · `tien_mat`. Đơn trả ví + QR → hai dòng. Tổng `so_tien` = `da_tra`. Đơn App chưa trả /
+  huỷ trước khi trả → `[]`; đơn cũ thiếu tiền → `null`.
+- `so_mon` (tổng số ly / món, số nguyên) và `mon_dau` (tên món đầu): `null` khi đơn thật không còn dòng món.
+- `giam`: tổng tiền đã giảm = giảm hạng + Flash + mã / quà (số dương, đúng tổng các dòng `giam_hang` `giam_flash` `giam_ma` in trên `hoa_don[]`);
+  `0` khi không giảm; `null` khi đơn cũ thiếu tổng. Phí giao KHÔNG tính là giảm.
 
 ### Ghi chú v11 — số hoá đơn và tiền về muộn (CK-NOIDUNG-1)
 - `so_hd` (`GET /don`, `GET /don/:ma`, `POST /don`): số hoá đơn POS của đơn — ĐÚNG chuỗi in to trên bill và trong nội dung chuyển khoản: `APP0016` (đơn App),
@@ -210,7 +222,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 11,
+  "phien_ban": 12,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -225,8 +237,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     { "pt": "GET", "duong": "/menu", "token": "tuy_chon", "tra": ["data[].ma", "data[].ten", "data[].nhom", "data[].gia", "data[].con_hang", "data[].ton_cu", "data[].ton_luc", "data[].gia_hang[].hang_id", "data[].gia_hang[].gia", "data[].nhu_cau", "data[].the_chat", "data[].mo_ta", "data[].cong_dung", "data[].thanh_phan", "data[].anh"] },
     { "pt": "GET", "duong": "/diem", "token": true, "tra": ["points", "history"] },
     { "pt": "GET", "duong": "/voucher", "token": true, "tra": ["data", "ma_khach_moi"] },
-    { "pt": "GET", "duong": "/don", "token": true, "tra": ["trang", "con_nua", "data[].ma", "data[].so_hd", "data[].ngay", "data[].tong", "data[].da_tra", "data[].trang_thai", "data[].thanh_toan", "data[].tien_trinh", "data[].qr", "data[].tien_ve_cho_doi_soat", "data[].tien_ve_da_cong_vi", "data[].thong_bao_tien_ve", "data[].cach_tra", "data[].giu_vi", "data[].con_lai"] },
-    { "pt": "GET", "duong": "/don/:ma", "token": true, "tra": ["don.ma", "don.so_hd", "don.ngay", "don.tong", "don.da_tra", "don.trang_thai", "don.thanh_toan", "don.tien_trinh", "don.qr", "don.tien_ve_cho_doi_soat", "don.tien_ve_da_cong_vi", "don.thong_bao_tien_ve", "don.mon[].ma", "don.mon[].ten", "don.mon[].so_luong", "don.mon[].don_gia", "don.mon[].thanh_tien", "don.mon[].ghi_chu", "don.cach_tra", "don.giu_vi", "don.con_lai", "don.hoa_don[].loai", "don.hoa_don[].trai", "don.hoa_don[].phai", "don.hoa_don[].dam", "don.hoa_don[].gach", "don.hoa_don[].ghi_chu"] },
+    { "pt": "GET", "duong": "/don", "token": true, "tra": ["trang", "con_nua", "data[].ma", "data[].so_hd", "data[].ngay", "data[].tong", "data[].da_tra", "data[].trang_thai", "data[].thanh_toan", "data[].tien_trinh", "data[].qr", "data[].tien_ve_cho_doi_soat", "data[].tien_ve_da_cong_vi", "data[].thong_bao_tien_ve", "data[].cach_tra", "data[].giu_vi", "data[].con_lai", "data[].kenh", "data[].cach_nhan", "data[].tra", "data[].so_mon", "data[].mon_dau", "data[].giam"] },
+    { "pt": "GET", "duong": "/don/:ma", "token": true, "tra": ["don.ma", "don.so_hd", "don.ngay", "don.tong", "don.da_tra", "don.trang_thai", "don.thanh_toan", "don.tien_trinh", "don.qr", "don.tien_ve_cho_doi_soat", "don.tien_ve_da_cong_vi", "don.thong_bao_tien_ve", "don.mon[].ma", "don.mon[].ten", "don.mon[].so_luong", "don.mon[].don_gia", "don.mon[].thanh_tien", "don.mon[].ghi_chu", "don.cach_tra", "don.giu_vi", "don.con_lai", "don.kenh", "don.cach_nhan", "don.tra", "don.so_mon", "don.mon_dau", "don.giam", "don.hoa_don[].loai", "don.hoa_don[].trai", "don.hoa_don[].phai", "don.hoa_don[].dam", "don.hoa_don[].gach", "don.hoa_don[].ghi_chu"] },
     { "pt": "POST", "duong": "/nhan-ma-bill", "token": true, "tra": [] },
     { "pt": "POST", "duong": "/nhan-diem", "token": true, "tra": [] },
     { "pt": "PUT", "duong": "/pin", "token": true, "tra": [] },
@@ -285,3 +297,5 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   và `thong_bao_tien_ve` (câu App hiện nguyên cho khách); câu "Luật 4xx" của `POST /don`
   sửa chữ cho khớp code (ngoại lệ 401, 409 `KHO_BAN`, 409 `KHOA_GUI_DA_DUNG` — yêu cầu App KH 05.11 mục 3), câu "Tiền về muộn" viết lại theo hành vi mới.
   Hoá đơn (`hoa_don[]`) đơn trả chuyển khoản có thêm dòng `loai: "ma_gd"` (mã giao dịch ngân hàng). Không xoá / đổi tên trường cũ — App v10 bỏ qua trường lạ là chạy nguyên.
+- v12 · 07.11.2026 · KH-TOMTAT-1: `GET /don` (mỗi đơn) và `GET /don/:ma` thêm `kenh`, `cach_nhan`, `tra[] { cach, so_tien }`, `so_mon`, `mon_dau`, `giam` —
+  tóm tắt đơn tính bằng CÙNG hàm với hoá đơn quầy (`dungThanhToan`, `tinhGiam` ở routes/hoaDon.js). Không xoá / đổi tên trường cũ — App v11 bỏ qua trường lạ là chạy nguyên.

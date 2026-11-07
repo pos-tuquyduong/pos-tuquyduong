@@ -26,6 +26,7 @@ const { taoPhien, chotPhien, gomRes } = require('./giuCho');
 const { laTrungKhoa } = require('../kho/tinh');
 const { thanLoi } = require('../routes/kh/loi');
 const { dongHoaDonKhach } = require('./dongHoaDon');
+const { dungThanhToan, tinhGiam } = require('../routes/hoaDon');
 const { tien } = require('./nhatKyDon');
 
 const NGUOI = 'app_kh';
@@ -291,7 +292,38 @@ function cachTraCua(r) {
   return { cach_tra: cach, giu_vi: r.giu_vi, con_lai: r.con_lai };
 }
 
-function tomDon(r) {
+/** KH-TOMTAT-1 — tóm tắt đơn cho Lịch sử đơn. `ext` = { o: dòng pos_orders, n, ten } của đơn thật (tomTatDonThat), thiếu → đơn App chưa có đơn thật.
+ *  Tiền dùng CHUNG hàm với hoá đơn quầy (routes/hoaDon.js): tra[] = các dòng thanh toán đã trả (bỏ ghi nợ), giam = hạng + Flash + mã.
+ *  Thiếu dữ liệu → null, không đoán (cột tổng NULL → tra / giam null; phí giao NULL → cach_nhan null; đơn không dòng món → so_mon / mon_dau null). */
+function tomTat(r, ext) {
+  const o = ext?.o;
+  if (!r.loai) {   // đơn App chưa có đơn thật: chưa trả gì, chưa có hoá đơn để giảm; món lấy từ thân đơn đã lưu
+    const dong = JSON.parse(r.than).dong;
+    return { kenh: 'app', cach_nhan: 'tai_quan', tra: [], so_mon: dong.reduce((s, d) => s + Number(d.so_luong || 0), 0), mon_dau: dong[0]?.ten ?? null, giam: 0 };
+  }
+  const coTien = !!o && o.total != null;
+  return {
+    kenh: r.ma_app ? 'app' : 'quay',
+    cach_nhan: !o || o.shipping_fee == null ? null : Number(o.shipping_fee) > 0 ? 'giao' : 'tai_quan',
+    tra: coTien ? dungThanhToan(o).filter((x) => x.loai !== 'ghi_no').map((x) => ({ cach: x.loai, so_tien: x.so_tien })) : null,
+    so_mon: ext?.n ?? null, mon_dau: ext?.ten ?? null,
+    giam: coTien ? tinhGiam(o).tong : null,
+  };
+}
+
+/** Đơn thật của các dòng `rows` → Map oid → { o, n, ten }: HAI truy vấn cho cả trang (không N+1). */
+async function tomTatDonThat(rows) {
+  const ids = rows.filter((r) => r.loai).map((r) => r.oid);
+  const kq = new Map();
+  if (!ids.length) return kq;
+  const cho = ids.map(() => '?').join(',');
+  for (const o of await query(`SELECT * FROM pos_orders WHERE id IN (${cho})`, ids)) kq.set(o.id, { o });
+  for (const m of await query(`SELECT order_id, SUM(quantity) AS n, (SELECT product_name FROM pos_order_items i WHERE i.order_id = g.order_id ORDER BY i.id LIMIT 1) AS ten
+      FROM pos_order_items g WHERE order_id IN (${cho}) GROUP BY order_id`, ids)) Object.assign(kq.get(m.order_id) || {}, { n: Number(m.n), ten: m.ten });
+  return kq;
+}
+
+function tomDon(r, ext) {
   const tt = r.ma_app ? tienTrinh({ trang_thai: r.p_tt, het_han: r.het_han }, r.loai ? { status: r.trang_thai } : null, r.tien_trinh_quay)
     : HUY.includes(r.trang_thai) ? 'da_huy' : 'xong';
   return {
@@ -301,12 +333,15 @@ function tomDon(r) {
     tien_ve_da_cong_vi: Number(r.vao_vi || 0),
     thong_bao_tien_ve: thongBaoTienVe(r),
     ...cachTraCua(r),
+    ...tomTat(r, ext),
   };
 }
 
 async function dsDon(phone, trang, moiTrang) {
   const ds = await query(`${CAU_DON} ORDER BY ngay DESC, loai ASC, oid DESC LIMIT ? OFFSET ?`, [phone, phone, moiTrang + 1, (trang - 1) * moiTrang]);
-  return { trang, con_nua: ds.length > moiTrang, data: ds.slice(0, moiTrang).map(tomDon) };
+  const trangDs = ds.slice(0, moiTrang);
+  const ext = await tomTatDonThat(trangDs);
+  return { trang, con_nua: ds.length > moiTrang, data: trangDs.map((r) => tomDon(r, ext.get(r.oid))) };
 }
 
 /** Đơn theo mã App hoặc mã bill — LUÔN trong phạm vi SĐT token; không có → null (route trả 404 như không có). */
@@ -320,7 +355,7 @@ async function chiTietDon(phone, ma) {
       ma: d.sx_product_type != null ? `${d.sx_product_type}_${d.sx_product_id}` : null, ten: d.product_name, so_luong: d.quantity,
       don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price, thanh_tien: d.total_price, ghi_chu: d.notes }))
     : JSON.parse(r.than).dong.map((d) => ({ ma: d.ma, ten: d.ten, so_luong: d.so_luong, don_gia: d.don_gia, thanh_tien: d.thanh_tien, ghi_chu: d.ghi_chu }));
-  return { ...tomDon(r), mon, hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] };
+  return { ...tomDon(r, (await tomTatDonThat([r])).get(r.oid)), mon, hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] };
 }
 
 /** Tờ hoá đơn giao khách của đơn thật. Không dựng được thì [] (App tự vẽ từ mon[]) — không làm hỏng việc xem đơn. */
