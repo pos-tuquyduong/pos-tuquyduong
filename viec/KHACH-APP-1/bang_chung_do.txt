@@ -130,3 +130,14 @@ SỐ CA cong_cu/thu_KHO1.js: 112
 ## Trên code đã vá (HEAD c6c8382): thu_KHACHAPP1 99/99 · thu_KHO1 112 đạt · 0 hỏng · đột biến 52/52 BẮT · npm test PASS 102 · FAIL 0
 SỐ CA cong_cu/thu_KHACHAPP1.js: 99
 SỐ CA cong_cu/thu_KHO1.js: 112
+
+── Vòng sửa 4 (soát vòng 3 chỉ lỗi NHẸ — LUAT §6.5, chat soát thay): thêm C7e, R2d so BẰNG danh sách cột nhật ký. Bài ở 63fbf12.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js   (code gốc của việc)
+  ✗ C7e SĐT có đăng ký nhưng CHƯA là khách → 400 SDT_DA_DANG_KY "SĐT đã được đăng ký" (không 409), không tạo khách  — HTTP 400 {"error":"SĐT đã được đăng ký"}
+  ✗ R2d nhật ký KHÔNG chép băm PIN / mật khẩu (GET /sync/logs mọi nhân viên đọc được)  — không có dòng
+  TỔNG: 34/100 ca đạt · 34 đạt · 66 hỏng · thoát 1
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc c6c8382c thu_KHACHAPP1.js → TỔNG: 100/100 · thoát 0 (C7e, R2d bản mới = ca hồi quy
+  trên code vòng 2b; đột biến VS-DK-LUON-409 → C7e BẮT, VS-NK-THEM-COT → R2d BẮT).
+## Trên code đã vá (HEAD 63fbf12): thu_KHACHAPP1 100/100 · thu_KHO1 112 đạt · 0 hỏng · đột biến 54/54 BẮT
+SỐ CA cong_cu/thu_KHACHAPP1.js: 100
+SỐ CA cong_cu/thu_KHO1.js: 112
