@@ -1090,8 +1090,8 @@ async function main() {
     const c8 = await chuyenCua(w8.id);
     k('W8 phí huỷ chưa rõ, đọc lại thấy huỷ phí 0 → phí huỷ 0, hết chưa rõ', h8.status === 200 && r8a === 1 && c8?.phi_huy === 0 && (await chuaRo()) === 0,
       `${h8.status} ${r8a} ${c8?.phi_huy} ${await chuaRo()}`);
-    // W9 (soát — nghi ngờ): 3 chuyến chờ đọc phí huỷ không bao giờ ra (Ahamove không còn chuyến) không chặn chuyến thứ tư
-    for (const [i, ma] of ['AHA_KET1', 'AHA_KET2', 'AHA_KET3'].entries()) {
+    // W9 (soát — nghi ngờ): 3 chuyến chờ đọc phí huỷ không bao giờ ra (Ahamove không còn chuyến; mã xếp TRƯỚC 'AHA…' theo chỉ mục) không chặn chuyến thứ tư
+    for (const [i, ma] of ['AA_KET1', 'AA_KET2', 'AA_KET3'].entries()) {
       await db.run("INSERT INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, 'CHO_PHI_HUY', '0', ?)", [ma, luiGiay(900 - i)]).catch(() => {});
     }
     const w9 = await moChuyen();
