@@ -561,6 +561,46 @@ async function main() {
       typeof diemTruKhiHoan === 'function' && diemTruKhiHoan(21, 10400, 21000) === 11 && diemTruKhiHoan(21, 10000, 21000) === 10
         && diemTruKhiHoan(21, 24000, 21000) === 21 && diemTruKhiHoan(0, 5000, 21000) === 0 && diemTruKhiHoan(21, 0, 21000) === 0 && diemTruKhiHoan(21, 5000, 0) === 0,
       typeof diemTruKhiHoan === 'function' ? `${diemTruKhiHoan(21, 10400, 21000)}` : 'không có hàm');
+    // Chủ quán 06.11 (3) "(a) + thêm hai file": ĐỀN BÙ (damages.js) và KẾT THÚC GÓI có hoàn (packages.js) trả tiền vào tài khoản → trừ điểm như
+    // duyệt hoàn, CÙNG hàm truDiemHoan: theo TỔNG tiền đã trả vào tài khoản của đơn (cộng dồn mọi lần), tỷ lệ, làm tròn LÊN, cho âm như P24.
+    await napTay(sE, 60000);
+    const e10a = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
+    const e10b = await ban({ customer_phone: sE, payment_method: 'cash', cash_amount: 24000, shipping_fee: 3000 });
+    const d10 = [], s10 = [];
+    for (const [o, t] of [[e10a, 500], [e10a, 500], [e10a, 20000], [e10b, 10000]]) {
+      d10.push(o.order ? await den(o.order, t) : o);
+      s10.push(o.order ? await diemDon(o.order.id) : NaN);
+    }
+    k('E10 đền bù trừ điểm: trả ví 21.000 (21) đền 500 → 20, đền 500 nữa → 20 (cộng dồn 1.000 → trừ 1, không trừ 2), đền 20.000 → 0; tiền mặt 24.000 phí giao 3.000 (21) đền 10.000 → 11 (mẫu số tiền tính điểm)',
+      d10.every((r) => r.status === 200) && JSON.stringify(s10) === '[20,20,0,11]', `${d10.map(moTa).join(' · ')} · ${JSON.stringify(s10)}`);
+    const e11 = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
+    const d11 = e11.order ? await den(e11.order, 10000) : e11;
+    const s11a = e11.order ? await diemDon(e11.order.id) : NaN;
+    const h11 = e11.order ? await goi('PUT', `/orders/${e11.order.id}/cancel`, { reason: 'thử huỷ sau đền' }) : e11;
+    const s11b = e11.order ? await diemDon(e11.order.id) : NaN;
+    k('E11 trả ví 21.000 (21) đền 10.000 → 11; huỷ đơn sau đó → 0 (huỷ trừ NỐT phần còn lại, không bỏ qua vì đã có dòng trừ)',
+      d11.status === 200 && h11.status === 200 && s11a === 11 && s11b === 0, `${moTa(d11)} · ${moTa(h11)} · ${s11a} → ${s11b}`);
+    const goiE = Number((await db.run("INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active) VALUES ('NAP1H', 'Gói thử NAP-1 điểm', 30000, 'ly', 3, 1)")).lastInsertRowid);
+    const e12 = await goi('POST', '/orders', { customer_phone: sE, customer_name: 'Khách NAP-1', items: [mon(0)], package_buy: { package_id: goiE }, payment_method: 'cash',
+      balance_amount: 10000, cash_amount: 41000 });
+    const s12a = e12.order ? await diemDon(e12.order.id) : NaN;
+    const cp12 = e12.order ? await mot('SELECT id FROM pos_customer_packages WHERE order_id = ?', [e12.order.id]) : null;
+    const kt12 = cp12 ? await goi('PUT', `/packages/customer-packages/${cp12.id}/cancel`, { reason: 'thử NAP-1 điểm kết thúc gói', hoan: true }) : { status: 0 };
+    const s12b = e12.order ? await diemDon(e12.order.id) : NaN;
+    k('E12 kết thúc gói có hoàn: đơn gói 30.000 + món 21.000 (ví 10.000 + tiền mặt 41.000, 51 điểm) → hoàn 30.000 vào tài khoản → trừ 30 → 21',
+      e12.status === 200 && kt12.status === 200 && kt12.hoan === 30000 && s12a === 51 && s12b === 21, `${moTa(e12)} · ${moTa(kt12)} · ${s12a} → ${s12b}`);
+    const sAm = sdtMoi();
+    await napTay(sAm, 21000);
+    const e13 = await ban({ customer_phone: sAm, payment_method: 'balance', balance_amount: 21000 });
+    const tieu = e13.order ? (await db.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, reason, created_by, created_at)
+      VALUES (?, 'redeem', -21, 'thử: khách đã tiêu điểm', 'thu_nap1', ?)`, [sAm, getToday() + 'T00:00:00'])).lastInsertRowid : null;
+    const d13 = e13.order ? await den(e13.order, 21000) : e13;
+    const am = await so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE customer_phone = ?', [sAm]);
+    if (tieu) await db.run('DELETE FROM pos_point_transactions WHERE id = ?', [tieu]);   // dòng đổi GIẢ (không quà) — dọn để I8 soi phần còn lại
+    k('E13 khách đã tiêu hết 21 điểm, đền trọn 21.000 → vẫn trừ 21, số dư điểm −21 (cho âm như P24)', d13.status === 200 && am === -21, `${moTa(d13)} · số dư ${am}`);
+    const ma10 = [e10a, e10b, e11, e12, e13].map((o) => o.order?.code).filter(Boolean);
+    const l10 = (await lechBB(['I8'])).filter((x) => ma10.some((m) => x.includes(m)));
+    k('E14 I8 (trọng tài) nhận luật đền / kết thúc gói / huỷ sau đền: 0 lệch trên các đơn E10–E13', ma10.length === 5 && l10.length === 0, l10.join(' | '));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
