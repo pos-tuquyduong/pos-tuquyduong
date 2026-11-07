@@ -131,3 +131,23 @@ SỐ CA cong_cu/thu_NAP1.js: 76
 Đột biến: ĐỐI CHỨNG XANH · 76 đạt · 0 hỏng — TỔNG 89 đột biến · BẮT 89 · SỐNG 0 · HỎNG 0 · LẠC 0
   mới: VS-hoan-mau-so-total · VS-hoan-nhom-khong-tru-dan · VS-hoan-nhom-thu-tu
 npm test -- --day-du: PASS 103 · FAIL 0 · CẢNH BÁO 2
+
+════════ Chủ quán 06.11 (3) "(a) + thêm hai file": đền bù / kết thúc gói trừ điểm; huỷ trừ nốt (07.11) ════════
+cong_cu/thu_NAP1.js (thêm E10–E14, commit 569b644) trên code CHƯA vá (17efb89 — server/, cong_cu/gia_lap/ của HEAD lúc đó):
+  ✗ E10 đền bù trừ điểm: 3 ly trả ví 63.000 (63) đền 500 → 62, đền 500 nữa → 62 (cộng dồn 1.000 → trừ 1, không trừ 2), đền 21.000 → 41; tiền mặt 24.000 phí giao 3.000 (21) đền 10.000 → 11 (mẫu số tiền tính điểm)  — HTTP 200 · HTTP 200 · HTTP 200 · HTTP 200 · [63,63,63,21]
+  ✗ E11 trả ví 21.000 (21) đền 10.000 → 11; huỷ đơn sau đó → 0 (huỷ trừ NỐT phần còn lại, không bỏ qua vì đã có dòng trừ)  — HTTP 200 · HTTP 200 · 21 → 0
+  ✗ E12 kết thúc gói có hoàn: đơn gói 30.000 + món 21.000 (ví 10.000 + tiền mặt 41.000, 51 điểm) → hoàn 30.000 vào tài khoản → trừ 30 → 21  — HTTP 200 · HTTP 200 · 51 → 51
+  ✗ E13 khách đã tiêu hết 21 điểm, đền trọn 21.000 → vẫn trừ 21, số dư điểm −21 (cho âm như P24)  — HTTP 200 · số dư 0
+  77 đạt · 4 hỏng
+  sau vá (40b52df): 81 đạt · 0 hỏng
+SỐ CA cong_cu/thu_NAP1.js: 81
+cong_cu/thu_P24.js (F2, I3, H1 sửa — hành vi chủ quán duyệt đổi, LUAT §6.8) chạy `--may-chu` trên bản sao server/ gốc (17efb89, git archive vào thư mục nháp):
+  ✗ F2 đơn đã có dòng adjust −5 (chèn tay) → huỷ 200, trừ NỐT 20 (2 dòng trừ), điểm đơn 0  — HTTP 200 · adjust 1 · 20
+  ✗ H1 I8 trên mọi đơn của bài (trừ đơn F2 chèn tay) → 0 lệch (dòng adjust gắn đơn không phải "loại lạ")  — ["đơn ORD-20261107-018: 20 điểm, đúng luật là 0"]
+  ✗ I3 hoàn MỘT PHẦN (báo hỏng hoàn 10.000) đơn có 20 điểm → 200, trừ 10 (1 dòng trừ), giữ 10  — HTTP 200 · 20 điểm
+  30 đạt · 3 hỏng
+  sau vá: 33 đạt · 0 hỏng
+SỐ CA cong_cu/thu_P24.js: 33
+Đột biến: ĐỐI CHỨNG XANH · 81 đạt · 0 hỏng — TỔNG 99 đột biến · BẮT 99 · SỐNG 0 · HỎNG 0 · LẠC 0
+  mới: BV-den-tru-diem · BV-goi-tru-diem · VS-tru-diem-khong-cong-don · VS-tru-diem-bo-den · VS-tru-diem-bo-hoan-goi · BV-huy-tru-not ·
+  VS-huy-tru-lai-ca-phan-da-tru · BV-I8-den · VS-I8-bo-den · VS-I8-bo-hoan-goi

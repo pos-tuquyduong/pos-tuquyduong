@@ -516,3 +516,45 @@ Bạn trả lời "(a) + thêm hai file" hoặc "(b)".
 
 Bước dở: 8 (soát độc lập vá điểm — KHÔNG ĐẠT: lỗi nhẹ đã sửa, lỗi nặng ngoài Phạm vi chờ câu trả lời). Soát bảo mật lần 2 ĐẠT (dòng `SOÁT BẢO MẬT: ĐẠT` ở trên —
 nếu chọn (a) thì sau khi sửa phải soát bảo mật lại theo bước 8b). Chưa làm: cổng `chay`, báo cáo 7 mục, Bài học.
+
+## Phiên 07.11 — `tiep`: chủ quán trả lời "(a) + thêm hai file" (phiếu `17efb89`)
+Bước 1: nhánh `viec/NAP-1`, cây sạch; HEAD `17efb89` · FETCH_HEAD `17efb89` (bằng nhau — không kéo). `git log --oneline -3`:
+```
+17efb89 PHIEU: NAP-1 chu quan tra loi cau hoi 06.11 (them file vao Pham vi)
+90a2181 NAP-1 soat doc lap vá diem (KHONG DAT: loi nhe da sua, den bu / ket thuc goi ngoai Pham vi) + Cau hoi
+0c15f93 NAP-1 soat doc lap: tru nhom khong han truoc, moc theo ten buoc 014, sua chu thich adjust
+```
+Phiếu: đền bù trả vào tài khoản (damages.js) và kết thúc gói có hoàn vào tài khoản (packages.js) TRỪ ĐIỂM giống duyệt hoàn — theo phần tiền trả vào
+tài khoản, chia tỷ lệ, làm tròn lên, cho âm như P24; dùng lại ĐÚNG hàm vừa viết.
+
+**Máy hiểu "phần tiền trả vào tài khoản" theo đúng chữ phiếu:** cả khoản đền / khoản hoàn gói đều vào tài khoản, nên số tiền dùng để trừ điểm = TOÀN BỘ
+khoản đó — kể cả khi đơn gốc trả tiền mặt (đơn tiền mặt 20.000, 20 điểm, đền 10.000 vào tài khoản → trừ 10, giữ 10). Như vậy bịt luôn vòng "đền tiền mặt
+vào tài khoản rồi tiêu lại được tích điểm lần hai" mà soát độc lập nêu. (Câu đề xuất cũ của máy có ý "tiền mặt đền vào tài khoản thì không trừ" — chữ
+phiếu mới thắng; ghi ở CHƯA KIỂM của báo cáo để chat soát đối chiếu.)
+
+| Chỗ vá | Sửa | Ca / đột biến |
+|---|---|---|
+| `server/utils/diemThat.js:31` `truDiemHoan` | dời từ refunds.js về hàm chung (MỘT hàm cho 3 lối); tính CỘNG DỒN: tổng cần trừ = diemTruKhiHoan(điểm earn, TỔNG sổ ví 'refund' + 'compensation' của đơn (con, mẹ, cả 'hoan_goi'), tiền tính điểm) − phần 'adjust' đã trừ; trừ theo phần còn lại từng nhóm hạn | E7 E9 E10 E12 · VS-hoan-tru-diem-bo-me · VS-hoan-tru-diem-lam-tron · VS-hoan-tru-diem-khong-tran · VS-hoan-tru-diem-ca-luat-cu · VS-hoan-mau-so-total · VS-hoan-nhom-khong-tru-dan · VS-hoan-nhom-thu-tu · VS-tru-diem-khong-cong-don · VS-tru-diem-bo-den · VS-tru-diem-bo-hoan-goi |
+| `server/routes/refunds.js:176` duyệt hoàn | gọi hàm chung (bỏ bản riêng) | E7 · BV-hoan-tru-diem |
+| `server/routes/damages.js:189` đền bù | sau ghiVi 'compensation', cùng giao dịch | E10 E13 · BV-den-tru-diem |
+| `server/routes/packages.js:271` kết thúc gói có hoàn | sau ghiHoan, cùng giao dịch | E12 · BV-goi-tru-diem |
+| `server/routes/orders.js:1690` truDiemDon (huỷ / xoá) | K4: trước đây "đã có dòng adjust → bỏ qua" → đơn đã bị trừ một phần (đền) rồi huỷ thì GIỮ phần còn lại. Nay trừ NỐT phần còn lại mỗi nhóm (`type IN ('earn','adjust') … HAVING SUM(points) > 0`) — vẫn không trừ hai lần (F1, F1b, G2 của thu_P24) | E11 · thu_P24 F2 · BV-huy-tru-not · VS-huy-tru-lai-ca-phan-da-tru |
+| `cong_cu/gia_lap/bat_bien.js:163,184` I8 | đơn CHƯA huỷ (không chỉ 'refunded'): trừ ceil(điểm × tổng sổ 'refund' + 'compensation' / tiền tính điểm) | E14 · BV-I8-den · VS-I8-bo-den · VS-I8-bo-hoan-goi · BV-I8-hoan |
+| `cong_cu/thu_P24.js` F2, I3, H1 | hành vi chủ quán duyệt đổi (LUAT §6.8): F2 huỷ đơn đã bị trừ −5 → trừ nốt 20 → 0; I3 đền 10.000 đơn 20 điểm → trừ 10; H1 không còn đơn bỏ qua | đỏ trên gốc (bảng chứng) |
+
+Đột biến mới (10): BV-den-tru-diem · BV-goi-tru-diem · VS-tru-diem-khong-cong-don · VS-tru-diem-bo-den · VS-tru-diem-bo-hoan-goi · BV-huy-tru-not ·
+VS-huy-tru-lai-ca-phan-da-tru · BV-I8-den · VS-I8-bo-den · VS-I8-bo-hoan-goi; đổi neo (code dời sang diemThat.js): BV-hoan-tru-diem · VS-hoan-tru-diem-bo-me ·
+VS-hoan-tru-diem-ca-luat-cu · VS-hoan-mau-so-total · VS-hoan-nhom-khong-tru-dan · VS-hoan-nhom-thu-tu. Chạy riêng 19 đột biến điểm: ĐỐI CHỨNG XANH 81 · 0 —
+BẮT 19 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+K4 (rà theo TIỀN chảy về ví — `grep -n "ghiVi(\|ghiHoan(\|hoanVi("`): damages.js:185 đền (nay trừ) · packages.js:267 kết thúc gói (nay trừ) · refunds.js:187/191
+duyệt hoàn (đã trừ) · orders.js:1498 hoanVi → huỷ 1562 / xoá 1740 (truDiemDon — nay trừ nốt) · wallets.js:164/196/235 nạp tay, trừ tay, điều chỉnh (không gắn
+đơn, không có điểm) · orders.js:952/1022 trả đơn, bán gói nạp (trừ ví / nạp, không phải trả lại). Hết.
+K5 (luồng hợp lệ không bị chặn): đền / kết thúc gói vẫn 200 và ví đúng như cũ (C7, C7c, C13 xanh); đơn không SĐT không có điểm → không gọi; đơn luật cũ
+(earn trước 014) không trừ (E7d); huỷ đơn chưa bị trừ gì → trừ đủ như cũ (thu_P24 A1–A5, F1, G1, G2 xanh).
+Hai người cùng bấm: đền / kết thúc gói chạy trong `trongGiaoDich` (khoá ghi độc quyền) và kết thúc gói có cổng `status = 'active'` — không thêm ca riêng.
+
+## Phát hiện (07.11)
+- `viec/P24/dot_bien.py:23` (ngoài Phạm vi, việc cũ) neo chuỗi `AND NOT EXISTS (… type = 'adjust')` của truDiemDon — nay không còn → đột biến đó LẠC khi ai chạy
+  lại bộ P24. Canh hành vi này nay ở BV-huy-tru-not (NAP-1) + thu_P24 F1 / F1b / G2.
+- Điểm đã hoàn / đền theo luật mới chỉ tính từ lúc chạy bước 014 (như duyệt hoàn): đền đơn tạo TRƯỚC khi gộp NAP-1 không trừ điểm (dữ liệu cũ — LUAT §6.6).
