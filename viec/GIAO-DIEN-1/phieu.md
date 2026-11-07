@@ -54,6 +54,11 @@ chủ quán làm được.
 - server/nang_cap/chay.js
 - cong_cu/thu_GIAODIEN1.js
 - kiem_tra_truoc_khi_giao.js
+- cong_cu/thu_BH2.js
+
+<!-- Chủ quán 07.11 (chat soát trước khi gộp): thêm cong_cu/thu_BH2.js vào Phạm vi — máy đã sửa đúng các ca F1/F3/F6/F7/F8/S5 khoá menu,
+     lưới Quản lý, lối Số dư và cách vẽ QR CŨ mà chủ quán duyệt đổi (cổng tĩnh A6 đỏ vì thiếu dòng này). Chat đã đọc diff: chỉ đổi theo
+     thiết kế đã duyệt, không bớt ca canh tiền. -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_GIAODIEN1.js` ĐỎ trên code gốc: manager / staff gọi `POST /wallets/topup` → 403 (gốc: 200); bước 018 chạy hai lần không đổi
