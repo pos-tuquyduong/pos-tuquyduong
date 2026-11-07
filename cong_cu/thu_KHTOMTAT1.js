@@ -212,6 +212,10 @@ async function main() {
     const o8 = await quay(kh, { items: [monQuay(0, 2)] });
     await datCot(o8.id, { flash_discount: 3000, total: 47000, cash_amount: 47000 });
     await kiem('A8 giảm Flash 3.000 (cột flash_discount): giam 3.000', kh, o8.code, { giam: 3000, tra: [{ cach: 'tien_mat', so_tien: 47000 }] });
+
+    const o9 = await quay(kh, { items: [monQuay(0, 2)], discount_code: 'THUTT' });
+    await datCot(o9.id, { shipping_fee: 23000, total: 68000, cash_amount: 68000 });
+    await kiem('A9 mã 5.000 + phí giao 23.000 cùng đơn: giam = 5.000 (phí giao không bù vào giảm), cach_nhan "giao"', kh, o9.code, { giam: 5000, cach_nhan: 'giao' });
   });
 
   // ═════════════════════════════════════════════════════════════════════════
