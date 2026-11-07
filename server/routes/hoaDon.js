@@ -43,8 +43,12 @@ function dungThanhToan(o) {
 /** Điểm của ĐÚNG đơn này (in lại không đổi theo số dư lúc in): trước − đổi quà + cộng = hiện có. Khách lẻ → null. */
 async function dungDiem(o) {
   if (!o.customer_phone) return null;
-  // Đơn rời 'completed' (huỷ / hoàn): P24 ghi dòng 'adjust' âm trừ lại điểm đã cộng (orders.js truDiemDon) → cộng ròng = 0, bill không hứa điểm đã bị trừ.
-  const loaiCong = o.status === 'completed' ? "type = 'earn'" : "type IN ('earn', 'adjust')";
+  // Cộng RÒNG (earn + 'adjust' gắn đơn) — bill không hứa điểm đã bị trừ: đơn rời 'completed' (huỷ / xoá — orders.js truDiemDon; duyệt hoàn), và
+  // NAP-1 (chủ quán 07.11) đơn còn 'completed' mà có tiền trả vào tài khoản (sổ ví 'refund' / 'compensation' — CÙNG tập loại với utils/diemThat.js
+  // truDiemHoan: đền bù, kết thúc gói, kèm phần trừ ngay sau nhận điểm mã bill). Đơn hoàn tất không có khoản đó: chỉ dòng earn như trước.
+  const traTK = o.status !== 'completed' || !!(await queryOne(
+    "SELECT 1 AS c FROM pos_balance_transactions WHERE order_id = ? AND type IN ('refund', 'compensation') LIMIT 1", [o.id]));
+  const loaiCong = traTK ? "type IN ('earn', 'adjust')" : "type = 'earn'";
   const cong = so((await queryOne(`SELECT COALESCE(SUM(points), 0) AS n FROM pos_point_transactions WHERE order_id = ? AND customer_phone = ? AND ${loaiCong}`, [o.id, o.customer_phone]))?.n);
   const doi = o.discount_code
     ? so((await queryOne(
