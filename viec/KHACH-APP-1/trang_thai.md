@@ -554,3 +554,12 @@ chạy bài có cụm bí mật của bài thử trước khi commit (B-BIMAT-CH
 - **NGUYÊN TẮC (K5):** phép chặn mới mà câu trả lời chủ quán không nhắc tới là chỗ CHƯA CHỐT — hỏi trước khi khoá bằng ca + đột biến. Đã gây: C7b vòng 1.
 - **BỎ:** chuỗi `\n` trong script Python sinh ra xuống dòng thật trong dot_bien.py (một lần, đối chứng bắt ngay). Kho nông (đã có cách xử lý ở skill bước 1.3).
 Dọn: KHUON_LOI.md / CLAUDE.md ngoài Phạm vi — không đề xuất xoá dòng nào lần này.
+
+## Cổng
+`node tu_chay/cong.js chay . 9a49cdf^ HEAD viec/KHACH-APP-1` tại a0e3027c (cây sạch):
+✓ CỔNG CHẠY ĐẠT
+GIT (git log --oneline -2 lúc kiểm):
+  a0e3027c KHACH-APP-1: soat bao mat DAT, bao cao 7 muc, bai hoc
+  4ab503ce KHACH-APP-1: bang chung vong sua 4; --day-du PASS 106 FAIL 0
+
+HEAD ĐÃ KIỂM: a0e3027c
