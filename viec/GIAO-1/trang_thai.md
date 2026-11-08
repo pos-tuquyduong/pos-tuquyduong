@@ -590,3 +590,7 @@ BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài 
   đích, B-CD-VITRI): đều do máy viết lệnh gộp; làm lại đúng dạng ngay, không tốn vòng. Luật đã có, không cần thêm.
 
 HEAD ĐÃ KIỂM: 065fe58
+
+
+## Gộp main (chủ quán, chat soát thay vòng 6 ĐẠT 07.11 — thử gộp trên main 8f7a08e: 6 file đụng giải giữ cả hai bên, cổng tĩnh ĐẠT, --day-du PASS 107 · FAIL 0, thu_GIAO1 136/0)
+HEAD ĐÃ KIỂM: 20cd464
