@@ -107,6 +107,10 @@ async function main() {
   const thieuV6 = [...['cach_tra', 'giu_vi', 'con_lai'].flatMap((f) => [['/don', 'data[].' + f], ['/don/:ma', 'don.' + f]]),
     ...['loai', 'trai', 'phai', 'dam', 'gach', 'ghi_chu'].map((f) => ['/don/:ma', 'don.hoa_don[].' + f])].filter(([d, f]) => !traCua(d).includes(f));
   k('v6: khối máy đọc ghi đủ cach_tra / giu_vi / con_lai (cả /don, /don/:ma) và hoa_don[] 6 trường', thieuV6.length === 0, thieuV6.map((x) => x.join(' ')).join(', '));
+  // v12 (KH-TOMTAT-1): khối máy đọc ghi đủ 6 trường tóm tắt (cả /don, /don/:ma) + hợp đồng có mục chữ "Ghi chú v12"
+  const thieuV12 = ['kenh', 'cach_nhan', 'tra', 'so_mon', 'mon_dau', 'giam'].flatMap((f) => [['/don', 'data[].' + f], ['/don/:ma', 'don.' + f]]).filter(([d, f]) => !traCua(d).includes(f));
+  k('v12: khối máy đọc ghi đủ kenh / cach_nhan / tra / so_mon / mon_dau / giam (cả /don, /don/:ma)', thieuV12.length === 0, thieuV12.map((x) => x.join(' ')).join(', '));
+  k('v12: hợp đồng có mục "Ghi chú v12" ghi đủ 6 trường', /### Ghi chú v12/.test(md) && ['kenh', 'cach_nhan', 'tra[]', 'so_mon', 'mon_dau', 'giam'].every((f) => cat(md, '### Ghi chú v12', '### Ghi chú v11').includes('`' + f)));
   const dongGv = bangChu.split('\n').find((l) => l.includes('`GET /gio-vang`')) || '';
   k('cửa /gio-vang ghi rõ "không có suất"', /không có suất/i.test(dongGv), dongGv.slice(0, 80));
 

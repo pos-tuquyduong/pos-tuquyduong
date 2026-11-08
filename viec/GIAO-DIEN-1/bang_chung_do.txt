@@ -1,0 +1,27 @@
+GIAO-DIEN-1 — bằng chứng bài thử ĐỎ trên code gốc, XANH sau vá (06.11.2026)
+
+Code gốc = 64258bb (commit ngay trước khi sửa code; cây server/ + client/src của nó). Dựng bằng `python3 viec/GIAO-DIEN-1/dot_bien.py --goc 64258bb <bài...>`:
+chép server/ + client/src của 64258bb ra thư mục tạm (bản chép thật, node_modules nối symlink), chạy bài HIỆN TẠI trên đó. "Đã vá" = chạy cùng bài ở HEAD.
+
+═══ cong_cu/thu_GIAODIEN1.js ═══
+Trên gốc 64258bb: thoát 1 · 5 đạt · 42 hỏng → ĐỎ. Các ca đỏ tiêu biểu:
+  ✗ A0 nạp được utils/donAppDai.js — Cannot find module .../client/src/utils/donAppDai.js
+  ✗ A11 DonAppNoi.jsx không còn `position: fixed` (nút nổi bỏ)
+  ✗ A13 Layout.jsx gắn dải đơn App ở ĐẦU <main> — main.content: <main className="main-content"> <DonAppNoi /> ...
+  ✗ B1 máy tính (đủ quyền): Bán hàng · Hôm nay · Đơn hàng · Đơn App · Khách hàng · Kho · Quản lý
+  ✗ D1 đủ quyền: có ô "Khách và tiền" với ba lối ...
+  ✗ C1 có components/ViKhach.jsx · ✗ C9 /balance chuyển về /customers · ✗ C10 màn Số dư cũ đã gỡ
+  ✗ F0 nạp được utils/veQrThuongHieu.js — Cannot find module
+  ✗ E1 kho MỚI: quyền topup_balance = 0 cho manager và staff — manager=1 staff=1 owner=1
+  ✗ E2 manager gọi POST /wallets/topup → 403, ví không đổi — HTTP 200
+  ✗ E3 staff gọi POST /wallets/topup → 403, ví không đổi — HTTP 200
+  ✗ E5 bước 018 chạy được ... pos_nang_cap số 18 · ✗ E6 sau 018: manager = 0, staff = 0 · ✗ E7 có SAO LƯU bảng quyền
+  ✓ E4 owner vẫn nạp được (đúng: K5 xanh cả trước lẫn sau — luồng hợp lệ)
+Sau vá (HEAD): thoát 0 · 68 đạt · 0 hỏng → XANH.
+SỐ CA cong_cu/thu_GIAODIEN1.js: 68
+
+═══ cong_cu/thu_BH2.js ═══  (bài SỬA thường — LUẬT §6.8: menu / lưới Quản lý / lối "Số dư" / ManQr ĐÃ được chủ quán duyệt đổi, phiếu 05–06.11)
+Bản MỚI trên gốc 64258bb: thoát 1 · 94 đạt · 5 hỏng → ĐỎ (✗ F1, F3, F6, F7, F8 — đúng các dòng sửa; S5 đỏ ở gốc không hiện vì ManQr gốc còn veQr).
+Bản GỐC (64258bb) của bài trên code MỚI (§6.9 chạy trước khi ghi): thoát 1 · 93 đạt · 6 hỏng → ĐỎ (✗ F1, F3, F6, F7, F8, S5) → KHÔNG phải "bài cũ sửa mà vẫn xanh trên gốc", là bài sửa thường.
+Sau vá (HEAD): thoát 0 · 100 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_BH2.js: 100

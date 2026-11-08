@@ -20,7 +20,7 @@ const HAN_PHUT = 10;
 const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay, Tingee dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
 const CACH = ['payos', 'ck_tay', 'tien_mat', 'tai_khoan'];
 const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'discount_reason', 'notes', 'is_new_customer',
-  'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy'];
+  'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy', 'giao', 'goi_nap_id'];   // GIAO-1: đơn giao trả QR / tài khoản / tiền mặt qua phiên
 const GIO = "strftime('%Y-%m-%dT%H:%M:%S', ?, ?)";
 const loi = (status, code, error) => ({ status, body: { error, code } });
 // res giả gom status + thân — gọi taoDon ngoài một yêu cầu HTTP của chính nó (webhook, tạo phiên).
@@ -40,6 +40,10 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
   if (cach === 'payos' && !cong?.daCauHinh()) return loi(503, 'PAYOS_CHUA_CAU_HINH', 'Chưa cài cổng QR chuyển khoản — dùng QR tĩnh của quán (xác nhận tay)');
   const goc = b.don && typeof b.don === 'object' ? b.don : {};
   const don = Object.fromEntries(TRUONG_DON.filter((x) => goc[x] !== undefined).map((x) => [x, goc[x]]));
+  // NAP-1: gói nạp chỉ tiền mặt / QR — chặn ngay lúc giữ (không để phiên giữ ví rồi hỏng lúc chốt); taoDon chặn lần nữa khi chốt.
+  if (don.goi_nap_id != null && (b.tru_tai_khoan || b.tru_tai_khoan_me || cach === 'tai_khoan')) {
+    return loi(400, 'NAP_CHI_TIEN_MAT_QR', 'Nạp tiền chỉ trả tiền mặt hoặc chuyển khoản — không trừ tài khoản');
+  }
   const phone = normalizePhone(don.customer_phone), phoneMe = b.tru_tai_khoan_me ? normalizePhone(goc.parent_phone) : null;
   if ((b.tru_tai_khoan && !phone) || (b.tru_tai_khoan_me && !phoneMe)) return loi(400, 'CAN_KHACH', 'Trừ tài khoản cần chọn khách (và SĐT mẹ)');
   if (phoneMe && phoneMe === phone) return loi(400, 'ME_TRUNG_KHACH', 'SĐT mẹ trùng SĐT khách — trừ tài khoản của chính khách, không qua dòng tài khoản mẹ');   // giữ hai lần một ví

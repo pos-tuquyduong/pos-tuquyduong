@@ -10,7 +10,6 @@ import Layout from './components/Layout';
 import DonApp from './pages/DonApp';
 import TrangChu from './pages/BanHang';
 import Customers from './pages/Customers';
-import Balance from './pages/Balance';
 import Orders from './pages/Orders';
 import Registrations from './pages/Registrations';
 import Reports from './pages/Reports';
@@ -23,6 +22,7 @@ import QuanLy from './pages/QuanLy/QuanLy';
 import ThanhLoi from './pages/QuanLy/ThanhLoi';
 import DonThu from './pages/DonThu';
 import ManKhach from './pages/ManKhach';   // MANKHACH-1
+import GiaoHang from './pages/GiaoHang';   // GIAO-1
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -62,7 +62,7 @@ function AppRoutes() {
       }>
         <Route index element={<TrangChu />} />
         <Route path="customers" element={<ThanhLoi man="customers"><Customers /></ThanhLoi>} />
-        <Route path="balance" element={<Balance />} />
+        <Route path="balance" element={<Navigate to="/customers" replace />} />   {/* GIAO-DIEN-1 C: Số dư gộp vào Khách hàng — link cũ không gãy */}
         <Route path="orders" element={<ThanhLoi man="orders"><Orders /></ThanhLoi>} />
         <Route path="registrations" element={<Registrations />} />
         <Route path="sync" element={<Navigate to="/registrations" replace />} />
@@ -76,6 +76,7 @@ function AppRoutes() {
         <Route path="quan-ly" element={<QuanLy />} />
         <Route path="don-thu" element={<DonThu />} />   {/* KH-SDT-1: chỉ chủ quán (màn + máy chủ cùng kiểm) */}
         <Route path="don-app" element={<ThanhLoi man="don-app"><DonApp /></ThanhLoi>} />   {/* KH-MUA-1 */}
+        <Route path="giao-hang" element={<GiaoHang />} />   {/* GIAO-1: mở từ nút "Giao hàng" ở màn Bán hàng mới */}
       </Route>
 
       {/* MANKHACH-1: máy tính bảng quay về phía khách — không cần đăng nhập nhân viên (dùng khoá ghép riêng) */}

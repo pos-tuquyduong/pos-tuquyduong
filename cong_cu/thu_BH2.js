@@ -170,15 +170,15 @@ async function main() {
     T && !('coChietKhauRieng' in T));
 
   // ═══ F · menu ══════════════════════════════════════════════════════════════
-  muc('F · menu 6 mục theo quyền');
+  muc('F · menu theo quyền (GIAO-DIEN-1: thêm "Đơn App" + ô "Khách và tiền" — chủ quán duyệt 05.11)');
   const quyen = (...ds) => (p) => ds.includes(p);
   const tatCa = quyen('view_reports', 'manage_users', 'approve_refund', 'view_customer_balance');
   const ten = (ds) => (ds || []).map((x) => x.ten);
   const menu = (q) => (M.dungMenu ? M.dungMenu(q) : { mayTinh: [], dienThoai: [] });
-  thu('F1 máy tính (đủ quyền): Bán hàng · Hôm nay · Đơn hàng · Khách hàng · Kho · Quản lý', () => bang(ten(menu(tatCa).mayTinh), ['Bán hàng', 'Hôm nay', 'Đơn hàng', 'Khách hàng', 'Kho', 'Quản lý']));
+  thu('F1 máy tính (đủ quyền): Bán hàng · Hôm nay · Đơn hàng · Đơn App · Khách hàng · Kho · Quản lý', () => bang(ten(menu(tatCa).mayTinh), ['Bán hàng', 'Hôm nay', 'Đơn hàng', 'Đơn App', 'Khách hàng', 'Kho', 'Quản lý']));
   thu('F2 điện thoại (đủ quyền): Bán hàng · Hôm nay · Đơn · Khách · Thêm', () => bang(ten(menu(tatCa).dienThoai), ['Bán hàng', 'Hôm nay', 'Đơn', 'Khách', 'Thêm']));
   thu('F3 nhân viên không có view_reports → mất "Hôm nay" (quyền như mục Báo cáo cũ), còn lại giữ', () =>
-    bang(ten(menu(quyen()).mayTinh), ['Bán hàng', 'Đơn hàng', 'Khách hàng', 'Kho', 'Quản lý']) && bang(ten(menu(quyen()).dienThoai), ['Bán hàng', 'Đơn', 'Khách', 'Thêm']));
+    bang(ten(menu(quyen()).mayTinh), ['Bán hàng', 'Đơn hàng', 'Đơn App', 'Khách hàng', 'Kho', 'Quản lý']) && bang(ten(menu(quyen()).dienThoai), ['Bán hàng', 'Đơn', 'Khách', 'Thêm']));
   thu('F4 không còn "Đăng ký mới", "Số dư", "Hoàn tiền", "Mã chiết khấu", "Cài đặt" ở menu chính', () => {
     const m = menu(tatCa); const tat = [...ten(m.mayTinh), ...ten(m.dienThoai)].join('|');
     return !/Đăng ký|Số dư|Hoàn tiền|Mã chiết khấu|Cài đặt/.test(tat);
@@ -189,13 +189,13 @@ async function main() {
   });
   const luoi = (q) => (M.luoiQuanLy ? M.luoiQuanLy(q) : []);
   const lien = (q) => luoi(q).map((o) => `${o.ten}:${o.loi.map((l) => l.to).join('+')}`);
-  thu('F6 lưới Quản lý (đủ quyền): 6 ô đúng tên, đúng đường dẫn', () => bang(lien(tatCa), [
-    'Sản phẩm & công thức:/kho', 'Nguyên liệu:/kho', 'Khuyến mãi & thành viên:/discount-codes+/settings', 'Con người:/settings', 'Báo cáo:/reports', 'Cài đặt:/settings+/invoice-settings']));
-  thu('F7 lưới Quản lý (không quyền): chỉ còn ô Kho — lối cần quyền bị ẩn, ô không còn lối nào thì ẩn', () => bang(lien(quyen()), ['Sản phẩm & công thức:/kho', 'Nguyên liệu:/kho']));
-  thu('F8 lối sang Hoàn tiền (approve_refund) và Số dư (view_customer_balance) theo quyền cũ', () => {
+  thu('F6 lưới Quản lý (đủ quyền): 7 ô đúng tên, đúng đường dẫn', () => bang(lien(tatCa), [
+    'Sản phẩm & công thức:/kho', 'Nguyên liệu:/kho', 'Khuyến mãi & thành viên:/discount-codes+/settings', 'Con người:/settings', 'Khách và tiền:/customers+/refunds+/reports', 'Báo cáo:/reports', 'Cài đặt:/settings+/invoice-settings']));
+  thu('F7 lưới Quản lý (không quyền): chỉ còn ô Kho + Khách và tiền (/customers) — lối cần quyền bị ẩn, ô không còn lối nào thì ẩn', () => bang(lien(quyen()), ['Sản phẩm & công thức:/kho', 'Nguyên liệu:/kho', 'Khách và tiền:/customers']));
+  thu('F8 lối sang Hoàn tiền (approve_refund) theo quyền cũ; Số dư đã gộp vào Khách hàng nên không còn lối riêng', () => {
     const g = M.loiThem ? M.loiThem : () => [];
     return bang(g('orders', tatCa).map((x) => x.to), ['/refunds']) && bang(g('orders', quyen()), []) &&
-      bang(g('customers', tatCa).map((x) => x.to), ['/balance']) && bang(g('customers', quyen('view_reports')), []);
+      bang(g('customers', tatCa), []) && bang(g('customers', quyen('view_reports')), []);
   });
 
   // ═══ [2] Ca THẬT trên máy chủ ═══════════════════════════════════════════════
@@ -217,7 +217,7 @@ async function main() {
   k('S3 màn mới KHÔNG còn gọi ordersApi.create (mọi cách thu đi MỘT đường phiên)', Object.values(F).every((s) => !/ordersApi\.create/.test(sach(s))));
   k('S4 màn gọi đủ 4 đường phiên: tạo · hỏi · chốt · huỷ', ['taoPhien', 'hoiPhien', 'chotPhien', 'huyPhien'].every((x) => Object.values(F).some((s) => sach(s).includes(x))));
   const qr = moi('ManQr.jsx');
-  k('S5 ManQr: vẽ QR bằng veQr.js (qrSvg / veQr), đếm ngược theo het_han, hỏi lại phiên bằng hoiPhien', /veQr|qrSvg/.test(qr) && /het_han/.test(qr) && /hoiPhien/.test(qr));
+  k('S5 ManQr: vẽ QR bằng thẻ chung TheQr (GIAO-DIEN-1 F; bill in vẫn veQr.js), đếm ngược theo het_han, hỏi lại phiên bằng hoiPhien', /TheQr|veQr|qrSvg/.test(qr) && /het_han/.test(qr) && /hoiPhien/.test(qr));
   k('S6 KHÔNG có nút "đã nhận chuyển khoản" cho nhân viên (chỉ Xác nhận tay)', Object.values(F).every((s) => !/Đã nhận chuyển khoản|Đã nhận CK|da_nhan_ck/i.test(s)));
   k('S7 Xác nhận tay: chỉ hiện với quyền xac_nhan_ck_tay, bắt buộc lý do, gọi xacNhanTay', /xac_nhan_ck_tay/.test(qr) && /xacNhanTay/.test(qr) && /ly_?do|lyDo/.test(qr));
   const pin = moi('ManPin.jsx');

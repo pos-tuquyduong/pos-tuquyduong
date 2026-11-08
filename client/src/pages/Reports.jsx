@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, reportsApi } from '../utils/api';
 import DoiSoat from '../components/DoiSoat';
+import SoSach from '../components/SoSach';   // NAP-1: sổ sách tiền nạp
 import { useAuth } from '../contexts/AuthContext';
 import { ngayVN, hienNgay } from '../utils/ngayVN';
 import { Calendar, TrendingUp, TrendingDown, Truck, Percent, Tag } from 'lucide-react';
@@ -148,12 +149,19 @@ export default function Reports() {
           >
             🧾 Đối soát
           </button>
+          <button
+            className={`btn ${activeTab === 'sosach' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('sosach')}
+          >
+            💳 Sổ sách
+          </button>
         </div>
       </header>
 
       <div className="page-content">
         {/* Tab: Đối soát (DOI-SOAT-1) — chỉ báo, không tự sửa số */}
         {activeTab === 'doisoat' && <DoiSoat />}
+        {activeTab === 'sosach' && <SoSach />}
 
         {/* Tab: Báo cáo hàng ngày */}
         {activeTab === 'daily' && (

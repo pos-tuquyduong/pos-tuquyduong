@@ -318,6 +318,14 @@ export const chuongTrinhApi = {
   datKhoangTuoi: (toiThieu, toiDa) => api.put('/chuong-trinh/khoang-tuoi', { toi_thieu: toiThieu, toi_da: toiDa })
 };
 
+// NAP-1: gói nạp tiền — quầy đọc gói đang bật; Cài đặt (quyền manage_products) đọc tất cả, thêm, sửa / bật / tắt
+export const goiNapApi = {
+  danhSach: () => api.get('/goi-nap'),
+  tatCa: () => api.get('/goi-nap/tat-ca'),
+  them: (d) => api.post('/goi-nap', d),
+  sua: (id, d) => api.put(`/goi-nap/${id}`, d)
+};
+
 // ============ API CŨ (giữ lại để tương thích) ============
 
 // Customers API (cũ)
@@ -404,6 +412,21 @@ export const manKhachApi = {
   noiDung: (khoa) => api.request('/man-khach/noi-dung', { method: 'GET', ...tieuDeKhoa(khoa) })
 };
 
+// GIAO-1 · Giao hàng Ahamove: máy chủ hỏi Ahamove (khoá không ra trình duyệt); huỷ đơn giao đi qua ordersApi.huyGiao (cùng đường huỷ)
+export const giaoHangApi = {
+  caiDat: () => api.get('/giao-hang/cai-dat'),
+  diaChi: (q) => api.get(`/giao-hang/dia-chi?q=${encodeURIComponent(q)}`),
+  diemLay: (data) => api.post('/giao-hang/diem-lay', data),
+  baoPhi: (data) => api.post('/giao-hang/bao-phi', data),
+  danhSach: () => api.get('/giao-hang'),
+  nhan: (id) => api.post(`/giao-hang/${id}/nhan`, {}),
+  goiXe: (id, loaiXe, tu) => api.post(`/giao-hang/${id}/goi-xe`, { ...(loaiXe ? { loai_xe: loaiXe } : {}), tu }),   // tu: trạng thái thẻ màn đang thấy
+  huyChuyen: (id, lyDo) => api.post(`/giao-hang/${id}/huy-chuyen`, { ly_do: lyDo }),
+  inTem: (id, lai = false) => api.post(`/giao-hang/${id}/in-tem`, { lai }),
+  dongThe: (id, lyDo) => api.post(`/giao-hang/${id}/dong-the`, { ly_do: lyDo }),
+  huyDon: (id, lyDo, doDaPha) => api.put(`/orders/${id}/cancel`, { reason: lyDo, ...(doDaPha ? { do_da_pha: doDaPha } : {}) }),
+};
+
 // BH-2 · Dữ liệu hoá đơn (HD-1): một cửa, chỉ đọc
 export const hoaDonApi = { lay: (id) => api.get(`/hoa-don/${id}`) };
 
@@ -457,7 +480,9 @@ export const reportsApi = {
   discounts: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return api.get(`/reports/discounts${query ? '?' + query : ''}`);
-  }
+  },
+  // NAP-1: sổ sách tiền nạp (tiền thật vào quán · bán hàng trừ thưởng nạp đã dùng · quán đang giữ hộ khách)
+  soSach: (tu, den) => api.get(`/reports/so-sach?tu=${tu}&den=${den}`)
 };
 
 // Discount Codes API - Phase B
