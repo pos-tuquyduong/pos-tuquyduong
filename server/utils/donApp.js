@@ -4,7 +4,9 @@
  * - Tạo đơn = phiên thanh toán sẵn có (giuCho.js taoPhien → giữ ví / QR payOS; trả ví đủ → chotPhien ngay). Đơn thật chỉ có khi đã trả đủ.
  * - pos_don_app (nâng cấp 006) chỉ nối khách ↔ phiên + khoá gửi + tiến trình quầy. Tiến trình đọc ra bằng MỘT hàm tienTrinh; hết hạn
  *   không cần ghi gì (dangGiu chỉ đếm phiên `cho` còn hạn).
- * - Luật 4xx (chủ quán 31.10): MỌI trả lời 4xx của datDon = chưa tạo đơn, chưa giữ / trừ ví, KHÔNG giữ khoá gửi — dòng giữ khoá bị xoá,
+ * - Luật 4xx (chủ quán 31.10; câu hợp đồng sửa CK-NOIDUNG-1): trả lời 4xx của datDon = chưa tạo đơn, chưa giữ / trừ ví, KHÔNG giữ khoá gửi — TRỪ
+ *   409 KHOA_GUI_DA_DUNG (khoá đã dùng quá 24 giờ / khác giỏ — có thể đã có đơn: mời xem Lịch sử đơn) và 409 KHO_BAN (chưa rõ — gửi lại CÙNG
+ *   khoá); 401 là của tầng token, không phải datDon. Ở các 4xx còn lại dòng giữ khoá bị xoá,
  *   phiên lỡ tạo bị huỷ (finally). Ngoại lệ đã duyệt (Q8): chốt ví hỏng sau khi tạo phiên để lại một dòng phiên `loi` không giữ tiền.
  *   Ngoại lệ còn lại: taoPhien tự ném SAU khi giao dịch phiên đã ghi (phienId chưa về) → phiên `cho` mồ côi giữ ví tới hết hạn (HAN_PHUT) rồi
  *   tự nhả; App nhận 5xx, không 4xx.
@@ -16,7 +18,7 @@
  */
 const crypto = require('crypto');
 const { query, queryOne, run } = require('../database');
-const { getNow } = require('./helpers');
+const { getNow, soHdCuaMa, chuoiSoHd } = require('./helpers');
 const { taoDon } = require('../routes/orders');
 const { layMenuQuay } = require('../routes/products');
 const { docCaiDat, dangMo } = require('./gioHoatDong');
@@ -24,6 +26,8 @@ const { taoPhien, chotPhien, gomRes } = require('./giuCho');
 const { laTrungKhoa } = require('../kho/tinh');
 const { thanLoi } = require('../routes/kh/loi');
 const { dongHoaDonKhach } = require('./dongHoaDon');
+const { dungThanhToan, tinhGiam } = require('../routes/hoaDon');
+const { tien } = require('./nhatKyDon');
 
 const NGUOI = 'app_kh';
 const GIOI = {
@@ -55,6 +59,18 @@ function tienTrinh(p, o, quay) {
   return p.trang_thai === 'cho' && p.het_han > getNow() ? 'cho_tra' : 'da_huy';
 }
 const qrCua = (p, tt) => (tt === 'cho_tra' ? { chuoi: p.qr, het_han: p.het_han } : null);
+// Lý do NGẮN cho khách khi phiên App 'loi' (không tạo được đơn): đọc từ ly_do phiên (mã lỗi hoặc lời lỗi của taoDon) — KHÔNG đưa lời lỗi nội bộ
+// (số tồn kho, tên lỗi) ra App. Thứ tự là thứ tự xét — mã giảm TRƯỚC giá (lời flash sale có chữ "giảm giá"); mục giá chỉ khớp cụm "giá … đổi" /
+// "không khớp tổng" (không khớp "chưa có giá bán"). Không khớp dòng nào → câu chung.
+const LY_DO_NGAN = [[/HET_HANG|hết hàng|không đủ hàng|ngừng bán|không tồn tại/i, 'vì món đã hết hàng'], [/SO_DU|số dư/i, 'vì số dư tài khoản không đủ'],
+  [/^MA_|DISCOUNT|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được'], [/GIA_DA_DOI|giá .*đổi|không khớp tổng/i, 'vì giá món đã đổi']];
+const lyDoNgan = (s) => (LY_DO_NGAN.find(([m]) => m.test(String(s || ''))) || [null, 'vì đơn không còn hợp lệ'])[1];
+/** Câu App hiện khi tiền đã về được cộng vào tài khoản (dòng báo 'vao_vi' — thanh-toan.js xuLyTienVe); không có → null. */
+function thongBaoTienVe(r) {
+  const vi = Number(r.vao_vi || 0);
+  if (!vi) return null;
+  return `${r.p_tt === 'loi' ? `Không tạo được đơn ${lyDoNgan(r.p_ly_do)}` : 'Tiền về sau khi đơn đã huỷ / hết hạn'} — đã cộng ${tien(vi)} vào tài khoản của bạn`;
+}
 
 const luot = new Map();
 /** Giữ một lượt POST /don của khách. Trả 0 = được; > 0 = số giây phải chờ. */
@@ -175,7 +191,9 @@ async function traDon(a, trung) {
   const p = await docPhien(a.phien_id);
   const o = p.order_id ? await queryOne('SELECT status FROM pos_orders WHERE id = ?', [p.order_id]) : null;
   const tt = tienTrinh(p, o, a.tien_trinh_quay);
-  return { status: 200, body: { success: true, ma_don: a.ma, tong: p.tong, giu_vi: p.giu_vi, con_lai: p.con_lai, tien_trinh: tt, qr: qrCua(p, tt), trung } };
+  const so = await queryOne('SELECT kenh, so FROM pos_so_hoa_don WHERE phien_id = ?', [p.id]);
+  return { status: 200, body: { success: true, ma_don: a.ma, so_hd: so ? chuoiSoHd(so) : null, tong: p.tong, giu_vi: p.giu_vi, con_lai: p.con_lai,
+    tien_trinh: tt, qr: qrCua(p, tt), trung } };
 }
 
 /** POST /don. Thứ tự (chủ quán 31.10): khoá gửi → tra khoá → lượt → thân + tong_da_xem → giờ → món → lưới 10 giây → báo giá / GIA_DA_DOI
@@ -219,9 +237,10 @@ async function datDon(khach, b) {
   }
   let xong = false, phienId = null;
   try {
-    const don = { customer_phone: phone, customer_name: khach.name, items: kq.d.items, notes: `Đơn App ${ma} · nhận tại quán`,
+    // Ghi chú in trên bill / phiếu: KHÔNG mang mã App ngẫu nhiên (chủ quán 05.11) — mã vẫn ở pos_don_app.ma; số hoá đơn APP<4 số> là mã đơn.
+    const don = { customer_phone: phone, customer_name: khach.name, items: kq.d.items, notes: 'Đơn App · nhận tại quán',
       ...(kq.maDung ? { discount_code: kq.maDung } : {}) };
-    const tp = await taoPhien({ cach: tra.cach, don, tru_tai_khoan: tra.vi, pin: b.pin }, NGUOI);
+    const tp = await taoPhien({ cach: tra.cach, don, tru_tai_khoan: tra.vi, pin: b.pin }, NGUOI, { kenh: 'APP' });
     if (tp.status !== 200) return chuanLoi(tp, kq.gio.mon, kq.d.ten);
     phienId = tp.body.phien.id;
     // Gắn phiên NGAY (trước khi chốt): lỗi ném sau đó thì dòng đơn App vẫn trỏ đúng phiên — finally xét theo trạng thái phiên trong CSDL.
@@ -251,15 +270,19 @@ async function datDon(khach, b) {
 }
 
 // Danh sách đơn của khách = đơn thật (quầy + App đã trả) ∪ đơn App chưa có đơn thật. MỘT câu cho GET /don và GET /don/:ma.
-const CO_TIEN_VE = "EXISTS (SELECT 1 FROM pos_payos_su_kien s WHERE s.ma_payos = p.ma_payos AND s.ket_qua = 'chua_khop')";
+const CO_TIEN_VE = "EXISTS (SELECT 1 FROM pos_payos_su_kien s WHERE s.ma_payos = p.ma_payos AND s.ket_qua IN ('chua_khop', 'vao_vi'))";
+// Q1b: tiền về muộn đã tự cộng vào ví khách (dòng báo 'vao_vi', thanh-toan.js). Số giữ: số hoá đơn phiên đã giữ (đơn App chưa có đơn thật).
+const VAO_VI = "(SELECT COALESCE(SUM(s.so_tien), 0) FROM pos_payos_su_kien s WHERE s.ma_payos = p.ma_payos AND s.ket_qua = 'vao_vi')";
+const SO_GIU = "(SELECT h.kenh || printf('%04d', h.so) FROM pos_so_hoa_don h WHERE h.phien_id = p.id)";
 const CAU_DON = `SELECT * FROM (
     SELECT o.code AS ma_bill, o.created_at AS ngay, o.total AS tong, o.debt_amount AS no, o.status AS trang_thai, o.payment_status AS thanh_toan,
       o.id AS oid, a.ma AS ma_app, a.than, a.tien_trinh_quay, p.trang_thai AS p_tt, p.het_han, p.qr, ${CO_TIEN_VE} AS tien_ve, 1 AS loai,
-      p.cach, p.giu_vi, p.con_lai
+      p.cach, p.giu_vi, p.con_lai, NULL AS so_giu, ${VAO_VI} AS vao_vi, p.ly_do AS p_ly_do
     FROM pos_orders o LEFT JOIN pos_phien_thanh_toan p ON p.order_id = o.id LEFT JOIN pos_don_app a ON a.phien_id = p.id
     WHERE o.customer_phone = ?
     UNION ALL
-    SELECT NULL, a.tao_luc, p.tong, 0, NULL, NULL, NULL, a.ma, a.than, a.tien_trinh_quay, p.trang_thai, p.het_han, p.qr, ${CO_TIEN_VE}, 0, p.cach, p.giu_vi, p.con_lai
+    SELECT NULL, a.tao_luc, p.tong, 0, NULL, NULL, NULL, a.ma, a.than, a.tien_trinh_quay, p.trang_thai, p.het_han, p.qr, ${CO_TIEN_VE}, 0, p.cach, p.giu_vi, p.con_lai,
+      ${SO_GIU}, ${VAO_VI}, p.ly_do
     FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id WHERE a.phone = ? AND ${THAY_DUOC} AND p.order_id IS NULL)`;
 
 /** cach_tra / giu_vi / con_lai của đơn App, đọc từ phiên (không có cột riêng): thanh toán bằng tài khoản → vi; QR có giữ ví → vi_qr; còn lại → qr. Đơn quầy → null. */
@@ -269,20 +292,56 @@ function cachTraCua(r) {
   return { cach_tra: cach, giu_vi: r.giu_vi, con_lai: r.con_lai };
 }
 
-function tomDon(r) {
+/** KH-TOMTAT-1 — tóm tắt đơn cho Lịch sử đơn. `ext` = { o: dòng pos_orders, n, ten } của đơn thật (tomTatDonThat), thiếu → đơn App chưa có đơn thật.
+ *  Tiền dùng CHUNG hàm với hoá đơn quầy (routes/hoaDon.js): tra[] = các dòng thanh toán đã trả (bỏ ghi nợ), giam = hạng + Flash + mã.
+ *  Thiếu dữ liệu → null, không đoán (cột tổng NULL → tra / giam null; phí giao NULL → cach_nhan null; đơn không dòng món → so_mon / mon_dau null). */
+function tomTat(r, ext) {
+  const o = ext?.o;
+  if (!r.loai) {   // đơn App chưa có đơn thật: chưa trả gì, chưa có hoá đơn để giảm; món lấy từ thân đơn đã lưu
+    const dong = JSON.parse(r.than).dong;
+    return { kenh: 'app', cach_nhan: 'tai_quan', tra: [], so_mon: dong.reduce((s, d) => s + Number(d.so_luong || 0), 0), mon_dau: dong[0]?.ten ?? null, giam: 0 };
+  }
+  const coTien = !!o && o.total != null;
+  return {
+    kenh: r.ma_app ? 'app' : 'quay',
+    cach_nhan: !o || o.shipping_fee == null ? null : Number(o.shipping_fee) > 0 ? 'giao' : 'tai_quan',
+    tra: coTien ? dungThanhToan(o).filter((x) => x.loai !== 'ghi_no').map((x) => ({ cach: x.loai, so_tien: x.so_tien })) : null,
+    so_mon: ext?.n ?? null, mon_dau: ext?.ten ?? null,
+    giam: coTien ? tinhGiam(o).tong : null,
+  };
+}
+
+/** Đơn thật của các dòng `rows` → Map oid → { o, n, ten }: HAI truy vấn cho cả trang (không N+1). */
+async function tomTatDonThat(rows) {
+  const ids = rows.filter((r) => r.loai).map((r) => r.oid);
+  const kq = new Map();
+  if (!ids.length) return kq;
+  const cho = ids.map(() => '?').join(',');
+  for (const o of await query(`SELECT * FROM pos_orders WHERE id IN (${cho})`, ids)) kq.set(o.id, { o });
+  for (const m of await query(`SELECT order_id, SUM(quantity) AS n, (SELECT product_name FROM pos_order_items i WHERE i.order_id = g.order_id ORDER BY i.id LIMIT 1) AS ten
+      FROM pos_order_items g WHERE order_id IN (${cho}) GROUP BY order_id`, ids)) Object.assign(kq.get(m.order_id) || {}, { n: Number(m.n), ten: m.ten });
+  return kq;
+}
+
+function tomDon(r, ext) {
   const tt = r.ma_app ? tienTrinh({ trang_thai: r.p_tt, het_han: r.het_han }, r.loai ? { status: r.trang_thai } : null, r.tien_trinh_quay)
     : HUY.includes(r.trang_thai) ? 'da_huy' : 'xong';
   return {
-    ma: r.ma_app || r.ma_bill, ngay: r.ngay, tong: r.tong, da_tra: r.loai ? Number(r.tong || 0) - Number(r.no || 0) : 0,
+    ma: r.ma_app || r.ma_bill, so_hd: r.loai ? soHdCuaMa(r.ma_bill) : r.so_giu ?? null, ngay: r.ngay, tong: r.tong, da_tra: r.loai ? Number(r.tong || 0) - Number(r.no || 0) : 0,
     trang_thai: r.trang_thai, thanh_toan: r.thanh_toan, tien_trinh: tt, qr: r.ma_app ? qrCua(r, tt) : null,
     tien_ve_cho_doi_soat: tt === 'da_huy' && !!r.tien_ve,
+    tien_ve_da_cong_vi: Number(r.vao_vi || 0),
+    thong_bao_tien_ve: thongBaoTienVe(r),
     ...cachTraCua(r),
+    ...tomTat(r, ext),
   };
 }
 
 async function dsDon(phone, trang, moiTrang) {
   const ds = await query(`${CAU_DON} ORDER BY ngay DESC, loai ASC, oid DESC LIMIT ? OFFSET ?`, [phone, phone, moiTrang + 1, (trang - 1) * moiTrang]);
-  return { trang, con_nua: ds.length > moiTrang, data: ds.slice(0, moiTrang).map(tomDon) };
+  const trangDs = ds.slice(0, moiTrang);
+  const ext = await tomTatDonThat(trangDs);
+  return { trang, con_nua: ds.length > moiTrang, data: trangDs.map((r) => tomDon(r, ext.get(r.oid))) };
 }
 
 /** Đơn theo mã App hoặc mã bill — LUÔN trong phạm vi SĐT token; không có → null (route trả 404 như không có). */
@@ -296,7 +355,7 @@ async function chiTietDon(phone, ma) {
       ma: d.sx_product_type != null ? `${d.sx_product_type}_${d.sx_product_id}` : null, ten: d.product_name, so_luong: d.quantity,
       don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price, thanh_tien: d.total_price, ghi_chu: d.notes }))
     : JSON.parse(r.than).dong.map((d) => ({ ma: d.ma, ten: d.ten, so_luong: d.so_luong, don_gia: d.don_gia, thanh_tien: d.thanh_tien, ghi_chu: d.ghi_chu }));
-  return { ...tomDon(r), mon, hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] };
+  return { ...tomDon(r, (await tomTatDonThat([r])).get(r.oid)), mon, hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] };
 }
 
 /** Tờ hoá đơn giao khách của đơn thật. Không dựng được thì [] (App tự vẽ từ mon[]) — không làm hỏng việc xem đơn. */
@@ -319,19 +378,25 @@ async function huyDon(phone, ma) {
 }
 
 // ── Quầy ────────────────────────────────────────────────────────────────────
-/** Đơn App ĐÃ TRẢ: hôm nay + đơn chưa xong (và không bị huỷ / hoàn) từ trước. Đơn chưa trả không có. */
+/** Đơn App ĐÃ TRẢ: hôm nay + đơn chưa xong (và không bị huỷ / hoàn) từ trước. Đơn chưa trả không có. Thêm (chủ quán 05.11): mỗi báo 'vao_vi'
+ *  HÔM NAY (tiền về được cộng vào tài khoản khách thay vì tạo đơn) một dòng tien_trinh 'vao_vi' — quầy thấy ngay, không có nút Đang làm / Xong. */
 async function dsQuay() {
   const ds = await query(`SELECT a.id, a.ma, a.than, a.tien_trinh_quay, a.nguoi_lam, a.luc_lam, a.nguoi_xong, a.luc_xong,
       p.giu_vi, p.con_lai, p.trang_thai AS p_tt, p.het_han, p.luc_chot, o.code, o.customer_name, o.status
     FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id JOIN pos_orders o ON o.id = p.order_id
     WHERE p.trang_thai = 'da_thu' AND (p.luc_chot >= ? OR (a.tien_trinh_quay <> 'xong' AND ${DON_CON})) ORDER BY a.id DESC LIMIT 100`, [getNow().slice(0, 10) + 'T00:00:00']);
-  return ds.map((r) => ({
-    id: r.id, ma: r.ma, ma_bill: r.code, gio: r.luc_chot, ten_khach: r.customer_name,
+  const vv = await query(`SELECT s.id, s.so_tien, s.ly_do, s.luc, a.ma, c.name, ${SO_GIU} AS so_hd
+    FROM pos_payos_su_kien s JOIN pos_phien_thanh_toan p ON p.ma_payos = s.ma_payos AND p.cach = 'payos' JOIN pos_don_app a ON a.phien_id = p.id
+    LEFT JOIN pos_customers c ON c.phone = a.phone
+    WHERE s.ket_qua = 'vao_vi' AND s.luc >= ? ORDER BY s.id DESC LIMIT 100`, [getNow().slice(0, 10) + 'T00:00:00']);
+  return [...vv.map((r) => ({ id: `vao_vi:${r.id}`, ma: r.ma, so_hd: r.so_hd, gio: r.luc, ten_khach: r.name, tien_trinh: 'vao_vi', so_tien: r.so_tien,
+    ly_do: r.ly_do, mon: [] })), ...ds.map((r) => ({
+    id: r.id, ma: r.ma, ma_bill: r.code, so_hd: soHdCuaMa(r.code), gio: r.luc_chot, ten_khach: r.customer_name,
     mon: JSON.parse(r.than).dong.map((d) => ({ ten: d.ten, so_luong: d.so_luong, ghi_chu: d.ghi_chu })),
     da_tra: r.giu_vi + r.con_lai, tra_vi: r.giu_vi, tra_qr: r.con_lai,
     tien_trinh: tienTrinh({ trang_thai: r.p_tt, het_han: r.het_han }, { status: r.status }, r.tien_trinh_quay),
     nguoi_lam: r.nguoi_lam, luc_lam: r.luc_lam, nguoi_xong: r.nguoi_xong, luc_xong: r.luc_xong,
-  }));
+  }))];
 }
 
 /** Đang làm ('' → dang_lam) · Xong (dang_lam → xong); chỉ đơn đã trả, chưa bị huỷ / hoàn. Câu ghi có điều kiện — bấm lại / hai máy cùng bấm → false. */

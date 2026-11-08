@@ -9,7 +9,11 @@ const crypto = require('crypto');
 const { dungVietQr } = require('./vietQr');
 
 const LECH_TOI_DA_GIAY = 300;
-const MA_PHIEN = /TQD(\d{1,6})(?!\d)/i;   // nội dung CK = TQD<mã phiên> (giuCho.js) — khách thêm chữ quanh mã vẫn khớp
+const MA_PHIEN = /TQD(\d{1,6})(?!\d)/i;   // mẫu CŨ TQD<mã phiên> (phiên payOS, phiên tạo trước CK-NOIDUNG-1) — khách thêm chữ quanh mã vẫn khớp
+// CK-NOIDUNG-1: nội dung TQD<MMM><DD> HD|APP<4 số> (helpers noiDungCk). Ngân hàng hay bỏ dấu cách / đổi hoa thường / chèn . - _ → chịu được;
+// dính thêm chữ số sau 4 số → không khớp. Khớp thì dựng lại chuỗi CHUẨN, so BẰNG với noi_dung đã lưu của phiên (thanh-toan.js).
+const MAU_SO_HD = /TQD[\s._-]*([A-Z]{3})[\s._-]*(\d{2})[\s._-]*(HD|APP)[\s._-]*(\d{4})(?!\d)/i;
+const NOI_DUNG_SO_HD = true;   // giuCho.js: cổng này ghi nội dung số hoá đơn (VietQR 62/08 cho tới 25 ký tự)
 
 const cauHinh = () => ({ bin: (process.env.SEPAY_BIN || '').trim(), soTk: (process.env.SEPAY_SO_TK || '').trim(), khoa: process.env.SEPAY_KHOA_WEBHOOK || '' });
 // BIN / số TK sai dạng = chưa cài (không dựng QR hỏng cho khách quét).
@@ -29,12 +33,19 @@ function kiemBao(headers, than, giayBayGio = Date.now() / 1000) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-/** Thân báo → dữ liệu chung của tiền về. Mã phiên tìm trong `code` (SePay tách sẵn, có thể null) rồi tới `content`. */
+/** Nội dung số hoá đơn (rồi mẫu cũ mã phiên) tìm lần lượt trong từng chuỗi → { noiDung (chuỗi CHUẨN) | null, ma | null }. MỘT hàm cho SePay
+ *  và Tingee (TINGEE-1: ngân hàng chèn mã VA trước nội dung — mẫu tìm ở bất kỳ đâu trong chuỗi nên vẫn khớp). */
+function docNoiDung(...chuoi) {
+  const tim = (mau) => chuoi.reduce((kq, c) => kq || mau.exec(String(c ?? '')), null);
+  const h = tim(MAU_SO_HD), m = h ? null : tim(MA_PHIEN);
+  return { noiDung: h ? `TQD${h[1].toUpperCase()}${h[2]} ${h[3].toUpperCase()}${h[4]}` : null, ma: m ? Number(m[1]) : null };
+}
+
+/** Thân báo → dữ liệu chung của tiền về. Nội dung tìm trong `code` (SePay tách sẵn, có thể null) rồi `content`. */
 function docBao(b) {
-  const m = MA_PHIEN.exec(String(b.code ?? '')) || MA_PHIEN.exec(String(b.content ?? ''));
   const tk = String(b.accountNumber ?? '').replace(/\s+/g, '');   // số tài khoản nhận (bỏ khoảng trắng) phải BẰNG SEPAY_SO_TK — tkKhac = số nhận sai, null nếu đúng
-  return { khoa: `sepay:${b.id}`, vao: b.transferType === 'in', ma: m ? Number(m[1]) : null, soTien: Number(b.transferAmount) || 0, luc: b.transactionDate,
+  return { khoa: `sepay:${b.id}`, vao: b.transferType === 'in', ...docNoiDung(b.code, b.content), maGd: String(b.referenceCode ?? '').trim() || null, soTien: Number(b.transferAmount) || 0, luc: b.transactionDate,
     tkKhac: tk === cauHinh().soTk ? null : tk || '(trống)' };
 }
 
-module.exports = { daCauHinh, taoQr, kiemBao, docBao };
+module.exports = { daCauHinh, taoQr, kiemBao, docBao, docNoiDung, NOI_DUNG_SO_HD };

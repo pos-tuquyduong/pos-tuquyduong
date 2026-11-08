@@ -10,7 +10,6 @@ import Layout from './components/Layout';
 import DonApp from './pages/DonApp';
 import TrangChu from './pages/BanHang';
 import Customers from './pages/Customers';
-import Balance from './pages/Balance';
 import Orders from './pages/Orders';
 import Registrations from './pages/Registrations';
 import Reports from './pages/Reports';
@@ -63,7 +62,7 @@ function AppRoutes() {
       }>
         <Route index element={<TrangChu />} />
         <Route path="customers" element={<ThanhLoi man="customers"><Customers /></ThanhLoi>} />
-        <Route path="balance" element={<Balance />} />
+        <Route path="balance" element={<Navigate to="/customers" replace />} />   {/* GIAO-DIEN-1 C: Số dư gộp vào Khách hàng — link cũ không gãy */}
         <Route path="orders" element={<ThanhLoi man="orders"><Orders /></ThanhLoi>} />
         <Route path="registrations" element={<Registrations />} />
         <Route path="sync" element={<Navigate to="/registrations" replace />} />

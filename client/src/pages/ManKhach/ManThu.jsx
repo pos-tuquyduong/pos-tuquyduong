@@ -2,14 +2,13 @@
  * Màn khách lúc thu: ĐÚNG chuỗi `qr` máy chủ trả (vẽ to), số phải trả, món, dòng giảm, đếm ngược. Không tự tính tiền —
  * danh sách món do máy chủ dựng; thiếu danh sách (giá vừa đổi) thì chỉ hiện tổng.
  */
-import { useEffect, useMemo, useState } from 'react';
-import { qrSvg } from '../../utils/veQr';
+import { useEffect, useState } from 'react';
+import TheQr from '../../components/TheQr';   // GIAO-DIEN-1 F: thẻ QR thương hiệu dùng chung
 import { dinhDangDemNguoc } from '../BanHang/tinh';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 
 export default function ManThu({ thu, nhanLuc }) {
-  const svg = useMemo(() => qrSvg(thu.qr), [thu.qr]);
   const [, nhip] = useState(0);
   useEffect(() => { const h = setInterval(() => nhip((n) => n + 1), 1000); return () => clearInterval(h); }, []);
   // Đếm theo đồng hồ đơn điệu của máy này kể từ lúc nhận số của máy chủ — không tin đồng hồ ngày giờ của máy khách.
@@ -18,8 +17,7 @@ export default function ManThu({ thu, nhanLuc }) {
   return (
     <div className="mk-thu">
       <div className="mk-qr-khung">
-        <div className="mk-vua mk-mo">Quý khách quét mã để thanh toán</div>
-        {svg ? <div className="mk-qr" dangerouslySetInnerHTML={{ __html: svg }} /> : <div className="mk-vua">Không hiển thị được mã QR — nhờ nhân viên hỗ trợ</div>}
+        <TheQr className="mk-the" qr={thu.qr} tien={thu.con_lai} noiDung={thu.noi_dung} khongVe="Không hiển thị được mã QR — nhờ nhân viên hỗ trợ" />
         <div className="mk-vua mk-mo">{giay > 0 ? `Còn ${dinhDangDemNguoc(giay)}` : 'Đang kiểm tra…'}</div>
       </div>
       <div className="mk-ds">

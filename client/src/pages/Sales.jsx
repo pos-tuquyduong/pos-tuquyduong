@@ -96,7 +96,7 @@ export default function Sales() {
       total_qty: parseInt(buyQty) || 30,
       pkg_qty: pkgBuyInCart.quantity || 1
     } : null,
-    membership_buy: membershipInCart ? { tier_id: membershipInCart.tier_id } : null,
+    membership_buy: membershipInCart ? { tier_id: membershipInCart.tier_id, so_thang: membershipInCart.so_thang } : null,   // HANG-1: chọn GÓI, giá máy chủ tra
   });
   const buyPkgTemplate = pkgBuyInCart ? pkgTemplates.find(t => t.id === pkgBuyInCart.package_id) : null;
   const buyPkgItems = buyPkgTemplate?.package_items ? (typeof buyPkgTemplate.package_items === 'string' ? JSON.parse(buyPkgTemplate.package_items) : buyPkgTemplate.package_items) : [];
@@ -158,7 +158,7 @@ export default function Sales() {
   const khoaFlash = flashState ? `${flashState.is_flash_now}|${flashState.percent}|${(flashState.product_keys || []).join()}` : '';
   const khoaHang = membershipInfo ? `${membershipInfo.usable}|${membershipInfo.discount_percent}|${membershipInfo.special_discount_percent}` : '';
   // Giỏ cũng khoá theo phần TÍNH TIỀN (món, số lượng, lấy từ gói, gói, thẻ) — gõ ghi chú ly không hỏi lại máy chủ, không mất số.
-  const khoaGio = JSON.stringify(cart.map((i) => [i.product_id, i.quantity, i.fromPkg, i.is_pkg, i.is_membership, i.package_id, i.tier_id]));
+  const khoaGio = JSON.stringify(cart.map((i) => [i.product_id, i.quantity, i.fromPkg, i.is_pkg, i.is_membership, i.package_id, i.tier_id, i.so_thang]));
   useEffect(() => {
     setTinhThu(null);
     setTinhThuLoi('');
@@ -517,18 +517,25 @@ export default function Sales() {
     setCategory('all'); // Chuyển sang grid SP để chọn giao lần 1
   };
 
-  // TIER-1c: Thêm thẻ hội viên vào giỏ (mua như 1 sản phẩm) — chỉ 1 thẻ/đơn
-  const addMembershipToCart = (tier) => {
+  // HANG-1: gói đang bán của hạng (hạng `ban`, gói bật, có giá — cùng vị từ máy chủ goiBanDuoc). Khách có hạng còn hạn THỨ BẬC CAO HƠN → khoá.
+  const goiBanCua = (tier) => (tier.cach_co === 'ban' ? (tier.goi || []).filter((g) => g.bat && Number.isInteger(g.gia) && g.gia > 0) : []);
+  const soGoiBan = membershipTiers.reduce((n, t) => n + goiBanCua(t).length, 0);
+  const hangCaoHon = (tier) => !!membershipInfo?.usable && Number(membershipInfo.thu_bac) > Number(tier.sort_order);
+
+  // TIER-1c: Thêm thẻ hội viên vào giỏ (mua như 1 sản phẩm) — chỉ 1 thẻ/đơn. Giá trên giỏ chỉ để xem — máy chủ tự tra giá gói.
+  const addMembershipToCart = (tier, goi) => {
     if (!customer) { setError('Chọn khách trước khi mua thẻ hội viên'); return; }
+    if (hangCaoHon(tier)) { setError(`Khách đang có hạng cao hơn (${membershipInfo.tier_name}) — không bán hạng ${tier.name}`); return; }
     if (cart.some(c => c.is_membership)) { setError('Đã có thẻ hội viên trong giỏ. Xóa thẻ cũ trước nếu muốn đổi hạng khác.'); return; }
     setCart([...cart, {
-      unique_key: `membership_${tier.id}`,
+      unique_key: `membership_${tier.id}_${goi.so_thang}`,
       product_id: -1000000 - tier.id,
       is_membership: true,
       tier_id: tier.id,
+      so_thang: goi.so_thang,
       product_code: `THE-${tier.name}`,
-      product_name: `🎟️ Thẻ hội viên ${tier.name}`,
-      unit_price: tier.card_price,
+      product_name: `🎟️ Thẻ hội viên ${tier.name} · ${goi.so_thang} tháng`,
+      unit_price: goi.gia,
       unit: 'thẻ',
       quantity: 1,
       stock: Infinity,
@@ -965,13 +972,13 @@ export default function Sales() {
               📦 Mua gói ({pkgTemplates.length})
             </button>
           )}
-          {!membershipInCart && membershipTiers.length > 0 && (
+          {!membershipInCart && soGoiBan > 0 && (
             <button 
               className={`btn ${category === 'membership' ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => setCategory('membership')}
               style={{ background: category === 'membership' ? '#5b3ea3' : undefined, borderColor: category === 'membership' ? '#5b3ea3' : undefined }}
             >
-              🎟️ Mua thẻ ({membershipTiers.length})
+              🎟️ Mua thẻ ({soGoiBan})
             </button>
           )}
         </div>
@@ -981,15 +988,19 @@ export default function Sales() {
           <div className="card">Đang tải sản phẩm...</div>
         ) : category === 'membership' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
-            {membershipTiers.map(tier => (
-              <div key={tier.id} onClick={() => addMembershipToCart(tier)}
-                style={{ padding: '0.75rem', background: 'white', borderRadius: '12px', border: '2px solid #c4b1e8', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>🎟️</div>
-                <div style={{ fontWeight: 'bold', color: '#5b3ea3', fontSize: '0.9rem' }}>{tier.name}</div>
-                <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem' }}>Giảm {tier.discount_percent}% mỗi đơn</div>
-                <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '0.9rem' }}>{(tier.card_price || 0).toLocaleString()}đ</div>
-              </div>
-            ))}
+            {membershipTiers.flatMap(tier => goiBanCua(tier).map(goi => {
+              const khoa = hangCaoHon(tier);
+              return (
+                <div key={`${tier.id}_${goi.so_thang}`} onClick={() => !khoa && addMembershipToCart(tier, goi)} title={khoa ? 'Khách đang có hạng cao hơn' : ''}
+                  style={{ padding: '0.75rem', background: khoa ? '#f3f4f6' : 'white', borderRadius: '12px', border: '2px solid #c4b1e8', cursor: khoa ? 'not-allowed' : 'pointer', textAlign: 'center', transition: 'all 0.2s', opacity: khoa ? 0.6 : 1 }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>🎟️</div>
+                  <div style={{ fontWeight: 'bold', color: '#5b3ea3', fontSize: '0.9rem' }}>{tier.name} · {goi.so_thang} tháng</div>
+                  <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.25rem' }}>Giảm {tier.discount_percent}% mỗi đơn</div>
+                  <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '0.9rem' }}>{goi.gia.toLocaleString()}đ</div>
+                  {khoa && <div style={{ fontSize: '0.7rem', color: '#b91c1c', marginTop: 4 }}>Khách đang có hạng cao hơn</div>}
+                </div>
+              );
+            }))}
           </div>
         ) : category === 'pkg' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>

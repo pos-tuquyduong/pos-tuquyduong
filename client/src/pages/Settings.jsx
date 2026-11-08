@@ -10,6 +10,8 @@ import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phi
 import CaiDatManKhach from './CaiDat/ManKhach';   // MANKHACH-1
 import CaiDatChuongTrinh from './CaiDat/ChuongTrinh';   // CT-1a
 import CaiDatGiaoHang from './CaiDat/GiaoHang';   // GIAO-1
+import CongQr from './CaiDat/CongQr';   // TINGEE-1: cổng QR đang chạy (tên + đã cài)
+import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (hạng, thứ bậc, gói, PIN chủ quán)
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
 
@@ -88,10 +90,6 @@ export default function Settings() {
     product_keys: [], is_flash_now: false, server_time_vn: '',
   });
 
-  // Membership tiers state (TIER-1a-v2)
-  const [tiers, setTiers] = useState([]);
-  const [tierRound, setTierRound] = useState({ round_to: 500, round_mode: 'nearest' });
-  const [tierValidMonths, setTierValidMonths] = useState(3);
   // UUDAI-1: mã giảm "dùng chung với giá hạng" theo loại — '1' cộng, '0' máy chọn cái giảm nhiều hơn (LOAI_MA_CHUNG ở đầu file)
   const [uuDaiChung, setUuDaiChung] = useState({ uudai_chung_hang_percent: '1', uudai_chung_hang_fixed: '1', uudai_chung_hang_item: '1' });
 
@@ -161,8 +159,7 @@ export default function Settings() {
       } else if (tab === 'flash') {
         await loadFlash();
       } else if (tab === 'tiers') {
-        await loadTiers();
-        await loadUuDaiChung();
+        await loadUuDaiChung();   // hạng + gói tự tải trong HangThe
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -660,47 +657,6 @@ export default function Settings() {
     finally { setSaving(false); }
   };
 
-  // Membership tier functions (TIER-1a-v2)
-  const loadTiers = async () => {
-    const data = await pkgApi('GET', '/api/pos/tiers');
-    if (data.success && data.data) {
-      setTiers(data.data.tiers || []);
-      setTierRound({
-        round_to: data.data.round_to ?? 500,
-        round_mode: data.data.round_mode || 'nearest',
-      });
-      setTierValidMonths(data.data.valid_months ?? 3);
-    }
-  };
-  const updateTier = (id, field, value) => {
-    setTiers(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
-  };
-  const saveTiers = async () => {
-    setSaving(true);
-    try {
-      for (const t of tiers) {
-        if (!String(t.name).trim()) throw new Error('Tên hạng không được trống');
-        const price = Number(t.card_price), pct = Number(t.discount_percent);
-        const specialPct = Number(t.special_discount_percent) || 0;
-        if (!Number.isFinite(price) || price < 0) throw new Error('Giá thẻ không hợp lệ');
-        if (!Number.isFinite(pct) || pct < 0 || pct > 90) throw new Error('% giảm phải từ 0 đến 90');
-        if (specialPct < 0 || specialPct > 90) throw new Error('% giảm SP đặc biệt phải từ 0 đến 90');
-      }
-      const vm = Number(tierValidMonths);
-      if (!Number.isFinite(vm) || vm < 1 || vm > 24) throw new Error('Số tháng hiệu lực phải từ 1 đến 24');
-      const data = await pkgApi('PUT', '/api/pos/tiers', {
-        tiers: tiers.map(t => ({ id: t.id, name: String(t.name).trim(), card_price: Number(t.card_price), discount_percent: Number(t.discount_percent), special_discount_percent: Number(t.special_discount_percent) || 0 })),
-        round_to: tierRound.round_to,
-        round_mode: tierRound.round_mode,
-        valid_months: vm,
-      });
-      if (!data.success) throw new Error(data.error);
-      setMessage('Đã lưu hạng thành viên!');
-      setTimeout(() => setMessage(''), 3000);
-      await loadTiers();
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
-    finally { setSaving(false); }
-  };
   // UUDAI-1: code mới gọi máy chủ qua utils/api.js (LUAT_XAY_APP §3) — không qua pkgApi.
   const loadUuDaiChung = async () => {
     try {
@@ -719,19 +675,6 @@ export default function Settings() {
     } catch (err) { setMessage('Lỗi: ' + err.message); }
     finally { setSaving(false); }
   };
-  const deleteTier = async (id, name) => {
-    if (!window.confirm(`Xóa hạng "${name}"? (Khách đã mua thẻ hạng này trước đây không bị ảnh hưởng, chỉ ẩn khỏi danh sách bán thẻ.)`)) return;
-    setSaving(true);
-    try {
-      const data = await pkgApi('DELETE', `/api/pos/tiers/${id}`);
-      if (!data.success) throw new Error(data.error);
-      setMessage('Đã xóa hạng!');
-      setTimeout(() => setMessage(''), 3000);
-      await loadTiers();
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
-    finally { setSaving(false); }
-  };
-
   // Permissions functions
   const togglePermission = (role, perm) => {
     setPermissions({
@@ -967,6 +910,7 @@ export default function Settings() {
       <header className="page-header"><h1 className="page-title">⚙️ Cài đặt</h1></header>
       <div className="page-content">
         {message && <div className={`alert ${message.includes('Lỗi') ? 'alert-danger' : 'alert-success'}`}>{message}</div>}
+        <CongQr />
 
         {/* POS-BOCUC-v1: hang chon NHOM. Hang the ben duoi chi hien the
             thuoc nhom dang chon, nen moi hang chi con 2-4 the. */}
@@ -2073,102 +2017,9 @@ export default function Settings() {
               </div>
             </>
           ) : tab === 'tiers' ? (
-            /* TAB HẠNG THÀNH VIÊN (TIER-1a-v2) */
+            /* TAB HẠNG THÀNH VIÊN (HANG-1 — pages/CaiDat/HangThe.jsx) */
             <>
-              <div className="card-title" style={{ margin: '0 0 0.5rem' }}>🏅 Hạng thành viên</div>
-              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
-                Khách <b>mua thẻ hạng này</b> để được giá ưu đãi (giảm % cho mọi món). Mua hàng thường không lên hạng — chỉ tích điểm đổi quà.
-                Thẻ có hạn dùng, hết hạn tự về giá gốc. (Bán thẻ &amp; nhóm ưu đãi đặc biệt làm ở bước sau.)
-              </p>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
-                <div><div style={{ fontWeight: 600 }}>Hiệu lực thẻ</div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Áp dụng chung cho mọi hạng, tính từ ngày mua</div></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="1" max="24"
-                    value={tierValidMonths} onChange={e => setTierValidMonths(e.target.value)} />
-                  <span style={{ fontSize: 13, color: '#6b7280' }}>tháng</span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderTop: '1px solid #eee' }}>
-                <div><div style={{ fontWeight: 600 }}>Làm tròn giá</div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>Giá sau giảm được làm tròn cho đẹp</div></div>
-                <select className="input" style={{ width: 200 }}
-                  value={`${tierRound.round_to}_${tierRound.round_mode}`}
-                  onChange={e => { const [rt, rm] = e.target.value.split('_'); setTierRound({ round_to: parseInt(rt), round_mode: rm }); }}>
-                  <option value="500_nearest">Gần nhất tới 500đ</option>
-                  <option value="1000_nearest">Gần nhất tới 1.000đ</option>
-                  <option value="500_down">Tròn xuống tới 500đ (lợi khách)</option>
-                  <option value="1000_down">Tròn xuống tới 1.000đ (lợi khách)</option>
-                  <option value="0_nearest">Không làm tròn</option>
-                </select>
-              </div>
-
-              {tiers.length === 0 ? (
-                <p style={{ color: '#9ca3af', fontSize: 13, paddingTop: '0.75rem', borderTop: '1px solid #eee' }}>Đang tải hạng...</p>
-              ) : (
-                <table className="table" style={{ width: '100%', fontSize: 13, marginTop: '0.5rem' }}>
-                  <thead>
-                    <tr style={{ color: '#6b7280', textAlign: 'left' }}>
-                      <th style={{ padding: '6px 8px' }}>Tên hạng</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giá bán thẻ (đ)</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm %</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Giảm % SP đặc biệt</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'center' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tiers.map(t => (
-                      <tr key={t.id} style={{ borderTop: '1px solid #eee' }}>
-                        <td style={{ padding: '6px 8px' }}>
-                          <input className="input" style={{ width: '95%' }} value={t.name}
-                            onChange={e => updateTier(t.id, 'name', e.target.value)} />
-                        </td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                          <input type="number" className="input" style={{ width: 130, textAlign: 'right' }} min="0" step="1000"
-                            value={t.card_price} onChange={e => updateTier(t.id, 'card_price', e.target.value)} />
-                        </td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                          <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
-                            value={t.discount_percent} onChange={e => updateTier(t.id, 'discount_percent', e.target.value)} />
-                        </td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                          <input type="number" className="input" style={{ width: 70, textAlign: 'right' }} min="0" max="90"
-                            value={t.special_discount_percent ?? 0} onChange={e => updateTier(t.id, 'special_discount_percent', e.target.value)}
-                            title="% giảm riêng cho SP đặc biệt (vd cà phê) — tick ở tab Giá bán" />
-                        </td>
-                        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                          <button className="btn btn-outline" style={{ padding: '2px 8px', fontSize: 12, color: '#dc2626' }}
-                            onClick={() => deleteTier(t.id, t.name)} disabled={saving}>Xóa</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-
-              {/* xem trước 1 ví dụ */}
-              {tiers.length > 0 && (
-                <div style={{ marginTop: '1rem', padding: '10px 12px', background: '#faf5ff', borderRadius: 8, fontSize: 13 }}>
-                  <b>Xem trước</b> — món thường giá 50.500đ:
-                  <span style={{ marginLeft: 8 }}>
-                    {tiers.map(t => {
-                      const pct = Number(t.discount_percent) || 0;
-                      let p = 50500 * (1 - pct / 100);
-                      const rt = tierRound.round_to;
-                      if (rt > 0) p = tierRound.round_mode === 'down' ? Math.floor(p / rt) * rt : Math.round(p / rt) * rt;
-                      return <span key={t.id} style={{ marginRight: 12 }}>{t.name}: <b style={{ color: '#7c3aed' }}>{p.toLocaleString('vi-VN')}đ</b></span>;
-                    })}
-                  </span>
-                </div>
-              )}
-
-              <div style={{ marginTop: '1rem' }}>
-                <button className="btn btn-primary" onClick={saveTiers} disabled={saving}>
-                  <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
-                </button>
-              </div>
+              <HangThe />
 
               {/* UUDAI-1: mã giảm dùng chung hay không với giá hạng — theo loại mã */}
               <div className="card-title" style={{ margin: '1.5rem 0 0.5rem' }}>🎫 Mã giảm & giá hạng</div>
