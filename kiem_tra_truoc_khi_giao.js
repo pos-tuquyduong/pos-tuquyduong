@@ -547,9 +547,9 @@ chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai n
 // Thân route = từ `router.<m>(` đầu dòng tới dòng đóng `});` hoặc `);` ở cột 0 (orders.js:1357 đóng bằng `},\n);`), chặn ở `router.`
 // kế tiếp — hàm phụ đứng giữa hai route (wallets.js:60–119 ghiVi…) KHÔNG thuộc route trước.
 // Chú thích bỏ nhưng GIỮ xuống dòng (boGhiChu gộp dòng → số dòng trôi). Bài thử: cong_cu/thu_TOCDO1.js mục R cắt đúng hai hàm dưới.
-// GIỚI HẠN (soát TU-CHAY-6): chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (customers-v2.js GET gọi fetchSXCustomers → INSERT
-// pos_customers) không bắt — đúng chữ phiếu A2, ghi Phát hiện cho việc quầy.
-const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 50;   // bánh cóc: hạ 51 → 50 (bộ kiểm báo đã dọn 1 chỗ — chat sổ v53, 02.11)
+// GIỚI HẠN (soát TU-CHAY-6): chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (vd taoKhach của utils/khachMoi.js — KHACH-APP-1
+// đã bỏ đường GET customers-v2.js ghi pos_customers qua bộ đệm SX) không bắt — đúng chữ phiếu A2.
+const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 47;   // bánh cóc: hạ 50 → 49 → 47 (KHACH-APP-1: route tạo / ghi khách + PUT / DELETE /registrations qua loiGhi, đếm 54 → 47 — 07.11)
 function xetBanhCoc(n, nguong) { // 'canh' = mọc thêm · 'ha' = đã dọn, hạ ngưỡng · 'dung' = đúng ngưỡng
   return n > nguong ? 'canh' : n < nguong ? 'ha' : 'dung';
 }
@@ -810,6 +810,7 @@ chayBaiThat('cong_cu/thu_KHOIN1.js');   // KHO-IN-1: cài đặt in phiếu kho 
 chayBaiThat('cong_cu/thu_MANKHACH1.js');   // MANKHACH-1: màn khách — ghép máy, khoá riêng, QR + món lúc thu, nội dung rảnh, cài đặt, thu hồi
 chayBaiThat('cong_cu/thu_KHSDT1.js');   // KH-SDT-1: công cụ dọn dữ liệu thử (chỉ chủ quán, một giao dịch, giữ ví ≠ 0 / phiên / đơn hôm nay)
 chayBaiThat('cong_cu/thu_KHTOMTAT1.js');   // KH-TOMTAT-1: tóm tắt cho App KH
+chayBaiThat('cong_cu/thu_KHACHAPP1.js');   // KHACH-APP-1: khách MỘT nguồn pos_customers, một hàm tạo khách, bước chép 020 / 022, màn Đăng ký sửa / xoá
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;

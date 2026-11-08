@@ -7,7 +7,8 @@
  */
 const crypto = require('crypto');
 const { queryOne, run, beginTransaction } = require('../database');
-const { getNow, normalizePhone, isValidPhone, generateQRCode } = require('./helpers');
+const { getNow, normalizePhone, isValidPhone } = require('./helpers');
+const { taoKhach } = require('./khachMoi');
 const { guiMaKhach, coKenhGui } = require('./guiMaKhach');
 const { khoaKhach } = require('../middleware/khachAuth');
 
@@ -144,8 +145,8 @@ async function giuLuotNhanMa(sdt, ip, loai) {
  *     xưng hô / địa chỉ sai dạng → XUNG_HO_SAI / DIA_CHI_QUA_DAI; thiếu tên HOẶC xưng hô → CAN_TEN, chỉ ghi một việc: mã sống thêm
  *     THEM_PHUT_CAN_TEN phút, MỘT lần (điều kiện het_han còn bằng hạn gốc tao_luc + HAN_MA_PHUT). Khách cũ: ba trường bị bỏ qua.
  *  4. giữ một lượt thử bằng câu có điều kiện (100 lần đoán song song cũng chỉ 5 lượt) → sai → MA_SAI;
- *  5. giao dịch: chiếm mã `AND dung_luc IS NULL` + kiểm changes → tạo khách nếu chưa có (như quầy: khách lẻ, không xuất SX), lưu tên +
- *     xưng hô + địa chỉ trong CÙNG giao dịch.
+ *  5. giao dịch: chiếm mã `AND dung_luc IS NULL` + kiểm changes → tạo khách nếu chưa có bằng taoKhach (khachMoi.js — cùng hàm quầy:
+ *     khách lẻ, không xuất SX), lưu tên + xưng hô + địa chỉ trong CÙNG giao dịch.
  */
 async function xacMinhMa(sdt, ma, { ten, xungHo, diaChi } = {}) {
   const now = bayGio();
@@ -182,9 +183,9 @@ async function xacMinhMa(sdt, ma, { ten, xungHo, diaChi } = {}) {
     const chiem = await tx.run(`UPDATE pos_kh_ma_dang_nhap SET dung_luc = ?
       WHERE id = ? AND dung_luc IS NULL`, [now, dong.id]);
     if (!chiem || chiem.changes !== 1) { await tx.rollback(); return { loi: 'MA_HET_HAN' }; }
-    if (!khach) {
-      await tx.run(`INSERT INTO pos_customers (phone, name, xung_ho, address, qr_code, customer_type, sync_status, created_by, created_at)
-        VALUES (?, ?, ?, ?, ?, 'retail', 'retail_only', 'app_kh', ?) ON CONFLICT DO NOTHING`, [sdt, tenMoi, xhMoi, dcMoi, generateQRCode(sdt), now]);
+    if (!khach) {   // KHACH-APP-1 (C): cùng hàm tạo với quầy; trùng (quầy vừa tạo cùng SĐT) → đăng nhập vào khách đó
+      const t = await taoKhach({ phone: sdt, name: tenMoi, xung_ho: xhMoi, address: dcMoi, created_by: 'app_kh' }, tx);
+      if (t.loi) throw new Error('không tạo được khách: ' + t.loi);
     }
     const kh = await tx.queryOne('SELECT id FROM pos_customers WHERE phone = ?', [sdt]);
     if (!kh) throw new Error('không tạo được khách');
