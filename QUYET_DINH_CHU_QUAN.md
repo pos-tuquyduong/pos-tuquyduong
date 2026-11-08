@@ -190,6 +190,23 @@
   tạo ở quầy; quầy và App tạo khách bằng MỘT hàm chung — TRƯỚC khai trương (KHACH-APP-1).
 - 06.11 · Khách chỉ còn MỘT nguồn là POS: chép khách SX còn thiếu một lần (chỉ thêm, không ghi đè), rồi POS thôi đọc khách từ SX (KHACH-APP-1).
 
+## Đợt quyết định 07–08.11.2026 (chat bàn 33)
+- 07.11 · KHACH-APP-1: khách chỉ còn MỘT nguồn là POS. "Thêm khách" với SĐT đã có → không lưu, báo "Khách đã có tài khoản — tìm khách ở màn Bán hàng
+  để bán gói" (khách đã có thì bán gói / thẻ như bán món). Xoá đăng ký nhập nhầm: xoá luôn khách CHỈ KHI khách còn trắng VÀ do chính đăng ký đó tạo,
+  chỉ quản lý trở lên, ghi nhật ký (ai, lúc nào, SĐT, tên, lý do); nhân viên xoá thì chỉ xoá đăng ký.
+- 08.11 · Thẻ hạng là SẢN PHẨM: bán ở màn Bán hàng quầy (tab "Thẻ thành viên") và trên App (Menu nhóm "Thẻ thành viên", Ưu đãi nút Mua, Trang chủ
+  nhắc gia hạn); chung giỏ với đồ uống, trả một lần. Hạng phải CÓ TRƯỚC thì món mới được giá hạng: đồ uống cùng đơn tính theo hạng đang có, hạng mới
+  áp từ đơn sau. Mua thẻ thành công thì hệ thống TỰ ĐỘNG lên hạng NGAY — mọi cách trả (tiền mặt, CK, tài khoản, QR), ở quầy hay App. Hạng "chỉ chủ quán
+  cấp" (Kim Cương) vẫn hiện nhưng không mua được (nút mờ) — sau này đổi sang bán chỉ cần đổi cài đặt (KH-THE-1, QUAY-UI-1).
+- 08.11 · Tích điểm theo TỪNG MÓN: mỗi món / thẻ hạng / gói có công tắc "Tích điểm", chọn nhiều hoặc từng mục; gói nạp luôn 0 điểm (DIEM-MON-1).
+- 08.11 · Cách trả ở quầy: ba nút Tiền mặt / Chuyển khoản / Trừ tài khoản — KHÔNG tự trừ tài khoản; bấm "Trừ tài khoản" mới hiện số có thể trừ,
+  phần còn lại và PIN khách (QUAY-UI-1).
+- 08.11 · Nạp tiền: khách tự nạp trên App HOẶC nạp tại quầy (KH-NAP-1 sau KH-THE-1).
+- 08.11 · Đơn nạp tiền không có "Xử lý sự cố" (tiền nạp không hoàn, không huỷ, không đền); form Thêm khách báo "khách đã có" ngay khi gõ SĐT (QUAY-UI-1).
+- 07.11 · Mọi màn Cài đặt báo lưu RÕ: thành công nói đã lưu gì; lỗi đỏ đúng lý do; nút Lưu mờ khi thiếu PIN (CAIDAT-BAO-1).
+- 08.11 · Gộp NAP-1 (chat): đơn nạp không kèm giao hàng; tiền nạp về muộn sau khi huỷ phiên → quầy xác nhận tay như đơn thường (CK-NOIDUNG-1) → đúng
+  một đơn nạp, ví vào đúng số gói.
+
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
   nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).
