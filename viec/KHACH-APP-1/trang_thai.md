@@ -563,3 +563,7 @@ GIT (git log --oneline -2 lúc kiểm):
   4ab503ce KHACH-APP-1: bang chung vong sua 4; --day-du PASS 106 FAIL 0
 
 HEAD ĐÃ KIỂM: a0e3027c
+
+
+## Gộp main (chủ quán, chat soát 08.11 — thử gộp trên main 6eac4ba: 1 chỗ đụng ở bộ kiểm giữ cả hai dòng; chat đọc lại xoá khách (quản lý trở lên, một giao dịch, nhật ký) + bộ chạy nâng cấp HOÃN; cổng tĩnh ĐẠT, --day-du PASS 110 · FAIL 0)
+HEAD ĐÃ KIỂM: 7a27fab
