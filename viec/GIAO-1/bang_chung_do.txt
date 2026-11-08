@@ -1,0 +1,84 @@
+GIAO-1 — bằng chứng đỏ (06.11.2026)
+
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit 63c078e (bản cuối phiên 2 — thêm H8 lùi trạng thái chưa từng báo, H11 đổi tài xế).
+(Bản 6acfc5f trước đó: gốc 5 · 87, vá 92 · 0.)
+Code GỐC: `python3 cong_cu/ban_sao_goc.py fa03775 <nháp>/goc` (server/ của commit PHIEU fa03775 — code giống mốc^), chép bài thử + cong_cu/gia_lap/
+vào, kiem_tra_truoc_khi_giao.js lấy bằng `git show fa03775:kiem_tra_truoc_khi_giao.js`, node_modules nối symlink.
+Lệnh: cd <nháp>/goc && node cong_cu/thu_GIAO1.js
+
+TRÊN CODE GỐC → ĐỎ: 5 đạt · 88 hỏng (thoát 1, không sập). Năm ca xanh trên gốc là ca KHÔNG-ĐỔI / không-lộ (đúng là phải xanh cả hai phía):
+  B3 (nhân viên sửa cài đặt → 403), K5a (đơn không giao giữ shipping_fee cũ), K5b (nhân viên huỷ đơn thường), A3 ×2 (không khoá trong nhật ký / bảng tin).
+Mọi ca còn lại ĐỎ, nhóm theo nghiệm thu:
+  ✗ A1 ×2, A4, A5 ×2, A7, A8 — cửa /giao-hang chưa có (404); ahamove.gocAhamove chưa có
+  ✗ A2 — backup.js chưa có bảng pos_giao_*
+  ✗ B1, B2 ×6, B4, B5, B6, B7 — khoá giao_* lưu tự do (200), không có cai-dat / diem-lay / bao-phi
+  ✗ C1 ×3, C1b ×2, C2, C3, C4 — không có ô địa chỉ / báo phí
+  ✗ D1 (shipping_fee = 1 màn hình gửi), K5f, D2, D3, D4 ×2, D5, D6, D7, D8, D9 — đơn giao chưa có
+  ✗ E1, E2, F1, F2 ×2, F3 ×2 — màn Giao hàng / gioGoiTaiXe chưa có
+  ✗ G1–G7, G4 ×2, I1–I4, I3 — gọi xe chưa có
+  ✗ H1–H11 — tin báo về chưa có (H11: đổi tài xế)
+  ✗ J1, J2 (400 DON_KHONG_HUY_DUOC — thật ra đơn giao không tạo được), J3, J3b, J3c, J4/J9, J5 ×3, J6, J7, J8, J11, Q5
+  ✗ K1 ×2, A6 — Đối soát / bảng chưa có
+  ✗ T1 (index.js chưa gắn cửa), T2 (bộ kiểm chưa chạy bài)
+
+H11 còn ĐỎ trên bản vá 6acfc5f (tim_xe → tim_xe: khoá chống lặp cũ nuốt tin ACCEPTED lần hai) — sửa ở d0215a9.
+TRÊN CODE ĐÃ VÁ (HEAD d0215a9): 93 đạt · 0 hỏng.
+(Bản 93 ca ở trên được thay bằng bản vòng sửa 1 bên dưới — dòng SỐ CA cuối là số hiện hành.)
+
+── Vòng sửa 1 (soát vòng 1, 06.11) ──
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit 604b51c (thêm G8, G9, I4b, I5, H12, F4, J8b, Q5b; K1 đổi sang SỐ CỨNG).
+GỐC vòng 1: code GỐC fa03775 (dựng như trên, thư mục nháp goc5) với bản bài 604b51c → ĐỎ: 5 đạt · 96 hỏng (5 ca xanh như trên: B3, K5a, K5b, A3 ×2).
+Code TRƯỚC vòng sửa (server/ của 604b51c = bản vá d0215a9, chưa sửa vòng 1) → ĐỎ: 94 đạt · 7 hỏng:
+  ✗ I4b (phi_huy 0) · ✗ I5 (tạo 1 chuyến, tim_xe) · ✗ G8 (không có cờ treo) · ✗ G9 (200, ghi AHA12, không huỷ) · ✗ J8b (xoá được 200)
+  ✗ Q5b (chuyến vẫn dang_pha) · ✗ K1 (phi_that 251.000 — cộng cả chuyến huỷ)
+  (F4, H12 xanh trên bản trước: khoá hành vi đã có từ 6acfc5f — toi_gio / nhac và đọc lại dự phòng — trước đây không có ca nào.)
+TRÊN CODE ĐÃ VÁ (HEAD afade5e): 101 đạt · 0 hỏng.
+(Dòng SỐ CA 101 ở trên thay bằng vòng sửa 2 bên dưới.)
+
+── Vòng sửa 2 (soát vòng 2, 06.11) ──
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit 0548ab4 (thêm G8b, G10, J5d, H11b, Q5c; K1 phí khách theo sổ của bài; ví thử 10.000.000).
+GỐC fa03775 (nháp goc5) → ĐỎ: 5 đạt · 101 hỏng (5 ca xanh như trên).
+Code TRƯỚC vòng sửa 2 (server/ = afade5e) → ĐỎ: 103 đạt · 3 hỏng:
+  ✗ Q5c (thẻ giao_loi còn sau khi hoàn) · ✗ G8b (không huỷ chuyến cũ X, 2 chuyến sống) · ✗ H11b (thẻ vẫn TX B2)
+  (G10, J5d xanh trên bản trước: khoá vế EXISTS của câu giành và huyChuyenGiao chỉ tim_xe / doi_tai_xe — đã có từ afade5e, trước không có ca.)
+TRÊN CODE ĐÃ VÁ (HEAD 2eab64e): 106 đạt · 0 hỏng.
+(Dòng SỐ CA 106 ở trên thay bằng vòng sửa 4 bên dưới.)
+
+── Vòng sửa 4 (chủ quán Q6 06.11, sau soát vòng 3) ──
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit cee5f81 (G8b đổi theo Q6 "nhận lại chuyến cũ"; thêm G8c, G9b, I6, GL, DT ×2, J5e, J5f; K1 số mới).
+GỐC fa03775 (nháp goc5) → ĐỎ: 5 đạt · 109 hỏng (5 ca xanh như trên).
+Code TRƯỚC vòng sửa 4 (server/ = 360ca5b) → ĐỎ: 106 đạt · 8 hỏng:
+  ✗ DT ×2 (404 — chưa có cửa đóng thẻ) · ✗ G8b (huỷ X, tạo chuyến mới) · ✗ G8c (502, kẹt dang_goi) · ✗ I6 (502, tim_xe)
+  ✗ GL (giờ gọi bị thay, hết "tìm lâu") · ✗ J5e (phí huỷ 6.000) · ✗ K1 (phí thật 101.000)
+  (G9b, J5f xanh trên bản trước: khoá hành vi vòng 2 — không huỷ chuyến máy thắng đã nhận, TRANG_THAI_DA_DOI — trước không có ca.)
+TRÊN CODE ĐÃ VÁ (HEAD c21ecf4): 114 đạt · 0 hỏng.
+(Dòng SỐ CA 114 ở trên thay bằng vòng sửa 5 bên dưới.)
+
+── Vòng sửa 5 (chủ quán Q8 + Q9 07.11, sau soát vòng sửa 4) ──
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit a4336b2 (thêm V1–V13; J5f kiểm thêm phí huỷ 4.500; K1 số mới 201.000 · 5.000 · 4.000 · 44.500;
+máy giả: A.khiDoc, A.nuotHuy).
+GỐC fa03775 (nháp goc5) → ĐỎ: 5 đạt · 122 hỏng (5 ca xanh như trên).
+Code TRƯỚC vòng sửa 5 (server/ + client/src = 515a021) → ĐỎ: 116 đạt · 11 hỏng:
+  ✗ J5f (phí huỷ 0) · ✗ V1 (đóng thẻ rồi huỷ 200 — ví +55.000, kho 1, cancelled) · ✗ V2 (không có phi_huy_chua_ro, phí 0)
+  ✗ V3 (Tìm lại tạo chuyến mới, phí 0) · ✗ V4 (409 DANG_GOI_XE — thẻ đã sang tim_xe vì V3) · ✗ V5 (phí 0) · ✗ V6 (phí 0)
+  ✗ V7 (200 tạo chuyến mới, phí 0) · ✗ V9 (thẻ hết treo, bấm lại 409) · ✗ V10 (tin đầu 200, tin gửi lại bị coi lặp — tim_xe)
+  ✗ K1 (phí huỷ 10.000)
+  (V8, V11, V12, V13 xanh trên bản trước: khoá hành vi vòng 4 — tài xế huỷ không phí, chống đua nhận lại / trả thẻ về — trước không có ca.)
+TRÊN CODE ĐÃ VÁ (HEAD 9539c56): 127 đạt · 0 hỏng.
+(Dòng SỐ CA 127 ở trên thay bằng vòng sửa 6 bên dưới.)
+
+Bộ kiểm: npm test -- --day-du → PASS 102 · FAIL 0 · CẢNH BÁO 2 (hai cảnh báo có từ trước: "route GET có lệnh ghi (3)" và "route ghi không qua
+loiGhi 54" — không file nào của việc này trong danh sách).
+
+── Vòng sửa 6 (chủ quán Q10 + Q11 07.11, sau soát vòng sửa 5) ──
+Bản bài thử: cong_cu/thu_GIAO1.js ở commit ea29fea (thêm mục [V6] W1–W9, đặt sau K — K1 không đổi; máy giả không đổi).
+GỐC fa03775 (nháp goc6: git archive fa03775 + bài thử ea29fea) → ĐỎ: 5 đạt · 131 hỏng (5 ca xanh như trên).
+Code TRƯỚC vòng sửa 6 (server/ = 9b17c00) → ĐỎ: 132 đạt · 4 hỏng:
+  ✗ W4 (409, phí huỷ chuyến trùng 0) · ✗ W5 (504 200 — tạo 1 chuyến mới AHA45, tim_xe, không giờ xong)
+  ✗ W6 (409 CHUYEN_DA_HUY trong khi máy đã tự tìm lại 1 chuyến) · ✗ W9 (phí huỷ 0, còn 1 chuyến chưa rõ — 3 dòng kẹt chặn)
+  (W1, W2, W3, W7, W8 xanh trên bản trước: khoá hành vi có sẵn mà người soát nêu chưa có ca — Q9 ở nhánh Gọi lại thẻ treo hai chiều, Q11 thiếu
+  cancel_by_user, đọc lại chưa CANCELLED không khoá phí 0, phí 0 vẫn hết "chưa rõ". Mỗi ca có đột biến BẮT — trang_thai.md.)
+  (Lần chạy đầu ở c03e08d: W9 xanh oan 133 · 3 — mã kẹt 'AHA_KET…' xếp SAU 'AHA47' theo chỉ mục UNIQUE nên dòng thứ tư được đọc trước; đổi
+  mã kẹt thành 'AA_KET…' (ea29fea) thì W9 đỏ đúng.)
+TRÊN CODE ĐÃ VÁ: 136 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_GIAO1.js: 136

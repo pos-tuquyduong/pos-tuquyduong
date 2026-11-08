@@ -12,6 +12,7 @@ const { getNow, soHdCuaMa } = require('../utils/helpers');   // số in to trên
 const { tienTinhDiem } = require('../utils/diemThat');
 const { docDuLieuNhanDiem, tinhDiemNhanMa } = require('../utils/nhanDiem');
 const { docCauHinhNhanDiem } = require('./signup-codes');
+const { giaoTrenHoaDon } = require('../utils/giaoHang');   // GIAO-1
 
 const router = express.Router();
 
@@ -129,6 +130,7 @@ async function dungHoaDon(o) {
     diem: await dungDiem(o),
     ma_nhan_diem: await dungMaNhanDiem(o),
     so_lan_in: soLan,
+    giao: await giaoTrenHoaDon(o.id),   // GIAO-1: đơn giao → dòng "GIAO HÀNG: <địa chỉ>"; không giao → null
   };
 }
 

@@ -2,10 +2,12 @@
  * Màn Bán hàng mới — bố cục chủ quán chốt 22–24.10.2026 (ban_mau_pos/DAC_TA_BAN_HANG_2410.md).
  * BH-2: giá do MÁY CHỦ tính (POST /orders/tinh-thu, gọi lại chỉ khi nội dung tính tiền đổi); thu tiền qua MỘT đường phiên thanh toán
  * (/thanh-toan/phien → chốt | QR payOS) với PIN + giữ tiền; xong sang màn kết thúc in hoá đơn HD-1. Giá hạng ở lưới món chỉ để hiển thị.
- * Chưa làm (việc khác): topping, đổi điểm, giao hàng, combo.
+ * GIAO-1: "Giao hàng · Ahamove" (KhungGiao) — phí ship máy chủ lấy từ báo phí; chưa gắn phí thì khối thu tiền ẩn. Nút "Giao hàng" mở màn 4 cột.
+ * Chưa làm (việc khác): topping, đổi điểm, combo.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Settings as IconCaiDat, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Settings as IconCaiDat, ShoppingCart, ArrowLeft, Bike } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { api, customersV2Api, ordersApi, productsApi, thanhToanApi } from '../../utils/api';
 import { getLogo } from '../../utils/logoCache';
 import ThanhKhach from './ThanhKhach';
@@ -14,6 +16,7 @@ import ThuTien from './ThuTien';
 import ManKetThuc from './ManKetThuc';
 import ManPin from './ManPin';
 import ManQr from './ManQr';
+import KhungGiao from './KhungGiao';
 import MaGhepManKhach, { useQuayManKhach } from '../ManKhach/MaGhep';
 import { chiaTra, coGia, coSoMayChu, giaHang, hanhDongPhien, khoaTinh, kiemTraThem, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, xuLyLoiPin } from './tinh';
 import { NutThongTin } from '../../components/ThongTinMon';
@@ -65,6 +68,9 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const [xong, setXong] = useState(null);                   // đơn vừa thanh toán
   const [daIn, setDaIn] = useState(false);
   const [moCaiDat, setMoCaiDat] = useState(false);
+  const [cheDoGiao, setCheDoGiao] = useState(false);       // GIAO-1
+  const [giao, setGiao] = useState(null);                   // { ma_bao_phi, phi, km, dia_chi, ten, sdt, ghi_chu } — đã gắn phí
+  const diDen = useNavigate();
   const luotKhach = useRef(0);
   const luotTinh = useRef(0);
   const dangGuiRef = useRef(false);                         // chặn bấm đôi ĐỒNG BỘ (state cập nhật muộn một nhịp)
@@ -111,22 +117,24 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const boKhach = () => { luotKhach.current++; setKhach(null); setHang(null); setDungTK(true); setDungMe(false); };
 
   // ── Giá do máy chủ tính ── chỉ hỏi lại khi khoá (khách + tổng số lượng từng món + mã) đổi; gõ ghi chú không đổi khoá.
-  const khoa = useMemo(() => khoaTinh(gio, khach, ma), [gio, khach, ma]);
+  const khoa = useMemo(() => khoaTinh(gio, khach, ma, giao), [gio, khach, ma, giao]);
+  const giaoThan = giao ? { ma_bao_phi: giao.ma_bao_phi, ten: giao.ten, sdt: giao.sdt, ghi_chu: giao.ghi_chu } : null;
   useEffect(() => {
     const luot = ++luotTinh.current;                       // câu trả về muộn của giỏ cũ bị bỏ
     if (!gio.length) { setMayChu(null); setLoiTinh(''); return undefined; }
     const h = setTimeout(async () => {
       try {
-        const r = await ordersApi.tinhThu(thanTinhThu(gio, khach, ma));
+        const r = await ordersApi.tinhThu(thanTinhThu(gio, khach, ma, giaoThan));
         if (luotTinh.current === luot) { setMayChu({ ...r, khoa }); setLoiTinh(''); }
       } catch (e) {
         if (luotTinh.current === luot) { setMayChu(null); setLoiTinh(e.message || 'Không tính được giá'); }
       }
     }, DO_TRE_TINH_MS);
     return () => clearTimeout(h);
-  }, [khoa, lanTinhLai]);   // eslint-disable-line react-hooks/exhaustive-deps -- gio / khach / ma đã nằm trong `khoa`
+  }, [khoa, lanTinhLai]);   // eslint-disable-line react-hooks/exhaustive-deps -- gio / khach / ma / mã báo phí đã nằm trong `khoa`
 
   const coSo = coSoMayChu(mayChu, khoa);
+  const choPhiGiao = cheDoGiao && !giao;                   // GIAO-1: đơn giao chưa gắn phí → khối thu tiền ẩn, không thu
   const tinh = useMemo(() => tinhGio(gio, { flash, hang }), [gio, flash, hang]);   // chỉ để hiện giá dòng khi chưa có số máy chủ
   const tong = coSo ? Math.round(mayChu.total) : tinh.tong;
   const { soDuDung, soDuMeDung, phaiTra } = chiaTra({ tong: coSo ? tong : 0, khach, dungTK, dungMe });
@@ -141,7 +149,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   // ── Giỏ ──
   const batDauDonMoi = () => {
     setXong(null); setDaIn(false); setGio([]); setKhach(null); setHang(null); setDungTK(true); setDungMe(false); setMa(''); setMaGo('');
-    setTrang('mon'); setLoi('');
+    setTrang('mon'); setLoi(''); setCheDoGiao(false); setGiao(null);
   };
   const chamMon = (s) => {
     if (xong) { if (!daIn) return; batDauDonMoi(); }        // chạm món sau khi đã In = đơn mới
@@ -187,7 +195,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
         balanceUsed: anh.soDuDung + anh.soDuMeDung, balanceAfter: kh && anh.soDuDung + anh.soDuMeDung > 0 ? Math.max(0, kh.balance - anh.soDuDung) : undefined,
         paymentMethod: cachDon },
     });
-    setDaIn(false); setGio([]); setQr(null); setHoiPin(null); setMa(''); setMaGo(''); napSanPham();
+    setDaIn(false); setGio([]); setQr(null); setHoiPin(null); setMa(''); setMaGo(''); setCheDoGiao(false); setGiao(null); napSanPham();
   };
   hoanTatRef.current = hoanTat;
 
@@ -203,11 +211,12 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
 
   const chayPhien = async ({ cach, khachDua = 0, pin, pinMe }) => {
     if (dangGuiRef.current || !coSo) return;
+    if (choPhiGiao) return;
     dangGuiRef.current = true; setDangGui(true); setLoi('');
     const anh = { khach, soDuDung, soDuMeDung, tong, phaiTra };
     let phien = null;
     try {
-      const than = thanPhien({ gio, khach, ma, cach: cach === 'chuyen_khoan' ? 'payos' : cach, dungTK: soDuDung > 0, dungMe: soDuMeDung > 0, pin, pinMe });
+      const than = thanPhien({ gio, khach, ma, cach: cach === 'chuyen_khoan' ? 'payos' : cach, dungTK: soDuDung > 0, dungMe: soDuMeDung > 0, pin, pinMe, giao: giaoThan });
       phien = (await thanhToanApi.taoPhien(than)).phien;
       if (phien.tong !== tong || phien.con_lai !== phaiTra) {   // giá / số dư đổi giữa lúc hỏi giá và lúc giữ tiền (Flash, quầy khác): không thu theo số cũ
         const p = phien; phien = null;
@@ -241,7 +250,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   };
 
   const thu = ({ cach, khachDua = 0 }) => {
-    if (dangGuiRef.current || !gio.length || !coSo) return;
+    if (dangGuiRef.current || !gio.length || !coSo || choPhiGiao) return;
     if (soDuDung + soDuMeDung > 0) { setHoiPin({ cach, khachDua, i: 0, da: {}, kieu: 'nhap', loi: '' }); return; }   // trừ tài khoản → khách nhập PIN
     chayPhien({ cach, khachDua });
   };
@@ -340,6 +349,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
                 {mayChu.flash_discount > 0 && <div className="bh-tien-dong"><span>Giảm Flash</span><span>−{vnd(mayChu.flash_discount)}</span></div>}
                 {mayChu.tier_discount > 0 && <div className="bh-tien-dong"><span>Giảm hạng{mayChu.customer_tier ? ` ${mayChu.customer_tier}` : ''}</span><span>−{vnd(mayChu.tier_discount)}</span></div>}
                 {mayChu.discount_amount > 0 && <div className="bh-tien-dong"><span>Ưu đãi{mayChu.discount_code ? ` ${mayChu.discount_code}` : ''}</span><span>−{vnd(mayChu.discount_amount)}</span></div>}
+                {mayChu.shipping_fee > 0 && <div className="bh-tien-dong"><span>Phí giao Ahamove</span><span>+{vnd(mayChu.shipping_fee)}</span></div>}
                 {mayChu.cau_ghi && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem' }}>{mayChu.cau_ghi}</div>}
                 {mayChu.ma_loi && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem', color: 'var(--bh-do)' }}>Mã không áp: {mayChu.ma_loi}</div>}
               </>
@@ -351,8 +361,9 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
                 placeholder="Mã giảm giá (nếu có)" maxLength={40} style={{ flex: 1, minHeight: 40, border: '1px solid var(--bh-vien)', borderRadius: 8, padding: '0 0.6rem' }} />
             </div>
           </div>
-          <ThuTien key={`${tong}-${soDuDung}-${soDuMeDung}-${khoa}`} coSo={coSo} tong={tong} phaiTra={phaiTra} khach={khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
-            dungTK={dungTK} dungMe={dungMe} onDungTK={setDungTK} onDungMe={setDungMe} dangGui={dangGui} onThu={thu} />
+          <KhungGiao bat={cheDoGiao} onBat={setCheDoGiao} giao={giao} onGiao={setGiao} khach={khach} />
+          {!choPhiGiao && <ThuTien key={`${tong}-${soDuDung}-${soDuMeDung}-${khoa}`} coSo={coSo} tong={tong} phaiTra={phaiTra} khach={khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
+            dungTK={dungTK} dungMe={dungMe} onDungTK={setDungTK} onDungMe={setDungMe} dangGui={dangGui} onThu={thu} />}
         </>
       )}
     </div>
@@ -361,6 +372,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   return (
     <div className="bh">
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, position: 'relative' }}>
+        <button className="bh-nut-nho" onClick={() => diDen('/giao-hang')}><Bike size={16} /> Giao hàng</button>
         <MaGhepManKhach q={manKhach.q} lamMoi={manKhach.lamMoi} />
         <button className="bh-nut-nho" onClick={() => setMoCaiDat((v) => !v)} aria-label="Cài đặt màn bán hàng"><IconCaiDat size={16} /> Màn bán hàng</button>
         {moCaiDat && (

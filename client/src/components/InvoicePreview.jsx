@@ -686,6 +686,7 @@ export function HoaDonTo({ to, size = '80mm', logo = '' }) {
       <div style={{ borderBottom: '1px dashed #888', paddingBottom: 4, marginBottom: 4 }}>
         <div>{dau.gio}{dau.nhan_vien && <> · {dau.nhan_nv ? `${dau.nhan_nv}: ` : ''}{dau.nhan_vien}</>}</div>
         <div>{dau.nhan_khach ? `${dau.nhan_khach}: ` : ''}<b>{dau.khach}</b></div>
+        {dau.giao && <div><b>{dau.giao}</b></div>}
       </div>
       {to.mon.map((m, i) => (
         <div key={i} style={{ marginBottom: 3 }}>

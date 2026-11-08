@@ -136,6 +136,9 @@ app.use('/api/kh', require('./routes/kh/loi').loiTangKh);   // KH-API-1 (G): JSO
 app.use('/api/pos/thanh-toan', require('./routes/thanh-toan'));
 app.use('/api/payos/webhook', require('./routes/thanh-toan').webhook);
 app.use('/api/sepay/webhook', require('./routes/thanh-toan').webhookSepay);   // SEPAY-1
+// GIAO-1: giao hàng Ahamove (JWT quầy) + Ahamove báo về (công khai, chỉ tin header apikey = AHAMOVE_KHOA_BAO)
+app.use('/api/pos/giao-hang', require('./routes/giao-hang'));
+app.use('/api/giao-hang/ahamove-bao', require('./routes/giao-hang').webhook);
 app.use('/api/tingee/webhook', require('./routes/thanh-toan').webhookTingee);   // TINGEE-1
 
 // Health check

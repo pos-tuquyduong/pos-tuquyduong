@@ -22,6 +22,7 @@ import QuanLy from './pages/QuanLy/QuanLy';
 import ThanhLoi from './pages/QuanLy/ThanhLoi';
 import DonThu from './pages/DonThu';
 import ManKhach from './pages/ManKhach';   // MANKHACH-1
+import GiaoHang from './pages/GiaoHang';   // GIAO-1
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -75,6 +76,7 @@ function AppRoutes() {
         <Route path="quan-ly" element={<QuanLy />} />
         <Route path="don-thu" element={<DonThu />} />   {/* KH-SDT-1: chỉ chủ quán (màn + máy chủ cùng kiểm) */}
         <Route path="don-app" element={<ThanhLoi man="don-app"><DonApp /></ThanhLoi>} />   {/* KH-MUA-1 */}
+        <Route path="giao-hang" element={<GiaoHang />} />   {/* GIAO-1: mở từ nút "Giao hàng" ở màn Bán hàng mới */}
       </Route>
 
       {/* MANKHACH-1: máy tính bảng quay về phía khách — không cần đăng nhập nhân viên (dùng khoá ghép riêng) */}
