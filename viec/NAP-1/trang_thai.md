@@ -816,3 +816,7 @@ Dọn: không đề xuất xoá lời dặn nào lượt này.
 Đề xuất ngoài Phạm vi máy KHÔNG tự làm — chat soát duyệt, gom vào việc sau hoặc phiếu HOC-<n>.
 
 HEAD ĐÃ KIỂM: 6236574
+
+
+## Gộp main (chủ quán, chat soát 08.11 — thử gộp trên main e9fbeb9: 8 file đụng giải giữ cả hai bên; thêm chặn đơn nạp kèm giao (orders.js NAP_KHONG_GOP) + giỏ nạp không bị khối giao chặn (BanHangMoi.jsx); ca B10 thu_NAP1 đổi theo CK-NOIDUNG-1 (xác nhận tay sau huỷ = tiền về muộn → 1 đơn nạp); cổng tĩnh ĐẠT, --day-du PASS 108 · FAIL 0, thu_NAP1 88/0)
+HEAD ĐÃ KIỂM: 074799f
