@@ -40,6 +40,7 @@ const router = express.Router();
 const soNguyenDuong = (x) => Number.isInteger(Number(x)) && Number(x) >= 1;
 
 const { tienTinhDiem } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` của tinhDiemDon = tiền khách trả thật
+const giaoHang = require("../utils/giaoHang"); // GIAO-1: đơn giao Ahamove — phí ship từ báo phí của máy chủ, chuyến, huỷ theo bước
 
 // P22-23: MỘT công thức điểm cho đơn thu đủ lúc tạo (POST /) và lúc thu đủ nợ (pay-debt) — đọc cài đặt LÚC GỌI.
 // Trả { diem, han } hoặc null (tắt / cài sai / 0 điểm). Hạn 'quarter' = đầu quý tương ứng năm sau; khác → null (không hết hạn).
@@ -209,6 +210,8 @@ async function taoDon(req, res, phien = null) {
       membership_buy = null, // { tier_id, so_thang } — HANG-1: chọn GÓI của hạng; giá do máy chủ tra
       // === NAP-1: bán gói nạp (đơn riêng, chỉ tiền mặt / CK) ===
       goi_nap_id = null, // mã gói nạp — giá + số vào tài khoản do máy chủ tra pos_goi_nap
+      // === GIAO-1: đơn giao Ahamove — { ma_bao_phi, ten, sdt, ghi_chu }; phí ship lấy từ báo phí, KHÔNG từ shipping_fee ===
+      giao = null,
     } = req.body;
 
     // P3 (H, chủ quán chốt 22.10): một đơn KHÔNG trả kết hợp tiền mặt + chuyển khoản; tài khoản + MỘT cách cho phần còn lại thì được.
@@ -222,7 +225,7 @@ async function taoDon(req, res, phien = null) {
       if (!normalizePhone(customer_phone)) {
         return res.status(400).json({ error: "Nạp tiền cần chọn khách (SĐT)", code: "NAP_CAN_KHACH" });
       }
-      if ((Array.isArray(items) && items.length) || package_buy || membership_buy || customer_package_id) {
+      if ((Array.isArray(items) && items.length) || package_buy || membership_buy || customer_package_id || giao) {
         return res.status(400).json({ error: "Nạp tiền làm đơn riêng — không gộp với món, gói hay thẻ", code: "NAP_KHONG_GOP" });
       }
       if (Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance" || Number(debt_amount) > 0
@@ -274,6 +277,14 @@ async function taoDon(req, res, phien = null) {
     if ((package_buy || membership_buy) && debt_amount > 0) {
       return res.status(400).json({ error: "Mua gói / thẻ hội viên phải thu đủ tiền — không ghi nợ, không để chưa thu",
         code: "GOI_THE_CHUA_THU_DU" });
+    }
+    // GIAO-1 (D): đơn giao thu đủ TRƯỚC rồi mới gọi xe (CÙNG vị từ nợ như gói / thẻ); phí ship = phí máy chủ đã báo (chốt phiên: bỏ qua hạn —
+    // tiền khách đã về). Ghi chuyến + giành báo phí ở trong giao dịch dưới.
+    let baoPhiGiao = null;
+    if (giao) {
+      if (debt_amount > 0) return res.status(400).json({ error: "Đơn giao phải thu đủ tiền trước khi giao", code: "GIAO_PHAI_THU_DU" });
+      baoPhiGiao = await giaoHang.docBaoPhiDon(giao, { boQuaHan: !!phien && !phien.chiTinh, kiemNguoiNhan: !phien?.tinhThu });
+      if (baoPhiGiao.loi) return res.status(400).json(baoPhiGiao.loi);
     }
 
     // Lấy thông tin sản phẩm và tính tổng
@@ -786,7 +797,7 @@ async function taoDon(req, res, phien = null) {
     // POS-CONGDON-v1: phi van chuyen KHONG duoc am. Truoc day khai so am la
     // giam thang vao tong don — `Math.max(0, total)` chi chan total am, khong
     // chan total bi giam. Ep ve so, am thi coi nhu 0.
-    const finalShippingFee = Math.max(0, Number(shipping_fee) || 0);
+    const finalShippingFee = baoPhiGiao ? baoPhiGiao.phi : Math.max(0, Number(shipping_fee) || 0);   // GIAO-1: đơn giao bỏ qua số màn hình gửi
     const total = Math.max(
       0,
       subtotal - flashDiscountAmount - tierDiscountAmount - finalDiscountAmount + finalShippingFee,
@@ -931,7 +942,9 @@ async function taoDon(req, res, phien = null) {
     let orderId;
 
     try {
-      orderCode = await taoMaDonTheoSo(tx.queryOne);   // P26d (10): câu đầu của giao dịch — kho bận ở đây thì thử lại / 409
+      // P26d (10): câu đầu của giao dịch — kho bận ở đây thì thử lại / 409. CK-NOIDUNG-1: phiên đã giữ số hoá đơn → đơn mang đúng số đó.
+      const maDon = await taoMaDonTheoSo(tx, phien?.id, now);
+      orderCode = maDon.code;
 
       // P3: chốt phiên — cổng MỘT lần (cho → da_thu, còn hạn) TRƯỚC khi trừ ví: báo lặp / hai báo cùng lúc / tiền mặt + webhook → một đơn.
       if (phien && !(await phien.vaoGiaoDich(tx, now))) {
@@ -1000,8 +1013,16 @@ async function taoDon(req, res, phien = null) {
         ],
       );
       orderId = Number(result.lastInsertRowid);
+      // CK-NOIDUNG-1: gắn số hoá đơn vào đơn — một số không bao giờ thuộc hai đơn (ném → rollback cả đơn).
+      if ((await tx.run('UPDATE pos_so_hoa_don SET order_id = ? WHERE id = ? AND order_id IS NULL', [orderId, maDon.soId])).changes !== 1) {
+        throw new Error('CK-NOIDUNG-1: số hoá đơn đã gắn đơn khác');
+      }
       for (const id of dongSo) await tx.run("UPDATE pos_balance_transactions SET order_id = ? WHERE id = ?", [orderId, id]);
       if (phien) await phien.sauGhiDon(tx, orderId, orderCode);   // P3: gắn đơn vào phiên (+ nhật ký xác nhận tay) cùng giao dịch
+      if (baoPhiGiao && !(await giaoHang.ghiChuyenDon(tx, { orderId, giao, bp: baoPhiGiao, now }))) {   // GIAO-1: một báo phí — một đơn
+        await tx.rollback();
+        return res.status(400).json({ error: "Báo phí này đã dùng cho đơn khác — tính phí lại", code: "BAO_PHI_DA_DUNG" });
+      }
 
       // 2. Thêm chi tiết đơn hàng
       // Lưu ý: package virtual item có product_id âm (-pkg.id) — SQLite/Turso không enforce FK
@@ -1320,7 +1341,7 @@ router.post("/", authenticate, (req, res) => taoDon(req, res));
  * độ chỉ tính (cùng phép kiểm, cùng tinhUuDai) → số tinh-thu = số POST / ghi. Không ghi gì, không gọi SX; thân chỉ nhận các trường
  * của giỏ (không trường tiền → các nhánh ví / chuyển khoản / nợ không chạy).
  */
-const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "shipping_fee", "customer_package_id", "package_buy", "membership_buy", "goi_nap_id"];
+const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "shipping_fee", "customer_package_id", "package_buy", "membership_buy", "giao", "goi_nap_id"];
 router.post("/tinh-thu", authenticate, async (req, res) => {
   const than = Object.fromEntries(TRUONG_TINH_THU.filter((x) => req.body?.[x] !== undefined).map((x) => [x, req.body[x]]));
   const kq = await taoDon({ body: than, user: req.user }, res, { chiTinh: true, tinhThu: true });
@@ -1517,7 +1538,7 @@ router.put(
       // P26b: đọc đơn TRONG giao dịch; cổng DUY NHẤT là UPDATE có điều kiện `AND status = 'completed'` + kiểm số dòng đổi.
       // Đơn đã hoàn / đã huỷ / hai người bấm huỷ cùng lúc: lệnh thua 400, ví không đổi, KHÔNG tới khối hoàn kho SX bên dưới.
       const tx = await beginTransaction();
-      let order, orderItems;
+      let order, orderItems, huyGiao;
       try {
         order = await tx.queryOne("SELECT * FROM pos_orders WHERE id = ?", [req.params.id]);
         if (!order) {
@@ -1527,6 +1548,12 @@ router.put(
         if (await laDonNap(tx, order.id)) {   // NAP-1 (D): tiền nạp không hoàn — trước mọi câu đổi trạng thái / ví
           await tx.rollback();
           return res.status(400).json(LOI_NAP_KHONG_HOAN);
+        }
+        // GIAO-1 (J): đơn giao — quản lý / chủ quán + lý do, huỷ theo bước chuyến; đơn không giao trả null, đường cũ y nguyên.
+        huyGiao = await giaoHang.kiemHuyDonGiao(tx, order, req.user, req.body);
+        if (huyGiao?.loi) {
+          await tx.rollback();
+          return res.status(huyGiao.loi.status).json(huyGiao.loi.body);
         }
         // P26c (Q4): đơn MUA gói — chỉ owner hoặc vai trò có quyền refund_package (mặc định chỉ owner, H9).
         const cancelBuyPkgs = await tx.query("SELECT id, delivered_qty FROM pos_customer_packages WHERE order_id = ?", [order.id]);
@@ -1552,6 +1579,7 @@ router.put(
             code: "DON_KHONG_HUY_DUOC",
           });
         }
+        if (huyGiao) await giaoHang.chotHuyGiao(tx, huyGiao, { ...order, cancelled_reason: reason }, req.user, now);   // GIAO-1: chuyến → huy, "Bỏ đi" → hàng hỏng
 
         // GOI-2 (A4): gói của đơn đã kết thúc ở Báo cáo → Gói SP → tiền đã chốt theo gói, không huỷ (= không hoàn lần hai).
         if (cancelBuyPkgs.length && await goiDaKetThuc(tx, order.id)) {
@@ -1641,8 +1669,9 @@ router.put(
         throw txErr;
       }
 
-      // Hoàn kho SX (bên ngoài transaction)
-      for (const [sttMon, item] of orderItems.entries()) {
+      // Hoàn kho SX (bên ngoài transaction). GIAO-1 (Q4): đơn giao "Bỏ đi" — đồ đã pha đổ đi (ghi hàng hỏng ở trên) nên KHÔNG hoàn kho:
+      // kho giữ phần đã trừ lúc bán = trừ đúng phần hỏng.
+      for (const [sttMon, item] of (huyGiao?.doDaPha === "bo_di" ? [] : orderItems).entries()) {
         if (item.sx_product_type && item.quantity > 0) {
           // POS-VANTAY-v1: chieu "in" — PHAI khac chieu "out" du cung order_id,
           // neu khong lenh tra hang bi coi la trung va kho KHONG duoc cong lai.
@@ -1721,6 +1750,12 @@ router.delete("/:id", authenticate, async (req, res) => {
       if (await laDonNap(tx, order.id)) {   // NAP-1 (D): đơn nạp không xoá — xoá là hoàn tiền nạp + mất dấu tiền vào két
         await tx.rollback();
         return res.status(400).json(LOI_NAP_KHONG_HOAN);
+      }
+      // GIAO-1: đơn còn chuyến ở Ahamove không xoá; được xoá thì xoá chuyến + nhả báo phí (cùng giao dịch).
+      const chanGiao = await giaoHang.xoaDonGiao(tx, order.id);
+      if (chanGiao) {
+        await tx.rollback();
+        return res.status(409).json(chanGiao.loi);
       }
 
       // Lấy items trước khi xóa (cần cho hoàn kho SX sau)

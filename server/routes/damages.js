@@ -29,6 +29,26 @@ const DAMAGE_ACTIONS = {
   'none': 'Chỉ ghi nhận'
 };
 
+/**
+ * Ghi MỘT dòng hàng hỏng (trong giao dịch của nơi gọi). Hàm chung: báo sự cố (POST bên dưới) và huỷ đơn giao "Bỏ đi" (GIAO-1, utils/giaoHang.js).
+ * Nơi gọi tự kiểm số lượng / tiền đền; giá trị hỏng = giá × số lượng.
+ */
+async function ghiHangHong(tx, { order, product_code, ten, soLuong, gia, reason, reason_note, action, refund, user }) {
+  return tx.run(`
+    INSERT INTO pos_damage_logs (
+      order_id, order_code, customer_phone, customer_name,
+      product_code, product_name, quantity, unit_price, damage_value,
+      reason, reason_note, action, refund_amount, returned_to_stock,
+      processed_by, processed_by_name, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+  `, [
+    order.id, order.code, order.customer_phone, order.customer_name,
+    product_code, ten, soLuong, gia, gia * soLuong,
+    reason, reason_note || null, action, refund,
+    user.id, user.display_name || user.username, getNow()
+  ]);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /api/pos/damages - Danh sách log sự cố
 // ═══════════════════════════════════════════════════════════════════════════
@@ -165,7 +185,6 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
       const conLai = Number(dong.sl) - Number(da.sl);
       if (soLuong > conLai) return loi(400, `Số lượng tối đa: ${Math.max(0, conLai)}`, 'VUOT_SO_LUONG');
       const gia = Number(dong.gia);
-      const damage_value = gia * soLuong;
       const finalRefund = action === 'refund' ? soGui : 0;
       if (action === 'refund') {
         if (order.status !== 'completed') return loi(400, 'Đơn đã huỷ / đã hoàn — không đền tiền được', 'DON_KHONG_DEN_DUOC');
@@ -189,19 +208,7 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
           await truDiemHoan(tx, order, req.user.username, getNow(), `Đền bù đơn ${order.code}`);
         }
       }
-      const log = await tx.run(`
-        INSERT INTO pos_damage_logs (
-          order_id, order_code, customer_phone, customer_name,
-          product_code, product_name, quantity, unit_price, damage_value,
-          reason, reason_note, action, refund_amount, returned_to_stock,
-          processed_by, processed_by_name, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
-      `, [
-        order_id, order.code, order.customer_phone, order.customer_name,
-        product_code, dong.ten, soLuong, gia, damage_value,
-        reason, reason_note || null, action, finalRefund,
-        req.user.id, req.user.display_name || req.user.username, getNow()
-      ]);
+      const log = await ghiHangHong(tx, { order, product_code, ten: dong.ten, soLuong, gia, reason, reason_note, action, refund: finalRefund, user: req.user });
       return { order, finalRefund, logId: log.lastInsertRowid };
     });
     if (kq.huy) return res.status(kq.status).json(kq.body);
@@ -238,3 +245,4 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
 });
 
 module.exports = router;
+module.exports.ghiHangHong = ghiHangHong;   // GIAO-1

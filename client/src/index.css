@@ -846,3 +846,6 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
   .btn { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
   .sales-layout > div.cart-panel { padding: 0.75rem; }
 }
+
+/* GIAO-DIEN-1 B: số đỏ cạnh mục menu "Đơn App" (số đơn App mới; không có đơn thì không vẽ) */
+.nav-badge { margin-left: auto; min-width: 20px; padding: 0 6px; border-radius: 999px; background: #dc2626; color: #fff; font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }

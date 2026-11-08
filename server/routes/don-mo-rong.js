@@ -14,9 +14,9 @@ const { authenticate } = require('../middleware/auth');
 const { getToday } = require('../utils/helpers');
 const { ghiNhatKy, tenCach, tien } = require('../utils/nhatKyDon');
 
-// Số bill in to = số thứ tự trong ngày ở cuối mã đơn (ORD-20260922-014 → "014").
-// Mã dự phòng dạng khác (POS-MADON-v1, khi tranh số quá 30 lần) → null: thẻ hiện mã đầy đủ.
-const soBill = (code) => { const m = /^ORD-\d{8}-(\d{3,})$/.exec(String(code || '')); return m ? m[1] : null; };
+// Số bill in to = số ở cuối mã đơn: CK-NOIDUNG-1 ORD-20261105-HD0016 → "HD0016" (APP0016 cho đơn App); mã cũ ORD-20260922-014 → "014".
+// Mã dạng khác → null: thẻ hiện mã đầy đủ.
+const soBill = (code) => { const m = /^ORD-\d{8}-((?:HD|APP)\d{4}|\d{3,})$/.exec(String(code || '')); return m ? m[1] : null; };
 
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/cho-thu', authenticate, async (req, res) => {

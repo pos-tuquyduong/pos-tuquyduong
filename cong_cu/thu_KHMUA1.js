@@ -774,8 +774,10 @@ async function main() {
     const donSau = await so('SELECT COUNT(*) AS n FROM pos_orders');
     const sk = await db.query('SELECT ket_qua FROM pos_payos_su_kien WHERE ma_payos = ?', [p4?.ma_payos]).catch(() => []);
     const thangDon = la(h5, 400, 'DA_TRA_GOI_QUAN') && p4s?.trang_thai === 'da_thu' && donSau === donTruoc + 1 && (await soDu(kh3.sdt)) === 0;
-    const thangHuy = la(h5, 200) && p4s?.trang_thai === 'huy' && donSau === donTruoc && sk.some((s) => s.ket_qua === 'chua_khop') && (await soDu(kh3.sdt)) === 20000;
-    k('G6 huỷ và tiền về cùng lúc → đúng MỘT kết quả (đơn thật HOẶC huỷ + chua_khop), ví không trừ hai lần', la(w5, 200) && (thangDon !== thangHuy),
+    // CK-NOIDUNG-1 Q1b (chủ quán 05.11): huỷ thắng → tiền QR thật đã về cộng vào ví khách (dòng báo vao_vi), không đơn.
+    const thangHuy = la(h5, 200) && p4s?.trang_thai === 'huy' && donSau === donTruoc && sk.some((s) => s.ket_qua === 'vao_vi')
+      && (await soDu(kh3.sdt)) === 20000 + Number(p4?.con_lai || 0);
+    k('G6 huỷ và tiền về cùng lúc → đúng MỘT kết quả (đơn thật HOẶC huỷ + tiền về cộng vào ví), ví không trừ hai lần', la(w5, 200) && (thangDon !== thangHuy),
       `${moTa(h5)} · phiên ${p4s?.trang_thai} · đơn +${donSau - donTruoc} · ví ${await soDu(kh3.sdt)} · ${JSON.stringify(sk)}`);
   });
 
@@ -838,7 +840,8 @@ async function main() {
     const w1 = await webhook(p1 || {});
     const ct = await goi('GET', `/kh/don/${r1.j.ma_don}`, undefined, kh.tk);
     const sk1 = await db.queryOne('SELECT ket_qua FROM pos_payos_su_kien WHERE ma_payos = ? ORDER BY id DESC', [p1?.ma_payos]).catch(() => null);
-    k('I1 tiền về sau khi khách huỷ → chua_khop, không đơn mới; App da_huy + tien_ve_cho_doi_soat true', la(w1, 200) && sk1?.ket_qua === 'chua_khop'
+    k('I1 tiền về sau khi khách huỷ → cộng vào ví khách (vao_vi, CK-NOIDUNG-1 Q1b), không đơn mới; App da_huy + tien_ve_cho_doi_soat true', la(w1, 200)
+      && sk1?.ket_qua === 'vao_vi' && (await soDu(kh.sdt)) === Number(p1?.con_lai || -1)
       && (await so('SELECT COUNT(*) AS n FROM pos_orders')) === truoc && ct.j.don?.tien_trinh === 'da_huy' && ct.j.don.tien_ve_cho_doi_soat === true,
     `${moTa(ct)} · ${JSON.stringify(ct.j.don || null).slice(0, 160)}`);
     const r2 = await dat1(kh, gio([{ ma: ma(1), so_luong: 1 }]));
@@ -862,7 +865,8 @@ async function main() {
     await lui('pos_phien_thanh_toan', 'het_han', 'id = ?', [p4?.id], 700);
     const w4 = await webhook(p4 || {});
     const ct4 = await goi('GET', `/kh/don/${r4.j.ma_don}`, undefined, kh3.tk);
-    k('I4 vi_qr hết hạn rồi tiền QR về → ví đã nhả (số dư nguyên), không đơn, chua_khop, App da_huy + cờ', la(w4, 200) && (await soDu(kh3.sdt)) === 20000
+    k('I4 vi_qr hết hạn rồi tiền QR về → ví đã nhả (số dư nguyên) + tiền QR về cộng vào ví (CK-NOIDUNG-1 Q1b), không đơn, App da_huy + cờ', la(w4, 200)
+      && (await soDu(kh3.sdt)) === 20000 + Number(p4?.con_lai || -1)
       && (await dangGiu(kh3.sdt)) === 0 && ct4.j.don?.tien_trinh === 'da_huy' && ct4.j.don.tien_ve_cho_doi_soat === true, `${ct4.j.don?.tien_trinh}`);
     const kh4 = await khach(0);
     const r5 = await dat1(kh4, gio());

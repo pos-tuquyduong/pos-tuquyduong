@@ -96,10 +96,14 @@ const BACKUP_TABLES = [
   { name: 'pos_payos_su_kien', label: 'Báo tiền về payOS', key: 'id' },     // P3
   { name: 'pos_nhat_ky_pin', label: 'Nhật ký PIN khách', key: 'id' },       // P3
   { name: 'pos_don_app', label: 'Đơn từ App KH', key: 'id' },               // SAOLUU-2: bảng của KH-MUA-1 (bước 006) — chưa có thì bangDangCo bỏ qua
+  { name: 'pos_so_hoa_don', label: 'Sổ số hoá đơn', key: 'id' },            // CK-NOIDUNG-1 (bước 019): số hoá đơn đã cấp theo ngày
   { name: 'pos_man_khach_quay', label: 'Màn khách - Máy quầy', key: 'id' },     // MANKHACH-1 (bước 009): mã ghép + phiên QR đang hiện
   { name: 'pos_man_khach_may', label: 'Màn khách - Máy đã ghép', key: 'id' },   // MANKHACH-1 (bước 009): khoá băm + thu hồi
   { name: 'pos_chuong_trinh', label: 'Chương trình đặc biệt', key: 'id' },   // CT-1a (bước 017): cấu hình chương trình
   { name: 'pos_ngay_sinh_sua', label: 'Sổ sửa ngày sinh', key: 'id' },   // CT-1a (bước 017): sổ chỉ-thêm — không khôi phục bằng file
+  { name: 'pos_giao_bao_phi', label: 'Giao hàng - Báo phí', key: 'id' },   // GIAO-1 (bước 021) — không chứa khoá Ahamove
+  { name: 'pos_giao_chuyen', label: 'Giao hàng - Chuyến', key: 'id' },
+  { name: 'pos_giao_tin', label: 'Giao hàng - Tin Ahamove báo về', key: 'id' },
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
@@ -132,9 +136,11 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_discount_codes', 'pos_signup_codes', 'pos_order_log', 'pos_promotion_usage',
   'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin',   // P3: phần giữ tài khoản, tiền về payOS, dấu vết xoá PIN
   'pos_don_app',   // SAOLUU-2: đơn từ App KH gắn với đơn / phiên thanh toán
+  'pos_so_hoa_don',   // CK-NOIDUNG-1: khôi phục sổ số cũ sẽ cấp lại số đã dùng
   'pos_doi_soat_ghi',   // chủ quán 01.11: sổ két / sao kê là sổ tiền — không ghi đè bằng file cũ
   'pos_man_khach_quay', 'pos_man_khach_may',   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
   'pos_ngay_sinh_sua',   // CT-1a: sổ sửa ngày sinh chỉ-thêm — ghi đè bằng file cũ làm mất dấu ai đã sửa
+  'pos_giao_bao_phi', 'pos_giao_chuyen', 'pos_giao_tin',   // GIAO-1: phí ship / phí Ahamove / chống xử lý tin lặp — sổ tiền
   'pos_pin_chu_quan',   // HANG-1: file cũ không được đặt lại PIN chủ quán / gỡ khoá sai PIN — quên PIN: chủ quán nhờ chat soạn cách xoá PIN (không có nút)
   'pos_membership_tiers',   // HANG-1 câu 4a (chủ quán 05.11): % giảm, gói, cách có hạng chỉ sửa ở Cài đặt có PIN chủ quán — file không vượt PIN
   'pos_goi_nap'];   // NAP-1 (chủ quán 06.11): gói nạp chỉ chủ quán + PIN sửa — file cũ không vượt PIN (gói "trả ít → vào nhiều" là lối tạo tiền ví)

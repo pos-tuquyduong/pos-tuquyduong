@@ -277,9 +277,13 @@ async function main() {
   const s10 = sdtMoi(), truocB10 = await soDon();
   const p10 = await goi('POST', '/thanh-toan/phien', { cach: 'ck_tay', don: { customer_phone: s10, goi_nap_id: ID1 } });
   const h10 = p10.phien ? await goi('POST', `/thanh-toan/phien/${p10.phien.id}/huy`) : p10;
-  const c10 = p10.phien ? await goi('POST', `/thanh-toan/phien/${p10.phien.id}/xac-nhan-tay`, { ly_do: 'Bấm nhầm sau khi huỷ phiên' }) : p10;
-  k('B10 phiên nạp huỷ trước khi thu → không đơn, ví không có; xác nhận sau huỷ → 409',
-    p10.status === 200 && h10.status === 200 && c10.status === 409 && (await soDon()) === truocB10 && (await vi(s10)).so_du === 0,
+  const sauHuy10 = { don: (await soDon()) - truocB10, vi: (await vi(s10)).so_du };
+  const c10 = p10.phien ? await goi('POST', `/thanh-toan/phien/${p10.phien.id}/xac-nhan-tay`, { ly_do: 'Tiền về muộn sau khi huỷ phiên' }) : p10;
+  // Chat gộp 08.11: main có CK-NOIDUNG-1 (chủ quán 05–06.11 — tiền về muộn sau khi phiên đóng thì quầy xác nhận tay có lý do) → xác nhận
+  // tay sau huỷ là LỐI ĐÚNG, không còn 409. Giữ phần canh: huỷ xong chưa có đơn / ví; xác nhận tay ra ĐÚNG một đơn nạp, ví đúng số gói.
+  k('B10 phiên nạp huỷ → chưa đơn, ví không có; tiền về muộn xác nhận tay (CK-NOIDUNG-1) → đúng 1 đơn nạp, ví đúng số gói',
+    p10.status === 200 && h10.status === 200 && sauHuy10.don === 0 && sauHuy10.vi === 0 && c10.status === 200
+      && (await soDon()) === truocB10 + 1 && (await vi(s10)).so_du === 105000,
     `${moTa(p10)} · ${moTa(h10)} · ${moTa(c10)}`);
   const s11 = sdtMoi(), truocB11 = await soDon();
   await db.run("CREATE TRIGGER thu_nap1_hong BEFORE INSERT ON pos_balance_transactions WHEN NEW.type = 'topup' AND NEW.customer_phone = '" + s11 + "' BEGIN SELECT RAISE(ABORT, 'cay loi'); END");

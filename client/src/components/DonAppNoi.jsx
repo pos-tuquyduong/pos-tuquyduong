@@ -1,11 +1,12 @@
-// KH-MUA-1 (H) — đơn App về quầy, thấy từ MỌI màn (gắn trong Layout): hỏi GET /api/pos/kh/don-app mỗi NHIP_MS, hiện nút "Đơn App" kèm số
-// đơn đã trả chưa bấm "Đang làm" (bấm → /don-app). Render ngủ khi không ai mở → hỏi theo nhịp, không websocket.
+// KH-MUA-1 (H) — đơn App về quầy, thấy từ MỌI màn (gắn trong Layout): hỏi GET /api/pos/kh/don-app mỗi NHIP_MS. GIAO-DIEN-1 A: hiện bằng DẢI
+// ở đầu trang (DaiDonApp) + số đỏ ở menu, không còn nút nổi; "mới" = đơn đã trả chưa bấm "Đang làm" (bấm Xem → /don-app). Render ngủ khi không ai mở → hỏi theo nhịp, không websocket.
 // Chuông chỉ kêu ở máy bật "Máy ở quán" (lưu riêng máy, mặc định tắt) VÀ Cài đặt chuông bật; kêu MỘT lần mỗi đơn mới. "Mới" = id CHƯA có
 // trong tập id đã thấy ở danh sách quầy (localStorage). Danh sách chỉ có đơn ĐÃ TRẢ, nên đơn vào tập đúng lúc trả xong — không theo id lúc tạo
 // (đơn tạo trước mà trả sau vẫn kêu — soát vòng 1). Tải lại trang không kêu lại; máy chưa có tập thì lần đầu chỉ ghi, không kêu dồn đơn cũ.
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import { tomDonApp, hienDai, chuDai } from '../utils/donAppDai';
 
 export const TIENG_CHUONG = [['ding', 'Ding'], ['chuong', 'Chuông hai tiếng'], ['bip', 'Bíp ba lần']];   // cùng danh sách server/routes/settings.js
 export const AM_LUONG_MAC_DINH = 70;
@@ -45,23 +46,22 @@ export function keuChuong(tieng, amLuong = AM_LUONG_MAC_DINH) {
   } catch { /* trình duyệt chặn âm thanh — im lặng, không làm vỡ màn */ }
 }
 
-export default function DonAppNoi() {
-  const navigate = useNavigate();
-  const [soMoi, setSoMoi] = useState(0);
-
+/** Hỏi đơn App theo nhịp + kêu chuông; trả { soMoi, soViVe, somNhatPhut } cho Layout (dải báo + số đỏ ở menu). */
+export function useDonApp() {
+  const [ds, setDs] = useState([]);
   useEffect(() => {
     let tat = false;
     const hoi = async () => {
       try {
         const ds = (await api.get('/kh/don-app')).data || [];
         if (tat) return;
-        setSoMoi(ds.filter((d) => d.tien_trinh === 'da_tra').length);
+        setDs(ds);
         let daThay = null;
         const tho = docMay(KHOA_DA_THAY);   // null = máy chưa có tập (lần đầu) → chỉ ghi, không kêu
         try { daThay = tho === null ? null : new Set(JSON.parse(tho)); } catch { daThay = null; }
         const moi = ds.filter((d) => daThay && !daThay.has(d.id));
         ghiMay(KHOA_DA_THAY, JSON.stringify(ds.map((d) => d.id)));   // danh sách ≤ 100 đơn: chỉ cần nhớ đúng các id đang có
-        if (!daThay || !mayOQuan() || !moi.some((d) => d.tien_trinh === 'da_tra')) return;
+        if (!daThay || !mayOQuan() || !moi.some((d) => d.tien_trinh === 'da_tra' || d.tien_trinh === 'vao_vi')) return;
         const s = (await api.get('/settings')).data || {};
         if (s.don_app_chuong_bat !== '0') keuChuong(s.don_app_chuong_tieng, s.don_app_chuong_am_luong ?? AM_LUONG_MAC_DINH);
       } catch { /* im lặng: đài báo hỏng không được làm hỏng màn hình */ }
@@ -71,17 +71,33 @@ export default function DonAppNoi() {
     return () => { tat = true; clearInterval(h); };
   }, []);
 
+  return tomDonApp(ds, Date.now());
+}
+
+const dungRong = () => { try { return window.matchMedia('(min-width: 640px)').matches; } catch { return true; } };
+
+/** Dải nằm TRONG luồng trang (không nổi, không đè nút nào); không có đơn mới → không hiện gì. */
+export function DaiDonApp({ tom }) {
+  const navigate = useNavigate();
+  const [rong, setRong] = useState(dungRong);
+  useEffect(() => {
+    const mq = window.matchMedia ? window.matchMedia('(min-width: 640px)') : null;
+    if (!mq) return undefined;
+    const doi = () => setRong(mq.matches);
+    mq.addEventListener('change', doi);
+    return () => mq.removeEventListener('change', doi);
+  }, []);
+  if (!hienDai(tom)) return null;
   return (
-    <button
-      onClick={() => navigate('/don-app')}
-      title="Đơn khách đặt qua App, đã trả tiền"
-      style={{
-        position: 'fixed', top: 10, right: 12, zIndex: 900, border: 'none', borderRadius: 999, padding: '6px 12px',
-        fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-        background: soMoi ? '#dc2626' : '#e5e7eb', color: soMoi ? '#fff' : '#374151',
-      }}
-    >
-      🔔 Đơn App{soMoi ? ` · ${soMoi} mới` : ''}
-    </button>
+    <div role="status" style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '6px 12px', fontWeight: 700, fontSize: 13,
+      background: tom.soMoi ? '#dc2626' : '#f59e0b', color: '#fff',
+    }}>
+      <span>🔔 {chuDai(tom, rong)}</span>
+      <button onClick={() => navigate('/don-app')} title="Đơn khách đặt qua App, đã trả tiền"
+        style={{ border: 'none', borderRadius: 999, padding: '4px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer', background: '#fff', color: '#991b1b' }}>
+        Xem
+      </button>
+    </div>
   );
 }

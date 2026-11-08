@@ -16,6 +16,7 @@ const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 const { laDonNap, LOI_NAP_KHONG_HOAN } = require('../utils/viKhach');   // NAP-1: tiền nạp không hoàn
 const { soTienHoan, traLuotMa } = require('../utils/tienDaTra');
 const { truDiemHoan } = require('../utils/diemThat');   // NAP-1 (chủ quán 06.11 (a)): duyệt hoàn trừ điểm phần tài khoản
+const { donGiaoDangChay, dongChuyenKhiHoan } = require('../utils/giaoHang');   // GIAO-1 (Q5)
 
 const router = express.Router();
 
@@ -29,6 +30,8 @@ const coGoi = async (tx, orderId) => !!(await tx.queryOne(
   `SELECT 1 FROM pos_customer_packages WHERE order_id = ? UNION ALL SELECT 1 FROM pos_membership_purchases WHERE order_id = ? LIMIT 1`,
   [orderId, orderId]));
 const loi = (status, error, code) => ({ huy: true, status, body: code ? { error, code } : { error } });
+// GIAO-1 (Q5, chủ quán 05.11): đơn giao còn chuyến ở Ahamove không xin / duyệt hoàn — chặn ở CẢ tạo lẫn duyệt (như DON_CO_GOI).
+const DON_GIAO_DANG_CHAY = loi(409, 'Đơn giao đang có chuyến Ahamove — huỷ chuyến trước rồi mới hoàn', 'DON_GIAO_DANG_CHAY');
 
 /**
  * GET /api/pos/refunds
@@ -119,6 +122,7 @@ router.post('/', authenticate, async (req, res) => {
       if (await laDonNap(tx, order.id)) return { huy: true, status: 400, body: LOI_NAP_KHONG_HOAN };   // NAP-1 (D): theo đối tượng, cùng mã với huỷ / xoá
       if (!order.balance_amount || order.balance_amount <= 0) return loi(400, 'Đơn hàng không thanh toán bằng số dư');
       if (await coGoi(tx, order.id)) return { huy: true, ...DON_CO_GOI };
+      if (await donGiaoDangChay(tx, order.id)) return DON_GIAO_DANG_CHAY;
       const existing = await tx.queryOne('SELECT id FROM pos_refund_requests WHERE order_id = ? AND status = ?', [order_id, 'pending']);
       if (existing) return loi(400, 'Đã có yêu cầu hoàn tiền đang chờ duyệt');
       return tx.run(`
@@ -158,8 +162,10 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), asy
         WHERE id = ? AND status = 'pending'`, [req.user.username, now, refund.id]);
       if (chiem.changes !== 1) return loi(400, 'Yêu cầu này đã được xử lý', 'YEU_CAU_DA_XU_LY');
       if (await coGoi(tx, refund.order_id)) return { huy: true, ...DON_CO_GOI };
+      if (await donGiaoDangChay(tx, refund.order_id)) return DON_GIAO_DANG_CHAY;
       const doi = await tx.run(`UPDATE pos_orders SET status = 'refunded' WHERE id = ? AND status = 'completed'`, [refund.order_id]);
       if (doi.changes !== 1) return loi(400, 'Đơn không còn ở trạng thái hoàn được (đã huỷ / đã hoàn)', 'DON_KHONG_CON_HOAN_DUOC');
+      await dongChuyenKhiHoan(tx, refund.order_id, now);   // GIAO-1: đơn giao chưa gọi xe → đóng chuyến (thẻ rời màn Giao hàng)
       // Q9 = (a) (chủ quán chốt 03.10.2026): trả CẢ phần ví mẹ — cùng giao dịch, SAU cổng đơn, số đọc trong giao dịch.
       // P26c: trừ số đã đền (H4), ví mẹ nhận trước (soTienHoan); yêu cầu ghi lại phần ví con THỰC nhận (I17); giảm total_spent
       // như huỷ đơn (C3); trả lượt mã (H7). Huỷ / xoá đơn đã hoàn không hoàn thêm (A1, A3).

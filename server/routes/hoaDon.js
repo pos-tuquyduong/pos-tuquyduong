@@ -8,10 +8,11 @@
 const express = require('express');
 const { query, queryOne } = require('../database');
 const { authenticate } = require('../middleware/auth');
-const { getNow } = require('../utils/helpers');
+const { getNow, soHdCuaMa } = require('../utils/helpers');   // số in to trên bill = so_hd của cửa App (một hàm)
 const { tienTinhDiem } = require('../utils/diemThat');
 const { docDuLieuNhanDiem, tinhDiemNhanMa } = require('../utils/nhanDiem');
 const { docCauHinhNhanDiem } = require('./signup-codes');
+const { giaoTrenHoaDon } = require('../utils/giaoHang');   // GIAO-1
 
 const router = express.Router();
 
@@ -26,7 +27,6 @@ const KHONG_AN_DUOC = [
 ];
 
 const so = (v) => Math.round(Number(v) || 0);
-const soBill = (code) => String(code || '').split('-').pop();
 const cheSdt = (p) => { const s = String(p || '').replace(/\D/g, ''); return s.length >= 7 ? `${s.slice(0, 4)} ••• ${s.slice(-3)}` : s; };
 
 /** Các dòng thanh toán có thật của đơn; tổng luôn bằng tổng hoá đơn. */
@@ -86,6 +86,15 @@ async function dungMaNhanDiem(o) {
   return { ma: m.code, diem, uu_dai: uuDai && dungDuocUuDai, han_gio: ch.hanGio, han_gio_uu_dai: ch.hanGio };
 }
 
+/** Các khoản giảm của MỘT đơn (dòng pos_orders): hoá đơn và tóm tắt đơn của App KH (utils/donApp.js) cùng gọi hàm này.
+ *  Khoản giảm bằng mã / quà suy ra từ tổng: giá gốc − hạng − Flash + phí giao − tổng (đơn cũ ghi cột `discount` không thống nhất). */
+function tinhGiam(o) {
+  const giamHang = so(o.tier_discount);
+  const giamFlash = so(o.flash_discount);
+  const giamMa = Math.max(0, so(o.subtotal) - giamHang - giamFlash + so(o.shipping_fee) - so(o.total));
+  return { giamHang, giamFlash, giamMa, tong: giamHang + giamFlash + giamMa };
+}
+
 /** Dữ liệu hoá đơn của MỘT đơn (dòng pos_orders). Quầy (GET /:id) và App KH (utils/dongHoaDon.js) cùng gọi hàm này. */
 async function dungHoaDon(o) {
   const st = {};
@@ -93,20 +102,18 @@ async function dungHoaDon(o) {
   const items = await query('SELECT * FROM pos_order_items WHERE order_id = ? ORDER BY id', [o.id]);
   const gocTong = so(o.subtotal);
   const tongDon = so(o.total);
-  const giamHang = so(o.tier_discount);
   // % hạng THẬT đã giảm lúc bán, suy từ giá đã lưu của từng dòng (không lấy % hiện tại của hạng: hạng có thể đã đổi, món nhóm đặc biệt bỏ qua thẻ).
   // Mọi dòng có giảm cùng một % → số đó; các dòng khác % hoặc không dòng nào giảm → null (bill chỉ in tên hạng, không kèm %).
   const phanTramDong = items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map((m) => Math.round((so(m.unit_price) - so(m.tier_unit_price)) * 100 / so(m.unit_price)));
   const phanTramHang = phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null;
-  const giamFlash = so(o.flash_discount);
+  const { giamHang, giamFlash, giamMa } = tinhGiam(o);
   const phiGiao = so(o.shipping_fee);
-  // Khoản giảm bằng mã / quà suy ra từ tổng: giá gốc − hạng − Flash + phí giao − tổng (đơn cũ ghi cột `discount` không thống nhất)
-  const giamMa = Math.max(0, gocTong - giamHang - giamFlash + phiGiao - tongDon);
   const soLan = so((await queryOne('SELECT COUNT(*) AS n FROM pos_invoice_logs WHERE order_id = ? AND is_deleted = 0', [o.id]))?.n);
 
   return {
     quan: { ten: st.store_name || '', dia_chi: st.store_address || '', sdt: st.store_phone || '' },
-    don: { id: o.id, code: o.code, so_bill: soBill(o.code), gio: o.created_at, nhan_vien: o.created_by || '', trang_thai: o.status, thanh_toan_trang_thai: o.payment_status },
+    don: { id: o.id, code: o.code, so_bill: soHdCuaMa(o.code), gio: o.created_at, nhan_vien: o.created_by || '', trang_thai: o.status, thanh_toan_trang_thai: o.payment_status,
+      ma_gd: o.ma_gd || null },   // CK-NOIDUNG-1: mã giao dịch ngân hàng (dòng "Mã GD")
     khach: {
       ten: o.customer_name || 'Khách lẻ', sdt_che: cheSdt(o.customer_phone), la_khach_le: !o.customer_phone,
       hang: o.customer_tier || null, phan_tram: o.customer_tier ? phanTramHang : null,
@@ -127,6 +134,7 @@ async function dungHoaDon(o) {
     diem: await dungDiem(o),
     ma_nhan_diem: await dungMaNhanDiem(o),
     so_lan_in: soLan,
+    giao: await giaoTrenHoaDon(o.id),   // GIAO-1: đơn giao → dòng "GIAO HÀNG: <địa chỉ>"; không giao → null
   };
 }
 
@@ -145,3 +153,5 @@ router.get('/:id', authenticate, async (req, res) => {
 module.exports = router;
 module.exports.KHONG_AN_DUOC = KHONG_AN_DUOC;
 module.exports.dungHoaDon = dungHoaDon;
+module.exports.dungThanhToan = dungThanhToan;
+module.exports.tinhGiam = tinhGiam;
