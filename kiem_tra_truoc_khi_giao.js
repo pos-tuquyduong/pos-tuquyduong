@@ -509,6 +509,7 @@ chayBaiThat('cong_cu/thu_CT1a.js');   // CT-1a: chương trình đặc biệt + 
 chayBaiThat('cong_cu/thu_HANG1.js');   // HANG-1: hạng thẻ, gói, cấp hạng + PIN chủ quán (Cài đặt hạng, đổi PIN cần PIN cũ), trang hạng không khôi phục bằng file
 chayBaiThat('cong_cu/thu_GIAODIEN1.js');   // GIAO-DIEN-1: dải Đơn App, Số dư gộp Khách hàng, ô Khách và tiền, nạp tay chỉ chủ quán (018), thẻ QR thương hiệu
 chayBaiThat('cong_cu/thu_GIAO1.js');   // GIAO-1: giao Ahamove ở quầy — phí ship do máy chủ báo, gọi xe một lần, tin báo về, huỷ theo bước, Đối soát
+chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai ngăn (tiền nạp / thưởng nạp), điểm khi tiêu ví, sổ sách tiền nạp
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong

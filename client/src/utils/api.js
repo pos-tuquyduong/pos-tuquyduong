@@ -318,6 +318,14 @@ export const chuongTrinhApi = {
   datKhoangTuoi: (toiThieu, toiDa) => api.put('/chuong-trinh/khoang-tuoi', { toi_thieu: toiThieu, toi_da: toiDa })
 };
 
+// NAP-1: gói nạp tiền — quầy đọc gói đang bật; Cài đặt (quyền manage_products) đọc tất cả, thêm, sửa / bật / tắt
+export const goiNapApi = {
+  danhSach: () => api.get('/goi-nap'),
+  tatCa: () => api.get('/goi-nap/tat-ca'),
+  them: (d) => api.post('/goi-nap', d),
+  sua: (id, d) => api.put(`/goi-nap/${id}`, d)
+};
+
 // ============ API CŨ (giữ lại để tương thích) ============
 
 // Customers API (cũ)
@@ -472,7 +480,9 @@ export const reportsApi = {
   discounts: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return api.get(`/reports/discounts${query ? '?' + query : ''}`);
-  }
+  },
+  // NAP-1: sổ sách tiền nạp (tiền thật vào quán · bán hàng trừ thưởng nạp đã dùng · quán đang giữ hộ khách)
+  soSach: (tu, den) => api.get(`/reports/so-sach?tu=${tu}&den=${den}`)
 };
 
 // Discount Codes API - Phase B

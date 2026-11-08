@@ -7,6 +7,7 @@ const express = require('express');
 const { query, queryOne, beginTransaction, laLoiBan } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
+const { thuongKhiTru, thuongKhiHoan } = require('../utils/viKhach');   // NAP-1: chia hai ngăn tiền nạp / thưởng nạp
 
 const router = express.Router();
 
@@ -70,26 +71,32 @@ async function dangGiu(q, phone, boQua = 0) {
  * Trước đây mỗi route đọc số dư NGOÀI giao dịch rồi `SET balance = ?` → hai người bấm gần nhau thì mất một khoản.
  * khongAm: số dư sau < phần đang giữ cho phiên thanh toán (P3, dangGiu) → KHÔNG ghi gì, trả { thieu: true } để chỗ gọi rollback + 400 SO_DU_KHONG_DU.
  * cot/soCot: cột tổng (total_topup / total_spent) cộng thêm — duyệt hoàn, báo hỏng không truyền (như trước P26b).
+ * NAP-1: `thuong` = phần thưởng nạp của khoản này (chỉ đường bán gói nạp truyền). Không truyền → tự chia: trừ → theo tỷ lệ đang có;
+ * cộng lại theo đơn (refund / compensation có orderId) → theo phần đã trừ của đơn; còn lại (nạp tay, điều chỉnh cộng) → 0 = tiền nạp.
+ * Ngăn thưởng cộng TƯƠNG ĐỐI cùng câu với số dư, dòng sổ ghi phần thưởng — mọi chỗ gọi (cả packages.js, damages.js) đúng ngăn qua đây.
  */
 async function ghiVi(tx, { phone, ten = null, loai, soTien, orderId = null, cachTra = 'cash', ghiChu = null, nguoi, luc = getNow(),
-  cot = null, soCot = 0, khongAm = false }) {
+  cot = null, soCot = 0, khongAm = false, thuong = null }) {
   const w = await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
   const truoc = Number(w?.balance || 0);   // P26d (17): NULL đọc như 0 ở đây, và ghi về 0 ngay dưới — MỘT chỗ
   const sau = truoc + soTien;
   const giu = khongAm ? await dangGiu(tx, phone) : 0;   // P3: không tiêu vào phần đang giữ; lời báo đọc số KHẢ DỤNG
   if (khongAm && sau - giu < 0) return { truoc, sau, thieu: true, khaDung: truoc - giu };
+  const phanThuong = thuong != null ? thuong
+    : soTien < 0 ? -thuongKhiTru(truoc, Number((await tx.queryOne('SELECT thuong FROM pos_wallets WHERE phone = ?', [phone]))?.thuong || 0), -soTien)
+      : orderId && (loai === 'refund' || loai === 'compensation') ? await thuongKhiHoan(tx, phone, orderId, soTien) : 0;
   if (w && w.balance == null) await tx.run('UPDATE pos_wallets SET balance = 0 WHERE phone = ? AND balance IS NULL', [phone]);
   const nap = cot === 'total_topup' ? soCot : 0, tieu = cot === 'total_spent' ? soCot : 0;
-  const u = await tx.run(`UPDATE pos_wallets SET balance = balance + ?, total_topup = COALESCE(total_topup, 0) + ?,
-    total_spent = COALESCE(total_spent, 0) + ?, updated_at = ? WHERE phone = ?`, [soTien, nap, tieu, luc, phone]);
+  const u = await tx.run(`UPDATE pos_wallets SET balance = balance + ?, thuong = thuong + ?, total_topup = COALESCE(total_topup, 0) + ?,
+    total_spent = COALESCE(total_spent, 0) + ?, updated_at = ? WHERE phone = ?`, [soTien, phanThuong, nap, tieu, luc, phone]);
   if (!u.changes) {
     // P26d (18), chủ quán chốt Q2: ví TẠO LẠI lúc hoàn chưa ghi khoản chi nào → tổng chi 0, không âm. Ví đang có: cộng như cũ.
-    await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      [phone, soTien, nap, Math.max(0, tieu), luc, luc]);
+    await tx.run(`INSERT INTO pos_wallets (phone, balance, thuong, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [phone, soTien, phanThuong, nap, Math.max(0, tieu), luc, luc]);
   }
-  const r = await tx.run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, balance_before, balance_after,
-      order_id, payment_method, notes, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  [phone, ten, loai, soTien, truoc, sau, orderId, cachTra, ghiChu, nguoi, luc]);
+  const r = await tx.run(`INSERT INTO pos_balance_transactions (customer_phone, customer_name, type, amount, thuong, balance_before, balance_after,
+      order_id, payment_method, notes, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [phone, ten, loai, soTien, phanThuong, truoc, sau, orderId, cachTra, ghiChu, nguoi, luc]);
   return { truoc, sau, id: r.lastInsertRowid };
 }
 
@@ -283,20 +290,23 @@ async function reconcileWallet(phone) {
   // (số dư := tổng sổ) — chỗ duy nhất ngoài ghiVi được ghi pos_wallets (bộ kiểm E12).
   return trongGiaoDich(async (tx) => {
     const row = await tx.queryOne(
-      `SELECT COALESCE(SUM(amount), 0) AS ledger_sum FROM pos_balance_transactions WHERE customer_phone = ? AND ${DK_LOAI_VI}`,
+      `SELECT COALESCE(SUM(amount), 0) AS ledger_sum, COALESCE(SUM(thuong), 0) AS thuong_sum FROM pos_balance_transactions
+        WHERE customer_phone = ? AND ${DK_LOAI_VI}`,
       [phone, ...LOAI_TINH_VAO_VI]
     );
     const ledgerSum = row?.ledger_sum || 0;
-    const wallet = await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]);
+    const thuongSum = Number(row?.thuong_sum || 0);   // NAP-1: ngăn thưởng := tổng phần thưởng của cùng các dòng
+    const wallet = await tx.queryOne('SELECT balance, thuong FROM pos_wallets WHERE phone = ?', [phone]);
     const before = wallet ? wallet.balance : null;
     if (wallet) {
-      await tx.run(`UPDATE pos_wallets SET balance = ?, updated_at = ? WHERE phone = ?`,
-        [ledgerSum, getNow(), phone]);
+      await tx.run(`UPDATE pos_wallets SET balance = ?, thuong = ?, updated_at = ? WHERE phone = ?`,
+        [ledgerSum, thuongSum, getNow(), phone]);
     } else {
-      await tx.run(`INSERT INTO pos_wallets (phone, balance, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, 0, 0, ?, ?)`,
-        [phone, ledgerSum, getNow(), getNow()]);
+      await tx.run(`INSERT INTO pos_wallets (phone, balance, thuong, total_topup, total_spent, created_at, updated_at) VALUES (?, ?, ?, 0, 0, ?, ?)`,
+        [phone, ledgerSum, thuongSum, getNow(), getNow()]);
     }
-    return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum };
+    return { phone, balance_before: before, balance_after: ledgerSum, ledger_sum: ledgerSum, thuong_before: wallet ? Number(wallet.thuong || 0) : null,
+      thuong_after: thuongSum };
   });
 }
 
@@ -338,7 +348,7 @@ router.post('/reconcile-all', authenticate, checkPermission('adjust_balance'), a
         break;
       }
     }
-    const fixed = results.filter(r => r.balance_before !== r.balance_after).length;
+    const fixed = results.filter(r => r.balance_before !== r.balance_after || r.thuong_before !== r.thuong_after).length;
     if (dungO) {   // P26d (15), chủ quán chốt Q4: mỗi ví một giao dịch — ví trước đã ghi, báo đúng sự thật, không 409
       return res.status(500).json({ success: false, code: 'DOI_SOAT_DO_DANG', checked: results.length, fixed, results, dung_o: dungO,
         error: `Đã đối soát ${results.length}/${phones.length} ví, dừng ở ví ${dungO} — bấm lại để làm tiếp (đối soát chạy lại vô hại)` });
@@ -355,3 +365,4 @@ module.exports.loiGhi = loiGhi;
 module.exports.trongGiaoDich = trongGiaoDich;
 module.exports.ghiHoan = ghiHoan;
 module.exports.dangGiu = dangGiu;
+module.exports.LOAI_TINH_VAO_VI = LOAI_TINH_VAO_VI;   // NAP-1: sổ sách "quán đang giữ hộ" (doiSoat.js soSach) cộng đúng danh sách này

@@ -13,6 +13,7 @@ const { getNow, getToday } = require('../utils/helpers');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 const { tienDaTraTheoDong } = require('../utils/tienDaTra');
+const { truDiemHoan } = require('../utils/diemThat');   // NAP-1 (chủ quán 06.11 (3)): đền vào tài khoản trừ điểm như duyệt hoàn
 
 const DAMAGE_REASONS = {
   'damaged': 'Hỏng khi vận chuyển',
@@ -204,6 +205,7 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
           await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name || null, loai: 'compensation', soTien: finalRefund,
             orderId: order.id, ghiChu: `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${soLuong}`,
             nguoi: req.user.display_name || req.user.username });
+          await truDiemHoan(tx, order, req.user.username, getNow(), `Đền bù đơn ${order.code}`);
         }
       }
       const log = await ghiHangHong(tx, { order, product_code, ten: dong.ten, soLuong, gia, reason, reason_note, action, refund: finalRefund, user: req.user });

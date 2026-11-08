@@ -13,7 +13,9 @@ const { query } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
+const { laDonNap, LOI_NAP_KHONG_HOAN } = require('../utils/viKhach');   // NAP-1: tiền nạp không hoàn
 const { soTienHoan, traLuotMa } = require('../utils/tienDaTra');
+const { truDiemHoan } = require('../utils/diemThat');   // NAP-1 (chủ quán 06.11 (a)): duyệt hoàn trừ điểm phần tài khoản
 const { donGiaoDangChay, dongChuyenKhiHoan } = require('../utils/giaoHang');   // GIAO-1 (Q5)
 
 const router = express.Router();
@@ -117,6 +119,7 @@ router.post('/', authenticate, async (req, res) => {
       const order = await tx.queryOne('SELECT * FROM pos_orders WHERE id = ?', [order_id]);
       if (!order) return loi(404, 'Không tìm thấy đơn hàng');
       if (order.status === 'cancelled' || order.status === 'refunded') return loi(400, 'Đơn hàng đã được hủy/hoàn tiền');
+      if (await laDonNap(tx, order.id)) return { huy: true, status: 400, body: LOI_NAP_KHONG_HOAN };   // NAP-1 (D): theo đối tượng, cùng mã với huỷ / xoá
       if (!order.balance_amount || order.balance_amount <= 0) return loi(400, 'Đơn hàng không thanh toán bằng số dư');
       if (await coGoi(tx, order.id)) return { huy: true, ...DON_CO_GOI };
       if (await donGiaoDangChay(tx, order.id)) return DON_GIAO_DANG_CHAY;
@@ -176,6 +179,7 @@ router.post('/:id/approve', authenticate, checkPermission('approve_refund'), asy
           ghiChu: `Hoàn tiền mẹ đơn ${don.code} (duyệt)`, nguoi: req.user.username, luc: now, cot: 'total_spent', soCot: -me });
       }
       await traLuotMa(tx, don);
+      await truDiemHoan(tx, don, req.user.username, now, `Hoàn đơn ${don.code}`);
       return { ...vi, refund_amount: con, tong_hoan: con + me };
     });
     if (kq.huy) return res.status(kq.status).json(kq.body);
