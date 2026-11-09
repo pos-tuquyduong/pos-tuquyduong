@@ -249,8 +249,8 @@ async function main() {
     `${moTa(t11a)} ${await diemCua(t11a)} · ${moTa(t11b)} ${await diemCua(t11b)}`);
   await datCo('pos_membership_tiers', vang.id, true);
 
-  const cp10 = t10a.order ? await mot('SELECT id FROM pos_customer_packages WHERE order_id = ?', [t10a.order.id]) : null;
-  const t12c = ghi(await ban({ customer_phone: t10a.order?.customer_phone, items: [{ ...mon(Y), from_package: true }], customer_package_id: cp10?.id }));
+  const cp10 = t10a.order ? await mot('SELECT id, customer_phone FROM pos_customer_packages WHERE order_id = ?', [t10a.order.id]) : null;
+  const t12c = ghi(await ban({ customer_phone: cp10?.customer_phone, items: [{ ...mon(Y), from_package: true }], customer_package_id: cp10?.id }));
   k('T12b (K5) đơn chỉ lấy từ gói (0đ) → 200, 0 điểm (tiền hàng 0, không NaN)', t12c.status === 200 && t12c.order?.total === 0 && (await diemCua(t12c)) === 0,
     `${moTa(t12c)} · ${t12c.order?.total} · ${await diemCua(t12c)}`);
   const t12a = ghi(await ban({ customer_phone: sdtMoi(), cash_amount: 120000, shipping_fee: 20000 }));
