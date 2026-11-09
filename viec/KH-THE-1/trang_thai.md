@@ -65,3 +65,66 @@ Tên đột biến: BV-the-docgio, VS-the-nhieu, VS-the-so-luong, VS-the-khoa-la
 VS-the-ghep-vi-tri, BV-the-giu-ma, VS-the-sdt-than, VS-the-ly-do-thieu-chu, BV-tu-xong, VS-tu-xong-tra-ve, BV-gio-moi-gio,
 VS-gio-can-pha-dem-ca-the, BV-chi-tiet-loai, BV-quay-bo-the, BV-hoa-don-the, VS-hoa-don-han-rong, BV-quyen-loi-giu, VS-quyen-loi-tran-dong,
 VS-quyen-loi-tran-ky-tu, BV-hang-quyen-loi.
+
+## Soát độc lập — vòng 1 (09.11, /ra-soat, agent độc lập, HEAD ea7ff47) — nguyên văn
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. server/utils/uuDai.js:25-31 + server/routes/orders.js:765-770 (dong = MỌI orderItems, có cả dòng thẻ) + HOP_DONG_API_KH.md:54 — mã giảm KIỂU % (và mã tiền) tính trên tamTinh CÓ giá thẻ.
+   App nay cho khách TỰ gửi ma_giam cùng dòng thẻ (donApp.js thanDon chuyển discount_code + membership_buy). Ví dụ: giỏ chỉ có thẻ Vàng 12 tháng + mã 10% → máy chủ giảm 10% giá thẻ.
+   Hợp đồng chỉ ghi "Không giảm hạng / Giờ vàng cho dòng thẻ", không nói gì về mã → App KH sẽ hiểu sai. B12 chỉ thử mã TIỀN 5.000 và so bằng với quầy, không có ca mã %.
+   QUYET_DINH_CHU_QUAN.md (đợt 07–08.11, dòng 193-207) không có câu nào về mã giảm trên thẻ.
+   → chuyện tiền chưa chốt, phải hỏi chủ quán (CLAUDE.md §9 "không tự quyết"). Khuôn K1 (hợp đồng im lặng) + K4 (đường tiền quầy mở thêm cho khách tự phục vụ).
+2. cong_cu/thu_KHTHE1.js — mục K5 thiếu ca kế hoạch đã hứa (grep "tinhHang|hết hạn" chỉ ra D7, E2):
+   - "luật giảm hạng: khách Kim Cương hết hạn còn Vàng → Vàng"
+   - luồng K5 số 4 "khách Vàng hết hạn mua lại Vàng"
+   Mục [K5] chỉ chạy K1, K2. Khuôn K5/K3.
+3. server/utils/donApp.js:392 — GET /don/:ma của đơn CHƯA trả: dòng thẻ trong than không có ghi_chu → ghi_chu: undefined → mất hẳn khỏi JSON.
+   Đơn đã trả có ghi_chu: null. Hợp đồng v13 hứa mon[] luôn có ghi_chu. Hai đường trả mon[] lệch trường. Khuôn K4.
+4. server/utils/donApp.js:337 so với :356 (tomTatDonThat lấy dòng đầu theo oi.id) — mon_dau và thứ tự mon[] đổi khi đơn chuyển từ chưa trả sang đã trả:
+   - chưa trả: theo thứ tự App gửi, thẻ đứng đầu được, tên "Thẻ Vàng · 1 tháng"
+   - đã trả: taoDon đẩy thẻ SAU món (orders.js:515-547), tên "🎟️ Thẻ hội viên …"
+   G6 chỉ khoá so_mon, không khoá mon_dau. Khuôn K4 (cùng việc "so_mon/mon_dau hai đường cùng cách" mà kế hoạch đã hứa).
+5. server/utils/dongHoaDon.js:31-32 — expires_at = HAN_VO_HAN ('9999-12-31…') bị in thành "Hạn mới: 31/12/9999".
+   Trái luật ghi ở membershipStatus.js:18 "mọi chỗ trả ra đổi thành null" (membership.js:44 có đổi). Xảy ra khi hạng chi_cap có khách được cấp vô hạn rồi chuyển sang 'ban' (chủ quán định làm, QUYET 08.11) và khách mua gia hạn. Hiếm. Khuôn K4.
+6. HOP_DONG_API_KH.md:4-5 — NGAY vẫn 2026-11-07; DOC_TU_CODE chưa thêm KH-THE-1 dù PHIEN_BAN đã lên 13. Khuôn K4 (tài liệu).
+
+NGHI NGỜ:
+- K3: trên gốc, mục D / E / G sập giữa chừng (bang_chung_do.txt: "Cannot read … ma_payos"); E1–E3 đỏ vì 404 chứ không vì đúng câu kết luận.
+  Nhiều ca chưa bao giờ hiện ĐỎ riêng trên gốc: D3–D9, E4, E5, G1, G3–G6, I15. Phần lớn là "không sửa code, chỉ khoá" nên chấp nhận được, nhưng chỉ có đột biến chứng minh giá trị của G1, G3, Q3, D8.
+- docGio: các nhánh hang_id chữ / so_thang 0 / loai lạ / thiếu hang_id không có đột biến riêng. B4 gộp 6 ca vào một k() và xanh cả trên gốc.
+- bamGio (donApp.js:60) băm so_luong THÔ của dòng thẻ: gửi lại cùng khoa_gui mà bỏ hay thêm so_luong:1 → 409 KHOA_GUI_DA_DUNG, trong khi docGio coi hai dạng là như nhau. Nhẹ.
+- donApp.js:262 `the.name` — câu đọc tên hạng không lọc is_active; xoá là xoá mềm nên không null. An toàn hiện nay.
+- gioCanPhaChe = gio.mon.length > 0 nghĩa là "mọi món /menu cần pha", trong khi hợp đồng và chú thích ghi "đồ uống". Nếu /menu có hàng đóng gói không pha thì chữ "đồ uống" sai. Chưa đọc /menu thật.
+- manKhach.js:132-135: dòng thẻ hiện tên "Món" (tra pos_products theo product_id âm). Kế hoạch ghi "hiện đúng dòng thẻ", không đúng. Lỗi này có sẵn từ quầy, ngoài việc này → nên ghi Phát hiện.
+- dongTheCua đọc lại pos_order_items, trùng với hoaDon.js:102. Kế hoạch định thêm la_the vào hd.mon (1 dòng). Ghép theo vị trí giữa hai câu đọc riêng: đúng nhờ cùng ORDER BY id và hoaDon.js:234 map 1–1, nhưng dễ vỡ. Đơn giản hơn là đánh dấu ngay tại hoaDon.js.
+
+NGHIỆM THU: 8/9 mục có bằng chứng · mục thiếu: K5 (một phần — thiếu ca luật giảm hạng và ca "Vàng hết hạn mua lại Vàng")
+  A: A1 quầy + A2/B5–B7 (4 ca cùng mã lỗi quầy ↔ App); phần "tách banThe.js" chủ quán đã đổi (Q1).
+  B: B1–B13, S3.  C: C1, C2, C3.  D: D1–D9, Q3, I15.  E: E1–E5.  F: F1–F5; ô nhập ở HangThe.jsx chỉ thử tay.
+  G: G1–G6, G5 Đối soát.  H: H1 so điểm App ↔ quầy (cờ theo dòng là việc DIEM-MON-1, chưa vào main).
+  K5: K1, K2, A1, E5, thu_HOPDONG_KH; thiếu ca luật giảm hạng.
+Các mục soát khác:
+  K4: grep đủ; mọi chỗ đọc than.dong (donApp.js:263, 336, 392, 429) đã xử lý — trừ ghi_chu ở 392 và mon_dau ở 337.
+    Ghép báo giá ↔ items: 1 chỗ (189-191), chuanLoi dùng mảng món riêng nên đúng. tien_trinh_quay: 7 chỗ — đúng. Kiểm giờ: 1 chỗ (207), cửa /gio-hoat-dong không đổi.
+  K5 các luồng hợp lệ: giỏ cũ, khoá gửi cũ (K1 băm y gốc), quầy bán thẻ, gia hạn cùng hạng, đơn có đồ uống (Q3 '' giữ nguyên, K2), doiTienTrinh — không thấy luồng nào bị chặn oan.
+  Đường tiền: giá thẻ, SĐT, so_luong đều do máy chủ quyết (S1, S3; orders.js:520-547).
+  P1: `--day-du` "dist đã commit KHỚP với src hiện tại".  Đối soát: dùng lại I15 + tienTheoSo, không cần quy tắc mới.
+
+CHƯA SOÁT ĐƯỢC:
+- Giao diện thật: ô quyền lợi ở HangThe.jsx, nhãn 🎟️ ở DonApp.jsx; chuông không kêu với đơn chỉ có thẻ (DonAppNoi.jsx:64 chỉ kêu khi da_tra/vao_vi) — chủ quán cần thử tay.
+- Turso thật / Render (bài chạy libsql file tạm). Tingee thật (dùng webhook giả). App KH thật xử lý mon[] thiếu ghi_chu thế nào.
+- Chưa tự chạy lại dot_bien.py: chỉ đọc mã đột biến, tin số 23/23 trong bang_chung_do.txt. Chưa chạy lại bằng chứng gốc (--goc da5f5d4).
+
+BÀI HỌC:
+- NGUYÊN TẮC: mở đường tiền quầy cho khách tự phục vụ (App) → liệt kê MỌI ưu đãi quầy áp lên dòng mới (hạng, Giờ vàng, MÃ %, mã tiền, điểm) và ghi rõ từng cái vào hợp đồng. Hợp đồng im lặng về một ưu đãi = K1.
+- KHOÁ: hai đường trả cùng một mảng cho App (đơn chưa trả từ than ↔ đơn thật từ pos_order_items) → bài thử so BẰNG danh sách khoá + thứ tự + mon_dau giữa hai trạng thái của CÙNG một đơn, không chỉ so_mon.
+- NGUYÊN TẮC: ca K5 kế hoạch đã hứa phải tra lại theo tên trong bài thử trước khi báo xong (kế hoạch hứa K5 luật giảm hạng, bài thử không có).
+```
+
+### Phiên chính xử lý vòng 1
+- Lỗi 1 KHÔNG phải câu hỏi mới: kế hoạch chủ quán duyệt 09.11 mục "Luồng hợp lệ" 6 ghi "Đơn thẻ + mã giảm hợp lệ — đi như quầy (mã áp theo luật mã hiện
+  có, không viết luật mới)" — và đơn App phải đi đúng đường quầy (LUAT §5). Sửa: hợp đồng ghi rõ mã giảm áp như quầy (tính trên tạm tính gồm giá thẻ),
+  thêm ca B12b mã % (App = quầy). Muốn mã KHÔNG áp lên thẻ là đổi luật mã của CẢ quầy → việc khác, chủ quán quyết (ghi Phát hiện).
+- Lỗi 2–6 + nghi ngờ bamGio: sửa trong vòng này (ca thử đỏ trước). manKhach.js → Phát hiện (ngoài Phạm vi). dongTheCua ghép vị trí: giữ (hoaDon.js map 1–1,
+  cùng ORDER BY id; thêm trường vào hd.mon dễ làm đỏ bài khoá trường của hoá đơn quầy) — ghi lý do.

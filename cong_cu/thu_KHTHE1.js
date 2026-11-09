@@ -254,6 +254,9 @@ async function main() {
     const d2 = await goi('POST', '/kh/don', { ...gio([the(VANG, 1)]), khoa_gui: khoa, cach_tra: 'vi', pin: '1357', tong_da_xem: tong }, kh.tk);
     k('B9 gửi lại cùng khoá → 200 trung: true, cùng mã đơn, một dòng sổ thẻ', la(d1, 200) && la(d2, 200) && d2.j.trung === true && d2.j.ma_don === d1.j.ma_don
       && (await soThe(kh.sdt)) === 1, `${moTa(d1)} · ${moTa(d2)} · ${d2.j.trung}`);
+    const d2b = await goi('POST', '/kh/don', { ...gio([the(VANG, 1, { so_luong: 1 })]), khoa_gui: khoa, cach_tra: 'vi', pin: '1357', tong_da_xem: tong }, kh.tk);
+    k('B9b gửi lại cùng khoá, dòng thẻ thêm so_luong: 1 (cùng nghĩa với bỏ trống) → vẫn trung: true', la(d2b, 200) && d2b.j.trung === true
+      && d2b.j.ma_don === d1.j.ma_don, moTa(d2b));
     const d3 = await goi('POST', '/kh/don', { ...gio([the(VANG, 3)]), khoa_gui: khoa, cach_tra: 'vi', pin: '1357', tong_da_xem: 250000 }, kh.tk);
     k('B10 cùng khoá, đổi gói thẻ → 409 KHOA_GUI_DA_DUNG', la(d3, 409, 'KHOA_GUI_DA_DUNG'), moTa(d3));
     const kh2 = await khach();
@@ -261,6 +264,11 @@ async function main() {
     const b12 = await baoGia(kh2, gio([mon(0, 2), the(VANG, 1)], { ma_giam: 'THE5K' }));
     const q12 = await tinhThu(kh2.sdt, { items: [monQuay(0, 2)], membership_buy: { tier_id: VANG, so_thang: 1 }, discount_code: 'THE5K' });
     k('B12 thẻ + mã giảm: tong App = tinh-thu quầy cùng giỏ', la(b12, 200) && la(q12, 200) && b12.j.tong === q12.j.total, `${b12.j.tong} / ${q12.j.total}`);
+    await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active) VALUES ('THE10PT', 'percent', 10, 0, 0, 1)`);
+    const b12b = await baoGia(kh2, gio([the(VANG, 3)], { ma_giam: 'THE10PT' }));
+    const q12b = await tinhThu(kh2.sdt, { items: [], membership_buy: { tier_id: VANG, so_thang: 3 }, discount_code: 'THE10PT' });
+    k('B12b giỏ chỉ thẻ + mã 10%: áp như quầy (tính trên giá thẻ) — tong App = tinh-thu quầy = 225.000', la(b12b, 200) && la(q12b, 200)
+      && b12b.j.tong === q12b.j.total && b12b.j.tong === 225000, `${moTa(b12b)} · ${b12b.j.tong} / ${q12b.j.total}`);
   });
 
   muc('[C] Giá đồ uống trong đơn có thẻ = theo hạng khách ĐANG CÓ (hạng mới áp từ đơn sau)');
@@ -439,17 +447,21 @@ async function main() {
   muc('[G] Hiển thị — hoa_don[], mon[], màn Đơn App ở quầy, tem');
   await chay('G', async () => {
     const kh = await khach(1000000);
-    const dq = await dat1(kh, gio([mon(0, 1, 'ít đường'), the(VANG, 1)]));
+    const dq = await dat1(kh, gio([the(VANG, 1), mon(0, 1, 'ít đường')]));   // thẻ đứng ĐẦU giỏ: đơn thật xếp thẻ SAU món (taoDon)
     const ct0 = await goi('GET', `/kh/don/${dq.j.ma_don}`, undefined, kh.tk);
     const ds0 = (await goi('GET', '/kh/don', undefined, kh.tk)).j.data?.find((x) => x.ma === dq.j.ma_don);
     const m0 = ct0.j.don?.mon || [];
-    k('G2 đơn CHƯA trả: mon[] dòng thẻ loai "the", tên "Thẻ Vàng thử · 1 tháng", món giữ ghi chú', m0.length === 2 && m0[1]?.loai === 'the'
-      && m0[1]?.ten === 'Thẻ Vàng thử · 1 tháng' && m0[0]?.ghi_chu === 'ít đường' && m0[0]?.loai === undefined, JSON.stringify(m0));
+    k('G2 đơn CHƯA trả: mon[] dòng thẻ loai "the", tên như bill quầy, ghi_chu null (đủ trường); món giữ ghi chú', m0.length === 2 && m0[1]?.loai === 'the'
+      && m0[1]?.ten === '🎟️ Thẻ hội viên Vàng thử · 1 tháng' && 'ghi_chu' in (m0[1] || {}) && m0[1].ghi_chu === null && m0[0]?.ghi_chu === 'ít đường' && m0[0]?.loai === undefined,
+    JSON.stringify(m0));
     await webhook(await phienCua(dq.j.ma_don));
     const ct = await goi('GET', `/kh/don/${dq.j.ma_don}`, undefined, kh.tk);
     const ds1 = (await goi('GET', '/kh/don', undefined, kh.tk)).j.data?.find((x) => x.ma === dq.j.ma_don);
     k('G6 so_mon đơn thẻ: chưa trả = sau khi trả = 2', ds0?.so_mon === 2 && ds1?.so_mon === 2, `${ds0?.so_mon} / ${ds1?.so_mon}`);
     const m1 = ct.j.don?.mon || [];
+    const hinh = (m) => m.map((x) => [Object.keys(x).sort().join(','), x.ten, x.so_luong, x.don_gia, x.thanh_tien, x.ghi_chu ?? null, x.loai ?? null]);
+    k('G7 CÙNG một đơn: mon[] (trường, thứ tự, tên, tiền, ghi chú) và mon_dau trước khi trả = sau khi trả', bang(hinh(m0), hinh(m1))
+      && ds0?.mon_dau === ds1?.mon_dau && !!ds0?.mon_dau, `${JSON.stringify(hinh(m0))} ≠ ${JSON.stringify(hinh(m1))} · ${ds0?.mon_dau} / ${ds1?.mon_dau}`);
     k('G2 đơn đã trả: mon[] dòng thẻ loai "the", dòng món không có loai', m1.length === 2 && m1.filter((x) => x.loai === 'the').length === 1
       && m1.find((x) => x.loai !== 'the')?.ghi_chu === 'ít đường', JSON.stringify(m1));
     const hd = ct.j.don?.hoa_don || [];
@@ -460,14 +472,21 @@ async function main() {
     k('G1 hoa_don[]: đúng một dòng loai "the" (tên thẻ, giá), ghi_chu "Hạn mới: <ngày sổ>"; dòng đồ uống vẫn loai "mon"', dThe.length === 1
       && /Thẻ hội viên Vàng thử · 1 tháng/.test(dThe[0].trai) && dThe[0].ghi_chu === `Hạn mới: ${ngay}` && hd.filter((x) => x.loai === 'mon').length === 1,
     JSON.stringify(dThe));
+    const kv = await khach(1000000);
+    await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, loai, so_thang)
+      VALUES (?, ?, 'Vàng thử', 0, NULL, ?, '9999-12-31T23:59:59', 'cap', NULL)`, [kv.sdt, VANG, getNow()]);
+    const dv = await datVi(kv, gio([the(VANG, 1)]));
+    const hdv = (await goi('GET', `/kh/don/${dv.j.ma_don}`, undefined, kv.tk)).j.don?.hoa_don || [];
+    const gv = hdv.find((x) => x.loai === 'the')?.ghi_chu;
+    k('G1b hạn sau đơn là không thời hạn → hoa_don ghi "Hạn mới: không thời hạn" (không in năm 9999 / số lạ)', la(dv, 200) && gv === 'Hạn mới: không thời hạn', String(gv));
     const kc = await khach(1000000);
     const dc = await datVi(kc, gio([the(VANG, 1)]));
     const quay = (await goi('GET', '/pos/kh/don-app', undefined, tkChu)).j.data || [];
     const q1 = quay.find((x) => x.ma === dq.j.ma_don), q2 = quay.find((x) => x.ma === dc.j.ma_don);
-    k('G3 màn Đơn App: đơn có thẻ co_the "Thẻ Vàng thử · 1 tháng", mon[] KHÔNG có dòng thẻ (quầy không pha)', q1?.co_the === 'Thẻ Vàng thử · 1 tháng'
+    k('G3 màn Đơn App: đơn có thẻ co_the = tên thẻ, mon[] KHÔNG có dòng thẻ (quầy không pha)', q1?.co_the === '🎟️ Thẻ hội viên Vàng thử · 1 tháng'
       && q1?.mon?.length === 1 && q1?.mon?.[0]?.ghi_chu === 'ít đường', JSON.stringify(q1));
     k('Q3 màn Đơn App: đơn chỉ thẻ vẫn hiện, tien_trinh "xong", mon[] rỗng; đơn có đồ uống "da_tra"', q2?.tien_trinh === 'xong' && q2?.mon?.length === 0
-      && q2?.co_the === 'Thẻ Vàng thử · 1 tháng' && q1?.tien_trinh === 'da_tra', `${JSON.stringify(q2)} · ${q1?.tien_trinh}`);
+      && q2?.co_the === '🎟️ Thẻ hội viên Vàng thử · 1 tháng' && q1?.tien_trinh === 'da_tra', `${JSON.stringify(q2)} · ${q1?.tien_trinh}`);
     const bl = await goi('POST', `/pos/kh/don-app/${q2?.id}/dang-lam`, {}, tkChu);
     k('Q3 đơn chỉ thẻ bấm "Đang làm" → bị từ chối (không có bước pha)', bl.status === 409, moTa(bl));
     const { dungTem } = await import(pathToFileURL(path.join(GOC, 'client', 'src', 'utils', 'inPhieu.js')).href);
@@ -507,6 +526,22 @@ async function main() {
     const a = await donApp(d.j.ma_don);
     k('K1 giỏ cũ (không thẻ) băm y như code gốc — khoá gửi đang sống trên production không lệch', la(d, 200) && a?.bam === BAM_GOC, `${moTa(d)} · ${a?.bam}`);
     k('K2 đơn đồ uống trả ví → da_tra như cũ (quầy còn pha)', d.j.tien_trinh === 'da_tra', d.j.tien_trinh);
+    const truoc = (thang) => new Date(Date.parse(getNow() + 'Z') - thang * 31 * 86400000).toISOString().slice(0, 19);
+    const kg = await khach(1000000);
+    await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, loai, so_thang)
+      VALUES (?, ?, 'Kim Cương thử', 0, NULL, ?, ?, 'cap', 1)`, [kg.sdt, KC, truoc(2), truoc(1)]);
+    await datVi(kg, gio([the(VANG, 1)]));
+    const hg = await hangToi(kg);
+    const bg = await baoGia(kg, gio([the(VANG, 1)]));
+    k('K5a luật giảm hạng: Kim Cương (cấp 1 tháng) đã hết hạn → không chặn mua Vàng; /toi.hang = Vàng', hg?.id === VANG && la(bg, 200), `${JSON.stringify(hg)} · ${moTa(bg)}`);
+    const kh5 = await khach(1000000);
+    await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, loai, so_thang)
+      VALUES (?, ?, 'Vàng thử', 100000, NULL, ?, ?, 'ban', 1)`, [kh5.sdt, VANG, truoc(3), truoc(2)]);
+    const h0 = await hangToi(kh5);
+    const d5 = await datVi(kh5, gio([the(VANG, 1)]));
+    const h5 = await hangToi(kh5);
+    k('K5b Vàng đã hết hạn mua lại Vàng trên App → 200, có hạng, hạn mới tính từ hôm nay (> bây giờ)', h0 === null && la(d5, 200) && h5?.id === VANG
+      && h5?.het_han > getNow(), `${JSON.stringify(h0)} · ${moTa(d5)} · ${JSON.stringify(h5)}`);
   });
 
   muc('[S] An toàn — khách chỉ thấy / mua cho chính mình');
