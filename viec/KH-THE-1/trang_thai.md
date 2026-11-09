@@ -295,3 +295,16 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài 
   (chờ chat thêm hai dòng vào Phạm vi — xem ## Câu hỏi; A19 do dòng dưới.)
 - GIT: `git log --oneline -2` → 275633a KH-THE-1: soat bao mat DAT, cau hoi Pham vi, bai hoc, bao cao 7 muc · e3e2d59 KH-THE-1: sua nhe sau soat vong 2 — …
 HEAD ĐÃ KIỂM: 275633a
+
+## Phiên làm tiếp 09.11 — sau khi chat thêm hai bài cũ vào Phạm vi
+- Đối chiếu bản chụp: nhánh viec/KH-THE-1 · cây sạch · HEAD f7725e0 = FETCH_HEAD f7725e0 (bằng nhau — không kéo). `git log --oneline -3`:
+  - f7725e0 PHIEU: KH-THE-1 Pham vi them thu_HANG1.js + thu_KHAPI2.js (bai khoa truong /kh/hang, chu quan duyet 09.11)
+  - 401d28f KH-THE-1: ket qua cong + HEAD DA KIEM
+  - 275633a KH-THE-1: soat bao mat DAT, cau hoi Pham vi, bai hoc, bao cao 7 muc
+- Câu hỏi Phạm vi (A6) đã được trả lời: phiếu có `cong_cu/thu_HANG1.js`, `cong_cu/thu_KHAPI2.js`. Không đổi code trong phiên này.
+- Kho lại mở dạng nông → thu_BH2 đỏ (git không thấy cbbb809) → `git fetch -q --unshallow origin viec/KH-THE-1` đúng luật bước 1.3 (lần 2, cùng nguyên nhân BỎ ở ## Bài học).
+- `npm test -- --day-du` → PASS 111 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không thuộc việc này).
+- `node tu_chay/cong.js tinh . a4d89ae^ HEAD viec/KH-THE-1` → ✓ CỔNG TĨNH ĐẠT.
+- `node tu_chay/cong.js chay . a4d89ae^ HEAD viec/KH-THE-1` → ✓ CỔNG CHẠY ĐẠT (kèm cảnh báo A16 như trên: bài dừng sớm trên gốc, 52 ≠ 73 ca).
+- GIT: `git log --oneline -2` → f7725e0 PHIEU: KH-THE-1 Pham vi them thu_HANG1.js + thu_KHAPI2.js … · 401d28f KH-THE-1: ket qua cong + HEAD DA KIEM
+HEAD ĐÃ KIỂM: f7725e0
