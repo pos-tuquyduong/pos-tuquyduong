@@ -201,14 +201,15 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
         if (finalRefund > tranLan || finalRefund > tranTong) {
           return loi(400, `Tiền đền tối đa: ${Math.max(0, Math.min(tranLan, tranTong)).toLocaleString()}đ`, 'VUOT_GIA');
         }
-        if (finalRefund > 0 && order.customer_phone) {
-          await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name || null, loai: 'compensation', soTien: finalRefund,
-            orderId: order.id, ghiChu: `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${soLuong}`,
-            nguoi: req.user.display_name || req.user.username });
-          await truDiemHoan(tx, order, req.user.username, getNow(), `Đền bù đơn ${order.code}`);
-        }
       }
+      // DIEM-MON-1: ghi dòng sự cố TRƯỚC khi trừ điểm — truDiemHoan đọc pos_damage_logs để biết lần đền này thuộc món nào (CÁCH 2).
       const log = await ghiHangHong(tx, { order, product_code, ten: dong.ten, soLuong, gia, reason, reason_note, action, refund: finalRefund, user: req.user });
+      if (finalRefund > 0 && order.customer_phone) {   // finalRefund > 0 chỉ khi action 'refund'
+        await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name || null, loai: 'compensation', soTien: finalRefund,
+          orderId: order.id, ghiChu: `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${soLuong}`,
+          nguoi: req.user.display_name || req.user.username });
+        await truDiemHoan(tx, order, req.user.username, getNow(), `Đền bù đơn ${order.code}`);
+      }
       return { order, finalRefund, logId: log.lastInsertRowid };
     });
     if (kq.huy) return res.status(kq.status).json(kq.body);
