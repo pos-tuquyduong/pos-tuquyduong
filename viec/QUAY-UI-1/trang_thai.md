@@ -80,3 +80,6 @@ Thử tay (1–3 thao tác cho chủ quán, điện thoại): (1) chọn khách 
 
 HEAD ĐÃ KIỂM: 84a2878
 - Sự cố: người gác chặn nhiều lệnh ghép (`B-PHANTICH`) và file có cụm `JWT_SECRET` (`B-BIMAT-CHU`) → tách lệnh, commit file bài thử trước khi chạy (đúng luật skill).
+
+Chat soát thay: nối dòng chayBaiThat(thu_QUAYUI1.js) vào kiem_tra_truoc_khi_giao.js; npm test xanh (PASS 107 · FAIL 0). Kho nông phải --unshallow mới chạy được thu_BH2 (git log cbbb809..HEAD).
+HEAD ĐÃ KIỂM: 84a2878 + commit này
