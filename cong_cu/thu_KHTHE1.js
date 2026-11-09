@@ -49,7 +49,7 @@ const chuoiKy = (d) => Object.keys(d).sort().map((x) => `${x}=${d[x] == null ? '
 const hmac = (s) => crypto.createHmac('sha256', KHOA.ck).update(s).digest('hex');
 const bang = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // K1: băm giỏ CŨ (không dòng thẻ) chụp trên code GỐC da5f5d4 — giỏ [món 0 × 2 "ít đá", món 1 × 1], cach_nhan tai_quan, cach_tra vi, không mã.
-const BAM_GOC = '__BAM_GOC__';
+const BAM_GOC = 'd9f0ac1218e625669cc3367e496afd28c6338797f21bb3c13915f5939ecf30ec';
 
 async function main() {
   imLang();
