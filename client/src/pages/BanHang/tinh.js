@@ -83,7 +83,7 @@ export function tinhGio(gio, ctx = {}) {
     ? Math.round(m.unit_price * (1 - flash.percent / 100)) : null);
   const tamTinh = gio.reduce((s, m) => s + m.quantity * m.unit_price, 0);
   const giamFlash = gio.reduce((s, m) => { const g = giaFlash(m); return g == null ? s : s + (m.unit_price - g) * m.quantity; }, 0);
-  const giaHangMon = (m) => (giamFlash > 0 || m.goi_nap_id ? m.unit_price : giaHang(m.unit_price, phanTramHang(hang, m.is_special_group)).hang);   // đơn dính Flash / gói nạp (NAP-1) → hạng không cộng
+  const giaHangMon = (m) => (giamFlash > 0 || m.goi_nap_id || m.the ? m.unit_price : giaHang(m.unit_price, phanTramHang(hang, m.is_special_group)).hang);   // đơn dính Flash / gói nạp (NAP-1) / dòng thẻ (QUAY-UI-1: máy chủ không giảm giá thẻ) → hạng không cộng
   const giamHang = gio.reduce((s, m) => s + (m.unit_price - giaHangMon(m)) * m.quantity, 0);
   const tong = Math.max(0, tamTinh - giamFlash - giamHang);
   const dong = gio.map((m) => ({ ...m, giaHang: giaHangMon(m), giaFlash: giaFlash(m) }));
@@ -159,7 +159,8 @@ export function khoaTinh(gio, khach, ma, giao = null) {
   const soLuong = {};
   for (const m of gio) soLuong[m.product_id] = (soLuong[m.product_id] || 0) + m.quantity;
   const mon = Object.keys(soLuong).sort((a, b) => a - b).map((id) => [Number(id), soLuong[id]]);
-  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma), ...(giao ? { giao: giao.ma_bao_phi } : {}) });   // NAP-1: gói nạp nằm trong `mon` (product_id −2000000 − mã gói)
+  const the = layThe(gio);   // QUAY-UI-1: cùng hạng khác số tháng = giá khác → đổi khoá
+  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma), ...(giao ? { giao: giao.ma_bao_phi } : {}), ...(the ? { the: [the.the.tier_id, the.the.so_thang] } : {}) });   // NAP-1: gói nạp nằm trong `mon` (product_id −2000000 − mã gói)
 }
 /** NAP-1: dòng gói nạp trong giỏ (giỏ nạp chỉ có đúng một dòng này) hoặc null. */
 export const layGoiNap = (gio) => gio.find((m) => m.goi_nap_id) || null;
@@ -170,16 +171,40 @@ export function kiemTraNap(gio, khach) {
   return null;
 }
 
+// ── Thẻ thành viên (QUAY-UI-1): bán như một dòng giỏ; máy chủ tự tra giá gói (orders.js membership_buy) ──
+/** Dòng thẻ trong giỏ (tối đa một) hoặc null. */
+export const layThe = (gio) => gio.find((m) => m.the) || null;
+/** Gói đang bán của các hạng `ban` (gói bật, giá nguyên > 0 — cùng vị từ máy chủ goiBanDuoc), xếp theo hạng rồi số tháng. */
+export const dsGoiThe = (dsHang) => dsHang.filter((t) => t.cach_co === 'ban').flatMap((tier) => (tier.goi || [])
+  .filter((g) => g.bat === true && Number.isInteger(g.gia) && g.gia > 0).sort((a, b) => a.so_thang - b.so_thang)
+  .map((g) => ({ tier, so_thang: g.so_thang, gia: g.gia })));
+/** Hạng chỉ chủ quán cấp — hiện mờ, không bán. */
+export const hangChiCap = (dsHang) => dsHang.filter((t) => t.cach_co === 'cap');
+/** Dòng giỏ cho một gói thẻ. Giá chỉ để hiện — thân gửi máy chủ KHÔNG mang giá (thanTinhThu). */
+export const dongThe = (tier, goi) => ({ key: `the_${tier.id}_${goi.so_thang}`, product_id: -1000000 - tier.id,
+  product_name: `Thẻ ${tier.name} · ${goi.so_thang} tháng`, unit_price: goi.gia, quantity: 1, note: '', the: { tier_id: tier.id, so_thang: goi.so_thang } });
+/** Chạm gói thẻ → lỗi (chuỗi) hoặc null. hang = trạng thái hạng của khách đang chọn ({ usable, thu_bac, tier_name }). Máy chủ vẫn kiểm lại. */
+export function kiemTraThe(gio, khach, hang, tier) {
+  if (!khach?.phone) return 'Chọn khách trước khi bán thẻ thành viên';
+  if (tier.cach_co !== 'ban') return `Hạng ${tier.name}: Chủ quán cấp — không bán ở quầy`;
+  if (layGoiNap(gio)) return 'Giỏ đang là gói nạp — thu xong hoặc xoá giỏ rồi mới bán thẻ';
+  if (layThe(gio)) return 'Giỏ đã có một thẻ thành viên — xoá thẻ cũ trước nếu muốn đổi';
+  if (hang?.usable && Number(hang.thu_bac) > Number(tier.sort_order)) return `Khách đang có hạng ${hang.tier_name} cao hơn — không bán hạng ${tier.name}`;
+  return null;
+}
+
 /** Thân tinh-thu / phần `don` của phiên: CHỈ khách, món, mã — không trường tiền nào (máy chủ tự tra giá).
  *  GIAO-1: `giao` = { ma_bao_phi, ten, sdt, ghi_chu } — phí ship máy chủ lấy từ báo phí, màn hình không gửi số phí. */
 export function thanTinhThu(gio, khach, ma, giao = null) {
   const nap = layGoiNap(gio);   // NAP-1: giỏ nạp — đơn riêng, không giao
   if (nap) return { customer_phone: khach?.phone || null, customer_name: khach?.name || 'Khách lẻ', items: [], goi_nap_id: nap.goi_nap_id };
+  const the = layThe(gio);   // QUAY-UI-1: thẻ đi bằng membership_buy, không nằm trong items
   return {
     ...(giao ? { giao } : {}),
+    ...(the ? { membership_buy: { tier_id: the.the.tier_id, so_thang: the.the.so_thang } } : {}),
     customer_phone: khach?.phone || null,
     customer_name: khach?.name || 'Khách lẻ',
-    items: gio.map((m) => ({
+    items: gio.filter((m) => !m.the).map((m) => ({
       product_id: m.product_id,
       sx_product_type: m.sx_product_type,
       sx_product_id: m.sx_product_id,
@@ -200,6 +225,16 @@ export function chiaTra({ tong, khach, dungTK, dungMe }) {
   const soDuDung = dungTK ? Math.min(Math.max(0, so(khach?.balance)), t) : 0;
   const soDuMeDung = dungMe ? Math.min(Math.max(0, so(khach?.parent_balance)), t - soDuDung) : 0;
   return { soDuDung, soDuMeDung, phaiTra: t - soDuDung - soDuMeDung };
+}
+
+/** QUAY-UI-1: cách trả mặc định — KHÔNG tự trừ tài khoản dù khách có số dư; chỉ bấm "Trừ tài khoản" mới trừ. */
+export const CACH_TRA_MAC_DINH = 'tien_mat';
+/** Nút "Trừ tài khoản" mờ → lý do (chuỗi); bấm được → null. Đơn nạp chỉ tiền mặt / chuyển khoản (NAP-1). */
+export function lyDoKhongTru({ khach, laNap }) {
+  if (laNap) return 'Đơn nạp chỉ trả tiền mặt hoặc chuyển khoản';
+  if (!khach) return 'Chọn khách để trừ tài khoản';
+  if (so(khach.balance) + so(khach.parent_balance) <= 0) return 'Khách chưa có số dư';
+  return null;
 }
 
 /** Cách trả còn lại sau khi trừ tài khoản: còn phải trả → tiền mặt hoặc QR (không trộn); hết (kể cả đơn 0đ) → chỉ "tai_khoan". */
