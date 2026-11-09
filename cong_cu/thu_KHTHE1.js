@@ -21,9 +21,12 @@ const crypto = require('crypto');
 const { pathToFileURL } = require('url');
 
 const GOC = path.join(__dirname, '..');
+// --may-chu <thư mục server>: chạy trên bản sao server/ (đột biến viec/KH-THE-1/dot_bien.py); client/src, cong_cu đọc từ GOC.
+const iMC = process.argv.indexOf('--may-chu');
+const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_khthe1_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
-const duongKN = require.resolve(path.join(GOC, 'server', 'ketNoiKho.js'));
+const duongKN = require.resolve(path.join(MAY_CHU,'ketNoiKho.js'));
 require.cache[duongKN] = {
   id: duongKN, filename: duongKN, loaded: true,
   exports: { laMayThu: () => true, cauHinhTurso: () => ({ laMayThu: true, cauHinh: { url: 'file:' + FILE_KHO } }), diaChiSX: () => '', FILE_THU: FILE_KHO },
@@ -56,8 +59,8 @@ async function main() {
   const express = require(path.join(GOC, 'node_modules', 'express'));
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const bcrypt = require(path.join(GOC, 'node_modules', 'bcryptjs'));
-  const db = require(path.join(GOC, 'server', 'database.js'));
-  const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
+  const db = require(path.join(MAY_CHU,'database.js'));
+  const { getNow } = require(path.join(MAY_CHU,'utils', 'helpers.js'));
   await db.initDatabase();
 
   // D9: lỗi máy (không phải kho bận) ở câu ghi phiên trong giao dịch — một lần.
@@ -83,7 +86,7 @@ async function main() {
   const svGia = await new Promise((ok) => { const s = gia.listen(0, '127.0.0.1', () => ok(s)); });
   process.env.PAYOS_BASE_URL = `http://127.0.0.1:${svGia.address().port}`;
 
-  const R = (f) => path.join(GOC, 'server', 'routes', f);
+  const R = (f) => path.join(MAY_CHU,'routes', f);
   const app = express();
   app.use(express.json());
   app.use('/api/pos/orders', require(R('orders.js')));
@@ -96,8 +99,8 @@ async function main() {
   app.use('/api/pos/kh', require(R('kh/quay.js')));
   app.use('/api/kh', require(R('kh')));
   app.use('/api/kh', require(R('kh/loi.js')).loiTangKh);
-  const { kyTokenKhach } = require(path.join(GOC, 'server', 'middleware', 'khachAuth.js'));
-  const { tienTheoSo } = require(path.join(GOC, 'server', 'utils', 'doiSoat.js'));
+  const { kyTokenKhach } = require(path.join(MAY_CHU,'middleware', 'khachAuth.js'));
+  const { tienTheoSo } = require(path.join(MAY_CHU,'utils', 'doiSoat.js'));
   const batBien = require(path.join(GOC, 'cong_cu', 'gia_lap', 'bat_bien.js'));
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api`;
@@ -403,7 +406,7 @@ async function main() {
   await chay('F', async () => {
     const cot = (await db.query('PRAGMA table_info(pos_membership_tiers)')).some((c) => c.name === 'quyen_loi');
     const buoc = await so('SELECT COUNT(*) AS n FROM pos_nang_cap WHERE so = 23');
-    const { chayNangCap } = require(path.join(GOC, 'server', 'nang_cap', 'chay.js'));
+    const { chayNangCap } = require(path.join(MAY_CHU,'nang_cap', 'chay.js'));
     const lai = await chayNangCap({ beginTransaction: db.beginTransaction, query: db.query });
     k('F1 bước 023 đã chạy, có cột quyen_loi; chạy lại bộ nâng cấp không hỏng', cot && buoc === 1 && lai.hong === null, `${cot} · ${buoc} · ${lai.hong}`);
     const hangGoc = async (id) => (await goi('GET', '/pos/tiers', undefined, tkChu)).j.data?.tiers?.find((t) => t.id === id);
