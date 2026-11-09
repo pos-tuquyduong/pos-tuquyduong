@@ -568,7 +568,6 @@ async function taoDon(req, res, phien = null) {
         sx_product_type: null,
         sx_product_id: null,
         is_nap_item: true,
-        tich_diem: 0,   // DIEM-MON-1: gói nạp không tích điểm, không có công tắc
       });
     }
 
@@ -1039,7 +1038,7 @@ async function taoDon(req, res, phien = null) {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [orderId, item.product_id, item.product_code, item.product_name,
            item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
-           item.flash_unit_price || null, item.tier_unit_price || null, item.tich_diem],
+           item.flash_unit_price || null, item.tier_unit_price || null, item.tich_diem ?? null],   // DIEM-MON-1: dòng nạp không cờ (đơn nạp 0 điểm, không gộp món)
         );
       }
 
