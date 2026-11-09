@@ -149,3 +149,49 @@ BÀI HỌC:
   chủ quán quyết, việc riêng.
 - Đơn App chỉ có thẻ tới màn Đơn App ở trạng thái "xong" nên KHÔNG kêu chuông (DonAppNoi.jsx:64 chỉ kêu khi da_tra / vao_vi) — đúng ý "không pha";
   chủ quán muốn chuông cho đơn thẻ thì báo.
+
+## Soát độc lập — vòng 2 (09.11, /ra-soat, agent độc lập, HEAD a8294af) — nguyên văn
+```
+ĐẠT (còn 4 lỗi NHẸ, không có lỗi NẶNG)
+
+Kiểm từng lỗi vòng 1: 1 đúng căn cứ (ke_hoach.md "Luồng hợp lệ" 6; luật mã orders.js:765-770 chạy trên mọi dòng hàng; giảm hạng bỏ dòng thẻ orders.js:708;
+Giờ vàng chỉ món flash orders.js:580-586; QUYET_DINH 07–08.11 dòng 196-200 không trái) · 2 K5a, K5b (thu_KHTHE1.js:410-425) · 3 ghi_chu null (donApp.js:266;
+G2 thu_KHTHE1.js:335-337) · 4 thân chưa trả xếp thẻ sau món, tên như taoDon (donApp.js:265-267, orders.js:539; G7; BV-than-the-cuoi BẮT) · 5 "Hạn mới: không
+thời hạn" (G1b; BV-hoa-don-vo-han BẮT) · 6 NGAY 2026-11-09, DOC_TU_CODE thêm KH-THE-1, tiers.js, 023 · bamGio so_luong bỏ trống = 1 (B9b; VS-bam-so-luong-tho BẮT).
+
+LỖI TÌM ĐƯỢC:
+- HOP_DONG_API_KH.md:68 — hợp đồng hứa mon[] "giống hệt trước và sau khi trả", nhưng don_gia hai đường khác nhau (chưa trả: it.unit_price donApp.js:196-197;
+  đã trả: flash_unit_price || tier_unit_price || unit_price donApp.js:394). Ca G7 chỉ thử khách chưa hạng. Lệch có từ trước, câu hứa là mới — K1 / K3 — NHẸ.
+- client/src/pages/DonApp.jsx:75 — nhãn "{co_the} — đã lên hạng, không pha" hiện cả khi đơn đã huỷ / hoàn (dsQuay trả đơn huỷ trong ngày donApp.js:426;
+  co_the lấy từ thân đơn donApp.js:434) — K4 — NHẸ.
+- server/utils/dongHoaDon.js:357-358 — chú thích "cộng nối từ đó ra số năm > 9999" sai, vế !/^\d{4}-\d\d-\d\d/ là code chết (hanCacHang membershipStatus.js:48
+  giữ nguyên HAN_VO_HAN) — K1 — NHẸ.
+- viec/KH-THE-1/trang_thai.md — chưa ghi kết quả node tu_chay/cong.js chay (LUAT §6.3) — NHẸ.
+
+NGHI NGỜ:
+- docGio (donApp.js:104): dòng có khoá `loai` khác 'the' đều 400, kể cả `loai: null` / 'mon' trên một ly — siết mới; nên ghi hợp đồng "dòng món KHÔNG có loai".
+- K5a thử "Kim Cương hết hạn rồi mới mua Vàng", kế hoạch hứa "Kim Cương hết hạn trong khi còn Vàng" — yếu hơn lời hứa; luật hạng không đổi trong việc này.
+- Trên gốc mục D / E / G sập giữa chừng; D3–D9, E4, E5, G1, G3–G6, I15 chưa hiện ĐỎ riêng; một số do đột biến chứng minh. Chấp nhận được.
+- donApp.js:262/266: hạng xoá CỨNG giữa báo giá và ghi thân → the.name ném → 500. Hạng chỉ xoá mềm nên hiện không xảy ra.
+- baoGia: mã sai + thẻ không bán được → App nhận lỗi của mã thay vì HANG_CHI_CAP. Cùng khuôn dòng món, có từ trước.
+
+NGHIỆM THU: 9/9 mục có bằng chứng · mục thiếu: không có
+  A: A1 + A2/B5–B7 · B: B1–B13, B9b, B12, B12b, S3 · C: C1–C3 · D: D1–D9, Q3, I15 · E: E1–E5 · F: F1–F5 (ô nhập HangThe.jsx chỉ thử tay)
+  G: G1, G1b, G2–G7, G5 · H: H1 · K5: K1, K2, K5a, K5b, A1, thu_HOPDONG_KH 88/0.
+Mục soát: K3 đỏ trên gốc 8/44, 4 đột biến mới BẮT, đối chứng 73/0 · K4 5 chỗ đọc than, ghép 1 chỗ, tien_trinh_quay 5 chỗ đúng, giờ 1 chỗ, mon[] 2 đường
+(lệch don_gia), hoa_don 1–1 · K5 không chặn oan (nghi ngờ `loai` trên dòng món) · Tiền: giá thẻ máy chủ, SĐT token, TRUONG_THE · P1 bundle index-CkERXsz6.js có
+chữ mới; --day-du của người soát chưa xong · Đơn giản: dùng lại taoDon, ~100 dòng máy chủ, đối soát dùng lại tienTheoSo.
+
+CHƯA SOÁT ĐƯỢC: --day-du chưa ra kết quả trước lúc nộp; không chạy lại đủ 27 đột biến / --goc; chưa chạy cổng tu_chay/cong.js; giao diện thật, Turso / Render,
+Tingee thật, App KH thật.
+
+BÀI HỌC:
+- NGUYÊN TẮC: câu hứa "giống hệt trước / sau" trong hợp đồng phải khoá bằng ca phủ cả khách có hạng và đơn dính Giờ vàng.
+- KHOÁ: nhãn trạng thái ở quầy ("đã lên hạng") phải lấy từ trạng thái đơn (tien_trinh), không chỉ thân đơn đã lưu.
+```
+
+### Sửa nhẹ sau vòng 2 (chỉ đúng các lỗi lần soát nêu — HEAD e3e2d59)
+- Hợp đồng: câu "giống hệt" thu hẹp đúng sự thật (thứ tự, ten, so_luong, ghi_chu, loai, mon_dau giống; don_gia như từ v5: chưa trả giá gốc, đã trả giá đã giảm);
+  thêm "dòng MÓN không gửi khoá `loai`".
+- DonApp.jsx: đơn có thẻ đã huỷ → "đơn đã huỷ, thẻ đã thu hồi" (giao diện — thử tay). dongHoaDon.js: bỏ vế code chết, chú thích đúng (voHan = han === HAN_VO_HAN).
+- Chạy lại: thu_KHTHE1 73/0 · `npm test -- --day-du` 111/0 (dist KHỚP src) · đột biến 27/27 BẮT. Cổng chạy ghi ở bước 11.4.
