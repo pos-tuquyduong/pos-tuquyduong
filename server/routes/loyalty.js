@@ -23,6 +23,7 @@ const { getNow, normalizePhone } = require('../utils/helpers');
 const { generateVoucherCode } = require('../utils/voucherCode');
 // KH-API-1: số dư / lịch sử điểm + ví voucher dùng chung với /api/kh (cùng câu, cùng cách suy trạng thái).
 const { BALANCE_SQL, layDiemKhach, layVoucherKhach } = require('../utils/diemKhach');
+const { loiGhi } = require('./wallets');
 
 const router = express.Router();
 
@@ -205,8 +206,7 @@ router.put('/tich-diem', authenticate, checkPermission('manage_promotions'), asy
     const kq = await run(`UPDATE ${bang} SET tich_diem = ? WHERE id IN (${ids.map(() => '?').join(', ')})`, [bat ? 1 : 0, ...ids]);
     res.json({ success: true, doi: Number(kq.changes || 0) });
   } catch (err) {
-    console.error('PUT /loyalty/tich-diem:', err.message);
-    res.status(500).json({ error: 'Không lưu được tích điểm', code: 'LOI_MAY_CHU' });
+    loiGhi(res, err);   // kho bận → 409 KHO_BAN, lỗi khác → 500 không lộ lời nội bộ
   }
 });
 
