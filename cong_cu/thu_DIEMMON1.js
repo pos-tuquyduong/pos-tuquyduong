@@ -148,11 +148,21 @@ async function main() {
   const sA = sdtMoi();
   const t2 = ghi(await ban({ customer_phone: sA, cash_amount: 100000 }));
   const t2Ham = [tienTinhDiem({ cash_amount: 100000, total: 100000 }), tienTinhDiem({ cash_amount: 100000, total: 100000, tien_hang_diem: null }),
-    tienTinhDiem({ cash_amount: 100000, total: 100000, tien_hang_diem: 100000 }), tienTinhDiem({ cash_amount: 25000, shipping_fee: 5000, total: 25000, tien_hang_diem: 20000 })];
-  k('T2 (đối chứng) mọi món bật: X + Y tiền mặt 100.000 → 100 điểm; đơn cũ (không cột / cột NULL) và đơn bật hết tính như hôm nay',
-    t2.status === 200 && (await diemCua(t2)) === 100 && JSON.stringify(t2Ham) === '[100000,100000,100000,20000]', `${moTa(t2)} · ${await diemCua(t2)} · ${JSON.stringify(t2Ham)}`);
+    tienTinhDiem({ cash_amount: 100000, total: 100000, tien_hang_diem: 100000 }), tienTinhDiem({ cash_amount: 25000, shipping_fee: 5000, total: 25000, tien_hang_diem: 20000 }),
+    tienTinhDiem({ total: 0, tien_hang_diem: 0 }), tienTinhDiem({ cash_amount: 5000, shipping_fee: 5000, total: 5000, tien_hang_diem: 0 })];
+  k('T2 (đối chứng) mọi món bật: X + Y tiền mặt 100.000 → 100 điểm; đơn cũ (không cột / cột NULL) và đơn bật hết tính như hôm nay; tiền hàng 0 → 0 (không NaN)',
+    t2.status === 200 && (await diemCua(t2)) === 100 && JSON.stringify(t2Ham) === '[100000,100000,100000,20000,0,0]', `${moTa(t2)} · ${await diemCua(t2)} · ${JSON.stringify(t2Ham)}`);
+  // T2b: đơn CŨ (trước bước 024 — dòng không cờ, đơn không tien_hang_diem) → đền trừ như hôm nay, dù món đó nay đã tắt.
+  const t2b = ghi(await ban({ customer_phone: sdtMoi(), cash_amount: 100000 }));
+  if (t2b.order) {
+    await db.run('UPDATE pos_orders SET tien_hang_diem = NULL WHERE id = ?', [t2b.order.id]).catch(() => {});
+    await db.run('UPDATE pos_order_items SET tich_diem = NULL WHERE order_id = ?', [t2b.order.id]).catch(() => {});
+  }
 
   await datCo('pos_products', X.id, false);
+  const r2b = t2b.order ? await den(t2b.order, X, 30000) : t2b;
+  k('T2b đơn cũ (không cờ dòng, không tien_hang_diem) 100 điểm, đền X 30.000 sau khi X đã tắt → trừ 30 như hôm nay → 70',
+    r2b.status === 200 && (await diemCua(t2b)) === 70, `${moTa(r2b)} · ${await diemCua(t2b)}`);
   const t3 = ghi(await ban({ customer_phone: sdtMoi(), cash_amount: 100000 }));
   const luu3 = t3.order ? await mot('SELECT tien_hang_diem FROM pos_orders WHERE id = ?', [t3.order.id]).catch(() => null) : null;
   const dong3 = t3.order ? (await q('SELECT tich_diem FROM pos_order_items WHERE order_id = ? ORDER BY id', [t3.order.id]).catch(() => [])).map((r) => r.tich_diem) : [];
@@ -172,13 +182,15 @@ async function main() {
   k('T5 mã giảm 10% cả đơn: 90.000 → 54 (chia theo tỷ lệ)', t5.status === 200 && t5.order?.total === 90000 && (await diemCua(t5)) === 54, `${moTa(t5)} · ${t5.order?.total} · ${await diemCua(t5)}`);
 
   const vang = await mot("SELECT * FROM pos_membership_tiers WHERE name = 'Vàng'");
-  await db.run('UPDATE pos_membership_tiers SET discount_percent = 10, special_discount_percent = 10 WHERE id = ?', [vang.id]);
+  await db.run('UPDATE pos_membership_tiers SET discount_percent = 10, special_discount_percent = 50 WHERE id = ?', [vang.id]);
+  await db.run('UPDATE pos_products SET is_special_group = 1 WHERE id = ?', [X.id]);
   const sH = sdtMoi();
   await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at)
     VALUES (?, ?, 'Vàng', 1000, NULL, ?, '2099-12-31T00:00:00')`, [sH, vang.id, getNow()]);
-  const t6 = ghi(await ban({ customer_phone: sH, cash_amount: 90000 }));
-  k('T6 khách hạng giảm 10% món: X 36.000 + Y 54.000 = 90.000 → 54 (tỷ lệ trên giá sau giảm hạng)',
-    t6.status === 200 && t6.order?.total === 90000 && (await diemCua(t6)) === 54, `${moTa(t6)} · ${t6.order?.total} · ${await diemCua(t6)}`);
+  const t6 = ghi(await ban({ customer_phone: sH, cash_amount: 74000 }));
+  await db.run('UPDATE pos_products SET is_special_group = 0 WHERE id = ?', [X.id]);
+  k('T6 khách hạng (X nhóm đặc biệt giảm 50%, Y giảm 10%): X 20.000 + Y 54.000 = 74.000 → 54 (tỷ lệ trên giá SAU giảm hạng từng món)',
+    t6.status === 200 && t6.order?.total === 74000 && (await diemCua(t6)) === 54, `${moTa(t6)} · ${t6.order?.total} · ${await diemCua(t6)}`);
 
   await db.run("INSERT INTO pos_product_groups (id, code, name, created_at) VALUES (771, 'DM1NHOM', 'Nhóm thử DIEM-MON-1', ?)", [getNow()]);
   await db.run('INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id, created_at) VALUES (771, ?, ?, ?)', [Y.sx_product_type, Y.sx_product_id, getNow()]);
@@ -237,6 +249,10 @@ async function main() {
     `${moTa(t11a)} ${await diemCua(t11a)} · ${moTa(t11b)} ${await diemCua(t11b)}`);
   await datCo('pos_membership_tiers', vang.id, true);
 
+  const cp10 = t10a.order ? await mot('SELECT id FROM pos_customer_packages WHERE order_id = ?', [t10a.order.id]) : null;
+  const t12c = ghi(await ban({ customer_phone: t10a.order?.customer_phone, items: [{ ...mon(Y), from_package: true }], customer_package_id: cp10?.id }));
+  k('T12b (K5) đơn chỉ lấy từ gói (0đ) → 200, 0 điểm (tiền hàng 0, không NaN)', t12c.status === 200 && t12c.order?.total === 0 && (await diemCua(t12c)) === 0,
+    `${moTa(t12c)} · ${t12c.order?.total} · ${await diemCua(t12c)}`);
   const t12a = ghi(await ban({ customer_phone: sdtMoi(), cash_amount: 120000, shipping_fee: 20000 }));
   const t12b = ghi(await ban({ customer_phone: sdtMoi(), items: [mon(Y)], cash_amount: 80000, shipping_fee: 20000 }));
   k('T12 (đối chứng phí giao) X + Y + phí giao 20.000 → 60; Y + phí giao → 60 (phí giao không điểm)',
@@ -352,8 +368,8 @@ async function main() {
     const goiNap = Number((await db.run(`INSERT INTO pos_goi_nap (ten, khach_tra, vao_tk, is_active, thu_tu, created_at, updated_at)
       VALUES ('Nạp DM1', 100000, 105000, 1, 0, ?, ?)`, [getNow(), getNow()])).lastInsertRowid);
     const nap = ghi(await goi('POST', '/pos/orders', { customer_phone: sdtMoi(), customer_name: 'Khách DIEM-MON-1', items: [], goi_nap_id: goiNap, payment_method: 'cash', cash_amount: 100000 }));
-    k('T19 tổng / tạm tính / giảm hạng như gốc (100.000 · 100.000 · 90.000 · 10.000 · 90.000 · 360.000); gói nạp vẫn 0 điểm',
-      JSON.stringify(tien) === '[100000,100000,90000,10000,90000,360000]' && nap.status === 200 && (await diemCua(nap)) === 0, `${JSON.stringify(tien)} · ${moTa(nap)} ${await diemCua(nap)}`);
+    k('T19 tổng / tạm tính / giảm hạng như gốc (100.000 · 100.000 · 74.000 · 26.000 · 90.000 · 360.000); gói nạp vẫn 0 điểm',
+      JSON.stringify(tien) === '[100000,100000,74000,26000,90000,360000]' && nap.status === 200 && (await diemCua(nap)) === 0, `${JSON.stringify(tien)} · ${moTa(nap)} ${await diemCua(nap)}`);
   }
 
   console.log(`\n  ${dat} đạt · ${hong} hỏng\n`);
