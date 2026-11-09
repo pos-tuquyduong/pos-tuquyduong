@@ -46,7 +46,12 @@ DOT_BIEN = [
   ('BV-chi-tiet-loai', [(D, "...(laDongThe(d.product_id) ? { loai: 'the' } : {})", '', 1)], r'✗ G2 đơn đã trả'),
   ('BV-quay-bo-the', [(D, "dong.filter((d) => d.loai !== 'the').map((d) => ({ ten:", "dong.map((d) => ({ ten:", 1)], r'✗ G3 '),
   ('BV-hoa-don-the', [(H, "the[i] != null ? 'the' : 'mon'", "'mon'", 1)], r'✗ G1 '),
-  ('VS-hoa-don-han-rong', [(H, "const ghiChu = han ? `Hạn mới:", "const ghiChu = !han ? `Hạn mới:", 1)], r'✗ G1 '),
+  ('VS-hoa-don-han-rong', [(H, "const ghiChu = !han ? '' :", "const ghiChu = han ? '' :", 1)], r'✗ G1 '),
+  # ── vòng sửa 1 (soát độc lập) ──
+  ('BV-hoa-don-vo-han', [(H, "!han ? '' : voHan ?", "!han ? '' : false ?", 1)], r'✗ G1b '),
+  ('VS-bam-so-luong-tho', [(D, 'm.so_thang ?? null, m.so_luong ?? 1]', 'm.so_thang ?? null, m.so_luong ?? null]', 1)], r'✗ B9b '),
+  ('BV-than-the-cuoi', [(D, "dong: [...dongThan.filter((x) => x.loai !== 'the'), ...dongThan.filter((x) => x.loai === 'the')]", 'dong: dongThan', 1)], r'✗ G7 '),
+  ('BV-than-ghi-chu', [(D, "· ${g.so_thang} tháng`, ghi_chu: null }", "· ${g.so_thang} tháng` }", 1)], r'✗ G2 đơn CHƯA trả'),
   # ── F: quyền lợi hạng ──
   ('BV-quyen-loi-giu', [(T, 'quyen_loi=COALESCE(?, quyen_loi)', "quyen_loi=COALESCE(?, '')", 1)], r'✗ F3 '),
   ('VS-quyen-loi-tran-dong', [(T, 'dong.length > QUYEN_LOI_TOI_DA_DONG', 'dong.length > QUYEN_LOI_TOI_DA_DONG + 1', 1)], r'✗ F4 '),

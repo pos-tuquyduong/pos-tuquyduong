@@ -72,7 +72,7 @@ export default function DonApp() {
                 <span style={{ color: mau, fontWeight: 700, fontSize: 13 }}>{nhan}</span>
               </div>
               <div style={{ fontSize: 14, margin: '4px 0' }}>{d.ten_khach} · đã trả {tien(d.da_tra)} ({cachTra(d)})</div>
-              {d.co_the && <div style={{ fontSize: 13, color: '#5b21b6', fontWeight: 600 }}>🎟️ {d.co_the} — đã lên hạng, không pha</div>}
+              {d.co_the && <div style={{ fontSize: 13, color: '#5b21b6', fontWeight: 600 }}>{d.co_the} — đã lên hạng, không pha</div>}
               <ul style={{ margin: '4px 0 6px 18px', padding: 0 }}>
                 {d.mon.map((m, i) => (
                   <li key={i}>{m.so_luong} × {m.ten}{m.ghi_chu ? <em style={{ color: '#b45309' }}> — {m.ghi_chu}</em> : null}</li>

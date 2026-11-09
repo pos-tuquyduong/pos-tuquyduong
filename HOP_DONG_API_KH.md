@@ -1,10 +1,10 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
 PHIEN_BAN: 13
-NGAY: 2026-11-07
-DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1) (routes/chuong-trinh.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
+NGAY: 2026-11-09
+DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1 + KH-THE-1) (routes/chuong-trinh.js, routes/tiers.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
-  nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js, nang_cap/013_hang.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
+  nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js, nang_cap/013_hang.js, nang_cap/023_quyen_loi_hang.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
 
 <!-- Nguồn DUY NHẤT về cổng /api/kh. Chủ: POS. Đổi cổng → đổi file này cùng PR, tăng PHIEN_BAN, ghi nhật ký (luật L2).
      Khối HOP_DONG_MAY_DOC là phần máy đọc: bài thử hợp đồng của POS và bộ kiểm của App KH cùng dựa vào nó. -->
@@ -51,7 +51,8 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
   `YEU_CAU_KHONG_HOP_LE`). Tối đa MỘT dòng thẻ mỗi đơn (hai dòng → 400 `NHIEU_THE`). Giỏ chỉ có thẻ được. Đứng đâu trong giỏ cũng được — `dong[]`
   giữ đúng thứ tự gửi. Cùng `khoa_gui`, `tong_da_xem`, `cach_tra` (`qr` · `vi` · `vi_qr`), luật 4xx / 5xx như đơn đồ uống.
 - **Giá** = giá gói máy chủ tra (cùng đường bán thẻ của quầy). Dòng thẻ trong `dong[]`: `{ loai: "the", hang_id, so_thang, ma: null, so_luong: 1,
-  don_gia, thanh_tien }`; dòng món giữ đúng 4 trường cũ. Không giảm hạng / Giờ vàng cho dòng thẻ. Đồ uống CÙNG đơn tính theo hạng khách ĐANG CÓ lúc
+  don_gia, thanh_tien }`; dòng món giữ đúng 4 trường cũ. Không giảm hạng / Giờ vàng cho dòng thẻ. Mã giảm (`ma_giam`) áp ĐÚNG như ở quầy: mã % và mã tiền
+  tính trên tạm tính GỒM giá thẻ (giỏ chỉ thẻ Vàng 250.000 + mã 10% → `tong` 225.000); App hiện đúng `giam[]` / `tong` máy chủ trả, không tự tính. Đồ uống CÙNG đơn tính theo hạng khách ĐANG CÓ lúc
   báo giá / đặt (không theo thẻ đang mua); hạng mới áp từ đơn sau.
 - **Chặn** (400, cùng mã quầy): `HANG_CHI_CAP` (hạng chỉ chủ quán cấp — App hiện hạng, nút Mua mờ) · `GOI_HANG_KHONG_BAN` (gói chưa có giá / đang tắt)
   · `DA_CO_HANG_CAO_HON` (khách đang có hạng cao hơn còn hạn; cùng hạng thì được — hạn cộng nối) · hạng không có / đã xoá → `DON_KHONG_HOP_LE`.
@@ -63,9 +64,9 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
   `QUA_GIO_NHAN_DON`. Giỏ có đồ uống vẫn theo giờ như cũ (cả khi kèm thẻ).
 - **Tiến trình:** giỏ không có đồ uống → đã thu là `tien_trinh: "xong"` ngay (quầy không pha; đơn vẫn hiện ở màn Đơn App của quầy với nhãn "đã lên hạng").
   Giỏ có đồ uống → `da_tra` → `dang_lam` → `xong` như cũ.
-- **Xem đơn:** `GET /don/:ma` `mon[]` dòng thẻ có thêm `loai: "the"` (`ten` "Thẻ <hạng> · <n> tháng" khi chưa trả; tên bill quầy khi đã trả); dòng
-  món không có `loai`. `hoa_don[]` dòng thẻ `loai: "the"` (cùng `trai` / `phai` như dòng món), `ghi_chu` "Hạn mới: dd/mm/yyyy" (đơn bị huỷ: rỗng).
-  `so_mon` đếm dòng thẻ là 1.
+- **Xem đơn:** `GET /don/:ma` `mon[]` dòng thẻ có thêm `loai: "the"`, `ten` "🎟️ Thẻ hội viên <hạng> · <n> tháng", `ghi_chu` `null`; dòng món không có
+  `loai`. `mon[]` theo thứ tự của đơn (món trước, dòng thẻ cuối — có thể khác thứ tự giỏ gửi lên), giống hệt trước và sau khi trả; `mon_dau` cũng vậy. `hoa_don[]` dòng thẻ `loai: "the"` (cùng `trai` / `phai` như dòng món), `ghi_chu` "Hạn mới: dd/mm/yyyy" (đơn bị huỷ: rỗng).
+  `so_mon` đếm dòng thẻ là 1. Hạn mới không thời hạn → "Hạn mới: không thời hạn".
 - **Huỷ / hoàn:** quầy huỷ / xoá đơn có thẻ → thẻ của đơn bị thu hồi, hạng tính lại (hạn cộng nối lùi về). Đơn có thẻ không hoàn qua yêu cầu
   hoàn tiền (như quầy). App chỉ huỷ được đơn chưa trả (chưa có hạng).
 - **Điểm:** đơn có thẻ cộng điểm theo đúng luật điểm của quầy (cùng hàm). `GET /hang` thêm `quyen_loi[]` (chữ chủ quán nhập ở Cài đặt → Hạng thành

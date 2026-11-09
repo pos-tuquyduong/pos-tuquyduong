@@ -57,7 +57,7 @@ const sinhMa = () => 'A' + [...crypto.randomBytes(8)].map((b) => CHU_MA[b % CHU_
 // Băm giỏ từ thân THÔ (chưa kiểm) — so được cả khi thân sai dạng; KHÔNG có pin, tong_da_xem, khoa_gui. Dòng món băm y như trước KH-THE-1
 // (khoá gửi đang sống không lệch); dòng thẻ băm riêng một dạng.
 const bamGio = (b) => crypto.createHash('sha256').update(JSON.stringify([
-  Array.isArray(b.mon) ? b.mon.map((m) => (m?.loai === 'the' ? ['the', m.hang_id ?? null, m.so_thang ?? null, m.so_luong ?? null]
+  Array.isArray(b.mon) ? b.mon.map((m) => (m?.loai === 'the' ? ['the', m.hang_id ?? null, m.so_thang ?? null, m.so_luong ?? 1]   // bỏ trống = 1 (docGio)
     : [m?.ma ?? null, m?.so_luong ?? null, m?.ghi_chu || null])) : null,
   b.ma_giam || null, b.cach_nhan ?? null, b.cach_tra ?? null])).digest('hex');
 
@@ -260,8 +260,11 @@ async function datDon(khach, b) {
 
   const ma = sinhMa();
   const the = kq.gio.the && await queryOne('SELECT name FROM pos_membership_tiers WHERE id = ?', [kq.gio.the.hang_id]);
-  const than = JSON.stringify({ dong: kq.bao.dong.map((x, i) => { const { g, j } = kq.ghep[i];
-    return g.loai === 'the' ? { ...x, ten: `Thẻ ${the.name} · ${g.so_thang} tháng` } : { ...x, ten: kq.d.ten[j], ghi_chu: g.ghi_chu }; }), tong: kq.bao.tong });
+  // Thân đơn chưa trả = CÙNG hình đơn thật sau khi trả (soát vòng 1): dòng thẻ xếp SAU món, tên như dòng hàng taoDon ghi (orders.js), ghi_chu null —
+  // mon[] / mon_dau / so_mon không đổi khi đơn chuyển từ chưa trả sang đã trả.
+  const dongThan = kq.bao.dong.map((x, i) => { const { g, j } = kq.ghep[i];
+    return g.loai === 'the' ? { ...x, ten: `🎟️ Thẻ hội viên ${the.name} · ${g.so_thang} tháng`, ghi_chu: null } : { ...x, ten: kq.d.ten[j], ghi_chu: g.ghi_chu }; });
+  const than = JSON.stringify({ dong: [...dongThan.filter((x) => x.loai !== 'the'), ...dongThan.filter((x) => x.loai === 'the')], tong: kq.bao.tong });
   // Q3 (chủ quán 09.11): giỏ không cần pha chế → tiến trình quầy 'xong' ghi SẴN; tienTrinh chỉ đọc nó khi phiên đã da_thu → "xong" đúng lúc đã thu.
   let appId;
   try {
