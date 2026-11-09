@@ -72,4 +72,11 @@ Thử tay (1–3 thao tác cho chủ quán, điện thoại): (1) chọn khách 
 - **NGUYÊN TẮC 1 (đề xuất, ngoài Phạm vi — KHUON_LOI.md không nằm trong Phạm vi):** thêm vào K4: "state phụ cùng nhóm trạng thái đơn (cachTra, dungMe, cachConLai) phải nằm chung MỘT hàm đặt lại; thêm state mới → grep mọi chỗ đặt lại". Ví dụ: `cachConLai` rò sang đơn sau (lần soát 1). Chat soát duyệt, gom vào HOC-<n>.
 - **BỎ 1:** kho nông làm thu_BH2 G1 báo `bad revision cbbb809..HEAD` — chỉ do môi trường (đã `--unshallow`), một lần.
 - Dọn `KHUON_LOI.md`: không đề xuất xoá mục nào.
+
+## Cổng chạy (bước 11.4)
+`node tu_chay/cong.js chay . b1fd5c0^ HEAD viec/QUAY-UI-1` ở HEAD `84a2878`, cây sạch:
+✓ CỔNG CHẠY ĐẠT
+(Kèm một CẢNH BÁO A16: bài in 43 ca trên gốc ≠ 63 ca ở head — do các ca nằm trong khối `if (hamCo(...))` không chạy khi hàm chưa có trên gốc; không phải bài dừng sớm. Đã xem, bằng chứng đỏ là 32/43 hỏng.)
+
+HEAD ĐÃ KIỂM: 84a2878
 - Sự cố: người gác chặn nhiều lệnh ghép (`B-PHANTICH`) và file có cụm `JWT_SECRET` (`B-BIMAT-CHU`) → tách lệnh, commit file bài thử trước khi chạy (đúng luật skill).
