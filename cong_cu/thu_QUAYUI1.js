@@ -47,7 +47,9 @@ async function main() {
   const hamCo = (ten) => typeof T[ten] === 'function';
   const monThuong = { key: 1, product_id: 5, sx_product_type: 'juice', sx_product_id: 9, product_name: 'Cam', unit_price: 30000, quantity: 2, note: '' };
   const vang = { id: 7, name: 'Vàng', cach_co: 'ban', sort_order: 2, goi: [{ so_thang: 1, gia: 100000, bat: true }, { so_thang: 3, gia: 289000, bat: true }, { so_thang: 6, gia: 0, bat: true }, { so_thang: 12, gia: 900000, bat: false }] };
-  const kimCuong = { id: 8, name: 'Kim Cương', cach_co: 'cap', sort_order: 3, goi: [{ so_thang: 1, gia: 5000000, bat: true }] };   // hạng chỉ cấp có gói giá cũng KHÔNG bán
+  const tiersSrc = doc('server/routes/tiers.js');
+  const CACH_CHI_CAP = (/CACH_CO = \['ban', '([a-z_]+)'\]/.exec(tiersSrc) || [])[1];   // giá trị THẬT máy chủ lưu — không tự gõ trong fixture
+  const kimCuong = { id: 8, name: 'Kim Cương', cach_co: CACH_CHI_CAP, sort_order: 3, goi: [{ so_thang: 1, gia: 5000000, bat: true }] };   // hạng chỉ cấp có gói giá cũng KHÔNG bán
   const khachA = { phone: '0901000001', name: 'A', balance: 500000, parent_balance: 0 };
 
   muc('[A] Tab "Thẻ thành viên" — hàm thuần');
@@ -57,6 +59,7 @@ async function main() {
       const ds = T.dsGoiThe([vang, kimCuong]);
       k('A1 chỉ gói đang bán (bật + giá > 0) của hạng `ban`: Vàng 1 tháng + 3 tháng; hạng chỉ cấp không bán dù có gói', JSON.stringify(ds.map((g) => [g.tier.id, g.so_thang, g.gia])) === JSON.stringify([[7, 1, 100000], [7, 3, 289000]]), JSON.stringify(ds.map((g) => [g.tier.id, g.so_thang, g.gia])));
     }
+    k('A1 (điều kiện) lấy được giá trị hạng chỉ cấp từ CACH_CO của tiers.js = chi_cap', CACH_CHI_CAP === 'chi_cap', String(CACH_CHI_CAP));
     k('A1 có hàm hangChiCap (hạng chỉ cấp → hiện mờ "Chủ quán cấp")', hamCo('hangChiCap') && T.hangChiCap([vang, kimCuong]).map((t) => t.id).join() === '8');
     const dong = hamCo('dongThe') ? T.dongThe(vang, { so_thang: 3, gia: 289000 }) : null;
     k('A2 có hàm dongThe → dòng giỏ có the {tier_id, so_thang}, product_id −1000000 − id hạng, 1 thẻ', !!dong && dong.the?.tier_id === 7 && dong.the?.so_thang === 3 && dong.product_id === -1000007 && dong.quantity === 1, JSON.stringify(dong));
@@ -73,6 +76,11 @@ async function main() {
       k('A3 khoá đổi khi thêm / bỏ thẻ', T.khoaTinh([monThuong], khachA, '') !== T.khoaTinh([monThuong, dong], khachA, ''));
       const g = T.tinhGio([dong], { hang: { usable: true, discount_percent: 20, special_discount_percent: 20 } });
       k('A4 hạng của khách KHÔNG giảm giá cái thẻ (như gói nạp)', g.dong[0].giaHang === 289000 && g.tong === 289000, `giaHang ${g.dong[0]?.giaHang}`);
+    }
+    k('A8 có hàm viTriMayChu (máy chủ đẩy dòng thẻ CUỐI items — orders.js)', hamCo('viTriMayChu'));
+    if (hamCo('viTriMayChu') && dong) {
+      k('A8 giỏ [thẻ, món] → dòng giỏ 0 (thẻ) ứng dòng máy chủ 1, dòng giỏ 1 (món) ứng dòng máy chủ 0', JSON.stringify(T.viTriMayChu([dong, monThuong])) === '[1,0]', JSON.stringify(T.viTriMayChu([dong, monThuong])));
+      k('A8 giỏ [món, thẻ] và giỏ không thẻ giữ nguyên thứ tự', JSON.stringify(T.viTriMayChu([monThuong, dong])) === '[0,1]' && JSON.stringify(T.viTriMayChu([monThuong, { ...monThuong, key: 9 }])) === '[0,1]');
     }
     // luật chạm gói
     k('A5 có hàm kiemTraThe', hamCo('kiemTraThe'));
@@ -116,7 +124,10 @@ async function main() {
   });
   k('B4 BanHangMoi: không còn `dungTK` mặc định true (useState(true)) — mặc định không trừ', !/\[dungTK, setDungTK\] = useState\(true\)/.test(bh) && !/setDungTK\(true\)/.test(bh));
   k('B4 BanHangMoi: có trạng thái cachTra khởi tạo bằng CACH_TRA_MAC_DINH', /useState\(CACH_TRA_MAC_DINH\)/.test(bh));
-k('B4b chọn khách / bỏ khách / đơn mới / bỏ trừ (PIN) đều đặt lại cách trả về CACH_TRA_MAC_DINH — đúng 4 chỗ, không chỗ nào đặt chữ cứng', (bh.match(/setCachTra\(CACH_TRA_MAC_DINH\)/g) || []).length === 4 && !/setCachTra\('/.test(bh));
+k('B4b chọn khách / bỏ khách / đơn mới / bỏ trừ (PIN) đều gọi MỘT hàm datLaiCach (đúng 4 chỗ) — hàm đó đặt cách trả VÀ phần còn lại VÀ ví mẹ; không chỗ nào đặt chữ cứng', (bh.match(/datLaiCach\(\)/g) || []).length === 4
+    && /const datLaiCach = \(\) => \{ setCachTra\(CACH_TRA_MAC_DINH\); setCachConLai\('tien_mat'\); setDungMe\(false\); \};/.test(bh) && (bh.match(/setCachTra\(CACH_TRA_MAC_DINH\)/g) || []).length === 1 && !/setCachTra\('/.test(bh));
+k('B4c đổi sang khách KHÁC → bỏ dòng thẻ khỏi giỏ (hạng khách mới chưa tra, kiemTraThe phải chạy lại)', /khach\?\.phone !== c\.phone\) setGio\(\(g\) => g\.filter\(\(m\) => !m\.the\)\)/.test(bh));
+k('A9 dòng máy chủ khớp theo viTriMayChu, không theo chỉ số giỏ', /viTriMayChu\(gio\)/.test(bh));
   const tt = doc('client/src/pages/BanHang/ThuTien.jsx');
   k('B5 ThuTien có đủ ba nút: Tiền mặt · Chuyển khoản · Trừ tài khoản', />Tiền mặt<\/button>/.test(tt) && />Chuyển khoản<\/button>/.test(tt) && />Trừ tài khoản<\/button>/.test(tt));
   k('B5 ThuTien: nút Trừ tài khoản mờ kèm lý do từ lyDoKhongTru', /lyDoKhongTru\(/.test(tt));
