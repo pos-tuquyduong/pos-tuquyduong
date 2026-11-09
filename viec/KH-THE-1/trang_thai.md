@@ -128,3 +128,24 @@ BÀI HỌC:
   thêm ca B12b mã % (App = quầy). Muốn mã KHÔNG áp lên thẻ là đổi luật mã của CẢ quầy → việc khác, chủ quán quyết (ghi Phát hiện).
 - Lỗi 2–6 + nghi ngờ bamGio: sửa trong vòng này (ca thử đỏ trước). manKhach.js → Phát hiện (ngoài Phạm vi). dongTheCua ghép vị trí: giữ (hoaDon.js map 1–1,
   cùng ORDER BY id; thêm trường vào hd.mon dễ làm đỏ bài khoá trường của hoá đơn quầy) — ghi lý do.
+
+### Vòng sửa 1 — đã làm (HEAD 3da7ac5)
+- Ca mới đỏ trước (e21984a: 67 đạt · 6 hỏng) → vá → 73 đạt · 0 hỏng. `npm test -- --day-du` 111 đạt · 0 hỏng (dist KHỚP src).
+- Lỗi 1: hợp đồng v13 ghi rõ mã giảm áp như quầy (tính trên tạm tính gồm giá thẻ) + ca B12b (mã 10% trên giỏ chỉ thẻ: App = quầy = 225.000).
+- Lỗi 2: ca K5a (Kim Cương cấp có hạn đã hết → Vàng, không chặn mua Vàng), K5b (Vàng hết hạn mua lại Vàng trên App).
+- Lỗi 3 + 4: thân đơn chưa trả = cùng hình đơn thật — dòng thẻ xếp sau món, tên như dòng hàng taoDon ("🎟️ Thẻ hội viên … · n tháng"), ghi_chu null;
+  ca G2 (đủ trường) + G7 (mon[] và mon_dau giống hệt trước / sau khi trả). Nhãn màn Đơn App bỏ 🎟️ thừa (tên đã có).
+- Lỗi 5: hoá đơn hạn không thời hạn → "Hạn mới: không thời hạn" (ca G1b). Lỗi 6: hợp đồng NGAY 2026-11-09, DOC_TU_CODE thêm KH-THE-1 / tiers.js / 023.
+- Nghi ngờ bamGio: dòng thẻ băm so_luong bỏ trống = 1 (ca B9b). Nghi ngờ ghép vị trí ở dongHoaDon: giữ — hoaDon.js map 1–1 cùng ORDER BY id; thêm trường
+  vào hd.mon sẽ đụng hoá đơn quầy (ngoài mục tiêu). Nghi ngờ gioCanPhaChe "mọi món /menu cần pha": đúng theo lời chủ quán 09.11 (giỏ có đồ uống = có
+  món /menu); hàng đóng gói không pha trên /menu (nếu có sau này) là việc khác.
+- Đột biến thêm: BV-hoa-don-vo-han (G1b), VS-bam-so-luong-tho (B9b), BV-than-the-cuoi (G7), BV-than-ghi-chu (G2); neo VS-hoa-don-han-rong đổi theo dòng mới.
+  Tổng 27/27 BẮT.
+
+## Phát hiện
+- `server/utils/manKhach.js:132-135` (màn hình khách lúc thu): dòng thẻ / gói tra tên theo pos_products bằng product_id âm → hiện chữ "Món" thay vì tên
+  thẻ. Có sẵn từ quầy (bán thẻ ở quầy cũng vậy), ngoài Phạm vi — không sửa.
+- Mã giảm % / mã tiền áp lên cả giá thẻ (uuDai.js tính trên mọi dòng hàng) — ở quầy và App như nhau. Muốn mã KHÔNG giảm giá thẻ là đổi luật mã của quầy →
+  chủ quán quyết, việc riêng.
+- Đơn App chỉ có thẻ tới màn Đơn App ở trạng thái "xong" nên KHÔNG kêu chuông (DonAppNoi.jsx:64 chỉ kêu khi da_tra / vao_vi) — đúng ý "không pha";
+  chủ quán muốn chuông cho đơn thẻ thì báo.

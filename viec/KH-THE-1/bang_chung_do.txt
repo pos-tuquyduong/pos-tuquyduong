@@ -54,7 +54,17 @@ GỐC da5f5d4: thoát 1
 (Ca xanh trên gốc là ĐỐI CHỨNG / luồng phải không đổi: A1 quầy bán thẻ, B4 chặn dạng sai, B11 đếm bảng, K1 băm giỏ cũ = số chụp trên gốc,
  K2, S2–S4. Trên gốc mục D / E / G sập giữa chừng vì đơn thẻ không tạo được — số ca trên code đã vá: 67.)
 
-SỐ CA cong_cu/thu_KHTHE1.js: 67
+── Vòng sửa 1 (soát độc lập): bài thêm B9b, B12b, G1b, G2 (sửa), G7, K5a, K5b — chạy lại trên gốc da5f5d4 (cùng lệnh --goc):
+  ✗ B9b gửi lại cùng khoá, dòng thẻ thêm so_luong: 1 (cùng nghĩa với bỏ trống) → vẫn trung: true  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ B12b giỏ chỉ thẻ + mã 10%: áp như quầy (tính trên giá thẻ) — tong App = tinh-thu quầy = 225.000  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · undefined / 225000
+  ✗ G2 đơn CHƯA trả: mon[] dòng thẻ loai "the", tên như bill quầy, ghi_chu null (đủ trường); món giữ ghi chú  — []
+  ✗ K5a luật giảm hạng: Kim Cương (cấp 1 tháng) đã hết hạn → không chặn mua Vàng; /toi.hang = Vàng  — null · HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ K5b Vàng đã hết hạn mua lại Vàng trên App → 200, có hạng, hạn mới tính từ hôm nay (> bây giờ)  — null · HTTP 400 · YEU_CAU_KHONG_HOP_LE · null
+  8 đạt · 44 hỏng
+GỐC da5f5d4: thoát 1   (G1b, G7 nằm sau G2 trong mục [G] — mục G sập trên gốc; trên HEAD e21984a (chưa vá vòng 1) chúng ĐỎ:
+  ✗ G7 … — thứ tự / tên dòng thẻ khác giữa chưa trả và đã trả · ✗ G1b … — Hạn mới: 31/12/9999 · ✗ B9b — 409 KHOA_GUI_DA_DUNG · ✗ G2, G3, Q3 (tên thẻ) → 67 đạt · 6 hỏng)
+
+SỐ CA cong_cu/thu_KHTHE1.js: 73
 
 ── Bài cũ sửa vì hành vi đổi (LUAT §6.7 — danh sách trắng trường /kh/hang thêm `quyen_loi`; §6.8/6.9: bản mới ĐỎ trên gốc) ──
 Lệnh: bản HEAD của bài chạy trên cây gốc da5f5d4 (git archive vào thư mục nháp, node_modules nối symlink)
@@ -69,6 +79,6 @@ cong_cu/thu_HANG1.js trên gốc:
 SỐ CA cong_cu/thu_KHAPI2.js: 101
 SỐ CA cong_cu/thu_HANG1.js: 144
 
-── Đột biến (python3 viec/KH-THE-1/dot_bien.py, HEAD 534778d) ──
-ĐỐI CHỨNG (bản chưa đột biến): XANH · 67 đạt · 0 hỏng
-TỔNG 23 đột biến · BẮT 23 · SỐNG 0 · HỎNG 0 · LẠC 0
+── Đột biến (python3 viec/KH-THE-1/dot_bien.py, HEAD 3da7ac5 — vòng sửa 1) ──
+ĐỐI CHỨNG (bản chưa đột biến): XANH · 73 đạt · 0 hỏng
+TỔNG 27 đột biến · BẮT 27 · SỐNG 0 · HỎNG 0 · LẠC 0
