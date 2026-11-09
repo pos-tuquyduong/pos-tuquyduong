@@ -1,0 +1,49 @@
+DIEM-MON-1 — bằng chứng bài thử ĐỎ trên code GỐC
+Gốc = server/ + cong_cu/gia_lap/ ở commit e90d42a (PHIEU sau Q2/Q3), xuất ra thư mục nháp bằng `git archive e90d42a server cong_cu/gia_lap`.
+Bài thử = bản cuối (commit 01c8619). Lệnh: node cong_cu/thu_DIEMMON1.js --may-chu <nháp>/goc/server   (thoát 1)
+
+[A] Bước nâng cấp 024: cờ tich_diem (mặc định 1) ở món / gói / hạng; đơn ghi tien_hang_diem, dòng đơn ghi tich_diem
+  ✗ T1 cột tich_diem NOT NULL mặc định 1 ở 3 bảng … — pos_products:không:NaN · pos_packages:không:NaN · pos_membership_tiers:không:NaN · đơn false · dòng false
+[B] MỘT hàm tính tiền tích điểm theo dòng — quầy, App, nhận điểm bằng mã bill, thu nợ
+  ✓ T2 (đối chứng) mọi món bật: X + Y tiền mặt 100.000 → 100 điểm; đơn cũ (không cột / cột NULL) và đơn bật hết tính như hôm nay; tiền hàng 0 → 0 (không NaN)
+  ✓ T2b đơn cũ (không cờ dòng, không tien_hang_diem) 100 điểm, đền X 30.000 sau khi X đã tắt → trừ 30 như hôm nay → 70
+  ✗ T3 X TẮT + Y bật, tiền mặt 100.000 → 60 điểm; đơn lưu tien_hang_diem 60.000, dòng đơn lưu cờ [0, 1]  — HTTP 200 · 100 · null · []
+  ✗ T4 cùng giỏ trả ví 100.000 → 60; trả CK → 60  — HTTP 200 100 · HTTP 200 100
+  ✗ T5 mã giảm 10% cả đơn: 90.000 → 54 (chia theo tỷ lệ)  — HTTP 200 · 90000 · 90
+  ✗ T6 khách hạng (X nhóm đặc biệt giảm 50%, Y giảm 10%): X 20.000 + Y 54.000 = 74.000 → 54  — HTTP 200 · 74000 · 74
+  ✗ T6b mã giảm 1 món 10.000: X + Y = 90.000 → 54  — HTTP 200 · 90000 · 90
+  ✗ T7 đơn App (ví) cùng giỏ X + Y → 60  — HTTP 200 100000 · HTTP 200 · 100
+  ✗ T8 đơn không SĐT X + Y, hoá đơn báo mã được 120; bật lại X SAU khi bán rồi nhận mã ×2 → vẫn 120  — hoá đơn diem 200 · HTTP 200 cộng 200 · 200
+  ✗ T9 đơn nợ X + Y: lúc tạo 0 điểm (K5); thu đủ → 60  — HTTP 200 · tạo 0 · HTTP 200 · 100
+[A] Gói trả trước, thẻ hạng có công tắc; gói nạp và phí giao không điểm (như nay)
+  ✗ T10 gói G TẮT 300.000 → 0 điểm; G + Y = 360.000 → 60  — HTTP 200 300 · HTTP 200 360
+  ✗ T11 hạng Vàng TẮT, gói 3 tháng 200.000 → 0 điểm; thẻ + Y = 260.000 → 60  — HTTP 200 200 · HTTP 200 260
+  ✓ T12b (K5) đơn chỉ lấy từ gói (0đ) → 200, 0 điểm (tiền hàng 0, không NaN)
+  ✗ T12 (đối chứng phí giao) X + Y + phí giao 20.000 → 60; Y + phí giao → 60  — HTTP 200 100 · HTTP 200 60
+[C] Trừ điểm (CÁCH 2)
+  ✗ T13 X tắt + 2 Y (160.000 tiền mặt) → 120; đền Y 30.000 → 90; đền Y 60.000 → 30; T13d đền X (tắt) 40.000 → vẫn 30  — [160,130,70,30]
+  ✗ T13b ví 50.000 + tiền mặt 50.000 (60 điểm), duyệt hoàn trả 50.000 vào ví → 30  — 50
+  ✗ T13c đơn có SĐT (120), đền Y 30.000 → 90; nhận mã ×2 → 180 (báo cộng 90)  — cộng 130 · 260
+  ✗ T14 gói G TẮT 300.000 + Y 60.000 → 60; kết thúc gói hoàn 300.000 → trừ 0, không ghi dòng trừ  — 360 → 60 · dòng trừ 1
+  ✗ T14b gói B bật 300.000 + X tắt 40.000 → 300; kết thúc gói hoàn 300.000 → 0  — 340 → 40
+  ✗ T15 hai lệnh đền Y 60.000 chồng nhau (đơn 120 điểm) → 0  — HTTP 200 · HTTP 200 · 40
+[D] Cài đặt → Điểm thưởng
+  ✗ T17 GET 3 nhóm …; nhân viên không quyền xem Cài đặt → 403  — HTTP 404 · nhân viên HTTP 404
+  ✗ T16 PUT … → 403 / 400 TICH_DIEM_SAI / 200  — HTTP 404 (mọi lệnh)
+[E] Đối soát
+  ✗ T18 hoá đơn không SĐT báo mã = điểm /nhan-diem ghi sổ (120); I8 0 lệch …  — hoá đơn diem 200
+  ✓ T18b I8 bắt lệch MỘT điểm ở đơn có món tắt + đền (T13)
+[K5]
+  ✓ T19 tổng / tạm tính / giảm hạng như gốc (100.000 · 100.000 · 74.000 · 26.000 · 90.000 · 360.000); gói nạp vẫn 0 điểm
+  5 đạt · 21 hỏng
+
+Trên code ĐÃ VÁ (HEAD): node cong_cu/thu_DIEMMON1.js → 26 đạt · 0 hỏng
+SỐ CA cong_cu/thu_DIEMMON1.js: 26
+
+────────────────────────────────────────────────────────────────────────────
+Bài cũ SỬA theo LUAT_XAY_APP §6.7 (bài khoá ĐÚNG danh sách cột, phiếu thêm cột mới): cong_cu/thu_KHO1.js — D1 thêm `tich_diem` vào COT_SP
+(vẫn so BẰNG). Bản mới trên GỐC: node cong_cu/thu_KHO1.js --may-chu <nháp>/goc/server
+  ✗ D1 pos_products KHÔNG thêm cột
+  111 đạt · 1 hỏng
+Trên code ĐÃ VÁ: 112 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 112
