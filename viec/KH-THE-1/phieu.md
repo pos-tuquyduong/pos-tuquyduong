@@ -52,6 +52,8 @@ quầy + App; huỷ / hoàn thu hồi thẻ như quầy.
 - client/dist/**
 - HOP_DONG_API_KH.md
 - cong_cu/thu_KHTHE1.js
+- cong_cu/thu_HANG1.js
+- cong_cu/thu_KHAPI2.js
 - cong_cu/thu_HOPDONG_KH.js
 - kiem_tra_truoc_khi_giao.js
 
