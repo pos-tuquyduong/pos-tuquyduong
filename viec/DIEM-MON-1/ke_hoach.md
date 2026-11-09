@@ -1,4 +1,4 @@
-# DIEM-MON-1 — kế hoạch (CHỜ DUYỆT)
+# DIEM-MON-1 — kế hoạch (ĐÃ DUYỆT 09.11 — Q1 = CÁCH 2; xem mục 6)
 
 ## 0. Lời thường cho chủ quán
 Mỗi món / mỗi hạng thẻ / mỗi gói trả trước có thêm một công tắc "Tích điểm" (mặc định BẬT — hôm nay không gì đổi). Lúc bán, máy chủ ghi
@@ -117,3 +117,31 @@ bảng), `BV-TRAN` (bỏ kẹp ≤ 1).
 Khi trả tiền vào tài khoản (hoàn / đền / kết thúc gói) cho đơn có món tắt điểm, mình đề xuất **trừ điểm theo tỷ lệ trên toàn tiền đơn**
 (hoàn 30% tiền đơn → trừ 30% điểm đơn). Cách khác: kết thúc gói (tiền hoàn là của gói) mà gói tắt điểm thì không trừ — cần biết khoản hoàn
 thuộc dòng nào, thêm ~30 dòng. Đề xuất: cách thứ nhất (đơn giản, không bao giờ trừ quá điểm đã cộng).
+
+## 6. Bổ sung sau duyệt 09.11 — CÁCH 2 (chủ quán chọn) và hai chỗ ngoài Phạm vi
+
+### 6.1 Luật trừ điểm CÁCH 2 (thay Phần 3)
+- Cờ của từng dòng lưu NGAY lúc bán: bước 024 thêm `pos_order_items.tich_diem` (NULL = đơn cũ = bật). Bật / tắt công tắc sau khi bán không đổi đơn cũ.
+- `truDiemHoan` chia tiền đã trả vào tài khoản của đơn thành 3 phần (đọc từ dữ liệu có cấu trúc, không đọc chữ ghi chú):
+  - **gắn dòng BẬT** `Rb` · **gắn dòng TẮT** `Ro` (bỏ qua, trừ 0) · **không gắn dòng** `Rk` (duyệt hoàn).
+  - Kết thúc gói (sổ ví 'refund' của đơn CÓ dòng gói — duyệt hoàn bị chặn ở đơn có gói / thẻ, `refunds.js:29-31,164`; mỗi đơn tối đa MỘT dòng
+    gói, `orders.js` `package_buy` một `package_id`) → gắn dòng gói. Đơn không có gói: 'refund' = duyệt hoàn → `Rk`.
+  - Đền ('compensation') → gắn dòng theo `pos_damage_logs.product_code` (cần mục 6.2 Q2).
+- Số trừ = min(điểm, ceil(điểm × (Rk / tiền trả + Rb / tiền tính điểm))). Đơn cũ / đơn toàn món bật: tiền tính điểm = tiền trả → y hệt hôm nay
+  (bài cũ thu_NAP1 E10, E12, E16d giữ nguyên số).
+- Ca sửa: **T13** đơn X tắt 40.000 + Y bật 60.000 tiền mặt (60 điểm): đền Y 30.000 → trừ ceil(60 × 30.000 / 60.000) = 30; đền tiếp Y 30.000 → tổng
+  60, không quá. **T13d (mới)** đền X (tắt) 40.000 → trừ 0. **T13b** duyệt hoàn 50.000 (không gắn dòng) → trừ ceil(60 × 50.000 / 100.000) = 30.
+  **T14** gói G tắt 300.000 + Y bật 60.000 (60 điểm), kết thúc gói hoàn 180.000 → trừ 0. **T14b (mới)** gói bật + Y tắt: kết thúc gói hoàn → trừ
+  theo phần gói. **T13c** đơn có SĐT, đền Y rồi nhận mã bill → trừ phần Y theo điểm mã bill.
+- Đột biến thêm: `VS-HOAN-TOANDON` (đền / kết thúc gói tính như không gắn dòng — T13, T13d, T14 bắt), `VS-TAT-VAN-TRU` (dòng tắt vẫn tính vào Rb —
+  T13d, T14 bắt), `BV-COT-DONG` (không ghi `tich_diem` xuống dòng đơn — T13d bắt).
+
+### 6.2 Hai chỗ NGOÀI Phạm vi (ghi ở `trang_thai.md ## Câu hỏi`)
+- **Q2 — `server/routes/damages.js`**: lúc gọi `truDiemHoan` (dòng 208) dòng `pos_damage_logs` của lần đền này CHƯA ghi (`ghiHangHong` ở dòng
+  211) → máy chủ không biết lần đền này thuộc món nào. Đề xuất: dời MỘT dòng `ghiHangHong` lên trước khối đền (không đổi số tiền, không đổi
+  trả lời). Cách khác trong Phạm vi: đọc mã món từ CHỮ ghi chú sổ ví ("… - <mã món> xN") — dễ vỡ khi ai đổi câu chữ, không đề xuất.
+- **Q3 — `cong_cu/gia_lap/bat_bien.js` I8**: màn Đối soát chạy I8 trên dữ liệu thật (`server/utils/doiSoat.js:18,39,203`). I8 tự tính lại điểm theo
+  TIỀN CẢ ĐƠN (`bat_bien.js:146-190`) → tắt điểm một món là MỌI đơn có món đó hiện "lệch" ở Đối soát (trái nghiệm thu E). Kế hoạch mục 4 ghi "đối
+  soát đọc sổ, không tính lại" là SAI (K1 — chưa đọc I8). Đề xuất: thêm `bat_bien.js` vào Phạm vi; I8 nhân tỷ lệ `tien_hang_diem` của đơn và áp
+  luật CÁCH 2 (công thức chép riêng như nay — trọng tài không gọi diemThat.js); đơn cũ (cột NULL) giữ y hệt. Ca thử T18 khoá: đơn có món tắt,
+  có đền / kết thúc gói → I8 0 lệch; đột biến lệch một đồng → I8 bắt.
