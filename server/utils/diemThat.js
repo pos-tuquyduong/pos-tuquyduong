@@ -32,14 +32,15 @@ const tienHangDiem = (dongDon, tienHang) => {
 };
 
 /**
- * DIEM-MON-1: tiền tính điểm = tiền khách trả (tienTraDon) × phần tiền hàng của dòng bật (`tien_hang_diem` đã lưu lúc bán) / tiền hàng
- * (total − phí giao), kẹp ≤ 1, làm tròn. Đơn cũ (`tien_hang_diem` không có / NULL) → như trước. Tiền hàng ≤ 0 → 0 (không chia cho 0).
+ * DIEM-MON-1: tiền tính điểm = tiền khách trả (tienTraDon) × phần tiền hàng của dòng bật (`tien_hang_diem` đã lưu lúc bán, ≤ tiền hàng — tienHangDiem)
+ * / tiền hàng (total − phí giao), làm tròn. Đơn cũ (`tien_hang_diem` không có / NULL) → như trước. Tiền hàng ≤ 0 → 0 (không chia cho 0).
+ * `dong` phải có tien_hang_diem nếu cột có (mọi chỗ gọi đọc SELECT * hoặc kê cột — signup-codes.js kiemDonCuaMa).
  */
 const tienTinhDiem = (dong) => {
   const tra = tienTraDon(dong);
   if (dong.tien_hang_diem == null) return tra;
   const hang = (Number(dong.total) || 0) - (Number(dong.shipping_fee) || 0);
-  return hang > 0 ? Math.round(tra * Math.min(1, Math.max(0, Number(dong.tien_hang_diem) || 0) / hang)) : 0;
+  return hang > 0 ? Math.round((tra * (Number(dong.tien_hang_diem) || 0)) / hang) : 0;
 };
 
 /**
@@ -84,9 +85,8 @@ async function tienHoanTinhDiem(tx, d, tienDiem) {
 async function truDiemHoan(tx, don, nguoi, luc, lyDo) {
   const moc = (await tx.queryOne("SELECT luc FROM pos_nang_cap WHERE ten = '014_nap'"))?.luc;
   if (!moc) return 0;
-  const d = (await tx.queryOne('SELECT * FROM pos_orders WHERE id = ?', [don.id])) || don;
-  const tienDiem = tienTinhDiem(d);
-  const hoan = await tienHoanTinhDiem(tx, d, tienDiem);
+  const tienDiem = tienTinhDiem(don);
+  const hoan = await tienHoanTinhDiem(tx, don, tienDiem);
   const nhom = await tx.query(`SELECT customer_phone, expires_at, SUM(CASE WHEN type = 'earn' THEN points ELSE 0 END) AS diem, SUM(points) AS con
     FROM pos_point_transactions WHERE order_id = ? AND type IN ('earn', 'adjust') AND created_at >= ?
     GROUP BY customer_phone, expires_at ORDER BY expires_at IS NULL DESC, expires_at DESC`, [don.id, moc]);
