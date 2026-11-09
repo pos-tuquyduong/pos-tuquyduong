@@ -26,6 +26,52 @@
   - ce46ce0 DIEM-MON-1: ke hoach (cho duyet) + trang thai buoc 1-3
 - Q2, Q3 ĐÃ TRẢ LỜI (phiếu e90d42a thêm hai file vào Phạm vi). Làm tiếp từ bước 4.
 
+## Bước 4–6 (phiên 09.11 lần 2)
+- Bài thử `cong_cu/thu_DIEMMON1.js` viết TRƯỚC, chạy trên gốc (server e90d42a): 5 đạt · 21 hỏng (`bang_chung_do.txt`). Sau vá: 26 đạt · 0 hỏng.
+- Khác bảng ca trong `ke_hoach.md` (ghi rõ, không đổi luật): T13 dùng X + 2 Y (Y một ly thì không đền được hai lần — `VUOT_SO_LUONG`);
+  T6 cho X nhóm đặc biệt 50% (giảm hạng đồng đều 10% không phân biệt được "giá hạng từng món" — đột biến bỏ giá hạng sống); thêm T2b (đơn cũ
+  không cờ), T12b (đơn chỉ lấy từ gói, K5), T17 ca nhân viên 403. T19 bỏ ý "flash 0 điểm" (thu_P2223 canh, bài này không bật flash).
+- Bài cũ sửa theo LUAT §6.7: `cong_cu/thu_KHO1.js` D1 (khoá đúng danh sách cột pos_products) thêm `tich_diem` — bản mới ĐỎ trên gốc, xanh sau vá
+  (`bang_chung_do.txt`, `SỐ CA`). Không phải `## Bài thử cũ sửa` (đỏ trên gốc — §6.8/6.9).
+- Bộ kiểm: `thu_BH2.js` đỏ "bad revision cbbb809" vì kho nông → `git fetch -q --unshallow origin viec/DIEM-MON-1` (chỉ tải lịch sử). Cảnh báo
+  "route ghi không qua loiGhi 48 > 47" do PUT /loyalty/tich-diem mới → đã cho đi qua `loiGhi`. Còn 1 cảnh báo có sẵn (GET có lệnh ghi — packages,
+  products, sync; không phải của việc này).
+- Bản lưu trước khi vá: không chép tay (người gác chặn vòng `for`); gốc lấy lại bằng `git archive e90d42a server cong_cu/gia_lap` vào thư mục nháp.
+
+### Chỗ vá → đột biến (`viec/DIEM-MON-1/dot_bien.py` — 30 BẮT · 0 SỐNG · 0 HỎNG · 0 LẠC, đối chứng 26 đạt · 0 hỏng)
+| Chỗ vá | Đột biến | Ca bắt |
+|---|---|---|
+| 024 thêm `pos_orders.tien_hang_diem` | BV-024-cot-don | T1 |
+| 024 cờ ở 3 bảng | BV-024-co-goi | T1 |
+| `tienTinhDiem` nhân tỷ lệ | BV-ham-bo-ty-le | T3 |
+| `tienTinhDiem` chặn tiền hàng 0 | VS-chia-0 | T2 |
+| `batDiem` NULL = bật | VS-null-la-tat | T2b |
+| `tienHangDiem` chia theo tỷ lệ | VS-khong-chia-ty-le | T5 |
+| `tienHangDiem` giá hạng từng dòng | VS-gia-goc-bo-gia-hang | T6 |
+| `tienHangDiem` bỏ dòng tắt | BV-dong-tat-van-tinh | T3 |
+| `tienHoanTinhDiem` CÁCH 2 theo dòng | VS-hoan-toan-don | T13 |
+| đền món tắt không trừ | VS-den-mon-tat-van-tru | T13 (T13d) |
+| hoàn gói tắt không trừ | VS-goi-tat-van-tru | T14 |
+| kết thúc gói gắn dòng gói | VS-ket-thuc-goi-nhu-duyet-hoan | T14b |
+| mẫu số = tiền tính điểm | VS-mau-so-tien-tra | T13 |
+| orders cờ món / gói / hạng | BV-co-mon · BV-co-goi · BV-co-hang | T3 · T10 · T11 |
+| orders lưu tien_hang_diem / cờ dòng | BV-luu-tien-hang-diem · BV-luu-co-dong | T3/T8 · T3/T13 |
+| orders điểm lúc tạo đọc tỷ lệ | BV-diem-luc-tao | T3 |
+| tiền hàng trừ phí giao | VS-tien-hang-gom-phi-giao | T12 |
+| /nhan-diem đọc cột | BV-nhan-diem-thieu-cot | T8 |
+| damages ghi sự cố trước khi trừ (Q2) | BV-ghi-su-co-sau | T13 |
+| PUT quyền manage_promotions | BV-quyen-sua | T16 |
+| GET quyền manage_settings | BV-quyen-xem | T17 |
+| danh sách trắng bảng | VS-bang-tu-do | T16 |
+| id nguyên dương | BV-id-khong-kiem | T16 |
+| I8 tỷ lệ / đền tắt / gói tắt / cột mới (Q3) | BV-i8-khong-ty-le · VS-i8-den-tat-van-tru · VS-i8-goi-tat-van-tru · BV-i8-bo-cot-moi | T18 |
+
+Tên đột biến (đủ 30): BV-024-cot-don, BV-024-co-goi, BV-ham-bo-ty-le, VS-chia-0, VS-null-la-tat, VS-khong-chia-ty-le, VS-gia-goc-bo-gia-hang,
+BV-dong-tat-van-tinh, VS-hoan-toan-don, VS-den-mon-tat-van-tru, VS-goi-tat-van-tru, VS-ket-thuc-goi-nhu-duyet-hoan, VS-mau-so-tien-tra, BV-co-mon,
+BV-co-goi, BV-co-hang, BV-luu-tien-hang-diem, BV-luu-co-dong, BV-diem-luc-tao, VS-tien-hang-gom-phi-giao, BV-nhan-diem-thieu-cot, BV-ghi-su-co-sau,
+BV-quyen-sua, BV-quyen-xem, VS-bang-tu-do, BV-id-khong-kiem, BV-i8-khong-ty-le, VS-i8-den-tat-van-tru, VS-i8-goi-tat-van-tru, BV-i8-bo-cot-moi.
+- Kiểm: `npm test` PASS 106 · FAIL 0; `npm test -- --day-du` PASS 109 · FAIL 0 (sau unshallow).
+
 ## Câu hỏi
 - Q1 (đã đề xuất trong ke_hoach.md mục 5): khi hoàn / đền / kết thúc gói, trừ điểm theo tỷ lệ trên TOÀN tiền đơn (đề xuất) hay chỉ khi phần hoàn
   thuộc dòng bật điểm? Chủ quán xác nhận lúc duyệt kế hoạch.
