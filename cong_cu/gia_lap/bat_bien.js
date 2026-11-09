@@ -176,9 +176,9 @@ const BAT_BIEN = {
     const lech = ds.flatMap((r) => {
       const vi = so(r.balance_amount) + so(r.parent_balance_amount);
       const traDon = Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount) + vi, so(r.total)) - so(r.shipping_fee)));
-      // DIEM-MON-1: tiền trả × phần tiền hàng của dòng bật đã lưu lúc bán / tiền hàng (kẹp ≤ 1); NULL = đơn cũ.
+      // DIEM-MON-1: tiền trả × phần tiền hàng của dòng bật đã lưu lúc bán / tiền hàng; NULL = đơn cũ.
       const hang = so(r.total) - so(r.shipping_fee);
-      const tienDiem = r.thd == null ? traDon : hang > 0 ? Math.round(traDon * Math.min(1, Math.max(0, so(r.thd)) / hang)) : 0;
+      const tienDiem = r.thd == null ? traDon : hang > 0 ? Math.round((traDon * so(r.thd)) / hang) : 0;
       const g = Math.floor(tienDiem / per);
       const gThat = Math.floor(Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount), so(r.total) - vi) - so(r.shipping_fee))) / per);
       const gCu = Math.floor(so(r.total) / per);
