@@ -510,6 +510,7 @@ chayBaiThat('cong_cu/thu_HANG1.js');   // HANG-1: hạng thẻ, gói, cấp hạ
 chayBaiThat('cong_cu/thu_GIAODIEN1.js');   // GIAO-DIEN-1: dải Đơn App, Số dư gộp Khách hàng, ô Khách và tiền, nạp tay chỉ chủ quán (018), thẻ QR thương hiệu
 chayBaiThat('cong_cu/thu_GIAO1.js');   // GIAO-1: giao Ahamove ở quầy — phí ship do máy chủ báo, gọi xe một lần, tin báo về, huỷ theo bước, Đối soát
 chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai ngăn (tiền nạp / thưởng nạp), điểm khi tiêu ví, sổ sách tiền nạp
+chayBaiThat('cong_cu/thu_KHTHE1.js');   // KH-THE-1: App KH mua thẻ hạng chung giỏ, hạng lên lúc đã thu, giỏ không pha bán mọi giờ, quyền lợi hạng (023)
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong
