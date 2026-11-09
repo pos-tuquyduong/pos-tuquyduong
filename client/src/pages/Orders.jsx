@@ -18,6 +18,9 @@ import InvoicePrint from '../components/InvoicePrint';
 import { useAuth } from '../contexts/AuthContext';
 import { ngayVN, khoangNgay, docGioVN, hienNgay, hienGio, hienNgayGio } from '../utils/ngayVN';
 
+const ID_NAP_TU = -2000000;   // QUAY-UI-1 D: dòng nạp có product_id ≤ số này (cùng dải máy chủ utils/viKhach.js)
+const laDonNap = (don) => (don?.items || []).some((i) => Number(i.product_id) <= ID_NAP_TU);
+
 export default function Orders() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -991,7 +994,7 @@ export default function Orders() {
               )}
               
               {/* Nút xử lý sự cố - chỉ Manager/Owner */}
-              {selectedOrder.status !== 'cancelled' && (user?.role === 'owner' || user?.role === 'manager') && (
+              {selectedOrder.status !== 'cancelled' && !laDonNap(selectedOrder) && (user?.role === 'owner' || user?.role === 'manager') && (
                 <button onClick={() => openDamageModal(selectedOrder)} style={{
                   flex: 1, minWidth: '120px', padding: '0.75rem',
                   background: '#fef3c7', color: '#b45309', border: '1px solid #f59e0b',
