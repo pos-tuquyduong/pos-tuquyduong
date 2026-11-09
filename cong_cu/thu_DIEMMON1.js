@@ -29,6 +29,7 @@ require.cache[duongKN] = {
   exports: { laMayThu: () => true, cauHinhTurso: () => ({ laMayThu: true, cauHinh: { url: 'file:' + FILE_KHO } }), diaChiSX: () => '', FILE_THU: FILE_KHO },
 };
 process.env.JWT_SECRET = 'thu_diemmon1_' + Date.now();
+process.env.KH_JWT_SECRET = 'thu_diemmon1_kh_' + Date.now();
 
 let dat = 0, hong = 0;
 const k = (ten, dung, them = '') => {
