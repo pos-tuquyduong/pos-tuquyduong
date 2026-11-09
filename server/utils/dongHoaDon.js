@@ -6,8 +6,9 @@
  */
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { query } = require('../database');
+const { query, queryOne } = require('../database');
 const hoaDonQuay = require('../routes/hoaDon');
+const { laDongThe } = require('./membershipStatus');
 
 const FILE_HOA_DON = path.join(__dirname, '..', '..', 'client', 'src', 'utils', 'hoaDon.js');
 let nap = null;
@@ -22,8 +23,18 @@ async function docCaiDat() {
 
 const dong = (loai, trai = '', phai = '', them = {}) => ({ loai, trai, phai, dam: false, gach: '', ghi_chu: '', ...them });
 
-/** Dẹt một tờ (kết quả dungHoaDon của quầy) thành danh sách dòng, đúng thứ tự vẽ của HoaDonTo. */
-function detTo(to) {
+/** KH-THE-1 (G): dòng thẻ hạng của đơn theo VỊ TRÍ dòng hàng (cùng ORDER BY id với routes/hoaDon.js, tờ giữ thứ tự) → ghi chú "Hạn mới: dd/mm/yyyy"
+ *  lấy từ sổ thẻ của đơn (đơn đã huỷ không còn dòng sổ → ghi chú rỗng); dòng không phải thẻ → null. */
+async function dongTheCua(oid) {
+  const ds = await query('SELECT product_id FROM pos_order_items WHERE order_id = ? ORDER BY id', [oid]);
+  if (!ds.some((d) => laDongThe(d.product_id))) return [];
+  const han = (await queryOne('SELECT expires_at FROM pos_membership_purchases WHERE order_id = ? ORDER BY id DESC LIMIT 1', [oid]))?.expires_at;
+  const ghiChu = han ? `Hạn mới: ${han.slice(8, 10)}/${han.slice(5, 7)}/${han.slice(0, 4)}` : '';
+  return ds.map((d) => (laDongThe(d.product_id) ? ghiChu : null));
+}
+
+/** Dẹt một tờ (kết quả dungHoaDon của quầy) thành danh sách dòng, đúng thứ tự vẽ của HoaDonTo. the[i] ≠ null → dòng hàng i là thẻ hạng. */
+function detTo(to, the = []) {
   const { dau } = to;
   const ds = [];
   if (to.canh_bao) ds.push(dong('canh_bao', to.canh_bao, '', { dam: true }));
@@ -33,7 +44,7 @@ function detTo(to) {
   if (to.nhan) ds.push(dong('nhan', to.nhan, '', { dam: true }));
   ds.push(dong('gio', dau.gio, dau.nhan_vien ? `${dau.nhan_nv ? dau.nhan_nv + ': ' : ''}${dau.nhan_vien}` : ''));
   ds.push(dong('khach', dau.nhan_khach, dau.khach, { dam: true }));
-  for (const m of to.mon) ds.push(dong('mon', `${m.sl} x ${m.ten}`, m.tien, { gach: m.tien_goc, ghi_chu: m.ghi_chu }));
+  to.mon.forEach((m, i) => ds.push(dong(the[i] != null ? 'the' : 'mon', `${m.sl} x ${m.ten}`, m.tien, { gach: m.tien_goc, ghi_chu: the[i] || m.ghi_chu })));
   for (const d of to.tien) ds.push(dong(d.khoa, d.ten, d.tien, { dam: d.dam }));
   for (const d of [...to.thanh_toan, ...to.diem]) ds.push(d.khoa.startsWith('tieu_de') ? dong('tieu_de', d.ten) : dong(d.khoa, d.ten, d.tien, { dam: d.dam }));
   for (const c of to.chan) ds.push(dong('chan', c.chu));
@@ -43,9 +54,9 @@ function detTo(to) {
 /** Dòng hoá đơn tờ giao khách của MỘT đơn thật (dòng pos_orders của chính khách đang xem).
  *  anNhanVien (đơn App, chủ quán chốt 03.11): bỏ tên người tạo đơn khỏi dòng giờ — người tạo đơn App là "app_kh" hoặc nhân viên xác nhận tay. */
 async function dongHoaDonKhach(o, { anNhanVien = false } = {}) {
-  const [{ dungHoaDon: dungTo }, hd, caiDat] = await Promise.all([hamQuay(), hoaDonQuay.dungHoaDon(o), docCaiDat()]);
+  const [{ dungHoaDon: dungTo }, hd, caiDat, the] = await Promise.all([hamQuay(), hoaDonQuay.dungHoaDon(o), docCaiDat(), dongTheCua(o.id)]);
   if (anNhanVien) hd.don.nhan_vien = '';
-  return detTo(dungTo(hd, caiDat, { lien: 'khach', inLai: false }));
+  return detTo(dungTo(hd, caiDat, { lien: 'khach', inLai: false }), the);
 }
 
 module.exports = { dongHoaDonKhach };

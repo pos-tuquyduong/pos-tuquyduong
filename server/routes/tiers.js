@@ -24,6 +24,8 @@ const CACH_CO = ['ban', 'chi_cap'];
 const THANG_TOI_THIEU = 1;
 const THANG_TOI_DA = 60;
 const PHAN_TRAM_TOI_DA = 90;
+const QUYEN_LOI_TOI_DA_DONG = 10;      // KH-THE-1: quyền lợi hạng (App KH đọc GET /hang quyen_loi[])
+const QUYEN_LOI_TOI_DA_KY_TU = 120;    // mỗi dòng
 
 const baoPin = (res, [status, code, error]) => res.status(status).json({ error, code });
 const caiDat = (khoa, giaTri, now) => [`INSERT INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?)
@@ -44,6 +46,17 @@ router.get('/', authenticate, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+/** Quyền lợi gửi lên → chuỗi các dòng đã cắt khoảng trắng, bỏ dòng rỗng | null (không gửi → giữ chữ cũ) | { loi }. */
+function kiemQuyenLoi(v, name) {
+  if (v === undefined || v === null) return null;
+  if (typeof v !== 'string') return { loi: `Hạng ${name}: quyền lợi phải là chữ` };
+  const dong = v.split('\n').map((x) => x.trim()).filter(Boolean);
+  if (dong.length > QUYEN_LOI_TOI_DA_DONG || dong.some((x) => x.length > QUYEN_LOI_TOI_DA_KY_TU)) {
+    return { loi: `Hạng ${name}: quyền lợi tối đa ${QUYEN_LOI_TOI_DA_DONG} dòng, mỗi dòng ${QUYEN_LOI_TOI_DA_KY_TU} ký tự` };
+  }
+  return dong.join('\n');
+}
 
 /** Kiểm MỘT hạng gửi lên → { hang } đã chuẩn hoá hoặc { loi }. Hạng chi_cap luôn lưu gói rỗng. */
 function kiemHang(t) {
@@ -73,7 +86,9 @@ function kiemHang(t) {
     goi.push({ so_thang: soThang, gia, bat: g?.bat !== false });
   }
   goi.sort((a, b) => a.so_thang - b.so_thang);
-  return { hang: { id, name, sort_order: thuBac, discount_percent: pct, special_discount_percent: specialPct, cach_co: cachCo, goi } };
+  const quyenLoi = kiemQuyenLoi(t?.quyen_loi, name);
+  if (quyenLoi?.loi) return quyenLoi;
+  return { hang: { id, name, sort_order: thuBac, discount_percent: pct, special_discount_percent: specialPct, cach_co: cachCo, goi, quyen_loi: quyenLoi } };
 }
 
 // PUT /api/pos/tiers — lưu các hạng (có id → sửa, không id → THÊM) + cấu hình làm tròn. Kiểm HẾT trước, ghi trong MỘT giao dịch.
@@ -102,12 +117,14 @@ router.put('/', authenticate, checkPermission('manage_promotions'), async (req, 
       for (const h of ds) {
         const goi = JSON.stringify(h.goi);
         if (h.id === null) {
-          await tx.run(`INSERT INTO pos_membership_tiers (name, discount_percent, special_discount_percent, sort_order, is_active, cach_co, goi, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)`, [h.name, h.discount_percent, h.special_discount_percent, h.sort_order, h.cach_co, goi, now, now]);
+          await tx.run(`INSERT INTO pos_membership_tiers (name, discount_percent, special_discount_percent, sort_order, is_active, cach_co, goi, quyen_loi, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`, [h.name, h.discount_percent, h.special_discount_percent, h.sort_order, h.cach_co, goi, h.quyen_loi ?? '', now, now]);
           continue;
         }
-        const r = await tx.run(`UPDATE pos_membership_tiers SET name=?, discount_percent=?, special_discount_percent=?, sort_order=?, cach_co=?, goi=?, updated_at=?
-          WHERE id=? AND is_active = 1`, [h.name, h.discount_percent, h.special_discount_percent, h.sort_order, h.cach_co, goi, now, h.id]);
+        // quyen_loi không gửi (máy quầy bản cũ đang mở) → COALESCE giữ chữ cũ
+        const r = await tx.run(`UPDATE pos_membership_tiers SET name=?, discount_percent=?, special_discount_percent=?, sort_order=?, cach_co=?, goi=?,
+          quyen_loi=COALESCE(?, quyen_loi), updated_at=? WHERE id=? AND is_active = 1`,
+        [h.name, h.discount_percent, h.special_discount_percent, h.sort_order, h.cach_co, goi, h.quyen_loi, now, h.id]);
         if (r.changes !== 1) { await tx.rollback(); return sai(`Hạng ${h.name} không còn (đã xoá) — tải lại trang`); }
       }
       const rt = ROUND_ALLOWED.includes(parseInt(round_to, 10)) ? String(parseInt(round_to, 10)) : '500';
