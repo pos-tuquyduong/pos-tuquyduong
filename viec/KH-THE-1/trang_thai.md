@@ -284,3 +284,14 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài 
 - H (điểm cùng hàm quầy): H1.
 - K5 (không đổi): K1, K2, K5a, K5b, A1, thu_HOPDONG_KH, thu_KHMUA1 trong npm test.
 - Q4 (chủ quán 09.11): GIO1, GIO2, GIO3.
+
+## Cổng (bước 11.4, HEAD 275633a, cây sạch)
+- `node tu_chay/cong.js chay . a4d89ae^ HEAD viec/KH-THE-1` → ✓ CỔNG CHẠY ĐẠT, kèm
+  `· CẢNH BÁO A16: cong_cu/thu_KHTHE1.js chạy trên gốc in 52 ca ≠ 73 ca ở head — bài dừng sớm trên gốc thì bỏ qua` — đúng trường hợp "dừng sớm": trên gốc
+  mục D / E / G sập giữa chừng (bang_chung_do.txt), số ca đủ 73 chỉ có trên code đã vá.
+- `node tu_chay/cong.js tinh . a4d89ae^ HEAD viec/KH-THE-1` còn:
+  - ✗ [A6] file `cong_cu/thu_HANG1.js` không có trong Phạm vi của phiếu
+  - ✗ [A6] file `cong_cu/thu_KHAPI2.js` không có trong Phạm vi của phiếu
+  (chờ chat thêm hai dòng vào Phạm vi — xem ## Câu hỏi; A19 do dòng dưới.)
+- GIT: `git log --oneline -2` → 275633a KH-THE-1: soat bao mat DAT, cau hoi Pham vi, bai hoc, bao cao 7 muc · e3e2d59 KH-THE-1: sua nhe sau soat vong 2 — …
+HEAD ĐÃ KIỂM: 275633a
