@@ -17,8 +17,8 @@
  */
 
 const express = require('express');
-const { queryOne, beginTransaction } = require('../database');
-const { authenticate, authenticateServiceOrUser } = require('../middleware/auth');
+const { query, queryOne, run, beginTransaction } = require('../database');
+const { authenticate, authenticateServiceOrUser, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 const { generateVoucherCode } = require('../utils/voucherCode');
 // KH-API-1: số dư / lịch sử điểm + ví voucher dùng chung với /api/kh (cùng câu, cùng cách suy trạng thái).
@@ -169,6 +169,44 @@ router.post('/redeem', authenticateServiceOrUser, async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DIEM-MON-1 — công tắc "Tích điểm" theo món / gói trả trước / hạng bán được (Cài đặt → Điểm thưởng). Xem: quyền xem tab (manage_settings);
+// đổi: manage_promotions. MỘT câu UPDATE cho cả danh sách đã chọn; tên bảng lấy từ danh sách trắng, id là số nguyên dương.
+// Đổi công tắc không đổi đơn cũ: đơn lưu phần tiền tích điểm + cờ từng dòng lúc bán (orders.js, utils/diemThat.js).
+// ─────────────────────────────────────────────────────────────────────────────
+const BANG_TICH_DIEM = { mon: 'pos_products', goi: 'pos_packages', hang: 'pos_membership_tiers' };
+const ID_TICH_DIEM_TOI_DA = 500;
+
+router.get('/tich-diem', authenticate, checkPermission('manage_settings'), async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      mon: await query('SELECT id, name AS ten, tich_diem FROM pos_products WHERE is_active = 1 AND price > 0 ORDER BY name'),
+      goi: await query('SELECT id, name AS ten, tich_diem FROM pos_packages WHERE is_active = 1 ORDER BY name'),
+      hang: await query("SELECT id, name AS ten, tich_diem FROM pos_membership_tiers WHERE is_active = 1 AND cach_co = 'ban' ORDER BY sort_order"),
+    });
+  } catch (err) {
+    console.error('GET /loyalty/tich-diem:', err.message);
+    res.status(500).json({ error: 'Không đọc được danh sách tích điểm', code: 'LOI_MAY_CHU' });
+  }
+});
+
+router.put('/tich-diem', authenticate, checkPermission('manage_promotions'), async (req, res) => {
+  try {
+    const { loai, ids, bat } = req.body || {};
+    const bang = Object.hasOwn(BANG_TICH_DIEM, loai) ? BANG_TICH_DIEM[loai] : null;
+    if (!bang || !Array.isArray(ids) || !ids.length || ids.length > ID_TICH_DIEM_TOI_DA
+      || !ids.every((id) => Number.isSafeInteger(id) && id > 0) || typeof bat !== 'boolean') {
+      return res.status(400).json({ error: 'Chọn món / gói / hạng cần đổi tích điểm rồi thử lại', code: 'TICH_DIEM_SAI' });
+    }
+    const kq = await run(`UPDATE ${bang} SET tich_diem = ? WHERE id IN (${ids.map(() => '?').join(', ')})`, [bat ? 1 : 0, ...ids]);
+    res.json({ success: true, doi: Number(kq.changes || 0) });
+  } catch (err) {
+    console.error('PUT /loyalty/tich-diem:', err.message);
+    res.status(500).json({ error: 'Không lưu được tích điểm', code: 'LOI_MAY_CHU' });
   }
 });
 
