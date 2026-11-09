@@ -64,7 +64,7 @@ DOT_BIEN = [
   ('BV-BH-TAB-THE', [(BH, '>Thẻ thành viên</button>', '>Thẻ</button>', 1)], r'✗ A7 BanHangMoi có tab', T),
   ('BV-BH-KHONG-KIEM-THE', [(BH, 'const e = kiemTraThe(gio, khach, hang, tier);', 'const e = null;', 1)], r'✗ A7 chạm gói', T),
   ('BV-BH-TRU-MAC-DINH', [(BH, 'useState(CACH_TRA_MAC_DINH)', "useState('tai_khoan')", 1)], r'✗ B4 BanHangMoi: có trạng thái', T),
-  ('BV-BH-TU-TRU-LAI', [(BH, 'setCachTra(CACH_TRA_MAC_DINH); setDungMe(false); setHang(null);', "setCachTra('tai_khoan'); setDungMe(false); setHang(null);", 1)], r'✗ B4b ', T),
+  ('BV-BH-TU-TRU-LAI', [(BH, 'const datLaiCach = () => { setCachTra(CACH_TRA_MAC_DINH);', "const datLaiCach = () => { setCachTra('tai_khoan');", 1)], r'✗ B4b ', T),
   ('BV-TT-NUT-TRU', [(TT, '>Trừ tài khoản</button>', '>Trừ TK</button>', 1)], r'✗ B5 ThuTien có đủ ba nút', T),
   ('BV-TT-KHONG-LY-DO', [(TT, 'const lyDoMo = lyDoKhongTru({ khach, laNap });', 'const lyDoMo = null;', 1)], r'✗ B5 ThuTien: nút Trừ', T),
   ('BV-TT-NUT-BO-CU', [(TT, 'onClick={() => onDungMe(false)}>Không dùng', 'onClick={() => { onDungMe(false); onDungTK(false); }}>Không dùng', 1)], r'✗ B5 ThuTien: chọn cách trả', T),
