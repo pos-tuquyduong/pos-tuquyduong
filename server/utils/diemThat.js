@@ -104,4 +104,4 @@ async function truDiemHoan(tx, don, nguoi, luc, lyDo) {
   return daTru;
 }
 
-module.exports = { tienTinhDiem, tienHangDiem, batDiem, diemTruKhiHoan, truDiemHoan };
+module.exports = { tienTinhDiem, tienHangDiem, batDiem, ID_THE_TU, diemTruKhiHoan, truDiemHoan };
