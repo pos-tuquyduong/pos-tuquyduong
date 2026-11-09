@@ -31,11 +31,15 @@ Lệnh:  python3 viec/QUAY-UI-1/dot_bien.py --goc b1fd5c0 thu_QUAYUI1.js
   ✗ C2 hiện câu "Khách đã có: <tên> — tìm khách ở màn Bán hàng" khi có khachTrung
   ✗ C3 nút Lưu mờ khi khách đã có (disabled gồm khachTrung)
   ✗ C4 so SĐT bằng phone chuẩn hoá (không so chuỗi con): c.phone ===
-  TỔNG: 10/38 ca đạt · 10 đạt · 28 hỏng
-  ✗ CÓ 28 CA HỎNG
+  (vòng sửa 1 thêm trên gốc — chạy lại 09.11 với bài 62 ca:)
+  ✗ A8 có hàm viTriMayChu (máy chủ đẩy dòng thẻ CUỐI items — orders.js)
+  ✗ B4c đổi sang khách KHÁC → bỏ dòng thẻ khỏi giỏ (hạng khách mới chưa tra, kiemTraThe phải chạy lại)
+  ✗ A9 dòng máy chủ khớp theo viTriMayChu, không theo chỉ số giỏ
+  TỔNG: 11/42 ca đạt · 11 đạt · 31 hỏng
   thoát 1
+Vòng sửa 1 (soát độc lập 09.11) còn đỏ riêng trên commit b8fbb9b (bài mới, code chưa vá): A1 hangChiCap (giá trị chi_cap thật), A8, B4b, B4c, A9 — 5 ca đỏ, 55/60 đạt.
 
-Trên code ĐÃ VÁ (HEAD): TỔNG: 56/56 ca đạt · 56 đạt · 0 hỏng · thoát 0
+Trên code ĐÃ VÁ (HEAD): TỔNG: 62/62 ca đạt · 62 đạt · 0 hỏng · thoát 0
 (10 ca xanh trên gốc là ĐỐI CHỨNG K5: đường hợp lệ — giỏ không thẻ, đơn thường báo sự cố, đơn thẻ không dính mã đơn nạp, khách do chính đăng ký tạo, đăng ký đã xuất — không bị chặn oan.)
 
-SỐ CA thu_QUAYUI1.js: 56
+SỐ CA thu_QUAYUI1.js: 62
