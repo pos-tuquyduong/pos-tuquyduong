@@ -94,7 +94,7 @@ async function main() {
 
   muc('[A] Tab "Thẻ thành viên" — màn Bán hàng (đọc nguồn)');
   const bh = doc('client/src/pages/BanHang/BanHangMoi.jsx');
-  k('A7 BanHangMoi có tab "Thẻ thành viên" và đã nạp /tiers qua dsGoiThe / hangChiCap', /Thẻ thành viên/.test(bh) && /dsGoiThe\(/.test(bh) && /hangChiCap\(/.test(bh));
+  k('A7 BanHangMoi có tab "Thẻ thành viên" và đã nạp /tiers qua dsGoiThe / hangChiCap', />Thẻ thành viên<\/button>/.test(bh) && /dsGoiThe\(/.test(bh) && /hangChiCap\(/.test(bh));
   k('A7 chạm gói đi qua kiemTraThe rồi mới vào giỏ (một cổng)', /kiemTraThe\(/.test(bh));
 
   muc('[B] Ba nút cách trả — không tự trừ tài khoản');
@@ -117,7 +117,7 @@ async function main() {
   k('B4 BanHangMoi: không còn `dungTK` mặc định true (useState(true)) — mặc định không trừ', !/\[dungTK, setDungTK\] = useState\(true\)/.test(bh) && !/setDungTK\(true\)/.test(bh));
   k('B4 BanHangMoi: có trạng thái cachTra khởi tạo bằng CACH_TRA_MAC_DINH', /useState\(CACH_TRA_MAC_DINH\)/.test(bh));
   const tt = doc('client/src/pages/BanHang/ThuTien.jsx');
-  k('B5 ThuTien có đủ ba nút: Tiền mặt · Chuyển khoản · Trừ tài khoản', /Tiền mặt/.test(tt) && /Chuyển khoản/.test(tt) && /Trừ tài khoản/.test(tt));
+  k('B5 ThuTien có đủ ba nút: Tiền mặt · Chuyển khoản · Trừ tài khoản', />Tiền mặt<\/button>/.test(tt) && />Chuyển khoản<\/button>/.test(tt) && />Trừ tài khoản<\/button>/.test(tt));
   k('B5 ThuTien: nút Trừ tài khoản mờ kèm lý do từ lyDoKhongTru', /lyDoKhongTru\(/.test(tt));
   k('B5 ThuTien: chọn cách trả qua onCachTra (không còn nút "Bỏ" của tự trừ)', /onCachTra/.test(tt) && !/onDungTK\(false\)/.test(tt));
 
