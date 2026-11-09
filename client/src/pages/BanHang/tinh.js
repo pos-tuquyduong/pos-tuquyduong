@@ -178,8 +178,14 @@ export const layThe = (gio) => gio.find((m) => m.the) || null;
 export const dsGoiThe = (dsHang) => dsHang.filter((t) => t.cach_co === 'ban').flatMap((tier) => (tier.goi || [])
   .filter((g) => g.bat === true && Number.isInteger(g.gia) && g.gia > 0).sort((a, b) => a.so_thang - b.so_thang)
   .map((g) => ({ tier, so_thang: g.so_thang, gia: g.gia })));
-/** Hạng chỉ chủ quán cấp — hiện mờ, không bán. */
-export const hangChiCap = (dsHang) => dsHang.filter((t) => t.cach_co === 'cap');
+/** Hạng chỉ chủ quán cấp (`chi_cap` — CACH_CO của server/routes/tiers.js) — hiện mờ, không bán. */
+export const hangChiCap = (dsHang) => dsHang.filter((t) => t.cach_co === 'chi_cap');
+/** Máy chủ đẩy dòng thẻ CUỐI `items` (orders.js) — vị trí dòng máy chủ ứng với từng dòng giỏ (món theo thứ tự giỏ, thẻ sau cùng). */
+export function viTriMayChu(gio) {
+  const soMon = gio.filter((m) => !m.the).length;
+  let mon = 0, the = 0;
+  return gio.map((m) => (m.the ? soMon + the++ : mon++));
+}
 /** Dòng giỏ cho một gói thẻ. Giá chỉ để hiện — thân gửi máy chủ KHÔNG mang giá (thanTinhThu). */
 export const dongThe = (tier, goi) => ({ key: `the_${tier.id}_${goi.so_thang}`, product_id: -1000000 - tier.id,
   product_name: `Thẻ ${tier.name} · ${goi.so_thang} tháng`, unit_price: goi.gia, quantity: 1, note: '', the: { tier_id: tier.id, so_thang: goi.so_thang } });

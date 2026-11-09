@@ -18,7 +18,7 @@ import ManPin from './ManPin';
 import ManQr from './ManQr';
 import KhungGiao from './KhungGiao';
 import MaGhepManKhach, { useQuayManKhach } from '../ManKhach/MaGhep';
-import { CACH_TRA_MAC_DINH, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, hanhDongPhien, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, xuLyLoiPin } from './tinh';
+import { CACH_TRA_MAC_DINH, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, hanhDongPhien, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viTriMayChu, xuLyLoiPin } from './tinh';
 import { NutThongTin } from '../../components/ThongTinMon';
 import './banHang.css';
 
@@ -104,9 +104,11 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     return () => clearInterval(h);
   }, [napSanPham, napFlash]);
 
+  const datLaiCach = () => { setCachTra(CACH_TRA_MAC_DINH); setCachConLai('tien_mat'); setDungMe(false); };   // MỘT chỗ đặt lại: cách trả, phần còn lại, ví mẹ
   const chonKhach = async (c) => {
+    if (khach?.phone !== c.phone) setGio((g) => g.filter((m) => !m.the));   // đổi khách: hạng khách mới chưa tra → bán lại thẻ qua kiemTraThe
     const luot = ++luotKhach.current;                      // tra hạng / điểm về muộn của khách trước thì bỏ
-    setKhach(c); setLoi(''); setCachTra(CACH_TRA_MAC_DINH); setDungMe(false); setHang(null);
+    setKhach(c); setLoi(''); datLaiCach(); setHang(null);
     api.get(`/loyalty/points/${encodeURIComponent(c.phone)}`)
       .then((r) => { if (luotKhach.current === luot && r.success) setKhach((k) => (k && k.phone === c.phone ? { ...k, points: r.points } : k)); })
       .catch(() => {});                                    // không tra được điểm: dải khách chỉ không hiện điểm
@@ -121,7 +123,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     } catch { /* không tra được hạng: lưới chỉ không gạch giá; máy chủ vẫn tự tính hạng khi hỏi giá */ }
   };
   const boKhach = () => {
-    luotKhach.current++; setKhach(null); setHang(null); setCachTra(CACH_TRA_MAC_DINH); setDungMe(false);
+    luotKhach.current++; setKhach(null); setHang(null); datLaiCach();
     setGio((g) => (layGoiNap(g) ? [] : g.filter((m) => !m.the)));   // NAP-1 / QUAY-UI-1: gói nạp và thẻ cần khách — bỏ khách thì bỏ khỏi giỏ
   };
 
@@ -150,7 +152,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const dungTK = cachTra === 'tai_khoan';                  // chỉ khi nhân viên bấm "Trừ tài khoản"
   const { soDuDung, soDuMeDung, phaiTra } = chiaTra({ tong: coSo ? tong : 0, khach, dungTK: dungTK && !laNap, dungMe: dungMe && dungTK && !laNap });
   const soLy = gio.reduce((s, m) => s + m.quantity, 0);
-  const dongMayChu = coSo && mayChu.items?.length === gio.length ? mayChu.items : null;   // giá từng dòng do máy chủ trả
+  const dongMayChu = coSo && mayChu.items?.length === gio.length ? viTriMayChu(gio).map((v) => mayChu.items[v]) : null;   // giá từng dòng do máy chủ trả, xếp theo dòng giỏ (thẻ nằm cuối bên máy chủ)
 
   const giaMotLy = (s) => {
     const dacBiet = !!s.is_special_group;
@@ -159,7 +161,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
 
   // ── Giỏ ──
   const batDauDonMoi = () => {
-    setXong(null); setDaIn(false); setGio([]); setKhach(null); setHang(null); setCachTra(CACH_TRA_MAC_DINH); setDungMe(false); setMa(''); setMaGo('');
+    setXong(null); setDaIn(false); setGio([]); setKhach(null); setHang(null); datLaiCach(); setMa(''); setMaGo('');
     setTrang('mon'); setLoi(''); setCheDoGiao(false); setGiao(null);
   };
   const chamMon = (s) => {
@@ -299,7 +301,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     setHoiPin((h) => ({ ...h, i: 0, da: {}, kieu: thongBao ? 'dat' : 'nhap', loi: thongBao || 'Đã đặt PIN — nhập lại PIN để xác nhận' }));
     setDangGui(false);
   };
-  const boTruTaiKhoan = () => { setHoiPin(null); setCachTra(CACH_TRA_MAC_DINH); setDungMe(false); };
+  const boTruTaiKhoan = () => { setHoiPin(null); datLaiCach(); };
   const doiCachTra = (c) => { setCachTra(c); if (c !== 'tai_khoan') setDungMe(false); };
 
   const xongQr = useCallback((id) => hoanTatRef.current(id, anhQr.current, 'chuyen_khoan', 0), []);

@@ -72,6 +72,14 @@ DOT_BIEN = [
   ('BV-CUS-NUT-LUU', [(CU, 'disabled={submitting || !!khachTrung}', 'disabled={submitting}', 1)], r'✗ C3 ', T),
   ('VS-CUS-SO-CHUOI-CON', [(CU, '.find((c) => c.phone === sdtChuan)', '.find((c) => c.phone.includes(sdtChuan))', 1)], r'✗ C4 ', T),
   ('BV-CUS-KHONG-BAO', [(CU, '{khachTrung && <div className="alert alert-danger" style={{ marginTop: 6 }}>Khách đã có: ', '{false && <div className="alert alert-danger" style={{ marginTop: 6 }}>Khách đã có: ', 1)], r'✗ C2 ', T),
+  # ── vòng sửa 1 (soát độc lập 09.11): chi_cap thật, vị trí dòng máy chủ, đặt lại state, đổi khách ──
+  ('VS-CAP-SAI-GIA-TRI', [(TI, "t.cach_co === 'chi_cap');\n", "t.cach_co === 'cap');\n", 1)], r'✗ A1 có hàm hangChiCap', T),
+  ('BV-VITRI-THEO-CHI-SO', [(TI, 'return gio.map((m) => (m.the ? soMon + the++ : mon++));', 'return gio.map((m, i) => i);', 1)], r'✗ A8 giỏ \[thẻ, món\]', T),
+  ('VS-VITRI-THE-DAU', [(TI, 'm.the ? soMon + the++ : mon++', 'm.the ? the++ : soMon + mon++', 1)], r'✗ A8 ', T),
+  ('BV-BH-KHONG-DUNG-VITRI', [(BH, 'viTriMayChu(gio).map((v) => mayChu.items[v])', 'mayChu.items', 1)], r'✗ A9 ', T),
+  ('BV-BH-LAI-CON-LAI', [(BH, "setCachConLai('tien_mat'); setDungMe(false); };", 'setDungMe(false); };', 1)], r'✗ B4b ', T),
+  ('BV-BH-DAT-LAI-MOT-CHO', [(BH, 'setKhach(c); setLoi(\'\'); datLaiCach(); setHang(null);', "setKhach(c); setLoi(''); setHang(null);", 1)], r'✗ B4b ', T),
+  ('BV-BH-DOI-KHACH-GIU-THE', [(BH, 'if (khach?.phone !== c.phone) setGio((g) => g.filter((m) => !m.the));', '', 1)], r'✗ B4c ', T),
   ('BV-ORD-NUT-SU-CO', [(OR, '!laDonNap(selectedOrder) && ', '', 1)], r'✗ D4 ', T),
 ]
 
