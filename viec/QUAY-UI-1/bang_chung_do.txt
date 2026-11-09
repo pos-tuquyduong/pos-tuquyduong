@@ -1,0 +1,41 @@
+BẰNG CHỨNG ĐỎ — QUAY-UI-1
+Lệnh:  python3 viec/QUAY-UI-1/dot_bien.py --goc b1fd5c0 thu_QUAYUI1.js
+(bài HIỆN TẠI cong_cu/thu_QUAYUI1.js trên server/ + client/src/ của commit gốc b1fd5c0 = commit PHIEU: QUAY-UI-1)
+
+── thu_QUAYUI1.js (bài HIỆN TẠI trên code b1fd5c0):
+  ✗ A1 có hàm dsGoiThe (liệt kê gói bán được của hạng)
+  ✗ A1 có hàm hangChiCap (hạng chỉ cấp → hiện mờ "Chủ quán cấp")
+  ✗ A2 có hàm dongThe → dòng giỏ có the {tier_id, so_thang}, product_id −1000000 − id hạng, 1 thẻ  — null
+  ✗ A2 thanTinhThu: món vẫn ở items, KHÔNG có dòng thẻ trong items, membership_buy = { tier_id, so_thang } (không gửi giá)
+  ✗ A2 thanPhien (phiên thu) mang cùng membership_buy
+  ✗ A5 có hàm kiemTraThe
+  ✗ A7 BanHangMoi có tab "Thẻ thành viên" và đã nạp /tiers qua dsGoiThe / hangChiCap
+  ✗ A7 chạm gói đi qua kiemTraThe rồi mới vào giỏ (một cổng)
+  ✗ B1 có hàm lyDoKhongTru
+  ✗ B2 hằng CACH_TRA_MAC_DINH = tien_mat (khách có số dư vẫn KHÔNG tự trừ)
+  ✗ B4 BanHangMoi: không còn `dungTK` mặc định true (useState(true)) — mặc định không trừ
+  ✗ B4 BanHangMoi: có trạng thái cachTra khởi tạo bằng CACH_TRA_MAC_DINH
+  ✗ B4b chọn khách / bỏ khách / đơn mới / bỏ trừ (PIN) đều đặt lại cách trả về CACH_TRA_MAC_DINH — đúng 4 chỗ, không chỗ nào đặt chữ cứng
+  ✗ B5 ThuTien có đủ ba nút: Tiền mặt · Chuyển khoản · Trừ tài khoản
+  ✗ B5 ThuTien: nút Trừ tài khoản mờ kèm lý do từ lyDoKhongTru
+  ✗ B5 ThuTien: chọn cách trả qua onCachTra (không còn nút "Bỏ" của tự trừ)
+  ✗ D1 đơn nạp, hành động refund → 400, code DON_NAP_KHONG_SU_CO, đúng câu  — HTTP 400 {"error":"Gói / thẻ trả trước không đền qua báo sự cố — dùng Huỷ đơn (cần quyền hoàn gói)","code":"GOI_THE_KHONG_DEN"}
+  ✗ D1 đơn nạp, hành động none → 400, code DON_NAP_KHONG_SU_CO, đúng câu  — HTTP 200 {"success":true,"message":"Đã ghi nhận sự cố"}
+  ✗ D1 đơn nạp, none: không ghi dòng log sự cố nào
+  ✗ D1 đơn nạp, hành động return_stock → 400, code DON_NAP_KHONG_SU_CO, đúng câu  — HTTP 400 {"error":"Số lượng tối đa: 0","code":"VUOT_SO_LUONG"}
+  ✗ D4 Orders.jsx: nút "Xử lý sự cố" ẩn khi đơn có dòng nạp (product_id ≤ −2000000)
+  ✗ E2 khách App (tạo bởi app_kh) → tên / ghi chú khách KHÔNG đổi  — HTTP 200 (tên khách App bị đổi thành "Sửa Đăng Ký")
+  ✗ E3 khách có TRƯỚC đăng ký (cùng người nhập) → giữ nguyên  — HTTP 200, tên khách bị đổi thành "Sửa Sau"
+  ✗ E4 khách do người khác tạo (created_by khác) → giữ nguyên  — HTTP 200, tên khách bị đổi thành "Sửa Người Khác"
+  ✗ C1 Customers.jsx: có tra khách theo SĐT đã chuẩn hoá (chuanSdtQuay + customersV2Api.search)
+  ✗ C2 hiện câu "Khách đã có: <tên> — tìm khách ở màn Bán hàng" khi có khachTrung
+  ✗ C3 nút Lưu mờ khi khách đã có (disabled gồm khachTrung)
+  ✗ C4 so SĐT bằng phone chuẩn hoá (không so chuỗi con): c.phone ===
+  TỔNG: 10/38 ca đạt · 10 đạt · 28 hỏng
+  ✗ CÓ 28 CA HỎNG
+  thoát 1
+
+Trên code ĐÃ VÁ (HEAD): TỔNG: 56/56 ca đạt · 56 đạt · 0 hỏng · thoát 0
+(10 ca xanh trên gốc là ĐỐI CHỨNG K5: đường hợp lệ — giỏ không thẻ, đơn thường báo sự cố, đơn thẻ không dính mã đơn nạp, khách do chính đăng ký tạo, đăng ký đã xuất — không bị chặn oan.)
+
+SỐ CA thu_QUAYUI1.js: 56
