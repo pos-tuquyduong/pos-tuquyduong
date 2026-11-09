@@ -1,0 +1,74 @@
+KH-THE-1 — bằng chứng ĐỎ trên code gốc da5f5d4 (server/ + client/src/ của commit đó, bài HIỆN TẠI)
+Lệnh: python3 viec/KH-THE-1/dot_bien.py --goc da5f5d4   (09.11.2026)
+
+  ✓ A1 quầy bán Vàng 1 tháng: 200, tổng 100.000đ, một dòng sổ ban · 1 tháng · 100.000đ
+  ✗ A2/B5–B7 Kim Cương: quầy và App cùng 400 HANG_CHI_CAP  — quầy HTTP 400 · HANG_CHI_CAP · App HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ A2/B5–B7 Vàng 6 tháng: quầy và App cùng 400 GOI_HANG_KHONG_BAN  — quầy HTTP 400 · GOI_HANG_KHONG_BAN · App HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ A2/B5–B7 Vàng 12 tháng: quầy và App cùng 400 GOI_HANG_KHONG_BAN  — quầy HTTP 400 · GOI_HANG_KHONG_BAN · App HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ A2/B5–B7 Vàng 1 tháng (khách đang Kim Cương): quầy và App cùng 400 DA_CO_HANG_CAO_HON  — quầy HTTP 400 · DA_CO_HANG_CAO_HON · App HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ B1 thẻ GIỮA giỏ: dong[] theo đúng thứ tự gửi — món 0 (25.000) · thẻ (250.000) · món 1 (30.000); tong = tinh-thu quầy cùng giỏ  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ B1 dòng thẻ đúng 7 trường { loai "the", hang_id, so_thang, ma null, so_luong 1, don_gia, thanh_tien } = giá gói máy chủ
+  ✗ K2 dòng món giữ ĐÚNG 4 trường cũ { ma, so_luong, don_gia, thanh_tien }  — [null,null]
+  ✗ B2 giỏ CHỈ thẻ → 200, một dòng, tong 100.000  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · undefined
+  ✗ B4 so_luong 1 gửi rõ → 200 (không chặn oan)  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ B3 hai dòng thẻ → 400 NHIEU_THE  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✓ B4 so_luong 2 · hang_id chữ · so_thang 0 · loai lạ · kèm ma · thiếu hang_id → 400 YEU_CAU_KHONG_HOP_LE
+  ✗ B13 hạng không có → 400 DON_KHONG_HOP_LE (mã sẵn có)  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ B8 tong_da_xem lệch → 409 GIA_DA_DOI kèm bao_gia có dòng thẻ  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ B3/B5 POST /don: hai thẻ → NHIEU_THE · Kim Cương → HANG_CHI_CAP  — HTTP 400 · YEU_CAU_KHONG_HOP_LE / HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✓ B11 các 4xx ở trên không để lại đơn / dòng đơn App / phiên / dòng sổ thẻ / tiền ví (đếm bảng)
+  ✗ B9 gửi lại cùng khoá → 200 trung: true, cùng mã đơn, một dòng sổ thẻ  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · HTTP 400 · YEU_CAU_KHONG_HOP_LE · undefined
+  ✗ B10 cùng khoá, đổi gói thẻ → 409 KHOA_GUI_DA_DUNG  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ B12 thẻ + mã giảm: tong App = tinh-thu quầy cùng giỏ  — undefined / 145000
+  ✗ C1 khách chưa hạng: món giá GỐC (không dòng giảm hạng), tong = 25.000 + 100.000  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · undefined · undefined
+  ✗ C1 đơn ghi đúng 125.000, không giảm hạng  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · null
+  ✗ C3 đơn SAU đó: món được giảm hạng Vàng  — []
+  ✗ C2 khách đang Vàng gia hạn Vàng + món: có giảm hạng, tong = tinh-thu quầy  — undefined / 125000
+  ✗ D1 trả ví: 200, /toi.hang = Vàng ngay sau POST /don, một dòng sổ  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · null
+  ✗ Q3 giỏ chỉ thẻ trả ví → tien_trinh "xong" ngay (không chờ quầy pha)
+  ✗ D2 QR: sau POST /don chưa có hạng, chưa dòng sổ, tien_trinh cho_tra  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · [null,0]
+  ✗ D: bài chạy hết mục  — Cannot read properties of null (reading 'ma_payos')
+  ✗ E1 quầy huỷ đơn thẻ App → dòng sổ mất, /toi.hang về null  — HTTP 404
+  ✗ E2 xoá đơn thẻ App → dòng sổ mất, hết hạng  — HTTP 404
+  ✗ E3 xin hoàn đơn thẻ App (trả ví) → 400 DON_CO_GOI như quầy, hạng giữ  — HTTP 404
+  ✗ E: bài chạy hết mục  — Cannot read properties of null (reading 'ma_payos')
+  ✗ F1 bước 023 đã chạy, có cột quyen_loi; chạy lại bộ nâng cấp không hỏng  — false · 0 · null
+  ✗ F2 PUT quyen_loi nhiều dòng → GET /kh/hang quyen_loi[] đã cắt khoảng trắng, bỏ dòng rỗng; hạng khác []  — HTTP 200 · undefined
+  ✗ F3 PUT KHÔNG gửi quyen_loi (máy quầy bản cũ) → giữ nguyên chữ cũ  — HTTP 200
+  ✗ F4 10 dòng / 120 ký tự → 200; 11 dòng / 121 ký tự / không phải chuỗi → 400 HANG_KHONG_HOP_LE  — HTTP 200 / HTTP 200 / HTTP 200 / HTTP 200 / HTTP 200
+  ✗ F5 PIN chủ quán sai → không đổi  — HTTP 400 · PIN_CHU_QUAN_SAI
+  ✗ G2 đơn CHƯA trả: mon[] dòng thẻ loai "the", tên "Thẻ Vàng thử · 1 tháng", món giữ ghi chú  — []
+  ✗ G: bài chạy hết mục  — Cannot read properties of null (reading 'ma_payos')
+  ✗ H1 điểm đơn thẻ App (trả ví 100.000) = điểm đơn thẻ quầy (tiền mặt 100.000)  — 0 / 10
+  ✗ GIO1 quán đóng: giỏ chỉ thẻ → 200; có đồ uống (một mình / cùng thẻ) → 400 NGOAI_GIO  — HTTP 400 · YEU_CAU_KHONG_HOP_LE / HTTP 400 · NGOAI_GIO / HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ GIO3 quán đóng: đặt giỏ chỉ thẻ trả ví → 200 + có hạng  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ GIO2 quá giờ nhận đơn: giỏ chỉ thẻ → 200; đồ uống → 400 QUA_GIO_NHAN_DON  — HTTP 400 · YEU_CAU_KHONG_HOP_LE / HTTP 400 · QUA_GIO_NHAN_DON
+  ✓ K1 giỏ cũ (không thẻ) băm y như code gốc — khoá gửi đang sống trên production không lệch
+  ✓ K2 đơn đồ uống trả ví → da_tra như cũ (quầy còn pha)
+  ✗ S1 thân có SĐT khách B → thẻ vẫn ghi cho khách token A  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✓ S2 khách B đọc đơn thẻ của A → 404
+  ✓ S3 dòng thẻ kèm don_gia / gia lạ → 400 (máy chủ không nhận giá App gửi)
+  ✓ S4 lỗi thẻ chỉ { error, code }
+  8 đạt · 40 hỏng
+GỐC da5f5d4: thoát 1
+(Ca xanh trên gốc là ĐỐI CHỨNG / luồng phải không đổi: A1 quầy bán thẻ, B4 chặn dạng sai, B11 đếm bảng, K1 băm giỏ cũ = số chụp trên gốc,
+ K2, S2–S4. Trên gốc mục D / E / G sập giữa chừng vì đơn thẻ không tạo được — số ca trên code đã vá: 67.)
+
+SỐ CA cong_cu/thu_KHTHE1.js: 67
+
+── Bài cũ sửa vì hành vi đổi (LUAT §6.7 — danh sách trắng trường /kh/hang thêm `quyen_loi`; §6.8/6.9: bản mới ĐỎ trên gốc) ──
+Lệnh: bản HEAD của bài chạy trên cây gốc da5f5d4 (git archive vào thư mục nháp, node_modules nối symlink)
+
+cong_cu/thu_KHAPI2.js trên gốc:
+  ✗ C1 mỗi hạng ĐÚNG 10 trường { id, ten, phan_tram, phan_tram_nhom_dac_biet, chi_cap, goi, thu_bac, gia_the, thu_tu, quyen_loi } (HANG-1 thêm 3, KH-THE-1 thêm 1)  — {"id":3,"ten":...
+  100 đạt · 1 hỏng
+cong_cu/thu_HANG1.js trên gốc:
+  ✗ F1 mỗi hạng ĐÚNG 10 trường (thêm chi_cap, goi, thu_bac; giữ gia_the, thu_tu; KH-THE-1 thêm quyen_loi)  — {"id":1,"ten":"Vàng",...
+  143 đạt · 1 hỏng
+
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_HANG1.js: 144
+
+── Đột biến (python3 viec/KH-THE-1/dot_bien.py, HEAD 534778d) ──
+ĐỐI CHỨNG (bản chưa đột biến): XANH · 67 đạt · 0 hỏng
+TỔNG 23 đột biến · BẮT 23 · SỐNG 0 · HỎNG 0 · LẠC 0
