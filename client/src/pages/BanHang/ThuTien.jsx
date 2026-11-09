@@ -1,50 +1,62 @@
 /**
- * Thu tiền (BH-2): trừ tài khoản khách / mẹ (nút Bỏ) · tiền mặt (dãy tờ + bàn phím số có 000) · chuyển khoản = QR payOS.
- * Bán hàng không có công nợ; không trộn tiền mặt + chuyển khoản. Màn chỉ chọn cách — máy chủ tính, giữ và chốt tiền (BanHangMoi → phiên).
- * Nút thu CHỈ sáng khi có số máy chủ cho đúng giỏ này (`coSo`).
+ * Thu tiền (BH-2, QUAY-UI-1): ba nút chọn cách trả — Tiền mặt · Chuyển khoản · Trừ tài khoản. KHÔNG tự trừ tài khoản.
+ * Chỉ khi bấm "Trừ tài khoản" mới hiện số dư có thể trừ (khách, mẹ), số sẽ trừ, phần còn lại (chọn tiền mặt / chuyển khoản) rồi bước PIN.
+ * Tiền mặt = dãy tờ + bàn phím số có 000; chuyển khoản = QR payOS. Bán hàng không có công nợ; không trộn tiền mặt + chuyển khoản.
+ * Màn chỉ chọn cách — máy chủ tính, giữ và chốt tiền (BanHangMoi → phiên). Nút thu CHỈ sáng khi có số máy chủ cho đúng giỏ này (`coSo`).
  */
 import { useState } from 'react';
-import { cachTraKhaDung, conThieu, danhSachTo, duDuoc, nutThuSang, traLai } from './tinh';
+import { conThieu, danhSachTo, duDuoc, lyDoKhongTru, nutThuSang, traLai } from './tinh';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const PHIM = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'];
 
-export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDung, dungTK, dungMe, onDungTK, onDungMe, dangGui, onThu }) {
-  const [cach, setCach] = useState('tien_mat');
+export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDung, cachTra, onCachTra, cachConLai, onCachConLai, laNap, dungMe, onDungMe, dangGui, onThu }) {
   const [dua, setDua] = useState(0);
   const [moPhim, setMoPhim] = useState(false);
 
+  const lyDoMo = lyDoKhongTru({ khach, laNap });
+  const trongTK = cachTra === 'tai_khoan' && !lyDoMo;          // đang ở chế độ trừ tài khoản
+  const cach = trongTK ? cachConLai : (cachTra === 'chuyen_khoan' ? 'chuyen_khoan' : 'tien_mat');   // cách trả phần tiền thật
   const coMe = (khach?.parent_balance || 0) > 0;
-  const dsCach = cachTraKhaDung({ phaiTra });
   const bam = (p) => setDua((n) => (p === '⌫' ? Math.floor(n / 10) : Number(String(n === 0 ? '' : n) + p)));
   const sang = (c, d = 0) => nutThuSang({ coSo, dangGui, cach: c, phaiTra, dua: d });
+  const chonCach = (c) => { setDua(0); setMoPhim(false); onCachTra(c); };
 
   return (
     <div className="bh-chan-gio">
-      {(khach?.balance || 0) > 0 && (
-        <div className="bh-tien-dong">
-          <span>Trừ tiền tài khoản</span>
-          <span>{dungTK ? <>−{vnd(soDuDung)} <button className="bh-nut-nho" onClick={() => onDungTK(false)}>Bỏ</button></> : <button className="bh-nut-nho" onClick={() => onDungTK(true)}>Dùng {vnd(Math.min(khach.balance, tong))}</button>}</span>
-        </div>
-      )}
-      {coMe && (
-        <div className="bh-tien-dong">
-          <span>Tài khoản mẹ{khach.parent_name ? ` (${khach.parent_name})` : ''}</span>
-          <span>{dungMe ? <>−{vnd(soDuMeDung)} <button className="bh-nut-nho" onClick={() => onDungMe(false)}>Bỏ</button></> : <button className="bh-nut-nho" onClick={() => onDungMe(true)}>Dùng</button>}</span>
-        </div>
-      )}
-      <div className="bh-tien-dong bh-tong"><span>Phải trả</span><span>{coSo ? vnd(phaiTra) : 'Đang tính…'}</span></div>
+      <div className="bh-to">
+        <button className={`bh-nut ${cachTra === 'tien_mat' ? '' : 'bh-phu'}`} onClick={() => chonCach('tien_mat')}>Tiền mặt</button>
+        <button className={`bh-nut ${cachTra === 'chuyen_khoan' ? '' : 'bh-phu'}`} onClick={() => chonCach('chuyen_khoan')}>Chuyển khoản</button>
+        <button className={`bh-nut ${trongTK ? '' : 'bh-phu'}`} disabled={!!lyDoMo} onClick={() => chonCach('tai_khoan')}>Trừ tài khoản</button>
+      </div>
+      {lyDoMo && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem' }}>Trừ tài khoản: {lyDoMo}</div>}
 
-      {dsCach[0] === 'tai_khoan' ? (
+      {trongTK && (
+        <>
+          <div className="bh-tien-dong"><span>Tài khoản{khach?.name ? ` (${khach.name})` : ''} có thể trừ</span><span>{vnd(khach?.balance)}</span></div>
+          {coMe && (
+            <div className="bh-tien-dong">
+              <span>Tài khoản mẹ{khach.parent_name ? ` (${khach.parent_name})` : ''} có thể trừ {vnd(khach.parent_balance)}</span>
+              <span>{dungMe ? <button className="bh-nut-nho" onClick={() => onDungMe(false)}>Không dùng</button> : <button className="bh-nut-nho" onClick={() => onDungMe(true)}>Dùng</button>}</span>
+            </div>
+          )}
+          <div className="bh-tien-dong"><span>Sẽ trừ tài khoản</span><span>−{vnd(soDuDung + soDuMeDung)}</span></div>
+        </>
+      )}
+      <div className="bh-tien-dong bh-tong"><span>{trongTK ? 'Còn lại phải trả' : 'Phải trả'}</span><span>{coSo ? vnd(phaiTra) : 'Đang tính…'}</span></div>
+
+      {phaiTra <= 0 ? (
         <button className="bh-nut bh-xanh bh-lon" disabled={!sang('tai_khoan')} onClick={() => onThu({ cach: 'tai_khoan' })}>
           {soDuDung + soDuMeDung > 0 ? 'Trả đủ bằng tài khoản' : 'Đơn 0đ — hoàn tất'}
         </button>
       ) : (
         <>
-          <div className="bh-to">
-            <button className={`bh-nut ${cach === 'tien_mat' ? '' : 'bh-phu'}`} onClick={() => setCach('tien_mat')}>Tiền mặt</button>
-            <button className={`bh-nut ${cach === 'chuyen_khoan' ? '' : 'bh-phu'}`} onClick={() => setCach('chuyen_khoan')}>Chuyển khoản</button>
-          </div>
+          {trongTK && (
+            <div className="bh-to">
+              <button className={`bh-nut ${cachConLai === 'tien_mat' ? '' : 'bh-phu'}`} onClick={() => { setDua(0); setMoPhim(false); onCachConLai('tien_mat'); }}>Còn lại: Tiền mặt</button>
+              <button className={`bh-nut ${cachConLai === 'chuyen_khoan' ? '' : 'bh-phu'}`} onClick={() => { setDua(0); setMoPhim(false); onCachConLai('chuyen_khoan'); }}>Còn lại: Chuyển khoản</button>
+            </div>
+          )}
           {cach === 'tien_mat' ? (
             <>
               <div className="bh-to">

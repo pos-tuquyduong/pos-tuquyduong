@@ -10,6 +10,7 @@ import { api, customersV2Api, registrationsApi, hangApi } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import CapHang from '../components/CapHang';   // HANG-1: cấp hạng (chủ quán + PIN) + nhật ký hạng
 import MaDangNhapApp from '../components/MaDangNhapApp';
+import { chuanSdtQuay } from '../utils/maApp';   // QUAY-UI-1 C: cùng cách chuẩn hoá SĐT với quầy
 import ViKhach from '../components/ViKhach';   // GIAO-DIEN-1 C: khu Ví (thay màn Số dư cũ)
 import MaAppSoMoi from '../components/MaAppSoMoi';
 import { Search, Plus, X, Phone, Users, RefreshCw, User, FileText } from 'lucide-react';
@@ -30,6 +31,7 @@ export default function Customers() {
     requested_cycles: 1
   });
   const [submitting, setSubmitting] = useState(false);
+  const [khachTrung, setKhachTrung] = useState(null);   // QUAY-UI-1 C: khách đã có ngay khi gõ đủ SĐT (máy chủ vẫn chặn 409 khi lưu)
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -104,6 +106,18 @@ export default function Customers() {
 
     return true;
   });
+
+  // QUAY-UI-1 C: gõ đủ SĐT → tự tra (cửa đọc khách sẵn có); đã có khách → báo + mờ nút Lưu. Câu trả về muộn của số cũ bị bỏ.
+  useEffect(() => {
+    const sdtChuan = chuanSdtQuay(formData.phone);
+    setKhachTrung(null);
+    if (!showModal || !sdtChuan) return undefined;
+    let huy = false;
+    customersV2Api.search(sdtChuan)
+      .then((r) => { if (!huy) setKhachTrung((r.results || []).find((c) => c.phone === sdtChuan) || null); })
+      .catch(() => {});   // tra hỏng: không chặn — máy chủ vẫn chặn khi lưu
+    return () => { huy = true; };
+  }, [formData.phone, showModal]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -563,6 +577,7 @@ export default function Customers() {
                     placeholder="0901234567"
                     required
                   />
+                  {khachTrung && <div className="alert alert-danger" style={{ marginTop: 6 }}>Khách đã có: {khachTrung.name} — tìm khách ở màn Bán hàng</div>}
                 </div>
 
                 <div className="form-group">
@@ -650,7 +665,7 @@ export default function Customers() {
                 <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>
                   Hủy
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting || !!khachTrung}>
                   {submitting ? 'Đang lưu...' : 'Lưu khách hàng'}
                 </button>
               </div>

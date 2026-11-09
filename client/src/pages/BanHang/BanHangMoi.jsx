@@ -18,12 +18,13 @@ import ManPin from './ManPin';
 import ManQr from './ManQr';
 import KhungGiao from './KhungGiao';
 import MaGhepManKhach, { useQuayManKhach } from '../ManKhach/MaGhep';
-import { chiaTra, coGia, coSoMayChu, giaHang, hanhDongPhien, khoaTinh, kiemTraNap, kiemTraThem, layGoiNap, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, xuLyLoiPin } from './tinh';
+import { CACH_TRA_MAC_DINH, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, hanhDongPhien, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viTriMayChu, xuLyLoiPin } from './tinh';
 import { NutThongTin } from '../../components/ThongTinMon';
 import './banHang.css';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const TEN_NHOM = { juice: 'Nước ép', tea: 'Trà' };          // nhóm lạ hiện đúng mã nhóm
+const NHOM_THE = 'the';                                     // QUAY-UI-1: nhóm "Thẻ thành viên" (gói thẻ cùng giỏ với món, tối đa một thẻ)
 const NHOM_NAP = 'nap';                                     // NAP-1: nhóm "Nạp tiền" (gói nạp, đơn riêng, chỉ tiền mặt / QR)
 const ID_NAP_TU = -2000000;                                 // khoá dòng giỏ của gói nạp — cùng dải máy chủ dùng (utils/viKhach.js)
 const CHU_KY_FLASH_MS = 60000;                              // như Sales.jsx: làm mới Flash mỗi 60 giây
@@ -57,7 +58,8 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const [caiDatHoaDon, setCaiDatHoaDon] = useState({});
   const [trang, setTrang] = useState('mon');
   const [khung, setKhung] = useState(null);                 // { sp, dong? }
-  const [dungTK, setDungTK] = useState(true);
+  const [cachTra, setCachTra] = useState(CACH_TRA_MAC_DINH);   // QUAY-UI-1: tiền mặt · chuyển khoản · trừ tài khoản — KHÔNG tự trừ
+  const [cachConLai, setCachConLai] = useState('tien_mat');     // phần còn lại sau khi trừ tài khoản
   const [dungMe, setDungMe] = useState(false);
   const [ma, setMa] = useState('');                          // mã giảm giá đã áp (máy chủ quyết dùng hay không)
   const [maGo, setMaGo] = useState('');
@@ -102,9 +104,11 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     return () => clearInterval(h);
   }, [napSanPham, napFlash]);
 
+  const datLaiCach = () => { setCachTra(CACH_TRA_MAC_DINH); setCachConLai('tien_mat'); setDungMe(false); };   // MỘT chỗ đặt lại: cách trả, phần còn lại, ví mẹ
   const chonKhach = async (c) => {
+    if (khach?.phone !== c.phone) setGio((g) => g.filter((m) => !m.the));   // đổi khách: hạng khách mới chưa tra → bán lại thẻ qua kiemTraThe
     const luot = ++luotKhach.current;                      // tra hạng / điểm về muộn của khách trước thì bỏ
-    setKhach(c); setLoi(''); setDungTK(true); setDungMe(false); setHang(null);
+    setKhach(c); setLoi(''); datLaiCach(); setHang(null);
     api.get(`/loyalty/points/${encodeURIComponent(c.phone)}`)
       .then((r) => { if (luotKhach.current === luot && r.success) setKhach((k) => (k && k.phone === c.phone ? { ...k, points: r.points } : k)); })
       .catch(() => {});                                    // không tra được điểm: dải khách chỉ không hiện điểm
@@ -119,8 +123,8 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     } catch { /* không tra được hạng: lưới chỉ không gạch giá; máy chủ vẫn tự tính hạng khi hỏi giá */ }
   };
   const boKhach = () => {
-    luotKhach.current++; setKhach(null); setHang(null); setDungTK(true); setDungMe(false);
-    setGio((g) => (layGoiNap(g) ? [] : g));                  // NAP-1: gói nạp cần khách — bỏ khách thì bỏ luôn gói khỏi giỏ
+    luotKhach.current++; setKhach(null); setHang(null); datLaiCach();
+    setGio((g) => (layGoiNap(g) ? [] : g.filter((m) => !m.the)));   // NAP-1 / QUAY-UI-1: gói nạp và thẻ cần khách — bỏ khách thì bỏ khỏi giỏ
   };
 
   // ── Giá do máy chủ tính ── chỉ hỏi lại khi khoá (khách + tổng số lượng từng món + mã) đổi; gõ ghi chú không đổi khoá.
@@ -145,9 +149,10 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const tinh = useMemo(() => tinhGio(gio, { flash, hang }), [gio, flash, hang]);   // chỉ để hiện giá dòng khi chưa có số máy chủ
   const tong = coSo ? Math.round(mayChu.total) : tinh.tong;
   const laNap = !!layGoiNap(gio);                          // NAP-1: giỏ là gói nạp → không trừ tài khoản, không mã
-  const { soDuDung, soDuMeDung, phaiTra } = chiaTra({ tong: coSo ? tong : 0, khach, dungTK: dungTK && !laNap, dungMe: dungMe && !laNap });
+  const dungTK = cachTra === 'tai_khoan';                  // chỉ khi nhân viên bấm "Trừ tài khoản"
+  const { soDuDung, soDuMeDung, phaiTra } = chiaTra({ tong: coSo ? tong : 0, khach, dungTK: dungTK && !laNap, dungMe: dungMe && dungTK && !laNap });
   const soLy = gio.reduce((s, m) => s + m.quantity, 0);
-  const dongMayChu = coSo && mayChu.items?.length === gio.length ? mayChu.items : null;   // giá từng dòng do máy chủ trả
+  const dongMayChu = coSo && mayChu.items?.length === gio.length ? viTriMayChu(gio).map((v) => mayChu.items[v]) : null;   // giá từng dòng do máy chủ trả, xếp theo dòng giỏ (thẻ nằm cuối bên máy chủ)
 
   const giaMotLy = (s) => {
     const dacBiet = !!s.is_special_group;
@@ -156,7 +161,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
 
   // ── Giỏ ──
   const batDauDonMoi = () => {
-    setXong(null); setDaIn(false); setGio([]); setKhach(null); setHang(null); setDungTK(true); setDungMe(false); setMa(''); setMaGo('');
+    setXong(null); setDaIn(false); setGio([]); setKhach(null); setHang(null); datLaiCach(); setMa(''); setMaGo('');
     setTrang('mon'); setLoi(''); setCheDoGiao(false); setGiao(null);
   };
   const chamMon = (s) => {
@@ -189,7 +194,17 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     setLoi('');
     setGio([{ key: maDong.current++, goi_nap_id: g.id, product_id: ID_NAP_TU - g.id, product_name: g.ten, unit_price: g.khach_tra, quantity: 1, note: '' }]);
   };
-  const moLaiDong = (d) => { const s = sp.find((x) => x.id === d.product_id); if (s) setKhung({ sp: s, dong: d }); };
+  const chamThe = (tier, goi) => {                          // QUAY-UI-1: một cổng kiemTraThe; giá do máy chủ tra (membership_buy)
+    if (xong) { if (!daIn) return; batDauDonMoi(); return; }
+    const e = kiemTraThe(gio, khach, hang, tier);
+    if (e) { setLoi(e); return; }
+    setLoi('');
+    setGio((g) => [...g, dongThe(tier, goi)]);
+  };
+  const moLaiDong = (d) => {
+    if (d.the) { setGio((g) => g.filter((m) => m.key !== d.key)); return; }   // chạm dòng thẻ = bỏ thẻ
+    const s = sp.find((x) => x.id === d.product_id); if (s) setKhung({ sp: s, dong: d });
+  };
 
   // ── Thu tiền: MỘT đường phiên cho mọi cách ──
   const nhaPhien = (p) => thanhToanApi.huyPhien(p.id).catch(() => {});   // đã chốt / đã huỷ: không sao, phần giữ không còn
@@ -286,7 +301,8 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     setHoiPin((h) => ({ ...h, i: 0, da: {}, kieu: thongBao ? 'dat' : 'nhap', loi: thongBao || 'Đã đặt PIN — nhập lại PIN để xác nhận' }));
     setDangGui(false);
   };
-  const boTruTaiKhoan = () => { setHoiPin(null); setDungTK(false); setDungMe(false); };
+  const boTruTaiKhoan = () => { setHoiPin(null); datLaiCach(); };
+  const doiCachTra = (c) => { setCachTra(c); if (c !== 'tai_khoan') setDungMe(false); };
 
   const xongQr = useCallback((id) => hoanTatRef.current(id, anhQr.current, 'chuyen_khoan', 0), []);
   const nhaQr = useCallback((thongBao) => { setQr(null); setLoi(thongBao); setLanTinhLai((n) => n + 1); }, []);
@@ -306,6 +322,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
           <button key={n} className={`bh-tab${nhom === n ? ' bh-chon' : ''}`} onClick={() => setNhom(n)}>{n === 'all' ? 'Tất cả' : TEN_NHOM[n] || n}</button>
         ))}
         {dsGoiNap.length > 0 && <button className={`bh-tab${nhom === NHOM_NAP ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_NAP)}>Nạp tiền</button>}
+        {(dsGoiThe(dsHang).length > 0 || hangChiCap(dsHang).length > 0) && <button className={`bh-tab${nhom === NHOM_THE ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_THE)}>Thẻ thành viên</button>}
       </div>
       <div className={`bh-luoi${xong && !daIn ? ' bh-khoa' : ''}`}>
         {nhom === NHOM_NAP && dsGoiNap.map((g) => (
@@ -317,7 +334,24 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
             </button>
           </div>
         ))}
-        {nhom !== NHOM_NAP && dsMon.map((s) => {
+        {nhom === NHOM_THE && dsGoiThe(dsHang).map(({ tier, so_thang, gia }) => {
+          const caoHon = !!hang?.usable && Number(hang.thu_bac) > Number(tier.sort_order);
+          return (
+            <div key={`the-${tier.id}-${so_thang}`} className="bh-mon-bao">
+              <button className="bh-mon" disabled={caoHon} onClick={() => chamThe(tier, { so_thang, gia })}>
+                <span className="bh-mon-ten">{tier.name} · {so_thang} tháng</span>
+                <span><span className="bh-gia">{vnd(gia)}</span></span>
+                {caoHon && <span className="bh-mon-ton">Khách có hạng cao hơn</span>}
+              </button>
+            </div>
+          );
+        })}
+        {nhom === NHOM_THE && hangChiCap(dsHang).map((t) => (
+          <div key={`cap-${t.id}`} className="bh-mon-bao">
+            <button className="bh-mon" disabled><span className="bh-mon-ten">{t.name}</span><span className="bh-mon-ton">Chủ quán cấp</span></button>
+          </div>
+        ))}
+        {nhom !== NHOM_NAP && nhom !== NHOM_THE && dsMon.map((s) => {
           const g = coGia(s) ? giaMotLy(s) : 0;
           const het = !s.khong_quan_kho && s.stock_quantity === 0;
           return (
@@ -357,7 +391,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
           const { goc, hienTai } = giaDong(d, i);
           return (
             <button key={d.key} className="bh-dong" onClick={() => moLaiDong(d)}>
-              <div className="bh-dong-ten"><b>{d.quantity} x {d.product_name}</b>{d.note && <div className="bh-dong-note">{d.note}</div>}</div>
+              <div className="bh-dong-ten"><b>{d.quantity} x {d.product_name}</b>{d.note && <div className="bh-dong-note">{d.note}</div>}{d.the && <div className="bh-dong-note">Chạm để bỏ thẻ</div>}</div>
               <div className="bh-dong-tien">
                 {hienTai < goc && <div className="bh-gia-goc">{vnd(goc * d.quantity)}</div>}
                 <b>{vnd(hienTai * d.quantity)}</b>
@@ -389,7 +423,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
           </div>
           {!laNap && <KhungGiao bat={cheDoGiao} onBat={setCheDoGiao} giao={giao} onGiao={setGiao} khach={khach} />}
           {!choPhiGiao && <ThuTien key={`${tong}-${soDuDung}-${soDuMeDung}-${khoa}`} coSo={coSo} tong={tong} phaiTra={phaiTra} khach={laNap && khach ? { ...khach, balance: 0, parent_balance: 0 } : khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
-            dungTK={dungTK} dungMe={dungMe} onDungTK={setDungTK} onDungMe={setDungMe} dangGui={dangGui} onThu={thu} />}
+            cachTra={cachTra} onCachTra={doiCachTra} cachConLai={cachConLai} onCachConLai={setCachConLai} laNap={laNap} dungMe={dungMe} onDungMe={setDungMe} dangGui={dangGui} onThu={thu} />}
         </>
       )}
     </div>
