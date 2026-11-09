@@ -48,7 +48,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
 ### Ghi chú v13 — mua thẻ hạng trên App (KH-THE-1, chủ quán duyệt 08–09.11)
 - **Dòng thẻ** trong `mon[]` của `POST /gio/bao-gia` và `POST /don`: `{ loai: "the", hang_id, so_thang, so_luong? }` — `hang_id` = `id` của `/hang`,
   `so_thang` = `goi[].so_thang` của hạng đó (số nguyên ≥ 1), `so_luong` bỏ hoặc 1; KHÔNG kèm `ma` / `ghi_chu` / giá (khoá lạ → 400
-  `YEU_CAU_KHONG_HOP_LE`). Tối đa MỘT dòng thẻ mỗi đơn (hai dòng → 400 `NHIEU_THE`). Giỏ chỉ có thẻ được. Đứng đâu trong giỏ cũng được — `dong[]`
+  `YEU_CAU_KHONG_HOP_LE`); dòng MÓN không gửi khoá `loai` (có `loai` = dòng thẻ). Tối đa MỘT dòng thẻ mỗi đơn (hai dòng → 400 `NHIEU_THE`). Giỏ chỉ có thẻ được. Đứng đâu trong giỏ cũng được — `dong[]`
   giữ đúng thứ tự gửi. Cùng `khoa_gui`, `tong_da_xem`, `cach_tra` (`qr` · `vi` · `vi_qr`), luật 4xx / 5xx như đơn đồ uống.
 - **Giá** = giá gói máy chủ tra (cùng đường bán thẻ của quầy). Dòng thẻ trong `dong[]`: `{ loai: "the", hang_id, so_thang, ma: null, so_luong: 1,
   don_gia, thanh_tien }`; dòng món giữ đúng 4 trường cũ. Không giảm hạng / Giờ vàng cho dòng thẻ. Mã giảm (`ma_giam`) áp ĐÚNG như ở quầy: mã % và mã tiền
@@ -65,7 +65,8 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
 - **Tiến trình:** giỏ không có đồ uống → đã thu là `tien_trinh: "xong"` ngay (quầy không pha; đơn vẫn hiện ở màn Đơn App của quầy với nhãn "đã lên hạng").
   Giỏ có đồ uống → `da_tra` → `dang_lam` → `xong` như cũ.
 - **Xem đơn:** `GET /don/:ma` `mon[]` dòng thẻ có thêm `loai: "the"`, `ten` "🎟️ Thẻ hội viên <hạng> · <n> tháng", `ghi_chu` `null`; dòng món không có
-  `loai`. `mon[]` theo thứ tự của đơn (món trước, dòng thẻ cuối — có thể khác thứ tự giỏ gửi lên), giống hệt trước và sau khi trả; `mon_dau` cũng vậy. `hoa_don[]` dòng thẻ `loai: "the"` (cùng `trai` / `phai` như dòng món), `ghi_chu` "Hạn mới: dd/mm/yyyy" (đơn bị huỷ: rỗng).
+  `loai`. `mon[]` theo thứ tự của đơn (món trước, dòng thẻ cuối — có thể khác thứ tự giỏ gửi lên); thứ tự, `ten`, `so_luong`, `ghi_chu`, `loai` và
+  `mon_dau` giống nhau trước và sau khi trả. `don_gia` như từ v5: đơn chưa trả là giá gốc một ly, đơn đã trả là giá đã giảm hạng / Giờ vàng của dòng đó. `hoa_don[]` dòng thẻ `loai: "the"` (cùng `trai` / `phai` như dòng món), `ghi_chu` "Hạn mới: dd/mm/yyyy" (đơn bị huỷ: rỗng).
   `so_mon` đếm dòng thẻ là 1. Hạn mới không thời hạn → "Hạn mới: không thời hạn".
 - **Huỷ / hoàn:** quầy huỷ / xoá đơn có thẻ → thẻ của đơn bị thu hồi, hạng tính lại (hạn cộng nối lùi về). Đơn có thẻ không hoàn qua yêu cầu
   hoàn tiền (như quầy). App chỉ huỷ được đơn chưa trả (chưa có hạng).

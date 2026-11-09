@@ -29,8 +29,8 @@ async function dongTheCua(oid) {
   const ds = await query('SELECT product_id FROM pos_order_items WHERE order_id = ? ORDER BY id', [oid]);
   if (!ds.some((d) => laDongThe(d.product_id))) return [];
   const han = (await queryOne('SELECT expires_at FROM pos_membership_purchases WHERE order_id = ? ORDER BY id DESC LIMIT 1', [oid]))?.expires_at;
-  // Không thời hạn (HAN_VO_HAN, hoặc cộng nối từ đó ra số năm > 9999) → chữ, không in ngày (membershipStatus: "mọi chỗ trả ra đổi thành null").
-  const voHan = han && (han >= HAN_VO_HAN || !/^\d{4}-\d\d-\d\d/.test(han));
+  // Không thời hạn (HAN_VO_HAN — hanCacHang giữ nguyên hằng này khi cộng nối) → chữ, không in ngày (membershipStatus: "mọi chỗ trả ra đổi thành null").
+  const voHan = han === HAN_VO_HAN;
   const ghiChu = !han ? '' : voHan ? 'Hạn mới: không thời hạn' : `Hạn mới: ${han.slice(8, 10)}/${han.slice(5, 7)}/${han.slice(0, 4)}`;
   return ds.map((d) => (laDongThe(d.product_id) ? ghiChu : null));
 }
