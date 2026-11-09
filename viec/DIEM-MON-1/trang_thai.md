@@ -18,6 +18,14 @@
   - de66463 TIEN-DO: GIAO-DIEN-1, KH-TOMTAT-1, GIAO-1, NAP-1, KHACH-APP-1 xong; mo DIEM-MON-1, KH-THE-1, QUAY-UI-1 + xep hang 5 viec; quyet dinh 07-08.11 — so v58
 - Chủ quán duyệt kế hoạch, Q1 = CÁCH 2 (trừ điểm theo dòng). Đã ghi luật vào `ke_hoach.md` mục 6. DỪNG ở bước 2 vì hai chỗ ngoài Phạm vi (Q2, Q3 dưới).
 
+## Bước 1 (phiên 09.11 lần 2 — sau khi chủ quán thêm Q2, Q3 vào Phạm vi)
+- Nhánh viec/DIEM-MON-1 · cây sạch · HEAD e90d42a = FETCH_HEAD e90d42a (bằng nhau, không kéo — hook mở phiên đã kéo 5eb8ede → e90d42a)
+- git log --oneline -3:
+  - e90d42a PHIEU: DIEM-MON-1 Pham vi them damages.js + gia_lap/bat_bien.js (Q2, Q3 chu quan duyet 09.11)
+  - 5eb8ede DIEM-MON-1: ghi luat CACH 2 vao ke hoach; hoi them damages.js + bat_bien.js (I8) vao Pham vi
+  - ce46ce0 DIEM-MON-1: ke hoach (cho duyet) + trang thai buoc 1-3
+- Q2, Q3 ĐÃ TRẢ LỜI (phiếu e90d42a thêm hai file vào Phạm vi). Làm tiếp từ bước 4.
+
 ## Câu hỏi
 - Q1 (đã đề xuất trong ke_hoach.md mục 5): khi hoàn / đền / kết thúc gói, trừ điểm theo tỷ lệ trên TOÀN tiền đơn (đề xuất) hay chỉ khi phần hoàn
   thuộc dòng bật điểm? Chủ quán xác nhận lúc duyệt kế hoạch.
