@@ -131,7 +131,8 @@ k('A9 dòng máy chủ khớp theo viTriMayChu, không theo chỉ số giỏ', /
   const tt = doc('client/src/pages/BanHang/ThuTien.jsx');
   k('B5 ThuTien có đủ ba nút: Tiền mặt · Chuyển khoản · Trừ tài khoản', />Tiền mặt<\/button>/.test(tt) && />Chuyển khoản<\/button>/.test(tt) && />Trừ tài khoản<\/button>/.test(tt));
   k('B5 ThuTien: nút Trừ tài khoản mờ kèm lý do từ lyDoKhongTru', /lyDoKhongTru\(/.test(tt));
-  k('B5 ThuTien: chọn cách trả qua onCachTra (không còn nút "Bỏ" của tự trừ)', /onCachTra/.test(tt) && !/onDungTK\(false\)/.test(tt));
+  k('B6 ThuTien: số dư có thể trừ / số sẽ trừ / phần còn lại / chọn TM-CK cho phần còn lại CHỈ nằm trong khối {trongTK && (…)} hoặc sau nút Còn lại', /\{trongTK && \(\s*<>[\s\S]*?có thể trừ[\s\S]*?Sẽ trừ tài khoản[\s\S]*?<\/>\s*\)\}/.test(tt) && /\{trongTK && \(\s*<div className="bh-to">[\s\S]*?Còn lại: Tiền mặt[\s\S]*?Còn lại: Chuyển khoản/.test(tt));
+k('B5 ThuTien: chọn cách trả qua onCachTra (không còn nút "Bỏ" của tự trừ)', /onCachTra/.test(tt) && !/onDungTK\(false\)/.test(tt));
 
   // ═════ MÁY CHỦ ═════
   const express = require(path.join(GOC, 'node_modules', 'express'));

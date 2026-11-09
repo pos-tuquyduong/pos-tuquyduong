@@ -80,6 +80,8 @@ DOT_BIEN = [
   ('BV-BH-LAI-CON-LAI', [(BH, "setCachConLai('tien_mat'); setDungMe(false); };", 'setDungMe(false); };', 1)], r'✗ B4b ', T),
   ('BV-BH-DAT-LAI-MOT-CHO', [(BH, 'setKhach(c); setLoi(\'\'); datLaiCach(); setHang(null);', "setKhach(c); setLoi(''); setHang(null);", 1)], r'✗ B4b ', T),
   ('BV-BH-DOI-KHACH-GIU-THE', [(BH, 'if (khach?.phone !== c.phone) setGio((g) => g.filter((m) => !m.the));', '', 1)], r'✗ B4c ', T),
+  ('BV-TT-LO-SO-DU-LUON', [(TT, '{trongTK && (\n        <>', '{(\n        <>', 1)], r'✗ B6 ', T),
+  ('BV-TT-BO-PHAN-CON-LAI', [(TT, '<button className={`bh-nut ${cachConLai === \'chuyen_khoan\' ? \'\' : \'bh-phu\'}`} onClick={() => { setDua(0); setMoPhim(false); onCachConLai(\'chuyen_khoan\'); }}>Còn lại: Chuyển khoản</button>', '', 1)], r'✗ B6 ', T),
   ('BV-ORD-NUT-SU-CO', [(OR, '!laDonNap(selectedOrder) && ', '', 1)], r'✗ D4 ', T),
 ]
 
