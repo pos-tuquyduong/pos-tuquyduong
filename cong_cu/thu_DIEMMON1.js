@@ -51,7 +51,8 @@ async function main() {
   const sxThat = require(duongSX);
   const sxGia = async () => ({ ok: true });
   require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => true, checkStock: async () => ({ sufficient: true, stock: 999 }),
-    outStockFIFO: sxGia, inStockReturn: sxGia, callSxApi: sxGia };
+    outStockFIFO: sxGia, inStockReturn: sxGia,
+    callSxApi: async (url, ...a) => { if (/products-with-stock/.test(url)) throw new Error('SX giả: menu lấy từ POS'); return sxGia(url, ...a); } };
 
   const co = { mocTruocTx: null };
   const txGoc = db.beginTransaction;
