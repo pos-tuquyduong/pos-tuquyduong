@@ -308,3 +308,7 @@ HEAD ĐÃ KIỂM: 275633a
 - `node tu_chay/cong.js chay . a4d89ae^ HEAD viec/KH-THE-1` → ✓ CỔNG CHẠY ĐẠT (kèm cảnh báo A16 như trên: bài dừng sớm trên gốc, 52 ≠ 73 ca).
 - GIT: `git log --oneline -2` → f7725e0 PHIEU: KH-THE-1 Pham vi them thu_HANG1.js + thu_KHAPI2.js … · 401d28f KH-THE-1: ket qua cong + HEAD DA KIEM
 HEAD ĐÃ KIỂM: f7725e0
+
+
+Chat gộp 09.11: gộp main 4eb31fc (QUAY-UI-1) — chỉ client/dist đụng, dựng lại từ mã nguồn; chủ quán thử tay ô Quyền lợi ĐẠT.
+HEAD ĐÃ KIỂM: bf723ee
