@@ -178,7 +178,8 @@ async function main() {
   k('T6 khách hạng giảm 10% món: X 36.000 + Y 54.000 = 90.000 → 54 (tỷ lệ trên giá sau giảm hạng)',
     t6.status === 200 && t6.order?.total === 90000 && (await diemCua(t6)) === 54, `${moTa(t6)} · ${t6.order?.total} · ${await diemCua(t6)}`);
 
-  await db.run('INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id) VALUES (771, ?, ?)', [Y.sx_product_type, Y.sx_product_id]);
+  await db.run("INSERT INTO pos_product_groups (id, code, name, created_at) VALUES (771, 'DM1NHOM', 'Nhóm thử DIEM-MON-1', ?)", [getNow()]);
+  await db.run('INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id, created_at) VALUES (771, ?, ?, ?)', [Y.sx_product_type, Y.sx_product_id, getNow()]);
   await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active, discount_scope, applicable_group_id)
     VALUES ('DM1MON10K', 'fixed', 10000, 0, 0, 1, 'item', 771)`);
   const t6b = ghi(await ban({ customer_phone: sdtMoi(), cash_amount: 90000, discount_code: 'DM1MON10K' }));
