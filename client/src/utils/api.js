@@ -326,6 +326,12 @@ export const goiNapApi = {
   sua: (id, d) => api.put(`/goi-nap/${id}`, d)
 };
 
+// DIEM-MON-1: công tắc tích điểm theo món / gói / hạng (Cài đặt → Điểm thưởng; đổi cần quyền manage_promotions)
+export const tichDiemApi = {
+  danhSach: () => api.get('/loyalty/tich-diem'),
+  dat: (loai, ids, bat) => api.put('/loyalty/tich-diem', { loai, ids, bat })
+};
+
 // ============ API CŨ (giữ lại để tương thích) ============
 
 // Customers API (cũ)
