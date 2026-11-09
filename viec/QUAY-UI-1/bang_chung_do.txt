@@ -44,4 +44,4 @@ Vòng sửa 1 (soát độc lập 09.11) còn đỏ riêng trên commit b8fbb9b 
 Trên code ĐÃ VÁ (HEAD): TỔNG: 63/63 ca đạt · 63 đạt · 0 hỏng · thoát 0
 (10 ca xanh trên gốc là ĐỐI CHỨNG K5: đường hợp lệ — giỏ không thẻ, đơn thường báo sự cố, đơn thẻ không dính mã đơn nạp, khách do chính đăng ký tạo, đăng ký đã xuất — không bị chặn oan.)
 
-SỐ CA thu_QUAYUI1.js: 63
+SỐ CA cong_cu/thu_QUAYUI1.js: 63
