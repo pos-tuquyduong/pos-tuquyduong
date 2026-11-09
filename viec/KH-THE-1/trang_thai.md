@@ -31,7 +31,7 @@
   đã sửa vào kế hoạch; thêm ca D8, D9, G6, thử tay 3 thao tác.
 - 09.11 bước 1–3 xong: đọc code, viết `ke_hoach.md`. Phiếu là việc [T] (tiền + hạng) — **DỪNG chờ chủ quán duyệt kế hoạch**.
 
-## Câu hỏi
+## Câu hỏi của kế hoạch (đã trả lời)
 (Q1–Q4 của kế hoạch: chủ quán đã trả lời 09.11 — xem trên. Chưa có câu hỏi mới.)
 
 ## Chỗ vá → đột biến (cổng A17, A18)
@@ -195,3 +195,92 @@ BÀI HỌC:
   thêm "dòng MÓN không gửi khoá `loai`".
 - DonApp.jsx: đơn có thẻ đã huỷ → "đơn đã huỷ, thẻ đã thu hồi" (giao diện — thử tay). dongHoaDon.js: bỏ vế code chết, chú thích đúng (voHan = han === HAN_VO_HAN).
 - Chạy lại: thu_KHTHE1 73/0 · `npm test -- --day-du` 111/0 (dist KHỚP src) · đột biến 27/27 BẮT. Cổng chạy ghi ở bước 11.4.
+
+## Soát bảo mật
+/soat-bao-mat 09.11 (agent độc lập, chỉ đọc, HEAD f539ff4). Số lỗ hổng trước lọc: 0 · sau lọc: 0 (bước 2 không tìm được gì nên không có bước 3). Báo cáo nguyên văn:
+
+> Mình không tìm thấy lỗ hổng nào trong thay đổi của nhánh viec/KH-THE-1 (a4d89ae^..HEAD, đã bỏ qua client/dist).
+>
+> Mình chỉ đọc code, không chạy bài thử nào. Kết luận dưới đây dựa trên bản diff và code `server/routes/orders.js` hiện tại.
+>
+> **Những chỗ đã soát và vì sao không phải lỗi:**
+>
+> - **Giá thẻ do máy chủ tự tra.** Trong `server/utils/donApp.js`, dòng thẻ ở `docGio` chỉ nhận đúng các khoá `hang_id`, `loai`, `so_luong`, `so_thang` (danh sách `TRUONG_THE`; khoá lạ thì trả 400). `so_luong` chỉ được là 1, và không có trường giá nào lọt qua. Dòng thẻ được chuyển thành `membership_buy {tier_id, so_thang}` của `taoDon` quầy. Ở `server/routes/orders.js:520-548`, máy chủ đọc hạng đang bật, chặn hạng chỉ chủ quán cấp (`HANG_CHI_CAP`), chặn gói chưa bán (`GOI_HANG_KHONG_BAN`), chặn khi khách đã có hạng cao hơn (`DA_CO_HANG_CAO_HON`). Giá lấy từ `goiBanDuoc(membershipTier)`, không lấy từ App. `datDon` còn so lại `tong_da_xem` với tổng máy chủ tính lại.
+> - **Khách chỉ mua thẻ cho chính mình.** `thanDon` luôn lấy `customer_phone` và `customer_name` từ khách trong token, không từ thân yêu cầu. Vì vậy sổ thẻ chỉ ghi vào SĐT của người đang đăng nhập.
+> - **Không lách được để có hạng Kim Cương.** Hạng chỉ cấp bị chặn ngay trong `taoDon`. Hạng đã tắt (`is_active = 0`) thì trả "không tồn tại".
+> - **Bán thẻ mọi giờ và tự "xong".** `gioCanPhaChe` chỉ bỏ kiểm giờ khi giỏ không có món, tức là đúng ý đã duyệt. Trạng thái `'xong'` được ghi sẵn nhưng chỉ có tác dụng khi phiên đã thu tiền. Thanh toán vẫn đi qua `taoPhien` (cần PIN nếu trừ tài khoản, QR thì qua payOS) như trước.
+> - **Ô quyền lợi hạng (`PUT /api/pos/tiers`).** Vẫn sau `authenticate` + `checkPermission('manage_promotions')` + `kiemPinChuQuan`. Câu SQL truyền tham số đúng cách, nên không có lỗ chèn lệnh SQL. Dữ liệu được kiểm kiểu, số dòng và độ dài. Khi máy gửi lên không có trường này, `COALESCE` giữ chữ cũ.
+> - **`GET /api/kh/hang` thêm `quyen_loi[]`.** Đây là chữ chủ quán nhập, công khai theo ý muốn, không lộ dữ liệu khách. Màn quầy hiện chữ này bằng React, không dùng `dangerouslySetInnerHTML`, nên không có lỗi chèn mã.
+> - **Hoá đơn dòng thẻ (`server/utils/dongHoaDon.js`, `dongTheCua`).** Hàm truy vấn theo `o.id` của đơn mà phía gọi đã kiểm là đơn của chính khách. Chỉ trả ra ngày hết hạn.
+> - **Hàm `laDongThe`** chỉ nhận dải mã sản phẩm từ -2000000 (không kể) tới -1000000, nên không trùng với dải gói nạp hay gói sản phẩm.
+> - **Mã lỗi mới chuyển tiếp cho App** (`HANG_CHI_CAP`, `GOI_HANG_KHONG_BAN`, `DA_CO_HANG_CAO_HON`, `NHIEU_THE`) chỉ nói tên hạng, không lộ thông tin nội bộ hay dữ liệu người khác.
+>
+> Nhánh này không đụng đến webhook QR hay mã OTP / PIN, nên không có cửa nhận gọi từ ngoài hay mã ngắn mới nào cần soát.
+
+SOÁT BẢO MẬT: ĐẠT
+
+## Câu hỏi
+- **Phạm vi phiếu thiếu hai bài cũ** (cổng tĩnh `✗ [A6] file cong_cu/thu_HANG1.js không có trong Phạm vi của phiếu` · `✗ [A6] file cong_cu/thu_KHAPI2.js không có
+  trong Phạm vi của phiếu`). Hai bài này khoá ĐÚNG danh sách trường của `GET /api/kh/hang`; phiếu thêm `quyen_loi` nên máy sửa đúng dòng danh sách đó
+  (vẫn so BẰNG) theo LUAT §6.7 ("KHÔNG dừng hỏi xin thêm vào Phạm vi") — bản mới đỏ trên gốc, có `SỐ CA`. Cổng đỏ cho tới khi Phạm vi có hai dòng
+  `cong_cu/thu_HANG1.js` và `cong_cu/thu_KHAPI2.js`. **Đề xuất:** chat thêm hai dòng này vào `## Phạm vi` của phiếu (máy không tự sửa phiếu). Ngoài ra không còn câu nào.
+
+## Bài học
+- **KHOÁ (đã làm, trong Phạm vi):** ca G7 — CÙNG một đơn App, so BẰNG mon[] (trường, thứ tự, tên, tiền, ghi chú) + mon_dau trước và sau khi trả (soát vòng 1
+  bắt hai đường trả mon[] lệch nhau); đột biến BV-than-the-cuoi, BV-than-ghi-chu bắt.
+- **KHOÁ (đề xuất, ngoài Phạm vi):** `tu_chay/cong.js` A6 hoặc khuôn phiếu — phiếu nào thêm trường vào một cửa `/api/kh` thì chat grep `ĐÚNG [0-9]+ trường`
+  trong `cong_cu/thu_*.js` và ghi sẵn mọi bài khoá danh sách trường của cửa đó vào Phạm vi (lần này thiếu thu_HANG1, thu_KHAPI2 → A6 đỏ dù LUAT §6.7 cho sửa).
+  Ca đỏ: phiếu KH-THE-1 bản gốc + diff hiện tại → phép mới báo thiếu đúng hai file đó.
+- **NGUYÊN TẮC (đề xuất cho KHUON_LOI.md K4, ngoài Phạm vi):** "Mở đường tiền của quầy cho khách tự phục vụ (App) → liệt kê MỌI ưu đãi quầy áp lên dòng mới
+  (giảm hạng, Giờ vàng, mã %, mã tiền, điểm) và ghi từng cái vào hợp đồng." Đã gây: KH-THE-1 vòng 1 — hợp đồng im lặng về mã giảm trên giá thẻ.
+- **NGUYÊN TẮC (đề xuất cho KHUON_LOI.md K3, ngoài Phạm vi):** "Câu hứa 'giống hệt trước / sau' hoặc ca K5 kế hoạch đã hứa → tra lại theo TÊN trong bài thử
+  trước khi báo xong; ca phải phủ cả khách có hạng / Giờ vàng." Đã gây: KH-THE-1 thiếu K5a/K5b (vòng 1), câu "giống hệt" rộng hơn ca G7 (vòng 2).
+- **BỎ:** kho mở dạng nông làm thu_BH2 đỏ (git không thấy cbbb809) — xử lý bằng `fetch --unshallow` đúng luật bước 1.3, một lần. Người gác chặn `sed -i`,
+  chuyển hướng ra file và lệnh ghép — đã có luật, làm theo (dùng Edit / script Python trong nháp).
+
+## Báo cáo 7 mục
+```
+VIỆC:        KH-THE-1 — Bán thẻ hạng trên App (chung giỏ), cấp hạng tự động lúc đã thu; hợp đồng /api/kh v13
+ĐÃ SỬA:      server/utils/donApp.js — dòng thẻ { loai:'the', hang_id, so_thang } trong giỏ (docGio, danh sách khoá trắng, ≤ 1 thẻ → NHIEU_THE),
+               thanDon → membership_buy của taoDon quầy (báo giá + tạo phiên), ghép dòng thẻ theo dải product_id, GIU_MA 3 mã quầy, LY_DO_NGAN thẻ,
+               gioCanPhaChe (Q4: giỏ không đồ uống bán mọi giờ — xuất cho KH-NAP-1), tien_trinh_quay 'xong' ghi sẵn (Q3), thân đơn chưa trả cùng hình
+               đơn thật, mon[].loai 'the', dsQuay co_the + bỏ dòng thẻ khỏi mon[], băm khoá gửi dòng món y như cũ
+             server/utils/membershipStatus.js — laDongThe (dải −1000000..−1999999)
+             server/routes/kh/loi.js — NHIEU_THE · server/routes/kh/index.js — GET /hang quyen_loi[]
+             server/routes/tiers.js — kiemQuyenLoi (≤ 10 dòng × 120 ký tự), INSERT / UPDATE COALESCE giữ chữ cũ
+             server/nang_cap/023_quyen_loi_hang.js — cột quyen_loi (themCot, tự sao lưu)
+             server/utils/dongHoaDon.js — hoa_don[] dòng thẻ loai 'the' + "Hạn mới: dd/mm/yyyy" / "không thời hạn"
+             client/src/pages/CaiDat/HangThe.jsx — ô Quyền lợi · client/src/pages/DonApp.jsx — nhãn thẻ (đã lên hạng / đơn huỷ) · client/dist build
+             HOP_DONG_API_KH.md — v13 (Ghi chú v13, bảng cửa, mã lỗi, máy đọc, nhật ký, ghi bù NAP-1: đơn trả ví vẫn có điểm; đơn nạp hiện trong /don, 0 điểm)
+             kiem_tra_truoc_khi_giao.js — một dòng chayBaiThat('cong_cu/thu_KHTHE1.js')
+             cong_cu/thu_KHTHE1.js (mới, 73 ca) · cong_cu/thu_KHAPI2.js C1, cong_cu/thu_HANG1.js F1 — thêm quyen_loi vào danh sách trường (LUAT §6.7)
+BÀI THỬ:     chạy trên bản chưa vá (da5f5d4) → ĐỎ 44 ca (A2, B1–B13, C1–C3, D, E, F1–F5, G2, H1, GIO1–3, S1, B9b, B12b, K5a, K5b — bang_chung_do.txt);
+             sau khi vá → XANH 73/73; thu_KHAPI2 101/101, thu_HANG1 144/144 (bản mới đỏ trên gốc); thu_HOPDONG_KH 88/88;
+             npm test -- --day-du 111 đạt · 0 hỏng (dist KHỚP src); đột biến 27/27 BẮT (đối chứng 73/0)
+ĐÃ RÀ K4:    grep "than).dong|JSON.parse(r.than)" donApp.js → 4 chỗ (tomTat, chiTietDon, dsQuay + ghi than) — đã xử lý hết; ghép báo giá ↔ items 1 chỗ;
+             tien_trinh_quay 5 chỗ (ghi / trả / đọc / lọc / đổi) — đúng; kiểm giờ 1 chỗ (kiemVaBaoGia, gọi 2 lần trong datDon); mon[] trả App 2 đường
+             (đơn thật / thân) — cùng hình (G7); grep "ĐÚNG [0-9]+ trường" danh sách /kh/hang → 2 bài (thu_KHAPI2, thu_HANG1) — đã sửa
+CHƯA KIỂM:   giao diện thật (ô Quyền lợi, nhãn thẻ ở màn Đơn App — 3 thao tác thử tay dưới); Turso / Render thật (bài chạy libsql file tạm); cổng Tingee
+             thật (webhook giả, payOS giả); App KH thật đọc dòng thẻ / quyen_loi; màn hình khách lúc thu hiện dòng thẻ là "Món" (có sẵn — Phát hiện);
+             trên gốc mục D / E / G sập giữa chừng nên nhiều ca D/E/G chỉ được chứng minh bằng đột biến chứ chưa hiện ĐỎ riêng; điểm theo dòng (DIEM-MON-1)
+             chưa vào main — H1 chỉ so App = quầy với luật điểm hiện tại; cổng A6 đỏ (Câu hỏi trên)
+GIT:         (xem dòng git log cuối file sau commit cuối)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài học
+```
+
+### Thử tay (chủ quán, trên điện thoại / máy quầy)
+1. Cài đặt → Hạng thành viên: gõ 3 dòng quyền lợi cho Vàng, gõ PIN chủ quán, Lưu → tải lại trang, đủ 3 dòng.
+2. Màn Đơn App: một đơn App có thẻ + đồ uống hiện dòng tím "🎟️ Thẻ hội viên … — đã lên hạng, không pha", danh sách món không có dòng thẻ; đơn chỉ có thẻ hiện "Xong".
+3. In tem đơn đó: chỉ có tem cho đồ uống, không có tem cho thẻ.
+
+### Nghiệm thu — đếm từng mục
+- A (một đường bán thẻ; quầy y nguyên — chủ quán đổi: không tách banThe.js): A1, A2/B5–B7 (4 ca quầy = App cùng mã).
+- B (hợp đồng v13, dòng thẻ, mã lỗi, khoá gửi, 4xx): B1–B13, B9b, B12, B12b, S3, B11 (đếm bảng).
+- C (đồ uống theo hạng ĐANG CÓ): C1, C2, C3.
+- D (lên hạng lúc đã thu — ví / QR / ví+QR / tay; trùng → một dòng): D1–D9, I15, Q3 (hai ca).
+- E (huỷ / hoàn / xoá thu hồi): E1–E5.
+- F (quyen_loi, bước 023): F1–F5.
+- G (hoa_don, màn Đơn App, tem, Đối soát): G1, G1b, G2–G7, G5 (tienTheoSo), Q3 màn Đơn App.
+- H (điểm cùng hàm quầy): H1.
+- K5 (không đổi): K1, K2, K5a, K5b, A1, thu_HOPDONG_KH, thu_KHMUA1 trong npm test.
+- Q4 (chủ quán 09.11): GIO1, GIO2, GIO3.
