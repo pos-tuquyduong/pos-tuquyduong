@@ -326,15 +326,16 @@ router.put('/:id', authenticate, async (req, res) => {
     const validRelationship = RELATIONSHIP_VALUES.includes(relationship) ? relationship : null;
     const ten = name?.trim() || existing.name, ghiChu = notes ?? existing.notes, sdtMe = parent_phone ? normalizePhone(parent_phone) : null;
 
-    // KHACH-APP-1 Q6a (chủ quán 07.11): sửa đăng ký chờ sửa luôn tên / ghi chú / SĐT mẹ / quan hệ của dòng khách cùng SĐT — MỘT giao dịch
+    // KHACH-APP-1 Q6a (chủ quán 07.11): sửa đăng ký chờ sửa luôn tên / ghi chú / SĐT mẹ / quan hệ của dòng khách do đăng ký này tạo — MỘT giao dịch
     const kq = await trongGiaoDich(async (tx) => {
       const r = await tx.run(`UPDATE pos_registrations SET name = ?, notes = ?, parent_phone = ?, relationship = ?, requested_product = ?, requested_cycles = ?
         WHERE id = ? AND status IS NOT 'exported'`,
         [ten, ghiChu, sdtMe, validRelationship, requested_product || existing.requested_product, requested_cycles ? parseInt(requested_cycles) : existing.requested_cycles, existing.id]
       );
       if (r.changes !== 1) return { huy: true };
-      await tx.run('UPDATE pos_customers SET name = ?, notes = ?, parent_phone = ?, relationship = ?, updated_at = ? WHERE phone = ?',
-        [ten, ghiChu, sdtMe, validRelationship, getNow(), existing.phone]);
+      // QUAY-UI-1 E: chỉ sửa khách do CHÍNH đăng ký này tạo (cùng điều kiện với xoá) — khách App / khách có trước giữ nguyên
+      await tx.run('UPDATE pos_customers SET name = ?, notes = ?, parent_phone = ?, relationship = ?, updated_at = ? WHERE phone = ? AND created_by = ? AND created_at >= ?',
+        [ten, ghiChu, sdtMe, validRelationship, getNow(), existing.phone, existing.created_by, existing.created_at]);
       return {};
     });
     if (kq.huy) return res.status(400).json({ error: 'Không thể sửa đăng ký đã export' });
