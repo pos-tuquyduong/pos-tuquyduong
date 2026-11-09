@@ -29,6 +29,8 @@ gói) theo ĐÚNG phần đã cộng.
 - server/utils/diemKhach.js
 - server/routes/orders.js
 - server/routes/loyalty.js
+- server/routes/damages.js
+- cong_cu/gia_lap/bat_bien.js
 - server/routes/products.js
 - server/routes/packages.js
 - server/routes/tiers.js
