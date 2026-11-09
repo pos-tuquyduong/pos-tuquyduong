@@ -35,11 +35,13 @@ Lệnh:  python3 viec/QUAY-UI-1/dot_bien.py --goc b1fd5c0 thu_QUAYUI1.js
   ✗ A8 có hàm viTriMayChu (máy chủ đẩy dòng thẻ CUỐI items — orders.js)
   ✗ B4c đổi sang khách KHÁC → bỏ dòng thẻ khỏi giỏ (hạng khách mới chưa tra, kiemTraThe phải chạy lại)
   ✗ A9 dòng máy chủ khớp theo viTriMayChu, không theo chỉ số giỏ
-  TỔNG: 11/42 ca đạt · 11 đạt · 31 hỏng
+  ✗ B6 ThuTien: số dư có thể trừ / số sẽ trừ / phần còn lại / chọn TM-CK cho phần còn lại CHỈ nằm trong khối {trongTK && (…)} hoặc sau nút Còn lại
+  (vòng 2: thêm ca B6, chạy lại trên gốc:)
+  TỔNG: 11/43 ca đạt · 11 đạt · 32 hỏng
   thoát 1
 Vòng sửa 1 (soát độc lập 09.11) còn đỏ riêng trên commit b8fbb9b (bài mới, code chưa vá): A1 hangChiCap (giá trị chi_cap thật), A8, B4b, B4c, A9 — 5 ca đỏ, 55/60 đạt.
 
-Trên code ĐÃ VÁ (HEAD): TỔNG: 62/62 ca đạt · 62 đạt · 0 hỏng · thoát 0
+Trên code ĐÃ VÁ (HEAD): TỔNG: 63/63 ca đạt · 63 đạt · 0 hỏng · thoát 0
 (10 ca xanh trên gốc là ĐỐI CHỨNG K5: đường hợp lệ — giỏ không thẻ, đơn thường báo sự cố, đơn thẻ không dính mã đơn nạp, khách do chính đăng ký tạo, đăng ký đã xuất — không bị chặn oan.)
 
-SỐ CA thu_QUAYUI1.js: 62
+SỐ CA thu_QUAYUI1.js: 63
