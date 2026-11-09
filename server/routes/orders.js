@@ -39,7 +39,7 @@ const router = express.Router();
 // không bán số lẻ (chủ quán chốt 14.10). Chuỗi số nguyên ("2", " 5") vẫn nhận vì màn hình / bài thử cũ có gửi chuỗi.
 const soNguyenDuong = (x) => Number.isInteger(Number(x)) && Number(x) >= 1;
 
-const { tienTinhDiem, tienHangDiem, batDiem } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` của tinhDiemDon = tiền khách trả thật; DIEM-MON-1: chỉ phần dòng bật điểm
+const { tienTinhDiem, tienHangDiem, batDiem, ID_THE_TU } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` của tinhDiemDon = tiền khách trả thật; DIEM-MON-1: chỉ phần dòng bật điểm
 const giaoHang = require("../utils/giaoHang"); // GIAO-1: đơn giao Ahamove — phí ship từ báo phí của máy chủ, chuyến, huỷ theo bước
 
 // P22-23: MỘT công thức điểm cho đơn thu đủ lúc tạo (POST /) và lúc thu đủ nợ (pay-debt) — đọc cài đặt LÚC GỌI.
@@ -536,7 +536,7 @@ async function taoDon(req, res, phien = null) {
       const cardPrice = membershipGoi.gia;
       subtotal += cardPrice;
       orderItems.push({
-        product_id: -1000000 - membershipTier.id, // né trùng với product_id thường và -pkg.id
+        product_id: ID_THE_TU - membershipTier.id, // né trùng với product_id thường và -pkg.id
         product_code: `THE-${membershipTier.name}`,
         product_name: `🎟️ Thẻ hội viên ${membershipTier.name} · ${membershipGoi.so_thang} tháng`,
         unit: 'thẻ',
@@ -1309,16 +1309,16 @@ async function taoDon(req, res, phien = null) {
             );
             const c = {};
             for (const r of rows) c[r.key] = r.value;
-            const batDiem = c.nhandiem_enabled === '1' && !flashApplied;   // P22-23: đơn Flash 0 điểm (/nhan-diem từ chối) — bill không hứa điểm
+            const coNhanDiem = c.nhandiem_enabled === '1' && !flashApplied;   // P22-23: đơn Flash 0 điểm (/nhan-diem từ chối) — bill không hứa điểm
             const batVoucher = c.signup_enabled === 'true' || c.signup_enabled === '1';
             const { heSo } = await docCauHinhNhanDiem();   // P22-23: CÙNG hệ số /nhan-diem cộng (hệ số < 1 → 2 ở cả hai)
             const gio = Number(c.nhandiem_han_gio) || 24;
             const hanChu = gio >= 24 && gio % 24 === 0 ? (gio / 24) + ' ngay' : gio + ' gio';
-            if (batDiem && batVoucher) {
+            if (coNhanDiem && batVoucher) {
               return { signup_nhan: 'Ma uu dai',
                 signup_loi: `Tao tai khoan trong ${hanChu} de nhan uu dai va gap ${heSo} diem cua don nay` };
             }
-            if (batDiem) {
+            if (coNhanDiem) {
               return { signup_nhan: 'Ma nhan diem',
                 signup_loi: `Tao tai khoan trong ${hanChu} de nhan gap ${heSo} diem cua don nay` };
             }
