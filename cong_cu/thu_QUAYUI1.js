@@ -47,7 +47,7 @@ async function main() {
   const hamCo = (ten) => typeof T[ten] === 'function';
   const monThuong = { key: 1, product_id: 5, sx_product_type: 'juice', sx_product_id: 9, product_name: 'Cam', unit_price: 30000, quantity: 2, note: '' };
   const vang = { id: 7, name: 'Vàng', cach_co: 'ban', sort_order: 2, goi: [{ so_thang: 1, gia: 100000, bat: true }, { so_thang: 3, gia: 289000, bat: true }, { so_thang: 6, gia: 0, bat: true }, { so_thang: 12, gia: 900000, bat: false }] };
-  const kimCuong = { id: 8, name: 'Kim Cương', cach_co: 'cap', sort_order: 3, goi: [] };
+  const kimCuong = { id: 8, name: 'Kim Cương', cach_co: 'cap', sort_order: 3, goi: [{ so_thang: 1, gia: 5000000, bat: true }] };   // hạng chỉ cấp có gói giá cũng KHÔNG bán
   const khachA = { phone: '0901000001', name: 'A', balance: 500000, parent_balance: 0 };
 
   muc('[A] Tab "Thẻ thành viên" — hàm thuần');
@@ -55,7 +55,7 @@ async function main() {
     k('A1 có hàm dsGoiThe (liệt kê gói bán được của hạng)', hamCo('dsGoiThe'));
     if (hamCo('dsGoiThe')) {
       const ds = T.dsGoiThe([vang, kimCuong]);
-      k('A1 chỉ gói đang bán (bật + giá > 0) của hạng `ban`: Vàng 1 tháng + 3 tháng; Kim Cương không có gói', JSON.stringify(ds.map((g) => [g.tier.id, g.so_thang, g.gia])) === JSON.stringify([[7, 1, 100000], [7, 3, 289000]]), JSON.stringify(ds.map((g) => [g.tier.id, g.so_thang, g.gia])));
+      k('A1 chỉ gói đang bán (bật + giá > 0) của hạng `ban`: Vàng 1 tháng + 3 tháng; hạng chỉ cấp không bán dù có gói', JSON.stringify(ds.map((g) => [g.tier.id, g.so_thang, g.gia])) === JSON.stringify([[7, 1, 100000], [7, 3, 289000]]), JSON.stringify(ds.map((g) => [g.tier.id, g.so_thang, g.gia])));
     }
     k('A1 có hàm hangChiCap (hạng chỉ cấp → hiện mờ "Chủ quán cấp")', hamCo('hangChiCap') && T.hangChiCap([vang, kimCuong]).map((t) => t.id).join() === '8');
     const dong = hamCo('dongThe') ? T.dongThe(vang, { so_thang: 3, gia: 289000 }) : null;
@@ -116,6 +116,7 @@ async function main() {
   });
   k('B4 BanHangMoi: không còn `dungTK` mặc định true (useState(true)) — mặc định không trừ', !/\[dungTK, setDungTK\] = useState\(true\)/.test(bh) && !/setDungTK\(true\)/.test(bh));
   k('B4 BanHangMoi: có trạng thái cachTra khởi tạo bằng CACH_TRA_MAC_DINH', /useState\(CACH_TRA_MAC_DINH\)/.test(bh));
+k('B4b chọn khách / bỏ khách / đơn mới / bỏ trừ (PIN) đều đặt lại cách trả về CACH_TRA_MAC_DINH — đúng 4 chỗ, không chỗ nào đặt chữ cứng', (bh.match(/setCachTra\(CACH_TRA_MAC_DINH\)/g) || []).length === 4 && !/setCachTra\('/.test(bh));
   const tt = doc('client/src/pages/BanHang/ThuTien.jsx');
   k('B5 ThuTien có đủ ba nút: Tiền mặt · Chuyển khoản · Trừ tài khoản', />Tiền mặt<\/button>/.test(tt) && />Chuyển khoản<\/button>/.test(tt) && />Trừ tài khoản<\/button>/.test(tt));
   k('B5 ThuTien: nút Trừ tài khoản mờ kèm lý do từ lyDoKhongTru', /lyDoKhongTru\(/.test(tt));
@@ -217,7 +218,7 @@ async function main() {
   muc('[C] Form Thêm khách — tra SĐT trước khi lưu (đọc nguồn)');
   const kh = doc('client/src/pages/Customers.jsx');
   k('C1 Customers.jsx: có tra khách theo SĐT đã chuẩn hoá (chuanSdtQuay + customersV2Api.search)', /chuanSdtQuay\(/.test(kh) && /customersV2Api\.search\(/.test(kh));
-  k('C2 hiện câu "Khách đã có: <tên> — tìm khách ở màn Bán hàng"', /Khách đã có: /.test(kh) && /tìm khách ở màn Bán hàng/.test(kh));
+  k('C2 hiện câu "Khách đã có: <tên> — tìm khách ở màn Bán hàng" khi có khachTrung', /\{khachTrung && <div[^>]*>Khách đã có: \{khachTrung\.name\} — tìm khách ở màn Bán hàng/.test(kh));
   k('C3 nút Lưu mờ khi khách đã có (disabled gồm khachTrung)', /disabled=\{submitting \|\| !!khachTrung\}/.test(kh));
   k('C4 so SĐT bằng phone chuẩn hoá (không so chuỗi con): c.phone === ', /\.phone === sdtChuan/.test(kh));
 
