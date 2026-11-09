@@ -1,10 +1,10 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 12
-NGAY: 2026-11-07
-DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1) (routes/chuong-trinh.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
+PHIEN_BAN: 13
+NGAY: 2026-11-09
+DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1 + KH-THE-1) (routes/chuong-trinh.js, routes/tiers.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
-  nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js, nang_cap/013_hang.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
+  nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js, nang_cap/013_hang.js, nang_cap/023_quyen_loi_hang.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
 
 <!-- Nguồn DUY NHẤT về cổng /api/kh. Chủ: POS. Đổi cổng → đổi file này cùng PR, tăng PHIEN_BAN, ghi nhật ký (luật L2).
      Khối HOP_DONG_MAY_DOC là phần máy đọc: bài thử hợp đồng của POS và bộ kiểm của App KH cùng dựa vào nó. -->
@@ -26,7 +26,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
 |---|---|---|---|
 | `POST /dang-nhap/xin-ma` | không | `{ sdt }` | `lay_ma_tai_quay` (true = khách hỏi mã ở quầy) |
 | `POST /dang-nhap/xac-minh` | không | `{ sdt, ma, ten?, xung_ho?, dia_chi? }` (mã 6 số; khách MỚI thiếu `ten` hoặc `xung_ho` → `CAN_TEN`; khách cũ: ba trường bị bỏ qua) — xem "Đăng ký 3 bước" | `token`, `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh }` |
-| `GET /hang` | không | — | `data[] { id, ten, phan_tram, phan_tram_nhom_dac_biet, chi_cap, goi[] { so_thang, gia }, thu_bac, gia_the, thu_tu }` — hạng đang bật, xếp theo `thu_bac` (v10 — xem "Ghi chú v10") |
+| `GET /hang` | không | — | `data[] { id, ten, phan_tram, phan_tram_nhom_dac_biet, chi_cap, goi[] { so_thang, gia }, thu_bac, gia_the, thu_tu, quyen_loi[] }` — hạng đang bật, xếp theo `thu_bac` (v10 — xem "Ghi chú v10"; `quyen_loi` v13) |
 | `GET /gio-vang` | không | — | `dang_chay, bat_dau, ket_thuc, phan_tram, mon[]` (mã món = `ma` của `/menu`) — xem "Giờ vàng". **Không có suất** (POS không đếm suất) |
 | `GET /gio-hoat-dong` | không | — | `bay_gio, dang_mo, nhan_don, hom_nay { mo, dong } \| null, mo_lai_luc \| null, thong_bao, lich_tuan[] { thu, mo, dong, nghi }, ngay_nghi[] { ngay, ly_do }` — xem "Giờ hoạt động" |
 | `GET /chuong-trinh` | không | — (không token: dùng chung trần ≤ 300 lần / phút mỗi IP với `/menu`, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, mo_ta, loai, dang_bat }` — chương trình đặc biệt đang bật và trong thời gian chạy; xem "Ghi chú v9" |
@@ -37,13 +37,43 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
 | `GET /diem` | có | — | `points`, `history` |
 | `GET /voucher` | có | `?all=1` lấy cả mã đã dùng / hết hạn | `data[]`, `ma_khach_moi` |
 | `GET /don` | có | `?trang=N` (20 đơn / trang) | `trang`, `con_nua`, `data[] { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, cach_tra, giu_vi, con_lai, kenh, cach_nhan, tra[] { cach, so_tien }, so_mon, mon_dau, giam }` — gồm cả đơn App chưa trả (v5); `kenh` … `giam` (v12): xem "Ghi chú v12"; `cach_tra` / `giu_vi` / `con_lai` (v6): xem "Ghi chú v6"; `so_hd`, `tien_ve_da_cong_vi`, `thong_bao_tien_ve` (v10): xem "Ghi chú v10" |
-| `GET /don/:ma` | có | — (`ma` = mã đơn App hoặc mã bill) | `don { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, mon[] { ma, ten, so_luong, don_gia, thanh_tien, ghi_chu }, cach_tra, giu_vi, con_lai, kenh, cach_nhan, tra[] { cach, so_tien }, so_mon, mon_dau, giam, hoa_don[] { loai, trai, phai, dam, gach, ghi_chu } }` — trường v6: xem "Ghi chú v6"; v10: "Ghi chú v10"; v12: "Ghi chú v12" |
-| `POST /gio/bao-gia` | có | `{ mon[] { ma, so_luong, ghi_chu? }, ma_giam?, cach_nhan: "tai_quan" }` — xem "Đặt đơn" | `dong[] { ma, so_luong, don_gia, thanh_tien }, tam_tinh, giam[] { loai, so_tien }, phi_giao, tong, ma_giam_loi` |
+| `GET /don/:ma` | có | — (`ma` = mã đơn App hoặc mã bill) | `don { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, mon[] { ma, ten, so_luong, don_gia, thanh_tien, ghi_chu, loai? }, cach_tra, giu_vi, con_lai, kenh, cach_nhan, tra[] { cach, so_tien }, so_mon, mon_dau, giam, hoa_don[] { loai, trai, phai, dam, gach, ghi_chu } }` — trường v6: xem "Ghi chú v6"; v10: "Ghi chú v10"; v12: "Ghi chú v12"; dòng thẻ (v13): "Ghi chú v13" |
+| `POST /gio/bao-gia` | có | `{ mon[] { ma, so_luong, ghi_chu? } \| { loai: "the", hang_id, so_thang, so_luong? }, ma_giam?, cach_nhan: "tai_quan" }` — xem "Đặt đơn", dòng thẻ: "Ghi chú v13" | `dong[] { ma, so_luong, don_gia, thanh_tien }` (dòng thẻ thêm `loai, hang_id, so_thang`, `ma` null), `tam_tinh, giam[] { loai, so_tien }, phi_giao, tong, ma_giam_loi` |
 | `POST /don` | có | thân báo giá + `cach_tra`, `pin?`, `khoa_gui`, `tong_da_xem` — xem "Đặt đơn" | `ma_don, so_hd, tong, giu_vi, con_lai, tien_trinh, qr { chuoi, het_han } \| null, trung` |
 | `POST /don/:ma/huy` | có | — (`ma` = mã đơn App) | `ma_don, tien_trinh` |
 | `POST /nhan-ma-bill` | có | `{ ma }` | kết quả nhận ưu đãi khách mới |
 | `POST /nhan-diem` | có | `{ ma }` | kết quả nhân điểm theo mã trên bill |
 | `PUT /pin` | có | `{ pin, pin_lai }` (4 số) | — |
+
+### Ghi chú v13 — mua thẻ hạng trên App (KH-THE-1, chủ quán duyệt 08–09.11)
+- **Dòng thẻ** trong `mon[]` của `POST /gio/bao-gia` và `POST /don`: `{ loai: "the", hang_id, so_thang, so_luong? }` — `hang_id` = `id` của `/hang`,
+  `so_thang` = `goi[].so_thang` của hạng đó (số nguyên ≥ 1), `so_luong` bỏ hoặc 1; KHÔNG kèm `ma` / `ghi_chu` / giá (khoá lạ → 400
+  `YEU_CAU_KHONG_HOP_LE`); dòng MÓN không gửi khoá `loai` (có `loai` = dòng thẻ). Tối đa MỘT dòng thẻ mỗi đơn (hai dòng → 400 `NHIEU_THE`). Giỏ chỉ có thẻ được. Đứng đâu trong giỏ cũng được — `dong[]`
+  giữ đúng thứ tự gửi. Cùng `khoa_gui`, `tong_da_xem`, `cach_tra` (`qr` · `vi` · `vi_qr`), luật 4xx / 5xx như đơn đồ uống.
+- **Giá** = giá gói máy chủ tra (cùng đường bán thẻ của quầy). Dòng thẻ trong `dong[]`: `{ loai: "the", hang_id, so_thang, ma: null, so_luong: 1,
+  don_gia, thanh_tien }`; dòng món giữ đúng 4 trường cũ. Không giảm hạng / Giờ vàng cho dòng thẻ. Mã giảm (`ma_giam`) áp ĐÚNG như ở quầy: mã % và mã tiền
+  tính trên tạm tính GỒM giá thẻ (giỏ chỉ thẻ Vàng 250.000 + mã 10% → `tong` 225.000); App hiện đúng `giam[]` / `tong` máy chủ trả, không tự tính. Đồ uống CÙNG đơn tính theo hạng khách ĐANG CÓ lúc
+  báo giá / đặt (không theo thẻ đang mua); hạng mới áp từ đơn sau.
+- **Chặn** (400, cùng mã quầy): `HANG_CHI_CAP` (hạng chỉ chủ quán cấp — App hiện hạng, nút Mua mờ) · `GOI_HANG_KHONG_BAN` (gói chưa có giá / đang tắt)
+  · `DA_CO_HANG_CAO_HON` (khách đang có hạng cao hơn còn hạn; cùng hạng thì được — hạn cộng nối) · hạng không có / đã xoá → `DON_KHONG_HOP_LE`.
+- **Hạng lên** NGAY trong cùng giao dịch ghi "đã thu": `vi` lúc `POST /don`; `qr` / `vi_qr` lúc tiền QR về đủ. Chưa thu → chưa có hạng. `/toi.hang`
+  đổi ngay sau đó. Báo tiền trùng → một đơn, một lần lên hạng. Tiền QR về SAU khi đơn đã `da_huy` / hết hạn → cộng vào tài khoản như mọi đơn App
+  (`thong_bao_tien_ve`), KHÔNG có hạng — khách mua lại (chủ quán 09.11). Hạng không còn mua được lúc tiền về (vd vừa được cấp hạng cao hơn) → tiền vào
+  tài khoản, `thong_bao_tien_ve` "Không tạo được đơn vì thẻ hạng không còn mua được — …".
+- **Giờ** (chủ quán 09.11): giỏ KHÔNG có đồ uống (chỉ thẻ hạng; sau này gói nạp / gói trả trước) đặt / báo giá được MỌI giờ — không `NGOAI_GIO` /
+  `QUA_GIO_NHAN_DON`. Giỏ có đồ uống vẫn theo giờ như cũ (cả khi kèm thẻ).
+- **Tiến trình:** giỏ không có đồ uống → đã thu là `tien_trinh: "xong"` ngay (quầy không pha; đơn vẫn hiện ở màn Đơn App của quầy với nhãn "đã lên hạng").
+  Giỏ có đồ uống → `da_tra` → `dang_lam` → `xong` như cũ.
+- **Xem đơn:** `GET /don/:ma` `mon[]` dòng thẻ có thêm `loai: "the"`, `ten` "🎟️ Thẻ hội viên <hạng> · <n> tháng", `ghi_chu` `null`; dòng món không có
+  `loai`. `mon[]` theo thứ tự của đơn (món trước, dòng thẻ cuối — có thể khác thứ tự giỏ gửi lên); thứ tự, `ten`, `so_luong`, `ghi_chu`, `loai` và
+  `mon_dau` giống nhau trước và sau khi trả. `don_gia` như từ v5: đơn chưa trả là giá gốc một ly, đơn đã trả là giá đã giảm hạng / Giờ vàng của dòng đó. `hoa_don[]` dòng thẻ `loai: "the"` (cùng `trai` / `phai` như dòng món), `ghi_chu` "Hạn mới: dd/mm/yyyy" (đơn bị huỷ: rỗng).
+  `so_mon` đếm dòng thẻ là 1. Hạn mới không thời hạn → "Hạn mới: không thời hạn".
+- **Huỷ / hoàn:** quầy huỷ / xoá đơn có thẻ → thẻ của đơn bị thu hồi, hạng tính lại (hạn cộng nối lùi về). Đơn có thẻ không hoàn qua yêu cầu
+  hoàn tiền (như quầy). App chỉ huỷ được đơn chưa trả (chưa có hạng).
+- **Điểm:** đơn có thẻ cộng điểm theo đúng luật điểm của quầy (cùng hàm). `GET /hang` thêm `quyen_loi[]` (chữ chủ quán nhập ở Cài đặt → Hạng thành
+  viên, mỗi phần tử một dòng, tối đa 10 dòng × 120 ký tự; chưa nhập → `[]`).
+- **Phần NAP-1 ghi bù** (hành vi đã chạy từ NAP-1, chưa ghi ở bản trước): đơn trả bằng tài khoản (ví) VẪN có điểm như tiền mặt; đơn nạp tiền (mua gói
+  nạp ở quầy) hiện trong `GET /don` như đơn quầy thường và có 0 điểm (điểm tính khi tiêu tiền trong tài khoản).
 
 ### Ghi chú v12 — tóm tắt từng đơn ở Lịch sử đơn (KH-TOMTAT-1)
 Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (chỉ đơn thuộc SĐT trong token). Không đổi trường cũ.
@@ -103,7 +133,7 @@ Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (ch�
 - Cửa ghi nằm ở quầy (`PUT /api/pos/products/thong-tin`, quyền cài đặt) — KHÔNG thuộc `/api/kh`; App KH chỉ đọc.
 
 ### Đặt đơn (v5 — KH-MUA-1, nhận tại quán)
-- **Giờ:** đặt / báo giá khi quán đóng → 400 `NGOAI_GIO`; quán mở nhưng đã ngừng nhận đơn App (`nhan_don: false` của `/gio-hoat-dong`) → 400
+- **Giờ:** (giỏ có đồ uống — giỏ không có đồ uống bán mọi giờ, v13) đặt / báo giá khi quán đóng → 400 `NGOAI_GIO`; quán mở nhưng đã ngừng nhận đơn App (`nhan_don: false` của `/gio-hoat-dong`) → 400
   `QUA_GIO_NHAN_DON`. Máy chủ xét theo giờ của máy chủ.
 - **Giỏ:** `mon` 1–50 dòng; `ma` = `ma` của `/menu`; `so_luong` số nguyên 1–99; `ghi_chu` chuỗi ≤ 200 ký tự hoặc bỏ. Cùng một món được nhiều dòng (ghi
   chú khác nhau). Món không có / giá không hợp lệ → 400 `MON_KHONG_BAN` kèm `ma`; `con_hang: false` hoặc tổng SL vượt tồn đã biết → 400 `HET_HANG`
@@ -159,7 +189,7 @@ Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (ch�
 - `thu_bac`: số nguyên, lớn = cao. `/hang` xếp `thu_bac` tăng dần. `thu_tu` = `thu_bac` (giữ cho App cũ).
 - `chi_cap`: `true` = hạng chỉ chủ quán cấp (không bán) — `goi` luôn `[]`, `gia_the` `null`.
 - `goi[] { so_thang, gia }`: gói ĐANG BÁN ở quầy (bật + đã đặt giá; giá số đồng nguyên > 0), xếp theo `so_thang`. Gói chưa đặt giá / đang tắt không hiện.
-  App KH chỉ hiển thị — mua thẻ trên App chưa có (P3b sau khai trương).
+  Mua thẻ trên App: v13 (xem "Ghi chú v13").
 - `gia_the` (giữ MỘT đợt cho App cũ): giá gói ngắn nhất; `null` khi `chi_cap` hoặc chưa gói nào đang bán. App mới đọc `goi`.
 - `/toi.khach.hang`: hạng có `thu_bac` CAO NHẤT còn hạn (hạng trên hết hạn mà hạng dưới còn → hạng dưới). `het_han` = `null` khi không thời hạn.
   `/menu` `gia_hang` theo cùng luật.
@@ -191,6 +221,7 @@ Ngày sinh (v9): `NGAY_SINH_SAI` 400 · `NGAY_SINH_DA_CO` 409.
 Đặt đơn (v5): `CHUA_GIAO` 400 · `NGOAI_GIO` 400 · `QUA_GIO_NHAN_DON` 400 · `HET_HANG` 400 · `MON_KHONG_BAN` 400 · `KHOA_GUI_SAI` 400 ·
 `KHOA_GUI_DA_DUNG` 409 · `DANG_XU_LY` 503 · `GIA_DA_DOI` 409 · `VI_KHONG_DU` 400 · `CACH_KHONG_KHOP` 400 · `CHUA_CO_PIN` 400 · `PIN_SAI` 400 ·
 `PIN_DANG_KHOA` 423 · `DA_TRA_GOI_QUAN` 400 · `DON_KHONG_HOP_LE` 400 · `PAYOS_CHUA_CAU_HINH` 503 · `PAYOS_LOI` 502 · `QUA_NHIEU_LAN` 429 · `KHO_BAN` 409.
+Mua thẻ (v13): `NHIEU_THE` 400 · `HANG_CHI_CAP` 400 · `GOI_HANG_KHONG_BAN` 400 · `DA_CO_HANG_CAO_HON` 400.
 Trong `ma_giam_loi.code` của báo giá: `MA_KHONG_TON_TAI` · `MA_KHONG_AP_DUNG` · `MA_KHONG_CO_MON` · `MA_KHONG_LOI_HON`.
 `nhan-ma-bill` / `nhan-diem` dùng hàm quầy, thêm các mã: `THIEU_MA` 400 · `MA_KHONG_TON_TAI` 404 · `MA_DA_DUNG` 409 · `UU_DAI_DANG_TAT` 400 ·
 `SDT_DA_NHAN` 400 · `DON_FLASH_KHONG_DIEM` 400 · `CAU_HINH_DIEM_SAI` 400 · `CHUA_CAU_HINH_NHOM` 500 · `MA_KHONG_GAN_DON` 400 · `KHONG_THAY_DON` 404 ·
@@ -222,12 +253,12 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 12,
+  "phien_ban": 13,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
     { "pt": "POST", "duong": "/dang-nhap/xac-minh", "token": false, "tra": ["token", "khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.ngay_sinh"] },
-    { "pt": "GET", "duong": "/hang", "token": false, "tra": ["data[].id", "data[].ten", "data[].phan_tram", "data[].phan_tram_nhom_dac_biet", "data[].chi_cap", "data[].goi[].so_thang", "data[].goi[].gia", "data[].thu_bac", "data[].gia_the", "data[].thu_tu"] },
+    { "pt": "GET", "duong": "/hang", "token": false, "tra": ["data[].id", "data[].ten", "data[].phan_tram", "data[].phan_tram_nhom_dac_biet", "data[].chi_cap", "data[].goi[].so_thang", "data[].goi[].gia", "data[].thu_bac", "data[].gia_the", "data[].thu_tu", "data[].quyen_loi"] },
     { "pt": "GET", "duong": "/gio-vang", "token": false, "tra": ["dang_chay", "bat_dau", "ket_thuc", "phan_tram", "mon"] },
     { "pt": "GET", "duong": "/gio-hoat-dong", "token": false, "tra": ["bay_gio", "dang_mo", "nhan_don", "hom_nay", "mo_lai_luc", "thong_bao", "lich_tuan[].thu", "lich_tuan[].mo", "lich_tuan[].dong", "lich_tuan[].nghi", "ngay_nghi"] },
     { "pt": "GET", "duong": "/chuong-trinh", "token": false, "tra": ["data[].ma", "data[].ten", "data[].mo_ta", "data[].loai", "data[].dang_bat"] },
@@ -254,7 +285,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     "TICH_DIEM_DANG_TAT", "DON_KHONG_DU_DIEM", "KHONG_THEM_DIEM", "MA_TRUNG",
     "CHUA_GIAO", "NGOAI_GIO", "QUA_GIO_NHAN_DON", "HET_HANG", "MON_KHONG_BAN", "KHOA_GUI_SAI", "KHOA_GUI_DA_DUNG", "DANG_XU_LY", "GIA_DA_DOI",
     "VI_KHONG_DU", "CACH_KHONG_KHOP", "CHUA_CO_PIN", "PIN_SAI", "PIN_DANG_KHOA", "DA_TRA_GOI_QUAN", "PAYOS_CHUA_CAU_HINH", "PAYOS_LOI",
-    "MA_KHONG_AP_DUNG", "MA_KHONG_CO_MON", "MA_KHONG_LOI_HON", "NGAY_SINH_SAI", "NGAY_SINH_DA_CO"]
+    "MA_KHONG_AP_DUNG", "MA_KHONG_CO_MON", "MA_KHONG_LOI_HON", "NGAY_SINH_SAI", "NGAY_SINH_DA_CO",
+    "NHIEU_THE", "HANG_CHI_CAP", "GOI_HANG_KHONG_BAN", "DA_CO_HANG_CAO_HON"]
 }
 ```
 <!-- HET HOP_DONG_MAY_DOC -->
@@ -299,3 +331,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   Hoá đơn (`hoa_don[]`) đơn trả chuyển khoản có thêm dòng `loai: "ma_gd"` (mã giao dịch ngân hàng). Không xoá / đổi tên trường cũ — App v10 bỏ qua trường lạ là chạy nguyên.
 - v12 · 07.11.2026 · KH-TOMTAT-1: `GET /don` (mỗi đơn) và `GET /don/:ma` thêm `kenh`, `cach_nhan`, `tra[] { cach, so_tien }`, `so_mon`, `mon_dau`, `giam` —
   tóm tắt đơn tính bằng CÙNG hàm với hoá đơn quầy (`dungThanhToan`, `tinhGiam` ở routes/hoaDon.js). Không xoá / đổi tên trường cũ — App v11 bỏ qua trường lạ là chạy nguyên.
+- v13 · 09.11.2026 · KH-THE-1: mua thẻ hạng trên App — dòng `{ loai: "the", hang_id, so_thang }` trong `mon[]` của `POST /gio/bao-gia` / `POST /don`
+  (chung giỏ với đồ uống, trả một lần); hạng lên ngay lúc đơn được ghi đã thu; `dong[]` / `mon[]` / `hoa_don[]` dòng thẻ có `loai: "the"`; giỏ không có đồ
+  uống bán mọi giờ và đã thu là `xong`; `GET /hang` thêm `quyen_loi[]`; mã lỗi mới `NHIEU_THE`, `HANG_CHI_CAP`, `GOI_HANG_KHONG_BAN`, `DA_CO_HANG_CAO_HON`
+  (mã quầy). Ghi bù phần NAP-1: đơn trả bằng ví vẫn có điểm; đơn nạp hiện trong `GET /don`, 0 điểm. Không xoá / đổi tên trường cũ — App v12 bỏ qua
+  trường lạ là chạy nguyên (giỏ chỉ đồ uống băm khoá gửi y như cũ).

@@ -13,10 +13,14 @@
  * Giờ = chuỗi giờ VN `YYYY-MM-DDTHH:mm:ss` (GIO-VN-1) — so chuỗi, cộng tháng bằng phép UTC (không theo múi giờ máy).
  */
 const { addMonthsSafe } = require('./helpers');
+const { ID_NAP_TU } = require('./viKhach');
 
 const HAN_VO_HAN = '9999-12-31T23:59:59';   // cột expires_at NOT NULL — vô hạn ghi bằng hằng này; mọi chỗ trả ra đổi thành null
 const NGAY_MS = 24 * 60 * 60 * 1000;
 const SAP_HET_NGAY = 7;
+// Dòng hàng thẻ hạng của đơn (orders.js: product_id = −1000000 − mã hạng; dải gói ở trên, dải nạp từ ID_NAP_TU trở xuống — cùng dải I15).
+const ID_THE_TU = -1000000;
+const laDongThe = (productId) => Number(productId) <= ID_THE_TU && Number(productId) > ID_NAP_TU;
 
 const gio = (s) => String(s || '').replace(' ', 'T').slice(0, 19);
 const congThang = (tu, n) => addMonthsSafe(new Date(gio(tu) + 'Z'), n).toISOString().slice(0, 19);
@@ -113,4 +117,4 @@ function isTierUsable(status) {
   return status === 'active' || status === 'expiring_soon';
 }
 
-module.exports = { getMembershipStatus, isTierUsable, hangNhieuKhach, soKhachGiuHang, hanSauDong, tinhHang, hanCacHang, docGoi, goiBanDuoc, HAN_VO_HAN };
+module.exports = { getMembershipStatus, isTierUsable, hangNhieuKhach, soKhachGiuHang, hanSauDong, tinhHang, hanCacHang, docGoi, goiBanDuoc, laDongThe, HAN_VO_HAN };
