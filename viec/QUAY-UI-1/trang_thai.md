@@ -83,3 +83,7 @@ HEAD ĐÃ KIỂM: 84a2878
 
 Chat soát thay: nối dòng chayBaiThat(thu_QUAYUI1.js) vào kiem_tra_truoc_khi_giao.js; npm test xanh (PASS 107 · FAIL 0). Kho nông phải --unshallow mới chạy được thu_BH2 (git log cbbb809..HEAD).
 HEAD ĐÃ KIỂM: 84a2878 + commit này
+
+
+Chat soát 09.11: cổng tĩnh đạt; dòng HEAD ĐÃ KIỂM trước ghi dạng "+ commit này" không hợp lệ (dòng nằm ở commit riêng) → ghi lại SHA commit code cuối.
+HEAD ĐÃ KIỂM: 15174ec
