@@ -312,12 +312,13 @@ async function main() {
   muc('[D] Cài đặt → Điểm thưởng: GET /loyalty/tich-diem (3 nhóm), PUT chọn nhiều — cần manage_promotions');
   {
     const g = await goi('GET', '/pos/loyalty/tich-diem');
+    const g403 = await goi('GET', '/pos/loyalty/tich-diem', null, THE_NV);
     const nhom = ['mon', 'goi', 'hang'].map((n) => (Array.isArray(g[n]) ? g[n] : null));
     const coVon = JSON.stringify(g).match(/gia_von|cost|ton_kho/);
     const dongX = nhom[0]?.find((m) => Number(m.id) === X.id);
-    k('T17 GET trả 3 nhóm mon / goi / hang, mỗi dòng id, ten, tich_diem; X đang 0; không có giá vốn',
-      g.status === 200 && nhom.every(Boolean) && dongX?.tich_diem === 0 && typeof dongX?.ten === 'string' && !coVon
-        && nhom[1].some((x) => Number(x.id) === goiG) && nhom[2].some((x) => Number(x.id) === vang.id), `${moTa(g)} · ${JSON.stringify(g).slice(0, 200)}`);
+    k('T17 GET trả 3 nhóm mon / goi / hang, mỗi dòng id, ten, tich_diem; X đang 0; không có giá vốn; nhân viên không quyền xem Cài đặt → 403',
+      g.status === 200 && g403.status === 403 && nhom.every(Boolean) && dongX?.tich_diem === 0 && typeof dongX?.ten === 'string' && !coVon
+        && nhom[1].some((x) => Number(x.id) === goiG) && nhom[2].some((x) => Number(x.id) === vang.id), `${moTa(g)} · nhân viên ${moTa(g403)} · ${JSON.stringify(g).slice(0, 200)}`);
     const p403 = await goi('PUT', '/pos/loyalty/tich-diem', { loai: 'mon', ids: [Y.id], bat: false }, THE_NV);
     await db.run("UPDATE pos_permissions SET allowed = 1 WHERE role = 'staff' AND permission = 'manage_settings'").catch(() => {});
     const p403b = await goi('PUT', '/pos/loyalty/tich-diem', { loai: 'mon', ids: [Y.id], bat: false }, THE_NV);

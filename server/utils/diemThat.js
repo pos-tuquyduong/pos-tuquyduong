@@ -28,7 +28,7 @@ const tienHangDiem = (dongDon, tienHang) => {
   const gia = dongDon.map((d) => Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0) * Number(d.quantity));
   const tong = gia.reduce((a, b) => a + b, 0);
   const bat = gia.reduce((t, g, i) => t + (batDiem(dongDon[i]) ? g : 0), 0);
-  return tong > 0 ? Math.floor((bat * Math.min(tong, Math.max(0, tienHang))) / tong) : 0;
+  return tong > 0 ? Math.floor((bat * tienHang) / tong) : 0;   // bat ≤ tong → kết quả ≤ tienHang
 };
 
 /**
