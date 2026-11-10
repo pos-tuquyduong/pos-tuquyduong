@@ -321,3 +321,60 @@ SOÁT BẢO MẬT: ĐẠT
   hoàn. Có sẵn từ NAP-1 (đơn toàn món bật y hệt trước), hai file ngoài Phạm vi — chưa dựng ca, đề xuất cho việc sau.
 - `server/utils/tienDaTra.js` (ngoài Phạm vi): quy tắc chia tiền theo dòng nằm trong hàm bất đồng bộ đọc kho; tách phần thuần ra thì
   DIEM-MON-1 gọi lại được thay vì chép cùng công thức — đề xuất cho việc sau.
+
+## Báo cáo 7 mục (phiên 10.11 — sau vòng sửa 1–3 và soát bảo mật)
+```
+VIỆC:        DIEM-MON-1 — Công tắc "Tích điểm" theo món / thẻ hạng / gói; máy chủ chỉ cộng điểm phần tiền của dòng bật
+ĐÃ SỬA:      (phiên này — phần trước: mục "Bước 4–6", "Đã sửa sau vòng 1")
+             server/utils/diemThat.js:74-90 tienHoanTinhDiem — duyệt hoàn sau đền quy theo PHẦN CÒN LẠI (Q4 = a: × (tiền tính điểm − đền bật) /
+               (tiền trả − tổng đền)); trả phân số { tu (BigInt), mau } thay vì số thực
+             server/utils/diemThat.js:52-61 soNguyen (một chỗ ép BigInt, chặn NaN / Infinity) + diemTruKhiHoan(diem, tienHoan, tienDiem, mau = 1)
+               ceil bằng số nguyên một lần (hết trừ thừa 1 điểm ở ca số lẻ)
+             cong_cu/gia_lap/bat_bien.js:199-209 I8 cùng luật Q4 + cùng phép số nguyên, chặn NaN / Infinity (không sập khi cài đặt điểm 0 / rỗng)
+             cong_cu/thu_DIEMMON1.js — thêm T13e, T13f, T13g, T13h, T13i, T18c
+BÀI THỬ:     cong_cu/thu_DIEMMON1.js trên gốc e90d42a → ĐỎ 6 đạt · 26 hỏng; trên code trước vá Q4 → ĐỎ T13e [60,60,24], T13f [60,60,54]; trước vá
+             vòng 2 → ĐỎ T13h 13 → 10; trước vá vòng 3 → ĐỎ T18c, T13i (BigInt ném). Sau vá → XANH 32 đạt · 0 hỏng.
+             Đột biến: ĐỐI CHỨNG 32 đạt · 0 hỏng · 38 đột biến · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0.
+             npm test -- --day-du: PASS 111 · FAIL 0 · CẢNH BÁO 1 (có sẵn). node tu_chay/cong.js chay: ✓ CỔNG CHẠY ĐẠT.
+ĐÃ RÀ K4:    grep "diemTruKhiHoan|tienHoanTinhDiem" trong server, cong_cu, client/src → 2 chỗ gọi mã thật (diemThat.js truDiemHoan) + thu_NAP1.js E8
+             (3 đối số, mau = 1 mặc định — xanh); 4 lối trừ điểm (refunds, damages, packages, signup-codes) cùng qua truDiemHoan; bản chép I8 vá cùng
+             (luật Q4, số nguyên, chặn NaN) — đã xử lý hết. Phép chia khác trên đường điểm (tienTinhDiem round, tienHangDiem floor) chia MỘT lần
+             trên số nguyên — không lệch (soát vòng 3 xác nhận).
+CHƯA KIỂM:   - Giao diện TichDiem.jsx trên điện thoại (3 thao tác thử tay ở mục "Thử tay cho chủ quán").
+             - Bước 024 trên Turso thật; hiệu năng I8 (JOIN / EXISTS mới) trên dữ liệu thật; trùng product_code giữa món / gói / thẻ trên dữ liệu thật.
+             - Ca phí giao trả bằng ví + món trộn + trả một phần tiền mặt khi duyệt hoàn (Phát hiện — có sẵn từ NAP-1, file ngoài Phạm vi).
+             - Quán > 500 món: "Chọn tất cả" bị 400 TICH_DIEM_SAI (ID_TICH_DIEM_TOI_DA = 500) — chưa biết số món thật.
+             - Bill vẫn in "nhận gấp N điểm" cho đơn mà mọi dòng tắt điểm (phiếu cấm đổi bill).
+             - Sau vòng sửa 3 không gọi agent soát nữa (LUAT §6.5 — chat soát thay); soát bảo mật chạy SAU vòng sửa 3 (ĐẠT).
+GIT:         34996a4 DIEM-MON-1: soat bao mat lan 1 — DAT (0 lo hong)
+             c57fb17 DIEM-MON-1: vong sua 3 — bao cao soat vong 3 (DAT), bang chung T18c/T13i, trang thai
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 2 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+### Nghiệm thu — đếm từng mục
+- A (cờ ở món / gói / hạng, mặc định bật; nạp 0 điểm; phí giao không điểm): T1, T10, T11, T12, T19.
+- B (một hàm tiền tính điểm theo dòng cho quầy / App / nhận mã / thu nợ): T3, T4, T5, T6, T6b, T7 (App), T8 (/nhan-diem), T9 (thu nợ).
+- C (trừ điểm không quá điểm đã cộng, đúng tỷ lệ): T13 (+T13d), T13b, T13c, T13e, T13f, T13g, T13h, T13i, T14, T14b, T15.
+- D (Cài đặt → Điểm thưởng, chọn nhiều, quyền manage_promotions): máy chủ T16, T17; giao diện → 3 thao tác thử tay (CHƯA KIỂM máy).
+- E (đối soát không lệch): T18, T18b, T18c.
+- K5 (luật khác, hợp đồng /api/kh, giá, hạng không đổi): T2, T2b, T9, T12b, T19 + thu_HOPDONG_KH, thu_P2223 trong npm test.
+
+## Bài học
+Sự cố của việc (phiên 09–10.11): luật CÁCH 2 viết "duyệt hoàn theo toàn đơn" mà chưa rà soTienHoan đã trừ phần đền (soát vòng 1 → Q4, phải dừng hỏi);
+phép quy đổi chia số thực hai lần rồi ceil → trừ thừa 1 điểm, I8 chép cùng lỗi nên Đối soát không bắt (soát vòng 2); đổi sang BigInt quên chặn
+NaN / Infinity ở I8 → Đối soát sập khi cài đặt điểm 0 (soát vòng 3). Người gác chặn: B-BIMAT-CHU (chạy / ghi bài có cụm bí mật chưa commit → commit
+trước, ghi bằng Edit), B-CD-VITRI và GIT-TUYCHON (cd giữa lệnh, git -C → tách lệnh), B-PHANTICH (chuyển hướng ra file khi chạy script → bỏ ghi
+file). Kho nông lại ở phiên mới (thu_BH2 đỏ "bad revision") → unshallow.
+
+- **KHOÁ 1** (đã làm, trong Phạm vi): T13e/T13f/T13g — điểm sau "đền rồi duyệt hoàn" không phụ thuộc thứ tự; đột biến BV-q4-*, VS-q4-*, BV-i8-q4-*.
+- **KHOÁ 2** (đã làm): T13h — ca số lẻ mà kết quả đúng là số nguyên nhưng phép tính đi qua phân số; đột biến VS-chia-so-thuc, VS-i8-chia-so-thuc.
+- **KHOÁ 3** (đã làm): T18c + T13i — đầu vào hỏng (cài đặt 0 / rỗng, NaN, Infinity) → không ném lỗi; đột biến VS-ep-kieu-thieu-chan, VS-i8-ep-kieu-thieu-chan.
+- **NGUYÊN TẮC 1** (đề xuất cho `KHUON_LOI.md` K4 — ngoài Phạm vi, máy không tự sửa): "Luật trừ / chia theo PHẦN: rà mọi hàm tính SỐ TIỀN của khoản
+  đó (DIEM-MON-1: soTienHoan đã trừ phần đền → khoản 'không gắn dòng' thật ra là 'phần còn lại'). Một luật trừ điểm phải cho cùng kết quả dù các
+  bước theo thứ tự nào — mỗi luật một ca đổi thứ tự."
+- **NGUYÊN TẮC 2** (đề xuất cho `KHUON_LOI.md` K3 — ngoài Phạm vi): "Phép tính điểm / tiền ghép nhiều lần chia rồi ceil / floor: tính bằng phân số số
+  nguyên, làm tròn MỘT lần; ép kiểu số nguyên lớn qua MỘT hàm có chặn NaN / Infinity. Trọng tài (I8) chép cùng biểu thức thì không bắt được lỗi làm
+  tròn — cần ít nhất một ca so với số tính tay có bộ số lẻ (DIEM-MON-1 T13h: 13 → 10 thay vì 11)."
+- **BỎ 1**: kho nông làm thu_BH2 đỏ "bad revision" — skill bước 1.3 đã có cách xử lý (unshallow), chỉ là phiên mới; không thêm luật.
+- **BỎ 2**: các lệnh bị người gác chặn — đều có hướng dẫn trong lý do chặn, làm theo được ngay; một lần mỗi loại.
+- Dọn (11.3): không thấy lời dặn nào trong KHUON_LOI.md / CLAUDE.md mới có phép kiểm làm thay nhờ việc này.
