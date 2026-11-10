@@ -188,8 +188,9 @@ async function main() {
     const m0 = await soDu(M);
     const c1 = await ban(A, M);
     vC.don = c1.j.order;
-    k('C1 A đúng mẹ M qua POST /orders → 200, ví M −25.000, đơn ghi parent_phone = M', c1.status === 200 && await soDu(M) === m0 - 25000
-      && c1.j.order?.parent_phone === M, `${moTa(c1)} · M ${await soDu(M)} · ${c1.j.order?.parent_phone}`);
+    const ghi = await db.queryOne('SELECT parent_phone, parent_balance_amount FROM pos_orders WHERE id = ?', [c1.j.order?.id]).catch(() => null);
+    k('C1 A đúng mẹ M qua POST /orders → 200, ví M −25.000, đơn ghi parent_phone = M, 25.000', c1.status === 200 && await soDu(M) === m0 - 25000
+      && ghi?.parent_phone === M && Number(ghi.parent_balance_amount) === 25000, `${moTa(c1)} · M ${await soDu(M)} · ${JSON.stringify(ghi)}`);
     const M4 = await khach({ vi: 25000 }), A4 = await khach({ me: M4 });
     const p = await phien(A4, M4);
     const ch = await goi('POST', `/thanh-toan/phien/${p.j.phien?.id}/chot`, {});
