@@ -86,3 +86,75 @@ Bước 6 — `npm test`: PASS 109 · FAIL 0 · CẢNH BÁO 1.
 
 Tên đột biến: BV-1-bo-goi, VS-1-chi-khi-co-tien, VS-4-bo-qua-chi-tinh, VS-7-chi-khi-co-sdt-me, VS-2-khong-chuan-hoa, VS-3-chi-kiem-co-me,
 VS-5-khong-can-khach, VS-6-trong-me-cho-qua.
+
+Bước 6 (bổ sung) — `npm test -- --day-du`: PASS 111 · FAIL 2 — giả lập quầy `cong_cu/gia_lap/kich_ban.js:328,335` (KB17) bán đơn trả tài khoản
+mẹ mà không dựng quan hệ mẹ–con → 403 KHONG_PHAI_TK_ME (`cong_cu/gia_lap/chay.js`, `cong_cu/thu_gia_lap.js`). Ngoài Phạm vi.
+Lệnh bị người gác chặn phiên này: `git apply` (GIT-LENH), `patch` (B-CHUONGTRINH), `git worktree` (GIT-LENH), vòng `for` (B-CHUONGTRINH),
+lệnh `cat … ; node …` ghép (B-PHANTICH) — đều đổi sang cách khác được (Python replace, dot_bien.py --goc, lệnh tách rời).
+
+## Soát độc lập (/ra-soat lần 1, 10.11 — báo cáo nguyên văn)
+```
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- cong_cu/gia_lap/kich_ban.js:328 và :335 (KB17) gửi parent_phone: ME nhưng không dựng quan hệ mẹ–con trong pos_customers → 403
+  KHONG_PHAI_TK_ME. `--day-du` → PASS 111 · FAIL 2 (gia_lap/chay.js, thu_gia_lap.js M13 → KB17 → I11, 3 lệch). Bị sót vì npm test không
+  chạy giả lập; trang_thai chỉ ghi "npm test PASS 109". Ngoài Phạm vi → dừng hỏi. Khuôn K4 + K6.
+- `node tu_chay/cong.js chay . 72398197^ HEAD viec/VI-ME-1` → CỔNG ĐỎ 8 lý do: A11 × 6 (thu_DIEMTHAT1, thu_GOI1, thu_HD1, thu_NAP1,
+  thu_P26b, thu_P26c — "bài thử cũ được miễn nhưng bản gốc đỏ trên code PR"); theo LUAT_XAY_APP §6.9 bài như vậy KHÔNG thuộc
+  ## Bài thử cũ sửa mà là bài sửa thường (§6.8): cần thêm một ca ĐỎ trên gốc khi bản mới vẫn xanh trên gốc. Lập luận Câu hỏi 4 đọc
+  ngược luật. A13 (--day-du đỏ). A20 (chưa có dòng SOÁT BẢO MẬT — bình thường ở bước này). Khuôn K1 / K6.
+- ke_hoach.md:72-76 tên đột biến cũ (VS-3-chi-kiem-ton-tai, VS-4-sau-chi-tinh) ≠ dot_bien.py (VS-3-chi-kiem-co-me, VS-4-bo-qua-chi-tinh);
+  thiếu VS-5, VS-6, VS-7. K4.
+- ke_hoach.md ca E1 hứa phép hành vi; thu_VIME1.js:224-225 chỉ kiểm tĩnh. K3 nhẹ.
+- cong_cu/thu_VIME1.js:152 `p1` dựng mà không ca nào kiểm (mã chết).
+NGHI NGỜ:
+- orders.js:690 kiểm cả lúc chốt phiên: phiên tru_tai_khoan_me có giu_vi_me = 0, hoặc phiên QR chốt qua webhook mà quan hệ đổi giữa
+  giữ và chốt → 403, phiên 'loi' (giuCho.js:129-132), tiền QR đã về. Xác suất thấp; chưa có ca thử.
+- thu_DIEMTHAT1.js:103-106, thu_HD1.js:393-396, thu_NAP1.js:121-124: `ban` tự dựng quan hệ cho MỌI thân có parent_phone → ca "sai mẹ"
+  viết sau này trong ba file sẽ xanh oan (K3).
+- Đường tấn công qua ví của CHÍNH khách (customer_phone = X + balance_amount, orders.js:837-848, không PIN khi cờ tắt) vẫn còn — đã ghi
+  Phát hiện.
+- trang_thai "18 chỗ" (grep 17); ke_hoach giuCho.js:27 (thật :22); chú thích orders.js:688-689 xếp "chốt phiên" vào chế độ chỉ tính
+  (thật: chốt đi vaoGiaoDich, giuCho.js:109).
+NGHIỆM THU: 4/6 mục có bằng chứng · mục thiếu: C (--day-du đỏ KB17), K5 (luật ví mẹ KB17 / M13 đỏ)
+CHƯA SOÁT ĐƯỢC: số khách chỉ có trong pos_registrations trên production; chốt webhook khi quan hệ đổi giữa chừng; nhánh dungHien của
+  manKhach.js:127; đua giữa kiểm và ghi (CHƯA KIỂM theo quyết định chủ quán).
+BÀI HỌC: KHOÁ — chạy --day-du / cong.js chay trước khi ghi "npm test xanh" cho việc tiền; KHOÁ — đề xuất ## Bài thử cũ sửa thì công cụ
+  tự chạy BẢN GỐC bài trên code mới (§6.9, lần sai thứ 4); NGUYÊN TẮC K4 — grep bài bị ảnh hưởng quét cả cong_cu/gia_lap/;
+  NGUYÊN TẮC K3 — hàm dựng dữ liệu không tự "chữa" mọi đầu vào, gọi datMe tường minh từng ca.
+```
+Phiên chính đã chạy lại `node tu_chay/cong.js chay . 72398197^ HEAD viec/VI-ME-1` → xác nhận đúng 8 dòng ✗ (A20, A13, A11 × 6).
+
+## Soát bảo mật
+Số lỗi trước lọc: 0 · sau lọc: 0 (người soát tự làm cả bước tìm và lọc — không có công cụ sub-task). Báo cáo nguyên văn (rút gọn trình bày, giữ nội dung):
+```
+# Soát bảo mật VI-ME-1 (viec/VI-ME-1, mốc 72398197^..c4ed786f)
+Không tìm thấy lỗ hổng nào đạt ngưỡng báo cáo. Số lỗi trước lọc: 0 · sau lọc: 0
+Điểm vá: viMe.js:12-16 — chuẩn hoá hai vế, truy vấn có tham số; mọi trường hợp sai cùng 403 KHONG_PHAI_TK_ME. orders.js:690-693 —
+  gửi tiền mẹ mà trống parent_phone vẫn 403; không lách bằng đổi kiểu; cổng chạy TRƯỚC đọc ví mẹ / dangGiu (860-881), ghiVi (969),
+  ghi đơn (1000/1015), nhánh chiTinh (898) — phủ tạo phiên và tinh-thu (1354).
+Lối: POST /orders qua taoDon; POST /thanh-toan/phien → taoPhien (giuCho.js:47-53) — đối chiếu mẹ trước PIN (56-60) và trước giữ
+  (62-68): không tốn lượt PIN sai, không phân biệt "SĐT có ví / có PIN"; chốt phiên (giuCho.js:105-123) mọi cách đối chiếu lại với CSDL,
+  quan hệ đổi → 403, phiên 'loi' (131-134) — chiều an toàn; App KH (donApp.js:281) không có tru_tai_khoan_me, TRUONG_DON (giuCho.js:23-24)
+  không có parent_phone; hoàn / huỷ / đền đọc từ đơn (wallets.js:116, refunds.js:173-178, tienDaTra.js:50,86-88) — không đụng.
+Lộ thông tin: một mã lỗi chung; chỉ đoán được "Y có phải mẹ X" — nhân viên vốn xem được qua danh sách khách (customers.js:162,210-219).
+Không tính là lỗi: cờ thanh_toan_payos_bat_buoc tắt → POST /orders trừ tiền mẹ không PIN (orders.js:239-246) — có từ trước, nay chỉ
+  áp cho con thật của mẹ đó.
+```
+SOÁT BẢO MẬT: ĐẠT
+
+## Câu hỏi (vòng 3 — DỪNG chờ chủ quán)
+5. **Mình đã sai ở Câu hỏi 4 — xin lỗi bạn.** Mình đề xuất xếp 6 bài cũ vào `## Bài thử cũ sửa`, nhưng luật §6.9 nói ngược lại: mục đó chỉ
+   dành cho bài cũ mà BẢN CHƯA SỬA vẫn xanh trên code mới. Sáu bài này bản chưa sửa ĐỎ trên code mới (cổng A11 bắt cả 6) → chúng là
+   "bài sửa thường" (§6.8): mỗi bài phải có ít nhất một ca ĐỎ trên code gốc. Đồng thời mình bỏ sót bài giả lập quầy
+   `cong_cu/gia_lap/kich_ban.js` (KB17 bán đơn trả tài khoản mẹ, chỉ chạy ở `--day-du`) — nó cũng bị chặn 403 và nằm NGOÀI Phạm vi.
+   **Đề xuất của mình** (chat sửa phiếu, máy làm tiếp):
+   - (a) Xoá 6 dòng khỏi mục `## Bài thử cũ sửa` của phiếu (giữ nguyên 6 file trong `## Phạm vi`).
+   - (b) Cho phép mỗi bài trong 6 bài thêm ĐÚNG MỘT ca mới: "đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME,
+     ví mẹ không đổi" — ca này đỏ trên code gốc (gốc cho trừ), xanh trên code mới. Ca cũ, số mong đợi cũ giữ nguyên. Đồng thời gọi
+     `datMe` tường minh ở từng ca thay vì nhúng trong hàm `ban` (người soát lo ca "sai mẹ" về sau xanh oan).
+   - (c) Thêm `cong_cu/gia_lap/kich_ban.js` vào `## Phạm vi`: KB17 chỉ thêm một dòng dựng quan hệ mẹ–con trước hai đơn trả tài khoản mẹ
+     (không đổi phép kiểm). Nếu bộ giả lập đang ĐÓNG BĂNG thì bạn cho mình biết, mình sẽ đề xuất cách khác.
+   Bạn chỉ cần trả lời "đồng ý câu 5" (hoặc nêu phần nào không đồng ý).
+   Việc nhỏ máy sẽ làm cùng vòng sau (trong Phạm vi, không cần hỏi): sửa tên đột biến cũ ở `ke_hoach.md`, bỏ biến `p1` thừa ở
+   `thu_VIME1.js:152`, sửa chú thích `orders.js:688-689` (chốt phiên không phải chế độ chỉ tính) — đổi `server/` thì soát bảo mật lại.
