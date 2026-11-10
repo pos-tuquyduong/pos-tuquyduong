@@ -48,6 +48,9 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
+  const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
+    + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
 
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);
@@ -97,7 +100,10 @@ async function main() {
   const mon = (i) => ({ product_id: sp[i].id, sx_product_type: sp[i].sx_product_type, sx_product_id: sp[i].sx_product_id, quantity: 1 });
   let soSdt = 0;
   const sdtMoi = () => '0939' + String(300000 + (++soSdt));
-  const ban = (body) => goi('POST', '/orders', { customer_name: 'Khách DIEM-THAT-1', items: [mon(0)], ...body });
+  const ban = async (body) => {
+    if (body.parent_phone) await datMe(body.customer_phone, body.parent_phone); // VI-ME-1: dựng quan hệ mẹ–con trước khi bán
+    return goi('POST', '/orders', { customer_name: 'Khách DIEM-THAT-1', items: [mon(0)], ...body });
+  };
   const nap = async (sdt, tien) => {
     const r = await goi('POST', '/wallets/topup', { phone: sdt, amount: tien, customer_name: 'Khách DIEM-THAT-1', payment_method: 'cash' });
     if (r.status !== 200) throw new Error('không nạp được ví: ' + moTa(r));
