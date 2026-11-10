@@ -384,3 +384,7 @@ file). Kho nông lại ở phiên mới (thu_BH2 đỏ "bad revision") → unsha
 ✓ CỔNG CHẠY ĐẠT
 
 HEAD ĐÃ KIỂM: 22e0584
+
+
+(Chủ quán chạy gop_DIEMMON1.py 10.11 — gộp main, chat soát)
+HEAD ĐÃ KIỂM: 001ef0e
