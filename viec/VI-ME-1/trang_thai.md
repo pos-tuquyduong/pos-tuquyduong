@@ -8,6 +8,8 @@ HEAD 7239819 · FETCH_HEAD 7239819 (bằng nhau, không kéo)
 db2d71d Merge pull request #84 from pos-tuquyduong/viec/KH-THE-1
 ```
 
+Stop hook báo `npm test` đỏ ở thu_BH2 G1: kho nông, thiếu commit cbbb809 (`git log` lỗi) — không phải lỗi code. `git fetch -q --unshallow origin viec/VI-ME-1` (chỉ tải lịch sử) → `npm test` PASS 108 · FAIL 0 · CẢNH BÁO 1.
+
 ## Bước 3 — kế hoạch
 `ke_hoach.md`. Phiếu dặn lập kế hoạch rồi DỪNG chờ duyệt → dừng sau khi push.
 
