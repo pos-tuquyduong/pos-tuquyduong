@@ -46,6 +46,7 @@ DOT_BIEN = [
   ('VS-DAY-DO-CU-NHAT', [(KHO, "const cu = ds.find((t) => t.loai === 'xong' && t.id !== id) || ds[0];", 'const cu = ds[0];', 1)], r'✗ A11 đỏ chưa đọc', T),
   ('VS-MOI-BI-BO', [(KHO, "t.loai === 'xong' && t.id !== id) || ds[0]", "t.loai === 'xong') || ds[0]", 1)], r'✗ A13 đang 3 đỏ', T),
   ('BV-DOISOAT-MO-NUT-KET', [('client/src/components/DoiSoat.jsx', 'disabled={dangGhi} onClick={luuKet}', 'onClick={luuKet}', 1)], r'✗ D4 components/DoiSoat.jsx', T),
+  ('VS-THONGBAO-LUON-NULL', [(TB, '  if (!ds.length) return null;\n', '  return null;\n', 1)], r'✗ B2b ThongBao.jsx thật sự vẽ', T),
   ('VS-LAYOUT-DIEU-KIEN', [(LAY, '      <ThongBao />\n', '      {false && <ThongBao />}\n', 1)], r'✗ B7b Layout gắn', T),
   ('VS-SALES-BO-LYDO', [('client/src/pages/Sales.jsx', 'baoLoi(lyDoLoi(cau))', 'baoLoi(cau)', 1)], r'✗ C6 Sales.setError', T),
   ('BV-ORDERS-ALERT-TRO-LAI', [(OR, "baoLoi('Chưa gửi được', 'Chọn sản phẩm, số lượng và cách xử lý rồi gửi lại.'); return;", "alert('Vui lòng điền đầy đủ thông tin'); return;", 1)], r'✗ D1 alert\(', T),

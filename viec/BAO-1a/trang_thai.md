@@ -68,7 +68,7 @@ Tên đầy đủ (cổng A17): VS-DO-TU-AN, BV-XANH-KHONG-AN, VS-TOI-DA-NAM, VS
 - `components/CaiDatChuong.jsx` (dùng trong Cài đặt) và mọi thứ của `Settings.jsx`, `pages/CaiDat/**` (kể cả ô PIN `HangThe.jsx`) → thuộc BAO-1b, chưa đụng.
 - `pages/ManKhach/**` (màn quay về phía khách, ngoài Layout) và `Login.jsx` không có nút ghi của nhân viên; không gắn ThongBao ở đó.
 - Lỗi TẢI (đọc) ở Kho (`kho-loi` trong PhatSinh/SanPham/XemPhieu/TonKho/DsPhieu…), DonApp tải tự động 15 giây, GiaoHang tải 15 giây: giữ dòng báo tại chỗ (không phải nút bấm; thông báo nổi sẽ lặp mỗi vòng).
-- `kiem_tra_truoc_khi_giao.js` in "fetch trần = 31 — HẠ NGUONG_FETCH xuống 31" (hằng đang 32). Việc này không thêm/bớt `fetch(` nào (so từng file với HEAD: 0 chênh), nên MÌNH KHÔNG HẠ.
+- `kiem_tra_truoc_khi_giao.js` in "fetch trần = 31 — HẠ NGUONG_FETCH xuống 31" (hằng đang 32 lúc phát hiện; ĐÃ HẠ xuống 31 ở 91b4650 theo chat soát 10.11). Việc này không thêm/bớt `fetch(` nào (so từng file với HEAD: 0 chênh), nên lúc đó mình không hạ (chat soát 10.11 duyệt hạ → đã hạ ở 91b4650).
   **NGUYÊN NHÂN (tìm ra 10.11, thay cho điều đoán sai ở trên — đoán "chú thích JSX trong Sales" là SAI):** số đếm đã là 31 từ trước việc này. Đếm cùng phép `boGhiChu` + `/\bfetch\s*\(/` theo từng file ở `45fd10c` và `HEAD`: giống hệt (CustomerInput 1 · CustomerSearch 2 · InvoicePrint 2 · Customers 2 · InvoiceSettings 4 · Orders 6 · Sales 7 · Settings 6 · logoCache 1 = 31). Mất 1 chỗ ở **`client/src/pages/Customers.jsx`**: commit `9558de19` (HANG-1 giao diện, 03.11) đổi `fetch(\`/api/pos/membership/status/${encodeURIComponent(phone)}\`, {headers…})` (cũ ~dòng 54) thành `hangApi.trangThai(phone)` (gọi qua `utils/api.js:519`) — một lần dọn thật, đúng chiều. Lúc đó `NGUONG_FETCH` vẫn 32 (kiểm: `git show 9558de19:kiem_tra_truoc_khi_giao.js` dòng 223) nên không ai hạ; sau đó nhánh GIAO-1 (`7123f8d`, còn 3 chỗ ở Customers) gộp vào làm tên "32" sống tiếp. Chốt: ngưỡng cần HẠ 32 → 31 — việc của chủ quán (CLAUDE.md §6: tự đổi bánh cóc phải hỏi); mình KHÔNG đổi. Còn lại 31 `fetch` trần: lần theo `node` đếm theo file ở bảng trên.
 - Kho còn 31 `fetch` trần ngoài `api.js` (Orders, Sales, InvoiceSettings, Customers, CustomerSearch…) — việc cũ, không phải việc này.
 - `npm run lint`: còn các lỗi có sẵn (BanHangMoi `layThe`, ThuTien `tong`, ManKhach, DonAppNoi/InPhieu fast-refresh…); file mới `ThongBao.jsx` + `thongBaoKho.js` sạch.
@@ -78,8 +78,8 @@ Tên đầy đủ (cổng A17): VS-DO-TU-AN, BV-XANH-KHONG-AN, VS-TOI-DA-NAM, VS
 VIỆC:        BAO-1a — Mọi thao tác ngoài Cài đặt báo rõ, dễ hiểu, luôn nhìn thấy
 ĐÃ SỬA:      client/src/components/thongBaoKho.js (mới, kho thông báo) · components/ThongBao.jsx (mới, vẽ) · components/Layout.jsx (gắn một lần, nút "gửi lại việc kho") · index.css (thông báo nổi + nút khoá mờ)
              28 màn/thành phần nối thông báo (bảng trên): Orders, Refunds, InvoicePrint, Sales, Customers, DonApp, DonThu, Registrations, DiscountCodes, InvoiceSettings, Reports, GiaoHang, ViKhach, CapHang, DoiSoat, ThongTinMon, MaDangNhapApp, CustomerSearch, 9 màn Kho
-             cong_cu/thu_BAO1a.js (mới, 99 ca) · kiem_tra_truoc_khi_giao.js (nối bài vào bộ kiểm) · client/dist (build lại)
-BÀI THỬ:     chạy trên bản chưa vá (45fd10c) → ĐỎ: 7 đạt · 74 hỏng (bản bài thử cuối); sau khi vá → XANH 99 đạt · 0 hỏng; đột biến 26/26 BẮT
+             cong_cu/thu_BAO1a.js (mới, 104 ca) · kiem_tra_truoc_khi_giao.js (nối bài vào bộ kiểm) · client/dist (build lại)
+BÀI THỬ:     chạy trên bản chưa vá (45fd10c) → ĐỎ: 7 đạt · 74 hỏng (bản bài thử cuối); sau khi vá → XANH 104 đạt · 0 hỏng; đột biến 31/31 BẮT
 ĐÃ RÀ K4:    grep "alert(" trong client/src → 11 chỗ (Orders 8 · Refunds 2 · InvoicePrint 1), đã xử lý hết, còn 0 · grep "setError|setSuccess|setLoi|setThongBao|setMsg" các màn trong phạm vi → xử lý theo bảng, phần còn lại ghi ở Phát hiện · {error} / {loi} còn vẽ: chỉ lỗi TẢI + lỗi nhập thiếu cạnh ô
 CHƯA KIỂM:   (1) chưa mở trình duyệt thật: không chụp được thông báo nổi hiện trên điện thoại / có đè lên popup không (CSS z-index 10000; popup cao nhất tìm thấy bằng grep là 9999) · (2) chưa thử tay từng nút (bài thử khoá khung thành phần + mỗi màn đã nối + cờ khoá nút, KHÔNG gọi từng nút thật) · (3) "Đã in hóa đơn" dựa vào sự kiện đóng hộp in của trình duyệt · (4) lời gọi thông báo trong hàm cập nhật `setCart` của Sales chưa chạy thật ở StrictMode · (5) chưa hết lỗi lint có sẵn của kho
 GIT:         ad82b074 bằng chứng đỏ · 8229fe92 vòng sửa 1 · 99abceec màn · 52e48854 thành phần (trên nền 45fd10c)
@@ -122,3 +122,15 @@ HEAD ĐÃ KIỂM: 21a39eee
 
 ✓ CỔNG CHẠY ĐẠT  (vòng 2: node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a, cây sạch ở cb7d68c; kèm CẢNH BÁO A16: gốc in 84 ca ≠ 103 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận)
 HEAD ĐÃ KIỂM: cb7d68c6
+
+## Soát độc lập — vòng 3 (agent /ra-soat, trên 91b4650; ĐẠT, chỉ lỗi nhẹ, không đụng máy chủ / tiền)
+Nghiệm thu 7/7 có bằng chứng. git diff 45fd10c^ HEAD -- server package.json rỗng. K5: không luồng hợp lệ nào bị chặn oan (thongBaoKho.js t.id !== id, dedupe cùng câu, guard bấm đúp Refunds/Orders/Reports/DoiSoat).
+LỖI nhẹ và xử lý (vòng sửa 3, tối đa 3 vòng — đây là vòng cuối):
+1. cong_cu/thu_BAO1a.js mục B — K3 xanh oan: ThongBao.jsx sửa thành luôn return null vẫn 103 đạt. ĐÃ SỬA: ca B2b (đòi if (!ds.length) return null; + ds.map( + đúng MỘT return null), đột biến VS-THONGBAO-LUON-NULL (đối chứng 104 đạt, bài đỏ đúng B2b, BẮT).
+2. Hồ sơ ghi số cũ (K1) — ĐÃ SỬA: hằng 32 → 31 (91b4650), 99 ca → 104, đột biến 26/26 → 31/31.
+Nghi ngờ ghi nhận, không sửa: D2 gộp baoXong/baoLoi/baoLoiTu (chưa thử gỡ cả loại baoLoi*); D4 đếm chỗ disabled chứ không kiểm cờ bật trong hàm xử lý (đã thấy đúng ở DoiSoat, Reports); GiaoHang tem lỗi hiện lại sau mỗi lần tải 15 giây dù đã bấm x; .btn:disabled opacity toàn cục.
+Cảnh báo duy nhất của bộ kiểm hiện nay là route GET có lệnh ghi (packages.js:196, products.js:66, sync.js:148) — có từ trước, ngoài phạm vi; gợi ý hạ NGUONG_FETCH đã hết.
+Tên đột biến thêm ở vòng 3 (cổng A17): VS-THONGBAO-LUON-NULL.
+NGUONG_FETCH hạ 32 → 31 (kiem_tra_truoc_khi_giao.js:223, commit 91b4650): lý do HANG-1 9558de19 đã dọn một fetch ở Customers.jsx; chat soát 10.11 duyệt.
+Đề xuất KHUON_LOI.md (để chat soát lúc gộp, KHÔNG tự sửa): K3 — bài thử một thành phần giao diện phải vẽ thử / khoá nhánh vẽ, không chỉ dò chuỗi; K1 — sau mỗi vòng sửa chạy lại để cập nhật mọi số trong báo cáo (số ca, số đột biến, hash, hằng số).
+Quyết định (2) thông báo đỏ: giữ như hiện nay (đỏ cũ nhất nhường chỗ, xanh mới vẫn hiện) — đã đúng ở A12/A13.

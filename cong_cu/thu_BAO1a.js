@@ -153,6 +153,7 @@ function duyet(thuMuc, ra = []) {
   k('B1 có components/ThongBao.jsx', tb.length > 0);
   k('B2 role="alert" cho đỏ, role="status" cho xanh', /role=\{[^}]*'alert'[^}]*'status'[^}]*\}/.test(tb));
   k('B3 nút đóng có aria-label và gọi bo()', /aria-label="Đóng thông báo"/.test(tb) && /onClick=\{\(\) => bo\(/.test(tb));
+  k('B2b ThongBao.jsx thật sự vẽ danh sách: chỉ trả null khi rỗng, có ds.map(', /if \(!ds\.length\) return null;/.test(tb) && /\bds\.map\(/.test(tb) && (tb.match(/return null/g) || []).length === 1);
   const kho = SX('components', 'thongBaoKho.js');
   k('B4 thongBaoKho.js export baoXong / baoLoi / baoLoiTu', /export const baoXong/.test(kho) && /export const baoLoi\b/.test(kho) && /export const baoLoiTu/.test(kho));
   k('B4b ThongBao.jsx chỉ export thành phần (không re-export hàm — lint fast refresh)', !/^export \{/m.test(tb) && /export default function ThongBao/.test(tb));

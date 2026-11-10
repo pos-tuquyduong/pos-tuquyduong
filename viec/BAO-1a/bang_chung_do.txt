@@ -23,4 +23,5 @@ Lệnh:  python3 viec/BAO-1a/dot_bien.py --goc 45fd10c thu_BAO1a.js
 (Ghi chú vòng sửa 1: khối trên là kết quả của bản bài thử vòng 1 (69 ca).)
 (Vòng sửa 2: bản bài thử hiện tại (103 ca khi chạy trên code đã vá) vẫn ĐỎ trên gốc 45fd10c: 8 đạt · 76 hỏng, thoát 1 — chạy lại lệnh ở đầu file.
  Ca mới của vòng 2 ĐỎ riêng trên HEAD a77194c (trước khi vá): 2 hỏng = A13 "đang 3 đỏ mà có xanh MỚI thì xanh mới vẫn hiện" · D4 components/DoiSoat.jsx "cờ dangGhi khoá ≥ 3 nút — chỉ 0 chỗ"; sau vá: 103 đạt · 0 hỏng. B7b, C6 xanh trên a77194c (mã đã đúng) — khoá bằng đột biến VS-LAYOUT-DIEU-KIEN, VS-SALES-BO-LYDO.)
-SỐ CA cong_cu/thu_BAO1a.js: 103
+(Vòng sửa 3: thêm ca B2b "ThongBao.jsx thật sự vẽ danh sách". Bài hiện tại trên gốc 45fd10c: 8 đạt · 77 hỏng, thoát 1 (có ✗ B2b); trên bản đã vá: 104 đạt · 0 hỏng. B2b xanh trên HEAD trước vá (mã đúng) — khoá bằng đột biến VS-THONGBAO-LUON-NULL: đối chứng 104 đạt, bài đỏ đúng ✗ B2b, BẮT.)
+SỐ CA cong_cu/thu_BAO1a.js: 104
