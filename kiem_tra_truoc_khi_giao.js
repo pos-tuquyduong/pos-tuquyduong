@@ -220,7 +220,7 @@ nhom('C · BÁNH CÓC — chỉ được siết, không được nới');
 
 // C1 — fetch trần ngoài api.js. NGƯỠNG CHỈ ĐƯỢC GIẢM.
 // Dọn xong một file thì hạ số này xuống, không bao giờ tăng.
-const NGUONG_FETCH = 32;
+const NGUONG_FETCH = 31; // 32 -> 31: HANG-1 (9558de19) doi 1 fetch o Customers.jsx sang hangApi.trangThai
 {
   let n = 0;
   const theoFile = {};
