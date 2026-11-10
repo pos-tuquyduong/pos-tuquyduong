@@ -199,10 +199,14 @@ const BAT_BIEN = {
       const den = so(r.hoan) - so(r.hoan_r);
       const coGoi = r.goi_bat != null;
       const denBat = den - Math.min(den, so(r.den_tat));
-      const hoanDiem = denBat + (coGoi && so(r.goi_bat) !== 0 ? so(r.hoan_r) : 0)
-        + (!coGoi && traDon - den > 0 ? (so(r.hoan_r) * Math.max(0, tienDiem - denBat)) / (traDon - den) : 0);
-      const truHoan = r.status !== 'cancelled' && dungBan > 0 && hoanDiem > 0 && tienDiem > 0
-        ? Math.min(dungBan, Math.ceil((dungBan * hoanDiem) / tienDiem)) : 0;
+      // Soát vòng 2: tiền hoàn quy đổi là phân số tu / mau — ceil bằng số nguyên lớn, không qua số thực.
+      const N = (x) => BigInt(Math.round(x));
+      const conTra = traDon - den, mau = !coGoi && conTra > 0 ? conTra : 1;
+      const tu = N(denBat + (coGoi && so(r.goi_bat) !== 0 ? so(r.hoan_r) : 0)) * N(mau)
+        + (!coGoi && conTra > 0 ? N(so(r.hoan_r)) * N(Math.max(0, tienDiem - denBat)) : 0n);
+      const tuDiem = N(dungBan) * tu, mauDiem = N(tienDiem) * N(mau);
+      const truHoan = r.status !== 'cancelled' && dungBan > 0 && tu > 0n && tienDiem > 0
+        ? Math.min(dungBan, Number((tuDiem + mauDiem - 1n) / mauDiem)) : 0;
       const dung = dungBan - truHoan;
       if (so(r.diem) === dung || (huyCu && so(r.diem) === 0)) return [];
       const cu = ctx.thuc && (huyCu || r.status !== 'cancelled');
