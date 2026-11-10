@@ -1,0 +1,23 @@
+BẰNG CHỨNG ĐỎ — BAO-1a
+Lệnh:  python3 viec/BAO-1a/dot_bien.py --goc 45fd10c thu_BAO1a.js
+(bài HIỆN TẠI cong_cu/thu_BAO1a.js trên client/src/ của commit gốc 45fd10c = commit PHIEU: BAO-1a)
+
+── thu_BAO1a.js (bài HIỆN TẠI trên code 45fd10c):
+  ✗ A0 nạp được components/thongBaoKho.js  — Cannot find module '…/client/src/components/thongBaoKho.js'
+  ✗ B1 có components/ThongBao.jsx
+  ✗ B2 role="alert" cho đỏ, role="status" cho xanh
+  ✗ B3 nút đóng có aria-label và gọi bo()
+  ✗ B4 thongBaoKho.js export baoXong / baoLoi / baoLoiTu
+  ✗ B4b ThongBao.jsx chỉ export thành phần (không re-export hàm — lint fast refresh)
+  ✗ B5 CSS nổi cố định góc trên phải
+  ✗ B6 nút đóng ≥ 44px
+  ✗ B7 Layout gắn <ThongBao /> đúng MỘT lần
+  ✗ B8 chỉ MỘT file gắn <ThongBao />
+  ✗ D1 alert( trong client/src ≤ 0  — đếm 11: components/InvoicePrint.jsx×1, pages/Orders.jsx×8, pages/Refunds.jsx×2
+  ✗ D2 ×28 màn (Orders, Refunds, InvoicePrint, Sales, Customers, DonApp, DonThu, Registrations, DiscountCodes, InvoiceSettings, Reports, GiaoHang, ViKhach, CapHang, DoiSoat, ThongTinMon, MaDangNhapApp, CustomerSearch, Layout, 9 file Kho): chưa nối ThongBao / còn alert(
+  ✗ D3 CSS: .btn:disabled mờ đi
+  ✗ D4 ×6: DiscountCodes · Registrations · Reports · Kho/DinhMuc · Kho/NguyenLieu · Kho/SanPham — chưa có cờ khoá nút
+  7 đạt · 46 hỏng
+  thoát 1
+
+SỐ CA thu_BAO1a.js: 69

@@ -849,3 +849,18 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
 
 /* GIAO-DIEN-1 B: số đỏ cạnh mục menu "Đơn App" (số đơn App mới; không có đơn thì không vẽ) */
 .nav-badge { margin-left: auto; min-width: 20px; padding: 0 6px; border-radius: 999px; background: #dc2626; color: #fff; font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
+
+/* BAO-1a D: nút đang xử lý / chưa bấm được thì mờ đi, không bấm được hai lần */
+.btn:disabled, .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+/* BAO-1a: thông báo nổi góc trên phải (xanh tự ẩn, đỏ có nút đóng) */
+.thong-bao-khung { position: fixed; top: 12px; right: 12px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; width: min(380px, calc(100vw - 24px)); pointer-events: none; }
+.thong-bao { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.18); border: 1px solid; font-size: 14px; line-height: 1.4; background: #fff; }
+.thong-bao-xong { border-color: #86efac; background: #f0fdf4; color: #166534; }
+.thong-bao-loi { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+.thong-bao-dau { flex: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; background: #16a34a; }
+.thong-bao-loi .thong-bao-dau { background: #dc2626; }
+.thong-bao-chu { flex: 1; min-width: 0; }
+.thong-bao-tieu-de { font-weight: 700; }
+.thong-bao-ly-do { margin-top: 2px; color: #7f1d1d; }
+.thong-bao-dong { flex: none; min-width: 44px; min-height: 44px; margin: -10px -10px -10px 0; border: none; background: transparent; color: inherit; font-size: 24px; line-height: 1; cursor: pointer; }

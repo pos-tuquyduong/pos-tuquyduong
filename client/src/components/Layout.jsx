@@ -5,6 +5,8 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ErrorBoundary from './ErrorBoundary';
+import ThongBao from './ThongBao';   // BAO-1a: thông báo nổi, gắn một lần
+import { baoXong, baoLoiTu } from './thongBaoKho.js';
 import { 
   ShoppingCart, 
   Users, 
@@ -52,7 +54,8 @@ export default function Layout() {
     try {
       await soNoApi.doiNgay();
       await xemSoNo();
-    } catch { /* im lang */ }
+      baoXong('Đã gửi lại việc kho sang bên sản xuất');
+    } catch (e) { baoLoiTu('gửi lại việc kho', e); }
     finally { setDangDoi(false); }
   };
   const location = useLocation();
@@ -80,6 +83,7 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
+      <ThongBao />
       {/* Sidebar - Desktop */}
       <aside className="sidebar">
         <div className="sidebar-header">
