@@ -378,3 +378,9 @@ file). Kho nông lại ở phiên mới (thu_BH2 đỏ "bad revision") → unsha
 - **BỎ 1**: kho nông làm thu_BH2 đỏ "bad revision" — skill bước 1.3 đã có cách xử lý (unshallow), chỉ là phiên mới; không thêm luật.
 - **BỎ 2**: các lệnh bị người gác chặn — đều có hướng dẫn trong lý do chặn, làm theo được ngay; một lần mỗi loại.
 - Dọn (11.3): không thấy lời dặn nào trong KHUON_LOI.md / CLAUDE.md mới có phép kiểm làm thay nhờ việc này.
+
+## Cổng (bước 11.4)
+`node tu_chay/cong.js chay . 997bf52^ HEAD viec/DIEM-MON-1` ở HEAD 22e0584, cây sạch:
+✓ CỔNG CHẠY ĐẠT
+
+HEAD ĐÃ KIỂM: 22e0584
