@@ -279,12 +279,12 @@ async function main() {
 
   // Q4 = a (chủ quán 09.11): duyệt hoàn trả PHẦN CÒN LẠI sau đền (tienDaTra.js soTienHoan) → trừ điểm theo phần còn lại; hoàn hết thì về 0,
   // bất kể đền món nào trước.
-  const denRoiHoan = async (tienVi, tienMat, mon) => {
+  const denRoiHoan = async (tienVi, tienMat, mon, tienDen = mon === X ? 40000 : 60000) => {
     const s = sdtMoi();
     await napTay(s, tienVi);
     const r = ghi(await ban({ customer_phone: s, balance_amount: tienVi, ...(tienMat ? { cash_amount: tienMat } : {}) }));
     const d = [await diemCua(r)];
-    const rd = r.order ? await den(r.order, mon, mon === X ? 40000 : 60000) : r;
+    const rd = r.order ? await den(r.order, mon, tienDen) : r;
     d.push(await diemCua(r));
     const y = r.order ? await goi('POST', '/pos/refunds', { order_id: r.order.id, reason: 'thử DIEM-MON-1' }) : r;
     const a = y.refund_id ? await goi('POST', `/pos/refunds/${y.refund_id}/approve`) : y;
@@ -297,6 +297,9 @@ async function main() {
   const f1 = await denRoiHoan(50000, 50000, X);
   k('T13f ví 50.000 + tiền mặt 50.000 (60): đền X (tắt) 40.000 → 60; duyệt hoàn 10.000 → trừ ceil(60 × 10.000 / 60.000 còn lại) = 10 → 50',
     f1.ok && f1.d === '[60,60,50]', `${f1.mo} ${f1.d}`);
+  const g1 = await denRoiHoan(50000, 50000, Y, 30000);
+  k('T13g ví 50.000 + tiền mặt 50.000 (60): đền Y (bật) 30.000 → 30; duyệt hoàn 20.000 → trừ ceil(60 × (30.000 + 20.000 × 30.000 / 70.000) / 60.000) = 39 → 21',
+    g1.ok && g1.d === '[60,30,21]', `${g1.mo} ${g1.d}`);
 
   const s13c = sdtMoi();
   const t13c = ghi(await ban({ customer_phone: s13c, items: X2Y, cash_amount: 160000 }));
