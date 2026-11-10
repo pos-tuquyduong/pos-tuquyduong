@@ -74,7 +74,7 @@ async function main() {
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api`;
   const { BAT_BIEN } = require(path.join(MAY_CHU, '..', 'cong_cu', 'gia_lap', 'bat_bien.js'));
-  const { tienTinhDiem } = require(path.join(MAY_CHU, 'utils', 'diemThat.js'));
+  const { tienTinhDiem, diemTruKhiHoan } = require(path.join(MAY_CHU, 'utils', 'diemThat.js'));
   const { kyTokenKhach } = require(path.join(MAY_CHU, 'middleware', 'khachAuth.js'));
   const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   noiLai();
@@ -397,6 +397,18 @@ async function main() {
     const l2 = await lechI8();
     if (dongT13) await db.run('UPDATE pos_point_transactions SET points = points - 1 WHERE id = ?', [dongT13.id]);
     k('T18b I8 bắt lệch MỘT điểm ở đơn có món tắt + đền (T13)', !!dongT13 && l2.some((x) => x.includes(t13.order.code)), l2.join(' | ').slice(0, 300));
+    // Soát vòng 3: cài đặt điểm hỏng (0 / rỗng — máy chủ không chặn khoá này) → I8 báo lệch, KHÔNG sập (Đối soát gọi thẳng, không bắt lỗi).
+    const l3 = [];
+    for (const v of ['0', '']) { await datCaiDat('loyalty_earn_per_amount', v); l3.push(await lechI8()); }
+    await datCaiDat('loyalty_earn_per_amount', 1000);
+    k('T18c loyalty_earn_per_amount = 0 / rỗng → I8 không sập (vẫn trả danh sách), có báo lệch',
+      l3.every((l) => Array.isArray(l) && l.length > 0 && !l.some((x) => x.includes('sập'))), l3.map((l) => l.filter((x) => x.includes('sập')).join(' | ') || l.length).join(' · '));
+    let e13i = '';
+    let r13i = [];
+    try { r13i = [diemTruKhiHoan(13, NaN, 13500), diemTruKhiHoan(13, 3000, Infinity), diemTruKhiHoan(13, 3000, 13500, NaN), diemTruKhiHoan(13, 3000n * 13500n, 13500, 19500)]; }
+    catch (e) { e13i = e.message; }
+    k('T13i diemTruKhiHoan đầu vào lạ (NaN / Infinity) → 0, không ném lỗi; phân số BigInt 3000 × 13500 / 19500 → 2',
+      !e13i && JSON.stringify(r13i) === '[0,0,0,2]', e13i || JSON.stringify(r13i));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
