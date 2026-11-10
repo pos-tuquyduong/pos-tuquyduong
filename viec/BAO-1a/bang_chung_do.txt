@@ -21,4 +21,4 @@ Lệnh:  python3 viec/BAO-1a/dot_bien.py --goc 45fd10c thu_BAO1a.js
   thoát 1
 
 (Ghi chú vòng sửa 1: khối trên là kết quả của bản bài thử vòng 1 (69 ca); bản hiện tại (99 ca khi chạy trên code đã vá) vẫn ĐỎ trên gốc 45fd10c: 7 đạt · 74 hỏng, thoát 1 — chạy lại lệnh ở đầu file.)
-SỐ CA thu_BAO1a.js: 99
+SỐ CA cong_cu/thu_BAO1a.js: 99
