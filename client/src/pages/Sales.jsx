@@ -14,6 +14,10 @@ import InvoicePrint from '../components/InvoicePrint';
 import CustomerSearch from '../components/CustomerSearch';
 import QrScanModal from '../components/QrScanModal';
 import { NutThongTin } from '../components/ThongTinMon';
+import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';
+
+// BAO-1a: mọi câu báo lỗi của màn này nổi góc trên phải (trước đây nằm đầu trang, bị popup thanh toán che). Chuỗi rỗng = không báo gì.
+const setError = (cau) => { if (cau) baoLoi(cau); };
 
 export default function Sales() {
   const [products, setProducts] = useState([]);
@@ -23,11 +27,6 @@ export default function Sales() {
   const [, setSearchPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  // success: đang hiện ở dòng banner bên dưới nhưng chưa nơi nào gọi setSuccess() để bật —
-  // giữ nguyên hành vi hiện tại (banner chưa từng hiện), chỉ bỏ setter chưa dùng để hết lỗi lint.
-  // Muốn bật banner "thành công" thật thì cần nối setSuccess(...) ở chỗ tạo đơn xong — việc riêng, chưa làm ở đây.
-  const [success] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [category, setCategory] = useState('all');
 
@@ -771,6 +770,7 @@ export default function Sales() {
       });
 
       // Đóng popup thanh toán, mở hóa đơn (bỏ qua popup thành công)
+      baoXong(`Đã thu tiền đơn ${result.order.code}`);
       setShowPaymentModal(false);
       setShowInvoice(true);
 
@@ -795,7 +795,7 @@ export default function Sales() {
       loadProducts();
 
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('thu tiền', err);
     } finally {
       setSubmitting(false);
     }
@@ -856,9 +856,6 @@ export default function Sales() {
       </header>
 
       <div className="page-content">
-    {error && <div className="alert alert-danger">{error}</div>}
-    {success && <div className="alert alert-success">{success}</div>}
-
     <div className="sales-layout">
       {/* Left: Products */}
       <div>
@@ -2047,19 +2044,6 @@ export default function Sales() {
               <span>{formatPrice(total)}</span>
             </div>
           </div>
-
-          {/* Error trong modal */}
-          {error && (
-            <div style={{ 
-              padding: '0.75rem', 
-              background: '#fee2e2', 
-              color: '#dc2626',
-              borderRadius: '8px',
-              marginBottom: '1rem'
-            }}>
-              {error}
-            </div>
-          )}
         </div>
 
         {/* Footer */}

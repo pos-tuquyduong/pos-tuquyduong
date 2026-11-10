@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 import { so, maGuiMoi, THU } from './chung';
 
 export default function PhaChe({ moPhieu }) {
@@ -31,12 +32,12 @@ export default function PhaChe({ moPhieu }) {
   });
   const monGui = Object.entries(chon).map(([id, sl]) => ({ san_pham_id: Number(id), so_phan: Number(sl) }));
   const xuat = async () => {
-    setLoi('');
     setDangGui(true);
     try {
       const r = await api.post('/kho/phieu-xuat', { mon: monGui, ma_gui: maGui });
+      baoXong('Đã ghi phiếu xuất pha chế');
       moPhieu(r.phieu.id);
-    } catch (e) { setLoi(e.message); setDangGui(false); }
+    } catch (e) { baoLoiTu('ghi phiếu xuất pha chế', e); setDangGui(false); }
   };
 
   return (

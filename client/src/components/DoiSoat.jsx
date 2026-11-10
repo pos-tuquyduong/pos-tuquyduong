@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { api, thanhToanApi } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import { baoXong, baoLoi, baoLoiTu } from './thongBaoKho.js';   // BAO-1a
 
 const KIEU = [['ngay', 'Ngày'], ['tuan', 'Tuần'], ['thang', 'Tháng']];
 const NHOM = [
@@ -25,12 +26,11 @@ export default function DoiSoat() {
   const [kq, setKq] = useState(null);
   const [dangChay, setDangChay] = useState(false);
   const [loi, setLoi] = useState('');
-  const [thongBao, setThongBao] = useState('');
   const [ket, setKet] = useState({ so_tien: '', de_lai: '' });
   const [saoKe, setSaoKe] = useState({ da_so: false, ghi_chu: '' });
 
   const chay = async (k = kieu, n = ngay) => {
-    setDangChay(true); setLoi(''); setThongBao('');
+    setDangChay(true); setLoi('');
     try {
       const r = await api.get(`/reports/doi-soat?kieu=${k}${n ? '&ngay=' + n : ''}`);
       setKq(r);
@@ -46,30 +46,28 @@ export default function DoiSoat() {
   useEffect(() => { chay('ngay', ''); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const ghi = async (body, viec) => {
-    setLoi(''); setThongBao('');
     try {
       await api.post('/reports/doi-soat/ghi', body);
-      setThongBao(viec);
+      baoXong(viec);
       await chay(kieu, ngay);
     } catch (e) {
-      setLoi(e.message || 'Không ghi được');
+      baoLoiTu('ghi đối soát', e);
     }
   };
   const luuKet = () => {
     const soTien = soNguyen(ket.so_tien), deLai = soNguyen(ket.de_lai);
-    if (soTien === null || deLai === null) { setLoi('Nhập số nguyên đồng, không dấu chấm / phẩy'); return; }
+    if (soTien === null || deLai === null) { baoLoi('Chưa ghi số két được', 'Nhập số nguyên đồng, không dấu chấm / phẩy.'); return; }
     ghi({ loai: 'ket', ky: kq.tu, so_tien: soTien, de_lai: deLai }, 'Đã ghi số két — dòng mới, dòng cũ vẫn còn trong lịch sử');
   };
   const xacNhanTay = async (phienId) => {
     const lyDo = window.prompt('Lý do xác nhận tay (đã thấy tiền trong sao kê…):', '');
     if (lyDo == null) return;
-    setLoi(''); setThongBao('');
     try {
       await thanhToanApi.xacNhanTay(phienId, lyDo.trim());
-      setThongBao('Đã xác nhận tay — đơn đã tạo, nhận lại số hoá đơn đã giữ');
+      baoXong('Đã xác nhận tay — đơn đã tạo, nhận lại số hoá đơn đã giữ');
       await chay(kieu, ngay);
     } catch (e) {
-      setLoi(e.message || 'Không xác nhận được');
+      baoLoiTu('xác nhận tay', e);
     }
   };
   const luuSaoKe = () => ghi({ loai: 'sao_ke', ky: kq.tu, da_so: saoKe.da_so ? 1 : 0, ghi_chu: saoKe.ghi_chu }, 'Đã ghi đánh dấu sao kê');
@@ -98,7 +96,6 @@ export default function DoiSoat() {
       </div>
 
       {loi && <div className="card mb-1" style={{ color: '#dc2626' }}>{loi}</div>}
-      {thongBao && <div className="card mb-1" style={{ color: '#15803d' }}>{thongBao}</div>}
 
       {kq && (
         <>

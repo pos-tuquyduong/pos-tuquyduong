@@ -6,6 +6,7 @@
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 import { so, tien, gio, TRANG_THAI, SU_CO, veLuu } from './chung';
 import { docInPhieuKho, thuTuNutIn } from '../../utils/inPhieu';
 
@@ -83,19 +84,18 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
     return () => { window.removeEventListener('afterprint', xong); kieu.remove(); };
   }, [kho]);
 
-  const ghi = async (lam) => {
-    setLoi('');
+  const ghi = async (lam, viec = 'in phiếu', tin) => {   // nút In gọi ghi() không kèm tên việc (bài thử KHOIN1 khoá đúng dạng gọi đó)
     setDangGhi(true);
-    try { const r = await lam(); if (r?.phieu) setDl(r); return r; } catch (e) { setLoi(e.message); return null; } finally { setDangGhi(false); }
+    try { const r = await lam(); if (r?.phieu) setDl(r); if (tin) baoXong(tin); return r; } catch (e) { baoLoiTu(viec, e); return null; } finally { setDangGhi(false); }
   };
   const hoiLyDo = (cau) => { const l = window.prompt(cau); return l && l.trim() ? l.trim() : null; };
-  const tuChoi = () => { const l = hoiLyDo('Lý do từ chối?'); if (l) ghi(() => api.post(`/kho/phieu/${id}/tu-choi`, { ly_do: l })); };
-  const huy = () => { const l = hoiLyDo('Lý do huỷ phiếu?'); if (l) ghi(() => api.post(`/kho/phieu/${id}/huy`, { ly_do: l })); };
+  const tuChoi = () => { const l = hoiLyDo('Lý do từ chối?'); if (l) ghi(() => api.post(`/kho/phieu/${id}/tu-choi`, { ly_do: l }), 'từ chối phiếu', 'Đã từ chối phiếu'); };
+  const huy = () => { const l = hoiLyDo('Lý do huỷ phiếu?'); if (l) ghi(() => api.post(`/kho/phieu/${id}/huy`, { ly_do: l }), 'huỷ phiếu', 'Đã huỷ phiếu'); };
   const luuSua = async () => {
     const l = hoiLyDo('Lý do sửa phiếu?');
     if (!l) return;
     const than = dl.phieu.loai === 'PX' ? { mon: Object.entries(sua).map(([sp, sl]) => ({ san_pham_id: Number(sp), so_phan: Number(sl) })) } : thanSua(dl, sua);
-    const r = await ghi(() => api.post(`/kho/phieu/${id}/sua`, { ly_do: l, ...than }));
+    const r = await ghi(() => api.post(`/kho/phieu/${id}/sua`, { ly_do: l, ...than }), 'sửa phiếu', 'Đã sửa phiếu — phiếu mới thay phiếu cũ');
     if (r?.phieu) { setSua(null); moPhieu(r.phieu.id); }
   };
   const inRa = async (k) => { if (await ghi(() => api.post(`/kho/phieu/${id}/in`))) setKho(k); };
@@ -103,7 +103,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
     const r = await api.post(`/kho/phieu/${id}/ket-qua`, { san_pham_id: m.san_pham_id, ...than });
     setNhap((n) => { const moi = { ...n }; delete moi[m.san_pham_id]; return moi; });
     return r;
-  });
+  }, 'lưu kết quả', 'Đã lưu kết quả');
 
   const mac = docInPhieuKho(caiDat, dl?.phieu.loai);
   if (!dl) return <div>{loi ? <div className="kho-loi">{loi}</div> : 'Đang tải…'}<button className="btn btn-outline" onClick={dong}>Quay lại</button></div>;
@@ -204,7 +204,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         {p.trang_thai === 'cho_duyet' && !quanLy && <span className="kho-thieu">Chờ quản lý duyệt — màn tự làm mới</span>}
         {p.trang_thai === 'cho_duyet' && quanLy && p.nguoi_tao !== tenDangNhap && (!p.can_chu_quan || chuQuan) && (
           <>
-            <button className="btn btn-primary" disabled={dangGhi} onClick={() => ghi(() => api.post(`/kho/phieu/${id}/duyet`))}>Duyệt</button>
+            <button className="btn btn-primary" disabled={dangGhi} onClick={() => ghi(() => api.post(`/kho/phieu/${id}/duyet`), 'duyệt phiếu', 'Đã duyệt phiếu')}>Duyệt</button>
             <button className="btn btn-outline" disabled={dangGhi} onClick={tuChoi}>Từ chối</button>
           </>
         )}

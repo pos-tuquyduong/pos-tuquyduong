@@ -5,13 +5,13 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../utils/api';
+import { baoLoi } from './thongBaoKho.js';   // BAO-1a
 import { dinhDangDemNguoc, giayConLai, loiMaApp } from '../utils/maApp';
 
 export default function MaDangNhapApp({ sdt, tuLay = false }) {   // tuLay: vào là lấy mã luôn (ô số mới đã kiểm SĐT)
   const [ma, setMa] = useState(null);            // { ma, hetHanLuc }
   const [giay, setGiay] = useState(0);
   const [dangLay, setDangLay] = useState(false);
-  const [loi, setLoi] = useState('');
   const dangBay = useRef(false);                 // khoá đồng bộ: hai cú bấm sát nhau không lọt qua trước khi render
   const conSong = useRef(true);
 
@@ -32,7 +32,6 @@ export default function MaDangNhapApp({ sdt, tuLay = false }) {   // tuLay: vào
     if (dangBay.current) return;
     dangBay.current = true;
     setDangLay(true);
-    setLoi('');
     try {
       const r = await api.post('/kh/cap-ma', { sdt });
       if (conSong.current) {
@@ -41,7 +40,7 @@ export default function MaDangNhapApp({ sdt, tuLay = false }) {   // tuLay: vào
         setGiay(giayConLai(hetHanLuc, Date.now()));   // cùng lượt render với mã mới — không chớp "Hết hạn" ở khung đầu
       }
     } catch (err) {
-      if (conSong.current) { setMa(null); setLoi(loiMaApp(err)); }
+      if (conSong.current) { setMa(null); baoLoi('Chưa lấy được mã đăng nhập App', loiMaApp(err)); }
     } finally {
       dangBay.current = false;
       if (conSong.current) setDangLay(false);
@@ -66,7 +65,6 @@ export default function MaDangNhapApp({ sdt, tuLay = false }) {   // tuLay: vào
           {!hetHan && <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>Đọc mã này cho khách nhập vào App.</div>}
         </div>
       )}
-      {loi && <div className="alert alert-danger" style={{ marginBottom: '8px' }}>{loi}</div>}
       <button type="button" className="btn btn-outline" onClick={layMa} disabled={dangLay}>
         {dangLay ? 'Đang lấy mã...' : hetHan ? '🔑 Lấy mã mới' : ma ? '🔑 Lấy mã khác' : '🔑 Mã đăng nhập App'}
       </button>

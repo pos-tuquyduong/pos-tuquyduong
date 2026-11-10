@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { refundsApi } from '../utils/api';
 import { Check, X } from 'lucide-react';
+import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 
 export default function Refunds() {
   const [pending, setPending] = useState([]);
@@ -16,10 +17,12 @@ export default function Refunds() {
     finally { setLoading(false); }
   };
 
+  const maDon = (id) => pending.find(r => r.id === id)?.order_code || '';
+
   const handleApprove = async (id) => {
     setProcessing(id);
-    try { await refundsApi.approve(id); loadPending(); }
-    catch (err) { alert(err.message); }
+    try { await refundsApi.approve(id); baoXong(`Đã duyệt hoàn tiền đơn ${maDon(id)}`); loadPending(); }
+    catch (err) { baoLoiTu('duyệt hoàn tiền', err); }
     finally { setProcessing(null); }
   };
 
@@ -27,8 +30,8 @@ export default function Refunds() {
     const reason = prompt('Lý do từ chối:');
     if (!reason) return;
     setProcessing(id);
-    try { await refundsApi.reject(id, reason); loadPending(); }
-    catch (err) { alert(err.message); }
+    try { await refundsApi.reject(id, reason); baoXong(`Đã từ chối hoàn tiền đơn ${maDon(id)}`); loadPending(); }
+    catch (err) { baoLoiTu('từ chối hoàn tiền', err); }
     finally { setProcessing(null); }
   };
 

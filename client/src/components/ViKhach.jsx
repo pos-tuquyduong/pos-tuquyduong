@@ -8,6 +8,7 @@ import { walletsApi } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { hienNgayGio } from '../utils/ngayVN';
 import { X } from 'lucide-react';
+import { baoXong, baoLoiTu } from './thongBaoKho.js';   // BAO-1a
 
 const tien = (n) => (n || 0).toLocaleString() + 'đ';
 const ngayGio = (d) => (d ? hienNgayGio(d, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-');
@@ -31,13 +32,11 @@ export default function ViKhach({ khach, onDoi }) {
   const [cua, setCua] = useState(null);   // null | 'nap' | 'chinh' | 'lichsu'
   const [nhap, setNhap] = useState({ amount: '', text: '' });
   const [dang, setDang] = useState(false);
-  const [loi, setLoi] = useState('');
-  const [ok, setOk] = useState('');
   const [gd, setGd] = useState({ dang: false, ds: [] });
 
   if (!hasPermission('view_customer_balance') || !khach?.phone) return null;
   const ten = khach.name || khach.phone;
-  const mo = (c) => { setCua(c); setNhap({ amount: '', text: '' }); setLoi(''); setOk(''); };
+  const mo = (c) => { setCua(c); setNhap({ amount: '', text: '' }); };
 
   const moLichSu = async () => {
     mo('lichsu');
@@ -46,22 +45,21 @@ export default function ViKhach({ khach, onDoi }) {
   };
   const gui = async (e, nap) => {
     e.preventDefault();
-    setDang(true); setLoi('');
+    setDang(true);
     try {
       const so = parseInt(nhap.amount);
       const r = nap
         ? await walletsApi.topup({ phone: khach.phone, amount: so, customer_name: khach.name, notes: nhap.text, payment_method: 'cash' })
         : await walletsApi.adjust({ phone: khach.phone, amount: so, customer_name: khach.name, reason: nhap.text });
-      setOk(`${nap ? 'Đã nạp' : 'Đã điều chỉnh'} ${(nap ? so : r.adjusted).toLocaleString()}đ cho ${ten}. Số dư mới: ${r.balance.toLocaleString()}đ`);
+      baoXong(`${nap ? 'Đã nạp' : 'Đã điều chỉnh'} ${(nap ? so : r.adjusted).toLocaleString()}đ cho ${ten}. Số dư mới: ${r.balance.toLocaleString()}đ`);
       setCua(null);
       onDoi?.();
-    } catch (err) { setLoi(err.message); } finally { setDang(false); }
+    } catch (err) { baoLoiTu(nap ? 'nạp tiền' : 'điều chỉnh số dư', err); } finally { setDang(false); }
   };
 
   const bieuMau = (nap) => (
     <form onSubmit={(e) => gui(e, nap)}>
       <div className="modal-body">
-        {loi && <div className="alert alert-danger">{loi}</div>}
         <div className="form-group"><label className="form-label">Khách hàng</label><input className="input" value={`${ten} - ${khach.phone}`} disabled /></div>
         <div className="form-group">
           <label className="form-label">{nap ? 'Số tiền nạp *' : 'Số tiền điều chỉnh *'}</label>
@@ -94,7 +92,6 @@ export default function ViKhach({ khach, onDoi }) {
           {user?.role === 'owner' && <button className="btn btn-primary" style={{ padding: '4px 10px', fontSize: '0.78rem' }} onClick={() => mo('nap')}>Nạp tay (thử)</button>}
         </div>
       </div>
-      {ok && <div className="alert alert-success" style={{ marginTop: 8 }}>{ok}</div>}
 
       {cua === 'nap' && <KhungModal tieuDe="💰 Nạp tay (thử)" dong={() => setCua(null)}>{bieuMau(true)}</KhungModal>}
       {cua === 'chinh' && <KhungModal tieuDe="⚖️ Điều chỉnh số dư" dong={() => setCua(null)}>{bieuMau(false)}</KhungModal>}

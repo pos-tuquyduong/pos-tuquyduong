@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 import ChonNguyenLieu from './ChonNguyenLieu';
 import { so, gio, maGuiMoi, veLuu, raHien, SU_CO } from './chung';
 
@@ -34,8 +35,8 @@ export default function PhatSinh({ moPhieu }) {
   const muc = daChon.map((k) => { const m = theoKhoa.get(k); return { lo_id: m.lo_id, nguyen_lieu_id: m.lo_id ? null : m.nguyen_lieu_id, san_pham_id: m.lo_id ? null : m.san_pham_id,
     luong: veLuu(chon[k], m.he_so_doi) }; });
   const gui = async () => {
-    setLoi(''); setDangGui(true);
-    try { const r = await api.post('/kho/phieu-phat-sinh', { su_co: suCo, ghi_chu: ghiChu, muc, ma_gui: maGui }); moPhieu(r.phieu.id); } catch (e) { setLoi(e.message); setDangGui(false); }
+    setDangGui(true);
+    try { const r = await api.post('/kho/phieu-phat-sinh', { su_co: suCo, ghi_chu: ghiChu, muc, ma_gui: maGui }); baoXong('Đã ghi phiếu phát sinh'); moPhieu(r.phieu.id); } catch (e) { baoLoiTu('ghi phiếu phát sinh', e); setDangGui(false); }
   };
   const ten = (m) => `${m.ten}${m.lo_id && m.han_dung ? ` (lô hạn ${gio(m.han_dung)})` : ''}`;
 

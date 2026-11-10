@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { CHU_XAC_NHAN, docDanhSachSdt, dungCsv, moNutDon } from './QuanLy/donThu';
 
 const tien = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
@@ -21,7 +22,6 @@ export default function DonThu() {
   const [daTaiDs, setDaTaiDs] = useState(false);
   const [daTaiSaoLuu, setDaTaiSaoLuu] = useState(false);
   const [go, setGo] = useState('');
-  const [loi, setLoi] = useState('');
   const [dangChay, setDangChay] = useState(false);
   const [xong, setXong] = useState(null);
 
@@ -29,24 +29,28 @@ export default function DonThu() {
 
   const tieuChi = () => ({ truoc_ngay: ngay || undefined, sdt: docDanhSachSdt(oSdt) });
   const doiTieuChi = (dat) => (e) => { dat(e.target.value); setKetQua(null); setDaTaiDs(false); setDaTaiSaoLuu(false); setGo(''); };
-  const chay = async (viec) => {
-    setDangChay(true); setLoi('');
-    try { await viec(); } catch (e) { setLoi('Lỗi: ' + e.message); } finally { setDangChay(false); }
+  const chay = async (viec, ten) => {
+    setDangChay(true);
+    try { await viec(); } catch (e) { baoLoiTu(ten, e); } finally { setDangChay(false); }
   };
   const lietKe = () => chay(async () => {
     setXong(null); setDaTaiDs(false); setDaTaiSaoLuu(false); setGo('');
-    setKetQua(await api.post('/don-thu/liet-ke', tieuChi()));
-  });
-  const taiDanhSach = () => { taiFile(`danh-sach-don-thu_${ngay || 'sdt'}.csv`, dungCsv(ketQua), 'text/csv;charset=utf-8'); setDaTaiDs(true); };
+    const kq = await api.post('/don-thu/liet-ke', tieuChi());
+    setKetQua(kq);
+    baoXong(`Đã liệt kê ${kq.tong_dong} dòng dữ liệu thử`);
+  }, 'liệt kê dữ liệu thử');
+  const taiDanhSach = () => { taiFile(`danh-sach-don-thu_${ngay || 'sdt'}.csv`, dungCsv(ketQua), 'text/csv;charset=utf-8'); setDaTaiDs(true); baoXong('Đã tải danh sách (CSV)'); };
   const taiSaoLuu = () => chay(async () => {
     await api.download('/backup/export-all', `POS-backup-truoc-don-thu.xlsx`);
     setDaTaiSaoLuu(true);
-  });
+    baoXong('Đã tải sao lưu toàn bộ');
+  }, 'tải sao lưu');
   const don = () => chay(async () => {
     const kq = await api.post('/don-thu/don', { ...tieuChi(), ma_xac_nhan: ketQua.ma_xac_nhan, go_xac_nhan: go });
     if (kq.da_don > 0) taiFile(`ban-chup-don-thu_${kq.nhat_ky_id}.json`, JSON.stringify(kq.ban_chup, null, 1), 'application/json');
     setXong(kq); setKetQua(null); setDaTaiDs(false); setDaTaiSaoLuu(false); setGo('');
-  });
+    baoXong(kq.da_don > 0 ? `Đã dọn ${kq.da_don} dòng dữ liệu thử` : 'Không còn gì để dọn');
+  }, 'dọn dữ liệu thử');
 
   const gl = ketQua?.giu_lai || { vi: [], sdt: [], don: [] };
   return (
@@ -64,7 +68,6 @@ export default function DonThu() {
             <textarea rows={3} value={oSdt} onChange={doiTieuChi(setOSdt)} style={{ width: '100%' }} /></label>
           <button className="btn btn-primary" disabled={dangChay} onClick={lietKe}>Liệt kê</button>
         </div>
-        {loi && <div style={{ color: '#dc2626' }}>{loi}</div>}
         {xong && <div className="card" style={{ padding: '1rem', color: '#16a34a' }}>
           {xong.da_don > 0 ? `Đã dọn ${xong.da_don} dòng. Bản chụp các dòng đã xoá đã tải về và lưu trong nhật ký #${xong.nhat_ky_id}.` : 'Không còn gì để dọn.'}
         </div>}
