@@ -95,7 +95,8 @@ router.get('/hang', async (req, res) => {
     // HANG-1 (hợp đồng v7): goi = gói đang bán có giá (CÙNG vị từ với quầy bán); gia_the giữ một đợt = gói ngắn nhất, null khi chỉ cấp / chưa giá.
     res.json({ success: true, data: ds.map((h) => {
       const goi = goiBanDuoc(h).map((g) => ({ so_thang: g.so_thang, gia: g.gia }));
-      return { id: h.id, ten: h.name, ...phanTram(h), chi_cap: h.cach_co === 'chi_cap', goi, thu_bac: h.sort_order, gia_the: goi.length ? goi[0].gia : null, thu_tu: h.sort_order };
+      return { id: h.id, ten: h.name, ...phanTram(h), chi_cap: h.cach_co === 'chi_cap', goi, thu_bac: h.sort_order, gia_the: goi.length ? goi[0].gia : null, thu_tu: h.sort_order,
+        quyen_loi: String(h.quyen_loi || '').split('\n').filter(Boolean) };   // KH-THE-1 (v13): chữ chủ quán nhập ở Cài đặt hạng, mỗi dòng một ý
     }) });
   } catch (err) {
     loiMayChu(res, err, 'kh hang');

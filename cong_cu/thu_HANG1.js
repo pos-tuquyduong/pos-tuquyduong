@@ -480,8 +480,8 @@ async function main() {
     datVN('2026-11-03T14:00:00');
     const h = await goi('GET', '/kh/hang', null, null);
     const x = (id) => (h.data || []).find((t) => t.id === id) || {};
-    const TRUONG = ['chi_cap', 'gia_the', 'goi', 'id', 'phan_tram', 'phan_tram_nhom_dac_biet', 'ten', 'thu_bac', 'thu_tu'];
-    k('F1 mỗi hạng ĐÚNG 9 trường (thêm chi_cap, goi, thu_bac; giữ gia_the, thu_tu)', h.status === 200 && (h.data || []).length >= 3
+    const TRUONG = ['chi_cap', 'gia_the', 'goi', 'id', 'phan_tram', 'phan_tram_nhom_dac_biet', 'quyen_loi', 'ten', 'thu_bac', 'thu_tu'];   // KH-THE-1 thêm quyen_loi (LUAT §6.7)
+    k('F1 mỗi hạng ĐÚNG 10 trường (thêm chi_cap, goi, thu_bac; giữ gia_the, thu_tu; KH-THE-1 thêm quyen_loi)', h.status === 200 && (h.data || []).length >= 3
       && (h.data || []).every((t) => bang(Object.keys(t).sort(), TRUONG)), JSON.stringify(h.data?.[0]));
     k('F1b Vàng: goi = gói đang bán CÓ giá, xếp theo tháng; gia_the = gói ngắn nhất; thu_bac 1', bang(x(V?.id).goi, [{ so_thang: 1, gia: 100000 }, { so_thang: 3, gia: 270000 }])
       && x(V?.id).gia_the === 100000 && x(V?.id).chi_cap === false && x(V?.id).thu_bac === 1, JSON.stringify(x(V?.id)));

@@ -12,6 +12,26 @@
      từ nay KHÔNG sửa `app_kh/` trong kho POS (giữ tới khi app mới chạy, rồi xoá). Đơn ở quầy vẫn đi thẳng POS.
      UUDAI-1 duyệt 27.10 (f7165ea). -->
 
+## Lịch 09.11.2026 (sổ v59 — thay bảng "Lịch theo làn" 02.11 bên dưới; chủ quán chọn làm ĐẦY ĐỦ)
+Hai làn Opus song song (làn 1 = việc sửa vùng tính giá, nối tiếp; làn 2 = hạng · tài khoản · App · kho) + làn Sonnet. Ngày là dự kiến; mỗi yêu cầu
+mới trước khai trương thường lùi ~1 ngày.
+
+| Ngày | Opus làn 1 | Opus làn 2 | Sonnet |
+|---|---|---|---|
+| T2 09 – T3 10.11 | DIEM-MON-1 | KH-THE-1 ✓ → VI-ME-1 | QUAY-UI-1 ✓ → BAO-1a |
+| T4 11 – T5 12 | VOUCHER-2 | VI-ME-1 → HUY-1 | BAO-1b (sau DIEM-MON-1) → QC-APP-1 |
+| T6 13 | COMBO-1a | HUY-1 | MANKHACH-2a |
+| T7 14 – CN 15 | TOPPING-1 | KH-NAP-1 · QUA-1 | COMBO-1b · KHUNG-KIEM-1 |
+| T2 16 – T3 17 | GIOVANG-1 · CT-1b | KH-MUA-2 | (P17 trạm in nếu máy tính bảng không tự cắt liên) |
+| T4 18 – T5 19 | KENH-1 | GIAO-MA-1 → KHO-3 | — |
+| T6 20 – T7 21 | MANKHACH-2b | KHO-3 → KHO-2c | GIAO-DIEN-2 (chốt mẫu lần 2 trước) |
+| CN 22 | Chủ quán: dọn dữ liệu thử · kiểm kê đầu kỳ · tắt app SX | | |
+| T2 23 | Chạy thử toàn quán | | |
+| T3 24 – T4 25 | Sửa lỗi chạy thử | | |
+| **T5 26.11** | **Khai trương sớm nhất** | | |
+
+Bỏ: P3b (đổi điểm chỉ trong App). Gộp: NAP-2 → KH-NAP-1; CAIDAT-BAO-1 → BAO-1b.
+
 ## Việc phải xong trước khai trương
 | Mã | Việc | Loại · model | Làn |
 |---|---|---|---|
@@ -121,5 +141,5 @@ KH-HOSO-1 (thêm ô hồ sơ khách + nhiều địa chỉ) · KH-TN-1 (lưu k�
 động hằng đêm) · KHOIPHUC-1 (khôi phục Excel cho đơn / ví / điểm chỉ khi máy trống) · giao việc · phân quyền chi tiết (Ẩn / Chỉ xem / Được làm / Xin phép) ·
 khách hàng cửa sổ chi tiết + ví gia đình PIN theo thành viên (cùng chat App KH) · báo cáo nhập–xuất–tồn, thất thoát, tỉ lệ ra · chấm
 công · gộp sâu menu · chia code cũ theo mục nghiệp vụ · P17 · AUDIT-KH · AUDIT-5 · TU-CHAY-9 · DONG-GOI-1 · P7–P9 · P18 · P20d · P25 ·
-MA-GIAM-2 · TIET-KIEM-1 · DONDEP-v1 · DOI-SOAT-2 · P26e · DOISOAT-XULY-1 · KHACH-LOI-1 · DIEMHOAN-1 · NEO-P2223-1.
+MA-GIAM-2 · TIET-KIEM-1 · DONDEP-v1 · DOI-SOAT-2 · P26e · DOISOAT-XULY-1 · KHACH-LOI-1 · DIEMHOAN-1 · NEO-P2223-1 · GIOI-THIEU-1 (giới thiệu bạn bè qua App, sau VOUCHER-2) · **QUA-TANG-1 (thẻ quà tặng) — làm SAU CÙNG**.
 **Bỏ hẳn** (theo hướng bỏ app SX): HOPDONG-1, S5a, S5b, S3, SX-KHUNG-1, phần SX của TOPPING-1. Giữ BAO-MAT-SX tới khi tắt SX.

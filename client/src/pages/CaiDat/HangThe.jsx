@@ -3,13 +3,14 @@
 // Lưu một lần cả danh sách (PUT /tiers — máy chủ kiểm hết rồi ghi trong một giao dịch). Xoá hạng bấm 2 lần, không hộp thoại trình duyệt.
 // PIN chủ quán đặt ở đây — chỉ tài khoản chủ quán, gõ lại mật khẩu; đã có PIN thì gõ cả PIN cũ (chủ quán 05.11 — quên PIN: nhờ chat xoá, không
 // có nút). Lưu / Xoá hạng và cấp / thu hồi hạng phải gõ PIN (chủ quán 04.11 — máy chủ kiểm, sai 5 lần khoá). % combo KHÔNG ở đây (COMBO-1a).
+// KH-THE-1 (F): mỗi hạng một ô "Quyền lợi" nhiều dòng — App KH hiện từng dòng (GET /api/kh/hang quyen_loi[]); máy chủ kiểm số dòng / độ dài.
 import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { hangApi } from '../../utils/api';
 
 let soTam = 0;   // khoá tạm cho hạng chưa lưu (chưa có id)
-const docVe = (t) => ({ ...t, khoa: 'h' + t.id, goi: (t.goi || []).map((g) => ({ ...g, gia: g.gia ?? '' })) });
+const docVe = (t) => ({ ...t, khoa: 'h' + t.id, quyen_loi: t.quyen_loi || '', goi: (t.goi || []).map((g) => ({ ...g, gia: g.gia ?? '' })) });
 
 export default function HangThe() {
   const { user } = useAuth();
@@ -44,7 +45,7 @@ export default function HangThe() {
     return m.map((h, n) => ({ ...h, sort_order: m.length - n }));
   });
   const them = () => setDs((d) => [{ khoa: 't' + (++soTam), name: 'Hạng mới', sort_order: (d[0]?.sort_order || 0) + 1, discount_percent: 0,
-    special_discount_percent: 0, cach_co: 'ban', goi: [{ so_thang: 1, gia: '', bat: true }] }, ...d]);
+    special_discount_percent: 0, cach_co: 'ban', quyen_loi: '', goi: [{ so_thang: 1, gia: '', bat: true }] }, ...d]);
 
   const xoa = async (h) => {
     if (xoaCho !== h.khoa) { setXoaCho(h.khoa); return; }
@@ -57,7 +58,7 @@ export default function HangThe() {
     try {
       await hangApi.luu({
         tiers: ds.map((h) => ({ id: h.id, name: h.name, sort_order: h.sort_order, discount_percent: h.discount_percent,
-          special_discount_percent: h.special_discount_percent, cach_co: h.cach_co,
+          special_discount_percent: h.special_discount_percent, cach_co: h.cach_co, quyen_loi: h.quyen_loi,
           goi: h.cach_co === 'ban' ? h.goi.map((g) => ({ so_thang: Number(g.so_thang), gia: g.gia === '' ? null : Number(g.gia), bat: g.bat })) : [] })),
         round_to: lamTron.round_to, round_mode: lamTron.round_mode, pin: pinSua,
       });
@@ -144,6 +145,9 @@ export default function HangThe() {
               Không hiện ở chỗ bán thẻ. Lúc cấp chủ quán chọn số tháng hoặc "Không thời hạn". Hết hạn mà khách còn hạng thấp hơn đang còn hạn → khách quay về hạng đó.
             </div>
           )}
+          <label style={{ display: 'block', fontSize: 13, marginTop: 8 }}>Quyền lợi (App khách hiện — mỗi dòng một ý, tối đa 10 dòng)
+            <textarea className="input" rows={3} style={{ width: '100%', marginTop: 4 }} value={h.quyen_loi} aria-label="Quyền lợi của hạng"
+              onChange={(e) => sua(h.khoa, { quyen_loi: e.target.value })} /></label>
         </div>
       ))}
 

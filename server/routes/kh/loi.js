@@ -30,6 +30,7 @@ const LOI = {
   VI_KHONG_DU: [400, 'Ví không đủ trả cả đơn'],
   DA_TRA_GOI_QUAN: [400, 'Đơn đã trả tiền — muốn huỷ hãy gọi quán'],
   DON_KHONG_HOP_LE: [400, 'Đơn không hợp lệ'],
+  NHIEU_THE: [400, 'Mỗi đơn chỉ mua một thẻ hạng'],   // KH-THE-1
 };
 
 /** { status, body } của một lỗi — `them` thêm trường (ma, thu_lai_sau_giay, bao_gia) hoặc thay `error` bằng lời cụ thể hơn. */

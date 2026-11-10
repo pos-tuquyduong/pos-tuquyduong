@@ -13,7 +13,10 @@ const { getNow, getToday } = require('../utils/helpers');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 const { tienDaTraTheoDong } = require('../utils/tienDaTra');
+const { laDonNap } = require('../utils/viKhach');   // QUAY-UI-1 D: MỘT vị từ "đơn nạp" (cùng dải product_id với NAP-1)
 const { truDiemHoan } = require('../utils/diemThat');   // NAP-1 (chủ quán 06.11 (3)): đền vào tài khoản trừ điểm như duyệt hoàn
+
+const LOI_DON_NAP = 'Đơn nạp tiền không xử lý sự cố — tiền nạp không hoàn';
 
 const DAMAGE_REASONS = {
   'damaged': 'Hỏng khi vận chuyển',
@@ -173,6 +176,8 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
     const kq = await trongGiaoDich(async (tx) => {
       const order = await tx.queryOne(`SELECT * FROM pos_orders WHERE id = ?`, [order_id]);
       if (!order) return loi(404, 'Không tìm thấy đơn hàng');
+      // QUAY-UI-1 D: đơn có dòng nạp (product_id ≤ ID_NAP_TU) không xử lý sự cố — MỌI hành động (kể cả "chỉ ghi nhận" / hoàn kho)
+      if (await laDonNap(tx, order.id)) return loi(400, LOI_DON_NAP, 'DON_NAP_KHONG_SU_CO');
       const dong = await tx.queryOne(`SELECT MIN(product_name) AS ten, COALESCE(SUM(quantity), 0) AS sl,
           COALESCE(MAX(unit_price), 0) AS gia, COUNT(*) AS n
         FROM pos_order_items WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
