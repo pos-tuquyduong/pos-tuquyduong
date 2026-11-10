@@ -57,7 +57,7 @@ db2d71d Merge pull request #84 from pos-tuquyduong/viec/KH-THE-1
 | bỏ `alert(` Orders / Refunds / nối ThongBao | BV-ORDERS-ALERT-TRO-LAI · BV-REFUNDS-ALERT-TRO-LAI · VS-ORDERS-BO-NOI-THONGBAO |
 | nút khoá khi đang xử lý | BV-DISCOUNT-MO-NUT |
 
-Tên đầy đủ (cổng A17): VS-DO-TU-AN, BV-XANH-KHONG-AN, VS-TOI-DA-NAM, VS-TG-TU-AN-DAI, BV-GO-CHONG-TRUNG, VS-BAO-NGAY-KHONG-GOM, VS-LOI-KY-THUAT-LOT, VS-LOI-TRONG-HIEN-TRONG, VS-LOI-BO-CAU-MAY-CHU, VS-LOI-TU-TIEU-DE, BV-LAYOUT-GO-THONGBAO, VS-LAYOUT-GAN-HAI-LAN, VS-ROLE-DAO-NGUOC, BV-NUT-DONG-GO-NHAN, VS-THONGBAO-RE-EXPORT, VS-CSS-NUT-DONG-NHO, VS-CSS-KHONG-NOI, BV-ORDERS-ALERT-TRO-LAI, BV-REFUNDS-ALERT-TRO-LAI, VS-ORDERS-BO-NOI-THONGBAO, BV-DISCOUNT-MO-NUT, BV-CSS-KHONG-MO, VS-CSS-MO-GIA.
+Tên đầy đủ (cổng A17): VS-DO-TU-AN, BV-XANH-KHONG-AN, VS-TOI-DA-NAM, VS-TG-TU-AN-DAI, BV-GO-CHONG-TRUNG, VS-BAO-NGAY-KHONG-GOM, VS-LOI-KY-THUAT-LOT, VS-LOI-TRONG-HIEN-TRONG, VS-LOI-BO-CAU-MAY-CHU, VS-LOI-TU-TIEU-DE, BV-LAYOUT-GO-THONGBAO, VS-LAYOUT-GAN-HAI-LAN, VS-ROLE-DAO-NGUOC, BV-NUT-DONG-GO-NHAN, VS-THONGBAO-RE-EXPORT, VS-CSS-NUT-DONG-NHO, VS-CSS-KHONG-NOI, BV-ORDERS-ALERT-TRO-LAI, BV-REFUNDS-ALERT-TRO-LAI, VS-ORDERS-BO-NOI-THONGBAO, BV-DISCOUNT-MO-NUT, BV-CSS-KHONG-MO, VS-CSS-MO-GIA, BV-REFUNDS-GO-LOI-GOI, BV-DINHMUC-MO-NUT-LUU-MON, VS-DAY-DO-CU-NHAT.
 
 ## Câu hỏi
 (không chặn phần còn lại — việc đã làm xong; chờ chủ quán quyết)
@@ -90,3 +90,12 @@ BÀI HỌC:     (xem mục Bài học)
 - **NGUYÊN TẮC 1** — đề xuất (ngoài Phạm vi, chat soát duyệt): thêm vào `KHUON_LOI.md` K4 một dòng "đổi cách báo lỗi của một màn → grep mọi chỗ vẽ biến lỗi cũ (`{error}`, `{loi}`) kể cả bên TRONG popup — Sales.jsx còn một khối `{error && …}` trong popup thanh toán, `no-undef` của lint mới bắt được".
 - **NGUYÊN TẮC 2** — bài thử cũ khoá ĐÚNG chuỗi mã (thu_KHOIN1 B khoá `if (await ghi(() => api.post(.../in))) setKho(`): thêm tham số vào hàm dùng chung thì cho tham số MẶC ĐỊNH, đừng đổi dạng lời gọi cũ — đã gặp 1 lần (`ghi(lam, viec = 'in phiếu', tin)`).
 - **BỎ** — kho git nông làm `thu_BH2.js` G1 đỏ "bad revision": một lần do máy mây, đã `--unshallow`.
+
+## Soát độc lập — vòng 1 (agent `/ra-soat`, chép tóm lược; KHÔNG ĐẠT, lỗi nhẹ–vừa, không đụng tiền / máy chủ)
+1. D2 xanh oan: chỉ dò import, gỡ lời gọi `baoXong` vẫn 69 đạt → **đã sửa**: D2 đếm lời gọi tối thiểu từng file (bảng `MAN_DA_RA`), đột biến `BV-REFUNDS-GO-LOI-GOI`.
+2. D4 xanh oan: chỉ cần 1 chỗ `disabled` → **đã sửa**: đếm tối thiểu số nút từng file (`KHOA_NUT`), đột biến `BV-DINHMUC-MO-NUT-LUU-MON`.
+3. Quá 3 thông báo bỏ cái cũ nhất kể cả đỏ chưa đọc → **đã sửa** `thongBaoKho.js`: bỏ xanh cũ nhất trước; ca A11, A12; đột biến `VS-DAY-DO-CU-NHAT`.
+4. `Sales.setError` bỏ qua `lyDoLoi` → **đã sửa** (chữ kỹ thuật → câu chung). `setError('')` không còn xoá thông báo đỏ (đỏ ở lại tới khi bấm ×): chủ ý, ghi nhận.
+5. "Đã in hóa đơn" hiện cả khi khách huỷ hộp in → **đã sửa** câu thành "Đã gửi lệnh in hóa đơn …" (trình duyệt không phân biệt in / huỷ).
+Nghi ngờ ghi nhận, không sửa: GiaoHang tự in tem lỗi có thể hiện lại sau mỗi lần poll 15 giây khi đã bấm ×; BanHang/** chưa đổi (Câu hỏi 1).
+Sau vòng sửa 1: thu_BAO1a 99 ca xanh (gốc 45fd10c: 7 đạt · 74 hỏng), đột biến 26/26 BẮT, `npm test -- --day-du` PASS 113 · FAIL 0. Chưa gọi soát vòng 2 (chat soát duyệt).

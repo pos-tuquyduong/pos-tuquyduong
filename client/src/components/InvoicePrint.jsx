@@ -358,7 +358,7 @@ export default function InvoicePrint({
     if (loi.length) baoLoi('Chưa in được (đơn đã lưu, không bị ảnh hưởng)', loi.join('; '));
     setPrinting(false);
 
-    if (!loi.length) baoXong(inLai ? `Đã in lại hóa đơn ${order.code}` : `Đã in hóa đơn ${order.code}`);
+    if (!loi.length) baoXong(inLai ? `Đã gửi lệnh in lại hóa đơn ${order.code}` : `Đã gửi lệnh in hóa đơn ${order.code}`);   // trình duyệt không phân biệt in và huỷ ở hộp in → chỉ nói đã gửi lệnh
     if (!loi.length && onPrintComplete) {
       onPrintComplete(order.code, paperSize);
     }

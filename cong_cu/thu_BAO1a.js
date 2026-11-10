@@ -32,20 +32,52 @@ const doi = (ms) => new Promise((r) => setTimeout(r, ms));
 // Bánh cóc: số `alert(` còn lại trong client/src (chỉ được giảm; đã dọn hết ngoài Cài đặt).
 const NGUONG_ALERT = 0;
 // Màn đã rà BAO-1a: nối ThongBao, không còn alert(.
-const MAN_DA_RA = [
-  'pages/Orders.jsx', 'pages/Refunds.jsx', 'components/InvoicePrint.jsx', 'pages/Sales.jsx', 'pages/Customers.jsx', 'pages/DonApp.jsx',
-  'pages/DonThu.jsx', 'pages/Registrations.jsx', 'pages/DiscountCodes.jsx', 'pages/InvoiceSettings.jsx', 'pages/Reports.jsx',
-  'pages/GiaoHang/index.jsx', 'components/ViKhach.jsx', 'components/CapHang.jsx', 'components/DoiSoat.jsx', 'components/ThongTinMon.jsx',
-  'components/MaDangNhapApp.jsx', 'components/CustomerSearch.jsx', 'components/Layout.jsx',
-  'pages/Kho/DatHang.jsx', 'pages/Kho/DinhMuc.jsx', 'pages/Kho/NguyenLieu.jsx', 'pages/Kho/NhanHang.jsx', 'pages/Kho/NhapSx.jsx',
-  'pages/Kho/PhaChe.jsx', 'pages/Kho/PhatSinh.jsx', 'pages/Kho/SanPham.jsx', 'pages/Kho/XemPhieu.jsx',
-];
+// file → số lời GỌI baoXong/baoLoi/baoLoiTu tối thiểu (mỗi nút ghi một cặp xong/lỗi). Gỡ lời gọi mà giữ import thì D2 đỏ.
+const MAN_DA_RA = {
+  'pages/Orders.jsx': 10,
+  'pages/Refunds.jsx': 4,
+  'components/InvoicePrint.jsx': 2,
+  'pages/Sales.jsx': 3,
+  'pages/Customers.jsx': 10,
+  'pages/DonApp.jsx': 3,
+  'pages/DonThu.jsx': 5,
+  'pages/Registrations.jsx': 14,
+  'pages/DiscountCodes.jsx': 11,
+  'pages/InvoiceSettings.jsx': 11,
+  'pages/Reports.jsx': 4,
+  'pages/GiaoHang/index.jsx': 3,
+  'components/ViKhach.jsx': 2,
+  'components/CapHang.jsx': 3,
+  'components/DoiSoat.jsx': 5,
+  'components/ThongTinMon.jsx': 2,
+  'components/MaDangNhapApp.jsx': 1,
+  'components/CustomerSearch.jsx': 2,
+  'components/Layout.jsx': 2,
+  'pages/Kho/DatHang.jsx': 2,
+  'pages/Kho/DinhMuc.jsx': 2,
+  'pages/Kho/NguyenLieu.jsx': 6,
+  'pages/Kho/NhanHang.jsx': 2,
+  'pages/Kho/NhapSx.jsx': 2,
+  'pages/Kho/PhaChe.jsx': 2,
+  'pages/Kho/PhatSinh.jsx': 2,
+  'pages/Kho/SanPham.jsx': 2,
+  'pages/Kho/XemPhieu.jsx': 2,
+};
 // Nút ghi phải khoá khi đang xử lý (D): file → cờ đang xử lý phải có và phải đi kèm disabled.
-const KHOA_NUT = {
-  'pages/DiscountCodes.jsx': 'dangXuLy', 'pages/Registrations.jsx': 'dangXuLy', 'pages/Reports.jsx': 'dangKetThuc',
-  'pages/Kho/DinhMuc.jsx': 'dang', 'pages/Kho/NguyenLieu.jsx': 'dang', 'pages/Kho/SanPham.jsx': 'dang',
-  'pages/Orders.jsx': 'deleting', 'pages/Customers.jsx': 'submitting', 'pages/DonThu.jsx': 'dangChay', 'pages/DonApp.jsx': 'dangBam',
-  'components/CapHang.jsx': 'dangGui', 'components/ViKhach.jsx': 'dang', 'pages/Kho/XemPhieu.jsx': 'dangGhi',
+const KHOA_NUT = {   // file → [cờ, số chỗ disabled={…cờ…} tối thiểu = số nút ghi hiện có]
+  'pages/DiscountCodes.jsx': ['dangXuLy', 2],
+  'pages/Registrations.jsx': ['dangXuLy', 3],
+  'pages/Reports.jsx': ['dangKetThuc', 1],
+  'pages/Kho/DinhMuc.jsx': ['dang', 4],
+  'pages/Kho/NguyenLieu.jsx': ['dang', 2],
+  'pages/Kho/SanPham.jsx': ['dang', 1],
+  'pages/Orders.jsx': ['deleting', 2],
+  'pages/Customers.jsx': ['submitting', 2],
+  'pages/DonThu.jsx': ['dangChay', 2],
+  'pages/DonApp.jsx': ['dangBam', 2],
+  'components/CapHang.jsx': ['dangGui', 2],
+  'components/ViKhach.jsx': ['dang', 1],
+  'pages/Kho/XemPhieu.jsx': ['dangGhi', 7],
 };
 
 function duyet(thuMuc, ra = []) {
@@ -92,6 +124,12 @@ function duyet(thuMuc, ra = []) {
     T.baoXong('x1'); T.baoXong('x2'); T.baoXong('x3'); T.baoXong('x4');
     k('A9 xanh thứ 4 đẩy xanh thứ 1 ra', ghi().length === 3 && ghi()[0].tieuDe === 'x2');
     don();
+    T.baoLoi('Lỗi đỏ chưa đọc'); T.baoXong('x1'); T.baoXong('x2'); T.baoXong('x3');
+    k('A11 đỏ chưa đọc KHÔNG bị xanh đẩy mất (bỏ xanh cũ nhất trước)', ghi().length === 3 && ghi().some((t) => t.loai === 'loi') && ghi().every((t) => t.tieuDe !== 'x1'));
+    don();
+    T.baoLoi('d1'); T.baoLoi('d2'); T.baoLoi('d3'); T.baoLoi('d4');
+    k('A12 toàn đỏ quá 3 thì bỏ đỏ cũ nhất', ghi().length === 3 && ghi()[0].tieuDe === 'd2');
+    don();
 
     muc('C · câu lỗi dễ hiểu');
     const chung = 'Thử lại; vẫn lỗi thì báo chủ quán.';
@@ -130,16 +168,19 @@ function duyet(thuMuc, ra = []) {
   const tong = co.reduce((a, s) => a + Number(s.split('×')[1]), 0);
   k(`D1 alert( trong client/src ≤ ${NGUONG_ALERT}`, tong <= NGUONG_ALERT, `đếm ${tong}: ${co.join(', ')}`);
   if (tong < NGUONG_ALERT) console.log(`  – đã dọn bớt → HẠ NGUONG_ALERT xuống ${tong}`);
-  for (const f of MAN_DA_RA) {
+  for (const [f, toiThieu] of Object.entries(MAN_DA_RA)) {
     const s = SX(...f.split('/'));
+    const goi = (s.match(/\bbao(?:Xong|Loi|LoiTu)\(/g) || []).length;
+    k(`D2 ${f}: gọi ≥ ${toiThieu} lần`, goi >= toiThieu, `chỉ ${goi} lời gọi`);
     k(`D2 ${f}: nối ThongBao, không alert(`, /from ['"](\.\.\/)+components\/thongBaoKho\.js['"]|from ['"]\.\/thongBaoKho\.js['"]/.test(s) && !/(^|[^.\w])alert\(/m.test(s));
   }
 
   muc('D · nút đang xử lý mờ + không bấm hai lần');
   k('D3 CSS: .btn:disabled mờ đi', /\.btn:disabled[^{]*\{[^}]*opacity:\s*0?\.\d+/.test(css));
-  for (const [f, co] of Object.entries(KHOA_NUT)) {
+  for (const [f, [co, toiThieu]] of Object.entries(KHOA_NUT)) {
     const t = SX(...f.split('/'));
-    k(`D4 ${f}: cờ ${co} có và khoá nút (disabled={…${co}…})`, new RegExp(`disabled=\\{[^}]*\\b${co}\\b`).test(t));
+    const n = (t.match(new RegExp(`disabled=\\{[^}]*\\b${co}\\b`, 'g')) || []).length;
+    k(`D4 ${f}: cờ ${co} khoá ≥ ${toiThieu} nút (disabled={…${co}…})`, n >= toiThieu, `chỉ ${n} chỗ`);
   }
 
   console.log(`\n${dat} đạt · ${hong} hỏng`);

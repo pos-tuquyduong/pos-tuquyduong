@@ -14,10 +14,10 @@ import InvoicePrint from '../components/InvoicePrint';
 import CustomerSearch from '../components/CustomerSearch';
 import QrScanModal from '../components/QrScanModal';
 import { NutThongTin } from '../components/ThongTinMon';
-import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';
+import { baoXong, baoLoi, baoLoiTu, lyDoLoi } from '../components/thongBaoKho.js';
 
 // BAO-1a: mọi câu báo lỗi của màn này nổi góc trên phải (trước đây nằm đầu trang, bị popup thanh toán che). Chuỗi rỗng = không báo gì.
-const setError = (cau) => { if (cau) baoLoi(cau); };
+const setError = (cau) => { if (cau) baoLoi(lyDoLoi(cau)); };   // chữ kỹ thuật (HTTP…, Failed to fetch) → câu chung
 
 export default function Sales() {
   const [products, setProducts] = useState([]);

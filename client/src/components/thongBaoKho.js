@@ -36,7 +36,11 @@ function them(loai, tieuDe, lyDo) {
   }
   const id = ++dem;
   ds = [...ds, { id, loai, tieuDe, lyDo: lyDo || '' }];
-  while (ds.length > TOI_DA) { const cu = ds[0]; clearTimeout(hen.get(cu.id)); hen.delete(cu.id); ds = ds.slice(1); }
+  // Quá giới hạn: bỏ thông báo XANH cũ nhất trước (đã tự ẩn được); không còn xanh mới bỏ đỏ cũ nhất — lỗi đỏ chưa đọc không bị xanh đẩy mất.
+  while (ds.length > TOI_DA) {
+    const cu = ds.find((t) => t.loai === 'xong') || ds[0];
+    clearTimeout(hen.get(cu.id)); hen.delete(cu.id); ds = ds.filter((t) => t !== cu);
+  }
   if (loai === 'xong') hen.set(id, setTimeout(() => bo(id), TG_TU_AN));
   phat();
   return id;

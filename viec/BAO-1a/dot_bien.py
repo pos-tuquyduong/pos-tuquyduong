@@ -41,6 +41,9 @@ DOT_BIEN = [
   ('VS-CSS-NUT-DONG-NHO', [(CSS, '.thong-bao-dong { flex: none; min-width: 44px; min-height: 44px;', '.thong-bao-dong { flex: none; min-width: 30px; min-height: 30px;', 1)], r'✗ B6 nút đóng', T),
   ('VS-CSS-KHONG-NOI', [(CSS, '.thong-bao-khung { position: fixed;', '.thong-bao-khung { position: absolute;', 1)], r'✗ B5 CSS nổi', T),
   # ── D: alert( + nút khoá ──
+  ('BV-REFUNDS-GO-LOI-GOI', [(RF, "baoXong(`Đã duyệt hoàn tiền đơn ${maDon(id)}`); ", '', 1), (RF, "baoXong(`Đã từ chối hoàn tiền đơn ${maDon(id)}`); ", '', 1)], r'✗ D2 pages/Refunds.jsx: gọi', T),
+  ('BV-DINHMUC-MO-NUT-LUU-MON', [('client/src/pages/Kho/DinhMuc.jsx', 'disabled={dang} onClick={() => luuMon(m)}', 'onClick={() => luuMon(m)}', 1)], r'✗ D4 pages/Kho/DinhMuc.jsx', T),
+  ('VS-DAY-DO-CU-NHAT', [(KHO, "const cu = ds.find((t) => t.loai === 'xong') || ds[0];", 'const cu = ds[0];', 1)], r'✗ A11 đỏ chưa đọc', T),
   ('BV-ORDERS-ALERT-TRO-LAI', [(OR, "baoLoi('Chưa gửi được', 'Chọn sản phẩm, số lượng và cách xử lý rồi gửi lại.'); return;", "alert('Vui lòng điền đầy đủ thông tin'); return;", 1)], r'✗ D1 alert\(', T),
   ('BV-REFUNDS-ALERT-TRO-LAI', [(RF, "baoLoiTu('duyệt hoàn tiền', err);", 'alert(err.message);', 1)], r'✗ D2 pages/Refunds.jsx', T),
   ('VS-ORDERS-BO-NOI-THONGBAO', [(OR, "import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a\n", '', 1)], r'✗ D2 pages/Orders.jsx', T),
