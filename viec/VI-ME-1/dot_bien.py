@@ -99,9 +99,10 @@ def chay_goc(sha, bai):
   import io, tarfile
   tmp = tempfile.mkdtemp(prefix='dotbien_vime1_goc_')
   try:
-    tar = subprocess.run(['git', 'archive', sha, 'server', 'client/src'], cwd=GOC, capture_output=True, check=True).stdout
+    tar = subprocess.run(['git', 'archive', sha, 'server', 'client/src', 'cong_cu/gia_lap'], cwd=GOC, capture_output=True, check=True).stdout
     tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
     os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+    os.symlink(os.path.join(GOC, 'client', 'node_modules'), os.path.join(tmp, 'client', 'node_modules'))   # HD1 C0: qrcode-generator
     r = subprocess.run(lenh(tmp, bai), cwd=GOC, capture_output=True, text=True, timeout=300)
     ra = ((r.stdout or '') + (r.stderr or '')).strip()
     print('\n'.join(re.sub(r'\x1b\[\d+m', '', l) for l in ra.splitlines() if '✗' in l or 'đạt ·' in l or 'sập' in l.lower()))
