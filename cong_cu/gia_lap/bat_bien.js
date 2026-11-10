@@ -200,7 +200,7 @@ const BAT_BIEN = {
       const coGoi = r.goi_bat != null;
       const denBat = den - Math.min(den, so(r.den_tat));
       // Soát vòng 2: tiền hoàn quy đổi là phân số tu / mau — ceil bằng số nguyên lớn, không qua số thực.
-      const N = (x) => BigInt(Math.round(x));
+      const N = (x) => BigInt(Number.isFinite(x) ? Math.round(x) : 0);   // chặn NaN / Infinity (cài đặt điểm 0 / rỗng) → không sập (soát vòng 3)
       const conTra = traDon - den, mau = !coGoi && conTra > 0 ? conTra : 1;
       const tu = N(denBat + (coGoi && so(r.goi_bat) !== 0 ? so(r.hoan_r) : 0)) * N(mau)
         + (!coGoi && conTra > 0 ? N(so(r.hoan_r)) * N(Math.max(0, tienDiem - denBat)) : 0n);
