@@ -47,8 +47,13 @@ const tienTinhDiem = (dong) => {
  * NAP-1 (soát bảo mật, chủ quán 06.11 chọn (a)): tiền trả vào tài khoản `tienHoan` (duyệt hoàn, đền bù, kết thúc gói) → số điểm trừ = phần `diem` theo tỷ lệ
  * tienHoan / tienDiem (tiền tính điểm của đơn — tienTinhDiem), làm tròn LÊN, không quá `diem`. Phần tiền mặt / CK không hoàn giữ điểm.
  */
-const diemTruKhiHoan = (diem, tienHoan, tienDiem) =>
-  (diem > 0 && tienHoan > 0 && tienDiem > 0 ? Math.min(diem, Math.ceil((diem * tienHoan) / tienDiem)) : 0);
+const soNguyen = (x) => (typeof x === 'bigint' ? x : BigInt(Math.round(Number(x) || 0)));
+const diemTruKhiHoan = (diem, tienHoan, tienDiem, mau = 1) => {
+  // DIEM-MON-1 (soát vòng 2): tiền hoàn có thể là phân số tienHoan / mau → tính ceil bằng số nguyên lớn, không qua số thực (13 × 2076,92… / 13.500
+  // ra 2,0000…04 → làm tròn lên 3).
+  const tu = soNguyen(diem) * soNguyen(tienHoan), m = soNguyen(tienDiem) * soNguyen(mau);
+  return diem > 0 && tu > 0n && m > 0n ? Math.min(diem, Number((tu + m - 1n) / m)) : 0;
+};
 
 /**
  * DIEM-MON-1 (chủ quán 09.11 CÁCH 2) — tiền đã trả vào tài khoản của đơn (sổ ví 'refund' + 'compensation'), quy về đơn vị "tiền tính điểm":
@@ -58,6 +63,7 @@ const diemTruKhiHoan = (diem, tienHoan, tienDiem) =>
  * - 'refund' của đơn CÓ dòng gói trả trước (product_id −1…−999999) = kết thúc gói (duyệt hoàn chặn đơn có gói / thẻ — refunds.js DON_CO_GOI) → gắn
  *   dòng gói; đơn khác → duyệt hoàn, không gắn dòng.
  * Đơn cũ (dòng không cờ = bật, tien_hang_diem NULL): tiền tính điểm = tiền trả → đúng tổng sổ ví như trước.
+ * Trả phân số đúng { tu (BigInt), mau }: tiền quy đổi = tu / mau — không chia số thực (soát vòng 2), diemTruKhiHoan làm tròn một lần.
  */
 async function tienHoanTinhDiem(tx, d, tienDiem) {
   const so = await tx.queryOne(`SELECT COALESCE(SUM(amount), 0) AS n, COALESCE(SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END), 0) AS hoan
@@ -71,7 +77,9 @@ async function tienHoanTinhDiem(tx, d, tienDiem) {
   const denBat = den - Math.min(den, denTat);
   const conTra = tienTraDon(d) - den;   // Q4 = a: duyệt hoàn trả phần CÒN LẠI sau đền (soTienHoan) → quy theo phần còn lại
   const khongGan = goi ? 0 : hoan;
-  return denBat + (goi && batDiem(goi) ? hoan : 0) + (conTra > 0 ? (khongGan * Math.max(0, tienDiem - denBat)) / conTra : 0);
+  const mau = conTra > 0 ? conTra : 1;   // phân số đúng { tu / mau } — không chia số thực (soát vòng 2)
+  const B = soNguyen;
+  return { tu: B(denBat + (goi && batDiem(goi) ? hoan : 0)) * B(mau) + (conTra > 0 ? B(khongGan) * B(Math.max(0, tienDiem - denBat)) : 0n), mau };
 }
 
 /**
@@ -93,7 +101,7 @@ async function truDiemHoan(tx, don, nguoi, luc, lyDo) {
     FROM pos_point_transactions WHERE order_id = ? AND type IN ('earn', 'adjust') AND created_at >= ?
     GROUP BY customer_phone, expires_at ORDER BY expires_at IS NULL DESC, expires_at DESC`, [don.id, moc]);
   const diem = nhom.reduce((t, r) => t + Number(r.diem || 0), 0);
-  let conTru = diemTruKhiHoan(diem, hoan, tienDiem) - (diem - nhom.reduce((t, r) => t + Number(r.con || 0), 0));
+  let conTru = diemTruKhiHoan(diem, hoan.tu, tienDiem, hoan.mau) -(diem - nhom.reduce((t, r) => t + Number(r.con || 0), 0));
   let daTru = 0;
   for (const r of nhom) {
     const tru = Math.min(conTru, Number(r.con || 0));
