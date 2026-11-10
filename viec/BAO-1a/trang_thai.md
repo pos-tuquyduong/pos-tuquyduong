@@ -76,11 +76,11 @@ Tên đầy đủ (cổng A17): VS-DO-TU-AN, BV-XANH-KHONG-AN, VS-TOI-DA-NAM, VS
 VIỆC:        BAO-1a — Mọi thao tác ngoài Cài đặt báo rõ, dễ hiểu, luôn nhìn thấy
 ĐÃ SỬA:      client/src/components/thongBaoKho.js (mới, kho thông báo) · components/ThongBao.jsx (mới, vẽ) · components/Layout.jsx (gắn một lần, nút "gửi lại việc kho") · index.css (thông báo nổi + nút khoá mờ)
              28 màn/thành phần nối thông báo (bảng trên): Orders, Refunds, InvoicePrint, Sales, Customers, DonApp, DonThu, Registrations, DiscountCodes, InvoiceSettings, Reports, GiaoHang, ViKhach, CapHang, DoiSoat, ThongTinMon, MaDangNhapApp, CustomerSearch, 9 màn Kho
-             cong_cu/thu_BAO1a.js (mới, 69 ca) · kiem_tra_truoc_khi_giao.js (nối bài vào bộ kiểm) · client/dist (build lại)
-BÀI THỬ:     chạy trên bản chưa vá (45fd10c) → ĐỎ: 7 đạt · 46 hỏng (A0, B1–B8, D1 còn 11 alert(, D2 ×28, D3, D4 ×6); sau khi vá → XANH 69 đạt · 0 hỏng; đột biến 23/23 BẮT
+             cong_cu/thu_BAO1a.js (mới, 99 ca) · kiem_tra_truoc_khi_giao.js (nối bài vào bộ kiểm) · client/dist (build lại)
+BÀI THỬ:     chạy trên bản chưa vá (45fd10c) → ĐỎ: 7 đạt · 74 hỏng (bản bài thử cuối); sau khi vá → XANH 99 đạt · 0 hỏng; đột biến 26/26 BẮT
 ĐÃ RÀ K4:    grep "alert(" trong client/src → 11 chỗ (Orders 8 · Refunds 2 · InvoicePrint 1), đã xử lý hết, còn 0 · grep "setError|setSuccess|setLoi|setThongBao|setMsg" các màn trong phạm vi → xử lý theo bảng, phần còn lại ghi ở Phát hiện · {error} / {loi} còn vẽ: chỉ lỗi TẢI + lỗi nhập thiếu cạnh ô
 CHƯA KIỂM:   (1) chưa mở trình duyệt thật: không chụp được thông báo nổi hiện trên điện thoại / có đè lên popup không (CSS z-index 10000; popup cao nhất tìm thấy bằng grep là 9999) · (2) chưa thử tay từng nút (bài thử khoá khung thành phần + mỗi màn đã nối + cờ khoá nút, KHÔNG gọi từng nút thật) · (3) "Đã in hóa đơn" dựa vào sự kiện đóng hộp in của trình duyệt · (4) lời gọi thông báo trong hàm cập nhật `setCart` của Sales chưa chạy thật ở StrictMode · (5) chưa hết lỗi lint có sẵn của kho
-GIT:         (xem dưới)
+GIT:         ad82b074 bằng chứng đỏ · 8229fe92 vòng sửa 1 · 99abceec màn · 52e48854 thành phần (trên nền 45fd10c)
 BÀI HỌC:     (xem mục Bài học)
 ```
 
@@ -99,3 +99,5 @@ BÀI HỌC:     (xem mục Bài học)
 5. "Đã in hóa đơn" hiện cả khi khách huỷ hộp in → **đã sửa** câu thành "Đã gửi lệnh in hóa đơn …" (trình duyệt không phân biệt in / huỷ).
 Nghi ngờ ghi nhận, không sửa: GiaoHang tự in tem lỗi có thể hiện lại sau mỗi lần poll 15 giây khi đã bấm ×; BanHang/** chưa đổi (Câu hỏi 1).
 Sau vòng sửa 1: thu_BAO1a 99 ca xanh (gốc 45fd10c: 7 đạt · 74 hỏng), đột biến 26/26 BẮT, `npm test -- --day-du` PASS 113 · FAIL 0. Chưa gọi soát vòng 2 (chat soát duyệt).
+
+✓ CỔNG CHẠY ĐẠT  (node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a; kèm CẢNH BÁO A16: gốc in 81 ca ≠ 99 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận)
