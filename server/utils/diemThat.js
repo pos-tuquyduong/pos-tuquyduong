@@ -52,7 +52,8 @@ const diemTruKhiHoan = (diem, tienHoan, tienDiem) =>
 
 /**
  * DIEM-MON-1 (chủ quán 09.11 CÁCH 2) — tiền đã trả vào tài khoản của đơn (sổ ví 'refund' + 'compensation'), quy về đơn vị "tiền tính điểm":
- * - gắn dòng BẬT: tính đủ; gắn dòng TẮT: bỏ (dòng đó không sinh điểm, không trừ); không gắn dòng: × tiền tính điểm / tiền trả (theo toàn đơn).
+ * - gắn dòng BẬT: tính đủ; gắn dòng TẮT: bỏ (dòng đó không sinh điểm, không trừ); không gắn dòng (duyệt hoàn): theo PHẦN CÒN LẠI sau
+ *   đền (chủ quán 09.11 Q4 = a) — × (tiền tính điểm − đền dòng bật) / (tiền trả − tổng đền): hoàn hết phần còn lại thì điểm về 0, thứ tự đền không đổi kết quả.
  * - Đền ('compensation') gắn món theo pos_damage_logs (action 'refund', damages.js ghi dòng nhật ký TRƯỚC khi gọi truDiemHoan).
  * - 'refund' của đơn CÓ dòng gói trả trước (product_id −1…−999999) = kết thúc gói (duyệt hoàn chặn đơn có gói / thẻ — refunds.js DON_CO_GOI) → gắn
  *   dòng gói; đơn khác → duyệt hoàn, không gắn dòng.
@@ -67,9 +68,10 @@ async function tienHoanTinhDiem(tx, d, tienDiem) {
   const denTat = tat.size ? Number((await tx.queryOne(`SELECT COALESCE(SUM(refund_amount), 0) AS n FROM pos_damage_logs
     WHERE order_id = ? AND action = 'refund' AND product_code IN (${[...tat].map(() => '?').join(', ')})`, [d.id, ...tat]))?.n || 0) : 0;
   const goi = dong.find((x) => Number(x.product_id) < 0 && Number(x.product_id) > ID_THE_TU);
-  const tra = tienTraDon(d);
+  const denBat = den - Math.min(den, denTat);
+  const conTra = tienTraDon(d) - den;   // Q4 = a: duyệt hoàn trả phần CÒN LẠI sau đền (soTienHoan) → quy theo phần còn lại
   const khongGan = goi ? 0 : hoan;
-  return (den - Math.min(den, denTat)) + (goi && batDiem(goi) ? hoan : 0) + (tra > 0 ? (khongGan * tienDiem) / tra : 0);
+  return denBat + (goi && batDiem(goi) ? hoan : 0) + (conTra > 0 ? (khongGan * Math.max(0, tienDiem - denBat)) / conTra : 0);
 }
 
 /**
