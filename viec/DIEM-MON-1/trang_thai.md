@@ -209,6 +209,53 @@ BÀI HỌC:
 - Nghi ngờ "phí giao trong khoản duyệt hoàn" → `## Phát hiện` (có sẵn từ NAP-1, ngoài phần việc này đổi; đơn toàn món bật y hệt trước).
 - Kiểm: `npm test -- --day-du` PASS 111 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
 
+## Soát độc lập — vòng 3 (/ra-soat, agent chỉ đọc) — chép nguyên báo cáo
+ĐẠT (còn 3 lỗi NHẸ, không lỗi nào đụng tiền / điểm thật)
+
+Tóm tắt: bản vá vòng 2 tính đúng. Mọi chỗ gọi đã theo chữ ký mới, I8 khớp server ở từng nhánh, và mình đã dò thì không còn phép chia số thực nào trên đường trừ điểm làm sai kết quả. `npm test` cho PASS 107 · FAIL 0, `--day-du` cho PASS 111 · FAIL 0 · CẢNH BÁO 1 (cảnh báo này có từ trước). Mình chạy lại `dot_bien.py VS-chia-so-thuc`: đối chứng 30 đạt · 0 hỏng, đột biến BẮT ở T13h. Lỗi lớn nhất còn lại: I8 mới sập (ném lỗi) khi cài đặt điểm sai. Chỉ xảy ra nếu ai đó gửi lệnh thẳng vào máy chủ, vì màn hình đã chặn.
+
+LỖI TÌM ĐƯỢC:
+1. `cong_cu/gia_lap/bat_bien.js:203` `const N = (x) => BigInt(Math.round(x))` và `:207` `N(dungBan)` (tính cả khi `dungBan` = 0 hoặc không phải số). Nếu `loyalty_earn_per_amount` = 0 hoặc không phải số (`:150` `per = Number(...)`), thì `g` (`:180`) ra Infinity hoặc NaN, `dungBan` (`:192`) theo đó cũng ra Infinity hoặc NaN, và `BigInt(...)` ném RangeError. Kết quả: I8 sập, kéo theo cả màn Đối soát vì `doiSoat.js:341` gọi thẳng, không bắt lỗi. Trước vòng 2, cùng dữ liệu đó chỉ in dòng "lệch", không sập. Server tự chặn được nhờ `soNguyen` có `|| 0` (`diemThat.js:50`), còn I8 thì không. Cách xảy ra: `settings.js:111-150` không kiểm khoá này, chỉ màn hình chặn dưới 1.000 (`Settings.jsx:556`). Vá gọn: chép đúng `soNguyen` sang (`BigInt(Math.round(Number(x) || 0))`) hoặc chặn `per >= 1` ở đầu I8. Khuôn K4 (chép cổng thì chép thiếu chốt chặn). NHẸ: chỉ là công cụ đối soát đọc, không ghi tiền hay điểm, và màn hình đã chặn trường hợp này.
+2. `server/utils/diemThat.js:46-49`: chú thích của `diemTruKhiHoan` vẫn ghi "tỷ lệ tienHoan / tienDiem", chưa nhắc đối số mới `mau` (đúng ra là tienHoan / mau / tienDiem). Chú thích ở dòng 52-53 thì đúng: mình chạy node ra `2.0000000000000004`, ceil lên 3. Khuôn K1. NHẸ.
+3. `server/utils/diemThat.js:104` viết `... hoan.mau) -(diem - ...` (thiếu dấu cách), và `:81-82` đặt bí danh thừa `const B = soNguyen` cùng một dòng `return` rất dày. Đọc khó, không sai. NHẸ (mục 8).
+
+NGHI NGỜ:
+- `diemThat.js:50`: `soNguyen` làm tròn từng đầu vào. Nếu sổ ví có số lẻ dưới 1đ khiến `conTra` nằm trong (0; 0,5), thì `mau` thành 0n và hàm trả 0, tức là không trừ điểm. Mình thử `diemTruKhiHoan(13, 3000, 13500, 0.3)` → 0. Dữ liệu tiền đều là số nguyên đồng nên ca này coi như không xảy ra, nhưng mình chưa soi cột amount trên dữ liệu thật.
+- `soNguyen(Infinity)` ném lỗi: thử `diemTruKhiHoan(13, 3000, Infinity)` → THROW. Hiện chưa có đường nào đưa Infinity vào (`tienTinhDiem` luôn ra số hữu hạn, `:39-44`).
+- Phí giao trong khoản duyệt hoàn (đã ghi ở Phát hiện, có từ NAP-1): mình tính tay ca toàn món bật thì kết quả y như trước DIEM-MON-1. Chưa dựng ca món trộn + phí giao.
+
+Trả lời từng mục:
+1. K3: T13h (`thu_DIEMMON1.js:303-315`) kiểm số điểm thật qua HTTP (13 → 11). Không dò marker, nên marker suông không làm nó xanh được. `bang_chung_do.txt:49-51`: trên bản chưa vá vòng 2 ĐỎ (13 → 10), trên gốc ĐỎ (19 → 16). Bộ số chọn đúng kiểu kết quả là số nguyên nhưng phép tính đi qua phân số lẻ. Đột biến VS-chia-so-thuc mình tự chạy: BẮT. VS-i8-chia-so-thuc (`dot_bien.py:75`) mình không chạy lại; phiên chính báo bắt ở T18. Ca làm tròn LÊN ở số không chẵn thì `thu_NAP1.js:566` E8 vẫn khoá (21, 10400, 21000 → 11).
+2. K4: grep `diemTruKhiHoan|tienHoanTinhDiem` trong server, cong_cu, client/src, viec ra 2 chỗ gọi mã thật: `diemThat.js:99` và `:104` (đã đổi), cộng bài cũ `thu_NAP1.js:566-568` (gọi 3 đối số, `mau = 1` mặc định giữ đúng, và bài xanh trong `npm test`). Cả 4 lối trừ (`refunds.js:182`, `damages.js:211`, `packages.js:271`, `signup-codes.js:262`) đều đi qua `truDiemHoan`. Phép chia khác trên đường điểm: `tienTinhDiem` (`:43`, round), `tienHangDiem` (`:31`, floor) và I8 (`:178`) chỉ chia MỘT lần trên số nguyên. Khoảng cách tới ngưỡng làm tròn ≥ 1/(2q), lớn hơn nhiều so với sai số số thực, nên không lệch. Huỷ đơn (`orders.js:1717-1725`) trừ bằng SQL số nguyên. Còn sót đúng 1 chỗ: `N` của I8 thiếu chốt NaN (lỗi 1).
+3. K5: đối chiếu I8 với server từng nhánh: Đơn cũ: `thd` NULL thì `tienDiem` = tiền trả, cả hai bên như nhau. Đơn gói: server `mau = conTra`, `tu = (denBat + hoan) × conTra`; I8 `mau = 1`, `tu = denBat + hoan_r`. Cùng giá trị phân số nên ceil giống nhau. Mỗi đơn chỉ có một dòng gói (`orders.js:490-513`). Đơn huỷ: I8 cho `truHoan` = 0 (`:208`). `conTra ≤ 0`: cả hai bỏ phần không gắn dòng và lấy `mau = 1`. Duyệt hoàn, đền, mã bill: cùng phép tính. Không thấy luồng hợp lệ nào bị chặn hay đổi kết quả: phép mới chỉ đổi cách tính, không thêm điều kiện chặn.
+4. K1: các câu vòng 2 trong `trang_thai.md:196-210` khớp code và số mình đo lại (PASS 111, 30 đạt). Đính chính trong `ke_hoach.md` đã có tại chỗ. Riêng chú thích `diemThat.js:46-49` lệch (lỗi 2).
+5. Đường tiền: tiền tính điểm do server tự tính (`orders.js:934`, `diemThat.js:27-44`). Vòng 2 không thêm đầu vào nào từ máy khách.
+6. P1: vòng 2 không đụng `client/src`. `--day-du`: "dist đã commit KHỚP với src hiện tại".
+7. Nghiệm thu: xem dòng NGHIỆM THU bên dưới.
+8. Đơn giản: dùng BigInt là có lý do, vì điểm × tiền × tiền có thể vượt 2^53. Chỉ còn lỗi 3, và việc I8 cùng phép tính mà viết lại thành `N` khác `soNguyen` (lỗi 1).
+
+NGHIỆM THU: 6/6 mục có bằng chứng · mục thiếu: không
+- A: T1, T10, T11, T12, T19. B: T3–T9, T6b. C: T13 (gồm T13d), T13b, T13c, T13e–h, T14, T14b, T15. D: T16, T17, cộng 3 thao tác thử tay (`trang_thai.md` mục "Thử tay"). E: T18, T18b. K5: T2b, T9, T12b, T19, cộng `thu_HOPDONG_KH` trong `npm test`.
+
+CHƯA SOÁT ĐƯỢC: 34/36 đột biến (mình chỉ chạy VS-chia-so-thuc). `node tu_chay/cong.js chay`. Giao diện `TichDiem.jsx` trên điện thoại. Dữ liệu thật: cột amount có số lẻ không, có trùng product_code không, `loyalty_earn_per_amount` trên Turso đang là bao nhiêu. Ca phí giao + món trộn + trả một phần tiền mặt.
+
+BÀI HỌC:
+- KHOÁ: bài thử I8 thêm ca `loyalty_earn_per_amount` = 0 hoặc rỗng → I8 trả danh sách lệch, không sập. Thêm đột biến bỏ `|| 0` ở `soNguyen` của server.
+- NGUYÊN TẮC (K4): đổi phép tính sang BigInt thì mọi chỗ ép kiểu phải đi qua MỘT hàm có chặn NaN / Infinity. Bản chép ở chỗ trọng tài (I8) phải chép cả phần chặn, không chỉ phép tính: `BigInt()` ném lỗi ở chỗ mà `Math.ceil` chỉ ra NaN, nên một chỗ đang "báo lệch" sẽ thành "sập".
+
+### Đã sửa sau vòng 3 (vòng sửa 3 — chỉ đúng 3 lỗi NHẸ lần soát nêu)
+- Bài thử TRƯỚC (commit 3245ddc): T18c (cài đặt điểm 0 / rỗng → I8 không sập), T13i (diemTruKhiHoan NaN / Infinity → 0). Trên code chưa vá vòng 3:
+  30 đạt · 2 hỏng (BigInt ném "Infinity cannot be converted"). Sau vá: 32 đạt · 0 hỏng (`SỐ CA` 32).
+- Lỗi 1: I8 `N` chặn số không hữu hạn (`Number.isFinite`) → 0. Lỗi 2: chú thích `diemTruKhiHoan` nói rõ phân số `tienHoan / mau`. Lỗi 3: thêm dấu
+  cách, bỏ bí danh `B`, tách dòng `return` (`gan`, `khongGanDiem`). Nghi ngờ "soNguyen(Infinity) ném lỗi" → `soNguyen` cũng chặn `Number.isFinite`.
+- Đột biến: thêm VS-ep-kieu-thieu-chan (T13i), VS-i8-ep-kieu-thieu-chan (T18c); sửa neo VS-hoan-toan-don, BV-q4-hoan-theo-toan-don,
+  VS-q4-con-lai-bo-den-bat. ĐỐI CHỨNG XANH 32 đạt · 0 hỏng · TỔNG 38 · BẮT 38 · SỐNG 0 · HỎNG 0 · LẠC 0.
+- Bảng chỗ vá vòng 3 → đột biến: soNguyen chặn NaN/Infinity → VS-ep-kieu-thieu-chan · I8 `N` chặn → VS-i8-ep-kieu-thieu-chan.
+- Tên đột biến (đủ 38): 36 tên ở vòng sửa 2 + VS-ep-kieu-thieu-chan, VS-i8-ep-kieu-thieu-chan.
+- Kiểm: `npm test -- --day-du` PASS 111 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+- Hết 3 vòng sửa; lần soát cuối (vòng 3) ĐẠT, chỉ còn lỗi NHẸ đã sửa ở đây — theo LUAT §6.5 không gọi agent soát nữa.
+SOÁT LẦN CUỐI: chat soát thay
+
 ### Thử tay cho chủ quán (giao diện — LUAT §6.4)
 1. Cài đặt → Điểm thưởng → khung "✅ Tích điểm theo món / gói / thẻ" (dưới nút Lưu): bấm công tắc một món sang Tắt → tải lại trang, món đó vẫn Tắt.
 2. Bấm "Chọn tất cả" ở nhóm món → "Tắt tích điểm" → mọi món Tắt; "Chọn tất cả" → "Bật tích điểm" → bật lại hết.

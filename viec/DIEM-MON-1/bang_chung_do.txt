@@ -50,8 +50,15 @@ Thêm (vòng sửa 2, soát vòng 2 lỗi 1 — làm tròn số thực): T13h (c
   Trên code trước vá vòng 2 (HEAD 09e0fcc): ✗ T13h … — HTTP 200 hoàn 3000 · 13 → 10   (29 đạt · 1 hỏng; T18 vẫn xanh vì I8 chép cùng lỗi)
   Trên GỐC e90d42a (bài bản cuối): ✗ T13h … — HTTP 200 hoàn 3000 · 19 → 16 · cả bài 5 đạt · 25 hỏng (các dòng khác y như khối trên)
 
-Trên code ĐÃ VÁ (HEAD): node cong_cu/thu_DIEMMON1.js → 30 đạt · 0 hỏng
-SỐ CA cong_cu/thu_DIEMMON1.js: 30
+Thêm (vòng sửa 3, soát vòng 3 lỗi 1–3): T18c, T13i (commit 3245ddc).
+  Trên code trước vá vòng 3 (HEAD 3245ddc): 30 đạt · 2 hỏng
+    ✗ T18c … — I8 sập: The number Infinity cannot be converted to a BigInt because it is not an integer (×2)
+    ✗ T13i … — The number Infinity cannot be converted to a BigInt because it is not an integer
+  Trên GỐC e90d42a (bài bản cuối): 6 đạt · 26 hỏng — ✗ T13i (Cannot mix BigInt and other types); T18c XANH trên gốc (I8 gốc không dùng BigInt,
+    lỗi chỉ có từ vòng sửa 2 — bài vẫn đỏ trên gốc ở 26 ca khác).
+
+Trên code ĐÃ VÁ (HEAD): node cong_cu/thu_DIEMMON1.js → 32 đạt · 0 hỏng
+SỐ CA cong_cu/thu_DIEMMON1.js: 32
 
 ────────────────────────────────────────────────────────────────────────────
 Bài cũ SỬA theo LUAT_XAY_APP §6.7 (bài khoá ĐÚNG danh sách cột, phiếu thêm cột mới): cong_cu/thu_KHO1.js — D1 thêm `tich_diem` vào COT_SP
