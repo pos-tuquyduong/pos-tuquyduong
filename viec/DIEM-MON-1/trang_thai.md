@@ -261,6 +261,26 @@ SOÁT LẦN CUỐI: chat soát thay
 2. Bấm "Chọn tất cả" ở nhóm món → "Tắt tích điểm" → mọi món Tắt; "Chọn tất cả" → "Bật tích điểm" → bật lại hết.
 3. Tắt một món, bán đơn có món đó + một món bật cho khách có SĐT → điểm khách chỉ tăng theo phần món bật; bật lại món đó sau.
 
+## Soát bảo mật
+Lần 1 (10.11, `/soat-bao-mat`, subagent chỉ đọc, HEAD sau vòng sửa 3). Số lỗi trước lọc: 0 · sau lọc: 0 (bước 2 không tìm được gì → không chạy bước 3).
+Báo cáo nguyên văn:
+
+Không tìm thấy lỗ hổng.
+
+Mình đã đọc diff code chạy thật (`git diff 997bf52^ HEAD -- server client/src`) và lần theo các chỗ gọi. Các điểm đã kiểm:
+
+- **PUT /api/pos/loyalty/tich-diem** (`server/routes/loyalty.js`, khối DIEM-MON-1 ở cuối file): cửa này cần `authenticate` cộng `checkPermission('manage_promotions')`, đúng như chủ quán đã chốt. Tên bảng lấy từ danh sách trắng `BANG_TICH_DIEM` qua `Object.hasOwn`, nên không chèn được SQL hay đi lối prototype. Mỗi `ids` phải là `Number.isSafeInteger` lớn hơn 0, tối đa 500 mục, và đều đi qua tham số `?`. `bat` phải là kiểu boolean. Lỗi đi qua `loiGhi` và không lộ lời nội bộ.
+- **GET /tich-diem** cần `manage_settings`. Cửa này chỉ trả id, tên và cờ, không có giá vốn hay dữ liệu khách.
+- **Cờ tích điểm khi bán** (`server/routes/orders.js`): `tich_diem` của từng dòng lấy từ dòng đọc trong cơ sở dữ liệu (`product` ở `SELECT * FROM pos_products ... is_active = 1`, `pkg` ở dòng 491, `membershipTier` ở dòng 523), không lấy từ thân yêu cầu. `tienHangDiem` tính trên giá máy chủ tự tra, và kết quả không vượt quá tiền hàng. Máy khách không có cách nào đẩy điểm lên.
+- **Đổi thứ tự trong damages.js** (khoảng dòng 201–212): trần tiền đền `tranLan` / `tranTong` vẫn được kiểm trước khi ghi. Dòng sự cố được ghi trước rồi mới ghi ví và trừ điểm, tất cả trong cùng một giao dịch. `finalRefund` chỉ lớn hơn 0 khi action là `'refund'`, nên hành vi ghi ví không đổi. Dòng gói / thẻ vẫn bị chặn với mã `GOI_THE_KHONG_DEN`.
+- **`tienHoanTinhDiem` / `truDiemHoan`** (`server/utils/diemThat.js`): mọi câu SQL đều dùng tham số. Tiền đền ghi vào dòng đang tắt tích điểm thì bị giới hạn theo số khách đã trả cho đúng mã món đó (`tienDaTraTheoDong`), nên không lách được để giữ điểm của dòng đang bật. Mọi chỗ gọi đều truyền dòng đơn có `tien_hang_diem`: refunds.js đọc `SELECT *`, packages qua `tienDaTra.js:76` cũng `SELECT *`, damages.js `SELECT *`, hoaDon.js:144 `SELECT *`, còn signup-codes.js kê cột có thêm `tien_hang_diem`. Không có chỗ nào rơi về cách tính cũ một cách lặng lẽ khiến bị trừ ít điểm hơn.
+- **Bước nâng cấp 024** chỉ thêm cột, tên bảng và cột viết cứng, không có dữ liệu người dùng đi vào.
+- **Màn quầy** (`TichDiem.jsx`, `api.js`) gọi qua `utils/api.js`, không có `dangerouslySetInnerHTML`.
+
+Không có mục nào đạt độ tin cậy từ 7/10 trở lên.
+
+SOÁT BẢO MẬT: ĐẠT
+
 ## Câu hỏi
 - Q1 (đã đề xuất trong ke_hoach.md mục 5): khi hoàn / đền / kết thúc gói, trừ điểm theo tỷ lệ trên TOÀN tiền đơn (đề xuất) hay chỉ khi phần hoàn
   thuộc dòng bật điểm? Chủ quán xác nhận lúc duyệt kế hoạch.
