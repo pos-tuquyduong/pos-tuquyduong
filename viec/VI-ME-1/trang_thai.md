@@ -55,3 +55,34 @@ chuẩn hoá SĐT mẹ, điều kiện `parent_phone || parent_balance_amount > 
    - `## Phạm vi`: `cong_cu/thu_P26b.js`, `cong_cu/thu_P26c.js`, `cong_cu/thu_GOI1.js`, `cong_cu/thu_DIEMTHAT1.js`, `cong_cu/thu_HD1.js`, `cong_cu/thu_NAP1.js`
    - `## Bài thử cũ sửa`: sáu file trên — "dựng quan hệ mẹ–con trong pos_customers trước đơn trả tài khoản mẹ (VI-ME-1)".
    Bạn chỉ cần trả lời "đồng ý câu 4" (chat sửa phiếu) — máy làm tiếp từ bản vá đã lưu.
+
+## Phiên làm tiếp 2 (10.11.2026 — chủ quán đồng ý câu 4)
+Bước 1: nhánh viec/VI-ME-1, cây sạch. HEAD 35f0d48 · FETCH_HEAD 35f0d48 (bằng nhau, không kéo).
+```
+35f0d48 PHIEU: VI-ME-1 Pham vi them 6 bai thu cu (thu_P26b, thu_P26c, thu_GOI1, thu_DIEMTHAT1, thu_HD1, thu_NAP1) — chu quan duyet cau 4 10.11
+549cf4c VI-ME-1: bang chung do + ban va cho duyet; cau hoi 4: 6 bai cu ngoai pham vi
+f71ce7c VI-ME-1: thu_VIME1 C1 doc parent_phone tu CSDL
+```
+Kho lại nông (thu_BH2 G1 đỏ, thiếu cbbb809) → `git fetch -q --unshallow origin viec/VI-ME-1`.
+
+Bước 5 — đặt lại bản vá từ `va_cho_duyet.diff` + `viMe_cho_duyet.js` (người gác chặn `git apply` / `patch` → đặt bằng Python
+`content.replace`, mỗi chuỗi khớp đúng 1 lần), xoá hai file lưu tạm. Sáu bài cũ: thêm hàm `datMe(con, me)` (upsert
+`pos_customers.parent_phone`) ngay sau `db.initDatabase()`; gọi trước mỗi đơn trả tài khoản mẹ (P26b, P26c, GOI1: dòng nạp ví; DIEMTHAT1,
+HD1, NAP1: trong `ban` khi thân có `parent_phone`). Không đổi phép kiểm, không đổi số mong đợi — số ca gốc = HEAD (`bang_chung_do.txt`).
+`thu_VIME1.js` thêm `--may-chu` (chạy trên bản sao cho đột biến), số ca vẫn 23.
+Bước 6 — `npm test`: PASS 109 · FAIL 0 · CẢNH BÁO 1.
+
+### Chỗ vá → đột biến (`python3 viec/VI-ME-1/dot_bien.py` — ĐỐI CHỨNG XANH 23 đạt · 0 hỏng; TỔNG 8 · BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0)
+| Chỗ vá | Đột biến | Ca bắt |
+|---|---|---|
+| `orders.js:691-692` lời gọi `kiemTraMe` trong `taoDon` | `BV-1-bo-goi` | A1 |
+| `orders.js:690` điều kiện `parent_phone \|\| parent_balance_amount > 0` | `VS-1-chi-khi-co-tien` | B1 |
+| | `VS-7-chi-khi-co-sdt-me` | A4 |
+| lời gọi chạy cả ở chế độ chỉ tính (phiên) | `VS-4-bo-qua-chi-tinh` | B1 |
+| `viMe.js` so `parent_phone` đã chuẩn hoá hai vế | `VS-2-khong-chuan-hoa` | A5 |
+| | `VS-3-chi-kiem-co-me` | A1 |
+| `viMe.js` khách phải tồn tại | `VS-5-khong-can-khach` | A3 |
+| `viMe.js` SĐT mẹ rỗng → từ chối | `VS-6-trong-me-cho-qua` | A4 |
+
+Tên đột biến: BV-1-bo-goi, VS-1-chi-khi-co-tien, VS-4-bo-qua-chi-tinh, VS-7-chi-khi-co-sdt-me, VS-2-khong-chuan-hoa, VS-3-chi-kiem-co-me,
+VS-5-khong-can-khach, VS-6-trong-me-cho-qua.
