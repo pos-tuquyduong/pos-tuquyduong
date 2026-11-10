@@ -134,3 +134,6 @@ Tên đột biến thêm ở vòng 3 (cổng A17): VS-THONGBAO-LUON-NULL.
 NGUONG_FETCH hạ 32 → 31 (kiem_tra_truoc_khi_giao.js:223, commit 91b4650): lý do HANG-1 9558de19 đã dọn một fetch ở Customers.jsx; chat soát 10.11 duyệt.
 Đề xuất KHUON_LOI.md (để chat soát lúc gộp, KHÔNG tự sửa): K3 — bài thử một thành phần giao diện phải vẽ thử / khoá nhánh vẽ, không chỉ dò chuỗi; K1 — sau mỗi vòng sửa chạy lại để cập nhật mọi số trong báo cáo (số ca, số đột biến, hash, hằng số).
 Quyết định (2) thông báo đỏ: giữ như hiện nay (đỏ cũ nhất nhường chỗ, xanh mới vẫn hiện) — đã đúng ở A12/A13.
+
+✓ CỔNG CHẠY ĐẠT  (vòng 3: node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a, cây sạch ở 4b38009d; kèm CẢNH BÁO A16: gốc in 85 ca ≠ 104 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận). npm test -- --day-du: PASS 113 · FAIL 0 · CẢNH BÁO 1 (route GET có lệnh ghi, có từ trước).
+HEAD ĐÃ KIỂM: 4b38009d
