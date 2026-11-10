@@ -101,3 +101,4 @@ Nghi ngờ ghi nhận, không sửa: GiaoHang tự in tem lỗi có thể hiện
 Sau vòng sửa 1: thu_BAO1a 99 ca xanh (gốc 45fd10c: 7 đạt · 74 hỏng), đột biến 26/26 BẮT, `npm test -- --day-du` PASS 113 · FAIL 0. Chưa gọi soát vòng 2 (chat soát duyệt).
 
 ✓ CỔNG CHẠY ĐẠT  (node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a; kèm CẢNH BÁO A16: gốc in 81 ca ≠ 99 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận)
+HEAD ĐÃ KIỂM: 21a39eee
