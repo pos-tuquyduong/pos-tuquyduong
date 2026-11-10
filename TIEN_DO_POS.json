@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 58,
-  "cap_nhat": "2026-11-08",
+  "phien_ban_so": 59,
+  "cap_nhat": "2026-11-09",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -25,12 +25,13 @@
     },
     {
       "ma": "P3b",
-      "ten": "Giu / doi diem trong phien thanh toan + PIN cho doi qua (/loyalty/redeem); tach tu P3 (duyet 24.10), chay sau UUDAI-1. [T] Opus, M5 | 27.10: TRUOC khai truong 07.11 (chu quan chot); giao dien tren man moi lam trong viec nay, SAU BH-2 gop",
+      "ten": "Giu / doi diem trong phien thanh toan + PIN cho doi qua (/loyalty/redeem); tach tu P3 (duyet 24.10), chay sau UUDAI-1. [T] Opus, M5 | 27.10: TRUOC khai truong 07.11 (chu quan chot); giao dien tren man moi lam trong viec nay, SAU BH-2 gop | 09.11 BO (chu quan): doi diem chi trong App KH, khong doi o quay",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
-      "ngay": null
+      "ngay": null,
+      "gop_vao": "APP-KH"
     },
     {
       "ma": "BH-2",
@@ -677,12 +678,13 @@
     },
     {
       "ma": "NAP-2",
-      "ten": "App KH tu nap bang QR (/goi-nap, /nap, /nap/:ma) + lich su vi /vi (v7). [T] Opus, lan 2, truoc khai truong",
+      "ten": "App KH tu nap bang QR (/goi-nap, /nap, /nap/:ma) + lich su vi /vi (v7). [T] Opus, lan 2, truoc khai truong | 09.11 gop vao KH-NAP-1",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
-      "ngay": null
+      "ngay": null,
+      "gop_vao": "KH-NAP-1"
     },
     {
       "ma": "CT-1a",
@@ -1355,32 +1357,33 @@
       "ma": "KH-THE-1",
       "ten": "Ban the hang tren App chung gio (hop dong /api/kh v13: dong the trong mon[]); cap hang TU DONG ngay khi ghi da thu o MOI cach tra (tien mat, CK, vi, QR) trong cung giao dich; do uong cung don tinh theo hang dang co; huy / hoan thu hoi; /hang them quyen_loi[] (buoc 023); mot ham ban the chung quay + App. [T] Opus",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "db2d71d",
+      "ngay": "2026-11-09"
     },
     {
       "ma": "QUAY-UI-1",
       "ten": "Quay (chu quan thu 08.11): tab \"The thanh vien\" o Ban hang (ban goi hang, Kim Cuong mo); khoi thu tien 3 nut Tien mat / CK / Tru tai khoan (khong tu tru TK; bam Tru TK moi hien so co the tru + PIN); Them khach bao \"khach da co\" ngay khi go SDT; don nap an \"Xu ly su co\" + cau rieng; sua dang ky khong doi khach App. [Th] Sonnet",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "4eb31fc",
+      "ngay": "2026-11-09"
     },
     {
       "ma": "CAIDAT-BAO-1",
-      "ten": "Cai dat bao luu ro (thu App KH 07.11, chu quan): mot dai thong bao chung cho moi man Cai dat (xanh: da luu gi; do khong tu an: dung ly do + cach sua), nut Luu mo khi thieu PIN, \"co thay doi chua luu\", tai lai sau luu. Mo SAU QUAY-UI-1 (cung Settings.jsx). [Th] Sonnet",
+      "ten": "Cai dat bao luu ro (thu App KH 07.11, chu quan): mot dai thong bao chung cho moi man Cai dat (xanh: da luu gi; do khong tu an: dung ly do + cach sua), nut Luu mo khi thieu PIN, \"co thay doi chua luu\", tai lai sau luu. Mo SAU QUAY-UI-1 (cung Settings.jsx). [Th] Sonnet | 09.11 gop vao BAO-1b (thong bao ro toan POS)",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "gop",
       "patch": null,
       "commit": null,
-      "ngay": null
+      "ngay": null,
+      "gop_vao": "BAO-1b"
     },
     {
       "ma": "KH-NAP-1",
-      "ten": "Khach tu nap tien tren App (chu quan 08.11: nap tren App hoac tai quay): mua goi nap tren App, tra QR -> vao vi (hai ngan nhu NAP-1), 0 diem, khong hoan; hop dong /api/kh. Mo SAU KH-THE-1 (cung donApp / hop dong). [T] Opus",
+      "ten": "Khach tu nap tien tren App (chu quan 08.11: nap tren App hoac tai quay): mua goi nap tren App, tra QR -> vao vi (hai ngan nhu NAP-1), 0 diem, khong hoan; hop dong /api/kh. Mo SAU KH-THE-1 (cung donApp / hop dong). [T] Opus | 09.11: gop NAP-2; dung ham gioCanPhaChe (KH-THE-1) — nap ban moi gio; don chi nap tu Xong khi tien ve",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
@@ -1407,7 +1410,61 @@
     },
     {
       "ma": "VI-ME-1",
-      "ten": "KHACH-APP-1 phat hien (co tu truoc): duong ban hang tru vi me theo SDT me do man hinh gui, may chu khong doi chieu quan he me-con trong pos_customers -> phai doi chieu truoc khi tru. [T] Opus — uu tien truoc khai truong",
+      "ten": "KHACH-APP-1 phat hien (co tu truoc): duong ban hang tru vi me theo SDT me do man hinh gui, may chu khong doi chieu quan he me-con trong pos_customers -> phai doi chieu truoc khi tru. [T] Opus — uu tien truoc khai truong | 09.11: mo (phieu chat ban 34), lan 2 sau KH-THE-1",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "VOUCHER-2",
+      "ten": "Voucher (chu quan chot 08-09.11): diem chi doi voucher (khach tu doi trong App); toi da N voucher / don (Cai dat, goi y 3); voucher tien tru truoc roi voucher % tren phan con lai; tong giam <= tien mon; gio flash khong voucher %; moi don MOT ma khuyen mai chung; voucher ship (so tien hoac % co tran) chi giam dong phi giao, tinh vao N; huy / khong thanh cong tra lai moi voucher; ma giam co ap len the / nap / goi tra truoc hay khong: CHO chu quan chot. [T] Opus, lan 1 sau DIEM-MON-1",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "BAO-1a",
+      "ten": "Thong bao ro moi thao tac (chu quan 09.11) phan 1 — moi man NGOAI Cai dat: mot thanh phan thong bao noi chung (luon thay du cuon dau; xanh tu an, do khong tu an + nut dong), moi nut ghi bao xong / loi tieng Viet de hieu kem cach sua, nut dang chay mo + 'Dang luu...'; banh coc dem alert(. [Th] Sonnet",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "BAO-1b",
+      "ten": "Thong bao ro phan 2 — Cai dat (gom CAIDAT-BAO-1): dung thanh phan BAO-1a; Hang thanh vien / PIN chu quan bao ngay duoi o + noi; thanh luu co dinh 'co thay doi chua luu'; nut Luu mo khi thieu PIN; hoi PIN luc bam Luu. Mo SAU DIEM-MON-1 (Settings.jsx, CaiDat/**). [Th] Sonnet",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "QC-APP-1",
+      "ten": "Dai quang cao App (thu App KH 09.11): Cai dat 'Quang cao tren App' (chu dai <= 32 ky tu, banner Trang chu, bam mo dau, ngay + khung gio, uu tien, bat/tat, tu dong Gio vang, xem truoc, nhac khong ghi cong dung chua benh) + GET /api/kh/quang-cao (hop dong v14). [Th] Sonnet, sau BAO-1b",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "GIAO-MA-1",
+      "ten": "Kho ma Ahamove (chu quan 09.11): Cai dat 2 kieu — kho ma dung 1 lan (dan danh sach) / 1 ma nhieu luot (so luot, han); dung theo thu tu, giu ma cho don dang thanh toan, ma hong tu chuyen ma ke, sap het nhac; cong tac 'phan giam Ahamove: cho khach / quan giu' (mac dinh cho khach), tru ma Aha truoc roi voucher ship; ma hong luc goi xe -> quan bu, Doi soat ghi; quay + App KH hien dong giam. [T] Opus, lan 2 sau KH-MUA-2",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "GIAO-DIEN-2",
+      "ten": "Tinh gon bo cuc Cai dat / Khach hang / Quan ly theo mau chu quan duyet TAM 09.11 (artifact Design 'Tinh gon Cai dat & Khach hang'): Quan ly 6 nhom mo thang dung man + o tim nhanh; Hang thanh vien the gon + thanh luu co dinh + hoi PIN luc Luu; Khach hang danh sach + chi tiet 3 so chinh. Chot mau lan 2 voi chu quan truoc khi lam. [Th] Sonnet, T6 20 - T7 21",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,

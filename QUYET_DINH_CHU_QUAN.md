@@ -207,6 +207,30 @@
 - 08.11 · Gộp NAP-1 (chat): đơn nạp không kèm giao hàng; tiền nạp về muộn sau khi huỷ phiên → quầy xác nhận tay như đơn thường (CK-NOIDUNG-1) → đúng
   một đơn nạp, ví vào đúng số gói.
 
+## Đợt quyết định 08–09.11.2026 b (chat bàn 34)
+- 08.11 · Điểm KHÔNG đổi thành tiền, không trừ thẳng vào đơn: điểm chỉ để đổi voucher. Khách tự đổi trong App, đổi xong là xong (không gắn với đơn
+  ở quầy). Bỏ đổi điểm ở quầy (P3b).
+- 08.11 · Voucher dùng một lần, không trả lại tiền thừa; một đơn tối đa N voucher (Cài đặt, gợi ý 3); voucher tiền trừ trước, voucher % tính trên
+  phần còn lại; tổng giảm không quá tiền món; giờ flash không dùng voucher %; mỗi đơn chỉ MỘT mã khuyến mãi chung (mã quán phát cho mọi người);
+  đơn huỷ / không thành công → trả lại mọi voucher đã dùng (điểm đã đổi không hoàn); điểm tính trên phần khách trả thật (VOUCHER-2).
+- 08–09.11 · Voucher ship: giảm theo số tiền hoặc theo % (có trần "giảm tối đa"), chỉ giảm dòng phí giao, đơn tự đến lấy không dùng; quán vẫn trả
+  Ahamove đủ, Đối soát ghi phần quán bù; tính vào giới hạn N voucher (VOUCHER-2).
+- 09.11 · Mã khuyến mãi Ahamove: công tắc "phần giảm của Ahamove: cho khách / quán giữ" — trước mắt CHO KHÁCH; trừ mã Ahamove trước rồi mới trừ
+  voucher ship; hiện rõ ở quầy VÀ App KH; mã hỏng lúc gọi xe → khách không trả thêm, quán bù, Đối soát ghi. Kho mã hai kiểu: kho mã dùng một lần
+  (dán danh sách) và một mã dùng nhiều lượt (số lượt, hạn); máy dùng theo thứ tự, giữ mã cho đơn đang thanh toán, mã hỏng tự chuyển mã kế, sắp hết
+  thì nhắc (GIAO-MA-1).
+- 09.11 · Tích điểm theo món (DIEM-MON-1): khoản hoàn biết thuộc dòng nào (kết thúc gói, đền theo dòng) chỉ trừ điểm theo phần dòng BẬT điểm —
+  dòng tắt điểm không trừ (Cách 2); khoản hoàn không gắn dòng trừ theo tỉ lệ toàn đơn; duyệt hoàn sau khi đã đền → trừ theo phần CÒN LẠI của đơn
+  (hoàn hết thì điểm về 0, không phụ thuộc đền món nào trước — Q4 = a).
+- 09.11 · Sản phẩm không pha chế (thẻ hạng, gói nạp, gói trả trước) bán MỌI GIỜ, kể cả ngoài giờ mở cửa; giỏ có đồ uống vẫn theo giờ. Đơn chỉ có
+  thẻ / nạp tự chuyển "Xong" khi tiền về (KH-THE-1, KH-NAP-1).
+- 09.11 · Mọi thao tác trong POS phải báo rõ, dễ hiểu và luôn nhìn thấy: xanh nói đã làm gì; đỏ nói vì sao + cách sửa (BAO-1a ngoài Cài đặt,
+  BAO-1b Cài đặt — gồm CAIDAT-BAO-1).
+- 09.11 · Giao diện Cài đặt / Khách hàng / Quản lý tinh gọn theo mẫu chủ quán duyệt TẠM (artifact "Tinh gọn Cài đặt & Khách hàng"); góp ý thêm
+  và chốt mẫu lần 2 trước khi làm (GIAO-DIEN-2).
+- 09.11 · Máy in bill tự cắt rời từng liên (2 liên → 2 tờ rời, không in dài rồi xé).
+- 09.11 · Khai trương phải ĐẦY ĐỦ mọi việc, không cắt bớt — sớm nhất T5 26.11 nếu không thêm việc.
+
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
   nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).
