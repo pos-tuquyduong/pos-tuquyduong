@@ -501,6 +501,7 @@ chayBaiThat('cong_cu/thu_KHMUA1.js');   // KH-MUA-1: App KH đặt đơn nhận 
 chayBaiThat('cong_cu/thu_HD1.js');   // HD-1: hoá đơn bố cục mới + QR + chữ tuỳ chỉnh (dòng riêng: thu_P3 neo mảng bài, đòi P3 đứng cuối)
 chayBaiThat('cong_cu/thu_HDKH1.js');   // HD-KH-1: App KH xem hoá đơn đúng mẫu quầy + cach_tra / giu_vi / con_lai của đơn App
 chayBaiThat('cong_cu/thu_SAOLUU2.js');   // SAOLUU-2: khôi phục sao lưu tất cả hoặc không + phép chốt mọi bảng (database.js + nang_cap/) đều sao lưu
+chayBaiThat('cong_cu/thu_VIME1.js');   // VI-ME-1: chỉ trừ / giữ tài khoản mẹ khi khách đúng là con của mẹ đó (một hàm kiemTraMe)
 chayBaiThat('cong_cu/thu_GIOVN1.js');   // GIO-VN-1: mọi giờ ghi / so / trả ra là giờ VN — quét chặn tái phạm, bước nâng cấp 012, so giờ quanh 00:00 / 07:00
 chayBaiThat('cong_cu/thu_SEPAY1.js');   // SEPAY-1: QR qua SePay (VietQR tự dựng + webhook HMAC-SHA256), công tắc CONG_QR, payOS dự phòng
 chayBaiThat('cong_cu/thu_CKNOIDUNG1.js');   // CK-NOIDUNG-1: nội dung CK mang số hoá đơn, giữ số lúc hiện QR, mã GD, tiền về muộn
