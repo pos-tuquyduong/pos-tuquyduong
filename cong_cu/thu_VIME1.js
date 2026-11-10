@@ -17,10 +17,12 @@ const path = require('path');
 const crypto = require('crypto');
 
 const GOC = path.join(__dirname, '..');
+const iMC = process.argv.indexOf('--may-chu'); // --may-chu <server>: chạy trên bản sao server/ (đột biến, viec/VI-ME-1/dot_bien.py)
+const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_vime1_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
-const duongKN = require.resolve(path.join(GOC, 'server', 'ketNoiKho.js'));
+const duongKN = require.resolve(path.join(MAY_CHU,'ketNoiKho.js'));
 require.cache[duongKN] = {
   id: duongKN, filename: duongKN, loaded: true,
   exports: {
@@ -50,17 +52,17 @@ async function main() {
   imLang();
   const express = require(path.join(GOC, 'node_modules', 'express'));
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
-  const db = require(path.join(GOC, 'server', 'database.js'));
-  const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
+  const db = require(path.join(MAY_CHU,'database.js'));
+  const { getNow } = require(path.join(MAY_CHU,'utils', 'helpers.js'));
   await db.initDatabase();
-  const R = (f) => path.join(GOC, 'server', 'routes', f);
+  const R = (f) => path.join(MAY_CHU,'routes', f);
   const app = express();
   app.use(express.json());
   app.use('/api/pos/orders', require(R('orders.js')));
   app.use('/api/pos/wallets', require(R('wallets.js')));
   app.use('/api/pos/thanh-toan', require(R('thanh-toan.js')));
   app.use('/api/pos/v2/customers', require(R('customers-v2.js')));
-  const mk = require(path.join(GOC, 'server', 'utils', 'manKhach.js'));
+  const mk = require(path.join(MAY_CHU,'utils', 'manKhach.js'));
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
   noiLai();
@@ -214,12 +216,12 @@ async function main() {
   muc('[tĩnh] một hàm, một chỗ gọi; App KH không có lối tiền mẹ; bộ kiểm chạy bài này');
   {
     const bo = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-    const doc = (...p) => bo(fs.readFileSync(path.join(GOC, ...p), 'utf8'));
-    const od = doc('server', 'routes', 'orders.js');
+    const doc = (...p) => bo(fs.readFileSync(path.join(MAY_CHU, ...p), 'utf8'));
+    const od = doc('routes', 'orders.js');
     const goiMe = od.split('kiemTraMe(').length - 1, iGoi = od.indexOf('await kiemTraMe('), iTinh = od.indexOf('if (phien?.chiTinh)');
     k('B4 orders.js gọi kiemTraMe đúng 1 lần, trước nhánh chỉ tính (if (phien?.chiTinh))', goiMe === 1 && iGoi > 0 && iGoi < iTinh, `${goiMe} · ${iGoi} < ${iTinh}`);
-    k('B4 giuCho.js không tự đọc pos_customers (một hàm đối chiếu)', !doc('server', 'utils', 'giuCho.js').includes('pos_customers'));
-    const app = doc('server', 'utils', 'donApp.js'), kh = doc('server', 'routes', 'kh', 'index.js');
+    k('B4 giuCho.js không tự đọc pos_customers (một hàm đối chiếu)', !doc('utils', 'giuCho.js').includes('pos_customers'));
+    const app = doc('utils', 'donApp.js'), kh = doc('routes', 'kh', 'index.js');
     k('E1 App KH: donApp.js không có tru_tai_khoan_me / parent_phone; kh/index.js không có "parent"', !/tru_tai_khoan_me|parent_phone/.test(app) && !kh.includes('parent'));
     const kt = fs.readFileSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js'), 'utf8');
     k("kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_VIME1.js'", /^chayBaiThat\('cong_cu\/thu_VIME1\.js'\);/m.test(kt));
