@@ -119,3 +119,6 @@ Tên đột biến thêm ở vòng 2 (cổng A17): VS-MOI-BI-BO, BV-DOISOAT-MO-N
 
 ✓ CỔNG CHẠY ĐẠT  (node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a; kèm CẢNH BÁO A16: gốc in 81 ca ≠ 99 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận)
 HEAD ĐÃ KIỂM: 21a39eee
+
+✓ CỔNG CHẠY ĐẠT  (vòng 2: node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a, cây sạch ở cb7d68c; kèm CẢNH BÁO A16: gốc in 84 ca ≠ 103 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận)
+HEAD ĐÃ KIỂM: cb7d68c6
