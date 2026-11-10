@@ -129,6 +129,10 @@ thuộc dòng nào, thêm ~30 dòng. Đề xuất: cách thứ nhất (đơn gi�
   - Đền ('compensation') → gắn dòng theo `pos_damage_logs.product_code` (cần mục 6.2 Q2).
 - Số trừ = min(điểm, ceil(điểm × (Rk / tiền trả + Rb / tiền tính điểm))). Đơn cũ / đơn toàn món bật: tiền tính điểm = tiền trả → y hệt hôm nay
   (bài cũ thu_NAP1 E10, E12, E16d giữ nguyên số).
+  **Sửa theo Q4 = a (chủ quán 09.11, sau soát vòng 1):** `Rk` (duyệt hoàn) trả PHẦN CÒN LẠI sau đền (`tienDaTra.js` soTienHoan) → quy theo phần
+  còn lại: số trừ = min(điểm, ceil(điểm × (Rb + Rk × (tiền tính điểm − Rb) / (tiền trả − tổng đền)) / tiền tính điểm)). Hoàn hết phần còn lại →
+  về 0, bất kể đền món nào trước. Chưa đền: y hệt công thức trên. Ca **T13e** (đền X tắt rồi hoàn → 0; ngược thứ tự → 0), **T13f** (hoàn một phần
+  sau đền X → 50), **T13g** (đền Y bật rồi hoàn một phần → 21). I8 cùng luật (chép riêng).
 - Ca sửa: **T13** đơn X tắt 40.000 + Y bật 60.000 tiền mặt (60 điểm): đền Y 30.000 → trừ ceil(60 × 30.000 / 60.000) = 30; đền tiếp Y 30.000 → tổng
   60, không quá. **T13d (mới)** đền X (tắt) 40.000 → trừ 0. **T13b** duyệt hoàn 50.000 (không gắn dòng) → trừ ceil(60 × 50.000 / 100.000) = 30.
   **T14** gói G tắt 300.000 + Y bật 60.000 (60 điểm), kết thúc gói hoàn 180.000 → trừ 0. **T14b (mới)** gói bật + Y tắt: kết thúc gói hoàn → trừ

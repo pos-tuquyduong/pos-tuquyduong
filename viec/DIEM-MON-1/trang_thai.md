@@ -115,6 +115,35 @@ BÀI HỌC:
   đơn nạp 0 điểm và không gộp món (B5 NAP-1).
 - Lỗi 1: CHƯA sửa — đụng điểm, luật chưa chốt → `## Câu hỏi` Q4.
 
+## Bước 1 (phiên 10.11 — làm tiếp sau Q4, Q5)
+- Nhánh viec/DIEM-MON-1 · cây sạch · HEAD eb4060c = FETCH_HEAD eb4060c (bằng nhau, không kéo — hook mở phiên đã kéo 997bf52 → eb4060c)
+- git log --oneline -3:
+  - eb4060c PHIEU: DIEM-MON-1 Pham vi them cong_cu/thu_KHO1.js (Q5 chu quan duyet 09.11)
+  - 1cbbab5 DIEM-MON-1: bao cao soat vong 1 (KHONG DAT) + cau hoi Q4 (diem khi den roi duyet hoan), Q5 (Pham vi thu_KHO1)
+  - 3b3888d DIEM-MON-1: orders — doi ten bien coNhanDiem (khong che batDiem), dung ID_THE_TU (soat vong 1 loi 3, 4)
+- Chủ quán 09.11: Q4 = a; Q5 đã thêm `cong_cu/thu_KHO1.js` vào Phạm vi; nghi ngờ PIN cho công tắc điểm của hạng → giữ như kế hoạch (không PIN).
+- Kho nông lại (phiên mới) → `thu_BH2.js` đỏ "bad revision cbbb809"; `git fetch -q --unshallow origin viec/DIEM-MON-1` (chỉ tải lịch sử) → xanh.
+
+## Vòng sửa 1 — lỗi 1 (Q4 = a)
+- Bài thử TRƯỚC (commit 8d1f224, 44d6c04): T13e (đền X tắt → duyệt hoàn → 0; ngược thứ tự → 0), T13f (ví + tiền mặt, đền X rồi hoàn 10.000 → 50),
+  T13g (đền Y bật 30.000 rồi hoàn 20.000 → 21 — phủ vế "trừ phần đền bật"). Trên code chưa vá Q4: T13e `[60,60,24]`, T13f `[60,60,54]` ĐỎ
+  (26 đạt · 2 hỏng). Trên gốc e90d42a: 5 đạt · 24 hỏng. Sau vá: 29 đạt · 0 hỏng (`bang_chung_do.txt`, `SỐ CA` 29).
+- Vá: `server/utils/diemThat.js` tienHoanTinhDiem — `Rk × (tiền tính điểm − đền bật) / (tiền trả − tổng đền)` (chặn chia cho ≤ 0, chặn âm);
+  `cong_cu/gia_lap/bat_bien.js` I8 cùng luật (chép riêng). Đơn cũ (không cột): tiền tính điểm = tiền trả, đền bật = đền → tỷ lệ 1 → y hệt trước.
+- Đền sau duyệt hoàn không xảy ra (`damages.js` chặn đơn khác 'completed' — `DON_KHONG_DEN_DUOC`), nên mẫu số "tiền trả − tổng đền" đúng với số
+  soTienHoan dùng lúc duyệt.
+- Đột biến (`dot_bien.py`): thêm BV-q4-hoan-theo-toan-don (T13e), VS-q4-con-lai-bo-den-bat (T13g), VS-q4-mau-so-ca-don (T13e),
+  BV-i8-q4-hoan-theo-toan-don (T18); sửa neo VS-hoan-toan-don, VS-den-mon-tat-van-tru, VS-i8-den-tat-van-tru theo dòng mới.
+  Kết quả: ĐỐI CHỨNG XANH 29 đạt · 0 hỏng · TỔNG 34 đột biến · BẮT 34 · SỐNG 0 · HỎNG 0 · LẠC 0.
+- Tên đột biến (đủ 34): BV-024-cot-don, BV-024-co-goi, BV-ham-bo-ty-le, VS-chia-0, VS-null-la-tat, VS-khong-chia-ty-le, VS-gia-goc-bo-gia-hang,
+  BV-dong-tat-van-tinh, VS-hoan-toan-don, VS-den-mon-tat-van-tru, BV-q4-hoan-theo-toan-don, VS-q4-con-lai-bo-den-bat, VS-q4-mau-so-ca-don,
+  VS-goi-tat-van-tru, VS-ket-thuc-goi-nhu-duyet-hoan, VS-mau-so-tien-tra, BV-co-mon, BV-co-goi, BV-co-hang, BV-luu-tien-hang-diem, BV-luu-co-dong,
+  BV-diem-luc-tao, VS-tien-hang-gom-phi-giao, BV-nhan-diem-thieu-cot, BV-ghi-su-co-sau, BV-quyen-sua, BV-quyen-xem, VS-bang-tu-do, BV-id-khong-kiem,
+  BV-i8-khong-ty-le, VS-i8-den-tat-van-tru, BV-i8-q4-hoan-theo-toan-don, VS-i8-goi-tat-van-tru, BV-i8-bo-cot-moi.
+- Bảng chỗ vá Q4 → đột biến: tienHoanTinhDiem phần còn lại → BV-q4-hoan-theo-toan-don · VS-q4-con-lai-bo-den-bat · VS-q4-mau-so-ca-don;
+  I8 phần còn lại → BV-i8-q4-hoan-theo-toan-don.
+- Kiểm: `npm test -- --day-du` PASS 111 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn: GET có lệnh ghi — packages, products, sync).
+
 ## Câu hỏi
 - Q1 (đã đề xuất trong ke_hoach.md mục 5): khi hoàn / đền / kết thúc gói, trừ điểm theo tỷ lệ trên TOÀN tiền đơn (đề xuất) hay chỉ khi phần hoàn
   thuộc dòng bật điểm? Chủ quán xác nhận lúc duyệt kế hoạch.
@@ -147,6 +176,7 @@ BÀI HỌC:
 - Nghi ngờ của người soát cần bạn xác nhận (không chặn): bật / tắt tích điểm của HẠNG chỉ cần quyền "Quản lý khuyến mãi", không cần PIN chủ quán
   (sửa hạng ở màn Hạng thẻ thì cần PIN). Mình đề xuất giữ như kế hoạch đã duyệt (công tắc điểm không đổi giá / hạng của khách).
 - **DỪNG ở bước 8 (vòng sửa 1)** chờ Q4, Q5.
+- **Q4 — ĐÃ TRẢ LỜI 09.11:** cách a. **Q5 — ĐÃ TRẢ LỜI 09.11:** phiếu eb4060c thêm `cong_cu/thu_KHO1.js`. **PIN công tắc hạng:** giữ không PIN.
 
 ## Phát hiện
 - `server/utils/tienDaTra.js` (ngoài Phạm vi): quy tắc chia tiền theo dòng nằm trong hàm bất đồng bộ đọc kho; tách phần thuần ra thì
