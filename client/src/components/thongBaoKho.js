@@ -36,9 +36,9 @@ function them(loai, tieuDe, lyDo) {
   }
   const id = ++dem;
   ds = [...ds, { id, loai, tieuDe, lyDo: lyDo || '' }];
-  // Quá giới hạn: bỏ thông báo XANH cũ nhất trước (đã tự ẩn được); không còn xanh mới bỏ đỏ cũ nhất — lỗi đỏ chưa đọc không bị xanh đẩy mất.
+  // Quá giới hạn: bỏ thông báo XANH cũ nhất trước (đã tự ẩn được); không còn xanh cũ thì bỏ cái cũ nhất. KHÔNG BAO GIỜ bỏ chính thông báo vừa thêm (thu tiền xong phải thấy "Đã thu…").
   while (ds.length > TOI_DA) {
-    const cu = ds.find((t) => t.loai === 'xong') || ds[0];
+    const cu = ds.find((t) => t.loai === 'xong' && t.id !== id) || ds[0];
     clearTimeout(hen.get(cu.id)); hen.delete(cu.id); ds = ds.filter((t) => t !== cu);
   }
   if (loai === 'xong') hen.set(id, setTimeout(() => bo(id), TG_TU_AN));

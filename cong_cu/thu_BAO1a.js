@@ -77,6 +77,7 @@ const KHOA_NUT = {   // file → [cờ, số chỗ disabled={…cờ…} tối t
   'pages/DonApp.jsx': ['dangBam', 2],
   'components/CapHang.jsx': ['dangGui', 2],
   'components/ViKhach.jsx': ['dang', 1],
+  'components/DoiSoat.jsx': ['dangGhi', 3],
   'pages/Kho/XemPhieu.jsx': ['dangGhi', 7],
 };
 
@@ -130,6 +131,10 @@ function duyet(thuMuc, ra = []) {
     T.baoLoi('d1'); T.baoLoi('d2'); T.baoLoi('d3'); T.baoLoi('d4');
     k('A12 toàn đỏ quá 3 thì bỏ đỏ cũ nhất', ghi().length === 3 && ghi()[0].tieuDe === 'd2');
     don();
+    T.baoLoi('d1'); T.baoLoi('d2'); T.baoLoi('d3'); T.baoXong('Đã thu tiền đơn 1');
+    k('A13 đang 3 đỏ mà có xanh MỚI thì xanh mới vẫn hiện (bỏ đỏ cũ nhất, không bỏ chính cái mới)',
+      ghi().length === 3 && ghi().some((t) => t.loai === 'xong' && t.tieuDe === 'Đã thu tiền đơn 1') && ghi().every((t) => t.tieuDe !== 'd1'));
+    don();
 
     muc('C · câu lỗi dễ hiểu');
     const chung = 'Thử lại; vẫn lỗi thì báo chủ quán.';
@@ -156,6 +161,8 @@ function duyet(thuMuc, ra = []) {
   k('B6 nút đóng ≥ 44px', /\.thong-bao-dong\s*\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px/.test(css));
   const lay = SX('components', 'Layout.jsx');
   k('B7 Layout gắn <ThongBao /> đúng MỘT lần', (lay.match(/<ThongBao\s*\/>/g) || []).length === 1 && /import ThongBao from '\.\/ThongBao'/.test(lay));
+  k('B7b Layout gắn <ThongBao /> vô điều kiện (không sau && / ? / :)', !/(&&|\?|:)\s*\(?\s*<ThongBao\s*\/>/.test(lay));
+  k('C6 Sales.setError đi qua lyDoLoi (chữ kỹ thuật → câu chung)', /baoLoi\(\s*lyDoLoi\(\s*cau\s*\)\s*\)/.test(SX('pages', 'Sales.jsx')));
   const gan = fs.existsSync(SRC) ? duyet(SRC).filter((f) => /<ThongBao\s*\/>/.test(sach(fs.readFileSync(f, 'utf8'))) && !/ThongBao\.jsx$/.test(f)) : [];
   k('B8 chỉ MỘT file gắn <ThongBao />', gan.length === 1, gan.map((f) => path.relative(SRC, f)).join(', '));
 
