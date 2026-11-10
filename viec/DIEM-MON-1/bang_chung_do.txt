@@ -46,8 +46,12 @@ Thêm (vòng sửa 1, Q4): cùng bài trên code TRƯỚC khi vá Q4 (HEAD 8d1f2
   ✗ T13f … — HTTP 200 · HTTP 200 hoàn 10000 [60,60,54]
   26 đạt · 2 hỏng   (T13g thêm sau, phủ vế "trừ phần đền món bật" — đột biến VS-q4-con-lai-bo-den-bat BẮT ở T13g)
 
-Trên code ĐÃ VÁ (HEAD): node cong_cu/thu_DIEMMON1.js → 29 đạt · 0 hỏng
-SỐ CA cong_cu/thu_DIEMMON1.js: 29
+Thêm (vòng sửa 2, soát vòng 2 lỗi 1 — làm tròn số thực): T13h (commit 09e0fcc).
+  Trên code trước vá vòng 2 (HEAD 09e0fcc): ✗ T13h … — HTTP 200 hoàn 3000 · 13 → 10   (29 đạt · 1 hỏng; T18 vẫn xanh vì I8 chép cùng lỗi)
+  Trên GỐC e90d42a (bài bản cuối): ✗ T13h … — HTTP 200 hoàn 3000 · 19 → 16 · cả bài 5 đạt · 25 hỏng (các dòng khác y như khối trên)
+
+Trên code ĐÃ VÁ (HEAD): node cong_cu/thu_DIEMMON1.js → 30 đạt · 0 hỏng
+SỐ CA cong_cu/thu_DIEMMON1.js: 30
 
 ────────────────────────────────────────────────────────────────────────────
 Bài cũ SỬA theo LUAT_XAY_APP §6.7 (bài khoá ĐÚNG danh sách cột, phiếu thêm cột mới): cong_cu/thu_KHO1.js — D1 thêm `tich_diem` vào COT_SP

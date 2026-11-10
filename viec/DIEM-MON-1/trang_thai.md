@@ -144,6 +144,76 @@ BÀI HỌC:
   I8 phần còn lại → BV-i8-q4-hoan-theo-toan-don.
 - Kiểm: `npm test -- --day-du` PASS 111 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn: GET có lệnh ghi — packages, products, sync).
 
+## Soát độc lập — vòng 2 (/ra-soat, agent chỉ đọc) — chép nguyên báo cáo
+KHÔNG ĐẠT
+
+Tóm tắt: bản vá Q4 = a đúng luật ở mọi trường hợp mình đã dò (đơn cũ, ví mẹ, trả một phần tiền mặt, đền nhiều lần, đền món tắt + bật rồi hoàn). Lỗi 2–5 của vòng 1 đã sửa thật. Nhưng công thức mới chia hai lần bằng số thực, nên có ca làm tròn LÊN thừa 1 điểm. Mình đã dựng lại được ca đó bằng chính diemThat.js. I8 chép y công thức này nên màn Đối soát không báo lệch. Lỗi đụng điểm → NẶNG.
+
+LỖI TÌM ĐƯỢC:
+1. `server/utils/diemThat.js:74` (+ `diemTruKhiHoan` :50-51) và bản chép ở `cong_cu/gia_lap/bat_bien.js:202-205` (I8) — số trừ sai do làm tròn số thực (float) — K3 + K4 — NẶNG.
+   - Cách hỏng: `khongGan × (tienDiem − denBat) / conTra` cho ra số lẻ, sau đó lại `Math.ceil(diem × số_đó / tienDiem)`. Khi kết quả đúng là số nguyên, phép chia số thực vượt lên một chút, nên ceil cộng thêm 1.
+   - Ca dựng lại được, chạy thật với `truDiemHoan` (script nháp trong thư mục nháp của phiên): đơn 19.500đ = X tắt 6.000 + Y bật 13.500; trả ví 3.000 + tiền mặt 16.500 → 13 điểm. Duyệt hoàn 3.000 vào ví (chưa đền). Luật đúng: 13×3.000/19.500 = 2 điểm. Máy trừ **3**.
+   - Trước DIEM-MON-1 không có lỗi này: `diemTruKhiHoan` nhận số nguyên, chia một lần, kết quả chính xác.
+   - Quét thử bằng node: rất nhiều bộ số thực tế dính, ví dụ tienDiem 13.500 · conTra 19.500/32.500 · hoàn 3.000/5.000/6.000/10.000/12.000.
+   - I8 (`bat_bien.js:202-205`) tính đúng theo cùng thứ tự phép, nên Đối soát không bao giờ bắt được. Trọng tài chép cả lỗ (K4: "chép cổng có sẵn thì chép luôn lỗ của nó").
+   - Bài thử T13b/e/f/g (`cong_cu/thu_DIEMMON1.js:277-303`) toàn số tròn, nên không ca nào lộ lỗi (K3: "ca PHÉP TÍNH chọn số để làm tròn không che lỗi").
+   - Cách vá gọn: làm tròn XUỐNG phần quy đổi ra đồng trước khi đưa vào ceil, tức `Math.floor((khongGan * Math.max(0, tienDiem - denBat)) / conTra)` (nghiêng có lợi cho khách < 1đ). Hoặc tính cả phân số bằng số nguyên. Sửa CẢ hai chỗ: diemThat.js:74 và bat_bien.js:204. Thêm ca dùng đúng bộ số trên (kỳ vọng 13 → 11) và một đột biến đưa lại phép chia thực.
+2. `viec/DIEM-MON-1/ke_hoach.md:40,41,102,107` — kế hoạch vẫn ghi sai so với code — K1 — NHẸ. Cụ thể: "dòng gói nạp … tính tắt" (code ghi NULL = bật); "kẹp ≤ 1"; T19 "`/api/kh` so danh sách khoá"; đột biến `BV-TRAN`. Ngoài ra ke_hoach.md:144 ghi T14 "hoàn 180.000", bài thử dùng 300.000 (`thu_DIEMMON1.js:319`). trang_thai.md đã ghi đính chính (lỗi 5 a–c) nhưng chính kế hoạch chưa có dòng trỏ sang. Nên thêm một dòng "xem trang_thai — đã bỏ" ngay tại các chỗ đó.
+
+NGHI NGỜ:
+- Phí giao trong khoản duyệt hoàn: `refunds.js:136` lấy `refund_amount = balance_amount`, có thể gồm phần phí giao trả bằng ví. `soTienHoan` (`tienDaTra.js:35-51`) cũng không trừ phí giao, trong khi `conTra` (`diemThat.js:72`) đã bỏ phí giao. Kết quả: ở đơn trộn món tắt/bật, có phí giao và trả một phần tiền mặt, tỷ lệ hoàn / phần còn lại có thể > 1 → trừ nhiều hơn "phần còn lại". Đơn toàn món bật thì y hệt trước (lỗi có sẵn từ NAP-1, không do việc này). Chưa dựng ca để chứng minh.
+- `diemThat.js:66-69` và I8 (`bat_bien.js:162-163`) ghép đền với món theo `product_code`. Đúng khi mã món, mã gói và `THE-<tên>` không trùng nhau; chưa kiểm dữ liệu thật.
+- `loyalty.js` `ID_TICH_DIEM_TOI_DA = 500`: quán có > 500 món bán được thì "Chọn tất cả" bị trả 400 `TICH_DIEM_SAI`. Chưa biết số món thật.
+- Bill vẫn hứa "gấp N điểm" cho đơn mà mọi dòng đều tắt điểm (`orders.js:1312-1323`). Phiếu cấm đổi bill nên không tính là lỗi.
+- I8 chỉ có một đột biến cho vá Q4 (BV-i8-q4-hoan-theo-toan-don, `dot_bien.py:71`), không có đột biến cho vế "trừ đền bật" / mẫu số ở I8. Theo tính tay, T18 vẫn sẽ bắt (đơn T13g), nhưng chưa chạy.
+
+Trả lời từng mục soát:
+1. K3: Bài thử ĐỎ trên gốc: 5 đạt · 24 hỏng (`bang_chung_do.txt`). Trên bản chưa vá Q4: T13e `[60,60,24]` và T13f `[60,60,54]` đỏ. Bài kiểm số điểm thật qua HTTP, không kiểm marker; marker suông không làm nó xanh được. Mình tự chạy `dot_bien.py VS-q4-mau-so-ca-don`: đối chứng 29 đạt · 0 hỏng, BẮT ở T13e. Lỗ: không ca nào có số lẻ (lỗi 1).
+2. K4: grep `tienTinhDiem|tinhDiemDon(` trong server → 5 chỗ gọi: orders.js:938 (tạo đơn), :1429 (thu nợ), signup-codes.js:210, hoaDon.js:83, nhanDiem.js (chú thích). Cả 5 đều có `tien_hang_diem`: SELECT * hoặc kê cột ở signup-codes.js:54. Bốn lối trừ (refunds:182, damages:211, packages:271, signup-codes:262) cùng qua `truDiemHoan`. Mỗi đơn chỉ có một dòng gói (`orders.js:489` một `package_buy`), nên `dong.find` an toàn. Còn sót: chỗ chia số thực có ở 2 nơi (diemThat:74, bat_bien:204) — chưa xử lý.
+3. K5: các luồng hợp lệ (đơn cũ không cột, đơn chỉ lấy từ gói, mua gói + lấy ngay, đơn có phí giao, đơn nạp, đơn nợ, đơn không SĐT nhận mã, ví mẹ) đều có ca hoặc mình đã lần theo code: T2b, T12b, T10, T12, T19, T9, T8/T18. Việc dời `ghiHangHong` lên trước (damages.js:206) không đổi lời trả hay các nhánh chặn VUOT_GIA. Không thấy luồng nào bị chặn oan (trừ nghi ngờ 500 món).
+4. K1: lỗi 2. Câu "đền sau duyệt hoàn không xảy ra" là đúng: damages.js:190 `DON_KHONG_DEN_DUOC`, refunds.js:166 chuyển đơn sang 'refunded'.
+5. Đường tiền: tiền tính điểm do máy chủ tự tính từ dòng đơn và giá đã tra (`orders.js:934`, `diemThat.js:27-32`). PUT /tich-diem chỉ nhận cờ, không nhận số tiền. Không trường tiền nào lấy từ máy khách.
+6. P1: commit build 4cc3cc9e đến sau mọi commit sửa `client/src`; dist có chuỗi `tich-diem`. Mình tự chạy `node kiem_tra_truoc_khi_giao.js --day-du` → PASS 111 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn).
+7. Lỗi 2–5 vòng 1: Lỗi 2 đã sửa, `kiem_tra_truoc_khi_giao.js:513`. Lỗi 3 đã sửa, `orders.js:1312` thành `coNhanDiem`. Lỗi 4 đã sửa, `orders.js:539` dùng `ID_THE_TU`. Lỗi 5: chỉ mới ghi ở trang_thai (lỗi 2 ở trên).
+
+NGHIỆM THU: 5/6 mục có bằng chứng · mục thiếu: C (một phần)
+- A: có — T1, T10, T11, T12, T19 (`thu_DIEMMON1.js`).
+- B: có — T3–T9, T6b: quầy, ví/CK, App (T7), /nhan-diem (T8), thu nợ (T9).
+- C: THIẾU một phần — đã có T13, T13b–g, T14, T14b, T15 (không trừ quá: T15). Nhưng vế "đơn có dòng tắt điểm trừ đúng tỷ lệ" sai 1 điểm ở ca số lẻ (lỗi 1), và không ca nào phủ.
+- D: có phần máy chủ — T16, T17. Giao diện TichDiem.jsx không có bài máy; trang_thai chưa ghi 1–3 thao tác cho chủ quán thử tay (LUAT §6.4).
+- E: có — T18, T18b. Nhưng I8 chép cùng lỗi làm tròn nên "điểm đơn = điểm đúng luật" chưa được kiểm độc lập ở ca số lẻ.
+- K5: có — T2b, T9, T12b, T19; `thu_HOPDONG_KH` trong `npm test` (đã xanh).
+- Đối soát (LUAT §5): có — I8 đã nhận luật mới.
+
+Đơn giản (mục 8): không thấy phần rườm rà hay lan ra ngoài phiếu. `tienHoanTinhDiem` (3 câu đọc) và I8 chép riêng là theo thiết kế "trọng tài". Phát hiện của máy về `tienDaTra.js` (tách hàm chia tiền thuần) hợp lý, để việc sau.
+
+CHƯA SOÁT ĐƯỢC: Giao diện TichDiem.jsx trên trình duyệt / điện thoại. `node tu_chay/cong.js chay`. 33/34 đột biến còn lại (mình chỉ chạy 1, BẮT). Bước 024 trên Turso thật và hiệu năng I8 (EXISTS mới) trên dữ liệu thật. Trùng product_code trong dữ liệu thật. Ca phí giao + trả một phần tiền mặt (nghi ngờ 1) chưa dựng.
+
+BÀI HỌC:
+- KHOÁ: thêm vào thu_DIEMMON1 một ca số lẻ (19.500 = 6.000 tắt + 13.500 bật, ví 3.000 + tiền mặt 16.500, duyệt hoàn → 13 thành 11). Thêm đột biến đưa lại phép chia số thực ở cả diemThat.js và I8.
+- NGUYÊN TẮC (K3/K4, thêm vào KHUON_LOI): phép tính điểm / tiền ghép nhiều lần chia rồi `ceil`/`floor` phải tính bằng số nguyên, hoặc làm tròn từng bước theo chiều có lợi cho khách. Ca thử phải có bộ số mà kết quả đúng là số nguyên nhưng phép tính đi qua phân số lẻ. Trọng tài chép cùng biểu thức thì không bắt được lỗi làm tròn — cần ít nhất một ca so với số tính tay.
+
+### Đã sửa sau vòng 2 (vòng sửa 2)
+- Lỗi 1 (NẶNG, đụng điểm — luật đã chốt: ceil(điểm × tiền hoàn / tiền tính điểm); chỉ sửa cách TÍNH cho đúng luật, không đổi luật):
+  - Bài thử TRƯỚC: T13h (commit 09e0fcc) — trên code chưa vá vòng 2: `13 → 10` ĐỎ (29 đạt · 1 hỏng); trên gốc 5 đạt · 25 hỏng.
+  - Vá `server/utils/diemThat.js`: `tienHoanTinhDiem` trả phân số `{ tu (BigInt), mau }`; `diemTruKhiHoan(diem, tienHoan, tienDiem, mau = 1)` tính
+    ceil bằng BigInt một lần (mặc định `mau = 1` giữ chữ ký cũ — `thu_NAP1.js` E8 xanh). `cong_cu/gia_lap/bat_bien.js` I8 cùng phép (chép riêng).
+  - Sau vá: `thu_DIEMMON1.js` 30 đạt · 0 hỏng (`SỐ CA` 30).
+  - Đột biến: thêm VS-chia-so-thuc (T13h), VS-i8-chia-so-thuc (T18); sửa neo VS-hoan-toan-don, BV-q4-hoan-theo-toan-don, VS-q4-con-lai-bo-den-bat,
+    VS-q4-mau-so-ca-don, VS-mau-so-tien-tra, BV-i8-q4-hoan-theo-toan-don theo dòng mới. ĐỐI CHỨNG XANH 30 đạt · 0 hỏng · TỔNG 36 · BẮT 36 · SỐNG 0 ·
+    HỎNG 0 · LẠC 0.
+  - Bảng chỗ vá vòng 2 → đột biến: diemTruKhiHoan ceil số nguyên → VS-chia-so-thuc · I8 ceil số nguyên → VS-i8-chia-so-thuc.
+  - Tên đột biến (đủ 36): 34 tên ở mục "Vòng sửa 1" + VS-chia-so-thuc, VS-i8-chia-so-thuc.
+- Lỗi 2 (NHẸ, hồ sơ): `ke_hoach.md` thêm ghi chú đính chính tại chỗ (dòng nạp NULL = bật; bỏ kẹp ≤ 1 và BV-TRAN; T19 bỏ ca `/api/kh`; T14 hoàn 300.000,
+  CÁCH 2 trừ 0) + dòng luật vòng 2.
+- Nghi ngờ "phí giao trong khoản duyệt hoàn" → `## Phát hiện` (có sẵn từ NAP-1, ngoài phần việc này đổi; đơn toàn món bật y hệt trước).
+- Kiểm: `npm test -- --day-du` PASS 111 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+
+### Thử tay cho chủ quán (giao diện — LUAT §6.4)
+1. Cài đặt → Điểm thưởng → khung "✅ Tích điểm theo món / gói / thẻ" (dưới nút Lưu): bấm công tắc một món sang Tắt → tải lại trang, món đó vẫn Tắt.
+2. Bấm "Chọn tất cả" ở nhóm món → "Tắt tích điểm" → mọi món Tắt; "Chọn tất cả" → "Bật tích điểm" → bật lại hết.
+3. Tắt một món, bán đơn có món đó + một món bật cho khách có SĐT → điểm khách chỉ tăng theo phần món bật; bật lại món đó sau.
+
 ## Câu hỏi
 - Q1 (đã đề xuất trong ke_hoach.md mục 5): khi hoàn / đền / kết thúc gói, trừ điểm theo tỷ lệ trên TOÀN tiền đơn (đề xuất) hay chỉ khi phần hoàn
   thuộc dòng bật điểm? Chủ quán xác nhận lúc duyệt kế hoạch.
@@ -179,5 +249,8 @@ BÀI HỌC:
 - **Q4 — ĐÃ TRẢ LỜI 09.11:** cách a. **Q5 — ĐÃ TRẢ LỜI 09.11:** phiếu eb4060c thêm `cong_cu/thu_KHO1.js`. **PIN công tắc hạng:** giữ không PIN.
 
 ## Phát hiện
+- (soát vòng 2, nghi ngờ) Duyệt hoàn: `refunds.js` lấy `refund_amount = balance_amount` (có thể gồm phí giao trả bằng ví); `soTienHoan`
+  (`tienDaTra.js`) không trừ phí giao, còn tiền tính điểm đã bỏ phí giao → đơn có phí giao trả bằng ví có thể bị trừ điểm hơi nhiều hơn phần hàng
+  hoàn. Có sẵn từ NAP-1 (đơn toàn món bật y hệt trước), hai file ngoài Phạm vi — chưa dựng ca, đề xuất cho việc sau.
 - `server/utils/tienDaTra.js` (ngoài Phạm vi): quy tắc chia tiền theo dòng nằm trong hàm bất đồng bộ đọc kho; tách phần thuần ra thì
   DIEM-MON-1 gọi lại được thay vì chép cùng công thức — đề xuất cho việc sau.

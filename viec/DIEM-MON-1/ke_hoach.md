@@ -37,8 +37,8 @@ nên tắt / bật công tắc SAU khi bán không làm đổi điểm của đ�
   × `tienHang` / Σ giá mọi dòng), `tienHang` = total − phí giao; Σ = 0 → 0. Mọi khoản giảm cấp đơn (mã cả đơn, mã 1 món — mã 1 món chỉ giảm
   MỘT đơn vị, `uuDai.js:28-29`, không ghi xuống dòng) chia theo tỷ lệ như `tienDaTra`. Không gọi thẳng `tienDaTraTheoDong` được (bất đồng bộ,
   đọc `pos_order_items` từ kho — lúc tính chưa có dòng); file đó ngoài Phạm vi nên không tách hàm thuần ra — ghi Phát hiện. Dòng gói nạp không
-  có `tich_diem` → tính tắt (đơn nạp vốn 0 điểm ở `orders.js:939`, không thêm cờ / đột biến cho nó).
-- `tienTinhDiem(dong)` (giữ tên, giữ chữ ký) = `tienTraDon(dong)` (công thức cũ, tách tên) × `tien_hang_diem / (total − phí giao)`, kẹp ≤ 1,
+  có `tich_diem` → tính tắt [ĐÍNH CHÍNH: code ghi NULL = bật, vô hại — trang_thai.md lỗi 5c] (đơn nạp vốn 0 điểm ở `orders.js:939`, không thêm cờ / đột biến cho nó).
+- `tienTinhDiem(dong)` (giữ tên, giữ chữ ký) = `tienTraDon(dong)` (công thức cũ, tách tên) × `tien_hang_diem / (total − phí giao)`, kẹp ≤ 1 [ĐÃ BỎ: thừa — trang_thai.md lỗi 5a],
   làm tròn như cũ; `tien_hang_diem` NULL/không có → hệ số 1 (đơn cũ); `total − phí giao ≤ 0` (đơn chỉ lấy từ gói) → 0, không chia cho 0 (NaN). Mọi lối cộng điểm đã gọi hàm này → quầy, App, pay-debt, /nhan-diem,
   hoá đơn cùng đúng mà KHÔNG thêm lời gọi mới.
 - `orders.js`: gắn `tich_diem` vào 3 loại dòng (`product.tich_diem !== 0`, `pkg.tich_diem !== 0`, `membershipTier.tich_diem !== 0`);
@@ -94,17 +94,17 @@ Cài đặt: điểm bật, 1.000đ = 1 điểm, hệ số mã bill 2. Món X 40
 | T13 | C đền | Đơn T3 (60 điểm) đền Y 30.000 vào ví → trừ ceil(60×30.000/100.000) = 18; đền tiếp X 40.000 + Y 30.000 → tổng trừ 60, không quá (trần đền theo dòng `damages.js:194-199`) | ĐỎ (gốc cộng 100, trừ 30) |
 | T13b | C hoàn | Duyệt hoàn (`refunds.js:182`) đơn T3 trả 50.000 vào ví → trừ 30 | ĐỎ (gốc 50) |
 | T13c | C mã bill | Đơn T3 không SĐT, đền 30.000 trước, rồi /nhan-diem: cộng 120, trừ ngay ceil(120×30.000/100.000) = 36 (`signup-codes.js:262`) | ĐỎ |
-| T14 | C gói | Đơn G (tắt, 300.000) + Y (bật, 60.000) → 60 điểm; kết thúc gói hoàn 180.000 vào ví → trừ ceil(60×180.000/360.000) = 30 (theo Q1) | ĐỎ (gốc 360/180) |
+| T14 | C gói | Đơn G (tắt, 300.000) + Y (bật, 60.000) → 60 điểm; kết thúc gói hoàn 180.000 vào ví → trừ ceil(60×180.000/360.000) = 30 (theo Q1) [THAY bởi CÁCH 2 mục 6.1: trừ 0; bài thật hoàn 300.000] | ĐỎ (gốc 360/180) |
 | T15 | C | Hai lệnh đền cùng lúc (`co.mocTruocTx`) → tổng trừ không quá điểm đã cộng | ĐỎ/xanh — ghi rõ |
 | T16 | D | `PUT /loyalty/tich-diem` không quyền `manage_promotions` → 403; quyền đúng → đổi đúng các id; `loai` lạ / id không số → 400 `TICH_DIEM_SAI`; không đụng bảng khác | ĐỎ (404) |
 | T17 | D | `GET /loyalty/tich-diem` trả 3 nhóm, không có giá vốn | ĐỎ |
 | T18 | E | Đơn KHÔNG SĐT (hoá đơn chỉ in mã khi không SĐT, `hoaDon.js:68`): điểm hoá đơn báo cho mã = điểm /nhan-diem ghi sổ (120); đối soát (`doiSoat.js`) tổng điểm = Σ sổ | ĐỎ |
-| T19 | K5 | Flash vẫn 0 điểm; đơn nợ không cộng lúc tạo; trả lời `/api/kh` đơn không thêm trường (so danh sách khoá); `total`, `subtotal`, giảm hạng của đơn T3/T6 như gốc | xanh (đối chứng) |
+| T19 | K5 | Flash vẫn 0 điểm; đơn nợ không cộng lúc tạo; trả lời `/api/kh` đơn không thêm trường (so danh sách khoá) [ĐÃ BỎ khỏi bài: thu_HOPDONG_KH canh — trang_thai.md lỗi 5b]; `total`, `subtotal`, giảm hạng của đơn T3/T6 như gốc | xanh (đối chứng) |
 | — | D giao diện | Nút chọn nhiều / công tắc: KHÔNG có bài máy — chủ quán thử tay (3 thao tác ghi ở báo cáo); màn Bán hàng / bill không đổi: `git diff` không đụng Sales.jsx / InvoicePrint | ghi CHƯA KIỂM |
 
 Đột biến `dot_bien.py` (mỗi chỗ vá ≥ 1): `BV-HAM` (tienTinhDiem bỏ hệ số), `VS-MAUSO` (truDiemHoan giữ mẫu số cũ), `BV-COT-NHANDIEM` (bỏ cột ở
 signup-codes:54), `VS-CHIA0` (bỏ chặn mẫu số 0), `VS-GIA` (giá dòng bỏ giá hạng), `BV-QUYEN` (PUT dùng `manage_settings`), `VS-BANG` (bỏ danh sách trắng
-bảng), `BV-TRAN` (bỏ kẹp ≤ 1).
+bảng), `BV-TRAN` (bỏ kẹp ≤ 1) [ĐÃ BỎ cùng kẹp]. Tên đột biến thật: danh sách trong trang_thai.md (đặt lại tên khi viết dot_bien.py).
 
 ## 4. Đường song song (K4) và luồng hợp lệ không được chặn (K5)
 - Song song: 4 lối cộng (tạo đơn quầy/App, pay-debt, /nhan-diem, hoá đơn hiện điểm) — đều qua `tienTinhDiem`; 4 lối trừ (`truDiemHoan` ở
@@ -133,9 +133,10 @@ thuộc dòng nào, thêm ~30 dòng. Đề xuất: cách thứ nhất (đơn gi�
   còn lại: số trừ = min(điểm, ceil(điểm × (Rb + Rk × (tiền tính điểm − Rb) / (tiền trả − tổng đền)) / tiền tính điểm)). Hoàn hết phần còn lại →
   về 0, bất kể đền món nào trước. Chưa đền: y hệt công thức trên. Ca **T13e** (đền X tắt rồi hoàn → 0; ngược thứ tự → 0), **T13f** (hoàn một phần
   sau đền X → 50), **T13g** (đền Y bật rồi hoàn một phần → 21). I8 cùng luật (chép riêng).
+  **Soát vòng 2:** tiền quy đổi là phân số → tính ceil bằng số nguyên lớn (BigInt) một lần, không chia số thực hai lần (ca số lẻ **T13h**: 13 → 11).
 - Ca sửa: **T13** đơn X tắt 40.000 + Y bật 60.000 tiền mặt (60 điểm): đền Y 30.000 → trừ ceil(60 × 30.000 / 60.000) = 30; đền tiếp Y 30.000 → tổng
   60, không quá. **T13d (mới)** đền X (tắt) 40.000 → trừ 0. **T13b** duyệt hoàn 50.000 (không gắn dòng) → trừ ceil(60 × 50.000 / 100.000) = 30.
-  **T14** gói G tắt 300.000 + Y bật 60.000 (60 điểm), kết thúc gói hoàn 180.000 → trừ 0. **T14b (mới)** gói bật + Y tắt: kết thúc gói hoàn → trừ
+  **T14** gói G tắt 300.000 + Y bật 60.000 (60 điểm), kết thúc gói hoàn 180.000 [bài thật: gói chưa lấy lượt nào → hoàn 300.000] → trừ 0. **T14b (mới)** gói bật + Y tắt: kết thúc gói hoàn → trừ
   theo phần gói. **T13c** đơn có SĐT, đền Y rồi nhận mã bill → trừ phần Y theo điểm mã bill.
 - Đột biến thêm: `VS-HOAN-TOANDON` (đền / kết thúc gói tính như không gắn dòng — T13, T13d, T14 bắt), `VS-TAT-VAN-TRU` (dòng tắt vẫn tính vào Rb —
   T13d, T14 bắt), `BV-COT-DONG` (không ghi `tich_diem` xuống dòng đơn — T13d bắt).
