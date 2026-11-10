@@ -46,8 +46,14 @@ const tienTinhDiem = (dong) => {
 /**
  * NAP-1 (soát bảo mật, chủ quán 06.11 chọn (a)): tiền trả vào tài khoản `tienHoan` (duyệt hoàn, đền bù, kết thúc gói) → số điểm trừ = phần `diem` theo tỷ lệ
  * tienHoan / tienDiem (tiền tính điểm của đơn — tienTinhDiem), làm tròn LÊN, không quá `diem`. Phần tiền mặt / CK không hoàn giữ điểm.
+ * DIEM-MON-1: tiền hoàn là phân số `tienHoan / mau` (tienHoanTinhDiem) → tỷ lệ (tienHoan / mau) / tienDiem; `mau` mặc định 1.
  */
-const soNguyen = (x) => (typeof x === 'bigint' ? x : BigInt(Math.round(Number(x) || 0)));
+/** Ép về số nguyên lớn — MỘT chỗ chặn NaN / Infinity / rỗng (→ 0), để BigInt không ném lỗi (soát vòng 3). */
+const soNguyen = (x) => {
+  if (typeof x === 'bigint') return x;
+  const n = Number(x);
+  return BigInt(Number.isFinite(n) ? Math.round(n) : 0);
+};
 const diemTruKhiHoan = (diem, tienHoan, tienDiem, mau = 1) => {
   // DIEM-MON-1 (soát vòng 2): tiền hoàn có thể là phân số tienHoan / mau → tính ceil bằng số nguyên lớn, không qua số thực (13 × 2076,92… / 13.500
   // ra 2,0000…04 → làm tròn lên 3).
@@ -78,8 +84,9 @@ async function tienHoanTinhDiem(tx, d, tienDiem) {
   const conTra = tienTraDon(d) - den;   // Q4 = a: duyệt hoàn trả phần CÒN LẠI sau đền (soTienHoan) → quy theo phần còn lại
   const khongGan = goi ? 0 : hoan;
   const mau = conTra > 0 ? conTra : 1;   // phân số đúng { tu / mau } — không chia số thực (soát vòng 2)
-  const B = soNguyen;
-  return { tu: B(denBat + (goi && batDiem(goi) ? hoan : 0)) * B(mau) + (conTra > 0 ? B(khongGan) * B(Math.max(0, tienDiem - denBat)) : 0n), mau };
+  const gan = denBat + (goi && batDiem(goi) ? hoan : 0);   // gắn dòng bật — tính đủ
+  const khongGanDiem = conTra > 0 ? soNguyen(khongGan) * soNguyen(Math.max(0, tienDiem - denBat)) : 0n;
+  return { tu: soNguyen(gan) * soNguyen(mau) + khongGanDiem, mau };
 }
 
 /**
@@ -101,7 +108,7 @@ async function truDiemHoan(tx, don, nguoi, luc, lyDo) {
     FROM pos_point_transactions WHERE order_id = ? AND type IN ('earn', 'adjust') AND created_at >= ?
     GROUP BY customer_phone, expires_at ORDER BY expires_at IS NULL DESC, expires_at DESC`, [don.id, moc]);
   const diem = nhom.reduce((t, r) => t + Number(r.diem || 0), 0);
-  let conTru = diemTruKhiHoan(diem, hoan.tu, tienDiem, hoan.mau) -(diem - nhom.reduce((t, r) => t + Number(r.con || 0), 0));
+  let conTru = diemTruKhiHoan(diem, hoan.tu, tienDiem, hoan.mau) - (diem -nhom.reduce((t, r) => t + Number(r.con || 0), 0));
   let daTru = 0;
   for (const r of nhom) {
     const tru = Math.min(conTru, Number(r.con || 0));
