@@ -300,6 +300,19 @@ async function main() {
   const g1 = await denRoiHoan(50000, 50000, Y, 30000);
   k('T13g ví 50.000 + tiền mặt 50.000 (60): đền Y (bật) 30.000 → 30; duyệt hoàn 20.000 → trừ ceil(60 × (30.000 + 20.000 × 30.000 / 70.000) / 60.000) = 39 → 21',
     g1.ok && g1.d === '[60,30,21]', `${g1.mo} ${g1.d}`);
+  // Soát vòng 2: số lẻ — phép quy đổi đi qua phân số 2076,92…đ nhưng kết quả đúng là số nguyên (13 × 3.000 / 19.500 = 2) → không được làm tròn lên 3.
+  await db.run('UPDATE pos_products SET price = 6000 WHERE id = ?', [X.id]);
+  await db.run('UPDATE pos_products SET price = 13500 WHERE id = ?', [Y.id]);
+  const s13h = sdtMoi();
+  await napTay(s13h, 3000);
+  const t13h = ghi(await ban({ customer_phone: s13h, balance_amount: 3000, cash_amount: 16500 }));
+  const d13h = await diemCua(t13h);
+  const y13h = t13h.order ? await goi('POST', '/pos/refunds', { order_id: t13h.order.id, reason: 'thử DIEM-MON-1' }) : t13h;
+  const a13h = y13h.refund_id ? await goi('POST', `/pos/refunds/${y13h.refund_id}/approve`) : y13h;
+  await db.run('UPDATE pos_products SET price = 40000 WHERE id = ?', [X.id]);
+  await db.run('UPDATE pos_products SET price = 60000 WHERE id = ?', [Y.id]);
+  k('T13h số lẻ: X tắt 6.000 + Y bật 13.500, ví 3.000 + tiền mặt 16.500 (13 điểm); duyệt hoàn 3.000 → trừ đúng 13 × 3.000 / 19.500 = 2 (không làm tròn số thực lên 3) → 11',
+    a13h.status === 200 && a13h.tong_hoan === 3000 && d13h === 13 && (await diemCua(t13h)) === 11, `${moTa(a13h)} hoàn ${a13h.tong_hoan} · ${d13h} → ${await diemCua(t13h)}`);
 
   const s13c = sdtMoi();
   const t13c = ghi(await ban({ customer_phone: s13c, items: X2Y, cash_amount: 160000 }));
