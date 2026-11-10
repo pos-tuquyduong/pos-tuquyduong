@@ -43,6 +43,7 @@ gói) theo ĐÚNG phần đã cộng.
 - client/src/utils/api.js
 - client/dist/**
 - cong_cu/thu_DIEMMON1.js
+- cong_cu/thu_KHO1.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
