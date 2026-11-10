@@ -195,11 +195,12 @@ const BAT_BIEN = {
       // NAP-1 (chủ quán 06.11): đơn CHƯA HUỶ có tiền trả vào tài khoản (duyệt hoàn, đền bù, kết thúc gói có hoàn — sổ ví 'refund' +
       // 'compensation' của đơn, cộng dồn) giữ điểm phần còn lại: trừ ceil(điểm × tổng tiền trả / tiền tính điểm), không quá điểm. Đơn huỷ: về 0
       // ở trên. Chép riêng (trọng tài), không gọi diemThat.js. DIEM-MON-1 (CÁCH 2): đền món tắt / hoàn gói tắt không trừ; đền món bật / hoàn gói bật
-      // tính đủ; 'refund' của đơn không gói (duyệt hoàn) quy theo toàn đơn (× tiền tính điểm / tiền trả).
+      // tính đủ; 'refund' của đơn không gói (duyệt hoàn) quy theo PHẦN CÒN LẠI sau đền (Q4 = a: × (tiền tính điểm − đền bật) / (tiền trả − đền)).
       const den = so(r.hoan) - so(r.hoan_r);
       const coGoi = r.goi_bat != null;
-      const hoanDiem = (den - Math.min(den, so(r.den_tat))) + (coGoi && so(r.goi_bat) !== 0 ? so(r.hoan_r) : 0)
-        + (!coGoi && traDon > 0 ? (so(r.hoan_r) * tienDiem) / traDon : 0);
+      const denBat = den - Math.min(den, so(r.den_tat));
+      const hoanDiem = denBat + (coGoi && so(r.goi_bat) !== 0 ? so(r.hoan_r) : 0)
+        + (!coGoi && traDon - den > 0 ? (so(r.hoan_r) * Math.max(0, tienDiem - denBat)) / (traDon - den) : 0);
       const truHoan = r.status !== 'cancelled' && dungBan > 0 && hoanDiem > 0 && tienDiem > 0
         ? Math.min(dungBan, Math.ceil((dungBan * hoanDiem) / tienDiem)) : 0;
       const dung = dungBan - truHoan;
