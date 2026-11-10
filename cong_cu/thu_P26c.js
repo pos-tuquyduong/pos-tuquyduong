@@ -56,6 +56,9 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
+  const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
+    + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
 
   const sx = { che: 'loi', daLam: new Map() };
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
@@ -171,6 +174,7 @@ async function main() {
   const goiDaLay = async (tra, daLay, them = {}) => {
     const sdt = sdtMoi();
     await nap(sdt, 1000000);
+    if (them.parent_phone) await datMe(sdt, them.parent_phone);
     const goiId = await taoGoi(300000, 10);
     const m = await muaGoi(sdt, goiId, 10, tra, them);
     if (!m.success) throw new Error('không mua được gói: ' + moTa(m));
@@ -564,7 +568,7 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[C3 + C4] duyệt hoàn giảm total_spent (con + mẹ); thông báo có tổng hoàn');
   {
-    const me = sdtMoi(), con = sdtMoi(); await nap(me, 20000); await nap(con, 5000);
+    const me = sdtMoi(), con = sdtMoi(); await nap(me, 20000); await nap(con, 5000); await datMe(con, me);
     const d = await taoDon({ customer_phone: con, parent_phone: me, items: [mon(0)], payment_method: 'cash', cash_amount: 0,
       balance_amount: 5000, parent_balance_amount: 20000 });
     const tieu = (s) => so('SELECT total_spent FROM pos_wallets WHERE phone = ?', [s]);
