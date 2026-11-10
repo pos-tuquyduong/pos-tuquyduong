@@ -37,17 +37,19 @@ DOT_BIEN = [
   ('VS-gia-goc-bo-gia-hang', [(DT, 'Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0)', 'Number(d.unit_price || 0)', 1)], r'✗ T6 '),
   ('BV-dong-tat-van-tinh', [(DT, 't + (batDiem(dongDon[i]) ? g : 0)', 't + g', 1)], r'✗ T3 '),
   # ── C: trừ điểm CÁCH 2 (tienHoanTinhDiem, truDiemHoan) ──
-  ('VS-hoan-toan-don', [(DT, '  return denBat + (goi && batDiem(goi) ? hoan : 0) + (conTra > 0 ? (khongGan * Math.max(0, tienDiem - denBat)) / conTra : 0);',
-                         '  return conTra + den > 0 ? (Number(so?.n || 0) * tienDiem) / (conTra + den) : 0;', 1)], r'✗ T13 '),
+  ('VS-hoan-toan-don', [(DT, '  return { tu: B(denBat + (goi && batDiem(goi) ? hoan : 0)) * B(mau) + (conTra > 0 ? B(khongGan) * B(Math.max(0, tienDiem - denBat)) : 0n), mau };',
+                         '  return { tu: B(Number(so?.n || 0)) * B(tienDiem), mau: conTra + den };', 1)], r'✗ T13 '),
   ('VS-den-mon-tat-van-tru', [(DT, 'const denBat = den - Math.min(den, denTat);', 'const denBat = den;', 1)], r'✗ T13 '),
   # Q4 = a (chủ quán 09.11): duyệt hoàn sau đền quy theo PHẦN CÒN LẠI
-  ('BV-q4-hoan-theo-toan-don', [(DT, '(conTra > 0 ? (khongGan * Math.max(0, tienDiem - denBat)) / conTra : 0)',
-                                 '(conTra + den > 0 ? (khongGan * tienDiem) / (conTra + den) : 0)', 1)], r'✗ T13e '),
-  ('VS-q4-con-lai-bo-den-bat', [(DT, '(khongGan * Math.max(0, tienDiem - denBat)) / conTra', '(khongGan * tienDiem) / conTra', 1)], r'✗ T13g '),
-  ('VS-q4-mau-so-ca-don', [(DT, '(khongGan * Math.max(0, tienDiem - denBat)) / conTra', '(khongGan * Math.max(0, tienDiem - denBat)) / (conTra + den)', 1)], r'✗ T13e '),
+  ('BV-q4-hoan-theo-toan-don', [(DT, 'const mau = conTra > 0 ? conTra : 1;', 'const mau = conTra + den > 0 ? conTra + den : 1;', 1),
+                                (DT, 'B(khongGan) * B(Math.max(0, tienDiem - denBat))', 'B(khongGan) * B(tienDiem)', 1)], r'✗ T13e '),
+  ('VS-q4-con-lai-bo-den-bat', [(DT, 'B(khongGan) * B(Math.max(0, tienDiem - denBat))', 'B(khongGan) * B(tienDiem)', 1)], r'✗ T13g '),
+  ('VS-q4-mau-so-ca-don', [(DT, 'const mau = conTra > 0 ? conTra : 1;', 'const mau = conTra + den > 0 ? conTra + den : 1;', 1)], r'✗ T13e '),
+  # Soát vòng 2: phép trừ điểm tính bằng phân số số nguyên — đưa lại hai lần chia số thực
+  ('VS-chia-so-thuc', [(DT, 'Math.min(diem, Number((tu + m - 1n) / m))', 'Math.min(diem, Math.ceil((diem * (Number(tienHoan) / Number(mau))) / Number(tienDiem)))', 1)], r'✗ T13h '),
   ('VS-goi-tat-van-tru', [(DT, '(goi && batDiem(goi) ? hoan : 0)', '(goi ? hoan : 0)', 1)], r'✗ T14 '),
   ('VS-ket-thuc-goi-nhu-duyet-hoan', [(DT, 'const khongGan = goi ? 0 : hoan;', 'const khongGan = hoan;', 1), (DT, '(goi && batDiem(goi) ? hoan : 0)', '0', 1)], r'✗ T14b '),
-  ('VS-mau-so-tien-tra', [(DT, 'diemTruKhiHoan(diem, hoan, tienDiem)', 'diemTruKhiHoan(diem, hoan, tienTraDon(don))', 1)], r'✗ T13 '),
+  ('VS-mau-so-tien-tra', [(DT, 'diemTruKhiHoan(diem, hoan.tu, tienDiem, hoan.mau)', 'diemTruKhiHoan(diem, hoan.tu, tienTraDon(don), hoan.mau)', 1)], r'✗ T13 '),
   # ── orders.js: cờ dòng + phần tiền tích điểm lưu lúc bán ──
   ('BV-co-mon', [(OR, 'tich_diem: batDiem(product) ? 1 : 0,', 'tich_diem: 1,', 1)], r'✗ T3 '),
   ('BV-co-goi', [(OR, 'tich_diem: batDiem(pkg) ? 1 : 0,', 'tich_diem: 1,', 1)], r'✗ T10 '),
@@ -68,8 +70,9 @@ DOT_BIEN = [
   # ── E: I8 trọng tài (bat_bien.js) ──
   ('BV-i8-khong-ty-le', [(BB, 'const tienDiem = r.thd == null ? traDon : hang > 0 ? Math.round((traDon * so(r.thd)) / hang) : 0;', 'const tienDiem = traDon;', 1)], r'✗ T18 '),
   ('VS-i8-den-tat-van-tru', [(BB, 'const denBat = den - Math.min(den, so(r.den_tat));', 'const denBat = den;', 1)], r'✗ T18 '),
-  ('BV-i8-q4-hoan-theo-toan-don', [(BB, '(!coGoi && traDon - den > 0 ? (so(r.hoan_r) * Math.max(0, tienDiem - denBat)) / (traDon - den) : 0)',
-                                    '(!coGoi && traDon > 0 ? (so(r.hoan_r) * tienDiem) / traDon : 0)', 1)], r'✗ T18 '),
+  ('BV-i8-q4-hoan-theo-toan-don', [(BB, 'mau = !coGoi && conTra > 0 ? conTra : 1;', 'mau = !coGoi && traDon > 0 ? traDon : 1;', 1),
+                                   (BB, 'N(so(r.hoan_r)) * N(Math.max(0, tienDiem - denBat))', 'N(so(r.hoan_r)) * N(tienDiem)', 1)], r'✗ T18 '),
+  ('VS-i8-chia-so-thuc', [(BB, 'Math.min(dungBan, Number((tuDiem + mauDiem - 1n) / mauDiem))', 'Math.min(dungBan, Math.ceil((dungBan * (Number(tu) / mau)) / tienDiem))', 1)], r'✗ T18 '),
   ('VS-i8-goi-tat-van-tru', [(BB, '(coGoi && so(r.goi_bat) !== 0 ? so(r.hoan_r) : 0)', '(coGoi ? so(r.hoan_r) : 0)', 1)], r'✗ T18 '),
   ('BV-i8-bo-cot-moi', [(BB, 'const coMonDiem = so(', 'const coMonDiem = 0 && so(', 1)], r'✗ T18 '),
 ]
