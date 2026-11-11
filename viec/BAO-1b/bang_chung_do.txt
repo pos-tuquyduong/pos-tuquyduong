@@ -1,0 +1,18 @@
+BAO-1b — bằng chứng ĐỎ: bài HIỆN TẠI cong_cu/thu_BAO1b.js chạy trên client/src/ của commit 225bbde (gốc, trước khi vá)
+Lệnh:  python3 viec/BAO-1b/dot_bien.py --goc 225bbde thu_BAO1b.js
+
+  17 đạt · 70 hỏng   (thoát 1)
+
+Các ca ĐỎ trên gốc (rút gọn theo mục; dòng đầy đủ in ra bởi lệnh trên):
+  A  ✗ A1 Settings.jsx không còn state message / setMessage — còn 66 lời gọi setMessage
+     ✗ A1b dải chữ báo đầu trang · A1d chỉ 0 lời gọi baoXong/baoLoi · A1e còn 'Lỗi: ' +
+     ✗ A2 CaiDatChuong.jsx còn thongDiep · A3 ×9 thẻ CaiDat còn thongDiep · A4 ×9 thẻ chưa nối thongBaoKho (0 lời gọi)
+  B  ✗ B1 chưa có LoiO.jsx · B2 chưa có CSS .loi-o · B3 ×9 thẻ chưa có <LoiO
+  C  ✗ C0 không nạp được components/thayDoiKho.js (chưa có) · C2a–C2d chưa có ThanhLuu.jsx · C3 CSS .thanh-luu · C4a chưa có useThayDoi
+     ✗ C4 ×7 thẻ chưa dùng useThayDoi + <ThanhLuu · C5 Settings.doiThe chưa hỏi lại khi coChuaLuu()
+  D  ✗ D0 không nạp được components/loiPin.js · D2a–D2e chưa có HoiPin.jsx / CSS ô nổi
+     ✗ D3a HangThe chưa dùng <HoiPin, còn ô PIN cạnh nút Lưu · D3b nút Lưu mờ theo pin · D3c · D3d GoiNap còn ô PIN đầu thẻ · D3f
+  E  ✗ E1 ManKhach / E1b InPhieu: lưu xong chưa nạp lại · E2 HangThe, GiaoHang · E3 ×5 thẻ chưa có chữ "Đang lưu…" · E4 GiaoHang bấm đôi được
+  F  ✗ F1 kiem_tra_truoc_khi_giao.js chưa nối thu_BAO1b.js
+
+SỐ CA thu_BAO1b.js: 94
