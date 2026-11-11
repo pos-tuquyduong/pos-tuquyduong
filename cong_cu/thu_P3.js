@@ -261,7 +261,7 @@ async function main() {
     const diem = await db.queryOne("SELECT points FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [don.id || -1]);
     k('B3 đúng chữ ký + mã + tiền → 200, MỘT đơn paid, CK 20.000 + tài khoản 30.000', la(b3, 200) && await soDon() === d0 + 1
       && don.payment_status === 'paid' && Number(don.transfer_amount) === 20000 && Number(don.balance_amount) === 30000 && Number(don.cash_amount) === 0, moTa(b3) + ' ' + JSON.stringify(pp).slice(0, 100));
-    k('B3 ví trừ đúng 30.000 (còn 0), điểm = floor(20.000 / 10.000) = 2 (DIEM-THAT-1: chỉ tiền CK thật, không tính tài khoản), kho SX có dòng ra như đơn quầy', await soDu(a) === 0 && Number(diem?.points) === 2
+    k('B3 ví trừ đúng 30.000 (còn 0), điểm = floor(50.000 / 10.000) = 5 (NAP-1: CK + tài khoản đều có điểm), kho SX có dòng ra như đơn quầy', await soDu(a) === 0 && Number(diem?.points) === 5
       && await dem("SELECT COUNT(*) AS n FROM pos_stock_pending WHERE order_id = ? AND direction = 'out'", [don.id || -1]) === 1);
     k('B3 phiên da_thu nguồn payos, sự kiện khop', pp.trang_thai === 'da_thu' && pp.nguon === 'payos' && (await suKien(p.id)).map((x) => x.ket_qua).join() === 'khop');
     for (let i = 0; i < 3; i++) await guiWebhook(bao);
@@ -586,9 +586,9 @@ async function main() {
     const i4 = await goi('POST', '/pos/orders', { customer_phone: a, items: [], package_buy: { package_id: goiP.id }, payment_method: 'cash', cash_amount: 200000 });
     const cp = await db.queryOne('SELECT id FROM pos_customer_packages WHERE customer_phone = ? ORDER BY id DESC LIMIT 1', [a]);
     const i3 = await goi('POST', '/pos/orders', { customer_phone: a, items: [{ ...mon(1), from_package: true }], customer_package_id: cp?.id, payment_method: 'cash', cash_amount: 0 });
-    await db.run("INSERT INTO pos_membership_tiers (name, card_price, discount_percent, is_active) VALUES ('Vàng', 300000, 5, 1)");
+    await db.run("INSERT INTO pos_membership_tiers (name, card_price, discount_percent, is_active, sort_order, goi) VALUES ('Vàng', 300000, 5, 1, 99, json_array(json_object('so_thang', 3, 'gia', 300000, 'bat', json('true'))))");
     const hang = await db.queryOne("SELECT id FROM pos_membership_tiers WHERE name = 'Vàng' ORDER BY id DESC LIMIT 1");
-    const i5 = await goi('POST', '/pos/orders', { customer_phone: await khach(0, null), items: [], membership_buy: { tier_id: hang.id }, payment_method: 'cash', cash_amount: 300000 });
+    const i5 = await goi('POST', '/pos/orders', { customer_phone: await khach(0, null), items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: 300000 });
     const no = await goi('POST', '/pos/orders', { customer_phone: a, customer_name: 'K', items: [mon(1)], payment_method: 'debt', debt_amount: 25000, due_date: '2026-12-31' });
     const i6 = await goi('POST', `/pos/orders/${no.j.order?.id}/pay-debt`, { payment_method: 'cash', amount: 25000 });
     k('I1–I6 tiền mặt · số dư đủ (2 kiểu) · mua gói · giao từ gói 0đ · mua thẻ · thu nợ CŨ ở pay-debt → 200',

@@ -9,8 +9,10 @@
  * Đổi chữ mô tả trong bat_bien.js thì cập nhật KHOA — bài thử C4 canh từng bất biến.
  */
 const db = require('../database');
-const { getToday, getNow, addDaysToDateString } = require('./helpers');
-const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa } = require('./congQr');
+const { getToday, getNow, addDaysToDateString, chuoiSoHd } = require('./helpers');
+const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa, TEN_CONG } = require('./congQr');
+const { doiSoatGiao } = require('./giaoHang');   // GIAO-1 (K)
+const { sqlDonNap } = require('./viKhach');   // NAP-1: đơn nạp — một vị từ
 // Nạp LƯỜI (lúc chạy đối soát, không phải lúc khởi động máy chủ): thiếu cong_cu/ thì chỉ màn Đối soát báo lỗi, máy chủ vẫn lên
 // (lỗi downstream không cascade); và bản sao đột biến của thu_gia_lap.js chỉ chép server/ nên nạp lúc khởi động sẽ làm sập chúng.
 const batBien = () => require('../../cong_cu/gia_lap/bat_bien.js').BAT_BIEN;
@@ -48,6 +50,7 @@ const AP_DUNG_TU = {
   D1: '2026-10-17',   // P20c
   DEN: null,          // luôn CẦN XEM (không đỏ) — không cần mốc
   CK: null,           // P3 — bảng mới, không có dòng cũ
+  SO: null,           // CK-NOIDUNG-1 — sổ số hoá đơn mới, không có dòng cũ
   XNT: null,          // P3 — luôn CẦN XEM
 };
 
@@ -94,6 +97,7 @@ function tinhKy(kieu, ngay) {
 // ─── Tiền theo sổ ───
 // Một quy tắc cho tiền mặt và chuyển khoản (cach = 'cash' | 'transfer'); chủ quán chốt 18.10 (B): tiền thật vào két trong kỳ =
 // bán + nạp ví + thu nợ theo NGÀY THU − trả ra. Thu nợ cộng thẳng vào cột tiền của đơn GỐC (orders.js pay-debt) nên bán phải trừ phần thu.
+// NAP-1: tiền gói nạp bán ở quầy nằm ở CỘT TIỀN của đơn nạp (vào `ban`, đổi cách trả theo đơn) — nạp ví chỉ đếm dòng topup KHÔNG gắn đơn (nạp tay).
 async function tienTheoSo(tu, den, cach) {
   const cot = cach === 'cash' ? 'cash_amount' : 'transfer_amount';
   const jTien = `CASE WHEN json_valid(chi_tiet) THEN (CASE WHEN json_extract(chi_tiet, '$.cach') = ? THEN json_extract(chi_tiet, '$.so_tien') END) END`;
@@ -102,7 +106,7 @@ async function tienTheoSo(tu, den, cach) {
       FROM pos_orders o WHERE DATE(o.created_at) BETWEEN ? AND ?`, [cach, tu, den]),
     chiDoc(`SELECT COALESCE(SUM(${jTien}), 0) AS n FROM pos_order_log WHERE loai = 'thu' AND DATE(luc) BETWEEN ? AND ?`, [cach, tu, den]),
     chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions
-      WHERE type = 'topup' AND COALESCE(payment_method, 'cash') = ? AND DATE(created_at) BETWEEN ? AND ?`, [cach, tu, den]),
+      WHERE type = 'topup' AND order_id IS NULL AND COALESCE(payment_method, 'cash') = ? AND DATE(created_at) BETWEEN ? AND ?`, [cach, tu, den]),
     // Huỷ đơn chỉ hoàn VÍ phần khách trả bằng ví; tiền mặt / CK của đơn thường không vào đâu → trả tận tay. Đơn MUA GÓI hoàn phần tiền
     // mặt / CK vào ví khách (dòng 'hoan_goi') nên két không ra. "Đơn mua gói" nhận theo DÒNG HÀNG gói (product_id = −pkg.id), KHÔNG theo
     // gói khách: huỷ đơn mua gói xoá luôn gói khách chưa giao lượt nào (orders.js, route huỷ) nên nhìn lại sau huỷ thì gói khách đã mất.
@@ -121,7 +125,37 @@ async function tongHop(tu, den) {
     chiDoc(`SELECT COALESCE(SUM(CASE WHEN points > 0 THEN points END), 0) AS cong, COALESCE(-SUM(CASE WHEN points < 0 THEN points END), 0) AS tru
       FROM pos_point_transactions WHERE DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
   ]);
-  return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) } };
+  return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) },
+    giao: await doiSoatGiao(chiDoc, tu, den) };
+}
+
+// ─── NAP-1 — sổ sách tiền nạp (Báo cáo): nạp KHÔNG là doanh thu; thưởng nạp là khoản giảm khi khách tiêu ───
+// tien_vao: tiền thật vào két / tài khoản quán trong kỳ (cùng số với két, tienTheoSo), "trong đó tiền nạp" = cột tiền của đơn nạp + nạp tay.
+// ban_hang: tổng bán (đơn còn completed, không nạp) − thưởng nạp đã dùng (−Σ thưởng các dòng ví gắn đơn: trừ khi trả, cộng lại khi hoàn / đền).
+// giu_ho: số quán đang giữ hộ khách tới hết ngày `den` (Σ sổ ví danh sách trắng) tách tiền nạp / thưởng nạp.
+async function soSach(tu, den) {
+  if (!ngayHopLe(tu) || !ngayHopLe(den) || tu > den) throw loiDS(400, 'DOI_SOAT_KY_SAI', 'Ngày không đúng dạng YYYY-MM-DD (từ ≤ đến)');
+  const loai = require('../routes/wallets').LOAI_TINH_VAO_VI;
+  const [tm, ck, napDon, napTay, ban, thuong, giu] = await Promise.all([
+    tienTheoSo(tu, den, 'cash'), tienTheoSo(tu, den, 'transfer'),
+    chiDoc(`SELECT COALESCE(SUM(COALESCE(o.cash_amount, 0) + COALESCE(o.transfer_amount, 0)), 0) AS n FROM pos_orders o
+      WHERE ${sqlDonNap('o')} AND DATE(o.created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions WHERE type = 'topup' AND order_id IS NULL
+      AND COALESCE(payment_method, 'cash') IN ('cash', 'transfer') AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),   // cùng vị từ két
+    chiDoc(`SELECT COALESCE(SUM(o.total), 0) AS n FROM pos_orders o WHERE o.status = 'completed' AND NOT ${sqlDonNap('o')}
+      AND DATE(o.created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(-SUM(thuong), 0) AS n FROM pos_balance_transactions WHERE order_id IS NOT NULL
+      AND type IN ('purchase', 'refund', 'compensation') AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
+    chiDoc(`SELECT COALESCE(SUM(amount), 0) AS tong, COALESCE(SUM(thuong), 0) AS thuong FROM pos_balance_transactions
+      WHERE type IN (${loai.map(() => '?').join(', ')}) AND DATE(created_at) <= ?`, [...loai, den]),
+  ]);
+  const tongBan = so(ban[0].n), daDung = so(thuong[0].n), tong = so(giu[0].tong), th = so(giu[0].thuong);
+  return {
+    tu, den,
+    tien_vao: { tien_mat: tm.rong, chuyen_khoan: ck.rong, trong_do_nap: so(napDon[0].n) + so(napTay[0].n) },
+    ban_hang: { tong_ban: tongBan, thuong_nap_da_dung: daDung, doanh_thu_that: tongBan - daDung },
+    giu_ho: { tong, tien_nap: tong - th, thuong_nap: th },
+  };
 }
 
 // ─── Két của một ngày: sổ = để lại của ngày CÓ ghi gần nhất trước đó + tiền mặt vào − ra các ngày sau đó tới hết ngày này ───
@@ -226,13 +260,57 @@ async function phepDenLe(q) {
     ngay: r.ngay || null, canXem: true }));
 }
 
-// ─── CK (P3, SEPAY-1): tiền về payOS / SePay mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
-// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn) → CẦN XEM. Nguồn suy từ khoá (SePay: 'sepay:<id giao dịch>'). `luc` ghi bằng getNow (giờ VN).
+// ─── CK (P3, SEPAY-1, TINGEE-1): tiền về payOS / SePay / Tingee mà KHÔNG tạo đơn (lệch tiền, về sau hết hạn / huỷ, chốt lỗi) → ĐỎ — chủ quán hoàn hoặc nạp vào tài khoản khách.
+// Báo không thuộc phiên nào (vd payOS thử URL, khách sửa nội dung CK SePay) và một khoản báo qua hai cổng (đơn đã có, KHÔNG hoàn — hoặc phiên App mà máy không tự cộng ví, Q6 B) → CẦN XEM. Nguồn suy từ khoá (SePay 'sepay:<id giao dịch>', Tingee 'tingee:<mã giao dịch>' — congCuaKhoa). `luc` ghi bằng getNow (giờ VN).
+// CK-NOIDUNG-1: 'vao_vi' (tiền về muộn của đơn App đã tự cộng vào ví khách — Q1b) → CẦN XEM. Tiền về muộn của phiên QUẦY mà sau đó đã xác nhận
+// tay (đơn đã tạo, đúng số tiền — Q1a) → CẦN XEM; còn chưa xác nhận → ĐỎ kèm `xac_nhan_tay` = mã phiên (màn Đối soát hiện nút cho người có quyền).
+const LY_DO_MUON = ['tiền về sau khi QR hết hạn', 'phiên đang huy lúc tiền về', 'phiên đang cho lúc tiền về'];
 async function phepTienVe(q) {
-  const ds = await q(`SELECT id, khoa, ma_payos, so_tien, ket_qua, ly_do, luc FROM pos_payos_su_kien WHERE ket_qua IN ('chua_khop', 'khong_phien')`);
-  const nguon = (r) => (congCuaKhoa(r.khoa) === 'sepay' ? `SePay giao dịch ${String(r.khoa).slice(6)}, mã ${r.ma_payos ?? '—'}` : `payOS mã ${r.ma_payos}`);
-  return ds.map((r) => ({ ngay: r.luc || null, canXem: r.ket_qua === 'khong_phien' || [LY_DO_HAI_CONG, LY_DO_TK_KHAC].some((c) => String(r.ly_do || '').includes(c)),
-    mo_ta: `${nguon(r)}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? 'không thuộc phiên nào' : `chưa khớp đơn — ${r.ly_do}`) + ` (báo #${r.id})` }));
+  const ds = await q(`SELECT s.id, s.khoa, s.ma_payos, s.so_tien, s.ket_qua, s.ly_do, s.luc, p.id AS phien_id, p.trang_thai AS p_tt, p.nguon AS p_nguon,
+      p.con_lai AS p_con_lai, p.order_id AS p_don, EXISTS (SELECT 1 FROM pos_don_app a WHERE a.phien_id = p.id) AS p_app
+    FROM pos_payos_su_kien s LEFT JOIN pos_phien_thanh_toan p ON p.ma_payos = s.ma_payos AND p.cach = 'payos'
+    WHERE s.ket_qua IN ('chua_khop', 'khong_phien', 'vao_vi')`);
+  const nguon = (r) => { const c = congCuaKhoa(r.khoa);
+    return c === 'payos' ? `payOS mã ${r.ma_payos}` : `${TEN_CONG[c]} giao dịch ${String(r.khoa).slice(c.length + 1)}, mã ${r.ma_payos ?? '—'}`; };
+  // Lưới chặn cộng ví hai lần (soát vòng 2, LUAT §5): mỗi khoản thật được MỖI cổng báo đúng một lần → số lần GHI TIỀN của phiên (dòng khop = đơn,
+  // vao_vi = cộng ví) không bao giờ vượt số báo tiền vào của cổng báo nhiều nhất (cùng loại dòng với congKiaDaBao, thanh-toan.js; 'sepay:%' / 'tingee:%' = congCuaKhoa).
+  const VAO = "s.ket_qua NOT IN ('that_bai', 'khong_phien') AND COALESCE(s.ly_do, '') NOT LIKE ?";
+  const vuot = await q(`SELECT p.id AS phien_id, s.ma_payos, MAX(s.luc) AS luc, SUM(s.ket_qua IN ('khop', 'vao_vi')) AS ghi,
+      SUM(s.khoa LIKE 'sepay:%' AND ${VAO}) AS sepay, SUM(s.khoa LIKE 'tingee:%' AND ${VAO}) AS tingee,
+      SUM(s.khoa NOT LIKE 'sepay:%' AND s.khoa NOT LIKE 'tingee:%' AND ${VAO}) AS payos
+    FROM pos_payos_su_kien s JOIN pos_phien_thanh_toan p ON p.ma_payos = s.ma_payos AND p.cach = 'payos'
+    GROUP BY p.id, s.ma_payos HAVING ghi > MAX(sepay, tingee, payos)`, Array(3).fill(LY_DO_TK_KHAC + '%'));
+  return [...vuot.map((r) => ({ ngay: r.luc || null, canXem: false,
+    mo_ta: `phiên #${r.phien_id} (mã ${r.ma_payos}): ghi tiền ${r.ghi} lần (đơn + cộng ví) vượt số khoản thật (payOS báo ${r.payos}, SePay báo ${r.sepay}, Tingee báo ${r.tingee})`
+      + ' — kiểm ví khách, có thể đã cộng thừa' })), ...ds.map((r) => {
+    const muon = r.ket_qua === 'chua_khop' && LY_DO_MUON.some((c) => String(r.ly_do || '').startsWith(c));
+    const daTay = muon && r.p_tt === 'da_thu' && r.p_nguon === 'tay' && Number(r.so_tien) === Number(r.p_con_lai);
+    const choTay = muon && !r.p_don && !r.p_app && ['cho', 'huy'].includes(r.p_tt);
+    return { ngay: r.luc || null, ...(choTay ? { xac_nhan_tay: r.phien_id } : {}),
+      canXem: r.ket_qua !== 'chua_khop' || daTay || [LY_DO_HAI_CONG, LY_DO_TK_KHAC].some((c) => String(r.ly_do || '').includes(c)),
+      mo_ta: `${nguon(r)}: về ${tien(r.so_tien)} ` + (r.ket_qua === 'khong_phien' ? `không thuộc phiên nào${r.ly_do ? ` — ${r.ly_do}` : ''}`
+        : r.ket_qua === 'vao_vi' ? r.ly_do : `chưa khớp đơn — ${r.ly_do}${daTay ? ' — đã xác nhận tay sau' : ''}`) + ` (báo #${r.id})` };
+  })];
+}
+
+// ─── SO (CK-NOIDUNG-1): sổ số hoá đơn của KỲ NGÀY — số không thành đơn kèm lý do (suy từ phiên lúc đọc: Render ngủ, không ghi lúc hết hạn),
+// số thành đơn có mã giao dịch ngân hàng. Số không phiên, không đơn = "số trống không lý do" → ĐỎ (cách cấp không để xảy ra — phép canh).
+function lyDoSo(r, bayGio) {
+  if (r.order_id) return null;
+  if (!r.phien_id) return 'số trống không lý do';
+  // Có báo tiền về cho phiên (chua_khop / vao_vi) → MỌI trạng thái nối "xem mục CK" (soát vòng 1: trước chỉ nhánh 'cho').
+  const goc = r.p_tt === 'huy' ? 'huỷ trước khi trả' : r.p_tt === 'loi' ? (r.p_ly_do ? `lỗi: ${r.p_ly_do}` : 'cổng QR lỗi')
+    : r.p_tt === 'cho' ? (r.p_het_han > bayGio ? 'đang chờ' : 'QR hết hạn, chưa nhận tiền') : `phiên ${r.p_tt}`;
+  return goc + (r.ve_muon ? ' — có tiền về, xem mục CK' : '');
+}
+async function soHoaDonNgay(ngay, q) {
+  const ds = await q(`SELECT h.kenh, h.so, h.phien_id, h.order_id, o.code AS ma_don, o.ma_gd, p.trang_thai AS p_tt, p.ly_do AS p_ly_do, p.het_han AS p_het_han,
+      EXISTS (SELECT 1 FROM pos_payos_su_kien s WHERE s.ma_payos = p.ma_payos AND s.ket_qua IN ('chua_khop', 'vao_vi')) AS ve_muon
+    FROM pos_so_hoa_don h LEFT JOIN pos_orders o ON o.id = h.order_id LEFT JOIN pos_phien_thanh_toan p ON p.id = h.phien_id
+    WHERE h.ngay = ? AND (h.order_id IS NULL OR o.ma_gd IS NOT NULL) ORDER BY h.so`, [ngay]);
+  const bayGio = getNow();
+  return ds.map((r) => ({ so_hd: chuoiSoHd(r), phien_id: r.phien_id, ma_don: r.ma_don || null, ma_gd: r.ma_gd || null,
+    trang_thai: r.order_id ? 'thanh_don' : r.p_tt === 'cho' && r.p_het_han > bayGio ? 'dang_cho' : 'huy', ly_do: lyDoSo(r, bayGio) }));
 }
 
 // ─── XNT (P3): đơn chuyển khoản XÁC NHẬN TAY (không có báo payOS) — luôn CẦN XEM, so với sao kê ngân hàng.
@@ -272,6 +350,7 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
     bangBB.push({ ten, pham_vi: 'ky', trang_thai: 'day_du' });
     for (const l of await phep(chiDoc)) {
       const x = xep(ten, l.mo_ta, l.ngay, 'ky', false, l.canXem);
+      if (x && l.xac_nhan_tay) x.dong.xac_nhan_tay = l.xac_nhan_tay;
       if (x) them(x.nhom, x.dong);
     }
   }
@@ -289,6 +368,11 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
 
   const kq = { ket_qua: 'XANH', kieu, ...ky, hom_nay: getToday(), bat_bien: bangBB, tien: await tongHop(ky.tu, ky.den) };
   if (kieu === 'ngay') {
+    kq.so_hd = await soHoaDonNgay(ky.tu, chiDoc);
+    bangBB.push({ ten: 'SO', pham_vi: 'ky', trang_thai: 'day_du' });
+    for (const s of kq.so_hd.filter((x) => !x.phien_id && !x.ma_don)) {
+      them('do', { bat_bien: 'SO', ngay: ky.tu, pham_vi: 'ky', mo_ta: `số hoá đơn ${s.so_hd} ngày ${ky.tu}: số trống không lý do (không phiên, không đơn)` });
+    }
     kq.ket = await soKet(ky.tu);
     if (kq.ket.trang_thai === 'lech') {
       const c = kq.ket.chenh;
@@ -331,4 +415,4 @@ async function ghiMoi(b, nguoi) {
 }
 // </ghi-moi>
 
-module.exports = { chayDoiSoat, ghiMoi, kiemTraGhi, tinhKy, tienTheoSo, AP_DUNG_TU, TRAN_KET, get BAT_BIEN() { return batBien(); } };
+module.exports = { chayDoiSoat, ghiMoi, kiemTraGhi, tinhKy, tienTheoSo, soSach, AP_DUNG_TU, TRAN_KET, get BAT_BIEN() { return batBien(); } };

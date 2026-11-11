@@ -192,8 +192,8 @@ class ApiClient {
     });
   }
 
-  delete(endpoint) {
-    return this.request(endpoint, { method: 'DELETE' });
+  delete(endpoint, data) {
+    return this.request(endpoint, data === undefined ? { method: 'DELETE' } : { method: 'DELETE', body: JSON.stringify(data) });
   }
 
   async upload(endpoint, formData) {
@@ -318,6 +318,20 @@ export const chuongTrinhApi = {
   datKhoangTuoi: (toiThieu, toiDa) => api.put('/chuong-trinh/khoang-tuoi', { toi_thieu: toiThieu, toi_da: toiDa })
 };
 
+// NAP-1: gói nạp tiền — quầy đọc gói đang bật; Cài đặt (quyền manage_products) đọc tất cả, thêm, sửa / bật / tắt
+export const goiNapApi = {
+  danhSach: () => api.get('/goi-nap'),
+  tatCa: () => api.get('/goi-nap/tat-ca'),
+  them: (d) => api.post('/goi-nap', d),
+  sua: (id, d) => api.put(`/goi-nap/${id}`, d)
+};
+
+// DIEM-MON-1: công tắc tích điểm theo món / gói / hạng (Cài đặt → Điểm thưởng; đổi cần quyền manage_promotions)
+export const tichDiemApi = {
+  danhSach: () => api.get('/loyalty/tich-diem'),
+  dat: (loai, ids, bat) => api.put('/loyalty/tich-diem', { loai, ids, bat })
+};
+
 // ============ API CŨ (giữ lại để tương thích) ============
 
 // Customers API (cũ)
@@ -404,6 +418,21 @@ export const manKhachApi = {
   noiDung: (khoa) => api.request('/man-khach/noi-dung', { method: 'GET', ...tieuDeKhoa(khoa) })
 };
 
+// GIAO-1 · Giao hàng Ahamove: máy chủ hỏi Ahamove (khoá không ra trình duyệt); huỷ đơn giao đi qua ordersApi.huyGiao (cùng đường huỷ)
+export const giaoHangApi = {
+  caiDat: () => api.get('/giao-hang/cai-dat'),
+  diaChi: (q) => api.get(`/giao-hang/dia-chi?q=${encodeURIComponent(q)}`),
+  diemLay: (data) => api.post('/giao-hang/diem-lay', data),
+  baoPhi: (data) => api.post('/giao-hang/bao-phi', data),
+  danhSach: () => api.get('/giao-hang'),
+  nhan: (id) => api.post(`/giao-hang/${id}/nhan`, {}),
+  goiXe: (id, loaiXe, tu) => api.post(`/giao-hang/${id}/goi-xe`, { ...(loaiXe ? { loai_xe: loaiXe } : {}), tu }),   // tu: trạng thái thẻ màn đang thấy
+  huyChuyen: (id, lyDo) => api.post(`/giao-hang/${id}/huy-chuyen`, { ly_do: lyDo }),
+  inTem: (id, lai = false) => api.post(`/giao-hang/${id}/in-tem`, { lai }),
+  dongThe: (id, lyDo) => api.post(`/giao-hang/${id}/dong-the`, { ly_do: lyDo }),
+  huyDon: (id, lyDo, doDaPha) => api.put(`/orders/${id}/cancel`, { reason: lyDo, ...(doDaPha ? { do_da_pha: doDaPha } : {}) }),
+};
+
 // BH-2 · Dữ liệu hoá đơn (HD-1): một cửa, chỉ đọc
 export const hoaDonApi = { lay: (id) => api.get(`/hoa-don/${id}`) };
 
@@ -457,7 +486,9 @@ export const reportsApi = {
   discounts: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return api.get(`/reports/discounts${query ? '?' + query : ''}`);
-  }
+  },
+  // NAP-1: sổ sách tiền nạp (tiền thật vào quán · bán hàng trừ thưởng nạp đã dùng · quán đang giữ hộ khách)
+  soSach: (tu, den) => api.get(`/reports/so-sach?tu=${tu}&den=${den}`)
 };
 
 // Discount Codes API - Phase B
@@ -482,6 +513,19 @@ export const usersApi = {
   resetPassword: (id, new_password) => api.put(`/users/${id}/password`, { new_password }),
   permissions: () => api.get('/users/permissions'),
   updatePermissions: (role, permissions) => api.put(`/permissions/${role}`, { permissions })
+};
+
+// HANG-1 · Hạng thẻ: cài đặt hạng + gói, PIN chủ quán, cấp / thu hồi hạng chỉ cấp (chủ quán + PIN), nhật ký hạng của khách
+export const hangApi = {
+  ds: () => api.get('/tiers'),
+  luu: (body) => api.put('/tiers', body),
+  xoa: (id, pin) => api.delete(`/tiers/${id}`, { pin }),
+  coPin: () => api.get('/membership/pin-chu-quan'),
+  datPin: (matKhau, pin, pinLai, pinCu) => api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai, pin_cu: pinCu }),
+  trangThai: (sdt) => api.get(`/membership/status/${encodeURIComponent(sdt)}`),
+  cap: (sdt, tierId, soThang, pin) => api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin }),
+  thuHoi: (sdt, tierId, pin) => api.post('/membership/thu-hoi', { phone: sdt, tier_id: tierId, pin }),
+  nhatKy: (sdt) => api.get(`/membership/nhat-ky/${encodeURIComponent(sdt)}`)
 };
 
 export default api;

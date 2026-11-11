@@ -110,7 +110,8 @@
 - 31.10 · payOS chạy thật (chủ quán thử đơn QR 2.000đ: tiền về, máy tự xác nhận). Màn Bán hàng mới được bật từng máy (`/?man=moi`;
   về màn cũ `/?man=cu`). Huỷ đơn đã chuyển khoản: POS không tự trả tiền — nhân viên chuyển trả tay.
 - 31.10 · Chuyển cổng thanh toán QR sang **SePay** (phí thấp hơn), ĐỦ chức năng như payOS (quầy + App: QR tự xác nhận, hết hạn, huỷ, xác nhận
-  tay, ví + QR, đối soát). POS tự dựng VietQR, SePay báo tiền về (xác thực HMAC-SHA256). payOS GIỮ làm dự phòng, bật lại bằng công tắc (SEPAY-1).
+  tay, ví + QR, đối soát). POS tự dựng VietQR, SePay báo tiền về (xác thực HMAC-SHA256). payOS GIỮ làm dự phòng, bật lại bằng công tắc (SEPAY-1). (đổi 06.11: cổng báo tiền là
+  **Tingee** — xem đợt 04–06.11.)
 - 31.10 · **Màn khách:** một máy tính bảng quay về phía khách, ghép với máy quầy (máy quầy là máy tính bảng / điện thoại). Lúc thu: hiện QR + món
   + tổng; tiền về: "Cảm ơn". Lúc rảnh: chạy nội dung quán TỰ CÀI (menu, Giờ vàng, QR App, giới thiệu, quảng cáo; ảnh khi có chỗ lưu ảnh)
   (MANKHACH-1).
@@ -126,7 +127,7 @@
   sẵn), file lưu ở chỗ lưu chung, máy màn khách tải về một lần (MANKHACH-2a / 2b).
 - 01.11 · Tiền mặt làm tròn đến 1.000 — phần lẻ TỪ 600 trở lên tròn lên, 500 trở xuống tròn xuống; chữ "Trả lại" (không "tiền thối"); nút mệnh
   giá bấm = 1 tờ. Tài khoản chỉ đủ một phần: trừ tài khoản TRƯỚC rồi mới thu phần còn lại bằng tiền mặt / QR.
-- 01.11 · Một cổng QR tại một thời điểm (payOS HOẶC SePay); tắt lọc "bỏ qua giao dịch không mã" trên SePay; máy kiểm số tài khoản nhận (SEPAY-1).
+- 01.11 · Một cổng QR tại một thời điểm (payOS HOẶC SePay); tắt lọc "bỏ qua giao dịch không mã" trên SePay; máy kiểm số tài khoản nhận (SEPAY-1). (đổi 06.11: SePay → Tingee.)
 - 01.11 · Hạng: chủ quán thêm hạng, thứ bậc; Vàng BÁN theo gói (1 / 3 tháng, giá đặt sau, linh động thêm gói), mua thêm thì hạn CỘNG NỐI;
   Kim Cương CHỈ chủ quán CẤP, có hạn tuỳ chọn hoặc không thời hạn; có hạng cao hơn thì không mua hạng thấp hơn; Kim Cương hết hạn → về Vàng
   nếu Vàng còn hạn; chưa bán thẻ nào trước khai trương (HANG-1).
@@ -151,7 +152,7 @@
   đếm ngược; một công tắc "Trừ từ số dư ví" (QR / ví / ví + QR); theo dõi đơn đọc lại giữ ví / còn lại; giao diện App tự thiết kế — đơn giản, dễ
   hiểu, thông minh, ít thao tác.
 
-## Đợt quyết định 04–05.11.2026 (chat bàn 32)
+## Đợt quyết định 04–06.11.2026 (chat bàn 32)
 - 04.11 · HANG-1: mọi lần sửa Cài đặt → Hạng (%, giá gói, thứ bậc…) phải gõ PIN chủ quán, kể cả quản lý.
 - 04–05.11 · Nội dung chuyển khoản ghi luôn số hoá đơn, giữ số ngay lúc tạo QR; QR không thành công thì số đó huỷ (ghi lý do, Đối soát liệt
   kê). Dạng `TQD<tháng 3 chữ tiếng Anh><ngày 2 số> HD<4 số>` ở quầy (vd `TQDNOV05 HD0016`), `… APP<4 số>` cho đơn App; quầy và App dùng CHUNG
@@ -167,6 +168,95 @@
   nhân viên không huỷ; lý do bắt buộc; huỷ là huỷ CẢ đơn (khách muốn thì đặt lại). Khách có tài khoản: TOÀN BỘ tiền đã trả (ví + tiền mặt +
   chuyển khoản) hoàn vào tài khoản, không chuyển tiền thật. Khách lẻ đến quán mua mà huỷ: trả tiền mặt (rất hiếm — ngoại lệ DUY NHẤT của luật
   két không chi tiền mặt), Đối soát ghi riêng.
+- 05–06.11 · Tiền chuyển khoản về muộn (QR đã hết hạn / phiên đã đóng): ở quầy nhân viên xác nhận tay, ghi lý do; đơn App thì máy tự cộng vào ví
+  khách và báo rõ cho cả quầy lẫn khách; phiên App hỏng vì đơn (vd hết hàng) mà tiền vẫn về cũng tự cộng ví, báo rõ hai bên. Cùng một khoản báo về
+  qua HAI cổng → KHÔNG tự cộng, vào nhóm CẦN XEM (CK-NOIDUNG-1).
+- 06.11 · Đổi cổng báo tiền SePay → **Tingee** (rẻ hơn; TINGEE-1). Khách chuyển vào số tài khoản ẢO (VA) `VQRQANJMG7944` của MB Bank hộ kinh doanh
+  (MB tự thêm mã VA vào ĐẦU nội dung, vd "Qanjmg7944 TQDNOV06 HD0016"); Tingee chỉ báo khoản vào VA. Khoá Tingee chỉ ở biến môi trường Render, khoá
+  API chỉ quyền "Ngân hàng & Thanh toán". Đã gỡ Webhook SePay; khi `CONG_QR` chưa là `tingee` thì quầy xác nhận tay. Bật Tingee ngoài giờ bán, thử
+  đơn 2.000đ thấy "đã thu" mới giữ.
+- 05–06.11 · HANG-1: hạng thành viên KHÔNG khôi phục từ file sao lưu (chỉ sửa ở Cài đặt, có PIN); đổi PIN chủ quán phải gõ PIN cũ.
+- 06.11 · Gói nạp (NAP-1): CHỈ chủ quán, gõ PIN chủ quán, mới tạo / sửa gói.
+- 06.11 · Thẻ mã QR thương hiệu "Bốn mùa" trên màn hình (GIAO-DIEN-1 mục F, mẫu `viec/GIAO-DIEN-1/mau_the_QR_TQD.png`): chấm tròn, 3 ô góc tô đặc,
+  màu theo 4 mảnh logo, logo giữa ≤ 20%, viền trắng, KHÔNG dòng chữ cuối thẻ; bill in nhiệt giữ mã đen vuông. Chủ quán quét thử MB / VCB / TCB /
+  MoMo trước khi nhận.
+- 04–06.11 · Giao hàng ở quầy (GIAO-1): ô địa chỉ dùng gợi ý địa chỉ của Ahamove (cần khoá riêng — chưa có thì gửi chữ, nhân viên xác nhận);
+  khoảng cách giao tối đa đặt trong Cài đặt; quầy bấm tay Nhận đơn / Gọi tài xế (máy gợi ý giờ gọi); màn Giao hàng 4 cột màu, bấm thẻ ra chi
+  tiết; huỷ theo từng bước. Khoá Ahamove hiện là khoá thử — xin khoá thật trước khi giao thật.
+- 06.11 · GIAO-1: món đã làm của đơn giao bị huỷ — "Bỏ đi" KHÔNG cộng lại kho (đồ hỏng); "Dùng cho đơn khác" mới hoàn kho trên sổ.
+- 06.11 · Tingee CHẠY THẬT: đơn thử 2.000đ máy tự báo "đã thu", nội dung chuyển khoản `TQDNOV06 HD…` đúng (TINGEE-1).
+- 06.11 · Khách sinh 29/02: năm không nhuận tính sinh nhật là 28/02 — POS (CT-1b, ưu đãi sinh nhật ở quầy) và App (KH-CT-1) dùng CÙNG luật.
+- 03.11 (ghi sổ 06.11) · Khách tạo tài khoản trên App phải hiện ở màn Khách hàng POS và tìm được ở quầy (tên / SĐT / quét QR), ĐỦ trường như khách
+  tạo ở quầy; quầy và App tạo khách bằng MỘT hàm chung — TRƯỚC khai trương (KHACH-APP-1).
+- 06.11 · Khách chỉ còn MỘT nguồn là POS: chép khách SX còn thiếu một lần (chỉ thêm, không ghi đè), rồi POS thôi đọc khách từ SX (KHACH-APP-1).
+
+## Đợt quyết định 07–08.11.2026 (chat bàn 33)
+- 07.11 · KHACH-APP-1: khách chỉ còn MỘT nguồn là POS. "Thêm khách" với SĐT đã có → không lưu, báo "Khách đã có tài khoản — tìm khách ở màn Bán hàng
+  để bán gói" (khách đã có thì bán gói / thẻ như bán món). Xoá đăng ký nhập nhầm: xoá luôn khách CHỈ KHI khách còn trắng VÀ do chính đăng ký đó tạo,
+  chỉ quản lý trở lên, ghi nhật ký (ai, lúc nào, SĐT, tên, lý do); nhân viên xoá thì chỉ xoá đăng ký.
+- 08.11 · Thẻ hạng là SẢN PHẨM: bán ở màn Bán hàng quầy (tab "Thẻ thành viên") và trên App (Menu nhóm "Thẻ thành viên", Ưu đãi nút Mua, Trang chủ
+  nhắc gia hạn); chung giỏ với đồ uống, trả một lần. Hạng phải CÓ TRƯỚC thì món mới được giá hạng: đồ uống cùng đơn tính theo hạng đang có, hạng mới
+  áp từ đơn sau. Mua thẻ thành công thì hệ thống TỰ ĐỘNG lên hạng NGAY — mọi cách trả (tiền mặt, CK, tài khoản, QR), ở quầy hay App. Hạng "chỉ chủ quán
+  cấp" (Kim Cương) vẫn hiện nhưng không mua được (nút mờ) — sau này đổi sang bán chỉ cần đổi cài đặt (KH-THE-1, QUAY-UI-1).
+- 08.11 · Tích điểm theo TỪNG MÓN: mỗi món / thẻ hạng / gói có công tắc "Tích điểm", chọn nhiều hoặc từng mục; gói nạp luôn 0 điểm (DIEM-MON-1).
+- 08.11 · Cách trả ở quầy: ba nút Tiền mặt / Chuyển khoản / Trừ tài khoản — KHÔNG tự trừ tài khoản; bấm "Trừ tài khoản" mới hiện số có thể trừ,
+  phần còn lại và PIN khách (QUAY-UI-1).
+- 08.11 · Nạp tiền: khách tự nạp trên App HOẶC nạp tại quầy (KH-NAP-1 sau KH-THE-1).
+- 08.11 · Đơn nạp tiền không có "Xử lý sự cố" (tiền nạp không hoàn, không huỷ, không đền); form Thêm khách báo "khách đã có" ngay khi gõ SĐT (QUAY-UI-1).
+- 07.11 · Mọi màn Cài đặt báo lưu RÕ: thành công nói đã lưu gì; lỗi đỏ đúng lý do; nút Lưu mờ khi thiếu PIN (CAIDAT-BAO-1).
+- 08.11 · Gộp NAP-1 (chat): đơn nạp không kèm giao hàng; tiền nạp về muộn sau khi huỷ phiên → quầy xác nhận tay như đơn thường (CK-NOIDUNG-1) → đúng
+  một đơn nạp, ví vào đúng số gói.
+
+## Đợt quyết định 08–09.11.2026 b (chat bàn 34)
+- 08.11 · Điểm KHÔNG đổi thành tiền, không trừ thẳng vào đơn: điểm chỉ để đổi voucher. Khách tự đổi trong App, đổi xong là xong (không gắn với đơn
+  ở quầy). Bỏ đổi điểm ở quầy (P3b).
+- 08.11 · Voucher dùng một lần, không trả lại tiền thừa; một đơn tối đa N voucher (Cài đặt, gợi ý 3); voucher tiền trừ trước, voucher % tính trên
+  phần còn lại; tổng giảm không quá tiền món; giờ flash không dùng voucher %; mỗi đơn chỉ MỘT mã khuyến mãi chung (mã quán phát cho mọi người);
+  đơn huỷ / không thành công → trả lại mọi voucher đã dùng (điểm đã đổi không hoàn); điểm tính trên phần khách trả thật (VOUCHER-2).
+- 08–09.11 · Voucher ship: giảm theo số tiền hoặc theo % (có trần "giảm tối đa"), chỉ giảm dòng phí giao, đơn tự đến lấy không dùng; quán vẫn trả
+  Ahamove đủ, Đối soát ghi phần quán bù; tính vào giới hạn N voucher (VOUCHER-2).
+- 09.11 · Mã khuyến mãi Ahamove: công tắc "phần giảm của Ahamove: cho khách / quán giữ" — trước mắt CHO KHÁCH; trừ mã Ahamove trước rồi mới trừ
+  voucher ship; hiện rõ ở quầy VÀ App KH; mã hỏng lúc gọi xe → khách không trả thêm, quán bù, Đối soát ghi. Kho mã hai kiểu: kho mã dùng một lần
+  (dán danh sách) và một mã dùng nhiều lượt (số lượt, hạn); máy dùng theo thứ tự, giữ mã cho đơn đang thanh toán, mã hỏng tự chuyển mã kế, sắp hết
+  thì nhắc (GIAO-MA-1).
+- 09.11 · Tích điểm theo món (DIEM-MON-1): khoản hoàn biết thuộc dòng nào (kết thúc gói, đền theo dòng) chỉ trừ điểm theo phần dòng BẬT điểm —
+  dòng tắt điểm không trừ (Cách 2); khoản hoàn không gắn dòng trừ theo tỉ lệ toàn đơn; duyệt hoàn sau khi đã đền → trừ theo phần CÒN LẠI của đơn
+  (hoàn hết thì điểm về 0, không phụ thuộc đền món nào trước — Q4 = a).
+- 09.11 · Sản phẩm không pha chế (thẻ hạng, gói nạp, gói trả trước) bán MỌI GIỜ, kể cả ngoài giờ mở cửa; giỏ có đồ uống vẫn theo giờ. Đơn chỉ có
+  thẻ / nạp tự chuyển "Xong" khi tiền về (KH-THE-1, KH-NAP-1).
+- 09.11 · Mọi thao tác trong POS phải báo rõ, dễ hiểu và luôn nhìn thấy: xanh nói đã làm gì; đỏ nói vì sao + cách sửa (BAO-1a ngoài Cài đặt,
+  BAO-1b Cài đặt — gồm CAIDAT-BAO-1).
+- 09.11 · Giao diện Cài đặt / Khách hàng / Quản lý tinh gọn theo mẫu chủ quán duyệt TẠM (artifact "Tinh gọn Cài đặt & Khách hàng"); góp ý thêm
+  và chốt mẫu lần 2 trước khi làm (GIAO-DIEN-2).
+- 09.11 · Máy in bill tự cắt rời từng liên (2 liên → 2 tờ rời, không in dài rồi xé).
+- 09.11 · Khai trương phải ĐẦY ĐỦ mọi việc, không cắt bớt — sớm nhất T5 26.11 nếu không thêm việc.
+
+## Đợt quyết định 10.11.2026 (chat bàn 35)
+- 10.11 · Mã giảm / voucher KHÔNG áp lên thẻ hạng, nạp tiền, gói trả trước, thẻ quà; đơn có thêm món thường thì mã chỉ tính trên món thường
+  (VOUCHER-2 — chốt câu chờ 09.11).
+- 10.11 · Nạp tiền và thẻ quà CHỈ mua bằng tiền thật (tiền mặt / chuyển khoản): không trừ tiền tài khoản, không mã giảm — chặn vòng lặp "trả 95k nhận
+  100k rồi lấy tiền tài khoản mua tiếp"; máy chủ chặn ở cả quầy và App (KH-NAP-1, QUA-TANG-1). Tiền đã vào tài khoản thì khách mua gì cũng được.
+- 10.11 · Thẻ quà tặng (QUA-TANG-1, làm SAU CÙNG): mệnh giá + khuyến mãi trong Cài đặt (vd trả 95.000đ nhận 100.000đ, tuỳ chọn tối đa N thẻ
+  khuyến mãi / khách / tháng); mỗi thẻ một mã, thuộc người mua tới khi có người nhập. Mua trên App → mã trong "Quà đã mua" + nút Chia sẻ; mua ở
+  quầy có tài khoản → mã vào App của khách (in phiếu nếu khách muốn); không tài khoản → in phiếu mã + QR. Không chuyển thẳng theo SĐT lúc bán.
+  Người nhận nhập mã trong App hoặc quầy quét mã → tiền vào tài khoản (không hạn); mã dùng một lần, hạn nhận 12 tháng (Cài đặt). Mua 0 điểm,
+  tiêu vẫn tích điểm. Mã chưa ai nhập chủ quán huỷ được; đã nhập không hoàn, không đổi tiền mặt.
+- 10.11 · Giới thiệu bạn bè (GIOI-THIEU-1, sau khai trương, sau VOUCHER-2): chỉ qua App; thưởng bằng voucher sinh từ "mẫu voucher" trong Cài đặt
+  Voucher (mức + hạn trong Cài đặt); người được mời nhận khi đăng ký (khách mới thật), người giới thiệu nhận khi đơn đầu của bạn hoàn tất; trần N
+  lần / tháng (mặc định 10).
+
+## Đợt quyết định 11.11.2026 (chat bàn 35)
+- 11.11 · Quét QR trên điện thoại khách bằng camera TRƯỚC của màn khách (QUET-1, trước khai trương), không mua máy quét để bàn: máy quầy ra lệnh
+  → màn khách tự bật camera; màn rảnh có nút "Quét thẻ thành viên" cho khách tự bấm; quét xong (hoặc 30 giây) màn tự trở lại màn trước.
+- 11.11 · Bỏ hẳn màn Bán hàng cũ, chuyển 100% sang màn mới; máy chủ khoá: trừ tiền tài khoản (của khách hay của mẹ) luôn cần PIN chủ tài khoản
+  (BO-MAN-CU-1, trước khai trương).
+- 11.11 · Đăng nhập App bằng mật khẩu (MATKHAU-1, trước khai trương): quán KHÔNG biết, không xem được mật khẩu khách; quản lý xem được mọi thông
+  tin khách trừ mật khẩu; giữ đăng nhập 90 ngày; quầy có nút xoá mật khẩu (chủ quán / quản lý). PIN 4 số giữ riêng để xác nhận tiền, quên PIN
+  đặt lại bằng OTP. Màn đăng ký ghi rõ "nhập SĐT có Zalo" vì mã OTP gửi qua Zalo.
+- 11.11 · Đổi điểm (DOI-DIEM-1): quà hiện vật đổi ở quầy (khách nhập PIN), voucher đổi ở App hoặc quầy — MỘT cách đổi chung; thay một phần ý 09.11
+  "bỏ đổi điểm ở quầy" (P3b vẫn bỏ: không đổi trong phiên thanh toán). Quà hết hạn chưa dùng thì hoàn điểm.
+- 11.11 · Cuối danh sách, làm nối tiếp ngay, không chờ — làm hết một lượt: DOI-DIEM-1 → QUET-2 (khách tự quét mã của quán bằng App) →
+  GIOI-THIEU-1 → QUA-TANG-1 (sau cùng).
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,

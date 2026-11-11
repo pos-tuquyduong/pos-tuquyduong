@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 import { THU } from './chung';
 
 const O = ['', 0, 1, 2, 3, 4, 5, 6];   // '' = mọi ngày, rồi CN..T7
@@ -14,7 +15,7 @@ export default function DinhMuc({ vaiTro }) {
   const [nhap, setNhap] = useState({});   // san_pham_id → { ['' | 0..6]: chuỗi }
   const [lech, setLech] = useState({});   // nhom id → chuỗi %
   const [loi, setLoi] = useState('');
-  const [bao, setBao] = useState('');
+  const [dang, setDang] = useState(false);   // BAO-1a D: đang lưu → khóa các nút Lưu
   const [hanMuc, setHanMuc] = useState({});   // kho_han_muc_* → chuỗi đang sửa
 
   const tai = () => api.get('/kho/dinh-muc').then((r) => {
@@ -25,8 +26,9 @@ export default function DinhMuc({ vaiTro }) {
   useEffect(() => { tai(); }, []);
 
   const lam = async (viec, loiBao) => {
-    setLoi(''); setBao('');
-    try { await viec(); setBao(loiBao); tai(); } catch (e) { setLoi(e.message); }
+    if (dang) return;
+    setDang(true);
+    try { await viec(); baoXong(loiBao); tai(); } catch (e) { baoLoiTu('lưu định mức', e); } finally { setDang(false); }
   };
   const luuMon = (m) => lam(() => api.put('/kho/dinh-muc', { san_pham_id: m.san_pham_id,
     dinh_muc: O.filter((t) => (nhap[m.san_pham_id]?.[t] ?? '') !== '').map((t) => ({ thu: t === '' ? null : t, so_luong: Number(nhap[m.san_pham_id][t]) })) }), `Đã lưu ${m.ten}`);
@@ -37,17 +39,15 @@ export default function DinhMuc({ vaiTro }) {
   if (!dl) return loi ? <div className="kho-loi">{loi}</div> : <p>Đang tải…</p>;
   return (
     <div>
-      {loi && <div className="kho-loi">{loi}</div>}
-      {bao && <div className="kho-ok">{bao}</div>}
       {vaiTro === 'owner' && (
-        <label className="kho-hang"><input type="checkbox" checked={dl.nv_can_duyet} onChange={doiCongTac} /> Nhân viên xuất kho cần duyệt</label>
+        <label className="kho-hang"><input type="checkbox" checked={dl.nv_can_duyet} disabled={dang} onChange={doiCongTac} /> Nhân viên xuất kho cần duyệt</label>
       )}
       {vaiTro === 'owner' && [['kho_han_muc_dat_hang', 'han_muc_dat_hang', 'Hạn mức đặt hàng quản lý tự duyệt (đ)'], ['kho_han_muc_noi_bo', 'han_muc_noi_bo', 'Hạn mức dùng nội bộ / người / ngày (đ)']]
         .map(([khoa, truong, nhan]) => (
           <div key={khoa} className="kho-dong">
             <span style={{ flex: 1 }}>{nhan}</span>
             <input className="input kho-hep" type="number" min="0" step="1000" inputMode="numeric" value={hanMuc[khoa] ?? dl[truong]} onChange={(e) => setHanMuc({ ...hanMuc, [khoa]: e.target.value })} />
-            <button className="btn btn-sm btn-outline" disabled={hanMuc[khoa] == null} onClick={() => luuHanMuc(khoa)}>Lưu</button>
+            <button className="btn btn-sm btn-outline" disabled={dang || hanMuc[khoa] == null} onClick={() => luuHanMuc(khoa)}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
           </div>
         ))}
       <h3 className="card-title">Định mức mỗi ngày (số phần)</h3>
@@ -63,7 +63,7 @@ export default function DinhMuc({ vaiTro }) {
               </label>
             ))}
           </div>
-          <button className="btn btn-sm btn-primary" onClick={() => luuMon(m)}>Lưu</button>
+          <button className="btn btn-sm btn-primary" disabled={dang} onClick={() => luuMon(m)}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
         </div>
       ))}
       <h3 className="card-title">% lệch cho phép theo nhóm món</h3>
@@ -73,7 +73,7 @@ export default function DinhMuc({ vaiTro }) {
           <span style={{ flex: 1 }}>{n.ten}</span>
           <input className="input" type="number" min="0" step="any" style={{ maxWidth: '6rem' }} value={lech[n.id] ?? ''} onChange={(e) => setLech({ ...lech, [n.id]: e.target.value })} />
           <span>%</span>
-          <button className="btn btn-sm btn-outline" onClick={() => luuLech(n)}>Lưu</button>
+          <button className="btn btn-sm btn-outline" disabled={dang} onClick={() => luuLech(n)}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
         </div>
       ))}
     </div>

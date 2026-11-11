@@ -6,13 +6,13 @@ const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { 
-  sinhQrKhongTrung, // P15-QR
   QR_TIEN_TO,
   normalizePhone, 
-  isValidPhone,
   getNow 
 } = require('../utils/helpers');
 const { boMat } = require('../utils/pinKhach'); // P3
+const { taoKhach } = require('../utils/khachMoi'); // KHACH-APP-1 (C)
+const { loiGhi } = require('./wallets');
 
 const router = express.Router();
 
@@ -319,7 +319,7 @@ router.post('/', authenticate, async (req, res) => {
       notes,
       parent_phone,
       relationship,
-      customer_type = 'subscription',
+      customer_type,   // KHACH-APP-1 (Q2): không gửi → mặc định chung của taoKhach (retail / retail_only)
       requested_product,
       requested_cycles,
       children = [] // Danh sách người nhận
@@ -332,109 +332,32 @@ router.post('/', authenticate, async (req, res) => {
       });
     }
 
-    const normalizedPhone = normalizePhone(phone);
-    
-    if (!isValidPhone(normalizedPhone)) {
-      return res.status(400).json({ 
-        error: 'Số điện thoại không hợp lệ' 
-      });
-    }
+    // KHACH-APP-1 (C): cùng hàm tạo với App — kiểm trùng SĐT ngay trong câu ghi (hai quầy cùng bấm → một khách, bên kia 400)
+    const kq = await taoKhach({ phone, name, notes, parent_phone, relationship, customer_type, requested_product, requested_cycles,
+      created_by: req.user.username });
+    if (kq.loi === 'SDT_KHONG_HOP_LE') return res.status(400).json({ error: 'Số điện thoại không hợp lệ', code: kq.loi });
+    if (kq.loi) return res.status(400).json({ error: 'Vui lòng nhập số điện thoại và tên khách hàng', code: kq.loi });
+    if (kq.trung) return res.status(400).json({ error: 'Số điện thoại đã tồn tại trong hệ thống', code: 'SDT_DA_CO' });
 
-    // Kiểm tra trùng
-    const existing = await queryOne(
-      'SELECT id FROM pos_customers WHERE phone = ?',
-      [normalizedPhone]
-    );
-
-    if (existing) {
-      return res.status(400).json({ 
-        error: 'Số điện thoại đã tồn tại trong hệ thống' 
-      });
-    }
-
-    // Tạo QR code
-    const qrCode = await sinhQrKhongTrung(queryOne);
-
-    // Xác định sync_status
-    const syncStatus = customer_type === 'retail' ? 'retail_only' : 'new';
-
-    // Insert khách hàng chính
-    const result = await run(`
-      INSERT INTO pos_customers (
-        phone, name, notes, parent_phone, relationship,
-        qr_code, customer_type, requested_product, requested_cycles,
-        sync_status, created_by, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      normalizedPhone,
-      name.trim(),
-      notes || null,
-      parent_phone ? normalizePhone(parent_phone) : null,
-      relationship || null,
-      qrCode,
-      customer_type,
-      requested_product || null,
-      requested_cycles || null,
-      syncStatus,
-      req.user.username,
-      getNow()
-    ]);
-
-    const customerId = result.lastInsertRowid;
-
-    // Thêm người nhận (children)
-    if (children && children.length > 0) {
-      for (const child of children) {
-        if (child.name) {
-          const childPhone = child.phone ? normalizePhone(child.phone) : null;
-          const childQR = childPhone ? await sinhQrKhongTrung(queryOne) : null;
-          
-          // Kiểm tra phone trùng nếu có
-          if (childPhone) {
-            const existingChild = await queryOne(
-              'SELECT id FROM pos_customers WHERE phone = ?',
-              [childPhone]
-            );
-            if (existingChild) continue; // Skip nếu trùng
-          }
-
-          await run(`
-            INSERT INTO pos_customers (
-              phone, name, parent_phone, relationship,
-              qr_code, customer_type, sync_status, created_by, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            childPhone,
-            child.name.trim(),
-            normalizedPhone, // parent_phone = khách chính
-            child.relationship || null,
-            childQR,
-            customer_type,
-            syncStatus,
-            req.user.username,
-            getNow()
-          ]);
-        }
+    // Người nhận: cùng hàm, theo loại của khách chính; không SĐT / SĐT sai / trùng → bỏ qua (như trước bỏ người nhận trùng)
+    for (const child of Array.isArray(children) ? children : []) {
+      if (child && child.phone && child.name) {
+        await taoKhach({ phone: child.phone, name: child.name, parent_phone: kq.khach.phone, relationship: child.relationship,
+          customer_type: kq.khach.customer_type, sync_status: kq.khach.sync_status, created_by: req.user.username });
       }
     }
 
-    // Trả về khách hàng vừa tạo
-    const newCustomer = await queryOne(
-      'SELECT * FROM pos_customers WHERE id = ?',
-      [customerId]
-    );
-
     const newChildren = await query(
       'SELECT * FROM pos_customers WHERE parent_phone = ?',
-      [normalizedPhone]
+      [kq.khach.phone]
     );
 
     res.status(201).json({
       success: true,
-      customer: { ...newCustomer, children: newChildren }
+      customer: { ...kq.khach, children: newChildren }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 
@@ -594,48 +517,16 @@ router.post('/:id/children', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy khách hàng' });
     }
 
-    const childPhone = phone ? normalizePhone(phone) : null;
-    
-    // Kiểm tra phone trùng nếu có
-    if (childPhone) {
-      const existing = await queryOne(
-        'SELECT id FROM pos_customers WHERE phone = ?',
-        [childPhone]
-      );
-      if (existing) {
-        return res.status(400).json({ 
-          error: 'Số điện thoại đã tồn tại trong hệ thống' 
-        });
-      }
-    }
+    // KHACH-APP-1 (C): cùng hàm tạo khách; người nhận theo loại của khách chính. Không SĐT → 400 (trước: 500 vì phone NOT NULL)
+    const kq = await taoKhach({ phone: phone || '', name, parent_phone: parent.phone, relationship,
+      customer_type: parent.customer_type, sync_status: parent.sync_status, created_by: req.user.username });
+    if (kq.loi === 'SDT_KHONG_HOP_LE') return res.status(400).json({ error: 'Người nhận cần số điện thoại hợp lệ', code: kq.loi });
+    if (kq.loi) return res.status(400).json({ error: 'Vui lòng nhập tên người nhận', code: kq.loi });
+    if (kq.trung) return res.status(400).json({ error: 'Số điện thoại đã tồn tại trong hệ thống', code: 'SDT_DA_CO' });
 
-    const qrCode = childPhone ? await sinhQrKhongTrung(queryOne) : null;
-
-    const result = await run(`
-      INSERT INTO pos_customers (
-        phone, name, parent_phone, relationship,
-        qr_code, customer_type, sync_status, created_by, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      childPhone,
-      name.trim(),
-      parent.phone,
-      relationship || null,
-      qrCode,
-      parent.customer_type,
-      parent.sync_status,
-      req.user.username,
-      getNow()
-    ]);
-
-    const child = await queryOne(
-      'SELECT * FROM pos_customers WHERE id = ?',
-      [result.lastInsertRowid]
-    );
-
-    res.status(201).json({ success: true, child });
+    res.status(201).json({ success: true, child: kq.khach });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    loiGhi(res, err);
   }
 });
 

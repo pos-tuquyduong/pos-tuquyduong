@@ -1,18 +1,20 @@
 /**
- * P3 — phiên thanh toán ở quầy (JWT nhân viên) + webhook payOS / SePay (công khai, chỉ tin chữ ký — SEPAY-1).
- * Không đường nào cho nhân viên tự đánh dấu "đã thu chuyển khoản": phiên payos (QR tự xác nhận: payOS hoặc SePay) chỉ chốt bằng webhook đúng chữ ký, phiên payos / ck_tay
+ * P3 — phiên thanh toán ở quầy (JWT nhân viên) + webhook payOS / SePay / Tingee (công khai, chỉ tin chữ ký — SEPAY-1, TINGEE-1).
+ * Không đường nào cho nhân viên tự đánh dấu "đã thu chuyển khoản": phiên payos (QR tự xác nhận: payOS, SePay hoặc Tingee) chỉ chốt bằng webhook đúng chữ ký, phiên payos / ck_tay
  * chốt tay CHỈ qua xac-nhan-tay (quyền xac_nhan_ck_tay, có lý do). Mọi lối chốt đi qua MỘT chotPhien (utils/giuCho.js).
  */
 const express = require('express');
+const crypto = require('crypto');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { getNow } = require('../utils/helpers');
-const { loiGhi } = require('./wallets');
+const { getNow, chuoiSoHd } = require('../utils/helpers');
+const { loiGhi, ghiVi, trongGiaoDich } = require('./wallets');
 const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const { datPin, xoaPin } = require('../utils/pinKhach');
 const payos = require('../utils/payos');
 const sepay = require('../utils/sepay');
-const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa } = require('../utils/congQr');
+const tingee = require('../utils/tingee');
+const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, LY_DO_VAO_VI, congCuaKhoa, TEN_CONG } = require('../utils/congQr');
 
 const router = express.Router();
 const webhook = express.Router();
@@ -21,6 +23,12 @@ const loi = (res, status, code, error) => res.status(status).json({ error, code 
 const LY_DO_TOI_THIEU = 3;   // ký tự — cùng mức với điều chỉnh số dư (wallets.js /adjust)
 const lyDoHopLe = (x) => typeof x === 'string' && x.trim().length >= LY_DO_TOI_THIEU;
 const docPhien = (id) => queryOne('SELECT * FROM pos_phien_thanh_toan WHERE id = ?', [id]);
+// Phiên của đơn App (KH-MUA-1 nối qua pos_don_app.phien_id) — App KHÔNG tạo lại đơn khi tiền về muộn (chủ quán Q1b 05.11).
+const laPhienApp = async (id) => !!(await queryOne('SELECT 1 AS co FROM pos_don_app WHERE phien_id = ?', [id]));
+const soHdCuaPhien = async (id) => {
+  const s = await queryOne('SELECT kenh, so FROM pos_so_hoa_don WHERE phien_id = ?', [id]);
+  return s ? chuoiSoHd(s) : `phiên #${id}`;
+};
 
 router.post('/phien', authenticate, async (req, res) => {
   try {
@@ -76,7 +84,12 @@ router.post('/phien/:id/xac-nhan-tay', authenticate, checkPermission('xac_nhan_c
     const p = await docPhien(req.params.id);
     if (!p) return loi(res, 404, 'KHONG_THAY_PHIEN', 'Không tìm thấy phiên thanh toán');
     if (p.cach !== 'payos' && p.cach !== 'ck_tay') return loi(res, 400, 'PHIEN_KHONG_PHAI_CK', 'Chỉ xác nhận tay phiên chuyển khoản');
-    tra(res, await chotPhien(p, 'tay', { nguoi: req.user.username, lyDo: lyDo.trim() }));
+    // Q1a (chủ quán 05.11): tiền về sau khi QR hết hạn / đã huỷ → phiên QUẦY xác nhận tay được (đơn nhận lại số đã giữ); phiên App thì không.
+    const muon = !p.order_id && (p.trang_thai === 'huy' || (p.trang_thai === 'cho' && p.het_han <= getNow()));
+    if (muon && await laPhienApp(p.id)) {
+      return loi(res, 409, 'PHIEN_APP_KHONG_TAO_LAI', 'Đơn App đã huỷ / hết hạn — không tạo lại đơn; tiền về muộn tự cộng vào tài khoản khách');
+    }
+    tra(res, await chotPhien(p, 'tay', { nguoi: req.user.username, lyDo: lyDo.trim(), muon }));
   } catch (err) {
     loiGhi(res, err);
   }
@@ -106,31 +119,70 @@ router.post('/pin/xoa', authenticate, checkPermission('xoa_pin_khach'), async (r
   }
 });
 
-// ── Webhook tiền về: payOS + SePay (công khai, chỉ tin chữ ký) ─────────────
+// ── Webhook tiền về: payOS + SePay + Tingee (công khai, chỉ tin chữ ký) ────
 // Sai chữ ký → 4xx, không ghi gì. Đúng chữ ký → MỖI báo một dòng pos_payos_su_kien (khoa UNIQUE: báo lặp dừng ở đó) và trả 200
-// {"success": true} (cả hai cổng coi là đã nhận, thôi gửi lại) — trừ khi máy chủ lỗi giữa chừng (5xx) hoặc kho bận (409 KHO_BAN): chưa ghi gì,
-// để cổng báo lại. MỘT hàm xuLyTienVe cho cả hai cổng (SEPAY-1): khoá, khớp phiên, chua_khop, chốt.
+// {"success": true} (payOS, SePay coi là đã nhận, thôi gửi lại; Tingee đổi thành {"code":"00"}) — trừ khi máy chủ lỗi giữa chừng (5xx) hoặc kho bận (409 KHO_BAN): chưa ghi gì,
+// để cổng báo lại. MỘT hàm xuLyTienVe cho mọi cổng (SEPAY-1): khoá, khớp phiên, chua_khop, chốt.
 const DANG_GIO = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/;
 const CAU_GHI = `INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua, ly_do, du_lieu, luc) VALUES (?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(khoa) DO NOTHING`;
-const TEN_CONG = { payos: 'payOS', sepay: 'SePay' };
+// "Hai cổng" ở đường vào ví (Q6 B, chủ quán 06.11): một khoản báo qua HAI cổng (payOS, SePay, Tingee) mang hai khoá khác nhau, và hai cổng không giữ cùng
+// thứ tự (gửi lại sau khi Render ngủ) — máy không phân biệt chắc "bản sao" với "khoản thật thứ hai". Nên phiên đã có báo tiền vào từ CỔNG KIA
+// (khop, chua_khop, vao_vi — trừ báo thất bại / không thuộc phiên / tiền vào tài khoản khác) thì KHÔNG tự cộng ví: ghi CẦN XEM, chủ quán đối
+// chiếu sao kê, cộng tay. Ví không bao giờ cộng thừa. Một cổng (cấu hình QUYET_DINH 01.11) không bao giờ chạm vế này. tx: câu đọc ĐẦU giao
+// dịch ghi — hai báo tới cùng lúc thì báo sau thấy dòng của báo trước.
+async function congKiaDaBao(tx, t) {
+  const ds = await tx.query(`SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua NOT IN ('that_bai', 'khong_phien')
+    AND COALESCE(ly_do, '') NOT LIKE ?`, [t.ma, LY_DO_TK_KHAC + '%']);
+  return ds.some((d) => congCuaKhoa(d.khoa) !== t.nguon);
+}
 
-/** t: { khoa, ma (mã phiên | null), soTien, luc (giờ VN của giao dịch), duLieu, nguon ('payos' | 'sepay'), boQua (lý do ghi khong_phien ngay),
- *  khongPhien (lý do khi mã không thuộc phiên), thatBai (lý do ghi that_bai), tkKhac (số tài khoản nhận sai — chỉ SePay) }. */
+/** t: { khoa, noiDung (nội dung số hoá đơn đã chuẩn hoá — SePay, Tingee) | ma (mã phiên | null), soTien, luc (giờ VN của giao dịch), maGd (mã giao dịch
+ *  ngân hàng), duLieu, nguon ('payos' | 'sepay' | 'tingee'), boQua (lý do ghi khong_phien ngay), khongPhien (lý do khi mã không thuộc phiên),
+ *  thatBai (lý do ghi that_bai), tkKhac (số tài khoản nhận sai — SePay, Tingee) }. */
 async function xuLyTienVe(res, t) {
+  const p = t.boQua ? null
+    : t.noiDung ? await queryOne("SELECT * FROM pos_phien_thanh_toan WHERE noi_dung = ? AND cach = 'payos' ORDER BY id DESC LIMIT 1", [t.noiDung])
+      : t.ma ? await queryOne("SELECT * FROM pos_phien_thanh_toan WHERE ma_payos = ? AND cach = 'payos'", [t.ma]) : null;
+  if (p) t.ma = p.ma_payos;   // cột pos_payos_su_kien.ma_payos giữ nghĩa cũ (= mã phiên) cho daBao, đơn App, Đối soát
   const thamSo = (ketQua, lyDo) => [t.khoa, t.ma, t.soTien, ketQua, lyDo, JSON.stringify(t.duLieu), getNow()];
   const ghi = async (ketQua, lyDo) => { await run(CAU_GHI, thamSo(ketQua, lyDo)); res.json({ success: true }); };
-  const p = !t.boQua && t.ma ? await queryOne("SELECT * FROM pos_phien_thanh_toan WHERE ma_payos = ? AND cach = 'payos'", [t.ma]) : null;
   if (!p) return ghi('khong_phien', t.boQua || t.khongPhien);
   if (t.tkKhac) return ghi('chua_khop', `${LY_DO_TK_KHAC} ${t.tkKhac}`);
   if (t.thatBai) return ghi('that_bai', t.thatBai);
   const luc = DANG_GIO.test(String(t.luc || '')) ? String(t.luc).replace(' ', 'T') : getNow();
+  // Q1b + chủ quán 05.11 lượt 2: phiên App đã huỷ / hết hạn, HOẶC 'loi' (không tạo được đơn — vd hết hàng lúc tiền về đúng hạn), tiền về →
+  // KHÔNG tạo đơn; số tiền thật đã về cộng vào tài khoản khách của phiên. MỘT vị từ (vaoViDuoc), MỘT hàm ghi (vaoVi): dòng báo + dòng ví cùng
+  // MỘT giao dịch, chỉ cộng khi dòng báo mới được ghi (changes 1) — báo lặp / hai báo cùng lúc cộng đúng một lần. Phiên QUẦY không vào đây.
+  const laApp = !!p.phone && t.soTien > 0 && await laPhienApp(p.id);
+  const vaoViDuoc = (x) => ['huy', 'loi'].includes(x.trang_thai) || (x.trang_thai === 'cho' && (luc > x.het_han || x.het_han <= getNow()));
+  const vaoVi = async (x) => {
+    const soHd = await soHdCuaPhien(x.id), maGd = t.maGd || '—';
+    const dau = x.trang_thai === 'loi' ? `không tạo được đơn (${x.ly_do || 'lỗi'})` : 'tiền về muộn';
+    await trongGiaoDich(async (tx) => {
+      // Cổng kia đã báo tiền cho phiên (congKiaDaBao — câu đọc ĐẦU giao dịch ghi) → chua_khop + LY_DO_HAI_CONG (CẦN XEM), KHÔNG cộng.
+      if (await congKiaDaBao(tx, t)) {
+        await tx.run(CAU_GHI, thamSo('chua_khop', `${dau} — có thể ${LY_DO_HAI_CONG} (cổng kia đã báo tiền cho ${soHd}) · mã GD ${maGd}: máy KHÔNG tự cộng`
+          + ` — đối chiếu sao kê, khoản chưa cộng thì cộng tay vào tài khoản ${x.phone}`));
+        return;
+      }
+      const ins = await tx.run(CAU_GHI, thamSo('vao_vi', `${dau} — ${LY_DO_VAO_VI} ${x.phone} (${soHd}) · mã GD ${maGd}`));
+      if (ins.changes !== 1) return;
+      await ghiVi(tx, { phone: x.phone, loai: 'topup', soTien: t.soTien, cachTra: 'transfer', nguoi: t.nguon, luc: getNow(), cot: 'total_topup', soCot: t.soTien,
+        ghiChu: (x.trang_thai === 'loi' ? `Không tạo được đơn ${soHd} (${x.ly_do || 'lỗi'})` : `Tiền về muộn ${soHd} (đơn App đã huỷ / hết hạn)`) + ` · mã GD ${maGd}` });
+    });
+    return res.json({ success: true });
+  };
+  if (laApp && vaoViDuoc(p)) return vaoVi(p);
   const lyDo = t.soTien !== p.con_lai ? `lệch tiền: về ${t.soTien}, phải thu ${p.con_lai}`
     : luc > p.het_han ? 'tiền về sau khi QR hết hạn' : null;
   if (lyDo) return ghi('chua_khop', lyDo);
-  const kq = await chotPhien(p, t.nguon, { suKien: (tx) => tx.run(CAU_GHI, thamSo('khop', null)) });
+  const kq = await chotPhien(p, t.nguon, { maGd: t.maGd, suKien: (tx) => tx.run(CAU_GHI, thamSo('khop', null)) });
   if (kq.status === 200) return res.json({ success: true });
   if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);
+  // Chốt hỏng: chotPhien vừa đổi phiên App sang 'loi' (đơn hỏng), hoặc phiên vừa bị huỷ / hết hạn giữa chừng → đọc lại, cùng vị từ, vào ví.
+  const moi = laApp ? await docPhien(p.id) : null;
+  if (moi && vaoViDuoc(moi)) return vaoVi(moi);
   const sau = kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;
   // "Hai cổng" chỉ khi phiên do CỔNG KIA chốt và cổng này CHƯA báo gì cho phiên — cổng này báo lần nữa là khách chuyển thêm thật (phải hoàn).
   const daBao = sau ? (await query('SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ?', [t.ma])).some((x) => congCuaKhoa(x.khoa) === t.nguon) : false;
@@ -147,7 +199,7 @@ webhook.post('/', async (req, res) => {
     if (!payos.kiemChuKy(b.data, b.signature)) return loi(res, 400, 'CHU_KY_SAI', 'Chữ ký không hợp lệ');
     const d = b.data;
     await xuLyTienVe(res, { khoa: `${d.orderCode}:${d.reference ?? ''}`, ma: Number(d.orderCode) || null, soTien: Number(d.amount) || 0,
-      luc: d.transactionDateTime, duLieu: d, nguon: 'payos', khongPhien: 'Mã đơn payOS không thuộc phiên nào',
+      luc: d.transactionDateTime, maGd: String(d.reference ?? '').trim() || null, duLieu: d, nguon: 'payos', khongPhien: 'Mã đơn payOS không thuộc phiên nào',
       thatBai: b.code !== '00' || d.code !== '00' ? `payOS báo ${d.code}` : null });
   } catch (err) {
     loiGhi(res, err);
@@ -164,8 +216,35 @@ webhookSepay.post('/', async (req, res) => {
     if (!b || typeof b !== 'object' || b.id == null) return res.status(400).json({ success: false, error: 'Thân báo không hợp lệ', code: 'BAO_KHONG_HOP_LE' });
     const d = sepay.docBao(b);
     await xuLyTienVe(res, { ...d, duLieu: { ...b, accumulated: undefined }, nguon: 'sepay',   // không lưu số dư tài khoản quán
-      boQua: !d.vao ? 'SePay báo tiền ra' : !d.ma ? 'không có mã TQD trong nội dung' : null,
-      khongPhien: `mã TQD${d.ma} không thuộc phiên nào` });
+      boQua: !d.vao ? 'SePay báo tiền ra' : !d.noiDung && !d.ma ? 'không có mã TQD trong nội dung' : null,
+      khongPhien: `mã ${d.noiDung || 'TQD' + d.ma} không thuộc phiên nào` });
+  } catch (err) {
+    loiGhi(res, err);
+  }
+});
+
+// TINGEE-1: thân THÔ (index.js gắn express.raw riêng đường này). Trả lời theo viec/TINGEE-1/tai_lieu_tingee.md mục 3: 200 + {"code":"00"} khi
+// ghi nhận, {"code":"02"} khi báo lặp (khoá đã có dòng), sai chữ ký 401 + {"code":"09"}. Kho bận / lỗi máy chủ: 409 / 500 với code khác "00" /
+// "02" → Tingee gửi lại. Tin không có transactionCode (tài liệu không nói tin "Kiểm tra kết nối" của Portal có mã hay không — có thể là nó, hoặc dạng lạ) → một dòng khong_phien (khoá = băm thân), "00".
+const webhookTingee = express.Router();
+const DA_NHAN_TINGEE = { code: '00', message: 'Success' };
+webhookTingee.post('/', async (req, res) => {
+  try {
+    const cach = tingee.kiemBao(req.headers, req.body);
+    if (!cach) return res.status(401).json({ error: 'Chữ ký không hợp lệ', code: '09' });
+    if (cach === 'gon') console.warn('Tingee: chữ ký khớp trên bản JSON gọn, không khớp thân thô');
+    let b;
+    try { b = JSON.parse(req.body.toString('utf8')); } catch { b = null; }
+    if (!b || typeof b !== 'object' || Array.isArray(b)) return res.status(400).json({ error: 'Thân báo không hợp lệ', code: 'BAO_KHONG_HOP_LE' });
+    const d = tingee.docBao(b);
+    if (!d.maGd) d.khoa = 'tingee:tin-la:' + crypto.createHash('sha256').update(req.body).digest('hex').slice(0, 24);
+    if (await queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [d.khoa])) return res.json({ code: '02', message: 'Đã ghi nhận trước đó' });
+    const json = res.json.bind(res);
+    res.json = (x) => json(x?.success === true ? DA_NHAN_TINGEE : x);
+    await xuLyTienVe(res, { ...d, duLieu: { ...b, clientId: undefined }, nguon: 'tingee',   // không lưu Client ID
+      boQua: !d.maGd ? 'Tingee: tin không có mã giao dịch (có thể là tin thử kết nối / dạng lạ)' : !d.vao ? 'Tingee báo tiền ra'
+        : !d.noiDung && !d.ma ? 'không có mã TQD trong nội dung' : null,
+      khongPhien: `mã ${d.noiDung || 'TQD' + d.ma} không thuộc phiên nào` });
   } catch (err) {
     loiGhi(res, err);
   }
@@ -174,3 +253,4 @@ webhookSepay.post('/', async (req, res) => {
 module.exports = router;
 module.exports.webhook = webhook;
 module.exports.webhookSepay = webhookSepay;
+module.exports.webhookTingee = webhookTingee;

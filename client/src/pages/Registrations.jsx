@@ -7,15 +7,15 @@
 import { useState, useEffect } from 'react';
 import { registrationsApi } from '../utils/api';
 import { hienNgayGio } from '../utils/ngayVN';
+import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { Download, Check, Trash2, Edit2, X, RefreshCw, FileText, History, RotateCcw } from 'lucide-react';
 
 export default function Registrations() {
   const [registrations, setRegistrations] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, exported: 0 });
   const [loading, setLoading] = useState(true);
+  const [dangXuLy, setDangXuLy] = useState(false);   // BAO-1a D: đang hoàn tác / xóa → khóa các nút, không bấm hai lần
   const [filter, setFilter] = useState('pending');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Export state
   const [exporting, setExporting] = useState(false);
@@ -39,7 +39,6 @@ export default function Registrations() {
 
   const loadData = async () => {
     setLoading(true);
-    setError('');
     try {
       const params = {};
       if (filter !== 'all') params.status = filter;
@@ -48,7 +47,7 @@ export default function Registrations() {
       setRegistrations(data.registrations || []);
       setStats(data.stats || { total: 0, pending: 0, exported: 0 });
     } catch (err) {
-      setError('Không thể tải danh sách: ' + err.message);
+      baoLoiTu('tải danh sách đăng ký', err);
       console.error(err);
     } finally {
       setLoading(false);
@@ -58,19 +57,18 @@ export default function Registrations() {
   // BƯỚC 1: Tải CSV
   const handleDownloadCsv = async () => {
     if (stats.pending === 0) {
-      setError('Không có đăng ký mới để export');
+      baoLoi('Chưa tải được CSV', 'Không có đăng ký mới để xuất.');
       return;
     }
 
     setExporting(true);
-    setError('');
     try {
       await registrationsApi.exportCsv();
       setPendingCount(stats.pending); // Lưu số lượng để hiện trong confirm
-      setSuccess('✅ Đã tải file CSV! Kiểm tra file rồi bấm "Xác nhận" bên dưới.');
+      baoXong('Đã tải file CSV. Kiểm tra file rồi bấm "Xác nhận" bên dưới.');
       setShowConfirm(true);
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('tải file CSV', err);
     } finally {
       setExporting(false);
     }
@@ -79,19 +77,16 @@ export default function Registrations() {
   // BƯỚC 2: Xác nhận export
   const handleConfirmExport = async () => {
     setConfirming(true);
-    setError('');
     try {
       const result = await registrationsApi.confirmExport();
-      setSuccess(`🎉 ${result.message}`);
+      baoXong(result.message || 'Đã xác nhận xuất đăng ký');
       setShowConfirm(false);
       setPendingCount(0);
 
       // Reload data ngay lập tức
       await loadData();
-
-      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
-      setError('Lỗi: ' + err.message);
+      baoLoiTu('xác nhận xuất', err);
     } finally {
       setConfirming(false);
     }
@@ -101,21 +96,23 @@ export default function Registrations() {
   const handleCancelConfirm = () => {
     setShowConfirm(false);
     setPendingCount(0);
-    setSuccess('');
   };
+
+  const tenDangKy = (id) => { const d = registrations.find((x) => x.id === id); return d?.name || d?.phone || ''; };
 
   // Hoàn tác 1 đăng ký
   const handleRevert = async (id) => {
     if (!confirm('Hoàn tác đăng ký này về trạng thái "Chờ export"?')) return;
 
-    setError('');
+    setDangXuLy(true);
     try {
       await registrationsApi.revert(id);
-      setSuccess('Đã hoàn tác!');
+      baoXong(`Đã hoàn tác đăng ký ${tenDangKy(id)} về "Chờ export"`);
       await loadData();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('hoàn tác đăng ký', err);
+    } finally {
+      setDangXuLy(false);
     }
   };
 
@@ -123,15 +120,16 @@ export default function Registrations() {
   const handleRevertLast = async () => {
     if (!confirm('Hoàn tác TẤT CẢ khách từ lần export gần nhất?')) return;
 
-    setError('');
+    setDangXuLy(true);
     try {
       const result = await registrationsApi.revertLast();
-      setSuccess(result.message);
+      baoXong(result.message || 'Đã hoàn tác lần xuất gần nhất');
       await loadData();
       await loadLogs();
-      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('hoàn tác lần xuất gần nhất', err);
+    } finally {
+      setDangXuLy(false);
     }
   };
 
@@ -156,14 +154,16 @@ export default function Registrations() {
   const handleDelete = async (id) => {
     if (!confirm('Xóa đăng ký này?')) return;
 
-    setError('');
+    const ten = tenDangKy(id);
+    setDangXuLy(true);
     try {
       await registrationsApi.delete(id);
-      setSuccess('Đã xóa!');
+      baoXong(`Đã xóa đăng ký ${ten}`);
       await loadData();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('xóa đăng ký', err);
+    } finally {
+      setDangXuLy(false);
     }
   };
 
@@ -174,15 +174,13 @@ export default function Registrations() {
 
   const handleSaveEdit = async () => {
     setSaving(true);
-    setError('');
     try {
       await registrationsApi.update(editData.id, editData);
-      setSuccess('Đã cập nhật!');
+      baoXong(`Đã cập nhật đăng ký ${editData.name || editData.phone}`);
       setShowEdit(false);
       await loadData();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('cập nhật đăng ký', err);
     } finally {
       setSaving(false);
     }
@@ -225,8 +223,6 @@ export default function Registrations() {
       </header>
 
       <div className="page-content">
-        {error && <div className="alert alert-danger">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
 
         {/* Stats */}
         <div className="grid grid-3 mb-2">
@@ -380,6 +376,7 @@ export default function Registrations() {
                               className="btn btn-danger" 
                               style={{ padding: '0.25rem 0.5rem' }}
                               onClick={() => handleDelete(r.id)}
+                              disabled={dangXuLy}
                               title="Xóa"
                             >
                               <Trash2 size={14} />
@@ -390,6 +387,7 @@ export default function Registrations() {
                             className="btn btn-outline" 
                             style={{ padding: '0.25rem 0.5rem' }}
                             onClick={() => handleRevert(r.id)}
+                            disabled={dangXuLy}
                             title="Hoàn tác"
                           >
                             <RotateCcw size={14} />
@@ -512,8 +510,8 @@ export default function Registrations() {
                 <>
                   {logs.length > 0 && (
                     <div style={{ marginBottom: '1rem' }}>
-                      <button className="btn btn-warning" onClick={handleRevertLast}>
-                        <RotateCcw size={16} /> Hoàn tác lần export gần nhất
+                      <button className="btn btn-warning" onClick={handleRevertLast} disabled={dangXuLy}>
+                        <RotateCcw size={16} /> {dangXuLy ? 'Đang hoàn tác...' : 'Hoàn tác lần export gần nhất'}
                       </button>
                     </div>
                   )}

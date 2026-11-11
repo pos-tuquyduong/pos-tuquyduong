@@ -243,12 +243,23 @@ async function main() {
   const cauTruc = async () => JSON.stringify(await q("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name"));
   const ctLan1 = await cauTruc();
   const nc1 = (await coBang('pos_nang_cap')) ? await q('SELECT so, ten FROM pos_nang_cap ORDER BY so') : [];
-  // Số bước = số file NNN_*.js thật trong server/nang_cap (KHO-2a thêm 002) — không đếm cứng
-  const soBuoc = fs.existsSync(path.join(MAY_CHU, 'nang_cap')) ? fs.readdirSync(path.join(MAY_CHU, 'nang_cap')).filter((f) => /^\d{3}_[a-z0-9_]+\.js$/.test(f)).length : 0;
-  k('B1 khởi động lần 1: pos_nang_cap đủ mọi bước, bước 1 là 001_kho', soBuoc >= 1 && nc1.length === soBuoc && Number(nc1[0].so) === 1 && nc1[0].ten === '001_kho',
-    JSON.stringify(nc1));
+  // Số bước = số file NNN_*.js thật trong server/nang_cap (KHO-2a thêm 002) — không đếm cứng. Bước xuất `truoc` (KHACH-APP-1: chép khách SX)
+  // được HOÃN khi kho thử không có SX → không có dòng; các bước còn lại phải có ĐÚNG một dòng mỗi bước (so BẰNG tập `so`).
+  const tepNNN = fs.existsSync(path.join(MAY_CHU, 'nang_cap')) ? fs.readdirSync(path.join(MAY_CHU, 'nang_cap')).filter((f) => /^\d{3}_[a-z0-9_]+\.js$/.test(f)).sort() : [];
+  const coTruoc = (f) => typeof nap('nang_cap/' + f).truoc === 'function';
+  const soCanCo = tepNNN.filter((f) => !coTruoc(f)).map((f) => Number(f.slice(0, 3)));
+  const tepTruoc = tepNNN.filter(coTruoc);
+  const soBuoc = soCanCo.length;
+  const tapSo = (ds) => JSON.stringify(ds.map((r) => Number(r.so)).sort((a, b) => a - b));
+  k('B1 khởi động lần 1: pos_nang_cap đủ mọi bước không HOÃN được, bước 1 là 001_kho', soBuoc >= 1 && nc1.length === soBuoc
+    && tapSo(nc1) === JSON.stringify(soCanCo) && Number(nc1[0].so) === 1 && nc1[0].ten === '001_kho', JSON.stringify(nc1));
+  // Danh sách miễn HOÃN CỐ ĐỊNH, có tên — bước mới lỡ thêm `truoc` thì ĐỎ ở đây (không tự được miễn).
+  k('B1c bước có truoc ĐÚNG [020_chep_khach_sx.js] và nó KHÔNG có dòng pos_nang_cap khi SX không cấu hình',
+    JSON.stringify(tepTruoc) === JSON.stringify(['020_chep_khach_sx.js']) && !nc1.some((r) => tepTruoc.some((f) => Number(f.slice(0, 3)) === Number(r.so))),
+    `bước có truoc: ${tepTruoc.join(', ') || 'không có'} · ${JSON.stringify(nc1.map((r) => r.so))}`);
   imLang(); await db.initDatabase(); noiLai();
-  k('B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng', (await cauTruc()) === ctLan1 && (await dem('pos_nang_cap')) === soBuoc);
+  k('B2 khởi động lần 2: cấu trúc CSDL y hệt, pos_nang_cap không thêm dòng', (await cauTruc()) === ctLan1 && (await dem('pos_nang_cap')) === soBuoc
+    && tapSo(await q('SELECT so FROM pos_nang_cap')) === JSON.stringify(soCanCo));
   const chay = nap('nang_cap/chay.js');
   const chayNC = (csdl, thuMuc) => (typeof chay.chayNangCap === 'function' ? chay.chayNangCap(csdl, thuMuc) : Promise.resolve({ hong: 'thiếu chayNangCap' }));
   const dirBuoc = (ten, tep) => {
@@ -318,7 +329,7 @@ async function main() {
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D/K] một món một dòng — pos_products và menu không đổi');
-  const COT_SP = 'id,code,name,category,price,unit,description,image_url,is_active,sort_order,sx_product_type,sx_product_id,is_special_group,created_at,updated_at,ton_gan_nhat,ton_luc,nhu_cau,the_chat,mo_ta,cong_dung,thanh_phan';
+  const COT_SP = 'id,code,name,category,price,unit,description,image_url,is_active,sort_order,sx_product_type,sx_product_id,is_special_group,created_at,updated_at,ton_gan_nhat,ton_luc,nhu_cau,the_chat,mo_ta,cong_dung,thanh_phan,tich_diem';   // DIEM-MON-1 (LUAT §6.7): bước 024 thêm tich_diem
   k('D1 pos_products KHÔNG thêm cột', (await q('PRAGMA table_info(pos_products)')).map((c) => c.name).join(',') === COT_SP);
   await ghiDb("UPDATE pos_products SET price = 25000 WHERE code IN ('CT1', 'CT2')");
   const { layMenuQuay } = require(path.join(MAY_CHU, 'routes', 'products.js'));
@@ -526,7 +537,17 @@ async function main() {
   const vt = (ten) => backupSrc.indexOf(`'${ten}'`);
   k('J2 BACKUP_TABLES cha trước con: nguyên liệu → công thức; phiếu, lô → dòng phiếu', vt('kho_nguyen_lieu') > 0 && vt('kho_cong_thuc') > vt('kho_nguyen_lieu')
     && vt('kho_phieu_dong') > vt('kho_lo') && vt('kho_lo') > vt('kho_phieu') && vt('kho_san_pham') > vt('kho_nhom_cong_thuc'));
-  const khoiPhuc = async () => { const f = new FormData(); f.append('file', new Blob([xuat.tep || Buffer.alloc(0)]), 'sl.xlsx'); return goi('POST', '/backup/restore', f); };
+  // SUA-SL-1 (chat 05.11): HANG-1 chặn khôi phục trang "Hạng thành viên" (chỉ sửa ở Cài đặt có PIN) — bỏ trang đó khỏi file trước khi khôi phục.
+  const boHang = (tep) => {
+    if (!tep || !tep.length) return Buffer.alloc(0);
+    const w = XLSX.read(tep, { type: 'buffer' });
+    if (!w.SheetNames.includes('Hạng thành viên')) return tep;
+    const m = XLSX.utils.book_new();
+    for (const s of w.SheetNames) if (s !== 'Hạng thành viên') XLSX.utils.book_append_sheet(m, w.Sheets[s], s);
+    return XLSX.write(m, { type: 'buffer', bookType: 'xlsx' });
+  };
+  const tepKP = boHang(xuat.tep);
+  const khoiPhuc = async () => { const f = new FormData(); f.append('file', new Blob([tepKP]), 'sl.xlsx'); return goi('POST', '/backup/restore', f); };
   await ghiDb("INSERT INTO kho_nguyen_lieu (ten, ten_chuan, don_vi_luu, tao_luc) VALUES ('Sau sao lưu', 'sau sao lưu', 'kg', 'x')").catch(() => {});
   await ghiDb("INSERT INTO pos_nang_cap (so, ten, luc) VALUES (999, '999_sau_sao_luu', 'x')").catch(() => {});
   const bamChiKho = async () => { const h = crypto.createHash('sha1'); for (const b of BANG_KHO) if (await coBang(b)) h.update(JSON.stringify(await q(`SELECT * FROM ${b} ORDER BY rowid`))); return h.digest('hex'); };

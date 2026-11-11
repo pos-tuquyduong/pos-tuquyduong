@@ -188,6 +188,8 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
     if (k && hien(k)) tt.push(dong(k, dinhDangTien(t.so_tien)));
   }
   if (hd?.khach_dua > 0 && hien('dua_tra')) tt.push(dong('dua_tra', `${dinhDangTien(hd.khach_dua)} / ${dinhDangTien(hd.tra_lai)}`));
+  // CK-NOIDUNG-1: mã giao dịch ngân hàng (dòng nhỏ). Nhãn cố định — không thêm khoá chữ invoice_chu_* (khoá chữ seed ở database.js).
+  if (hd?.don?.ma_gd) tt.push({ khoa: 'ma_gd', ten: 'Mã GD', tien: String(hd.don.ma_gd), dam: false });
   if (tt.length) tt.unshift(dong('tieu_de_tt', ''));   // không dòng nào (đơn 0đ lấy hết từ gói) → không in tiêu đề trơ trọi
 
   const dg = [];
@@ -227,6 +229,7 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
       nhan_khach: hien('nhan_khach') ? d('nhan_khach') : '', nhan_nv: hien('nhan_nv') ? d('nhan_nv') : '',
       qr: duongQr(settings?.[KHOA_DIA_CHI_KH], maDung), chu_qr: hien('chu_qr') ? d('chu_qr') : '',
       gio: gioHienThi(hd?.don?.gio), nhan_vien: hd?.don?.nhan_vien || '', khach: khach.la_khach_le === false ? khach.ten : (khach.ten || 'Khách lẻ'),
+      giao: hd?.giao?.dia_chi ? `GIAO HÀNG: ${hd.giao.dia_chi}` : '',   // GIAO-1: đơn giao Ahamove
     },
     mon: (hd?.mon || []).map((x) => ({
       sl: x.so_luong, ten: x.ten, ghi_chu: x.ghi_chu || '', gia_goc: x.gia_goc, gia_hang: x.gia_hang ?? null,

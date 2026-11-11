@@ -15,8 +15,12 @@ import { ordersApi, productsApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
 import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
+import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { useAuth } from '../contexts/AuthContext';
 import { ngayVN, khoangNgay, docGioVN, hienNgay, hienGio, hienNgayGio } from '../utils/ngayVN';
+
+const ID_NAP_TU = -2000000;   // QUAY-UI-1 D: dòng nạp có product_id ≤ số này (cùng dải máy chủ utils/viKhach.js)
+const laDonNap = (don) => (don?.items || []).some((i) => Number(i.product_id) <= ID_NAP_TU);
 
 export default function Orders() {
   const { user } = useAuth();
@@ -120,6 +124,7 @@ export default function Orders() {
       setStats(data.todayStats || {});
     } catch (err) {
       console.error(err);
+      baoLoiTu('tải danh sách đơn', err);
     } finally {
       setLoading(false);
     }
@@ -250,10 +255,11 @@ export default function Orders() {
       }
       
       setShowDeleteModal(false);
+      baoXong(deleteType === 'delete' ? `Đã xóa đơn ${deleteOrder.code}` : `Đã hủy đơn ${deleteOrder.code}`);
       setDeleteOrder(null);
       loadOrders(); // Reload
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      baoLoiTu(deleteType === 'delete' ? 'xóa đơn' : 'hủy đơn', err);
     } finally {
       setDeleting(false);
     }
@@ -288,7 +294,7 @@ export default function Orders() {
 
   const submitDamage = async () => {
     if (!damageForm.product_code || !damageForm.quantity || !damageForm.action) {
-      alert('Vui lòng điền đầy đủ thông tin'); return;
+      baoLoi('Chưa gửi được', 'Chọn sản phẩm, số lượng và cách xử lý rồi gửi lại.'); return;
     }
     setSubmittingDamage(true);
     try {
@@ -306,11 +312,11 @@ export default function Orders() {
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message);
+        baoXong(data.message || `Đã ghi nhận hàng hỏng của đơn ${damageForm.order_code}`);
         setShowDamageModal(false);
         setShowDetailModal(false);
-      } else alert(data.error || 'Có lỗi xảy ra');
-    } catch (err) { alert('Lỗi: ' + err.message); }
+      } else baoLoiTu('ghi nhận hàng hỏng', data);
+    } catch (err) { baoLoiTu('ghi nhận hàng hỏng', err); }
     finally { setSubmittingDamage(false); }
   };
 
@@ -430,16 +436,16 @@ export default function Orders() {
       const data = await res.json();
       
       if (res.ok) {
-        alert('✅ Đã xác nhận thanh toán thành công!');
+        baoXong(`Đã thu tiền đơn ${selectedOrder.code}`);
         setShowPayDebtModal(false);
         setSelectedOrder(null);
         loadOrders();
       } else {
-        alert('❌ Lỗi: ' + (data.error || 'Không thể xác nhận thanh toán'));
+        baoLoiTu('xác nhận thanh toán', data);
       }
     } catch (err) {
       console.error('Pay debt error:', err);
-      alert('❌ Lỗi kết nối');
+      baoLoi('Chưa xác nhận thanh toán được', 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');
     } finally {
       setSubmitting(false);
     }
@@ -894,6 +900,12 @@ export default function Orders() {
                       <span>{formatPrice(selectedOrder.transfer_amount)}</span>
                     </div>
                   )}
+                  {selectedOrder.ma_gd && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.85em', color: '#6b7280' }}>
+                      <span>Mã GD ngân hàng:</span>
+                      <span>{selectedOrder.ma_gd}</span>
+                    </div>
+                  )}
                   
                   {selectedOrder.debt_amount > 0 && (
                     <div style={{ 
@@ -985,7 +997,7 @@ export default function Orders() {
               )}
               
               {/* Nút xử lý sự cố - chỉ Manager/Owner */}
-              {selectedOrder.status !== 'cancelled' && (user?.role === 'owner' || user?.role === 'manager') && (
+              {selectedOrder.status !== 'cancelled' && !laDonNap(selectedOrder) && (user?.role === 'owner' || user?.role === 'manager') && (
                 <button onClick={() => openDamageModal(selectedOrder)} style={{
                   flex: 1, minWidth: '120px', padding: '0.75rem',
                   background: '#fef3c7', color: '#b45309', border: '1px solid #f59e0b',

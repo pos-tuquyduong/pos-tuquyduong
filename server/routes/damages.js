@@ -13,6 +13,10 @@ const { getNow, getToday } = require('../utils/helpers');
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 const { tienDaTraTheoDong } = require('../utils/tienDaTra');
+const { laDonNap } = require('../utils/viKhach');   // QUAY-UI-1 D: MỘT vị từ "đơn nạp" (cùng dải product_id với NAP-1)
+const { truDiemHoan } = require('../utils/diemThat');   // NAP-1 (chủ quán 06.11 (3)): đền vào tài khoản trừ điểm như duyệt hoàn
+
+const LOI_DON_NAP = 'Đơn nạp tiền không xử lý sự cố — tiền nạp không hoàn';
 
 const DAMAGE_REASONS = {
   'damaged': 'Hỏng khi vận chuyển',
@@ -27,6 +31,26 @@ const DAMAGE_ACTIONS = {
   'return_stock': 'Hoàn kho SX',
   'none': 'Chỉ ghi nhận'
 };
+
+/**
+ * Ghi MỘT dòng hàng hỏng (trong giao dịch của nơi gọi). Hàm chung: báo sự cố (POST bên dưới) và huỷ đơn giao "Bỏ đi" (GIAO-1, utils/giaoHang.js).
+ * Nơi gọi tự kiểm số lượng / tiền đền; giá trị hỏng = giá × số lượng.
+ */
+async function ghiHangHong(tx, { order, product_code, ten, soLuong, gia, reason, reason_note, action, refund, user }) {
+  return tx.run(`
+    INSERT INTO pos_damage_logs (
+      order_id, order_code, customer_phone, customer_name,
+      product_code, product_name, quantity, unit_price, damage_value,
+      reason, reason_note, action, refund_amount, returned_to_stock,
+      processed_by, processed_by_name, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+  `, [
+    order.id, order.code, order.customer_phone, order.customer_name,
+    product_code, ten, soLuong, gia, gia * soLuong,
+    reason, reason_note || null, action, refund,
+    user.id, user.display_name || user.username, getNow()
+  ]);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GET /api/pos/damages - Danh sách log sự cố
@@ -152,6 +176,8 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
     const kq = await trongGiaoDich(async (tx) => {
       const order = await tx.queryOne(`SELECT * FROM pos_orders WHERE id = ?`, [order_id]);
       if (!order) return loi(404, 'Không tìm thấy đơn hàng');
+      // QUAY-UI-1 D: đơn có dòng nạp (product_id ≤ ID_NAP_TU) không xử lý sự cố — MỌI hành động (kể cả "chỉ ghi nhận" / hoàn kho)
+      if (await laDonNap(tx, order.id)) return loi(400, LOI_DON_NAP, 'DON_NAP_KHONG_SU_CO');
       const dong = await tx.queryOne(`SELECT MIN(product_name) AS ten, COALESCE(SUM(quantity), 0) AS sl,
           COALESCE(MAX(unit_price), 0) AS gia, COUNT(*) AS n
         FROM pos_order_items WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
@@ -164,7 +190,6 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
       const conLai = Number(dong.sl) - Number(da.sl);
       if (soLuong > conLai) return loi(400, `Số lượng tối đa: ${Math.max(0, conLai)}`, 'VUOT_SO_LUONG');
       const gia = Number(dong.gia);
-      const damage_value = gia * soLuong;
       const finalRefund = action === 'refund' ? soGui : 0;
       if (action === 'refund') {
         if (order.status !== 'completed') return loi(400, 'Đơn đã huỷ / đã hoàn — không đền tiền được', 'DON_KHONG_DEN_DUOC');
@@ -181,25 +206,15 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
         if (finalRefund > tranLan || finalRefund > tranTong) {
           return loi(400, `Tiền đền tối đa: ${Math.max(0, Math.min(tranLan, tranTong)).toLocaleString()}đ`, 'VUOT_GIA');
         }
-        if (finalRefund > 0 && order.customer_phone) {
-          await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name || null, loai: 'compensation', soTien: finalRefund,
-            orderId: order.id, ghiChu: `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${soLuong}`,
-            nguoi: req.user.display_name || req.user.username });
-        }
       }
-      const log = await tx.run(`
-        INSERT INTO pos_damage_logs (
-          order_id, order_code, customer_phone, customer_name,
-          product_code, product_name, quantity, unit_price, damage_value,
-          reason, reason_note, action, refund_amount, returned_to_stock,
-          processed_by, processed_by_name, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
-      `, [
-        order_id, order.code, order.customer_phone, order.customer_name,
-        product_code, dong.ten, soLuong, gia, damage_value,
-        reason, reason_note || null, action, finalRefund,
-        req.user.id, req.user.display_name || req.user.username, getNow()
-      ]);
+      // DIEM-MON-1: ghi dòng sự cố TRƯỚC khi trừ điểm — truDiemHoan đọc pos_damage_logs để biết lần đền này thuộc món nào (CÁCH 2).
+      const log = await ghiHangHong(tx, { order, product_code, ten: dong.ten, soLuong, gia, reason, reason_note, action, refund: finalRefund, user: req.user });
+      if (finalRefund > 0 && order.customer_phone) {   // finalRefund > 0 chỉ khi action 'refund'
+        await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name || null, loai: 'compensation', soTien: finalRefund,
+          orderId: order.id, ghiChu: `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${soLuong}`,
+          nguoi: req.user.display_name || req.user.username });
+        await truDiemHoan(tx, order, req.user.username, getNow(), `Đền bù đơn ${order.code}`);
+      }
       return { order, finalRefund, logId: log.lastInsertRowid };
     });
     if (kq.huy) return res.status(kq.status).json(kq.body);
@@ -236,3 +251,4 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
 });
 
 module.exports = router;
+module.exports.ghiHangHong = ghiHangHong;   // GIAO-1

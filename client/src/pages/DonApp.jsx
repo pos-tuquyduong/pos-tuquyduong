@@ -1,8 +1,10 @@
 // KH-MUA-1 (H) — màn "Đơn App": đơn khách đặt qua App ĐÃ TRẢ (hôm nay + đơn chưa xong từ trước). Đơn chưa trả không hiện ở quầy.
 // Mỗi đơn: mã, giờ, món + ghi chú, tên khách, đã trả bao nhiêu bằng gì; nút "Đang làm" → "Xong" (máy chủ ghi người + giờ, bấm trùng → 409).
 // Công tắc "Máy ở quán" lưu riêng máy này (mặc định tắt) — chỉ máy bật mới kêu chuông. Tiếng / âm lượng ở Cài đặt › Giờ hoạt động.
+// KH-THE-1: đơn có thẻ hạng hiện nhãn (máy chủ đã cấp hạng lúc thu, quầy không pha dòng thẻ); đơn chỉ có thẻ tới đây đã "Xong".
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { mayOQuan, datMayOQuan, keuChuong, AM_LUONG_MAC_DINH } from '../components/DonAppNoi';
 
 const NHAN = { da_tra: ['Mới', '#dc2626'], dang_lam: ['Đang làm', '#d97706'], xong: ['Xong', '#16a34a'], da_huy: ['Đã huỷ', '#6b7280'] };
@@ -29,7 +31,10 @@ export default function DonApp() {
 
   const bam = async (d, buoc) => {
     setDangBam(d.id);
-    try { await api.post(`/kh/don-app/${d.id}/${buoc}`, {}); } catch (e) { setLoi('Lỗi: ' + e.message); }
+    try {
+      await api.post(`/kh/don-app/${d.id}/${buoc}`, {});
+      baoXong(buoc === 'xong' ? `Đã xong đơn App ${d.so_hd || d.ma_bill}` : `Đã nhận làm đơn App ${d.so_hd || d.ma_bill}`);
+    } catch (e) { baoLoiTu(buoc === 'xong' ? 'báo xong đơn' : 'nhận làm đơn', e); }
     finally { setDangBam(null); tai(); }
   };
   const doiMay = (bat) => { datMayOQuan(bat); setMay(bat); };
@@ -37,7 +42,7 @@ export default function DonApp() {
     try {
       const s = (await api.get('/settings')).data || {};
       keuChuong(s.don_app_chuong_tieng, s.don_app_chuong_am_luong ?? AM_LUONG_MAC_DINH);
-    } catch (e) { setLoi('Lỗi: ' + e.message); }
+    } catch (e) { baoLoiTu('thử chuông', e); }
   };
 
   return (
@@ -54,15 +59,24 @@ export default function DonApp() {
         {loi && <div style={{ padding: 8, marginBottom: 8, background: '#fee2e2', borderRadius: 6 }}>{loi}</div>}
         {!ds.length && <p style={{ color: '#6b7280' }}>Chưa có đơn App nào hôm nay.</p>}
         {ds.map((d) => {
+          // CK-NOIDUNG-1: tiền về được cộng vào tài khoản khách thay vì tạo đơn (đơn App lỗi / huỷ / hết hạn) — báo cho quầy, không có nút.
+          if (d.tien_trinh === 'vao_vi') return (
+            <div key={d.id} style={{ border: '1px solid #f59e0b', background: '#fef3c7', borderRadius: 6, padding: '8px 10px', margin: '8px 0' }}>
+              <strong>💰 {d.so_hd || d.ma}</strong> · {d.ten_khach} · {tien(d.so_tien)} vào ví khách
+              <span style={{ color: '#9ca3af', fontSize: 12 }}> · {(d.gio || '').slice(11, 16)}</span>
+              <div style={{ fontSize: 13, marginTop: 2 }}>{d.ly_do}</div>
+            </div>
+          );
           const [nhan, mau] = NHAN[d.tien_trinh] || [d.tien_trinh, '#6b7280'];
           return (
             <div key={d.id} style={{ borderTop: '1px solid #eee', padding: '10px 0' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' }}>
-                <strong>{d.ma}</strong>
-                <span style={{ color: '#6b7280', fontSize: 13 }}>{(d.gio || '').slice(11, 16)} · bill {d.ma_bill}</span>
+                <strong style={{ fontSize: 22 }}>{d.so_hd || d.ma_bill}</strong>
+                <span style={{ color: '#9ca3af', fontSize: 12 }}>{(d.gio || '').slice(11, 16)} · mã App {d.ma}</span>
                 <span style={{ color: mau, fontWeight: 700, fontSize: 13 }}>{nhan}</span>
               </div>
               <div style={{ fontSize: 14, margin: '4px 0' }}>{d.ten_khach} · đã trả {tien(d.da_tra)} ({cachTra(d)})</div>
+              {d.co_the && <div style={{ fontSize: 13, color: '#5b21b6', fontWeight: 600 }}>{d.co_the} — {d.tien_trinh === 'da_huy' ? 'đơn đã huỷ, thẻ đã thu hồi' : 'đã lên hạng, không pha'}</div>}
               <ul style={{ margin: '4px 0 6px 18px', padding: 0 }}>
                 {d.mon.map((m, i) => (
                   <li key={i}>{m.so_luong} × {m.ten}{m.ghi_chu ? <em style={{ color: '#b45309' }}> — {m.ghi_chu}</em> : null}</li>

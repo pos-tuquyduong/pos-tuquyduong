@@ -99,6 +99,7 @@ async function main() {
   const hangThu = await themHang('Thử', 100000, 12.5, 7, 50, 1);
   const hang0 = await themHang('Không giảm', 1000, 0, 0, 60, 1);
   const hangTat = await themHang('Đã tắt', 1, 30, 30, 0, 0);
+  await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: gia_the = giá gói ngắn nhất — gói 3 tháng giá = giá thẻ cũ
   let soSdt = 0;
   const khachMoi = async (hetHanGiay) => {
     const sdt = '0937' + String(500000 + (++soSdt));
@@ -209,8 +210,8 @@ async function main() {
     k('C1 không token → 200, đúng các hạng đang bật theo thứ tự sort_order, không có hạng tắt', r.status === 200 && bang(ds.map((x) => x.id), mong.map((x) => x.id))
       && !ds.some((x) => x.id === hangTat), `${moTa(r)} · ${ds.map((x) => x.id)}`);
     const t = ds.find((x) => x.id === hangThu);
-    k('C1 mỗi hạng ĐÚNG 6 trường { id, ten, phan_tram, phan_tram_nhom_dac_biet, gia_the, thu_tu }', ds.length > 0 && ds.every((x) => bang(Object.keys(x).sort(),
-      ['gia_the', 'id', 'phan_tram', 'phan_tram_nhom_dac_biet', 'ten', 'thu_tu'])) && !!t && t.phan_tram === 12.5 && t.phan_tram_nhom_dac_biet === 7
+    k('C1 mỗi hạng ĐÚNG 10 trường { id, ten, phan_tram, phan_tram_nhom_dac_biet, chi_cap, goi, thu_bac, gia_the, thu_tu, quyen_loi } (HANG-1 thêm 3, KH-THE-1 thêm 1)', ds.length > 0 && ds.every((x) => bang(Object.keys(x).sort(),
+      ['chi_cap', 'gia_the', 'goi', 'id', 'phan_tram', 'phan_tram_nhom_dac_biet', 'quyen_loi', 'ten', 'thu_bac', 'thu_tu'])) && !!t && t.phan_tram === 12.5 && t.phan_tram_nhom_dac_biet === 7
       && t.gia_the === 100000 && t.thu_tu === 50, JSON.stringify(t));
   });
 

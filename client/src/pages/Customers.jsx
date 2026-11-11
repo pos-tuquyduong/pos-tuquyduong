@@ -6,16 +6,20 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api, customersV2Api, registrationsApi } from '../utils/api';
+import { api, customersV2Api, registrationsApi, hangApi } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import CapHang from '../components/CapHang';   // HANG-1: cấp hạng (chủ quán + PIN) + nhật ký hạng
 import MaDangNhapApp from '../components/MaDangNhapApp';
+import { chuanSdtQuay } from '../utils/maApp';   // QUAY-UI-1 C: cùng cách chuẩn hoá SĐT với quầy
+import ViKhach from '../components/ViKhach';   // GIAO-DIEN-1 C: khu Ví (thay màn Số dư cũ)
 import MaAppSoMoi from '../components/MaAppSoMoi';
+import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { Search, Plus, X, Phone, Users, RefreshCw, User, FileText } from 'lucide-react';
 
 export default function Customers() {
   const { hasPermission } = useAuth();
   const [customers, setCustomers] = useState([]);
-  const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0, hasBalance: 0 });
+  const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0, hasBalance: 0, totalBalance: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -28,8 +32,7 @@ export default function Customers() {
     requested_cycles: 1
   });
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [khachTrung, setKhachTrung] = useState(null);   // QUAY-UI-1 C: khách đã có ngay khi gõ đủ SĐT (máy chủ vẫn chặn 409 khi lưu)
 
   // Modal chi tiết khách hàng (ghi chú POS)
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -44,17 +47,13 @@ export default function Customers() {
   const [redeemResult, setRedeemResult] = useState(null);
   const [showRedeem, setShowRedeem] = useState(false);
 
-  // === TIER-1c: hạng thành viên hiện tại (chỉ xem — mua thẻ qua màn Bán hàng, như 1 sản phẩm) ===
+  // === TIER-1c / HANG-1: hạng thành viên hiện tại (hạng CAO NHẤT còn hạn). Mua thẻ qua màn Bán hàng; chủ quán cấp hạng "chỉ cấp" ở CapHang ===
   const [membershipStatus, setMembershipStatus] = useState(null);
 
   const loadMembershipStatus = async (phone) => {
     if (!phone) { setMembershipStatus(null); return; }
     try {
-      const token = localStorage.getItem('pos_token');
-      const res = await fetch(`/api/pos/membership/status/${encodeURIComponent(phone)}`, {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const result = await res.json();
+      const result = await hangApi.trangThai(phone);
       if (result.success) setMembershipStatus(result.data);
     } catch (err) {
       console.error('Load membership status error:', err);
@@ -81,10 +80,12 @@ export default function Customers() {
         total: allCustomers.length,
         synced: allCustomers.filter(c => c.is_synced).length,
         pending: allCustomers.filter(c => c.is_pending).length,
-        hasBalance: allCustomers.filter(c => c.balance > 0).length
+        hasBalance: allCustomers.filter(c => c.balance > 0).length,
+        totalBalance: allCustomers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0)   // GIAO-DIEN-1: tổng khách đang gửi quán
       });
+      return allCustomers;
     } catch (err) {
-      setError('Không thể tải danh sách khách hàng');
+      baoLoiTu('tải danh sách khách', err);
       console.error(err);
     } finally {
       setLoading(false);
@@ -105,6 +106,18 @@ export default function Customers() {
     return true;
   });
 
+  // QUAY-UI-1 C: gõ đủ SĐT → tự tra (cửa đọc khách sẵn có); đã có khách → báo + mờ nút Lưu. Câu trả về muộn của số cũ bị bỏ.
+  useEffect(() => {
+    const sdtChuan = chuanSdtQuay(formData.phone);
+    setKhachTrung(null);
+    if (!showModal || !sdtChuan) return undefined;
+    let huy = false;
+    customersV2Api.search(sdtChuan)
+      .then((r) => { if (!huy) setKhachTrung((r.results || []).find((c) => c.phone === sdtChuan) || null); })
+      .catch(() => {});   // tra hỏng: không chặn — máy chủ vẫn chặn khi lưu
+    return () => { huy = true; };
+  }, [formData.phone, showModal]);
+
   const handleSearch = (e) => {
     e.preventDefault();
   };
@@ -112,7 +125,6 @@ export default function Customers() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setError('');
 
     try {
       await registrationsApi.create({
@@ -125,7 +137,7 @@ export default function Customers() {
         requested_cycles: formData.requested_cycles
       });
 
-      setSuccess('Đã thêm khách hàng mới! Chờ đồng bộ với SX.');
+      baoXong(`Đã thêm khách ${formData.name || formData.phone}. Chờ đồng bộ với SX.`);
       setShowModal(false);
       setFormData({
         phone: '', name: '', notes: '',
@@ -135,9 +147,8 @@ export default function Customers() {
         requested_cycles: 1
       });
       loadCustomers();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('thêm khách', err);
     } finally {
       setSubmitting(false);
     }
@@ -160,7 +171,6 @@ export default function Customers() {
       address: customer.address || ''
     });
     setShowDetailModal(true);
-    setError('');
     loadMembershipStatus(customer.phone);
   };
 
@@ -173,7 +183,7 @@ export default function Customers() {
     setSearchParams({}, { replace: true });
     const kh = customers.find(c => c.phone === sdtMo);
     if (kh) openDetailModal(kh);
-    else if (customers.length) setError(`Không tìm thấy khách ${sdtMo} trong danh sách`);
+    else if (customers.length) baoLoi(`Không tìm thấy khách ${sdtMo}`, 'Số này chưa có trong danh sách khách.');
   }, [sdtMo, loading]);
 
   // ─── LOY-2: đổi quà tại quầy — dùng ĐÚNG 3 API mà app KH sẽ gọi (không viết logic riêng) ───
@@ -189,7 +199,6 @@ export default function Customers() {
     if (!selectedCustomer?.phone) return;
     setShowRedeem(true);
     setRedeemResult(null);
-    setError('');
     try {
       const ph = encodeURIComponent(selectedCustomer.phone);
       const [r, v, p] = await Promise.all([
@@ -204,7 +213,7 @@ export default function Customers() {
       // Lấy điểm TƯƠI (số ở danh sách có thể cũ nếu khách vừa mua ở quầy khác).
       if (p.success) setSelectedCustomer(prev => ({ ...prev, points: p.points }));
     } catch (err) {
-      setError('Không tải được kho quà: ' + err.message);
+      baoLoiTu('tải kho quà', err);
       setShowRedeem(false);
     }
   };
@@ -213,7 +222,6 @@ export default function Customers() {
     if (!selectedCustomer?.phone || redeeming) return;
     if (!window.confirm(`Đổi ${reward.points_cost} điểm lấy "${reward.name}" cho khách ${selectedCustomer.phone}?`)) return;
     setRedeeming(true);
-    setError('');
     try {
       const data = await loyaltyApi('POST', '/api/pos/loyalty/redeem', {
         phone: selectedCustomer.phone,
@@ -225,9 +233,10 @@ export default function Customers() {
       setSelectedCustomer(prev => ({ ...prev, points: data.data.points_left }));
       const v = await loyaltyApi('GET', `/api/pos/loyalty/vouchers/${encodeURIComponent(selectedCustomer.phone)}`);
       if (v.success) setVouchers(v.data || []);
+      baoXong(`Đã đổi quà "${reward.name}" cho khách ${selectedCustomer.phone}`);
       await loadCustomers();
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('đổi quà', err);
     } finally {
       setRedeeming(false);
     }
@@ -241,7 +250,6 @@ export default function Customers() {
     if (!selectedCustomer) return;
     
     setSubmitting(true);
-    setError('');
     
     try {
       // Cập nhật ghi chú khách (cửa /discount — KHACH-CK-1: chỉ còn ghi chú, máy chủ từ chối mức > 0)
@@ -261,12 +269,11 @@ export default function Customers() {
         throw new Error(err.error || 'Không thể cập nhật địa chỉ');
       }
       
-      setSuccess(`Đã cập nhật thông tin cho ${selectedCustomer.name || selectedCustomer.phone}`);
+      baoXong(`Đã cập nhật thông tin cho ${selectedCustomer.name || selectedCustomer.phone}`);
       setShowDetailModal(false);
       loadCustomers();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message || 'Không thể cập nhật thông tin');
+      baoLoiTu('cập nhật thông tin khách', err);
     } finally {
       setSubmitting(false);
     }
@@ -279,6 +286,7 @@ export default function Customers() {
       const r = await customersV2Api.datNgaySinh(selectedCustomer.phone, ngaySinh.gia, daCo ? ngaySinh.lyDo : undefined);
       setSelectedCustomer((c) => ({ ...c, ngay_sinh: r.ngay_sinh }));
       setNgaySinh({ gia: '', lyDo: '', sua: false, loi: '', dangLuu: false });
+      baoXong(`Đã lưu ngày sinh của ${selectedCustomer.name || selectedCustomer.phone}`);
       loadCustomers();
     } catch (err) {
       setNgaySinh((n) => ({ ...n, loi: err.message || 'Không lưu được ngày sinh', dangLuu: false }));
@@ -329,9 +337,6 @@ export default function Customers() {
       </header>
 
       <div className="page-content">
-        {error && <div className="alert alert-danger">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
-
         <MaAppSoMoi />
 
         {/* Stats */}
@@ -351,6 +356,10 @@ export default function Customers() {
           <div className="stat-card">
             <div className="stat-label">💰 Có số dư</div>
             <div className="stat-value">{stats.hasBalance}</div>
+          </div>
+          <div className="stat-card" style={{ background: '#dbeafe' }}>
+            <div className="stat-label">💵 Khách đang gửi quán</div>
+            <div className="stat-value">{formatMoney(stats.totalBalance)}</div>
           </div>
         </div>
 
@@ -509,7 +518,7 @@ export default function Customers() {
                           fontWeight: 700, padding: '2px 7px', borderRadius: 5, fontSize: '0.75rem', whiteSpace: 'nowrap',
                           background: c.membership.status === 'expired' ? '#fee2e2' : c.membership.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
                           color: c.membership.status === 'expired' ? '#b91c1c' : c.membership.status === 'expiring_soon' ? '#92400e' : '#5b3ea3',
-                        }} title={c.membership.status === 'expired' ? 'Đã hết hạn' : `Còn ${c.membership.days_remaining} ngày`}>
+                        }} title={c.membership.status === 'expired' ? 'Đã hết hạn' : c.membership.vo_han ? 'Không thời hạn' : `Còn ${c.membership.days_remaining} ngày`}>
                           {c.membership.tier_name}{c.membership.status !== 'active' && ` (${c.membership.status === 'expired' ? 'hết hạn' : c.membership.days_remaining + 'n'})`}
                         </span>
                       )}
@@ -547,8 +556,6 @@ export default function Customers() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                {error && <div className="alert alert-danger">{error}</div>}
-
                 <div className="form-group">
                   <label className="form-label">SĐT *</label>
                   <input
@@ -559,6 +566,7 @@ export default function Customers() {
                     placeholder="0901234567"
                     required
                   />
+                  {khachTrung && <div className="alert alert-danger" style={{ marginTop: 6 }}>Khách đã có: {khachTrung.name} — tìm khách ở màn Bán hàng</div>}
                 </div>
 
                 <div className="form-group">
@@ -646,7 +654,7 @@ export default function Customers() {
                 <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>
                   Hủy
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting || !!khachTrung}>
                   {submitting ? 'Đang lưu...' : 'Lưu khách hàng'}
                 </button>
               </div>
@@ -668,8 +676,6 @@ export default function Customers() {
               </button>
             </div>
             <div className="modal-body">
-              {error && <div className="alert alert-danger">{error}</div>}
-              
               {/* Thông tin cơ bản */}
               <div style={{ 
                 padding: '1rem', 
@@ -706,6 +712,12 @@ export default function Customers() {
 
                 {selectedCustomer.phone && <MaDangNhapApp key={selectedCustomer.phone} sdt={selectedCustomer.phone} />}
 
+                <ViKhach khach={selectedCustomer} onDoi={async () => {
+                  const ds = await loadCustomers();
+                  const moi = ds?.find((x) => x.phone === selectedCustomer.phone);
+                  if (moi) setSelectedCustomer(moi);
+                }} />
+
                 {goiDangDung?.so_dang_dung > 0 && (
                   <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', fontSize: '0.85rem' }}>
                     <Link to={`/reports?tab=packages&phone=${encodeURIComponent(selectedCustomer.phone)}`} style={{ color: '#7c3aed', fontWeight: 600 }}>
@@ -731,12 +743,13 @@ export default function Customers() {
                         ) : membershipStatus.status === 'expiring_soon' ? (
                           <span style={{ color: '#92400e', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
                         ) : (
-                          <span style={{ color: '#64748b', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
+                          <span style={{ color: '#64748b', marginLeft: 6 }}>{membershipStatus.vo_han ? 'Không thời hạn' : `Còn ${membershipStatus.days_remaining} ngày`}</span>
                         )}
                       </span>
                     )}
                   </div>
                 </div>
+                <CapHang sdt={selectedCustomer.phone} coQuyen={hasPermission('cap_hang')} onDoi={() => loadMembershipStatus(selectedCustomer.phone)} />
 
                 {/* LOY-2: khu đổi quà tại quầy */}
                 {showRedeem && (

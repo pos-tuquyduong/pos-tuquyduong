@@ -25,7 +25,7 @@ const BACKUP_PAGE_SIZE = parseInt(process.env.BACKUP_PAGE_SIZE || '5', 10);
  * Đọc TOÀN BỘ một bảng nhưng chia thành nhiều trang nhỏ,
  * ghép lại — tránh việc kéo cả bảng đầy đủ cột một phát làm nghẽn kết nối.
  */
-async function readTablePaged(tableName, orderKey) {
+async function readTablePaged(tableName, orderKey, boCot = []) {
   const all = [];
   let offset = 0;
   // eslint-disable-next-line no-constant-condition
@@ -33,7 +33,7 @@ async function readTablePaged(tableName, orderKey) {
     const page = await query(
       `SELECT * FROM ${tableName} ORDER BY "${orderKey}" LIMIT ${BACKUP_PAGE_SIZE} OFFSET ${offset}`
     );
-    for (const row of page) all.push(row);
+    for (const row of page) { for (const c of boCot) delete row[c]; all.push(row); }
     if (page.length < BACKUP_PAGE_SIZE) break;
     offset += BACKUP_PAGE_SIZE;
   }
@@ -58,6 +58,7 @@ const BACKUP_TABLES = [
   // chưa có trong backup nên toàn bộ dữ liệu SĐT đã claim KHÔNG được sao lưu.
   { name: 'pos_signup_codes', label: 'Mã ưu đãi khách mới', key: 'id' },
   { name: 'pos_discount_codes', label: 'Mã chiết khấu', key: 'id' },
+  { name: 'pos_goi_nap', label: 'Gói nạp tiền', key: 'id' },   // NAP-1: danh mục gói — xuất được, KHÔNG khôi phục (chỉ sửa có PIN chủ quán)
   { name: 'pos_product_groups', label: 'Nhóm sản phẩm', key: 'id' },
   { name: 'pos_product_group_members', label: 'Thành viên nhóm SP', key: 'id' },
 
@@ -84,6 +85,7 @@ const BACKUP_TABLES = [
   // Thẻ thành viên: hạng trước, lịch sử mua sau
   { name: 'pos_membership_tiers', label: 'Hạng thành viên', key: 'id' },
   { name: 'pos_membership_purchases', label: 'Lịch sử mua thẻ', key: 'id' },
+  { name: 'pos_pin_chu_quan', label: 'PIN chủ quán', key: 'id', boCot: ['pin_bam'] },   // HANG-1 (câu 4): KHÔNG xuất băm PIN — bảng không khôi phục được
 
   // Sổ nợ kho — việc chưa gửi được sang SX. Mất là mất luôn dấu vết hàng
   // đã bán mà kho chưa trừ.
@@ -94,10 +96,14 @@ const BACKUP_TABLES = [
   { name: 'pos_payos_su_kien', label: 'Báo tiền về payOS', key: 'id' },     // P3
   { name: 'pos_nhat_ky_pin', label: 'Nhật ký PIN khách', key: 'id' },       // P3
   { name: 'pos_don_app', label: 'Đơn từ App KH', key: 'id' },               // SAOLUU-2: bảng của KH-MUA-1 (bước 006) — chưa có thì bangDangCo bỏ qua
+  { name: 'pos_so_hoa_don', label: 'Sổ số hoá đơn', key: 'id' },            // CK-NOIDUNG-1 (bước 019): số hoá đơn đã cấp theo ngày
   { name: 'pos_man_khach_quay', label: 'Màn khách - Máy quầy', key: 'id' },     // MANKHACH-1 (bước 009): mã ghép + phiên QR đang hiện
   { name: 'pos_man_khach_may', label: 'Màn khách - Máy đã ghép', key: 'id' },   // MANKHACH-1 (bước 009): khoá băm + thu hồi
   { name: 'pos_chuong_trinh', label: 'Chương trình đặc biệt', key: 'id' },   // CT-1a (bước 017): cấu hình chương trình
   { name: 'pos_ngay_sinh_sua', label: 'Sổ sửa ngày sinh', key: 'id' },   // CT-1a (bước 017): sổ chỉ-thêm — không khôi phục bằng file
+  { name: 'pos_giao_bao_phi', label: 'Giao hàng - Báo phí', key: 'id' },   // GIAO-1 (bước 021) — không chứa khoá Ahamove
+  { name: 'pos_giao_chuyen', label: 'Giao hàng - Chuyến', key: 'id' },
+  { name: 'pos_giao_tin', label: 'Giao hàng - Tin Ahamove báo về', key: 'id' },
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
@@ -130,9 +136,14 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_discount_codes', 'pos_signup_codes', 'pos_order_log', 'pos_promotion_usage',
   'pos_phien_thanh_toan', 'pos_payos_su_kien', 'pos_nhat_ky_pin',   // P3: phần giữ tài khoản, tiền về payOS, dấu vết xoá PIN
   'pos_don_app',   // SAOLUU-2: đơn từ App KH gắn với đơn / phiên thanh toán
+  'pos_so_hoa_don',   // CK-NOIDUNG-1: khôi phục sổ số cũ sẽ cấp lại số đã dùng
   'pos_doi_soat_ghi',   // chủ quán 01.11: sổ két / sao kê là sổ tiền — không ghi đè bằng file cũ
   'pos_man_khach_quay', 'pos_man_khach_may',   // MANKHACH-1: ghép máy — khôi phục file cũ làm sống lại màn khách đã thu hồi
-  'pos_ngay_sinh_sua'];   // CT-1a: sổ sửa ngày sinh chỉ-thêm — ghi đè bằng file cũ làm mất dấu ai đã sửa
+  'pos_ngay_sinh_sua',   // CT-1a: sổ sửa ngày sinh chỉ-thêm — ghi đè bằng file cũ làm mất dấu ai đã sửa
+  'pos_giao_bao_phi', 'pos_giao_chuyen', 'pos_giao_tin',   // GIAO-1: phí ship / phí Ahamove / chống xử lý tin lặp — sổ tiền
+  'pos_pin_chu_quan',   // HANG-1: file cũ không được đặt lại PIN chủ quán / gỡ khoá sai PIN — quên PIN: chủ quán nhờ chat soạn cách xoá PIN (không có nút)
+  'pos_membership_tiers',   // HANG-1 câu 4a (chủ quán 05.11): % giảm, gói, cách có hạng chỉ sửa ở Cài đặt có PIN chủ quán — file không vượt PIN
+  'pos_goi_nap'];   // NAP-1 (chủ quán 06.11): gói nạp chỉ chủ quán + PIN sửa — file cũ không vượt PIN (gói "trả ít → vào nhiều" là lối tạo tiền ví)
 
 /** Trang _Metadata của mọi file sao lưu — backup_date giờ VN dạng T: khôi phục nhận ra file MỚI (GIO-VN-1), không đổi giờ. */
 function themTrangMeta(wb, bang) {
@@ -231,7 +242,7 @@ router.get('/export-all', authenticate, async (req, res) => {
 
     for (const t of await bangDangCo()) {
       // Đọc phân trang để không bị treo khi bảng có cột nặng.
-      const rows = await readTablePaged(t.name, t.key);
+      const rows = await readTablePaged(t.name, t.key, t.boCot);
       console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
@@ -268,7 +279,7 @@ router.get('/export/:table', authenticate, async (req, res) => {
     }
 
     // Đọc phân trang để tránh treo khi bảng có cột nặng.
-    const rows = await readTablePaged(tableDef.name, tableDef.key);
+    const rows = await readTablePaged(tableDef.name, tableDef.key, tableDef.boCot);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
     themTrangMeta(wb, tableDef.name);

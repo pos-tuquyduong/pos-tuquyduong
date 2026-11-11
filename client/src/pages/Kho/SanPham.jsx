@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 
 const KIEU = { pha_tai_cho: 'Pha tại chỗ', lam_san: 'Làm sẵn (theo lô)', chua_dinh_luong: 'Chưa định lượng' };
 const so = (x) => Number(Number(x).toFixed(3)).toLocaleString('vi-VN');
@@ -68,6 +69,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
   const [soPhan, setSoPhan] = useState(1);
   const [ket, setKet] = useState(null);
   const [loi, setLoi] = useState('');
+  const [dang, setDang] = useState(false);   // BAO-1a D: đang lưu công thức → khóa nút
   const [sua, setSua] = useState(null);   // { kieu, nhom_id, dong: [{ loai: 'nl' | 'sp', id, so (đơn vị hiện / phần) }] }
 
   const tinh = async () => {
@@ -83,11 +85,14 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
     const congThuc = sua.dong.filter((d) => d.id).map((d) => (d.loai === 'nl'
       ? { nguyen_lieu_id: Number(d.id), luong: Number(d.so) * (nlTheo.get(Number(d.id))?.he_so_doi || 1) }
       : { thanh_phan_id: Number(d.id), luong: Number(d.so) }));
+    if (dang) return;
+    setDang(true);
     try {
       await api.put(`/kho/san-pham/${sp.id}`, { kieu: sua.kieu, nhom_id: sua.nhom_id ? Number(sua.nhom_id) : null, han_ngay: sua.han_ngay === '' ? null : Number(sua.han_ngay),
         cong_thuc: congThuc });
+      baoXong(`Đã lưu công thức ${sp.name}`);
       dong(true);
-    } catch (e) { setLoi(e.message); }
+    } catch (e) { baoLoiTu('lưu công thức', e); } finally { setDang(false); }
   };
 
   return (
@@ -150,7 +155,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
       )}
       {loi && <div className="kho-loi">{loi}</div>}
       <div className="kho-hang" style={{ marginTop: '1rem' }}>
-        {sua && <button className="btn btn-primary" onClick={luu}>Lưu công thức</button>}
+        {sua && <button className="btn btn-primary" disabled={dang} onClick={luu}>{dang ? 'Đang lưu…' : 'Lưu công thức'}</button>}
         {!sua && chuQuan && <button className="btn btn-primary" onClick={batSua}>Sửa công thức</button>}
         <button className="btn btn-outline" onClick={() => (sua ? setSua(null) : dong(false))}>{sua ? 'Huỷ' : 'Quay lại'}</button>
       </div>

@@ -1,9 +1,12 @@
 // DoiSoat.jsx — tab "Đối soát" trong Báo cáo (DOI-SOAT-1). Chỉ BÁO: máy chủ chạy các bất biến sổ sách trên dữ liệu thật (chỉ đọc);
 // màn này không tự tính tiền, không sửa số nào. Chỉ có hai thứ được ghi: tiền két đếm cuối ngày và đánh dấu đã so sao kê tuần
 // (mỗi lần ghi là THÊM một dòng mới ở máy chủ, không ghi đè).
+// CK-NOIDUNG-1 (chủ quán Q1a 05.11): dòng CK "tiền về muộn" của phiên QUẦY có nút "Xác nhận tay → tạo đơn" (quyền xac_nhan_ck_tay + lý do) —
+// gọi ĐÚNG cửa xác nhận tay của quầy; máy chủ tự tính lại giá, trừ lại ví, đơn nhận lại số hoá đơn đã giữ. Màn này vẫn không sửa số nào.
 import { useState, useEffect } from 'react';
-import { api } from '../utils/api';
+import { api, thanhToanApi } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import { baoXong, baoLoi, baoLoiTu } from './thongBaoKho.js';   // BAO-1a
 
 const KIEU = [['ngay', 'Ngày'], ['tuan', 'Tuần'], ['thang', 'Tháng']];
 const NHOM = [
@@ -22,13 +25,13 @@ export default function DoiSoat() {
   const [ngay, setNgay] = useState('');
   const [kq, setKq] = useState(null);
   const [dangChay, setDangChay] = useState(false);
+  const [dangGhi, setDangGhi] = useState(false);   // đang ghi sổ: khoá 3 nút ghi, tránh bấm đúp ra hai dòng
   const [loi, setLoi] = useState('');
-  const [thongBao, setThongBao] = useState('');
   const [ket, setKet] = useState({ so_tien: '', de_lai: '' });
   const [saoKe, setSaoKe] = useState({ da_so: false, ghi_chu: '' });
 
   const chay = async (k = kieu, n = ngay) => {
-    setDangChay(true); setLoi(''); setThongBao('');
+    setDangChay(true); setLoi('');
     try {
       const r = await api.get(`/reports/doi-soat?kieu=${k}${n ? '&ngay=' + n : ''}`);
       setKq(r);
@@ -44,19 +47,36 @@ export default function DoiSoat() {
   useEffect(() => { chay('ngay', ''); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const ghi = async (body, viec) => {
-    setLoi(''); setThongBao('');
+    if (dangGhi) return;
+    setDangGhi(true);
     try {
       await api.post('/reports/doi-soat/ghi', body);
-      setThongBao(viec);
+      baoXong(viec);
       await chay(kieu, ngay);
     } catch (e) {
-      setLoi(e.message || 'Không ghi được');
+      baoLoiTu('ghi đối soát', e);
+    } finally {
+      setDangGhi(false);
     }
   };
   const luuKet = () => {
     const soTien = soNguyen(ket.so_tien), deLai = soNguyen(ket.de_lai);
-    if (soTien === null || deLai === null) { setLoi('Nhập số nguyên đồng, không dấu chấm / phẩy'); return; }
+    if (soTien === null || deLai === null) { baoLoi('Chưa ghi số két được', 'Nhập số nguyên đồng, không dấu chấm / phẩy.'); return; }
     ghi({ loai: 'ket', ky: kq.tu, so_tien: soTien, de_lai: deLai }, 'Đã ghi số két — dòng mới, dòng cũ vẫn còn trong lịch sử');
+  };
+  const xacNhanTay = async (phienId) => {
+    const lyDo = window.prompt('Lý do xác nhận tay (đã thấy tiền trong sao kê…):', '');
+    if (lyDo == null || dangGhi) return;
+    setDangGhi(true);
+    try {
+      await thanhToanApi.xacNhanTay(phienId, lyDo.trim());
+      baoXong('Đã xác nhận tay — đơn đã tạo, nhận lại số hoá đơn đã giữ');
+      await chay(kieu, ngay);
+    } catch (e) {
+      baoLoiTu('xác nhận tay', e);
+    } finally {
+      setDangGhi(false);
+    }
   };
   const luuSaoKe = () => ghi({ loai: 'sao_ke', ky: kq.tu, da_so: saoKe.da_so ? 1 : 0, ghi_chu: saoKe.ghi_chu }, 'Đã ghi đánh dấu sao kê');
 
@@ -84,7 +104,6 @@ export default function DoiSoat() {
       </div>
 
       {loi && <div className="card mb-1" style={{ color: '#dc2626' }}>{loi}</div>}
-      {thongBao && <div className="card mb-1" style={{ color: '#15803d' }}>{thongBao}</div>}
 
       {kq && (
         <>
@@ -106,7 +125,11 @@ export default function DoiSoat() {
                     {kq[nhom].map((l, i) => (
                       <tr key={i}>
                         <td>{l.bat_bien}{l.nhan ? ` · ${l.nhan}` : ''}</td>
-                        <td>{l.mo_ta}</td>
+                        <td>{l.mo_ta}
+                          {l.xac_nhan_tay && hasPermission('xac_nhan_ck_tay') && (
+                            <button className="btn btn-outline btn-sm" style={{ marginLeft: '0.5rem' }} disabled={dangGhi} onClick={() => xacNhanTay(l.xac_nhan_tay)}>Xác nhận tay → tạo đơn</button>
+                          )}
+                        </td>
                         <td>{l.pham_vi === 'toan_so' ? 'toàn sổ' : l.ngay || 'không rõ ngày'}</td>
                       </tr>
                     ))}
@@ -116,6 +139,25 @@ export default function DoiSoat() {
               {kq.so_luong[nhom] > kq[nhom].length && <div style={{ fontSize: '0.85rem' }}>… còn {kq.so_luong[nhom] - kq[nhom].length} dòng nữa</div>}
             </div>
           ))}
+
+          {kieu === 'ngay' && kq.so_hd?.length > 0 && (
+            <div className="card mb-1">
+              <b>Số hoá đơn huỷ / chuyển khoản ngày {kq.tu}</b>
+              <div className="table-responsive">
+                <table className="table table-sm">
+                  <tbody>
+                    {kq.so_hd.map((x) => (
+                      <tr key={x.so_hd}>
+                        <td><b>{x.so_hd}</b></td>
+                        <td>{x.ly_do || `đơn ${x.ma_don}`}</td>
+                        <td>{x.ma_gd ? `Mã GD ${x.ma_gd}` : ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {kieu === 'ngay' && kq.ket && (
             <div className="card mb-1">
@@ -129,7 +171,7 @@ export default function DoiSoat() {
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
                   <input className="input" style={{ width: '12rem' }} inputMode="numeric" placeholder="Tiền đếm cuối ngày" value={ket.so_tien} onChange={(e) => setKet({ ...ket, so_tien: e.target.value })} />
                   <input className="input" style={{ width: '12rem' }} inputMode="numeric" placeholder="Để lại cho mai" value={ket.de_lai} onChange={(e) => setKet({ ...ket, de_lai: e.target.value })} />
-                  <button className="btn btn-primary" onClick={luuKet}>Lưu số két</button>
+                  <button className="btn btn-primary" disabled={dangGhi} onClick={luuKet}>{dangGhi ? 'Đang lưu…' : 'Lưu số két'}</button>
                 </div>
               )}
               {kq.ket.nguoi && <div style={{ fontSize: '0.85rem' }}>Lần ghi cuối: {kq.ket.nguoi} lúc {kq.ket.luc?.replace('T', ' ')}</div>}
@@ -149,7 +191,7 @@ export default function DoiSoat() {
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginTop: '0.5rem' }}>
                   <label><input type="checkbox" checked={saoKe.da_so} onChange={(e) => setSaoKe({ ...saoKe, da_so: e.target.checked })} /> Đã so sao kê</label>
                   <input className="input" style={{ width: '16rem' }} placeholder="Ghi chú" maxLength={200} value={saoKe.ghi_chu} onChange={(e) => setSaoKe({ ...saoKe, ghi_chu: e.target.value })} />
-                  <button className="btn btn-primary" onClick={luuSaoKe}>Lưu</button>
+                  <button className="btn btn-primary" disabled={dangGhi} onClick={luuSaoKe}>{dangGhi ? 'Đang lưu…' : 'Lưu'}</button>
                 </div>
               )}
               {kq.sao_ke && <div style={{ fontSize: '0.85rem' }}>Lần ghi cuối: {kq.sao_ke.nguoi} lúc {kq.sao_ke.luc?.replace('T', ' ')}</div>}
@@ -163,6 +205,17 @@ export default function DoiSoat() {
               <div>Ví: nạp {dong(t.vi.nap)} · khách dùng mua hàng {dong(t.vi.chi)}</div>
               <div>Điểm: cộng {(t.diem.cong || 0).toLocaleString('vi-VN')} · trừ {(t.diem.tru || 0).toLocaleString('vi-VN')}</div>
               <div style={{ marginTop: '0.5rem' }}>📋 {kq.nhac_kho}</div>
+            </div>
+          )}
+
+          {t?.giao?.so_don > 0 && (
+            <div className="card mb-1">   {/* GIAO-1 (K): tiền ship Ahamove của kỳ */}
+              <b>Giao hàng Ahamove · {t.giao.so_don} đơn</b>
+              <div>Phí ship khách trả {dong(t.giao.phi_khach)} · phí Ahamove thật {dong(t.giao.phi_that)}</div>
+              <div>Quán bù {dong(t.giao.quan_bu)} · quán dư {dong(t.giao.quan_du)} · phí huỷ chuyến (quán chịu) {dong(t.giao.phi_huy)}{t.giao.phi_huy_chua_ro > 0 && ` · ${t.giao.phi_huy_chua_ro} chuyến chưa rõ phí huỷ (máy đọc lại khi mở màn Giao hàng)`}</div>
+              {t.giao.don_huy.length > 0 && (
+                <div style={{ fontSize: '0.85rem' }}>Đơn giao huỷ: {t.giao.don_huy.map((d) => `${d.code}${d.do_da_pha === 'bo_di' ? ' (đồ bỏ đi — ghi hàng hỏng)' : d.do_da_pha === 'dung_lai' ? ' (đồ dùng lại)' : ''}${d.phi_huy ? ` · phí huỷ ${dong(d.phi_huy)}` : ''}`).join(' · ')}</div>
+              )}
             </div>
           )}
 

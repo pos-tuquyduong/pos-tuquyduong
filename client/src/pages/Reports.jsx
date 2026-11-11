@@ -3,8 +3,10 @@ import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, reportsApi } from '../utils/api';
 import DoiSoat from '../components/DoiSoat';
+import SoSach from '../components/SoSach';   // NAP-1: sổ sách tiền nạp
 import { useAuth } from '../contexts/AuthContext';
 import { ngayVN, hienNgay } from '../utils/ngayVN';
+import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { Calendar, TrendingUp, TrendingDown, Truck, Percent, Tag } from 'lucide-react';
 
 export default function Reports() {
@@ -46,7 +48,7 @@ export default function Reports() {
   const loadReport = async () => {
     setLoading(true);
     try { const data = await reportsApi.daily(date); setReport(data); }
-    catch (err) { console.error(err); }
+    catch (err) { console.error(err); baoLoiTu('tải báo cáo ngày', err); }
     finally { setLoading(false); }
   };
 
@@ -56,7 +58,7 @@ export default function Reports() {
       const data = await reportsApi.discounts({ from: dateRange.from, to: dateRange.to });
       setDiscountReport(data);
     }
-    catch (err) { console.error(err); }
+    catch (err) { console.error(err); baoLoiTu('tải báo cáo chiết khấu', err); }
     finally { setLoading(false); }
   };
 
@@ -68,7 +70,7 @@ export default function Reports() {
       if (sdtLoc) qs.set('phone', sdtLoc);
       const data = await api.get(`/packages/customer-packages/theo-khach?${qs}`);
       if (data.success) setPkgData(data.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); baoLoiTu('tải danh sách gói', err); }
     finally { setLoading(false); }
   };
 
@@ -89,17 +91,23 @@ export default function Reports() {
     } catch (err) { setKetThuc(kt => kt?.cp === cp ? { ...kt, duKien: null, loiDuKien: err.message } : kt); }
   };
   const moKetThuc = (pkg) => { setKetThuc({ cp: pkg.id, hoan: null, lyDo: '', duKien: null, loiDuKien: '', loi: '' }); taiDuKien(pkg.id); };
+  const [dangKetThuc, setDangKetThuc] = useState(false);   // BAO-1a D
   const xacNhanKetThuc = async () => {
+    if (dangKetThuc) return;
     const kt = ketThuc;
     if (kt.hoan === null) return setKetThuc({ ...kt, loi: 'Chọn một trong hai cách xử lý' });
     if (!kt.lyDo.trim()) return setKetThuc({ ...kt, loi: 'Phải nhập lý do' });
+    setDangKetThuc(true);
     try {
       await api.put(`/packages/customer-packages/${kt.cp}/cancel`, { reason: kt.lyDo.trim(), hoan: kt.hoan, so_tien: kt.hoan ? kt.duKien?.tong : undefined });
+      baoXong(kt.hoan ? 'Đã kết thúc gói và hoàn tiền cho khách' : 'Đã kết thúc gói (không hoàn tiền)');
       setKetThuc(null);
       loadPackageData();
     } catch (err) {
       setKetThuc({ ...kt, loi: err.message, hoan: err.code === 'GOI_HOAN_DOI_SO' ? null : kt.hoan });
       if (err.code === 'GOI_HOAN_DOI_SO') taiDuKien(kt.cp);
+    } finally {
+      setDangKetThuc(false);
     }
   };
 
@@ -148,12 +156,19 @@ export default function Reports() {
           >
             🧾 Đối soát
           </button>
+          <button
+            className={`btn ${activeTab === 'sosach' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('sosach')}
+          >
+            💳 Sổ sách
+          </button>
         </div>
       </header>
 
       <div className="page-content">
         {/* Tab: Đối soát (DOI-SOAT-1) — chỉ báo, không tự sửa số */}
         {activeTab === 'doisoat' && <DoiSoat />}
+        {activeTab === 'sosach' && <SoSach />}
 
         {/* Tab: Báo cáo hàng ngày */}
         {activeTab === 'daily' && (
@@ -461,7 +476,7 @@ export default function Reports() {
                                             onChange={e => setKetThuc({ ...ketThuc, lyDo: e.target.value, loi: '' })} />
                                           {ketThuc.loi && <div style={{ color: '#dc2626', marginTop: 4, fontWeight: 600 }}>{ketThuc.loi}</div>}
                                           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                                            <button className="btn btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={xacNhanKetThuc}>Xác nhận kết thúc</button>
+                                            <button className="btn btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={xacNhanKetThuc} disabled={dangKetThuc}>{dangKetThuc ? 'Đang kết thúc…' : 'Xác nhận kết thúc'}</button>
                                             <button className="btn btn-outline" onClick={() => setKetThuc(null)}>Thôi</button>
                                           </div>
                                         </div>

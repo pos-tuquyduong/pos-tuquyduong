@@ -351,6 +351,9 @@ async function phanA(P) {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
+  const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
+    + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);
   const sxGia = async () => ({ ok: true });
@@ -471,10 +474,11 @@ async function phanA(P) {
   k('A18d điểm gốc làm tròn XUỐNG như /nhan-diem: N = 4 và đúng số được cộng thật', aLe.h?.ma_nhan_diem?.diem === 4 && nhanLe.diem_cong === 4, `${aLe.h?.ma_nhan_diem?.diem} vs ${nhanLe.diem_cong}`);
 
   // khách quen có hạng: mua thẻ, tài khoản, điểm
+  await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
   const hang = await mot('SELECT id, card_price, name FROM pos_membership_tiers WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
   const sq = sdtMoi(); await nap(sq, Number(hang.card_price) + 200000);
-  const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
+  const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
   const rq = await ban({ customer_phone: sq, items: [mon(0), mon(1)], payment_method: 'cash', balance_amount: 20000, cash_amount: 25500, shipping_fee: 5000 });
   const aq = await hd(rq.order?.id);
   const H = aq.h;
@@ -527,9 +531,15 @@ async function phanA(P) {
   await db.run('DELETE FROM pos_point_transactions WHERE id = ?', [Number(tx.lastInsertRowid)]);
   // tài khoản mẹ + chuyển khoản
   const me = sdtMoi(); await nap(me, 30000);
-  const rMe = await ban({ customer_phone: sdtMoi(), parent_phone: me, payment_method: 'transfer', parent_balance_amount: 10000, transfer_amount: 15000 });
+  const conMe = sdtMoi(); await datMe(conMe, me);
+  const rMe = await ban({ customer_phone: conMe, parent_phone: me, payment_method: 'transfer', parent_balance_amount: 10000, transfer_amount: 15000 });
   const aMe = await hd(rMe.order?.id);
   k('A25 tài khoản mẹ + chuyển khoản: hai dòng riêng, tổng = tổng hoá đơn', rMe.status === 200 && bang(aMe.h?.thanh_toan, [{ loai: 'tai_khoan_me', so_tien: 10000 }, { loai: 'chuyen_khoan', so_tien: 15000 }]) && aMe.h.khach_dua === 0, `${moTa(rMe)} ${JSON.stringify(aMe.h?.thanh_toan)}`);
+  const viHD = async (s) => Number((await mot('SELECT COALESCE((SELECT balance FROM pos_wallets WHERE phone = ?), 0) AS b', [s])).b);
+  const meVM = sdtMoi(); await nap(meVM, 30000);
+  const vm = await ban({ customer_phone: sdtMoi(), parent_phone: meVM, payment_method: 'transfer', parent_balance_amount: 10000, transfer_amount: 15000 });
+  k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await viHD(meVM) === 30000,
+    `${moTa(vm)} · ví mẹ ${await viHD(meVM)}`);
   const sFull = sdtMoi(); await nap(sFull, 25000);
   const rFull = await ban({ customer_phone: sFull, payment_method: 'balance', balance_amount: 25000 });
   k('A26 (K5) trừ hết bằng tài khoản: một dòng tài khoản, không tiền mặt', bang((await hd(rFull.order?.id)).h?.thanh_toan, [{ loai: 'tai_khoan', so_tien: 25000 }]));

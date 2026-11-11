@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 import ChonNguyenLieu from './ChonNguyenLieu';
 import { so, maGuiMoi, veLuu, raHien } from './chung';
 
@@ -35,11 +36,12 @@ export default function DatHang({ moPhieu }) {
   const hopLe = (monGui.length || leGui.length) && monGui.every((m) => m.so_phan > 0) && leGui.every((d) => d.luong > 0);
 
   const gui = async () => {
-    setLoi(''); setDangGui(true);
+    setDangGui(true);
     try {
       const r = await api.post('/kho/phieu-dat', { mon: monGui, nguyen_lieu: leGui, nha_cung_cap_id: ncc || null, ghi_chu: ghiChu, ma_gui: maGui });
+      baoXong('Đã gửi phiếu đặt hàng');
       moPhieu(r.phieu.id);
-    } catch (e) { setLoi(e.message); setDangGui(false); }
+    } catch (e) { baoLoiTu('gửi phiếu đặt hàng', e); setDangGui(false); }
   };
 
   return (
@@ -79,7 +81,6 @@ export default function DatHang({ moPhieu }) {
           <option value="">—</option>{gy.nha_cung_cap.map((c) => <option key={c.id} value={c.id}>{c.ten}</option>)}</select></label>
         <label>Ghi chú<input className="input" value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} /></label>
       </div>
-      {loi && <div className="kho-loi">{loi}</div>}
       <button className="btn btn-primary kho-nut-lon" disabled={dangGui || !hopLe} onClick={gui}>{dangGui ? 'Đang gửi…' : 'Gửi đơn đặt hàng'}</button>
     </div>
   );

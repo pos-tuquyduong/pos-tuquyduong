@@ -220,7 +220,7 @@ nhom('C · BÁNH CÓC — chỉ được siết, không được nới');
 
 // C1 — fetch trần ngoài api.js. NGƯỠNG CHỈ ĐƯỢC GIẢM.
 // Dọn xong một file thì hạ số này xuống, không bao giờ tăng.
-const NGUONG_FETCH = 32;
+const NGUONG_FETCH = 31; // 32 -> 31: HANG-1 (9558de19) doi 1 fetch o Customers.jsx sang hangApi.trangThai
 {
   let n = 0;
   const theoFile = {};
@@ -501,9 +501,19 @@ chayBaiThat('cong_cu/thu_KHMUA1.js');   // KH-MUA-1: App KH đặt đơn nhận 
 chayBaiThat('cong_cu/thu_HD1.js');   // HD-1: hoá đơn bố cục mới + QR + chữ tuỳ chỉnh (dòng riêng: thu_P3 neo mảng bài, đòi P3 đứng cuối)
 chayBaiThat('cong_cu/thu_HDKH1.js');   // HD-KH-1: App KH xem hoá đơn đúng mẫu quầy + cach_tra / giu_vi / con_lai của đơn App
 chayBaiThat('cong_cu/thu_SAOLUU2.js');   // SAOLUU-2: khôi phục sao lưu tất cả hoặc không + phép chốt mọi bảng (database.js + nang_cap/) đều sao lưu
+chayBaiThat('cong_cu/thu_VIME1.js');   // VI-ME-1: chỉ trừ / giữ tài khoản mẹ khi khách đúng là con của mẹ đó (một hàm kiemTraMe)
 chayBaiThat('cong_cu/thu_GIOVN1.js');   // GIO-VN-1: mọi giờ ghi / so / trả ra là giờ VN — quét chặn tái phạm, bước nâng cấp 012, so giờ quanh 00:00 / 07:00
 chayBaiThat('cong_cu/thu_SEPAY1.js');   // SEPAY-1: QR qua SePay (VietQR tự dựng + webhook HMAC-SHA256), công tắc CONG_QR, payOS dự phòng
+chayBaiThat('cong_cu/thu_CKNOIDUNG1.js');   // CK-NOIDUNG-1: nội dung CK mang số hoá đơn, giữ số lúc hiện QR, mã GD, tiền về muộn
+chayBaiThat('cong_cu/thu_TINGEE1.js');   // TINGEE-1: cổng QR Tingee (VietQR tới số VA + Webhook HMAC-SHA512), công tắc CONG_QR=tingee
 chayBaiThat('cong_cu/thu_CT1a.js');   // CT-1a: chương trình đặc biệt + ngày sinh (nhập một lần; sửa ở quầy cần quyền + lý do + sổ) — chat gộp 04.11 thêm
+chayBaiThat('cong_cu/thu_HANG1.js');   // HANG-1: hạng thẻ, gói, cấp hạng + PIN chủ quán (Cài đặt hạng, đổi PIN cần PIN cũ), trang hạng không khôi phục bằng file
+chayBaiThat('cong_cu/thu_GIAODIEN1.js');   // GIAO-DIEN-1: dải Đơn App, Số dư gộp Khách hàng, ô Khách và tiền, nạp tay chỉ chủ quán (018), thẻ QR thương hiệu
+chayBaiThat('cong_cu/thu_GIAO1.js');   // GIAO-1: giao Ahamove ở quầy — phí ship do máy chủ báo, gọi xe một lần, tin báo về, huỷ theo bước, Đối soát
+chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai ngăn (tiền nạp / thưởng nạp), điểm khi tiêu ví, sổ sách tiền nạp
+chayBaiThat('cong_cu/thu_DIEMMON1.js');   // DIEM-MON-1: tích điểm theo món / gói / hạng — chỉ cộng phần dòng bật, trừ theo dòng (CÁCH 2), I8
+chayBaiThat('cong_cu/thu_KHTHE1.js');   // KH-THE-1: App KH mua thẻ hạng chung giỏ, hạng lên lúc đã thu, giỏ không pha bán mọi giờ, quyền lợi hạng (023)
+chayBaiThat('cong_cu/thu_BAO1a.js');   // BAO-1a: thông báo nổi chung (xanh tự ẩn, đỏ có nút đóng), bánh cóc alert(, nút ghi khoá khi đang xử lý
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong
@@ -541,9 +551,9 @@ chayBaiThat('cong_cu/thu_CT1a.js');   // CT-1a: chương trình đặc biệt + 
 // Thân route = từ `router.<m>(` đầu dòng tới dòng đóng `});` hoặc `);` ở cột 0 (orders.js:1357 đóng bằng `},\n);`), chặn ở `router.`
 // kế tiếp — hàm phụ đứng giữa hai route (wallets.js:60–119 ghiVi…) KHÔNG thuộc route trước.
 // Chú thích bỏ nhưng GIỮ xuống dòng (boGhiChu gộp dòng → số dòng trôi). Bài thử: cong_cu/thu_TOCDO1.js mục R cắt đúng hai hàm dưới.
-// GIỚI HẠN (soát TU-CHAY-6): chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (customers-v2.js GET gọi fetchSXCustomers → INSERT
-// pos_customers) không bắt — đúng chữ phiếu A2, ghi Phát hiện cho việc quầy.
-const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 50;   // bánh cóc: hạ 51 → 50 (bộ kiểm báo đã dọn 1 chỗ — chat sổ v53, 02.11)
+// GIỚI HẠN (soát TU-CHAY-6): chỉ thấy lệnh ghi NẰM TRONG thân route; ghi qua hàm phụ (vd taoKhach của utils/khachMoi.js — KHACH-APP-1
+// đã bỏ đường GET customers-v2.js ghi pos_customers qua bộ đệm SX) không bắt — đúng chữ phiếu A2.
+const NGUONG_ROUTE_GHI_KHONG_LOIGHI = 47;   // bánh cóc: hạ 50 → 49 → 47 (KHACH-APP-1: route tạo / ghi khách + PUT / DELETE /registrations qua loiGhi, đếm 54 → 47 — 07.11)
 function xetBanhCoc(n, nguong) { // 'canh' = mọc thêm · 'ha' = đã dọn, hạ ngưỡng · 'dung' = đúng ngưỡng
   return n > nguong ? 'canh' : n < nguong ? 'ha' : 'dung';
 }
@@ -803,6 +813,9 @@ chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới
 chayBaiThat('cong_cu/thu_KHOIN1.js');   // KHO-IN-1: cài đặt in phiếu kho (80mm / A5 / A4, số bản), ô khổ hoá đơn mặc định ghi đúng khoá
 chayBaiThat('cong_cu/thu_MANKHACH1.js');   // MANKHACH-1: màn khách — ghép máy, khoá riêng, QR + món lúc thu, nội dung rảnh, cài đặt, thu hồi
 chayBaiThat('cong_cu/thu_KHSDT1.js');   // KH-SDT-1: công cụ dọn dữ liệu thử (chỉ chủ quán, một giao dịch, giữ ví ≠ 0 / phiên / đơn hôm nay)
+chayBaiThat('cong_cu/thu_KHTOMTAT1.js');   // KH-TOMTAT-1: tóm tắt cho App KH
+chayBaiThat('cong_cu/thu_KHACHAPP1.js');   // KHACH-APP-1: khách MỘT nguồn pos_customers, một hàm tạo khách, bước chép 020 / 022, màn Đăng ký sửa / xoá
+chayBaiThat('cong_cu/thu_QUAYUI1.js');   // QUAY-UI-1: màn Bán hàng / Lịch sử đơn theo bản mẫu đã chốt
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;

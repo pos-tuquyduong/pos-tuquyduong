@@ -89,6 +89,19 @@ từ gói, server vẫn cho 0 đồng. Sửa đúng thì cảnh báo tự tắt,
   phép tự-kiểm báo oan lúc bình thường dạy người bỏ qua nó — ngưỡng theo số đo CHẠY RIÊNG (HOC-2b: đo lúc máy chạy việc khác
   ra 91 s thay vì 51 s); sát ngưỡng thì báo chủ quán, không nới.
 
+
+## Bổ sung 11.11.2026 (chat soát DIEM-MON-1, BAO-1a, VI-ME-1)
+- K3 · Tiền / điểm qua nhiều lần chia rồi làm tròn: tính bằng số nguyên. Ca thử phải có bộ số đi qua phân số lẻ và so với SỐ TÍNH TAY —
+  trọng tài chép cùng công thức không bắt được lỗi làm tròn (DIEM-MON-1: 13 điểm còn 10 thay vì 11).
+- K4 · Đổi luật chia / trừ theo PHẦN: rà mọi hàm tính số tiền của khoản đó (hoàn, đền, kết thúc gói, đối soát). Đổi cách báo lỗi một màn:
+  grep mọi chỗ vẽ biến lỗi cũ, kể cả bên trong popup (BAO-1a).
+- K3 · Giới hạn "tối đa N" có thứ tự loại bỏ phải có ca mà phần tử MỚI chính là cái bị loại. Bài thử một thành phần giao diện phải khoá
+  nhánh vẽ (đột biến "luôn trả null"), không chỉ dò chuỗi (BAO-1a). Chặn ở máy chủ phải có đột biến cho TỪNG vế kiểm (VI-ME-1).
+- K6 · Mục "## Bài thử cũ sửa" chỉ cho bài mà BẢN GỐC chạy trên code mới vẫn xanh. Bài bị bản vá chặn là bài sửa thường → cần ca đỏ trên gốc
+  (VI-ME-1 — chat và máy cùng hiểu ngược lần thứ 4). Thêm tham số cho hàm dùng chung thì để tham số mặc định, đừng đổi dạng lời gọi cũ.
+- K1 · Đoán nguyên nhân phải đo trước (BAO-1a đoán sai file làm số fetch giảm). Sau mỗi vòng sửa cập nhật lại MỌI số trong báo cáo (số ca,
+  đột biến, mã commit, hằng số). Việc tiền: chạy --day-du / cong.js chay rồi mới viết "xanh" (VI-ME-1 bỏ sót giả lập quầy).
+
 ## NĂM CÂU TỰ HỎI TRƯỚC KHI BÁO "XONG" — bắt buộc trả lời từng câu
 
 1. **Bài thử này có chạy trên bản CHƯA vá không, và nó có hỏng không?** (K3)

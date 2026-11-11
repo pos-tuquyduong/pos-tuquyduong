@@ -176,8 +176,9 @@ async function main() {
   const yc = await goi('POST', '/refunds', { order_id: f.bal, reason: 'thử DS1' });
   const dy = await goi('POST', `/refunds/${yc.refund_id}/approve`, {});
   k('B0d đơn trả bằng ví → yêu cầu hoàn → duyệt → 200', yc.status === 200 && dy.status === 200, `${moTa(yc)} / ${moTa(dy)}`);
+  await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
   const hang = await mot('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order LIMIT 1');
-  f.the = await taoDon({ customer_phone: sdtMoi(), items: [], membership_buy: { tier_id: hang.id }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
+  f.the = await taoDon({ customer_phone: sdtMoi(), items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
   k('B0e mua thẻ hội viên bằng tiền mặt tạo được', f.the > 0);
   const sG = sdtMoi();
   const goiA = await taoGoi(300000, 10);
@@ -469,7 +470,7 @@ async function main() {
     const sNo2 = sdtMoi();
     const soDon = () => so('SELECT COUNT(*) FROM pos_orders');
     const truocNo = await soDon();
-    const theNo = await goi('POST', '/orders', { customer_name: 'Khách DS1', customer_phone: sNo2, items: [], membership_buy: { tier_id: hang.id },
+    const theNo = await goi('POST', '/orders', { customer_name: 'Khách DS1', customer_phone: sNo2, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 },
       payment_method: 'debt', debt_amount: Number(hang.card_price) });
     k('D2d mua thẻ GHI NỢ → 400 GOI_THE_CHUA_THU_DU, không thêm đơn; Đối soát vẫn XANH', theNo.status === 400 && theNo.code === 'GOI_THE_CHUA_THU_DU'
       && await soDon() === truocNo && (await ds('chu', 'thang', '2026-11-04')).ket_qua === 'XANH', moTa(theNo));
@@ -628,7 +629,7 @@ async function main() {
     k('E13 két 11.01 ghi lại SAU sao kê → ô sao kê tuần 11→17.01 vẫn lấy dòng SAO KÊ (đã so = 1), không phải dòng két',
       kT2b.status === 201 && t11.sao_ke?.loai === 'sao_ke' && t11.sao_ke?.da_so === 1, JSON.stringify(t11.sao_ke));
     // Vòng sửa 4: huỷ đơn THẺ hội viên trả tiền mặt — dòng thẻ product_id = −1.000.000 − tier.id (không phải dòng gói) → tiền trả tận tay
-    const dThe = await taoDon({ customer_phone: sdtMoi(), items: [], membership_buy: { tier_id: hang.id }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
+    const dThe = await taoDon({ customer_phone: sdtMoi(), items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
     const hThe = await huy(dThe);
     const n12 = await ds('chu', 'ngay', '2027-01-12');
     k(`E14 mua thẻ ${Number(hang.card_price).toLocaleString('vi-VN')} tiền mặt rồi huỷ cùng ngày 12.01 → "trả ra" = giá thẻ (thẻ KHÔNG phải gói), ròng 0`,

@@ -14,6 +14,7 @@ const { query, queryOne } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getToday } = require('../utils/helpers');
 const doiSoat = require('../utils/doiSoat');
+const { sqlDonNap, ID_NAP_TU } = require('../utils/viKhach');   // NAP-1: đơn nạp không là doanh thu — loại khỏi số bán hàng
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), async (req, 
         SUM(CASE WHEN status = 'completed' THEN COALESCE(shipping_fee, 0) ELSE 0 END) as total_shipping,
         SUM(CASE WHEN status = 'completed' AND discount_code IS NOT NULL THEN 1 ELSE 0 END) as orders_with_discount_code
       FROM pos_orders
-      WHERE DATE(created_at) = ? AND (customer_package_id IS NULL OR total > 0)
+      WHERE DATE(created_at) = ? AND (customer_package_id IS NULL OR total > 0) AND NOT ${sqlDonNap('pos_orders')}
     `, [date]);
 
     // Thống kê gói SP hôm nay
@@ -130,7 +131,7 @@ router.get('/sales', authenticate, checkPermission('view_reports'), async (req, 
         SUM(CASE WHEN status = 'completed' THEN balance_amount ELSE 0 END) as balance,
         SUM(CASE WHEN status = 'completed' THEN discount ELSE 0 END) as discount
       FROM pos_orders
-      WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
+      WHERE DATE(created_at) >= ? AND DATE(created_at) <= ? AND NOT ${sqlDonNap('pos_orders')}
       GROUP BY period
       ORDER BY period
     `, [from, to]);
@@ -144,7 +145,7 @@ router.get('/sales', authenticate, checkPermission('view_reports'), async (req, 
         SUM(CASE WHEN status = 'completed' THEN transfer_amount ELSE 0 END) as total_transfer,
         SUM(CASE WHEN status = 'completed' THEN balance_amount ELSE 0 END) as total_balance
       FROM pos_orders
-      WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
+      WHERE DATE(created_at) >= ? AND DATE(created_at) <= ? AND NOT ${sqlDonNap('pos_orders')}
     `, [from, to]);
 
     res.json({
@@ -177,8 +178,8 @@ router.get('/products', authenticate, checkPermission('view_reports'), async (re
         COUNT(DISTINCT oi.order_id) as order_count
       FROM pos_order_items oi
       JOIN pos_orders o ON oi.order_id = o.id
-      WHERE o.status = 'completed'
-    `;
+      WHERE o.status = 'completed' AND oi.product_id > ${ID_NAP_TU}
+    `;   // NAP-1: gói nạp không phải sản phẩm bán
     const params = [];
 
     if (from) {
@@ -266,7 +267,7 @@ router.get('/staff', authenticate, checkPermission('view_reports'), async (req, 
         SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END) as revenue,
         SUM(CASE WHEN status = 'cancelled' OR status = 'refunded' THEN 1 ELSE 0 END) as cancelled_count
       FROM pos_orders
-      WHERE 1=1
+      WHERE NOT ${sqlDonNap('pos_orders')}
     `;
     const params = [];
 
@@ -365,6 +366,19 @@ function loiDoiSoat(res, err) {
 router.get('/doi-soat', authenticate, checkPermission('view_reports'), async (req, res) => {
   try {
     res.json(await doiSoat.chayDoiSoat({ kieu: req.query.kieu || 'ngay', ngay: req.query.ngay }));
+  } catch (err) {
+    loiDoiSoat(res, err);
+  }
+});
+
+/**
+ * NAP-1 — GET /api/pos/reports/so-sach?tu=YYYY-MM-DD&den=YYYY-MM-DD (không có = hôm nay): tiền thật vào quán (trong đó tiền nạp), bán hàng
+ * trừ "Thưởng nạp đã dùng" = doanh thu thật, "Quán đang giữ hộ khách" cuối kỳ tách tiền nạp / thưởng nạp. Logic ở utils/doiSoat.js soSach (chỉ đọc).
+ */
+router.get('/so-sach', authenticate, checkPermission('view_reports'), async (req, res) => {
+  try {
+    const tu = req.query.tu || getToday();
+    res.json(await doiSoat.soSach(tu, req.query.den || tu));
   } catch (err) {
     loiDoiSoat(res, err);
   }

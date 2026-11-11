@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { discountCodesApi } from '../utils/api';
 import { ngayVN, hienNgay } from '../utils/ngayVN';
+import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { 
   Plus, Edit2, Trash2, Search, X, Check, 
   Percent, DollarSign, Calendar, Tag, Copy, CheckCircle
@@ -19,8 +20,6 @@ const chuaBatDau = (c) => !!c.valid_from && String(c.valid_from).slice(0, 10) > 
 export default function DiscountCodes() {
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   
   // Filter
   const [filter, setFilter] = useState('all'); // all, active, expired, used
@@ -42,6 +41,7 @@ export default function DiscountCodes() {
     is_active: true
   });
   const [submitting, setSubmitting] = useState(false);
+  const [dangXuLy, setDangXuLy] = useState(false);   // BAO-1a D: đang bật / tắt / xóa một mã → khóa các nút, không bấm hai lần
 
   // Copy feedback
   const [copiedCode, setCopiedCode] = useState(null);
@@ -60,7 +60,7 @@ export default function DiscountCodes() {
       setCodes(Array.isArray(result) ? result : (result?.data || []));
     } catch (err) {
       console.error('Lỗi tải danh sách mã chiết khấu:', err?.message || err);
-      setError('Không thể tải danh sách mã chiết khấu');
+      baoLoiTu('tải danh sách mã chiết khấu', err);
     } finally {
       setLoading(false);
     }
@@ -144,7 +144,6 @@ export default function DiscountCodes() {
       });
     }
     setShowModal(true);
-    setError('');
   };
 
   // Submit form
@@ -152,20 +151,19 @@ export default function DiscountCodes() {
     e.preventDefault();
     
     if (!formData.code.trim()) {
-      setError('Vui lòng nhập mã chiết khấu');
+      baoLoi('Chưa lưu được mã', 'Vui lòng nhập mã chiết khấu.');
       return;
     }
     if (formData.discount_value <= 0) {
-      setError('Giá trị chiết khấu phải > 0');
+      baoLoi('Chưa lưu được mã', 'Giá trị chiết khấu phải lớn hơn 0.');
       return;
     }
     if (formData.discount_type === 'percent' && formData.discount_value > 100) {
-      setError('Chiết khấu % không được > 100');
+      baoLoi('Chưa lưu được mã', 'Chiết khấu % không được lớn hơn 100.');
       return;
     }
 
     setSubmitting(true);
-    setError('');
 
     try {
       // BUG-FIX (08.08.2026): trước đây gửi thẳng `...formData` — tên trường client
@@ -188,17 +186,16 @@ export default function DiscountCodes() {
 
       if (editingCode) {
         await discountCodesApi.update(editingCode.id, data);
-        setSuccess('Cập nhật mã chiết khấu thành công');
+        baoXong(`Đã cập nhật mã ${data.code}`);
       } else {
         await discountCodesApi.create(data);
-        setSuccess('Tạo mã chiết khấu thành công');
+        baoXong(`Đã tạo mã ${data.code}`);
       }
 
       setShowModal(false);
       loadCodes();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('lưu mã chiết khấu', err);
     } finally {
       setSubmitting(false);
     }
@@ -206,25 +203,32 @@ export default function DiscountCodes() {
 
   // Toggle active
   const toggleActive = async (code) => {
+    if (dangXuLy) return;
+    setDangXuLy(true);
     try {
       await discountCodesApi.update(code.id, { is_active: !code.is_active });
+      baoXong(`Đã ${code.is_active ? 'tắt' : 'bật'} mã ${code.code}`);
       loadCodes();
     } catch (err) {
-      setError(err.message);
+      baoLoiTu(code.is_active ? 'tắt mã' : 'bật mã', err);
+    } finally {
+      setDangXuLy(false);
     }
   };
 
   // Delete code
   const deleteCode = async (code) => {
     if (!confirm(`Xóa mã "${code.code}"?`)) return;
-    
+    if (dangXuLy) return;
+    setDangXuLy(true);
     try {
       await discountCodesApi.delete(code.id);
-      setSuccess('Đã xóa mã chiết khấu');
+      baoXong(`Đã xóa mã ${code.code}`);
       loadCodes();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.message);
+      baoLoiTu('xóa mã', err);
+    } finally {
+      setDangXuLy(false);
     }
   };
 
@@ -266,21 +270,6 @@ export default function DiscountCodes() {
       </header>
 
       <div className="page-content">
-        {/* Messages */}
-        {error && (
-          <div className="alert alert-danger mb-1">
-            {error}
-            <button onClick={() => setError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer' }}>
-              <X size={16} />
-            </button>
-          </div>
-        )}
-        {success && (
-          <div className="alert alert-success mb-1">
-            {success}
-          </div>
-        )}
-
         {/* Stats */}
         <div className="grid grid-4 mb-2">
           <div className="stat-card" onClick={() => setFilter('all')} style={{ cursor: 'pointer', opacity: filter === 'all' ? 1 : 0.7 }}>
@@ -445,6 +434,7 @@ export default function DiscountCodes() {
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button
                             onClick={() => toggleActive(code)}
+                            disabled={dangXuLy}
                             className={`btn btn-sm ${code.is_active ? 'btn-warning' : 'btn-success'}`}
                             title={code.is_active ? 'Tắt' : 'Bật'}
                           >
@@ -459,6 +449,7 @@ export default function DiscountCodes() {
                           </button>
                           <button
                             onClick={() => deleteCode(code)}
+                            disabled={dangXuLy}
                             className="btn btn-sm btn-danger"
                             title="Xóa"
                           >
@@ -488,10 +479,6 @@ export default function DiscountCodes() {
             
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                {error && (
-                  <div className="alert alert-danger mb-1">{error}</div>
-                )}
-
                 {/* Code */}
                 <div className="form-group">
                   <label>Mã chiết khấu *</label>

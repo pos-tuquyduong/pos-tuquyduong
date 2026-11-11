@@ -20,17 +20,18 @@ const {
   getNow,
   getToday,
   normalizePhone,
-  addMonthsSafe,
 } = require("../utils/helpers");
 const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
 const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
+const { ID_NAP_TU, sqlDonNap, laDonNap, LOI_NAP_KHONG_HOAN } = require("../utils/viKhach"); // NAP-1: đơn nạp — một vị từ
 const { tinhUuDai } = require("../utils/uuDai"); // UUDAI-1: giảm hạng + giảm mã — một hàm cho tạo đơn, tinh-thu, phiên payOS
+const { kiemTraMe } = require("../utils/viMe"); // VI-ME-1: đối chiếu mẹ–con trước mọi lối tiền mẹ
 const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từng món — một hàm cho quầy và /api/kh/menu
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
-const { getMembershipStatus, isTierUsable } = require("../utils/membershipStatus");
+const { getMembershipStatus, isTierUsable, goiBanDuoc, hanSauDong } = require("../utils/membershipStatus");
 const { kiemDonCuaMa, docCauHinhNhanDiem } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem; P22-23: hệ số nhân điểm
 
 const router = express.Router();
@@ -39,7 +40,8 @@ const router = express.Router();
 // không bán số lẻ (chủ quán chốt 14.10). Chuỗi số nguyên ("2", " 5") vẫn nhận vì màn hình / bài thử cũ có gửi chuỗi.
 const soNguyenDuong = (x) => Number.isInteger(Number(x)) && Number(x) >= 1;
 
-const { tienTinhDiem } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` của tinhDiemDon = tiền khách trả thật
+const { tienTinhDiem, tienHangDiem, batDiem, ID_THE_TU } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` của tinhDiemDon = tiền khách trả thật; DIEM-MON-1: chỉ phần dòng bật điểm
+const giaoHang = require("../utils/giaoHang"); // GIAO-1: đơn giao Ahamove — phí ship từ báo phí của máy chủ, chuyến, huỷ theo bước
 
 // P22-23: MỘT công thức điểm cho đơn thu đủ lúc tạo (POST /) và lúc thu đủ nợ (pay-debt) — đọc cài đặt LÚC GỌI.
 // Trả { diem, han } hoặc null (tắt / cài sai / 0 điểm). Hạn 'quarter' = đầu quý tương ứng năm sau; khác → null (không hết hạn).
@@ -119,8 +121,8 @@ router.get("/", authenticate, async (req, res) => {
         COALESCE(SUM(total), 0) as total_revenue,
         SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count
       FROM pos_orders 
-      WHERE 1=1
-    `;
+      WHERE NOT ${sqlDonNap("pos_orders")}
+    `;   // NAP-1: đơn nạp không là doanh thu
     const statsParams = [];
     if (date) {
       statsSql += ` AND DATE(created_at) = ?`;
@@ -206,12 +208,32 @@ async function taoDon(req, res, phien = null) {
       customer_package_id = null, // Giao từ gói → ID của customer_package
       package_buy = null, // Mua gói → { package_id, total_qty }
       // === TIER-1c: Mua thẻ hội viên (như 1 sản phẩm, cùng đơn với hàng thường) ===
-      membership_buy = null, // { tier_id }
+      membership_buy = null, // { tier_id, so_thang } — HANG-1: chọn GÓI của hạng; giá do máy chủ tra
+      // === NAP-1: bán gói nạp (đơn riêng, chỉ tiền mặt / CK) ===
+      goi_nap_id = null, // mã gói nạp — giá + số vào tài khoản do máy chủ tra pos_goi_nap
+      // === GIAO-1: đơn giao Ahamove — { ma_bao_phi, ten, sdt, ghi_chu }; phí ship lấy từ báo phí, KHÔNG từ shipping_fee ===
+      giao = null,
     } = req.body;
 
     // P3 (H, chủ quán chốt 22.10): một đơn KHÔNG trả kết hợp tiền mặt + chuyển khoản; tài khoản + MỘT cách cho phần còn lại thì được.
     if (Number(cash_amount) > 0 && Number(transfer_amount) > 0) {
       return res.status(400).json({ error: "Một đơn chỉ trả tiền mặt HOẶC chuyển khoản, không kết hợp", code: "TRA_KET_HOP" });
+    }
+    // NAP-1: đơn nạp = MỘT gói nạp, đơn riêng, có khách (SĐT đã chuẩn hoá — cùng biểu thức với chỗ ghi ví, SO-LUONG-1), chỉ tiền mặt / CK:
+    // không ví / ví mẹ (vòng nạp bằng ví), không mã, không phí giao, không nợ. Chặn gộp (không tách dòng): giảm hạng / mã / điểm / huỷ / đền
+    // của đơn món khỏi phải tách phần nạp — một vị từ `goi_nap_id` đủ cho mọi luật.
+    if (goi_nap_id != null) {
+      if (!normalizePhone(customer_phone)) {
+        return res.status(400).json({ error: "Nạp tiền cần chọn khách (SĐT)", code: "NAP_CAN_KHACH" });
+      }
+      if ((Array.isArray(items) && items.length) || package_buy || membership_buy || customer_package_id || giao) {
+        return res.status(400).json({ error: "Nạp tiền làm đơn riêng — không gộp với món, gói hay thẻ", code: "NAP_KHONG_GOP" });
+      }
+      if (Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance" || Number(debt_amount) > 0
+        || discount_code || Number(shipping_fee) > 0) {
+        return res.status(400).json({ error: "Nạp tiền chỉ trả tiền mặt hoặc chuyển khoản — không trừ tài khoản, không mã, không ghi nợ, không phí giao",
+          code: "NAP_CHI_TIEN_MAT_QR" });
+      }
     }
     // P3 (Q1a): cờ bật → chuyển khoản chỉ qua QR payOS, trừ tài khoản chỉ qua phiên có PIN (routes/thanh-toan.js). Chốt phiên có `phien`.
     if (!phien && (Number(transfer_amount) > 0 || Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance")) {
@@ -224,15 +246,16 @@ async function taoDon(req, res, phien = null) {
     }
 
     // Validate — cho phép items rỗng nếu đang mua gói / mua thẻ hội viên
-    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy && !membership_buy) {
+    if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy && !membership_buy && goi_nap_id == null) {
       return res
         .status(400)
         .json({ error: "Đơn hàng phải có ít nhất 1 sản phẩm" });
     }
     // BAN-HANG-1: có `membership_buy` thì phải đủ hạng thẻ + SĐT đã chuẩn hoá (cùng khuôn cổng gói dưới) — cổng cũ chỉ chạy khi có `tier_id`
     // nên `{}` lọt: 1 món → đơn thường, `items: []` → đơn rỗng 0đ. SĐT chuẩn hoá vì khối ghi thẻ (`membershipTier && phone`) đòi `phone` (SO-LUONG-1).
-    if (membership_buy && !(membership_buy.tier_id && normalizePhone(customer_phone))) {
-      return res.status(400).json({ error: "Mua thẻ cần chọn hạng thẻ và khách hàng", code: "THE_MUA_THIEU_THONG_TIN" });
+    // HANG-1: phải chọn GÓI (so_thang) — gói khớp, giá, cách có hạng kiểm ở khối dòng thẻ bên dưới.
+    if (membership_buy && !(membership_buy.tier_id && membership_buy.so_thang && normalizePhone(customer_phone))) {
+      return res.status(400).json({ error: "Mua thẻ cần chọn hạng thẻ, gói và khách hàng", code: "THE_MUA_THIEU_THONG_TIN" });
     }
     // P26c (A3): một đơn vừa MUA gói mới vừa LẤY từ gói cũ thì trừ lượt cả hai gói — không cho, tách làm hai đơn.
     if (customer_package_id && package_buy && items.some((i) => i.from_package)) {   // gia hạn (bật gói cũ, không lấy) vẫn được
@@ -255,6 +278,14 @@ async function taoDon(req, res, phien = null) {
     if ((package_buy || membership_buy) && debt_amount > 0) {
       return res.status(400).json({ error: "Mua gói / thẻ hội viên phải thu đủ tiền — không ghi nợ, không để chưa thu",
         code: "GOI_THE_CHUA_THU_DU" });
+    }
+    // GIAO-1 (D): đơn giao thu đủ TRƯỚC rồi mới gọi xe (CÙNG vị từ nợ như gói / thẻ); phí ship = phí máy chủ đã báo (chốt phiên: bỏ qua hạn —
+    // tiền khách đã về). Ghi chuyến + giành báo phí ở trong giao dịch dưới.
+    let baoPhiGiao = null;
+    if (giao) {
+      if (debt_amount > 0) return res.status(400).json({ error: "Đơn giao phải thu đủ tiền trước khi giao", code: "GIAO_PHAI_THU_DU" });
+      baoPhiGiao = await giaoHang.docBaoPhiDon(giao, { boQuaHan: !!phien && !phien.chiTinh, kiemNguoiNhan: !phien?.tinhThu });
+      if (baoPhiGiao.loi) return res.status(400).json(baoPhiGiao.loi);
     }
 
     // Lấy thông tin sản phẩm và tính tổng
@@ -450,6 +481,7 @@ async function taoDon(req, res, phien = null) {
         from_package: !!item.from_package,
         is_special_group: !!product.is_special_group,
         note: item.note ? String(item.note).trim().slice(0, 200) : null,
+        tich_diem: batDiem(product) ? 1 : 0,   // DIEM-MON-1: cờ món LÚC BÁN
       });
     }
 
@@ -479,20 +511,35 @@ async function taoDon(req, res, phien = null) {
         sx_product_type: null,
         sx_product_id: null,
         is_package_item: true,
+        tich_diem: batDiem(pkg) ? 1 : 0,   // DIEM-MON-1
       });
     }
 
     // TIER-1c: Mua thẻ hội viên → thêm line item cho thẻ (giống hệt cách mua gói)
+    // HANG-1: bán theo GÓI — hạng `ban` đang bật, gói khớp số tháng + đang bán + có giá (goiBanDuoc, cùng vị từ với App KH /hang); giá dòng =
+    // giá gói MÁY CHỦ TRA (không đọc giá máy khách). Khách đang có hạng còn hạn THỨ BẬC CAO HƠN → chặn; cùng hạng → cho (hạn cộng nối ở sổ).
     let membershipTier = null;
+    let membershipGoi = null;
     if (membership_buy && membership_buy.tier_id) {
       membershipTier = await queryOne('SELECT * FROM pos_membership_tiers WHERE id = ? AND is_active = 1', [membership_buy.tier_id]);
       if (!membershipTier) return res.status(400).json({ error: 'Hạng thành viên không tồn tại hoặc đã bị xóa' });
-      const cardPrice = Number(membershipTier.card_price) || 0;
+      if (membershipTier.cach_co !== 'ban') {
+        return res.status(400).json({ error: `Hạng ${membershipTier.name} chỉ chủ quán cấp, không bán`, code: 'HANG_CHI_CAP' });
+      }
+      membershipGoi = goiBanDuoc(membershipTier).find((g) => g.so_thang === Number(membership_buy.so_thang));
+      if (!membershipGoi) {
+        return res.status(400).json({ error: `Gói ${membership_buy.so_thang} tháng của hạng ${membershipTier.name} chưa bán (chưa có giá hoặc đang tắt)`, code: 'GOI_HANG_KHONG_BAN' });
+      }
+      const hangDangCo = await getMembershipStatus(query, queryOne, getNow, normalizePhone(customer_phone));
+      if (isTierUsable(hangDangCo.status) && hangDangCo.thu_bac > Number(membershipTier.sort_order)) {
+        return res.status(400).json({ error: `Khách đang có hạng ${hangDangCo.tier_name} cao hơn — không bán hạng ${membershipTier.name}`, code: 'DA_CO_HANG_CAO_HON' });
+      }
+      const cardPrice = membershipGoi.gia;
       subtotal += cardPrice;
       orderItems.push({
-        product_id: -1000000 - membershipTier.id, // né trùng với product_id thường và -pkg.id
+        product_id: ID_THE_TU - membershipTier.id, // né trùng với product_id thường và -pkg.id
         product_code: `THE-${membershipTier.name}`,
-        product_name: `🎟️ Thẻ hội viên ${membershipTier.name}`,
+        product_name: `🎟️ Thẻ hội viên ${membershipTier.name} · ${membershipGoi.so_thang} tháng`,
         unit: 'thẻ',
         quantity: 1,
         unit_price: cardPrice,
@@ -500,6 +547,28 @@ async function taoDon(req, res, phien = null) {
         sx_product_type: null,
         sx_product_id: null,
         is_membership_item: true,
+        tich_diem: batDiem(membershipTier) ? 1 : 0,   // DIEM-MON-1: một cờ cho cả hạng
+      });
+    }
+
+    // NAP-1: gói nạp → MỘT dòng hàng, giá = "khách trả" máy chủ tra (gói đang bật); product_id −2000000 − id (ngoài dải gói / thẻ).
+    let goiNap = null;
+    if (goi_nap_id != null) {
+      goiNap = await queryOne("SELECT * FROM pos_goi_nap WHERE id = ? AND is_active = 1", [goi_nap_id]);
+      if (!goiNap) return res.status(400).json({ error: "Gói nạp không có hoặc đang tắt", code: "GOI_NAP_KHONG_CO" });
+      const vnd = (n) => Number(n).toLocaleString("vi-VN") + "đ";
+      subtotal += goiNap.khach_tra;
+      orderItems.push({
+        product_id: ID_NAP_TU - goiNap.id,
+        product_code: `NAP-${goiNap.id}`,
+        product_name: `💳 Nạp ${vnd(goiNap.khach_tra)} → vào tài khoản ${vnd(goiNap.vao_tk)}`,
+        unit: "gói",
+        quantity: 1,
+        unit_price: goiNap.khach_tra,
+        total_price: goiNap.khach_tra,
+        sx_product_type: null,
+        sx_product_id: null,
+        is_nap_item: true,
       });
     }
 
@@ -619,6 +688,12 @@ async function taoDon(req, res, phien = null) {
     }
     // ═══ het POS-CONGDON-v1 · LO 2 ═══════════════════════════════════════
     const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
+    // VI-ME-1: có SĐT mẹ hoặc tiền mẹ → máy chủ đối chiếu pos_customers TRƯỚC mọi chỗ đọc / giữ / trừ ví mẹ — chạy cả ở chế độ chỉ tính
+    // (tạo phiên giữ chỗ, màn khách) và lúc chốt phiên (taoDon ghi thật). Sai mẹ → 403 KHONG_PHAI_TK_ME, chưa ghi gì.
+    if (parent_phone || Number(parent_balance_amount) > 0) {
+      const sai = await kiemTraMe(phone, parent_phone);
+      if (sai) return res.status(sai.status).json(sai.body);
+    }
 
     // === TIER-2: Giảm theo HẠNG THÀNH VIÊN (tầng cùng mức F2, tự động) ===
     // Bám ĐÚNG luật F2 đã có: đơn có dính Flash (flashApplied=true) → KHÔNG cộng giảm hạng,
@@ -640,7 +715,7 @@ async function taoDon(req, res, phien = null) {
           if (tier) {
             appliedTierName = membership.tier_name;
             for (const it of orderItems) {
-              if (it.is_package_item || it.is_membership_item) continue; // không giảm giá thẻ/gói
+              if (it.is_package_item || it.is_membership_item || it.is_nap_item) continue; // không giảm giá thẻ / gói / gói nạp
               tiLeHang.set(it, tiLeHangMon(tier, it.is_special_group)); // KH-API-2: cùng hàm với /api/kh/menu (kẹp 0–90 ở giaHang.js)
             }
           }
@@ -732,7 +807,7 @@ async function taoDon(req, res, phien = null) {
     // POS-CONGDON-v1: phi van chuyen KHONG duoc am. Truoc day khai so am la
     // giam thang vao tong don — `Math.max(0, total)` chi chan total am, khong
     // chan total bi giam. Ep ve so, am thi coi nhu 0.
-    const finalShippingFee = Math.max(0, Number(shipping_fee) || 0);
+    const finalShippingFee = baoPhiGiao ? baoPhiGiao.phi : Math.max(0, Number(shipping_fee) || 0);   // GIAO-1: đơn giao bỏ qua số màn hình gửi
     const total = Math.max(
       0,
       subtotal - flashDiscountAmount - tierDiscountAmount - finalDiscountAmount + finalShippingFee,
@@ -863,20 +938,24 @@ async function taoDon(req, res, phien = null) {
     // Đọc cấu hình + tính điểm + tính hạn TRƯỚC khi mở tx. Trong tx chỉ còn 1 INSERT đã kiểm sẵn
     // → một lỗi điểm KHÔNG BAO GIỜ rollback được một ca bán thật.
     let diemTao = null;
+    const tienHangDiemDon = tienHangDiem(orderItems, total - finalShippingFee);   // DIEM-MON-1: lưu vào đơn — mọi lối cộng / trừ điểm đọc số này
     try {
       // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
       // P22-23: chỉ đơn THU ĐỦ lúc tạo (`finalPaymentStatus` máy chủ tự quyết theo nợ, ở trên) — đơn còn nợ cộng ở pay-debt khi thu đủ.
-      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now);
+      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount, tien_hang_diem: tienHangDiemDon }), now);
     } catch (loyPrepErr) {
       console.error('⚠️ LOY-1: lỗi chuẩn bị điểm (bỏ qua, không ảnh hưởng đơn):', loyPrepErr.message);
       diemTao = null;
     }
+    if (goiNap) diemTao = null;   // NAP-1 (E): lúc nạp KHÔNG tích điểm — điểm tính khi khách tiêu tiền trong tài khoản
 
     const tx = await beginTransaction();
     let orderId;
 
     try {
-      orderCode = await taoMaDonTheoSo(tx.queryOne);   // P26d (10): câu đầu của giao dịch — kho bận ở đây thì thử lại / 409
+      // P26d (10): câu đầu của giao dịch — kho bận ở đây thì thử lại / 409. CK-NOIDUNG-1: phiên đã giữ số hoá đơn → đơn mang đúng số đó.
+      const maDon = await taoMaDonTheoSo(tx, phien?.id, now);
+      orderCode = maDon.code;
 
       // P3: chốt phiên — cổng MỘT lần (cho → da_thu, còn hạn) TRƯỚC khi trừ ví: báo lặp / hai báo cùng lúc / tiền mặt + webhook → một đơn.
       if (phien && !(await phien.vaoGiaoDich(tx, now))) {
@@ -925,9 +1004,9 @@ async function taoDon(req, res, phien = null) {
           parent_phone, parent_balance_amount,
           cash_received, change_amount,
           payment_status, due_date,
-          customer_package_id,
+          customer_package_id, tien_hang_diem,
           status, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
         [
           orderCode, phone || null, customer_name || "Khách lẻ",
           subtotal, totalDiscountAmount, discount_reason || null, total,
@@ -940,13 +1019,21 @@ async function taoDon(req, res, phien = null) {
           normalizedParentPhone || null, actualParentBalanceAmount,
           cash_received || 0, change_amount || 0,
           finalPaymentStatus, due_date || null,
-          customer_package_id || null,
+          customer_package_id || null, tienHangDiemDon,
           notes || null, req.user.username, now,
         ],
       );
       orderId = Number(result.lastInsertRowid);
+      // CK-NOIDUNG-1: gắn số hoá đơn vào đơn — một số không bao giờ thuộc hai đơn (ném → rollback cả đơn).
+      if ((await tx.run('UPDATE pos_so_hoa_don SET order_id = ? WHERE id = ? AND order_id IS NULL', [orderId, maDon.soId])).changes !== 1) {
+        throw new Error('CK-NOIDUNG-1: số hoá đơn đã gắn đơn khác');
+      }
       for (const id of dongSo) await tx.run("UPDATE pos_balance_transactions SET order_id = ? WHERE id = ?", [orderId, id]);
       if (phien) await phien.sauGhiDon(tx, orderId, orderCode);   // P3: gắn đơn vào phiên (+ nhật ký xác nhận tay) cùng giao dịch
+      if (baoPhiGiao && !(await giaoHang.ghiChuyenDon(tx, { orderId, giao, bp: baoPhiGiao, now }))) {   // GIAO-1: một báo phí — một đơn
+        await tx.rollback();
+        return res.status(400).json({ error: "Báo phí này đã dùng cho đơn khác — tính phí lại", code: "BAO_PHI_DA_DUNG" });
+      }
 
       // 2. Thêm chi tiết đơn hàng
       // Lưu ý: package virtual item có product_id âm (-pkg.id) — SQLite/Turso không enforce FK
@@ -954,12 +1041,20 @@ async function taoDon(req, res, phien = null) {
         await tx.run(
           `INSERT INTO pos_order_items (
             order_id, product_id, product_code, product_name,
-            quantity, unit_price, total_price, unit, notes, flash_unit_price, tier_unit_price
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            quantity, unit_price, total_price, unit, notes, flash_unit_price, tier_unit_price, tich_diem
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [orderId, item.product_id, item.product_code, item.product_name,
            item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
-           item.flash_unit_price || null, item.tier_unit_price || null],
+           item.flash_unit_price || null, item.tier_unit_price || null, item.tich_diem ?? null],   // DIEM-MON-1: dòng nạp không cờ (đơn nạp 0 điểm, không gộp món)
         );
+      }
+
+      // NAP-1: thu đủ → cộng ví NGAY trong giao dịch này (lỗi → rollback cả đơn): toàn bộ "vào tài khoản", phần hơn "khách trả" vào ngăn thưởng.
+      if (goiNap) {
+        const r = await ghiVi(tx, { phone, ten: customer_name || null, loai: "topup", soTien: goiNap.vao_tk, thuong: goiNap.vao_tk - goiNap.khach_tra,
+          orderId, cachTra: Number(transfer_amount) > 0 ? "transfer" : "cash", ghiChu: `Nạp tiền đơn ${orderCode}`, nguoi: req.user.username,
+          luc: now, cot: "total_topup", soCot: goiNap.vao_tk });
+        balanceAfter = r.sau;
       }
 
       // P26c (A2): trừ lượt gói TRONG giao dịch, có trần — hai quầy cùng lấy lượt cuối thì đơn sau thua 400, ví hoàn nguyên.
@@ -1052,23 +1147,17 @@ async function taoDon(req, res, phien = null) {
         }
       }
 
-      // TIER-1c: mua thẻ hội viên → ghi vào sổ, TÍNH LẠI hạn dùng đúng cấu hình hiện tại
+      // TIER-1c / HANG-1: mua gói thẻ → ghi MỘT dòng sổ (loai ban + số tháng). Hạn thật cộng lại từ sổ mỗi lần đọc (membershipStatus.js —
+      // cộng nối, hai quầy cùng bán không mất kỳ); expires_at ghi hạn tính lúc ghi (chỉ API /nhat-ky trả ra; cộng tháng phép UTC — GIO-VN-1).
       if (membershipTier && phone) {
-        const settingsRows = await tx.query(
-          "SELECT key, value FROM pos_settings WHERE key = 'tier_card_valid_months'",
-        );
-        let validMonths = parseInt(settingsRows[0]?.value, 10);
-        if (!Number.isFinite(validMonths) || validMonths < 1) validMonths = 3;
-
-        const nowDate = new Date(now + 'Z');   // giờ VN coi như UTC → cộng tháng không theo múi giờ máy (GIO-VN-1)
-        const expiresDate = addMonthsSafe(nowDate, validMonths);
-        const expiresAt = expiresDate.toISOString().slice(0, 19);
+        const dongThe = { tier_id: membershipTier.id, tier_name: membershipTier.name, loai: 'ban', so_thang: membershipGoi.so_thang, purchased_at: now };
+        const expiresAt = await hanSauDong(tx, phone, dongThe);
 
         await tx.run(
           `INSERT INTO pos_membership_purchases
-            (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [phone, membershipTier.id, membershipTier.name, membershipTier.card_price, orderId, now, expiresAt, req.user.username],
+            (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, created_by, loai, so_thang)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ban', ?)`,
+          [phone, membershipTier.id, membershipTier.name, membershipGoi.gia, orderId, now, expiresAt, req.user.username, membershipGoi.so_thang],
         );
         console.log(`🎟️ Đã ghi mua thẻ ${membershipTier.name} cho ${phone}, hết hạn ${expiresAt}`);
       }
@@ -1173,7 +1262,7 @@ async function taoDon(req, res, phien = null) {
         );
         alreadyClaimed = !!claimedBefore;
       }
-      if (!alreadyClaimed) {
+      if (!alreadyClaimed && !goiNap) {   // NAP-1: đơn nạp không có mã bill (nạp không tích điểm, không ưu đãi)
         // Chống trùng mã: thử tối đa 5 lần, cực hiếm khi đụng (~887 triệu tổ hợp)
         for (let attempt = 0; attempt < 5; attempt++) {
           const candidate = generateVoucherCode();
@@ -1211,6 +1300,7 @@ async function taoDon(req, res, phien = null) {
         total,
         items: orderItems,
         balance_after: balanceAfter,
+        nap: goiNap ? { vao_tk: goiNap.vao_tk, thuong: goiNap.vao_tk - goiNap.khach_tra } : null,
         debt_amount: finalDebtAmount,
         payment_status: finalPaymentStatus,
         created_by: req.user.display_name || req.user.username,
@@ -1226,16 +1316,16 @@ async function taoDon(req, res, phien = null) {
             );
             const c = {};
             for (const r of rows) c[r.key] = r.value;
-            const batDiem = c.nhandiem_enabled === '1' && !flashApplied;   // P22-23: đơn Flash 0 điểm (/nhan-diem từ chối) — bill không hứa điểm
+            const coNhanDiem = c.nhandiem_enabled === '1' && !flashApplied;   // P22-23: đơn Flash 0 điểm (/nhan-diem từ chối) — bill không hứa điểm
             const batVoucher = c.signup_enabled === 'true' || c.signup_enabled === '1';
             const { heSo } = await docCauHinhNhanDiem();   // P22-23: CÙNG hệ số /nhan-diem cộng (hệ số < 1 → 2 ở cả hai)
             const gio = Number(c.nhandiem_han_gio) || 24;
             const hanChu = gio >= 24 && gio % 24 === 0 ? (gio / 24) + ' ngay' : gio + ' gio';
-            if (batDiem && batVoucher) {
+            if (coNhanDiem && batVoucher) {
               return { signup_nhan: 'Ma uu dai',
                 signup_loi: `Tao tai khoan trong ${hanChu} de nhan uu dai va gap ${heSo} diem cua don nay` };
             }
-            if (batDiem) {
+            if (coNhanDiem) {
               return { signup_nhan: 'Ma nhan diem',
                 signup_loi: `Tao tai khoan trong ${hanChu} de nhan gap ${heSo} diem cua don nay` };
             }
@@ -1262,7 +1352,7 @@ router.post("/", authenticate, (req, res) => taoDon(req, res));
  * độ chỉ tính (cùng phép kiểm, cùng tinhUuDai) → số tinh-thu = số POST / ghi. Không ghi gì, không gọi SX; thân chỉ nhận các trường
  * của giỏ (không trường tiền → các nhánh ví / chuyển khoản / nợ không chạy).
  */
-const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "shipping_fee", "customer_package_id", "package_buy", "membership_buy"];
+const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "shipping_fee", "customer_package_id", "package_buy", "membership_buy", "giao", "goi_nap_id"];
 router.post("/tinh-thu", authenticate, async (req, res) => {
   const than = Object.fromEntries(TRUONG_TINH_THU.filter((x) => req.body?.[x] !== undefined).map((x) => [x, req.body[x]]));
   const kq = await taoDon({ body: than, user: req.user }, res, { chiTinh: true, tinhThu: true });
@@ -1459,12 +1549,22 @@ router.put(
       // P26b: đọc đơn TRONG giao dịch; cổng DUY NHẤT là UPDATE có điều kiện `AND status = 'completed'` + kiểm số dòng đổi.
       // Đơn đã hoàn / đã huỷ / hai người bấm huỷ cùng lúc: lệnh thua 400, ví không đổi, KHÔNG tới khối hoàn kho SX bên dưới.
       const tx = await beginTransaction();
-      let order, orderItems;
+      let order, orderItems, huyGiao;
       try {
         order = await tx.queryOne("SELECT * FROM pos_orders WHERE id = ?", [req.params.id]);
         if (!order) {
           await tx.rollback();
           return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
+        }
+        if (await laDonNap(tx, order.id)) {   // NAP-1 (D): tiền nạp không hoàn — trước mọi câu đổi trạng thái / ví
+          await tx.rollback();
+          return res.status(400).json(LOI_NAP_KHONG_HOAN);
+        }
+        // GIAO-1 (J): đơn giao — quản lý / chủ quán + lý do, huỷ theo bước chuyến; đơn không giao trả null, đường cũ y nguyên.
+        huyGiao = await giaoHang.kiemHuyDonGiao(tx, order, req.user, req.body);
+        if (huyGiao?.loi) {
+          await tx.rollback();
+          return res.status(huyGiao.loi.status).json(huyGiao.loi.body);
         }
         // P26c (Q4): đơn MUA gói — chỉ owner hoặc vai trò có quyền refund_package (mặc định chỉ owner, H9).
         const cancelBuyPkgs = await tx.query("SELECT id, delivered_qty FROM pos_customer_packages WHERE order_id = ?", [order.id]);
@@ -1490,6 +1590,7 @@ router.put(
             code: "DON_KHONG_HUY_DUOC",
           });
         }
+        if (huyGiao) await giaoHang.chotHuyGiao(tx, huyGiao, { ...order, cancelled_reason: reason }, req.user, now);   // GIAO-1: chuyến → huy, "Bỏ đi" → hàng hỏng
 
         // GOI-2 (A4): gói của đơn đã kết thúc ở Báo cáo → Gói SP → tiền đã chốt theo gói, không huỷ (= không hoàn lần hai).
         if (cancelBuyPkgs.length && await goiDaKetThuc(tx, order.id)) {
@@ -1579,8 +1680,9 @@ router.put(
         throw txErr;
       }
 
-      // Hoàn kho SX (bên ngoài transaction)
-      for (const [sttMon, item] of orderItems.entries()) {
+      // Hoàn kho SX (bên ngoài transaction). GIAO-1 (Q4): đơn giao "Bỏ đi" — đồ đã pha đổ đi (ghi hàng hỏng ở trên) nên KHÔNG hoàn kho:
+      // kho giữ phần đã trừ lúc bán = trừ đúng phần hỏng.
+      for (const [sttMon, item] of (huyGiao?.doDaPha === "bo_di" ? [] : orderItems).entries()) {
         if (item.sx_product_type && item.quantity > 0) {
           // POS-VANTAY-v1: chieu "in" — PHAI khac chieu "out" du cung order_id,
           // neu khong lenh tra hang bi coi la trung va kho KHONG duoc cong lai.
@@ -1616,17 +1718,17 @@ router.put(
 );
 
 // P24 (chủ quán duyệt 24.10): đơn rời 'completed' bằng huỷ / xoá → trừ lại điểm đã cộng, cho phép số dư âm. CÙNG giao dịch, KHÔNG
-// bọc try/catch: lỗi ghi → rollback cả lệnh, sổ điểm luôn cân. Dòng 'adjust' CÓ order_id dành RIÊNG cho việc này (I8 canh). Gom
-// theo (SĐT, hạn): chép đúng hạn của earn (earn đã hết hạn → dòng trừ cũng hết hạn, số dư không đổi). NOT EXISTS: không trừ lần hai.
+// bọc try/catch: lỗi ghi → rollback cả lệnh, sổ điểm luôn cân. Dòng 'adjust' CÓ order_id dành RIÊNG cho trừ điểm theo đơn (huỷ / xoá; tiền trả vào tài khoản: duyệt hoàn, đền bù, kết thúc gói — utils/diemThat.js truDiemHoan) (I8 canh). Gom
+// theo (SĐT, hạn): chép đúng hạn của earn (earn đã hết hạn → dòng trừ cũng hết hạn, số dư không đổi). Trừ phần CÒN LẠI của nhóm (earn + adjust > 0):
+// không trừ lần hai, và đơn đã bị trừ một phần (đền bù / kết thúc gói — diemThat.js truDiemHoan) thì trừ nốt (NAP-1).
 async function truDiemDon(tx, order, nguoi, now, viec) {
   await tx.run(
     `INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, expires_at, reason, created_by, created_at)
      SELECT customer_phone, 'adjust', -SUM(points), order_id, expires_at, ?, ?, ?
      FROM pos_point_transactions
-     WHERE order_id = ? AND type = 'earn'
-       AND NOT EXISTS (SELECT 1 FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust')
-     GROUP BY customer_phone, expires_at`,
-    [`${viec} đơn ${order.code} — trừ lại điểm`, nguoi, now, order.id, order.id],
+     WHERE order_id = ? AND type IN ('earn', 'adjust')
+     GROUP BY customer_phone, expires_at HAVING SUM(points) > 0`,
+    [`${viec} đơn ${order.code} — trừ lại điểm`, nguoi, now, order.id],
   );
 }
 
@@ -1655,6 +1757,16 @@ router.delete("/:id", authenticate, async (req, res) => {
       if (!order) {
         await tx.rollback();
         return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
+      }
+      if (await laDonNap(tx, order.id)) {   // NAP-1 (D): đơn nạp không xoá — xoá là hoàn tiền nạp + mất dấu tiền vào két
+        await tx.rollback();
+        return res.status(400).json(LOI_NAP_KHONG_HOAN);
+      }
+      // GIAO-1: đơn còn chuyến ở Ahamove không xoá; được xoá thì xoá chuyến + nhả báo phí (cùng giao dịch).
+      const chanGiao = await giaoHang.xoaDonGiao(tx, order.id);
+      if (chanGiao) {
+        await tx.rollback();
+        return res.status(409).json(chanGiao.loi);
       }
 
       // Lấy items trước khi xóa (cần cho hoàn kho SX sau)

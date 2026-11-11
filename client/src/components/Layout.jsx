@@ -5,6 +5,8 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ErrorBoundary from './ErrorBoundary';
+import ThongBao from './ThongBao';   // BAO-1a: thông báo nổi, gắn một lần
+import { baoXong, baoLoiTu } from './thongBaoKho.js';
 import { 
   ShoppingCart, 
   Users, 
@@ -14,17 +16,19 @@ import {
   Menu,
   X,
   Warehouse,
-  LayoutGrid
+  LayoutGrid,
+  Bell
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { dungMenu } from '../pages/QuanLy/menu';
+import { dungMenu, soDo } from '../pages/QuanLy/menu';
 // POS-DODNO-v1: goi qua lop chung, KHONG fetch tran (luat banh coc cua bo kiem)
 import { soNoApi } from '../utils/api';
-import DonAppNoi from './DonAppNoi';   // KH-MUA-1: đơn App + chuông, thấy từ mọi màn
+import { useDonApp, DaiDonApp } from './DonAppNoi';   // KH-MUA-1 + GIAO-DIEN-1: đơn App + chuông, dải báo ở đầu trang, số đỏ ở menu
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
+  const donApp = useDonApp();
 
   // ═══ POS-DODNO-v1 · LOP 2 + 3: dai bao viec ket, bam vao la doi ngay ═══
   // Gop hai lop vao MOT khoi: thay so va xu ly ngay tai cho, khong phai di
@@ -50,7 +54,8 @@ export default function Layout() {
     try {
       await soNoApi.doiNgay();
       await xemSoNo();
-    } catch { /* im lang */ }
+      baoXong('Đã gửi lại việc kho sang bên sản xuất');
+    } catch (e) { baoLoiTu('gửi lại việc kho', e); }
     finally { setDangDoi(false); }
   };
   const location = useLocation();
@@ -66,6 +71,7 @@ export default function Layout() {
     { to: '/', icon: ShoppingCart },
     { to: '/hom-nay', icon: BarChart3 },
     { to: '/orders', icon: Package },
+    { to: '/don-app', icon: Bell },
     { to: '/customers', icon: Users },
     { to: '/kho', icon: Warehouse },
     { to: '/quan-ly', icon: LayoutGrid },
@@ -77,6 +83,7 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
+      <ThongBao />
       {/* Sidebar - Desktop */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -118,6 +125,7 @@ export default function Layout() {
               >
                 <item.icon size={20} />
                 <span>{item.ten}</span>
+                {soDo(item.to, { donApp: donApp.soMoi }) > 0 && <span className="nav-badge">{soDo(item.to, { donApp: donApp.soMoi })}</span>}
               </NavLink>
             );
           })}
@@ -151,7 +159,7 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="main-content">
-        <DonAppNoi />
+        <DaiDonApp tom={donApp} />
         {/* POS-2 (POS-ERRHANDLING-v1) — lưới đỡ BÊN TRONG: một màn hình vỡ
             thì sidebar và bottom-nav vẫn còn, nhân viên chuyển sang tab khác
             bán tiếp được. key theo đường dẫn để mỗi lần chuyển tab là lưới đỡ
@@ -212,6 +220,7 @@ export default function Layout() {
                   >
                     <item.icon size={20} />
                     <span>{item.ten}</span>
+                    {soDo(item.to, { donApp: donApp.soMoi }) > 0 && <span className="nav-badge">{soDo(item.to, { donApp: donApp.soMoi })}</span>}
                   </NavLink>
                 );
               })}

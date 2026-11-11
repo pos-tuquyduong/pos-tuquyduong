@@ -1,0 +1,143 @@
+# KHACH-APP-1 — bằng chứng bài thử ĐỎ trên code gốc (37d195b) và số ca trên code đã vá
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js thu_GIOVN1.js
+#   (bài HIỆN TẠI ở cong_cu/ chạy trên server/ + client/src/ của 37d195b — bài ở commit da1f1df). Dòng dài cắt phần JSON đuôi.
+
+── thu_KHACHAPP1.js (bài HIỆN TẠI trên code 37d195b):
+  ✗ C1 so MỌI cột (trừ id, phone, qr_code, giờ, created_by, xung_ho, address) hai khách bằng nhau  — sync_status: new ≠ retail_only · customer_type: subscription ≠ retail
+  ✗ C1 mặc định chung retail / retail_only (chủ quán Q2)  — subscription/new
+  ✗ C2b App: mã QR trùng mã đã có → sinh lại, tạo được khách (không 500, không mất khách)  — HTTP 500 {"error":"Lỗi máy chủ, thử lại sau","code":"LOI_MAY_CHU"} · undefined
+  ✗ C4 ba quầy cùng SĐT cùng lúc → MỘT khách, một 201, còn lại 400 SDT_DA_CO (không 500)  — HTTP 201 … · HTTP 400 {"error":"Số điện thoại đã tồn tại trong hệ thống"} · HTTP 400 {"error":"Số điện thoại đã tồn tại trong hệ thống"}
+  ✗ C4b quầy tạo SĐT đã có → 400 SDT_DA_CO, câu cũ giữ  — HTTP 400 {"error":"Số điện thoại đã tồn tại trong hệ thống"}
+  ✗ K2 người nhận có SĐT: tạo được, có QR, parent_phone đúng, theo loại của mẹ; người nhận không SĐT bỏ qua (không 500)  — HTTP 500 {"error":"SQLITE_CONSTRAINT_NOTNULL: NOT NULL constraint failed: pos_customers.phone"} · …
+  ✗ K2d POST /:id/children không SĐT → 400 (không 500)  — HTTP 500 {"error":"SQLITE_CONSTRAINT_NOTNULL: NOT NULL constraint failed: pos_customers.phone"}
+  ✗ C7 "Thêm khách" (POST /registrations) tạo khách THẬT (có QR, retail_only) và vẫn ghi đăng ký chờ (Q1)  — HTTP 200 {"success":true,"registration":{…}} · null
+  ✗ C7b đăng ký SĐT đã là khách → 400 SDT_DA_CO, không ghi đăng ký  — HTTP 200 {"success":true,"registration":{"id":2,"phone":"0938100001",…
+  ✗ C8 ghi địa chỉ / ghi chú cho SĐT chưa là khách → tạo qua hàm chung (có QR, retail_only) rồi ghi  — HTTP 200 … · {… "qr_code":null, … "sync_status":"new", … "customer_type":"subscription" …}
+  ✗ A1 (ds) khách quầy + khách App có trong GET /v2/customers  — 4 dòng: 0938100009,0938100008,0938100001,0938100099
+  ✗ A1b (ds) khách App: balance 50000, points 30 (điểm hết hạn không tính), ngay_sinh, xung_ho
+  ✗ A6b (ds) khách tạo qua "Thêm khách" hiện là KHÁCH (id, is_synced), không phải dòng đăng ký chờ  — {"name":"Khách Đăng Ký","phone":"0938100008",…,"is_synced":false,"is_pending":true,…}
+  ✗ A14 (ds) khách SX đã ngừng (sx_status 'expired') vẫn hiện (Q3)  — 4 dòng
+  ✗ A3 (ds) /search theo tên / SĐT / một phần tên (không phân biệt hoa thường) ra đúng khách  — 0/1/0
+  ✗ A13 (ds) người nhận: parent_balance = ví mẹ 120000, parent_name = tên mẹ
+  ✗ A4 (ds) quét QR khách App → SĐT → /search ra khách  — HTTP 200 {"id":2,"phone":"0938100002",…
+  ✗ A5 (ds) GET /:phone khách App 200 + balance, total_topup, xung_ho; /:phone/full khách quầy 200  — HTTP 200 {"phone":"0938100002","source":"pos","is_retail":true,…} · HTTP 200 {"customer":{"name":"Đã là khách",…,"is_pending":true,…
+  ✗ A11 (ds) bốn đường đọc khách KHÔNG gọi SX lần nào  — 10 lượt
+  ✗ A12 (ds) dạng trả ra: danh sách giữ đủ khoá cũ + có xung_ho  —  thiếu xung_ho
+  ✗ A1b (loi) khách App: balance 50000, points 30 (điểm hết hạn không tính), ngay_sinh, xung_ho  — {… thiếu xung_ho …}
+  ✗ A6b (loi) khách tạo qua "Thêm khách" hiện là KHÁCH (id, is_synced), không phải dòng đăng ký chờ  — {…,"is_synced":false,"is_pending":true,…}
+  ✗ A14 (loi) khách SX đã ngừng (sx_status 'expired') vẫn hiện (Q3)  — 13 dòng
+  ✗ A13 (loi) người nhận: parent_balance = ví mẹ 120000, parent_name = tên mẹ  — {…,"parent_name":null,…,"parent_balance":120000,…}
+  ✗ A5 (loi) GET /:phone khách App 200 + balance, total_topup, xung_ho; /:phone/full khách quầy 200  — HTTP 200 {… "so…
+  ✗ A11 (loi) bốn đường đọc khách KHÔNG gọi SX lần nào  — 10 lượt
+  ✗ A12 (loi) dạng trả ra: danh sách giữ đủ khoá cũ + có xung_ho  —  thiếu xung_ho
+  ✗ A8 sau hai lần tải danh sách: tên trong kho + trên danh sách vẫn là tên POS  — Tên Mới Ở POS / Tên Cũ Bên SX
+  ✗ A8b khách chỉ có ở SX KHÔNG tự chép vào kho khi tải danh sách
+  ✗ B3b bước 020 (SX) HOÃN — chưa ghi pos_nang_cap; bước 021 sau nó vẫn chạy  — false false
+  ✗ B1 SX trả lời → bước 020 chạy, khung không hỏng  — null
+  ✗ B1b chỉ THÊM 2 khách thiếu (một SĐT +84 chuẩn hoá); dòng đã có KHÔNG đổi tên / QR  — 13 → 13 · {"name":"Tên POS Đúng","qr_code":"TQD-AAAAAAAAAAAA"}
+  ✗ B1c khách chép có QR mới, parent_phone, synced / active / subscription, giờ dạng T  — null
+  ✗ B1d sao lưu _sao_luu_020_pos_customers = bảng TRƯỚC khi chép  — -1 / 13
+  ✗ B1e nhật ký pos_sync_logs: record_count = 2, {sx 6, da_co 1, them 2, bo_qua 3, truoc, sau}  — không có dòng
+  ✗ B2 chạy khung lần hai: không gọi SX, không thêm khách, không thêm nhật ký  — 0 lượt · 13→13 · 0 log
+  ✗ B6 bước 021: cấp QR cho dòng qr_code NULL / rỗng; không đổi cột khác (updated_at, notes); không đụng mã đã có  — null · {"id":14,"phone":"0938100041",…,"qr_code":null,…} ·
+  ✗ B6b đăng ký CHỜ chưa là khách → thành khách (QR, retail_only, created_by của đăng ký); đăng ký đã xuất không chép  — null
+  ✗ B6c quét QR mới cấp ra đúng khách cũ  — HTTP 404 {"error":"Không tìm thấy khách hàng","code":"QR_KHONG_CO"}
+  ✗ B6d nhật ký 021: them_dang_ky ≥ 1, cap_qr ≥ 2  — không có dòng
+  ✗ B7 bước HOÃN: không ghi gì, không pos_nang_cap; bước sau chạy; bước NÉM → rollback + hong + DỪNG (904 không chạy)  — 901,902 · 901,902 · 903_nem: hỏng thử
+  TỔNG: 27/68 ca đạt
+  ✗ CÓ 41 CA HỎNG
+  thoát 1
+  (ca xanh trên gốc = hồi quy / điều kiện: C0, C2, C3, C5, C5b, C6, C6b, K2b, K2c, A6, A9, A9b, A12b, A1/A3/A4 (loi — đường dự phòng cũ đọc
+   local), B3, B3c, B4, B5, B6e)
+
+── thu_GIOVN1.js (bài HIỆN TẠI trên code 37d195b) — ca A2j sửa theo Q4 (chủ quán 07.11):
+  ✗ A2j bước chép lần cuối khách SX (020): khách mới created_at + dòng nhật ký giờ VN dạng T; khách đã có KHÔNG bị ghi lại  — null · null · {"name":"Khách hàng","a":"2026-11-02T12:00:00","b":"2026-11-02T12:00:00"} → {"name":"Khách hàng","a":"2026-11-02T12:00:00","b":"2026-11-02T12:00:00"}
+  60 đạt · 1 hỏng
+  thoát 1
+
+## Trên code đã vá (HEAD, cùng bài): node cong_cu/thu_KHACHAPP1.js → TỔNG: 68/68 ca đạt · node cong_cu/thu_GIOVN1.js → 61 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHACHAPP1.js: 68
+SỐ CA cong_cu/thu_GIOVN1.js: 61
+
+── thu_KHO1.js — sửa B1 / B2 + thêm B1c theo Q5 (chủ quán 07.11, phiếu 63334e5). Bài ở commit 729386a.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHO1.js  (bài HIỆN TẠI trên server/ + client/src/ của 37d195b)
+  ✗ B1c bước chép khách SX (020_chep_khach_sx, có truoc) KHÔNG có dòng pos_nang_cap khi SX không cấu hình  — bước có truoc: không có · [1,2,3,4,5,6,7,9,12,13,17,19]
+  111 đạt · 1 hỏng
+  thoát 1
+  (B1, B2 xanh trên gốc: gốc không có bước nào xuất truoc → tập bước cần có = mọi file, như bài cũ.)
+# Bài CŨ (trước Q5) trên code đã vá: ✗ B1 (13 dòng cho 14 file — bước 020 HOÃN) · ✗ B2 — xem Câu hỏi Q5 trong trang_thai.md.
+## Trên code đã vá (HEAD, bài 729386a): node cong_cu/thu_KHO1.js → 112 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 112
+
+── Vòng sửa 1 (soát độc lập 07.11): đổi ca C3 (thu_KHACHAPP1 — bỏ `?? id`, so sdt + ten) và B1c (thu_KHO1 — tập miễn HOÃN cố định). Bài ở 2681286.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js thu_KHO1.js
+  thu_KHACHAPP1.js trên 37d195b: TỔNG: 27/68 ca đạt · thoát 1 (cùng 41 ca hỏng như trên; C3 xanh trên gốc = ca hồi quy đua, như cũ)
+  thu_KHO1.js trên 37d195b:
+  ✗ B1c bước có truoc ĐÚNG [020_chep_khach_sx.js] và nó KHÔNG có dòng pos_nang_cap khi SX không cấu hình  — bước có truoc: không có · [1,2,3,4,5,6,7,9,12,13,17,19]
+  111 đạt · 1 hỏng
+  thoát 1
+## Trên code đã vá (HEAD, bài 2681286): thu_KHACHAPP1 TỔNG: 68/68 ca đạt · thu_KHO1 112 đạt · 0 hỏng · đột biến 32/32 BẮT
+SỐ CA cong_cu/thu_KHACHAPP1.js: 68
+SỐ CA cong_cu/thu_KHO1.js: 112
+
+── Vòng sửa 2 (chủ quán trả lời Q6, Q7 07.11 + chat soát: đổi 021 → 022). Bài thử ở 1ef2e70 — thêm C7c, R1–R6; C7b đổi theo Q7 (409
+   KHACH_DA_CO_TAI_KHOAN); B3b / B6 / B6d / B6e đổi số bước 21 → 22.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js   (code gốc của việc)
+  thu_KHACHAPP1.js trên 37d195b: TỔNG: 34/91 ca đạt · thoát 1. Ca MỚI / ĐỔI đỏ trên gốc:
+  ✗ C7b "Thêm khách" SĐT đã là khách → 409 KHACH_DA_CO_TAI_KHOAN … — HTTP 200 (gốc ghi đăng ký, không chặn)
+  ✗ C7c ba "Thêm khách" cùng SĐT mới cùng lúc → … một khách — 1 đk · 0 khách
+  ✗ R1 sửa đăng ký CHỜ → dòng khách cùng SĐT đổi tên … (bài sập giữa chừng: gốc không có dòng khách)
+  ✗ R2b nhật ký xoá khách … — không có dòng
+  ✗ R2c nhập lại cùng SĐT sau khi xoá → 200, khách mới — HTTP 200 nhưng không có khách
+  ✗ R3 NHÂN VIÊN xoá đăng ký → … khách giữ nguyên — gốc không tạo khách
+  ✗ R4 × 8 (đơn, ví còn tiền, giao dịch ví, điểm, gói, thẻ hạng, người nhận, mã đăng nhập App) — gốc không tạo khách
+  ✗ R5c đăng ký đã xuất → chỉ xoá đăng ký, khách GIỮ — gốc không tạo khách
+  ✗ R6 server/nang_cap: không hai file cùng số … — gốc chưa có 022
+  ✗ B3b, B6, B6b, B6c, B6d (gốc chưa có bước chép)
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 8baeca4 thu_KHACHAPP1.js   (code TRƯỚC vòng sửa 2 — đúng chỗ vòng này vá)
+  ✗ C7b … — HTTP 400 {"error":"Số điện thoại đã là khách","code":"SDT_DA_CO"}
+  ✗ R1 sửa đăng ký CHỜ → … (Q6a) — khách vẫn "Tên Đăng Ký"
+  ✗ R1c danh sách / ô tìm hiện tên mới
+  ✗ R1d đăng ký đã xuất → 400, khách không đổi (theo R1)
+  ✗ R2 chủ quán xoá đăng ký chờ, khách trắng do chính đăng ký tạo → xoá cả đăng ký lẫn khách (Q6b) — HTTP 200 {"success":true}
+  ✗ R2b nhật ký xoá khách … — không có dòng
+  ✗ R2c nhập lại cùng SĐT sau khi xoá → 200 — HTTP 400 SDT_DA_CO
+  ✗ R3b QUẢN LÝ xoá đăng ký chờ … → xoá khách — HTTP 200 {"success":true}
+  ✗ R6 server/nang_cap: không hai file cùng số … — 001,…,019,020,021
+  ✗ B3b bước 020 HOÃN; bước 022 sau nó vẫn chạy — false false
+  ✗ B6, B6b, B6c, B6d (bước 021 cũ đã ghi pos_nang_cap so 21 — ca xoá so 22 không chạy lại được)
+  TỔNG: 77/91 ca đạt · thoát 1
+  (xanh trên 8baeca4 = hồi quy: C7c, R3, R4 × 8, R5, R5b, R5c, R5d — mỗi ca có đột biến riêng BẮT: VS-XOA-MOI-VAI, BV-XOA-BO-*, VS-XOA-BO-VI,
+   VS-XOA-KHACH-CUA-NGUOI-KHAC, VS-XOA-MOI-TRANG-THAI, BV-DK-DUA-500.)
+## Trên code đã vá (HEAD, bài 1ef2e70): thu_KHACHAPP1 TỔNG: 91/91 ca đạt · thu_KHO1 112 đạt · 0 hỏng · đột biến 46/46 BẮT
+SỐ CA cong_cu/thu_KHACHAPP1.js: 91
+SỐ CA cong_cu/thu_KHO1.js: 112
+
+── Vòng sửa 2b (soát vòng 2 KHÔNG ĐẠT): thêm C7d, R2d, R4 × 4 (voucher, hoàn tiền, phiên thanh toán, đơn App), A12c; dòng tổng thêm dạng
+   "n đạt · m hỏng" (chayBaiThat). Bài ở c6c8382.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 35e5c5d7 thu_KHACHAPP1.js   (code TRƯỚC vòng sửa 2b)
+  ✗ C7d "Thêm khách" lần hai cho SĐT vừa thêm (có cả đăng ký lẫn khách) → cũng 409 KHACH_DA_CO_TAI_KHOAN đúng câu (Q7)  — HTTP 400 {"error":"SĐT đã được đăng ký","code":"SDT_DA_DANG_KY"}
+  ✗ R2d nhật ký KHÔNG chép băm PIN / mật khẩu (GET /sync/logs mọi nhân viên đọc được)  — {… "pin_code":"bam_pin_thu_r2" … "password":"mk_thu_r2" …}
+  TỔNG: 97/99 ca đạt · 97 đạt · 2 hỏng · thoát 1
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js   (code gốc của việc)
+  ✗ C7d … — HTTP 400 {"error":"SĐT đã được đăng ký"}
+  ✗ R2d … — không có dòng
+  ✗ R4 khách có voucher / yêu cầu hoàn tiền / phiên thanh toán / đơn App → … khách GIỮ — HTTP 200 (gốc không tạo khách)
+  ✗ A12c (ds) /search, /:phone, /:phone/full giữ đủ khoá cũ + xung_ho — search: points,is_synced,ngay_sinh,membership,xung_ho · …
+  ✗ A12c (loi) … — search: points,is_synced,ngay_sinh,membership,xung_ho · phone: points,ngay_sinh,membership,xung_ho · …
+  TỔNG: 34/99 ca đạt · 34 đạt · 65 hỏng · thoát 1
+  (R4 × 4 mới, A12c xanh trên 35e5c5d7 = hồi quy; đột biến BV-XOA-BO-VOUCHER / -HOAN-TIEN / -PHIEN / -DON-APP BẮT.)
+## Trên code đã vá (HEAD c6c8382): thu_KHACHAPP1 99/99 · thu_KHO1 112 đạt · 0 hỏng · đột biến 52/52 BẮT · npm test PASS 102 · FAIL 0
+SỐ CA cong_cu/thu_KHACHAPP1.js: 99
+SỐ CA cong_cu/thu_KHO1.js: 112
+
+── Vòng sửa 4 (soát vòng 3 chỉ lỗi NHẸ — LUAT §6.5, chat soát thay): thêm C7e, R2d so BẰNG danh sách cột nhật ký. Bài ở 63fbf12.
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc 37d195b thu_KHACHAPP1.js   (code gốc của việc)
+  ✗ C7e SĐT có đăng ký nhưng CHƯA là khách → 400 SDT_DA_DANG_KY "SĐT đã được đăng ký" (không 409), không tạo khách  — HTTP 400 {"error":"SĐT đã được đăng ký"}
+  ✗ R2d nhật ký KHÔNG chép băm PIN / mật khẩu (GET /sync/logs mọi nhân viên đọc được)  — không có dòng
+  TỔNG: 34/100 ca đạt · 34 đạt · 66 hỏng · thoát 1
+# Lệnh: python3 viec/KHACH-APP-1/dot_bien.py --goc c6c8382c thu_KHACHAPP1.js → TỔNG: 100/100 · thoát 0 (C7e, R2d bản mới = ca hồi quy
+  trên code vòng 2b; đột biến VS-DK-LUON-409 → C7e BẮT, VS-NK-THEM-COT → R2d BẮT).
+## Trên code đã vá (HEAD 63fbf12): thu_KHACHAPP1 100/100 · thu_KHO1 112 đạt · 0 hỏng · đột biến 54/54 BẮT
+SỐ CA cong_cu/thu_KHACHAPP1.js: 100
+SỐ CA cong_cu/thu_KHO1.js: 112

@@ -128,8 +128,8 @@ khi tầng DB chỉ là stub.
 - Số dòng ghi trong `TIEN_DO_POS.json` và hồ sơ **hay bị lệch** sau các patch
   khác (P7 ghi 954–969, thực tế đã trôi xuống). Luôn `grep` tìm lại.
 - Render free tier **ngủ khi idle** → không dùng cron. Hoạt động bán hàng là timer.
-- `attached_assets/` đang chứa hàng trăm patch cũ. **Không đọc file ở đó để suy
-  ra hành vi hiện tại** — chỉ đọc code trong `server/` và `client/src/`.
+- `attached_assets/` đã bỏ khỏi kho 11.11.2026 (patch cũ thời vá tay). Hành vi hiện tại chỉ đọc từ
+  code trong `server/` và `client/src/`.
 
 ## 9. Bản mẫu giao diện — bản vẽ ĐÃ CHỐT với chủ quán
 

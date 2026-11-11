@@ -1,0 +1,69 @@
+DIEM-MON-1 — bằng chứng bài thử ĐỎ trên code GỐC
+Gốc = server/ + cong_cu/gia_lap/ ở commit e90d42a (PHIEU sau Q2/Q3), xuất ra thư mục nháp bằng `git archive e90d42a server cong_cu/gia_lap`.
+Bài thử = bản cuối (commit 44d6c04 — thêm T13e, T13f, T13g theo Q4 = a, chủ quán 09.11). Lệnh: node cong_cu/thu_DIEMMON1.js --may-chu <nháp>/goc/server   (thoát 1)
+(Lần chạy 10.11 trên gốc; dòng dài cắt ở 260 ký tự.)
+
+[A] Bước nâng cấp 024: cờ tich_diem (mặc định 1) ở món / gói / hạng; đơn ghi tien_hang_diem, dòng đơn ghi tich_diem
+  ✗ T1 cột tich_diem NOT NULL mặc định 1 ở 3 bảng, mọi dòng cũ = 1; pos_orders.tien_hang_diem, pos_order_items.tich_diem; bước 024 chạy đúng 1 lần, chạy lại không hỏng; có bảng sao lưu  — pos_products:không:NaN · pos_pa
+[B] MỘT hàm tính tiền tích điểm theo dòng — quầy, App, nhận điểm bằng mã bill, thu nợ
+  ✓ T2 (đối chứng) mọi món bật: X + Y tiền mặt 100.000 → 100 điểm; đơn cũ (không cột / cột NULL) và đơn bật hết tính như hôm nay; tiền hàng 0 → 0 (không NaN)
+  ✓ T2b đơn cũ (không cờ dòng, không tien_hang_diem) 100 điểm, đền X 30.000 sau khi X đã tắt → trừ 30 như hôm nay → 70
+  ✗ T3 X TẮT + Y bật, tiền mặt 100.000 → 60 điểm; đơn lưu tien_hang_diem 60.000, dòng đơn lưu cờ [0, 1]  — HTTP 200 · 100 · null · []
+  ✗ T4 cùng giỏ trả ví 100.000 → 60; trả CK → 60  — HTTP 200 100 · HTTP 200 100
+  ✗ T5 mã giảm 10% cả đơn: 90.000 → 54 (chia theo tỷ lệ)  — HTTP 200 · 90000 · 90
+  ✗ T6 khách hạng (X nhóm đặc biệt giảm 50%, Y giảm 10%): X 20.000 + Y 54.000 = 74.000 → 54 (tỷ lệ trên giá SAU giảm hạng từng món)  — HTTP 200 · 74000 · 74
+  ✗ T6b mã giảm 1 món 10.000: X + Y = 90.000 → floor(60.000 × 90.000 / 100.000) = 54.000 → 54  — HTTP 200 · 90000 · 90
+  ✗ T7 đơn App (ví) cùng giỏ X + Y → 60  — HTTP 200 100000 · HTTP 200 · 100
+  ✗ T8 đơn không SĐT X + Y, hoá đơn báo mã được 120; bật lại X SAU khi bán rồi nhận mã ×2 → vẫn 120 (đọc số đã lưu, không đọc cờ hiện tại)  — HTTP 200 · hoá đơn {"ma":"BWPZXB","diem":200,"uu_dai":false,"han
+  ✗ T9 đơn nợ X + Y: lúc tạo 0 điểm (K5); thu đủ → 60  — HTTP 200 · tạo 0 · HTTP 200 · 100
+[A] Gói trả trước, thẻ hạng có công tắc; gói nạp và phí giao không điểm (như nay)
+  ✗ T10 gói G TẮT 300.000 → 0 điểm; G + Y = 360.000 → 60  — HTTP 200 300 · HTTP 200 360
+  ✗ T11 hạng Vàng TẮT, gói 3 tháng 200.000 → 0 điểm; thẻ + Y = 260.000 → 60  — HTTP 200 200 · HTTP 200 260
+  ✓ T12b (K5) đơn chỉ lấy từ gói (0đ) → 200, 0 điểm (tiền hàng 0, không NaN)
+  ✗ T12 (đối chứng phí giao) X + Y + phí giao 20.000 → 60; Y + phí giao → 60 (phí giao không điểm)  — HTTP 200 100 · HTTP 200 60
+[C] Trừ điểm (CÁCH 2): đền / kết thúc gói trừ theo DÒNG được trả; duyệt hoàn theo phần còn lại sau đền (Q4 = a); không bao giờ quá điểm đã cộng
+  ✗ T13 X tắt + 2 Y (160.000 tiền mặt) → 120; đền Y 30.000 → 90; đền Y 60.000 → 30; T13d đền X (tắt) 40.000 → vẫn 30  — HTTP 200 · HTTP 200 · HTTP 200 · [160,130,70,30]
+  ✗ T13b ví 50.000 + tiền mặt 50.000 (60 điểm), duyệt hoàn trả 50.000 vào ví (không gắn dòng) → trừ ceil(60 × 50.000 / 100.000) = 30 → 30  — HTTP 200 · HTTP 200 · 50
+  ✗ T13e ví 100.000 (60 điểm): đền X (tắt) 40.000 → 60, duyệt hoàn 60.000 còn lại → 0; ngược thứ tự (đền Y 60.000 → 0, hoàn 40.000) → 0  — HTTP 200 · HTTP 200 hoàn 60000 [100,60,0] · HTTP 200 · HTTP 200 hoàn 40000 [10
+  ✗ T13f ví 50.000 + tiền mặt 50.000 (60): đền X (tắt) 40.000 → 60; duyệt hoàn 10.000 → trừ ceil(60 × 10.000 / 60.000 còn lại) = 10 → 50  — HTTP 200 · HTTP 200 hoàn 10000 [100,60,50]
+  ✗ T13g ví 50.000 + tiền mặt 50.000 (60): đền Y (bật) 30.000 → 30; duyệt hoàn 20.000 → trừ ceil(60 × (30.000 + 20.000 × 30.000 / 70.000) / 60.000) = 39 → 21  — HTTP 200 · HTTP 200 hoàn 20000 [100,70,50]
+  ✗ T13c đơn có SĐT (120), đền Y 30.000 → 90; nhận mã ×2: +120, trừ thêm 30 cùng lúc → 180 (báo cộng 90)  — HTTP 200 · HTTP 200 cộng 130 · 260
+  ✗ T14 gói G TẮT 300.000 + Y 60.000 → 60; kết thúc gói hoàn 300.000 → trừ 0 (khoản hoàn thuộc dòng tắt), không ghi dòng trừ  — HTTP 200 hoàn 300000 · 360 → 60 · dòng trừ 1
+  ✗ T14b gói B bật 300.000 + X tắt 40.000 → 300; kết thúc gói hoàn 300.000 → trừ 300 → 0  — HTTP 200 · 340 → 40
+  ✗ T15 hai lệnh đền Y 60.000 chồng nhau (đơn 120 điểm) → tổng trừ 120 → 0, không âm, không trừ quá  — HTTP 200 · HTTP 200 · 40
+[D] Cài đặt → Điểm thưởng: GET /loyalty/tich-diem (3 nhóm), PUT chọn nhiều — cần manage_promotions
+  ✗ T17 GET trả 3 nhóm mon / goi / hang, mỗi dòng id, ten, tich_diem; X đang 0; không có giá vốn; nhân viên không quyền xem Cài đặt → 403  — HTTP 404 · nhân viên HTTP 404 · {"status":404}
+  ✗ T16 PUT: nhân viên (không manage_promotions, kể cả có manage_settings) → 403, Y giữ 1; loại lạ / id không nguyên / rỗng / bat không bool → 400 TICH_DIEM_SAI; quản lý tắt [X, Y] → đúng 2 món 0; gói B, hạng Vàng tắt …
+[E] Đối soát: điểm đơn = điểm đã ghi sổ; I8 (trọng tài) nhận luật mới
+  ✗ T18 hoá đơn không SĐT báo mã được N = điểm /nhan-diem ghi sổ (120); I8 0 lệch trên MỌI đơn của bài (món / gói / hạng tắt, đền, kết thúc gói, duyệt hoàn, mã bill)  — hoá đơn {"ma":"3V476T","diem":200,"uu_dai
+  ✓ T18b I8 bắt lệch MỘT điểm ở đơn có món tắt + đền (T13)
+[K5] Không đổi: tiền đơn, giảm hạng, gói nạp 0 điểm
+  ✓ T19 tổng / tạm tính / giảm hạng như gốc (100.000 · 100.000 · 74.000 · 26.000 · 90.000 · 360.000); gói nạp vẫn 0 điểm
+  5 đạt · 24 hỏng
+
+Thêm (vòng sửa 1, Q4): cùng bài trên code TRƯỚC khi vá Q4 (HEAD 8d1f224 — vá DIEM-MON-1 vòng 0, chưa vá Q4):
+  ✗ T13e … — HTTP 200 · HTTP 200 hoàn 60000 [60,60,24] · HTTP 200 · HTTP 200 hoàn 40000 [60,0,0]
+  ✗ T13f … — HTTP 200 · HTTP 200 hoàn 10000 [60,60,54]
+  26 đạt · 2 hỏng   (T13g thêm sau, phủ vế "trừ phần đền món bật" — đột biến VS-q4-con-lai-bo-den-bat BẮT ở T13g)
+
+Thêm (vòng sửa 2, soát vòng 2 lỗi 1 — làm tròn số thực): T13h (commit 09e0fcc).
+  Trên code trước vá vòng 2 (HEAD 09e0fcc): ✗ T13h … — HTTP 200 hoàn 3000 · 13 → 10   (29 đạt · 1 hỏng; T18 vẫn xanh vì I8 chép cùng lỗi)
+  Trên GỐC e90d42a (bài bản cuối): ✗ T13h … — HTTP 200 hoàn 3000 · 19 → 16 · cả bài 5 đạt · 25 hỏng (các dòng khác y như khối trên)
+
+Thêm (vòng sửa 3, soát vòng 3 lỗi 1–3): T18c, T13i (commit 3245ddc).
+  Trên code trước vá vòng 3 (HEAD 3245ddc): 30 đạt · 2 hỏng
+    ✗ T18c … — I8 sập: The number Infinity cannot be converted to a BigInt because it is not an integer (×2)
+    ✗ T13i … — The number Infinity cannot be converted to a BigInt because it is not an integer
+  Trên GỐC e90d42a (bài bản cuối): 6 đạt · 26 hỏng — ✗ T13i (Cannot mix BigInt and other types); T18c XANH trên gốc (I8 gốc không dùng BigInt,
+    lỗi chỉ có từ vòng sửa 2 — bài vẫn đỏ trên gốc ở 26 ca khác).
+
+Trên code ĐÃ VÁ (HEAD): node cong_cu/thu_DIEMMON1.js → 32 đạt · 0 hỏng
+SỐ CA cong_cu/thu_DIEMMON1.js: 32
+
+────────────────────────────────────────────────────────────────────────────
+Bài cũ SỬA theo LUAT_XAY_APP §6.7 (bài khoá ĐÚNG danh sách cột, phiếu thêm cột mới): cong_cu/thu_KHO1.js — D1 thêm `tich_diem` vào COT_SP
+(vẫn so BẰNG). Bản mới trên GỐC: node cong_cu/thu_KHO1.js --may-chu <nháp>/goc/server
+  ✗ D1 pos_products KHÔNG thêm cột
+  111 đạt · 1 hỏng
+Trên code ĐÃ VÁ: 112 đạt · 0 hỏng
+SỐ CA cong_cu/thu_KHO1.js: 112

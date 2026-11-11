@@ -22,7 +22,7 @@ const { query, queryOne, run, beginTransaction } = require('../database');
 const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
 const { authenticate, checkPermission, authenticateServiceOrUser } = require('../middleware/auth');
 const { loiMayChu } = require('./kh/loi');
-const { tienTinhDiem } = require('../utils/diemThat'); // DIEM-THAT-1: điểm gốc mã bill theo tiền khách trả thật
+const { tienTinhDiem, truDiemHoan } = require('../utils/diemThat'); // DIEM-THAT-1: điểm gốc mã bill theo tiền khách trả thật; NAP-1: trừ phần đã trả vào tài khoản
 const { docDuLieuNhanDiem, tinhDiemNhanMa } = require('../utils/nhanDiem'); // HD-1: cùng hàm với hoá đơn
 
 const router = express.Router();
@@ -51,7 +51,7 @@ async function kiemDonCuaMa(dong) {
     return { loi: { status: 400, code: 'MA_KHONG_GAN_DON', error: 'Mã này không gắn với đơn nào.' } };
   }
   const don = await queryOne(
-    'SELECT id, code, total, status, payment_status, flash_discount, cash_amount, transfer_amount, shipping_fee, balance_amount, parent_balance_amount FROM pos_orders WHERE id = ?',
+    'SELECT id, code, total, status, payment_status, flash_discount, cash_amount, transfer_amount, shipping_fee, balance_amount, parent_balance_amount, tien_hang_diem FROM pos_orders WHERE id = ?',
     [dong.order_id],
   );
   if (!don) {
@@ -226,6 +226,7 @@ async function nhanDiemMaBill(req, res) {
       hanDiem = (y + 1) + '-' + mm + '-01T00:00:00';
     }
 
+    let diemTru = 0;
     const tx = await beginTransaction();
     try {
       // CHIEM MA TRUOC, cong diem sau. `AND diem_nhan_luc IS NULL` la cho then
@@ -256,6 +257,14 @@ async function nhanDiemMaBill(req, res) {
          `Nhân ${ch.heSo} điểm từ mã bill ${maGoc} (đơn ${don.code})`,
          (req.user && req.user.username) || 'service', now],
       );
+      // NAP-1 (chủ quán 07.11): đơn đã được đền / kết thúc gói (tiền trả vào tài khoản) → trừ ngay phần điểm tương ứng, CÙNG giao dịch, đúng
+      // hàm của duyệt hoàn / đền bù. Báo khách số điểm cộng RÒNG (không đổi tên trường).
+      diemTru = await truDiemHoan(tx, don, (req.user && req.user.username) || 'service', now, `Nhận điểm mã bill ${maGoc}`);
+      // Đơn đã trả lại vào tài khoản TRỌN → ròng 0: huỷ cả giao dịch (mã và quyền nhận lần đầu không bị tiêu), cùng mã lỗi "không cộng thêm".
+      if (diemCong - diemTru <= 0) {
+        await tx.rollback();
+        return res.status(400).json({ success: false, error: 'Tiền đơn này đã được trả lại vào tài khoản, mã không cộng thêm điểm nào.', code: 'KHONG_THEM_DIEM' });
+      }
       await tx.commit();
     } catch (e) {
       try { await tx.rollback(); } catch {}
@@ -264,13 +273,13 @@ async function nhanDiemMaBill(req, res) {
 
     res.json({
       success: true,
-      diem_cong: diemCong,
+      diem_cong: diemCong - diemTru,
       diem_goc: diemGoc,
       he_so: ch.heSo,
       het_han: hanDiem,
       da_cong_truoc_do: !!daCong,
       don: don.code,
-      message: `Đã cộng ${diemCong} điểm cho ${phone} từ đơn ${don.code}.`,
+      message: `Đã cộng ${diemCong - diemTru} điểm cho ${phone} từ đơn ${don.code}.`,
     });
   } catch (err) {
     if (req.khach) return loiMayChu(res, err, 'kh nhan-diem');
