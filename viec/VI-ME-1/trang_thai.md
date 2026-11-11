@@ -251,3 +251,85 @@ Số lỗi trước lọc: 2 · sau lọc: 0
 ```
 (Hạng mục E đã có bằng chứng riêng: ca E1 tĩnh `thu_VIME1.js` + donApp.js:281 không có `tru_tai_khoan_me` — soát độc lập lần 2.)
 SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập (/ra-soat lần 3, 11.11 — báo cáo nguyên văn, rút gọn trình bày)
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ: không lỗi nào đụng tiền, ví, điểm hay bảo mật. Phần máy chủ đúng, cổng chạy ĐẠT.)
+LỖI TÌM ĐƯỢC:
+1. server/utils/viMe.js:15 — vế chuẩn hoá phía CSDL `normalizePhone(kh.parent_phone)` không có ca thử hay đột biến nào khoá. Đổi thành
+   `kh.parent_phone === me`: thu_VIME1 23 · 0, thu_P26b 104 · 0 — SỐNG. A5 (thu_VIME1.js:133) chỉ đổi dạng SĐT gửi lên; VS-2
+   (dot_bien.py:31) gỡ cả hai vế một lượt nên che vế CSDL. trang_thai.md:82, ke_hoach.md:51 ghi "chuẩn hoá hai vế". Mọi chỗ ghi hôm nay
+   đã chuẩn hoá (customers.js:403, khachMoi.js:26, registrations.js:259/327) — vế này chỉ che DỮ LIỆU CŨ; bỏ thì con thật bị 403 oan,
+   không mất tiền. Sửa: ca "hồ sơ con ghi parent_phone dạng +84… / có dấu cách → vẫn 200" + đột biến chỉ gỡ vế CSDL. — K3 + K1 (+K5 dữ liệu cũ).
+2. viec/VI-ME-1/trang_thai.md:221-222 (cùng :217, :202) — "sync.js:290 ghi pos_customers.phone thô" SAI: sync.js:243
+   `const phone = normalizePhone(values[phoneIndex]);`, INSERT :289-297 dùng biến đó. — K1.
+Đã kiểm 3 lỗi lần 2 — cả 3 đã sửa đúng (P26c:174 goiDaLay, A5g :298-299; gốc 157 · 1, HEAD 158 · 0; E1; giuCho.js:22; grep datMe( 15 chỗ).
+K3: gốc VIME1 11 ca đỏ đúng mẫu; HEAD 23 · 0; VM1 đủ 403 + code + ví mẹ. Thử thêm "bỏ kiểm lúc chốt phiên" (orders.js:690) → B2 bắt (21 · 2).
+K4: taoDon 6 chỗ gọi (orders.js:1344, :1354; giuCho.js:52, :109; manKhach.js:127; donApp.js:169); mọi chỗ đọc/giữ/trừ ví mẹ sau cổng :690.
+K5: C1, C2, A5, D1 qua; đơn không mẹ gửi null (Sales.jsx:730, tinh.js:144, :260); khách chỉ có đăng ký chặn theo Q3.
+Đường tiền: đủ số dư orders.js:865-867; quan hệ từ CSDL viMe.js:14. P1: không đổi client/.
+NGHI NGỜ: dot_bien.py chưa có đột biến "bỏ kiểm lúc chốt"; bang_chung_do dòng HD1 thiếu thụt lề.
+NGHIỆM THU: 6/6 mục có bằng chứng · mục thiếu: không.
+CHƯA SOÁT ĐƯỢC: --day-du và giả lập; gốc chỉ tự chạy P26c, VIME1; production parent_phone thô; chốt QR khi quan hệ đổi, đua kiểm–ghi (CHƯA KIỂM theo chủ quán).
+BÀI HỌC: NGUYÊN TẮC K3 — chỗ vá hai vế thì mỗi vế một đột biến riêng; KHOÁ/K1 — nghi ngờ thành Phát hiện phải mở code trích dòng trước.
+```
+
+### Vòng sửa sau soát lần 3 (vòng sửa thứ 3 — luật LUAT_XAY_APP §6.5: lỗi NHẸ, không gọi agent soát nữa)
+| Lỗi | Xử lý |
+|---|---|
+| 1 vế CSDL không khoá | ĐÃ SỬA (53c0dd6, 193dff4): ca A5c `thu_VIME1.js` (hồ sơ con ghi SĐT mẹ `+84…` / có dấu cách, màn gửi dạng chuẩn → 200, ví mẹ −50.000) + đột biến `VS-8-khong-chuan-hoa-csdl` (chỉ gỡ vế CSDL) → BẮT ở A5c. `dot_bien.py`: ĐỐI CHỨNG 24 · TỔNG 9 · BẮT 9 · SỐNG 0 · HỎNG 0 · LẠC 0. Gốc 13 đạt · 11 hỏng; HEAD 24 · 0; SỐ CA 24. Bảng đột biến + ke_hoach §3/§4 sửa. |
+| 2 Phát hiện sync.js sai | ĐÃ SỬA: rút Phát hiện, ghi lý do (sync.js:243). |
+| Nghi: đột biến bỏ kiểm lúc chốt | KHÔNG thêm: chủ quán dặn ca đổi quan hệ giữa giữ và chốt ghi CHƯA KIỂM; người soát chạy tay thì B2 bắt (21 · 2). |
+| Nghi: thụt lề HD1 | ĐÃ SỬA. |
+Code chạy thật (`server/`) không đổi sau soát bảo mật lần 2 (chỉ bài thử + hồ sơ) → không soát bảo mật lại.
+SOÁT LẦN CUỐI: chat soát thay
+
+## Kiểm cuối (11.11, HEAD 1ecc2fe)
+- `npm test -- --day-du` → ĐẾM PASS 113 · FAIL 0 · CẢNH BÁO 1. (Lần chạy trước đó đỏ `thu_gia_lap.js` "data/ không đổi" — chạy CHỒNG với
+  agent soát lần 3 đang chạy bài khác; chạy riêng thì xanh.)
+- `node tu_chay/cong.js chay . 723981971bb87765a113eeaa3a0b8602b665ab19^ HEAD viec/VI-ME-1` → ✓ CỔNG CHẠY ĐẠT
+
+## Nghiệm thu — đếm từng mục
+- A → `thu_VIME1.js` A1 (sai mẹ: 403 + đúng câu + không ghi đơn/ví/điểm), A2 (không mẹ), A3 (không khách / không có trong pos_customers),
+  A4 (tiền mẹ không SĐT), A5 + A5c (chuẩn hoá hai vế); đột biến BV-1, VS-2, VS-3, VS-5, VS-6, VS-7, VS-8.
+- B → một hàm `server/utils/viMe.js`, một chỗ gọi `orders.js:690-693` (B4 tĩnh); phiên B1 / B5 (trước PIN), chốt B2, tinh-thu B3,
+  số dư mẹ báo màn B6, màn khách B7; đột biến VS-1, VS-4. Bảng lối ở `ke_hoach.md` §1.
+- C → C1–C3 (`thu_VIME1.js`); 6 bài cũ xanh với ca cũ + số mong đợi giữ nguyên; giả lập KB17 xanh; `--day-du` PASS 113 · FAIL 0.
+- D → D1 (huỷ đơn có mẹ sau khi xoá quan hệ → ví mẹ hoàn đúng).
+- E → E1 tĩnh: `donApp.js` không có `tru_tai_khoan_me` / `parent_phone`, `kh/index.js` không có `parent`.
+- K5 → diff `server/` chỉ thêm một cổng + một file; không đổi `client/`; ca C1, C2, A5, A5c, D1, VM1 ×6 (đúng mẹ vẫn trừ).
+
+## Bài học
+- **NGUYÊN TẮC** (K3) — chỗ vá có hai vế (chuẩn hoá phía gửi + phía CSDL) thì mỗi vế một đột biến riêng; đột biến gỡ cả hai vế che vế
+  không có ca. Ví dụ: VS-2 che vế CSDL tới soát lần 3. Đề xuất thêm một dòng "Chặn" vào K3 của `KHUON_LOI.md` (ngoài Phạm vi — chat duyệt).
+- **NGUYÊN TẮC** (K4) — "hàm dựng dữ liệu không tự chữa đầu vào": grep MỌI hàm phụ dựng đơn, không chỉ hàm tên `ban` (P26c `goiDaLay` lọt
+  soát lần 2). Gộp với dòng K4 "ghi qua hàm phụ là đường song song" sẵn có — đề xuất thêm ví dụ, không thêm khuôn.
+- **KHOÁ** (đề xuất, ngoài Phạm vi) — `/ra-soat` và skill `/lam-viec` bước 8: mỗi lỗi của lần soát trước phải có dòng "đã sửa / không sửa
+  vì…" trong `trang_thai.md` (E1, giuCho:27 bị bỏ im lặng hai vòng). File: `tu_chay/lenh_ra_soat.md` (thêm yêu cầu) + phép cổng đọc bảng
+  "Vòng sửa". Ca đỏ: trang_thai có báo cáo soát n lỗi mà không bảng xử lý.
+- **KHOÁ** (đề xuất, ngoài Phạm vi) — đề xuất `## Bài thử cũ sửa` thì công cụ tự chạy BẢN GỐC bài trên code mới (§6.9; lần sai thứ 4 ở
+  câu hỏi 4 của việc này). File: `tu_chay/` công cụ tính cổng, lệnh `tinh` chạy A11 sớm.
+- **NGUYÊN TẮC** (K1) — nghi ngờ của người soát chép thành Phát hiện phải mở code trích dòng trước (sync.js:290 sai, :243 bác ngay).
+  Đã có trong K1 ("chép sang luật thì mở hồ sơ gốc kiểm lại") — BỎ thêm dòng mới, chỉ là vi phạm luật sẵn có.
+- **BỎ** — `npm test -- --day-du` chạy CHỒNG với agent soát → `thu_gia_lap.js` đỏ "data/ không đổi"; một lần, đã hiểu nguyên nhân.
+- **BỎ** — kho nông làm `thu_BH2.js` G1 đỏ (lần 3 trong việc này) — đã có cách xử lý sẵn ở skill bước 1.3.
+
+## Báo cáo 7 mục
+```
+VIỆC:        VI-ME-1 — Chỉ trừ tài khoản mẹ khi khách đang mua đúng là con được liên kết với mẹ đó
+ĐÃ SỬA:      server/utils/viMe.js (mới, 18 dòng) — kiemTraMe: pos_customers.parent_phone của khách = SĐT mẹ (chuẩn hoá hai vế), sai → 403 KHONG_PHAI_TK_ME
+             server/routes/orders.js:688-694 — một lời gọi trong taoDon (phủ tạo đơn quầy, tạo phiên giữ chỗ, chốt phiên, màn khách)
+             kiem_tra_truoc_khi_giao.js — chayBaiThat thu_VIME1; cong_cu/thu_VIME1.js (24 ca); 6 bài cũ +1 ca VM1 mỗi bài + datMe tường minh;
+             cong_cu/gia_lap/kich_ban.js KB17 dựng quan hệ mẹ–con
+BÀI THỬ:     thu_VIME1 gốc 35f0d48 → ĐỎ 11 ca (A1–A4, B1, B2, B4, B5); HEAD 24 · 0. 6 bài cũ gốc đỏ đúng ca VM1, HEAD xanh (104/158/114/36/158/89).
+             Đột biến 9/9 BẮT. npm test --day-du PASS 113 · FAIL 0. Cổng chạy ĐẠT.
+ĐÃ RÀ K4:    grep parent_phone|parent_balance|tru_tai_khoan_me|giu_vi_me trong server/ → 11 lối (ke_hoach §1), 3 lối đi qua taoDon, còn lại
+             đọc từ đơn / lọc trắng / không có trường mẹ; grep datMe( trong 6 bài → 15 chỗ, đều tường minh ở ca
+CHƯA KIỂM:   chốt phiên QR (webhook) khi quan hệ mẹ–con đổi giữa lúc giữ và chốt (chủ quán dặn không làm); đua giữa kiểm và ghi (kiểm ngoài
+             giao dịch — chủ quán chọn); dữ liệu production: khách chỉ có trong pos_registrations (sẽ bị 403 theo Q3), hồ sơ con ghi
+             parent_phone lạ dạng; bộ đột biến chưa có đột biến "chỉ bỏ kiểm lúc chốt"; không thử tay trên quầy thật
+GIT:         1ecc2fe VI-ME-1: vong sua sau soat lan 3 — bang chung VIME1 24 ca, VS-8, rut Phat hien sync.js
+             193dff4 VI-ME-1: dot bien VS-8-khong-chuan-hoa-csdl
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+```
+HEAD ĐÃ KIỂM: 1ecc2fe
