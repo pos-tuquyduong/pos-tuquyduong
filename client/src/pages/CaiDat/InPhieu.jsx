@@ -1,9 +1,14 @@
 // KHO-IN-1 — thẻ Cài đặt "In phiếu kho": mỗi loại phiếu (xuất / đặt hàng / nhận / phát sinh) chọn khổ giấy mặc định A5 · A4 và số bản.
 // Lưu 8 khoá in_phieu_<loai>_kho / _ban qua PUT /settings (máy chủ kiểm giá trị — sai một khoá thì không ghi khoá nào), dùng chung mọi máy.
+// BAO-1b: báo qua thông báo chung; lỗi dưới nút Lưu; sửa mà chưa Lưu → thanh "Có thay đổi chưa lưu"; lưu xong nạp lại số máy chủ giữ.
 // Màn xem phiếu kho đọc lại bằng docInPhieuKho: nút khổ mặc định đứng đầu, vẫn đổi được khổ lúc in. Hoá đơn khách KHÔNG ở đây (chỉ khổ nhiệt).
 import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu, lyDoLoi } from '../../components/thongBaoKho.js';
+import LoiO from '../../components/LoiO';
+import ThanhLuu from '../../components/ThanhLuu';
+import useThayDoi from '../../components/useThayDoi';
 import { KHO_PHIEU_KHO, LOAI_PHIEU_KHO, SO_BAN_TOI_DA, khoaInPhieu, docInPhieuKho } from '../../utils/inPhieu';
 
 const NHAN_KHO = { a5: 'A5', a4: 'A4' };
@@ -12,18 +17,19 @@ export default function InPhieu() {
   const [gia, setGia] = useState(null);   // loại → { kho, ban }; null = chưa tải xong
   const [taiLoi, setTaiLoi] = useState(false);   // chưa nạp được cài đặt → KHÔNG cho Lưu (Lưu gửi đủ 8 khoá, sẽ đè cài đặt đã có)
   const [dangLuu, setDangLuu] = useState(false);
-  const [thongDiep, setThongDiep] = useState('');
+  const [loi, setLoi] = useState('');
+  const [coDoi, chup] = useThayDoi(gia);
 
-  useEffect(() => {
-    api.get('/settings').then((r) => {
-      setGia(Object.fromEntries(Object.keys(LOAI_PHIEU_KHO).map((l) => [l, docInPhieuKho(r.data || {}, l)])));
-    }).catch((e) => { setTaiLoi(true); setThongDiep('Lỗi: chưa tải được cài đặt — tải lại trang trước khi sửa (' + e.message + ')'); });
-  }, []);
+  const tai = () => api.get('/settings').then((r) => {
+    const moi = Object.fromEntries(Object.keys(LOAI_PHIEU_KHO).map((l) => [l, docInPhieuKho(r.data || {}, l)]));
+    setGia(moi); chup(moi); setTaiLoi(false); setLoi('');
+  }).catch((e) => { setTaiLoi(true); setLoi(lyDoLoi(e)); baoLoiTu('tải cài đặt in phiếu', e); });
+  useEffect(() => { tai(); }, []);
 
   const sua = (loai, kv) => setGia((g) => ({ ...g, [loai]: { ...g[loai], ...kv } }));
   const luu = async () => {
     if (taiLoi || !gia) return;
-    setDangLuu(true);
+    setDangLuu(true); setLoi('');
     try {
       const settings = {};
       for (const l of Object.keys(LOAI_PHIEU_KHO)) {
@@ -31,9 +37,9 @@ export default function InPhieu() {
         settings[khoaInPhieu(l, 'ban')] = String(gia[l].ban);
       }
       await api.put('/settings', { settings });
-      setThongDiep('Đã lưu cài đặt in phiếu');
-      setTimeout(() => setThongDiep((t) => (t === 'Đã lưu cài đặt in phiếu' ? '' : t)), 3000);
-    } catch (e) { setThongDiep('Lỗi: ' + e.message); }
+      baoXong('Đã lưu cài đặt in phiếu kho: ' + Object.entries(LOAI_PHIEU_KHO).map(([l, ten]) => `${ten} ${NHAN_KHO[gia[l].kho]} × ${gia[l].ban}`).join(', '));
+      await tai();
+    } catch (e) { setLoi(lyDoLoi(e)); baoLoiTu('lưu cài đặt in phiếu', e); }
     finally { setDangLuu(false); }
   };
 
@@ -45,7 +51,6 @@ export default function InPhieu() {
       <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 1rem' }}>
         Khổ giấy và số bản mặc định cho từng loại phiếu kho. Lúc in vẫn đổi được khổ. Áp cho cả quán. Hoá đơn khách chỉ in khổ nhiệt nên không nằm ở đây.
       </p>
-      {thongDiep && <div style={{ padding: 8, marginBottom: 8, background: thongDiep.startsWith('Lỗi') ? '#fee2e2' : '#dcfce7', borderRadius: 6 }}>{thongDiep}</div>}
       {gia && Object.entries(LOAI_PHIEU_KHO).map(([l, ten]) => (
         <div key={l} style={hang}>
           <div style={{ minWidth: 160, fontWeight: 600 }}>{ten}</div>
@@ -63,9 +68,11 @@ export default function InPhieu() {
       ))}
       <div style={{ marginTop: '0.75rem' }}>
         <button className="btn btn-primary" onClick={luu} disabled={dangLuu || taiLoi || !gia}>
-          <Save size={16} /> {dangLuu ? 'Đang lưu...' : 'Lưu'}
+          <Save size={16} /> {dangLuu ? 'Đang lưu…' : 'Lưu'}
         </button>
+        <LoiO loi={loi && (taiLoi ? `Chưa tải được cài đặt — tải lại trang trước khi sửa: ${loi}` : loi)} />
       </div>
+      <ThanhLuu id="in-phieu" coDoi={coDoi} dangLuu={dangLuu} onLuu={luu} onBo={tai} />
     </>
   );
 }

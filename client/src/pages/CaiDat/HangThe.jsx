@@ -3,11 +3,18 @@
 // Lưu một lần cả danh sách (PUT /tiers — máy chủ kiểm hết rồi ghi trong một giao dịch). Xoá hạng bấm 2 lần, không hộp thoại trình duyệt.
 // PIN chủ quán đặt ở đây — chỉ tài khoản chủ quán, gõ lại mật khẩu; đã có PIN thì gõ cả PIN cũ (chủ quán 05.11 — quên PIN: nhờ chat xoá, không
 // có nút). Lưu / Xoá hạng và cấp / thu hồi hạng phải gõ PIN (chủ quán 04.11 — máy chủ kiểm, sai 5 lần khoá). % combo KHÔNG ở đây (COMBO-1a).
+// BAO-1b: báo qua thông báo chung (BAO-1a); lỗi của ô hiện ngay dưới ô; bấm Lưu / Xoá thì HỎI PIN (ô nổi, PIN sai báo dưới ô PIN, dữ liệu đã gõ giữ nguyên);
+// sửa mà chưa Lưu → thanh "Có thay đổi chưa lưu"; lưu xong tải lại số máy chủ giữ.
 // KH-THE-1 (F): mỗi hạng một ô "Quyền lợi" nhiều dòng — App KH hiện từng dòng (GET /api/kh/hang quyen_loi[]); máy chủ kiểm số dòng / độ dài.
 import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { hangApi } from '../../utils/api';
+import { baoXong, baoLoi, baoLoiTu, lyDoLoi } from '../../components/thongBaoKho.js';
+import LoiO from '../../components/LoiO';
+import ThanhLuu from '../../components/ThanhLuu';
+import HoiPin from '../../components/HoiPin';
+import useThayDoi from '../../components/useThayDoi';
 
 let soTam = 0;   // khoá tạm cho hạng chưa lưu (chưa có id)
 const docVe = (t) => ({ ...t, khoa: 'h' + t.id, quyen_loi: t.quyen_loi || '', goi: (t.goi || []).map((g) => ({ ...g, gia: g.gia ?? '' })) });
@@ -18,19 +25,24 @@ export default function HangThe() {
   const [lamTron, setLamTron] = useState({ round_to: 500, round_mode: 'nearest' });
   const [xoaCho, setXoaCho] = useState(null);
   const [dangLuu, setDangLuu] = useState(false);
-  const [thongDiep, setThongDiep] = useState('');
+  const [taiLoi, setTaiLoi] = useState('');
+  const [loiHang, setLoiHang] = useState({});   // `${khoa}:${ô}` → câu lỗi hiện dưới ô đó
+  const [loiLuu, setLoiLuu] = useState('');
+  const [loiPin, setLoiPin] = useState('');
+  const [dangPin, setDangPin] = useState(false);
+  const [hoiPin, setHoiPin] = useState(null);   // null = đóng; { tieuDe, viec(pin), ten } = đang hỏi PIN
   const [coPin, setCoPin] = useState(null);
   const [pin, setPin] = useState({ mat_khau: '', pin_cu: '', pin: '', pin_lai: '' });
-  const [pinSua, setPinSua] = useState('');
+  const [coDoi, chup] = useThayDoi({ ds, lamTron });
 
-  const bao = (t) => { setThongDiep(t); if (!t.startsWith('Lỗi')) setTimeout(() => setThongDiep((x) => (x === t ? '' : x)), 3000); };
   const tai = async () => {
     try {
       const r = await hangApi.ds();
-      setDs((r.data?.tiers || []).map(docVe).sort((a, b) => b.sort_order - a.sort_order));
-      setLamTron({ round_to: r.data?.round_to ?? 500, round_mode: r.data?.round_mode || 'nearest' });
+      const moi = (r.data?.tiers || []).map(docVe).sort((a, b) => b.sort_order - a.sort_order);
+      const tron = { round_to: r.data?.round_to ?? 500, round_mode: r.data?.round_mode || 'nearest' };
+      setDs(moi); setLamTron(tron); chup({ ds: moi, lamTron: tron }); setLoiHang({}); setLoiLuu(''); setTaiLoi('');
       setCoPin((await hangApi.coPin()).data?.co_pin === true);
-    } catch (e) { bao('Lỗi: ' + e.message); }
+    } catch (e) { setTaiLoi(lyDoLoi(e)); baoLoiTu('tải danh sách hạng', e); }
   };
   useEffect(() => { tai(); }, []);
 
@@ -47,36 +59,54 @@ export default function HangThe() {
   const them = () => setDs((d) => [{ khoa: 't' + (++soTam), name: 'Hạng mới', sort_order: (d[0]?.sort_order || 0) + 1, discount_percent: 0,
     special_discount_percent: 0, cach_co: 'ban', quyen_loi: '', goi: [{ so_thang: 1, gia: '', bat: true }] }, ...d]);
 
-  const xoa = async (h) => {
+  const xoa = (h) => {
     if (xoaCho !== h.khoa) { setXoaCho(h.khoa); return; }
     setXoaCho(null);
     if (!h.id) { setDs((d) => d.filter((x) => x.khoa !== h.khoa)); return; }
-    try { await hangApi.xoa(h.id, pinSua); setPinSua(''); bao('Đã xoá hạng ' + h.name); await tai(); } catch (e) { bao('Lỗi: ' + e.message); }
+    setHoiPin({ tieuDe: `Xoá hạng ${h.name} — gõ PIN chủ quán`, ten: 'xoá hạng', viec: async (pinSua) => { await hangApi.xoa(h.id, pinSua); baoXong(`Đã xoá hạng ${h.name}`); await tai(); } });
   };
-  const luu = async () => {
+  // Kiểm trước từng ô (máy chủ vẫn kiểm lại hết): ô nào sai hiện chữ đỏ ngay dưới ô đó, chưa hỏi PIN.
+  const kiemO = () => {
+    const l = {};
+    const ngoai = (v) => !(Number(v) >= 0 && Number(v) <= 90);
+    for (const h of ds) {
+      if (!String(h.name || '').trim()) l[`${h.khoa}:name`] = 'Nhập tên hạng';
+      if (ngoai(h.discount_percent)) l[`${h.khoa}:pt`] = '% giảm phải từ 0 đến 90';
+      if (ngoai(h.special_discount_percent ?? 0)) l[`${h.khoa}:dacbiet`] = '% giảm phải từ 0 đến 90';
+      if (h.cach_co === 'ban' && h.goi.some((g) => !(Number.isInteger(Number(g.so_thang)) && Number(g.so_thang) >= 1 && Number(g.so_thang) <= 60))) l[`${h.khoa}:goi`] = 'Số tháng của gói phải là số nguyên từ 1 đến 60';
+    }
+    return l;
+  };
+  const batLuu = () => {
+    const l = kiemO();
+    setLoiHang(l); setLoiLuu('');
+    if (Object.keys(l).length) { baoLoi('Chưa lưu hạng thành viên được', 'Sửa các ô báo đỏ rồi bấm Lưu lại.'); return; }
+    setHoiPin({ tieuDe: 'Lưu hạng thành viên — gõ PIN chủ quán', ten: 'lưu hạng thành viên', viec: luu });
+  };
+  const luu = async (pinLuu) => {
     setDangLuu(true);
     try {
       await hangApi.luu({
         tiers: ds.map((h) => ({ id: h.id, name: h.name, sort_order: h.sort_order, discount_percent: h.discount_percent,
           special_discount_percent: h.special_discount_percent, cach_co: h.cach_co, quyen_loi: h.quyen_loi,
           goi: h.cach_co === 'ban' ? h.goi.map((g) => ({ so_thang: Number(g.so_thang), gia: g.gia === '' ? null : Number(g.gia), bat: g.bat })) : [] })),
-        round_to: lamTron.round_to, round_mode: lamTron.round_mode, pin: pinSua,
+        round_to: lamTron.round_to, round_mode: lamTron.round_mode, pin: pinLuu,
       });
-      setPinSua('');
-      bao('Đã lưu hạng thành viên');
+      baoXong(`Đã lưu ${ds.length} hạng thành viên: ${ds.map((h) => h.name).join(', ')}`);
       await tai();
-    } catch (e) { bao('Lỗi: ' + e.message); } finally { setDangLuu(false); }
+    } finally { setDangLuu(false); }
   };
   const datPin = async () => {
+    setLoiPin(''); setDangPin(true);
     try {
       await hangApi.datPin(pin.mat_khau, pin.pin, pin.pin_lai, pin.pin_cu);
       setPin({ mat_khau: '', pin_cu: '', pin: '', pin_lai: '' });
+      baoXong(coPin ? 'Đã đổi PIN chủ quán' : 'Đã đặt PIN chủ quán');
       setCoPin(true);
-      bao('Đã đặt PIN chủ quán');
-    } catch (e) { bao('Lỗi: ' + e.message); }
+    } catch (e) { setLoiPin(lyDoLoi(e)); baoLoiTu(coPin ? 'đổi PIN chủ quán' : 'đặt PIN chủ quán', e); } finally { setDangPin(false); }
   };
 
-  if (!ds) return <div className="loading">{thongDiep || 'Đang tải...'}</div>;
+  if (!ds) return <div className="loading">{taiLoi ? <><LoiO loi={`Chưa tải được danh sách hạng: ${taiLoi}`} /><button className="btn btn-outline" onClick={tai}>Tải lại</button></> : 'Đang tải...'}</div>;
   const dong = { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 };
   const nho = { padding: '2px 10px', fontSize: 13 };
   const giaXem = (h) => {
@@ -92,15 +122,15 @@ export default function HangThe() {
         Mỗi hạng một thẻ. Thứ bậc càng lớn càng cao (trên cùng là cao nhất) — khách đang có hạng cao hơn thì không mua được hạng thấp hơn,
         máy luôn áp hạng cao nhất còn hạn. <b>Bán</b>: danh sách gói tuỳ ý, gói chưa đặt giá thì chưa bán, mua thêm gói cùng hạng → hạn cộng nối.
         {' '}<b>Chỉ cấp</b>: chỉ chủ quán cấp ở trang Khách hàng (có PIN chủ quán, ghi người cấp + lúc cấp).
-        {' '}Lưu hoặc xoá hạng: gõ PIN chủ quán vào ô cạnh nút Lưu trước.
+        {' '}Bấm Lưu hoặc Xoá hạng: máy sẽ hỏi PIN chủ quán.
       </p>
-      {thongDiep && <div style={{ padding: 8, marginBottom: 8, background: thongDiep.startsWith('Lỗi') ? '#fee2e2' : '#dcfce7', borderRadius: 6 }}>{thongDiep}</div>}
 
       {ds.map((h, i) => (
         <div key={h.khoa} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
           <div style={dong}>
             <input className="input" style={{ fontWeight: 700, flex: 1, minWidth: 140 }} value={h.name} aria-label="Tên hạng"
               onChange={(e) => sua(h.khoa, { name: e.target.value })} />
+            <div style={{ flexBasis: '100%' }}><LoiO loi={loiHang[`${h.khoa}:name`]} /></div>
             <span style={{ fontSize: 12, background: '#ede9fe', color: '#5b21b6', padding: '2px 8px', borderRadius: 10 }}>Thứ bậc {h.sort_order}</span>
             <button className="btn btn-outline" style={nho} aria-label="Lên bậc" onClick={() => doiBac(i, -1)} disabled={i === 0}>▲</button>
             <button className="btn btn-outline" style={nho} aria-label="Xuống bậc" onClick={() => doiBac(i, 1)} disabled={i === ds.length - 1}>▼</button>
@@ -112,10 +142,10 @@ export default function HangThe() {
           <div style={dong}>
             <label style={{ fontSize: 13 }}>% giảm thường{' '}
               <input type="number" className="input" style={{ width: 70 }} min="0" max="90" value={h.discount_percent}
-                onChange={(e) => sua(h.khoa, { discount_percent: e.target.value })} /></label>
+                onChange={(e) => sua(h.khoa, { discount_percent: e.target.value })} /><LoiO loi={loiHang[`${h.khoa}:pt`]} /></label>
             <label style={{ fontSize: 13 }}>% giảm nhóm món đặc biệt{' '}
               <input type="number" className="input" style={{ width: 70 }} min="0" max="90" value={h.special_discount_percent ?? 0}
-                onChange={(e) => sua(h.khoa, { special_discount_percent: e.target.value })} /></label>
+                onChange={(e) => sua(h.khoa, { special_discount_percent: e.target.value })} /><LoiO loi={loiHang[`${h.khoa}:dacbiet`]} /></label>
             <span style={{ fontSize: 12, color: '#6b7280' }}>món 50.500đ → {giaXem(h)}đ</span>
           </div>
           <div style={dong} role="group" aria-label="Cách có hạng">
@@ -139,6 +169,7 @@ export default function HangThe() {
               ))}
               <button className="btn btn-outline" style={{ ...nho, marginTop: 6 }}
                 onClick={() => sua(h.khoa, { goi: [...h.goi, { so_thang: '', gia: '', bat: true }] })}>+ Thêm gói</button>
+              <LoiO loi={loiHang[`${h.khoa}:goi`]} />
             </div>
           ) : (
             <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>
@@ -164,11 +195,10 @@ export default function HangThe() {
         </select>
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: '0.5rem', flexWrap: 'wrap' }}>
-        <input className="input" type="password" inputMode="numeric" maxLength={6} style={{ width: 170 }} placeholder="PIN chủ quán" value={pinSua}
-          aria-label="PIN chủ quán để lưu / xoá hạng" onChange={(e) => setPinSua(e.target.value.replace(/\D/g, ''))} />
         <button className="btn btn-outline" onClick={them}>+ Thêm hạng</button>
-        <button className="btn btn-primary" onClick={luu} disabled={dangLuu}><Save size={16} /> {dangLuu ? 'Đang lưu...' : 'Lưu'}</button>
+        <button className="btn btn-primary" onClick={batLuu} disabled={dangLuu}><Save size={16} /> {dangLuu ? 'Đang lưu…' : 'Lưu'}</button>
       </div>
+      <LoiO loi={loiLuu} />
 
       <div className="card-title" style={{ margin: '1.5rem 0 0.5rem' }}>🔐 PIN chủ quán</div>
       <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 0.5rem' }}>
@@ -184,9 +214,12 @@ export default function HangThe() {
             aria-label="PIN mới" onChange={(e) => setPin((p) => ({ ...p, pin: e.target.value.replace(/\D/g, '') }))} />
           <input className="input" type="password" inputMode="numeric" maxLength={6} style={{ width: 130 }} placeholder="Nhập lại PIN" value={pin.pin_lai}
             aria-label="Nhập lại PIN" onChange={(e) => setPin((p) => ({ ...p, pin_lai: e.target.value.replace(/\D/g, '') }))} />
-          <button className="btn btn-primary" onClick={datPin}>{coPin ? 'Đổi PIN' : 'Đặt PIN'}</button>
+          <button className="btn btn-primary" onClick={datPin} disabled={dangPin}>{dangPin ? 'Đang lưu…' : coPin ? 'Đổi PIN' : 'Đặt PIN'}</button>
         </div>
       )}
+      <LoiO loi={loiPin} />
+      <HoiPin mo={!!hoiPin} tieuDe={hoiPin?.tieuDe} chay={(p) => hoiPin.viec(p)} loiKhac={(e) => { setLoiLuu(lyDoLoi(e)); baoLoiTu(hoiPin.ten, e); }} dong={() => setHoiPin(null)} />
+      <ThanhLuu id="hang-the" coDoi={coDoi} dangLuu={dangLuu} onLuu={batLuu} onBo={tai} />
     </>
   );
 }
