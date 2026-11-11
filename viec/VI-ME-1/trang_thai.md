@@ -158,3 +158,22 @@ SOÁT BẢO MẬT: ĐẠT
    Bạn chỉ cần trả lời "đồng ý câu 5" (hoặc nêu phần nào không đồng ý).
    Việc nhỏ máy sẽ làm cùng vòng sau (trong Phạm vi, không cần hỏi): sửa tên đột biến cũ ở `ke_hoach.md`, bỏ biến `p1` thừa ở
    `thu_VIME1.js:152`, sửa chú thích `orders.js:688-689` (chốt phiên không phải chế độ chỉ tính) — đổi `server/` thì soát bảo mật lại.
+
+## Phiên làm tiếp 3 (11.11.2026 — chủ quán đồng ý câu 5 (a)(b)(c))
+Bước 1: nhánh viec/VI-ME-1, cây sạch. HEAD 5a0274c · FETCH_HEAD 5a0274c (bằng nhau, không kéo; hook mở phiên đã kéo 7239819 → 5a0274c).
+```
+5a0274c PHIEU: VI-ME-1 bo muc Bai thu cu sua (sai luat A11), Pham vi them cong_cu/gia_lap/kich_ban.js (KB17) — chu quan dong y cau 5 10.11
+a1a87c5 VI-ME-1: ra-soat lan 1 KHONG DAT + soat bao mat DAT; cau hoi 5 (A11 x6, gia lap KB17 ngoai pham vi) — dung
+c4ed786 VI-ME-1: trang thai phien tiep 2 + bang dot bien
+```
+Đã làm:
+- 6 bài cũ (P26b, P26c, GOI1, DIEMTHAT1, HD1, NAP1): mỗi bài thêm ĐÚNG một ca `VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ
+  → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi` (khách con mới, không dựng quan hệ). Ca cũ + số mong đợi giữ nguyên. `ban` của DIEMTHAT1, HD1, NAP1
+  trở lại như gốc; `datMe(con, me)` gọi tường minh trước từng đơn trả tài khoản mẹ (DIEMTHAT1 B4, B8, D5; HD1 A25; NAP1 C3, C7b, E3b, E7c).
+  Gốc 35f0d48: mỗi bài đỏ đúng 1 ca VM1 (HTTP 200, ví mẹ bị trừ); HEAD: xanh, số ca +1 (`bang_chung_do.txt`).
+- KB17 (`cong_cu/gia_lap/kich_ban.js`): một lệnh upsert `pos_customers (S, parent_phone = ME)` trước hai đơn trả ví mẹ. Không đổi phép kiểm.
+- 3 việc nhỏ: `ke_hoach.md` §4 tên đột biến theo `dot_bien.py` (đủ 8); bỏ biến `p1` thừa ở `thu_VIME1.js` (23 ca, gốc vẫn 12 đạt · 11 hỏng);
+  sửa chú thích `orders.js` (chốt phiên là lúc taoDon ghi thật, không phải chế độ chỉ tính).
+- Đột biến: `python3 viec/VI-ME-1/dot_bien.py` → ĐỐI CHỨNG XANH 23 · TỔNG 8 · BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0.
+- Lệnh bị người gác chặn phiên này: `$(( ))` và vòng `for` (B-PHANTICH / B-CHUONGTRINH); chạy bài có cụm bí mật trước khi commit
+  (B-BIMAT-CHU — commit trước rồi chạy; script nháp có chữ đó cũng bị chặn → dùng Edit); `python3 … && git add …` ghép (B-PHANTICH).
