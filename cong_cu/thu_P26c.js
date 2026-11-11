@@ -171,10 +171,8 @@ async function main() {
     items: [mon(0, sl, true)], customer_package_id: cp, payment_method: 'cash', cash_amount: 0 });
   const daGiao = (cp) => so('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [cp]);
   // Một đơn mua gói 300.000 / 10 lượt (trả theo `tra`), rồi lấy `daLay` ly qua các đơn lấy từ gói.
-  const goiDaLay = async (tra, daLay, them = {}) => {
-    const sdt = sdtMoi();
+  const goiDaLay = async (tra, daLay, them = {}, sdt = sdtMoi()) => {
     await nap(sdt, 1000000);
-    if (them.parent_phone) await datMe(sdt, them.parent_phone);
     const goiId = await taoGoi(300000, 10);
     const m = await muaGoi(sdt, goiId, 10, tra, them);
     if (!m.success) throw new Error('không mua được gói: ' + moTa(m));
@@ -297,7 +295,8 @@ async function main() {
       `${moTa(h4)} · ví ${g4.vi0} → ${await vi(g4.sdt)}`);
 
     const me = sdtMoi(); await nap(me, 100000);
-    const g5 = await goiDaLay({ balance_amount: 200000, parent_balance_amount: 100000 }, 4, { parent_phone: me });
+    const con5 = sdtMoi(); await datMe(con5, me);
+    const g5 = await goiDaLay({ balance_amount: 200000, parent_balance_amount: 100000 }, 4, { parent_phone: me }, con5);
     const vMe = await vi(me);
     const h5 = await huy(g5.don);
     k('A5g ví mẹ 100.000 + ví con 200.000, lấy 4 → mẹ +100.000, con +80.000', h5.status === 200 && await vi(me) === vMe + 100000
