@@ -31,6 +31,7 @@ DOT_BIEN = [
   # ── viMe.js kiemTraMe ──
   ('VS-2-khong-chuan-hoa', [(V, SO, 'return kh && kh.parent_phone === sdtMe ? null : LOI_KHONG_PHAI_ME;', 1)], r'✗ A5 '),
   ('VS-3-chi-kiem-co-me', [(V, SO, 'return kh && kh.parent_phone ? null : LOI_KHONG_PHAI_ME;', 1)], r'✗ A1 '),
+  ('VS-8-khong-chuan-hoa-csdl', [(V, SO, 'return kh && kh.parent_phone === me ? null : LOI_KHONG_PHAI_ME;', 1)], r'✗ A5c '),
   ('VS-5-khong-can-khach', [(V, SO, 'return !kh || normalizePhone(kh.parent_phone) === me ? null : LOI_KHONG_PHAI_ME;', 1)], r'✗ A3 '),
   ('VS-6-trong-me-cho-qua', [(V, '  const kh = phone && me && await', '  if (!me) return null;\n  const kh = phone && await', 1)], r'✗ A4 '),
 ]
