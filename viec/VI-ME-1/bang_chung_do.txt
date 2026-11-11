@@ -1,4 +1,4 @@
-VI-ME-1 — bằng chứng bài thử đỏ trên gốc (chạy lại 10.11.2026 sau khi thu_VIME1.js thêm --may-chu)
+VI-ME-1 — bằng chứng bài thử đỏ trên gốc (chạy lại 11.11.2026 sau khi thu_VIME1.js bỏ biến p1 thừa)
 
 Gốc = server/ + client/src/ + cong_cu/gia_lap của 35f0d48 (PHIEU cuối, chưa có viMe.js, chưa có lời gọi kiemTraMe).
 Lệnh: python3 viec/VI-ME-1/dot_bien.py --goc 35f0d48 VIME1   (bài HIỆN TẠI trên bản chép gốc)
@@ -22,19 +22,53 @@ Trên code đã vá (HEAD): node cong_cu/thu_VIME1.js → 23 đạt · 0 hỏng.
 
 SỐ CA cong_cu/thu_VIME1.js: 23
 
-── Sáu bài cũ sửa (## Bài thử cũ sửa — chỉ dựng quan hệ mẹ–con trong pos_customers trước đơn trả tài khoản mẹ)
-Trước khi sửa, trên code đã vá: npm test PASS 102 · FAIL 7 (6 bài này sập / đỏ 403 KHONG_PHAI_TK_ME + thu_BH2 do kho nông).
-Bản sửa trên GỐC 35f0d48 (python3 viec/VI-ME-1/dot_bien.py --goc 35f0d48 <bài>) và trên HEAD (node cong_cu/<bài>) — số ca BẰNG nhau:
-  thu_P26b.js       gốc 103 đạt · 0 hỏng   · HEAD 103 đạt · 0 hỏng
-  thu_P26c.js       gốc 157 đạt · 0 hỏng   · HEAD 157 đạt · 0 hỏng
-  thu_GOI1.js       gốc 113 đạt · 0 hỏng   · HEAD 113 đạt · 0 hỏng
-  thu_DIEMTHAT1.js  gốc  35 đạt · 0 hỏng   · HEAD  35 đạt · 0 hỏng
-  thu_HD1.js        gốc 157 đạt · 0 hỏng   · HEAD 157 đạt · 0 hỏng
-  thu_NAP1.js       gốc  88 đạt · 0 hỏng   · HEAD  88 đạt · 0 hỏng
+── Sáu bài cũ sửa thường (LUAT_XAY_APP §6.8 — chủ quán đồng ý câu 5, 11.11): mỗi bài thêm ĐÚNG MỘT ca
+   "VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi"; ca cũ + số mong đợi giữ nguyên
+   (chỉ dựng quan hệ mẹ–con bằng datMe tường minh trước từng đơn trả tài khoản mẹ).
+Lệnh gốc: python3 viec/VI-ME-1/dot_bien.py --goc 35f0d48 <bài>  ·  HEAD: node cong_cu/<bài>
 
-SỐ CA cong_cu/thu_P26b.js: 103
-SỐ CA cong_cu/thu_P26c.js: 157
-SỐ CA cong_cu/thu_GOI1.js: 113
-SỐ CA cong_cu/thu_DIEMTHAT1.js: 35
-SỐ CA cong_cu/thu_HD1.js: 157
-SỐ CA cong_cu/thu_NAP1.js: 88
+thu_P26b.js — GỐC:
+  ✗ VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi  — HTTP 200 · ví mẹ 75000
+  103 đạt · 1 hỏng
+GỐC 35f0d48 · thu_P26b.js: thoát 1
+  HEAD: 104 đạt · 0 hỏng
+
+thu_P26c.js — GỐC:
+  ✗ VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi  — HTTP 200 · ví mẹ 0
+  157 đạt · 1 hỏng
+GỐC 35f0d48 · thu_P26c.js: thoát 1
+  HEAD: 158 đạt · 0 hỏng
+
+thu_GOI1.js — GỐC:
+  ✗ VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi  — HTTP 200 · ví mẹ 0
+  113 đạt · 1 hỏng
+GỐC 35f0d48 · thu_GOI1.js: thoát 1
+  HEAD: 114 đạt · 0 hỏng
+
+thu_DIEMTHAT1.js — GỐC:
+  ✗ VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi  — HTTP 200 · ví mẹ 0
+  35 đạt · 1 hỏng
+GỐC 35f0d48 · thu_DIEMTHAT1.js: thoát 1
+  HEAD: 36 đạt · 0 hỏng
+
+thu_HD1.js — GỐC:
+  ✗ VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi  — HTTP 200 · ví mẹ 20000
+157 đạt · 1 hỏng
+GỐC 35f0d48 · thu_HD1.js: thoát 1
+  HEAD: 158 đạt · 0 hỏng
+
+thu_NAP1.js — GỐC:
+  ✗ VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi  — HTTP 200 · số dư 84000 · thưởng 4000
+  88 đạt · 1 hỏng
+GỐC 35f0d48 · thu_NAP1.js: thoát 1
+  HEAD: 89 đạt · 0 hỏng
+
+SỐ CA cong_cu/thu_P26b.js: 104
+SỐ CA cong_cu/thu_P26c.js: 158
+SỐ CA cong_cu/thu_GOI1.js: 114
+SỐ CA cong_cu/thu_DIEMTHAT1.js: 36
+SỐ CA cong_cu/thu_HD1.js: 158
+SỐ CA cong_cu/thu_NAP1.js: 89
+
+── cong_cu/gia_lap/kich_ban.js (KB17): chỉ thêm một lệnh dựng quan hệ mẹ–con (S ↔ ME) trong pos_customers trước hai đơn trả ví mẹ.
+   Không phải bài thử thu_*.js, không đổi phép kiểm. Trước sửa: --day-du FAIL 2 (gia_lap/chay.js, thu_gia_lap.js — KB17 403); sau: xem trang_thai.md.
