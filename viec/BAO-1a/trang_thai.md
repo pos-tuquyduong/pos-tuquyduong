@@ -137,3 +137,7 @@ Quyết định (2) thông báo đỏ: giữ như hiện nay (đỏ cũ nhất n
 
 ✓ CỔNG CHẠY ĐẠT  (vòng 3: node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a, cây sạch ở 4b38009d; kèm CẢNH BÁO A16: gốc in 85 ca ≠ 104 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận). npm test -- --day-du: PASS 113 · FAIL 0 · CẢNH BÁO 1 (route GET có lệnh ghi, có từ trước).
 HEAD ĐÃ KIỂM: 4b38009d
+
+
+(Chủ quán chạy gop_BAO1a.py 11.11 — gộp main, chat soát)
+HEAD ĐÃ KIỂM: d12246d
