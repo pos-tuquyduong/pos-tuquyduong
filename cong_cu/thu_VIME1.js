@@ -133,6 +133,11 @@ async function main() {
     const a5 = await ban(A, '+84' + M.slice(1)), a5b = await ban(A, ` ${M.slice(0, 4)} ${M.slice(4)} `);
     k('A5 SĐT mẹ đúng nhưng viết +84… / có dấu cách → 200, ví M giảm 2 × 25.000 (chuẩn hoá hai vế)', a5.status === 200 && a5b.status === 200
       && await soDu(M) === m0 - 50000, `${moTa(a5)} / ${moTa(a5b)} · M ${await soDu(M)}`);
+    // Dữ liệu cũ: hồ sơ con ghi parent_phone dạng thô (+84… / có dấu cách), màn gửi SĐT mẹ dạng chuẩn → vẫn qua (vế chuẩn hoá phía CSDL).
+    const M6 = await khach({ vi: 50000 }), A6 = await khach({ me: '+84' + M6.slice(1) }), A6b = await khach({ me: ` ${M6.slice(0, 4)} ${M6.slice(4)} ` });
+    const a5c = await ban(A6, M6), a5d = await ban(A6b, M6);
+    k('A5c hồ sơ con ghi SĐT mẹ dạng +84… / có dấu cách (dữ liệu cũ), màn gửi dạng chuẩn → 200, ví mẹ giảm 2 × 25.000', a5c.status === 200
+      && a5d.status === 200 && await soDu(M6) === 0, `${moTa(a5c)} / ${moTa(a5d)} · M6 ${await soDu(M6)}`);
   });
 
   muc('[B] phiên giữ chỗ / chốt phiên / tinh-thu / số dư mẹ báo màn / màn khách');
