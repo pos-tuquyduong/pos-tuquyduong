@@ -47,8 +47,8 @@ export default function GoiNap() {
   const luu = () => {
     const l = {};
     if (!String(form.ten || '').trim()) l.ten = 'Nhập tên gói';
-    if (!(so(form.khach_tra) > 0)) l.khach_tra = 'Số tiền khách trả phải lớn hơn 0';
-    if (!(so(form.vao_tk) >= so(form.khach_tra))) l.vao_tk = '"Vào tài khoản" không được nhỏ hơn "Khách trả"';
+    if (!(Number.isInteger(so(form.khach_tra)) && so(form.khach_tra) > 0)) l.khach_tra = 'Số tiền khách trả phải là số đồng nguyên lớn hơn 0';
+    if (!(Number.isInteger(so(form.vao_tk)) && so(form.vao_tk) >= so(form.khach_tra))) l.vao_tk = '"Vào tài khoản" phải là số đồng nguyên, không nhỏ hơn "Khách trả"';
     setLoiO(l); setLoiLuu('');
     if (Object.keys(l).length) { baoLoi('Chưa lưu gói nạp được', 'Sửa các ô báo đỏ rồi bấm Lưu lại.'); return; }
     setHoiPin({ tieuDe: 'Lưu gói nạp — gõ PIN chủ quán', ten: 'lưu gói nạp', viec: luuThat });
@@ -91,7 +91,7 @@ export default function GoiNap() {
           <LoiO loi={loiLuu} />
         </div>
       )}
-      <HoiPin mo={!!hoiPin} tieuDe={hoiPin?.tieuDe} chay={(p) => hoiPin.viec(p)} loiKhac={(e) => { setLoiLuu(lyDoLoi(e)); baoLoiTu(hoiPin.ten, e); }} dong={() => setHoiPin(null)} />
+      <HoiPin mo={!!hoiPin} tieuDe={hoiPin?.tieuDe} chay={(p) => hoiPin.viec(p)} ten={hoiPin?.ten} loiKhac={(e) => { setLoiLuu(lyDoLoi(e)); baoLoiTu(hoiPin.ten, e); }} dong={() => setHoiPin(null)} />
       <ThanhLuu id="goi-nap" coDoi={coDoi} dangLuu={dangLuu} onLuu={luu} onBo={() => moForm(null)} />
     </div>
   );

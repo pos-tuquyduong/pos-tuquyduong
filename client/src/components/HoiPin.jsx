@@ -7,7 +7,7 @@ import { baoLoi, lyDoLoi } from './thongBaoKho.js';
 import { laLoiPin } from './loiPin.js';
 import LoiO from './LoiO';
 
-export default function HoiPin({ mo, tieuDe, chay, loiKhac, dong }) {
+export default function HoiPin({ mo, tieuDe, ten, chay, loiKhac, dong }) {
   const [pin, setPin] = useState('');
   const [loi, setLoi] = useState('');
   const [dang, setDang] = useState(false);
@@ -17,8 +17,8 @@ export default function HoiPin({ mo, tieuDe, chay, loiKhac, dong }) {
     ev.preventDefault();
     if (!pin) { setLoi('Gõ PIN chủ quán (4–6 số) rồi bấm Xác nhận'); return; }
     setDang(true); setLoi('');
-    try { await chay(pin); dong(); } catch (e) {
-      if (laLoiPin(e)) { setLoi(lyDoLoi(e)); baoLoi('Chưa lưu được', lyDoLoi(e)); } else { dong(); loiKhac(e); }
+    try { await chay(pin); setPin(''); dong(); } catch (e) {
+      if (laLoiPin(e)) { setLoi(lyDoLoi(e)); baoLoi(`Chưa ${ten || 'lưu'} được`, lyDoLoi(e)); } else { dong(); loiKhac(e); }
     } finally { setDang(false); }
   };
   return (

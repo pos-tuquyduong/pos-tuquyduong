@@ -110,8 +110,8 @@ const CD = (t) => SX('pages', 'CaiDat', t + '.jsx');
   const hp = SX('components', 'HoiPin.jsx');
   k('D2a HoiPin: ô PIN password 4–6 số, nút xác nhận khoá khi đang xử lý', /type="password"/.test(hp) && /maxLength=\{6\}/.test(hp) && /disabled=\{dang\}/.test(hp) && /Đang lưu…|Đang xử lý…/.test(hp));
   k('D2b HoiPin báo lỗi PIN NGAY DƯỚI ô (LoiO) + thông báo nổi', /<LoiO\b/.test(hp) && /laLoiPin\(/.test(hp) && /baoLoi\(/.test(hp));
-  k('D2c HoiPin: PIN sai thì KHÔNG tự đóng (giữ dữ liệu đã gõ), lỗi khác mới trả cho nơi gọi', /if \(laLoiPin\(e\)\) \{[^}]*setLoi\([^}]*\}\s*else \{\s*dong\(\);\s*loiKhac\(e\)/.test(hp) && !/if \(laLoiPin\(e\)\) \{[^}]*dong\(\)/.test(hp));
-  k('D2d HoiPin: đóng được bằng nút Huỷ, xoá PIN đã gõ khi mở lại', /onClick=\{dong\}/.test(hp) && /setPin\(''\)/.test(hp));
+  k('D2c HoiPin: PIN sai thì KHÔNG tự đóng (giữ dữ liệu đã gõ), lỗi khác mới trả cho nơi gọi', /if \(laLoiPin\(e\)\) \{\s*setLoi\([\s\S]{0,200}?\}\s*else \{\s*dong\(\);\s*loiKhac\(e\)/.test(hp) && !/if \(laLoiPin\(e\)\) \{\s*dong\(\)/.test(hp));
+  k('D2d HoiPin: đóng được bằng nút Huỷ, xoá PIN đã gõ khi mở lại', /onClick=\{dong\}/.test(hp) && /useEffect\(\(\) => \{ if \(mo\) \{ setPin\(''\)/.test(hp));
   k('D2e CSS ô nổi hỏi PIN nằm TRÊN thanh lưu, DƯỚI thông báo nổi', /\.hoi-pin-nen\s*\{[^}]*position:\s*fixed/.test(css));
   const ht = CD('HangThe'), gn = CD('GoiNap');
   k('D3a HangThe: dùng <HoiPin, hết ô PIN cạnh nút Lưu (aria-label "PIN chủ quán để lưu / xoá hạng")', /<HoiPin\b/.test(ht) && !/PIN chủ quán để lưu \/ xoá hạng/.test(ht));
@@ -121,6 +121,31 @@ const CD = (t) => SX('pages', 'CaiDat', t + '.jsx');
   k('D3e GoiNap: nút Lưu / Bật / Tắt không mờ vì thiếu PIN', !/disabled=\{[^}]*\bpin\b/i.test(gn));
   k('D3f HangThe: PIN chủ quán đặt / đổi báo lỗi NGAY DƯỚI các ô PIN', /datPin[\s\S]{0,700}setLoiPin\(/.test(ht) && /<LoiO loi=\{loiPin\}/.test(ht));
   k('D3g luồng hợp lệ: Giờ hoạt động / In phiếu / Màn khách / Giao hàng Lưu KHÔNG hỏi PIN', ['GioHoatDong', 'InPhieu', 'ManKhach', 'GiaoHang'].every((t) => !/HoiPin/.test(CD(t))));
+
+  muc('B · phép kiểm ô phía quầy chạy thật (ngay trên / ngay dưới ngưỡng)');
+  let V;
+  try { V = await import(pathToFileURL(path.join(SRC, 'components', 'kiemCaiDat.js')).href); } catch (e) { V = { loiNap: e.message }; }
+  k('B4 nạp được components/kiemCaiDat.js', !V.loiNap, V.loiNap || '');
+  if (!V.loiNap) {
+    const hang = (kv = {}, goi) => ({ khoa: 'h1', name: 'Vàng', discount_percent: 10, special_discount_percent: 0, cach_co: 'ban', goi: goi || [{ so_thang: 1, gia: '' }], ...kv });
+    const co = (ds, o) => Object.keys(V.kiemHang(ds)).includes('h1:' + o);
+    k('B4a hạng hợp lệ → không lỗi', Object.keys(V.kiemHang([hang()])).length === 0);
+    k('B4b % thường: 0 và 90 qua; -1 và 91 lỗi dưới ô pt', !co([hang({ discount_percent: 0 })], 'pt') && !co([hang({ discount_percent: 90 })], 'pt') && co([hang({ discount_percent: -1 })], 'pt') && co([hang({ discount_percent: 91 })], 'pt'));
+    k('B4c % nhóm đặc biệt: 90 qua, 91 lỗi dưới ô dacbiet; để trống = 0 qua', !co([hang({ special_discount_percent: 90 })], 'dacbiet') && co([hang({ special_discount_percent: 91 })], 'dacbiet') && !co([hang({ special_discount_percent: undefined })], 'dacbiet'));
+    k('B4d tên trống / toàn dấu cách → lỗi dưới ô name', co([hang({ name: '' })], 'name') && co([hang({ name: '   ' })], 'name') && !co([hang({ name: 'A' })], 'name'));
+    const g = (...t) => t.map((x) => ({ so_thang: x, gia: '' }));
+    k('B4e số tháng: 1 và 60 qua; 0, 61, 1.5, rỗng lỗi dưới ô goi', !co([hang({}, g(1))], 'goi') && !co([hang({}, g(60))], 'goi') && [0, 61, 1.5, ''].every((x) => co([hang({}, g(x))], 'goi')));
+    k('B4f hai gói cùng số tháng → lỗi; khác nhau qua; hạng "chỉ cấp" không xét gói', co([hang({}, g(3, 3))], 'goi') && !co([hang({}, g(3, 6))], 'goi') && !co([hang({ cach_co: 'chi_cap' }, g(0, 0))], 'goi'));
+    const gi = (...t) => Object.keys(V.kiemGiay(t.map((giay) => ({ giay }))));
+    k('B4g giây mỗi trang: 3 và 120 qua; 2, 121, 10.5, rỗng lỗi đúng dòng', gi(3, 120).length === 0 && gi(2).join() === 'giay0' && gi(10, 121).join() === 'giay1' && gi(10.5).length === 1 && gi('').length === 1);
+    k('B4h ngừng nhận đơn: 0, rỗng, 600 qua; 601, -1, 1.5, chữ lỗi', ['0', '', '  ', '600'].every((x) => V.ngungHopLe(x)) && ['601', '-1', '1.5', 'a'].every((x) => !V.ngungHopLe(x)));
+  }
+  const ht2 = CD('HangThe'), mk2 = CD('ManKhach'), gh2 = CD('GioHoatDong'), gn2 = CD('GoiNap');
+  k('B5 HangThe / ManKhach / GioHoatDong gọi phép kiểm chung (không viết lại số ngưỡng trong thẻ)', /kiemHang\(ds\)/.test(ht2) && /kiemGiay\(trang\)/.test(mk2) && /ngungHopLe\(/.test(gh2) && !/<= 90|<= 600|<= 120/.test(ht2 + mk2 + gh2));
+  k('B6 GoiNap: số đồng phải nguyên (khớp máy chủ)', /Number\.isInteger\(so\(form\.khach_tra\)\)/.test(gn2) && /Number\.isInteger\(so\(form\.vao_tk\)\)/.test(gn2));
+  k('K4a ManKhach.luu thoát khi taiLoi (thanh chưa lưu cũng gọi hàm này)', /const luu = async \(\) => \{\s*if \(taiLoi\) return;/.test(mk2));
+  k('D4 HoiPin: xoá PIN sau khi xong, tiêu đề thông báo theo việc (ten)', /await chay\(pin\); setPin\(''\)/.test(hp) && /Chưa \$\{ten \|\| 'lưu'\} được/.test(hp) && /ten=\{hoiPin\?\.ten\}/.test(ht2) && /ten=\{hoiPin\?\.ten\}/.test(gn2));
+  k('C6 ThanhLuu chừa chỗ cuối nội dung (không che nút Lưu cuối form)', /thanh-luu-cho/.test(tl) && /\.thanh-luu-cho\s*\{[^}]*height:\s*\d+px/.test(css));
 
   muc('E · lưu xong tải lại số máy chủ giữ; nút đang xử lý mờ + "Đang lưu…"');
   const GHI = {

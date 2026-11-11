@@ -18,9 +18,9 @@
 - `Settings.jsx`: bỏ `message` / dải chữ đầu trang / 66 lời gọi `setMessage`; thêm hỏi lại khi chuyển thẻ còn thay đổi; bảng giá có thêm thanh cố định; 3 nút ghi trước đây im lặng
   (bật/tắt gói, bật/tắt quà, ẩn quà) giờ báo xong / lỗi.
 - `HangThe` + `GoiNap`: bỏ ô PIN cạnh nút; bấm Lưu / Xoá / Bật / Tắt → hỏi PIN bằng ô nổi.
-- `cong_cu/thu_BAO1b.js` (94 ca) nối vào `kiem_tra_truoc_khi_giao.js`; `dot_bien.py` 45 đột biến.
+- `cong_cu/thu_BAO1b.js` (108 ca sau vòng sửa 1) nối vào `kiem_tra_truoc_khi_giao.js`; `dot_bien.py` 61 đột biến.
 
-## Bảng chỗ vá → đột biến (cổng A17 / A18) — 45/45 BẮT, đối chứng xanh (`python3 viec/BAO-1b/dot_bien.py`)
+## Bảng chỗ vá → đột biến (cổng A17 / A18) — 61/61 BẮT, đối chứng xanh (`python3 viec/BAO-1b/dot_bien.py`)
 | Chỗ vá | Đột biến |
 |---|---|
 | thayDoiKho.js đặt / gỡ | BV-THAYDOI-KHONG-GO · VS-THAYDOI-GO-HET |
@@ -37,6 +37,8 @@
 | LoiO | BV-LOIO-LUON-TRA · BV-GOINAP-BO-LOI-O-TEN · BV-GIAOHANG-BO-LOI-O |
 | lưu xong nạp lại | BV-HANG-BO-TAI-LAI · BV-GIOHD-BO-TAI-LAI · BV-MANKHACH-BO-TAI-LAI · BV-GIAOHANG-BO-TAI-LAI · BV-INPHIEU-BO-TAI-LAI |
 | nút đang xử lý | BV-GIAOHANG-NUT-LUU-KHONG-KHOA · BV-INPHIEU-CHU-DANG-LUU · BV-TICHDIEM-MO-CONG-TAC |
+| phép kiểm ô `kiemCaiDat.js` (vòng sửa 1) | BV-KIEM-HANG-KHONG-KIEM · VS-KIEM-PT-NOI-900 · VS-KIEM-PT-CHAN-89 · VS-KIEM-THANG-NOI-61 · VS-KIEM-THANG-CHAN-2 · BV-KIEM-GOI-TRUNG-THANG · VS-KIEM-GIAY-NOI-121 · VS-KIEM-GIAY-CHAN-4 · VS-KIEM-NGUNG-NOI-601 · VS-KIEM-SO-LE-QUA · BV-HANG-TU-VIET-LAI-NGUONG |
+| vòng sửa 1 khác | BV-MANKHACH-LUU-KHONG-CHAN-TAILOI · VS-HOIPIN-GIU-PIN-SAU-KHI-XONG · BV-HOIPIN-TIEU-DE-CUNG · BV-GOINAP-SO-LE-QUA · BV-THANHLUU-CHE-NUT |
 Lần chạy đầu: 41 BẮT · 4 SỐNG (D2c, A4, E2, E4 quá lỏng) → siết ca → 45/45 BẮT.
 
 ## Rà K4 (đường song song)
@@ -50,8 +52,20 @@ Lần chạy đầu: 41 BẮT · 4 SỐNG (D2c, A4, E2, E4 quá lỏng) → si�
 - Các tab trong `Settings.jsx` (Ưu đãi khách mới, Điểm thưởng, Flash sale, Nhân viên, Phân quyền…) chỉ chuyển sang thông báo chung, CHƯA có thanh "chưa lưu" (phiếu chỉ đòi thanh cho các thẻ có ô sửa nhiều; bảng giá đã có sẵn bộ đếm riêng).
 - `window.confirm` (xoá gói, hoàn tác claim, thu hồi màn, khôi phục sao lưu) giữ nguyên — phiếu chỉ cấm `alert(`.
 
+## Soát độc lập (/ra-soat) — lần 1: KHÔNG ĐẠT → vòng sửa 1
+Lỗi soát nêu và cách xử lý: (1) K3 phép kiểm ô phía quầy không có ca thử/đột biến → rút ra `components/kiemCaiDat.js`, ca B4a–B4h ngay trên/dưới ngưỡng + 11 đột biến;
+(2) K4 `ManKhach.luu` thiếu chốt `taiLoi` mà thanh chưa lưu gọi được → thêm; (4) PIN còn trong state sau khi xong → xoá; (5) tiêu đề thông báo PIN cứng → theo việc (`ten`);
+(7) GoiNap số lẻ → bắt dưới ô; (8) gói trùng số tháng → bắt dưới ô; (9) thanh che nút cuối form → chừa chỗ `.thanh-luu-cho`.
+Chưa sửa, ghi Phát hiện: (3) `tai()` sau xoá hạng / lưu địa chỉ nạp đè ô đang gõ ở chỗ khác của cùng thẻ; (6) GiaoHang kiểm quầy chỉ "là số" (km 1–50 một số lẻ, phút nguyên, SĐT, giờ nhận do máy chủ kiểm, lỗi hiện ở ô chung kèm tên khoá);
+nghi ngờ `baoXong(data.message)` trống nếu route gói không trả `message`; lỗi tải (đọc) ở Settings.jsx vẫn chỉ `console.error`.
+Lần soát 2 chưa chạy (xem Câu hỏi — chờ chủ quán/chat soát quyết cách tiếp).
+
 ## Soát bảo mật
 Phiếu: `không`.
 
 ## Câu hỏi
-(không)
+(không có câu hỏi nghiệp vụ) Vòng sửa 1 xong; chưa chạy lại agent soát lần 2 — chat soát hoặc /ra-soat lần 2 quyết.
+
+## Phát hiện bổ sung (từ soát lần 1, chưa sửa)
+- HangThe.jsx (xoá hạng → `await tai()`) và GiaoHang.jsx (`datDiemLay` → `await tai()`) nạp đè phần đang gõ dở ở chỗ khác của thẻ; GoiNap / ChuongTrinh bấm "Sửa" khi form khác đang dở bỏ form cũ không hỏi.
+- GiaoHang: phép kiểm số phía quầy lỏng hơn máy chủ (`server/utils/giaoHang.js`), chưa có `<LoiO>` riêng cho giờ nhận và SĐT.

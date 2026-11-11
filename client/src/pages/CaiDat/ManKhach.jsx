@@ -8,6 +8,7 @@ import { baoXong, baoLoi, baoLoiTu, lyDoLoi } from '../../components/thongBaoKho
 import LoiO from '../../components/LoiO';
 import ThanhLuu from '../../components/ThanhLuu';
 import useThayDoi from '../../components/useThayDoi';
+import { kiemGiay } from '../../components/kiemCaiDat.js';
 
 const LOAI = { menu: 'Thực đơn (giá, hết hàng tự cập nhật)', flash: 'Giờ vàng (chỉ hiện khi đang chạy)', qr_app: 'QR tải App / tích điểm', chu: 'Chữ giới thiệu', anh: 'Ảnh (chờ có chỗ lưu ảnh)' };
 const MAC_DINH = [{ loai: 'menu', bat: true, giay: 15 }, { loai: 'flash', bat: true, giay: 10 }, { loai: 'qr_app', bat: true, giay: 10 }];
@@ -44,8 +45,8 @@ export default function CaiDatManKhach() {
   const them = (loai) => setTrang((cu) => [...cu, { loai, bat: loai !== 'anh', giay: GIAY_MAC_DINH }]);
 
   const luu = async () => {
-    const l = {};
-    trang.forEach((t, i) => { if (!(Number.isInteger(Number(t.giay)) && Number(t.giay) >= 3 && Number(t.giay) <= 120)) l[`giay${i}`] = 'Số giây phải từ 3 đến 120'; });
+    if (taiLoi) return;   // cùng chốt với nút Lưu chính: chưa nạp được cài đặt thì KHÔNG ghi đè (thanh chưa lưu cũng gọi hàm này)
+    const l = kiemGiay(trang);
     setLoiO(l);
     if (Object.keys(l).length) { baoLoi('Chưa lưu màn khách được', 'Sửa các ô báo đỏ rồi bấm Lưu lại.'); return; }
     setDangLuu(true);

@@ -15,6 +15,7 @@ sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 C = 'client/src/components/'
 CD = 'client/src/pages/CaiDat/'
+KC = C + 'kiemCaiDat.js'
 KHO, TL, HP, LP, LO, UTD, CSS = C + 'thayDoiKho.js', C + 'ThanhLuu.jsx', C + 'HoiPin.jsx', C + 'loiPin.js', C + 'LoiO.jsx', C + 'useThayDoi.js', 'client/src/index.css'
 ST, CH = 'client/src/pages/Settings.jsx', C + 'CaiDatChuong.jsx'
 CHEP = ['client/src', 'cong_cu', 'kiem_tra_truoc_khi_giao.js']
@@ -43,7 +44,7 @@ DOT_BIEN = [
   ('BV-HOIPIN-DONG-KHI-PIN-SAI', [(HP, 'if (laLoiPin(e)) { setLoi(', 'if (laLoiPin(e)) { dong(); setLoi(', 1)], r'✗ D2c', T),
   ('VS-HOIPIN-LOI-KHAC-O-LAI', [(HP, '} else { dong(); loiKhac(e); }', '} else { loiKhac(e); }', 1)], r'✗ D2c', T),
   ('BV-HOIPIN-BO-LOI-O', [(HP, '<LoiO loi={loi} />', '', 1)], r'✗ D2b', T),
-  ('BV-HOIPIN-BO-THONGBAO', [(HP, "baoLoi('Chưa lưu được', lyDoLoi(e));", '', 1)], r'✗ D2b', T),
+  ('BV-HOIPIN-BO-THONGBAO', [(HP, "baoLoi(`Chưa ${ten || 'lưu'} được`, lyDoLoi(e));", '', 1)], r'✗ D2b', T),
   ('BV-HOIPIN-NUT-KHONG-KHOA', [(HP, 'disabled={dang} onClick={dong}', 'onClick={dong}', 1), (HP, 'disabled={dang}>{dang ?', '>{dang ?', 1)], r'✗ D2a', T),
   ('BV-HOIPIN-GIU-PIN-CU', [(HP, "if (mo) { setPin(''); setLoi(''); }", "if (mo) { setLoi(''); }", 1)], r'✗ D2d', T),
   ('VS-HANG-LUU-MO-VI-PIN', [(CD + 'HangThe.jsx', 'onClick={batLuu} disabled={dangLuu}', 'onClick={batLuu} disabled={dangLuu || !coPin}', 1)], r'✗ D3b', T),
@@ -62,6 +63,23 @@ DOT_BIEN = [
   ('BV-GIAOHANG-BO-LOI-O', [(CD + 'GiaoHang.jsx', '<LoiO loi={loiO[k]} />', '', 1)], r'✗ B3 CaiDat/GiaoHang', T),
   ('BV-LOIO-LUON-TRA', [(LO, 'if (!loi) return null;', '', 1)], r'✗ B1', T),
   ('BV-CSS-LOIO-KHONG-DO', [(CSS, 'line-height: 1.4; color: #b91c1c; }', 'line-height: 1.4; color: #16a34a; }', 1)], r'✗ B2', T),
+  # ── B4: phép kiểm ô ──
+  ('BV-KIEM-HANG-KHONG-KIEM', [(KC, 'export function kiemHang(ds) {\n  const l = {};', 'export function kiemHang(ds) {\n  const l = {};\n  return l;', 1)], r'✗ B4[a-f]', T),
+  ('VS-KIEM-PT-NOI-900', [(KC, 'PT_TOI_DA = 90,', 'PT_TOI_DA = 900,', 1)], r'✗ B4[bc]', T),
+  ('VS-KIEM-PT-CHAN-89', [(KC, 'PT_TOI_DA = 90,', 'PT_TOI_DA = 89,', 1)], r'✗ B4[bc]', T),
+  ('VS-KIEM-THANG-NOI-61', [(KC, 'THANG_TOI_DA = 60,', 'THANG_TOI_DA = 61,', 1)], r'✗ B4e', T),
+  ('VS-KIEM-THANG-CHAN-2', [(KC, 'THANG_TOI_THIEU = 1,', 'THANG_TOI_THIEU = 2,', 1)], r'✗ B4e', T),
+  ('BV-KIEM-GOI-TRUNG-THANG', [(KC, "else if (new Set(h.goi.map((g) => Number(g.so_thang))).size < h.goi.length)", 'else if (false)', 1)], r'✗ B4f', T),
+  ('VS-KIEM-GIAY-NOI-121', [(KC, 'GIAY_TOI_DA = 120,', 'GIAY_TOI_DA = 121,', 1)], r'✗ B4g', T),
+  ('VS-KIEM-GIAY-CHAN-4', [(KC, 'GIAY_TOI_THIEU = 3,', 'GIAY_TOI_THIEU = 4,', 1)], r'✗ B4g', T),
+  ('VS-KIEM-NGUNG-NOI-601', [(KC, 'NGUNG_TOI_DA = 600;', 'NGUNG_TOI_DA = 601;', 1)], r'✗ B4h', T),
+  ('VS-KIEM-SO-LE-QUA', [(KC, 'Number.isInteger(Number(v)) && Number(v) >= a', 'Number(v) >= a', 1)], r'✗ B4[eg]', T),
+  ('BV-HANG-TU-VIET-LAI-NGUONG', [(CD + 'HangThe.jsx', 'const l = kiemHang(ds);', 'const l = kiemHang(ds); if (ds.some((h) => h.discount_percent <= 90)) { /* <= 90 */ }', 1)], r'✗ B5', T),
+  ('BV-MANKHACH-LUU-KHONG-CHAN-TAILOI', [(CD + 'ManKhach.jsx', '    if (taiLoi) return;   // cùng chốt', '    // cùng chốt', 1)], r'✗ K4a', T),
+  ('VS-HOIPIN-GIU-PIN-SAU-KHI-XONG', [(HP, "await chay(pin); setPin(''); dong();", 'await chay(pin); dong();', 1)], r'✗ D4', T),
+  ('BV-HOIPIN-TIEU-DE-CUNG', [(HP, "baoLoi(`Chưa ${ten || 'lưu'} được`", "baoLoi('Chưa lưu được'", 1)], r'✗ D4', T),
+  ('BV-GOINAP-SO-LE-QUA', [(CD + 'GoiNap.jsx', 'Number.isInteger(so(form.khach_tra)) && ', '', 1)], r'✗ B6', T),
+  ('BV-THANHLUU-CHE-NUT', [(CSS, '.thanh-luu-cho { height: 72px; }', '.thanh-luu-cho { }', 1)], r'✗ C6', T),
   # ── E: lưu xong nạp lại + nút khoá ──
   ('BV-HANG-BO-TAI-LAI', [(CD + 'HangThe.jsx', '      await tai();\n    } finally { setDangLuu(false); }', '    } finally { setDangLuu(false); }', 1)], r'✗ E1 CaiDat/HangThe', T),
   ('BV-GIOHD-BO-TAI-LAI', [(CD + 'GioHoatDong.jsx', '      await tai();\n    } catch (err) { setLoiO({ luu:', '    } catch (err) { setLoiO({ luu:', 1)], r'✗ E1 CaiDat/GioHoatDong', T),

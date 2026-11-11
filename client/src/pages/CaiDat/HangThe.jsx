@@ -15,6 +15,7 @@ import LoiO from '../../components/LoiO';
 import ThanhLuu from '../../components/ThanhLuu';
 import HoiPin from '../../components/HoiPin';
 import useThayDoi from '../../components/useThayDoi';
+import { kiemHang } from '../../components/kiemCaiDat.js';
 
 let soTam = 0;   // khoá tạm cho hạng chưa lưu (chưa có id)
 const docVe = (t) => ({ ...t, khoa: 'h' + t.id, quyen_loi: t.quyen_loi || '', goi: (t.goi || []).map((g) => ({ ...g, gia: g.gia ?? '' })) });
@@ -66,19 +67,8 @@ export default function HangThe() {
     setHoiPin({ tieuDe: `Xoá hạng ${h.name} — gõ PIN chủ quán`, ten: 'xoá hạng', viec: async (pinSua) => { await hangApi.xoa(h.id, pinSua); baoXong(`Đã xoá hạng ${h.name}`); await tai(); } });
   };
   // Kiểm trước từng ô (máy chủ vẫn kiểm lại hết): ô nào sai hiện chữ đỏ ngay dưới ô đó, chưa hỏi PIN.
-  const kiemO = () => {
-    const l = {};
-    const ngoai = (v) => !(Number(v) >= 0 && Number(v) <= 90);
-    for (const h of ds) {
-      if (!String(h.name || '').trim()) l[`${h.khoa}:name`] = 'Nhập tên hạng';
-      if (ngoai(h.discount_percent)) l[`${h.khoa}:pt`] = '% giảm phải từ 0 đến 90';
-      if (ngoai(h.special_discount_percent ?? 0)) l[`${h.khoa}:dacbiet`] = '% giảm phải từ 0 đến 90';
-      if (h.cach_co === 'ban' && h.goi.some((g) => !(Number.isInteger(Number(g.so_thang)) && Number(g.so_thang) >= 1 && Number(g.so_thang) <= 60))) l[`${h.khoa}:goi`] = 'Số tháng của gói phải là số nguyên từ 1 đến 60';
-    }
-    return l;
-  };
   const batLuu = () => {
-    const l = kiemO();
+    const l = kiemHang(ds);
     setLoiHang(l); setLoiLuu('');
     if (Object.keys(l).length) { baoLoi('Chưa lưu hạng thành viên được', 'Sửa các ô báo đỏ rồi bấm Lưu lại.'); return; }
     setHoiPin({ tieuDe: 'Lưu hạng thành viên — gõ PIN chủ quán', ten: 'lưu hạng thành viên', viec: luu });
@@ -218,7 +208,7 @@ export default function HangThe() {
         </div>
       )}
       <LoiO loi={loiPin} />
-      <HoiPin mo={!!hoiPin} tieuDe={hoiPin?.tieuDe} chay={(p) => hoiPin.viec(p)} loiKhac={(e) => { setLoiLuu(lyDoLoi(e)); baoLoiTu(hoiPin.ten, e); }} dong={() => setHoiPin(null)} />
+      <HoiPin mo={!!hoiPin} tieuDe={hoiPin?.tieuDe} chay={(p) => hoiPin.viec(p)} ten={hoiPin?.ten} loiKhac={(e) => { setLoiLuu(lyDoLoi(e)); baoLoiTu(hoiPin.ten, e); }} dong={() => setHoiPin(null)} />
       <ThanhLuu id="hang-the" coDoi={coDoi} dangLuu={dangLuu} onLuu={batLuu} onBo={tai} />
     </>
   );

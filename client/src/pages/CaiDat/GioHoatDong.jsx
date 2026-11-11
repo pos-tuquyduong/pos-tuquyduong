@@ -9,6 +9,7 @@ import { baoXong, baoLoi, baoLoiTu, lyDoLoi } from '../../components/thongBaoKho
 import LoiO from '../../components/LoiO';
 import ThanhLuu from '../../components/ThanhLuu';
 import useThayDoi from '../../components/useThayDoi';
+import { ngungHopLe } from '../../components/kiemCaiDat.js';
 
 const THU = [[2, 'Thứ Hai'], [3, 'Thứ Ba'], [4, 'Thứ Tư'], [5, 'Thứ Năm'], [6, 'Thứ Sáu'], [7, 'Thứ Bảy'], [8, 'Chủ nhật']];
 const NGAY_MAC_DINH = { mo: '07:00', dong: '22:00', nghi: false };
@@ -51,7 +52,7 @@ export default function GioHoatDong() {
   const luu = async () => {
     if (taiLoi) return;
     const ng = String(ngung).trim() || '0';
-    if (!(/^\d+$/.test(ng) && Number(ng) <= 600)) {
+    if (!ngungHopLe(ng)) {
       setLoiO({ ngung: 'Số phút ngừng nhận đơn phải từ 0 đến 600' });
       baoLoi('Chưa lưu giờ hoạt động được', 'Sửa ô "Ngừng nhận đơn App trước giờ đóng" rồi bấm Lưu lại.');
       return;

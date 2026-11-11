@@ -1,7 +1,7 @@
 BAO-1b — bằng chứng ĐỎ: bài HIỆN TẠI cong_cu/thu_BAO1b.js chạy trên client/src/ của commit 225bbde (gốc, trước khi vá)
 Lệnh:  python3 viec/BAO-1b/dot_bien.py --goc 225bbde thu_BAO1b.js
 
-  17 đạt · 70 hỏng   (thoát 1)
+  17 đạt · 76 hỏng   (thoát 1)
 
 Các ca ĐỎ trên gốc (rút gọn theo mục; dòng đầy đủ in ra bởi lệnh trên):
   A  ✗ A1 Settings.jsx không còn state message / setMessage — còn 66 lời gọi setMessage
@@ -13,6 +13,7 @@ Các ca ĐỎ trên gốc (rút gọn theo mục; dòng đầy đủ in ra bởi
   D  ✗ D0 không nạp được components/loiPin.js · D2a–D2e chưa có HoiPin.jsx / CSS ô nổi
      ✗ D3a HangThe chưa dùng <HoiPin, còn ô PIN cạnh nút Lưu · D3b nút Lưu mờ theo pin · D3c · D3d GoiNap còn ô PIN đầu thẻ · D3f
   E  ✗ E1 ManKhach / E1b InPhieu: lưu xong chưa nạp lại · E2 HangThe, GiaoHang · E3 ×5 thẻ chưa có chữ "Đang lưu…" · E4 GiaoHang bấm đôi được
+  B4 ✗ B4 không nạp được components/kiemCaiDat.js (chưa có) · B5 · B6 GoiNap số lẻ · K4a ManKhach.luu không chặn taiLoi · D4 HoiPin · C6 thanh che nút (vòng sửa 1 sau soát)
   F  ✗ F1 kiem_tra_truoc_khi_giao.js chưa nối thu_BAO1b.js
 
-SỐ CA thu_BAO1b.js: 94
+SỐ CA thu_BAO1b.js: 108

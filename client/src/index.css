@@ -868,6 +868,7 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
 /* BAO-1b — Cài đặt: lỗi ngay dưới ô, thanh "Có thay đổi chưa lưu", ô nổi hỏi PIN (thanh lưu 9000 < ô PIN 9500 < thông báo nổi 10000) */
 .loi-o { margin-top: 4px; font-size: 13px; line-height: 1.4; color: #b91c1c; }
 .thanh-luu { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9000; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 10px 16px; background: #fffbeb; border-top: 2px solid #f59e0b; box-shadow: 0 -4px 14px rgba(0,0,0,.12); }
+.thanh-luu-cho { height: 72px; }   /* chỗ trống cuối nội dung để thanh cố định không che nút Lưu cuối form */
 .thanh-luu-chu { margin-right: auto; font-weight: 600; color: #92400e; }
 .hoi-pin-nen { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.45); }
 .hoi-pin { width: min(360px, 100%); padding: 16px; border-radius: 10px; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.25); }

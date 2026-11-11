@@ -13,10 +13,13 @@ export default function ThanhLuu({ id, coDoi, dangLuu, onLuu, onBo }) {
   }, [id, coDoi]);
   if (!coDoi) return null;
   return (
+    <>
+    <div className="thanh-luu-cho" aria-hidden="true" />
     <div className="thanh-luu" role="region" aria-label="Có thay đổi chưa lưu">
       <span className="thanh-luu-chu">Có thay đổi chưa lưu</span>
       <button type="button" className="btn btn-outline" disabled={dangLuu} onClick={onBo}>Bỏ</button>
       <button type="button" className="btn btn-primary" disabled={dangLuu} onClick={onLuu}><Save size={16} /> {dangLuu ? 'Đang lưu…' : 'Lưu'}</button>
     </div>
+    </>
   );
 }
