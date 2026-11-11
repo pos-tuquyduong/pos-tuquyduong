@@ -11,7 +11,7 @@
 | 5 | Số dư mẹ báo cho màn thu tiền | `server/utils/docKhach.js:24-28` `parent_balance` đọc theo `parent_phone` CỦA KHÁCH trong CSDL | chỉ đọc, đúng quan hệ | không sửa |
 | 6 | GET /wallets/:phone | `server/routes/wallets.js:40-50` | đọc ví một SĐT (nhân viên đăng nhập), không gắn với "mẹ" | không sửa (ghi Phát hiện nếu cần) |
 | 7 | Màn khách xem phiên | `server/utils/manKhach.js:127` dựng lại đơn bằng `taoDon` chiTinh từ `phien.than`; `:161` hiện `giu_vi + giu_vi_me` | chỉ hiển thị | không sửa — đi qua lối 1, lỗi thì `dungHien` trả bản rút gọn (đã có) |
-| 8 | App KH tạo đơn | `server/utils/donApp.js:281` `taoPhien({ cach, don, tru_tai_khoan: tra.vi, pin })` — KHÔNG có `tru_tai_khoan_me`; `:163-164` `thanDon` không có `parent_phone`; `giuCho.js:27` `TRUONG_DON` không có `parent_phone` | **App KHÔNG có lối trừ tiền mẹ** (nghiệm thu E) | không sửa; có ca thử khoá điều đó |
+| 8 | App KH tạo đơn | `server/utils/donApp.js:281` `taoPhien({ cach, don, tru_tai_khoan: tra.vi, pin })` — KHÔNG có `tru_tai_khoan_me`; `:163-164` `thanDon` không có `parent_phone`; `giuCho.js:22` `TRUONG_DON` không có `parent_phone` | **App KHÔNG có lối trừ tiền mẹ** (nghiệm thu E) | không sửa; có ca thử khoá điều đó |
 | 9 | `server/routes/kh/index.js` | grep `parent` → 0 dòng | không đụng | không sửa |
 | 10 | Hoàn / huỷ / xoá đơn, duyệt hoàn, đền | `orders.js:1513-1519` `hoanVi`, `wallets.js:105-117` `ghiHoan` (`order.parent_phone`), `refunds.js:173-178`, `tienDaTra.js:50,86-88` | đọc từ ĐƠN đã ghi | không sửa (nghiệm thu D) |
 | 11 | Đối soát / điểm / hoá đơn | `doiSoat.js:124`, `diemThat.js:12`, `hoaDon.js:35`, `donThu.js` | đọc từ đơn | không sửa |
@@ -60,7 +60,7 @@ Khung: máy chủ thật trên kho tạm (khuôn `thu_P3.js` / `thu_KHACHAPP1.js
 | C2 | C | A đúng mẹ qua phiên `tai_khoan` → giữ đúng, chốt → ví M giảm đúng | xanh |
 | C3 | C | hai quầy cùng giữ ví M cho A (hai phiên song song) → tổng giữ ≤ số dư (luật cũ không đổi) | xanh |
 | D1 | D | đơn C1 → xoá quan hệ mẹ của A → huỷ đơn (PUT …/cancel hoặc DELETE owner) → ví M được hoàn đúng | xanh (khoá) |
-| E1 | E | App POST đơn kèm `parent_phone`/`tru_tai_khoan_me` thừa → ví M không đổi (thân App lọc) + tĩnh `donApp.js` không có `tru_tai_khoan_me` | xanh (khoá) |
+| E1 | E | tĩnh: `donApp.js` không có `tru_tai_khoan_me` / `parent_phone`, `kh/index.js` không có `parent` (App không có lối nào đưa SĐT mẹ vào `taoPhien`) — sửa 11.11 theo /ra-soat: phép thật là phép tĩnh, không phải phép hành vi | xanh (khoá) |
 | K5 | K5 | `npm test` đủ bài cũ (thu_P3, thu_P26b, thu_KHMUA1…) xanh | — |
 
 Đường song song canh (K4): lối 1-3 qua một lời gọi; tinh-thu lọc trắng; App không có trường mẹ; hoàn/huỷ đọc đơn.
