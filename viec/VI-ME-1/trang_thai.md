@@ -333,3 +333,7 @@ GIT:         1ecc2fe VI-ME-1: vong sua sau soat lan 3 — bang chung VIME1 24 ca
 BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
 ```
 HEAD ĐÃ KIỂM: 1ecc2fe
+
+
+(Chủ quán chạy gop_VIME1.py 11.11 — gộp main, chat soát)
+HEAD ĐÃ KIỂM: 3f945d6
