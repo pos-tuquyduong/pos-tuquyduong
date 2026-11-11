@@ -4,6 +4,7 @@
 // KH-THE-1: đơn có thẻ hạng hiện nhãn (máy chủ đã cấp hạng lúc thu, quầy không pha dòng thẻ); đơn chỉ có thẻ tới đây đã "Xong".
 import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { mayOQuan, datMayOQuan, keuChuong, AM_LUONG_MAC_DINH } from '../components/DonAppNoi';
 
 const NHAN = { da_tra: ['Mới', '#dc2626'], dang_lam: ['Đang làm', '#d97706'], xong: ['Xong', '#16a34a'], da_huy: ['Đã huỷ', '#6b7280'] };
@@ -30,7 +31,10 @@ export default function DonApp() {
 
   const bam = async (d, buoc) => {
     setDangBam(d.id);
-    try { await api.post(`/kh/don-app/${d.id}/${buoc}`, {}); } catch (e) { setLoi('Lỗi: ' + e.message); }
+    try {
+      await api.post(`/kh/don-app/${d.id}/${buoc}`, {});
+      baoXong(buoc === 'xong' ? `Đã xong đơn App ${d.so_hd || d.ma_bill}` : `Đã nhận làm đơn App ${d.so_hd || d.ma_bill}`);
+    } catch (e) { baoLoiTu(buoc === 'xong' ? 'báo xong đơn' : 'nhận làm đơn', e); }
     finally { setDangBam(null); tai(); }
   };
   const doiMay = (bat) => { datMayOQuan(bat); setMay(bat); };
@@ -38,7 +42,7 @@ export default function DonApp() {
     try {
       const s = (await api.get('/settings')).data || {};
       keuChuong(s.don_app_chuong_tieng, s.don_app_chuong_am_luong ?? AM_LUONG_MAC_DINH);
-    } catch (e) { setLoi('Lỗi: ' + e.message); }
+    } catch (e) { baoLoiTu('thử chuông', e); }
   };
 
   return (

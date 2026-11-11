@@ -35,6 +35,7 @@ import { LOAI_IN, NHAN_LOAI, docBoIn, dungBoIn, khoHoaDon } from '../utils/inPhi
 import { danhSachTo, sanSangIn } from '../utils/hoaDon';
 import { api } from '../utils/api';
 import { hienNgayGio } from '../utils/ngayVN';
+import { baoXong, baoLoi, lyDoLoi } from './thongBaoKho.js';   // BAO-1a
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PAPER SIZE CONFIG - Chuẩn kích thước thực tế
@@ -351,12 +352,13 @@ export default function InvoicePrint({
         }
       } catch (err) {
         console.error('Print error:', v.loai, err);
-        loi.push(`${NHAN_LOAI[v.loai]}: ${err.message}`);
+        loi.push(`${NHAN_LOAI[v.loai]}: ${lyDoLoi(err)}`);
       }
     }
-    if (loi.length) alert('Lỗi khi in (đơn đã lưu, không bị ảnh hưởng):\n' + loi.join('\n'));
+    if (loi.length) baoLoi('Chưa in được (đơn đã lưu, không bị ảnh hưởng)', loi.join('; '));
     setPrinting(false);
 
+    if (!loi.length) baoXong(inLai ? `Đã gửi lệnh in lại hóa đơn ${order.code}` : `Đã gửi lệnh in hóa đơn ${order.code}`);   // trình duyệt không phân biệt in và huỷ ở hộp in → chỉ nói đã gửi lệnh
     if (!loi.length && onPrintComplete) {
       onPrintComplete(order.code, paperSize);
     }

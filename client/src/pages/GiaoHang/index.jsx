@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { keuChuong } from '../../components/DonAppNoi';
 import { taiLieuIn, inQuaIframe } from '../../components/InPhieu';
 import './giaoHang.css';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 
 const COT = [['moi', 'Mới'], ['dang_pha', 'Đang pha'], ['doi_tai_xe', 'Đợi tài xế'], ['dang_giao', 'Đang giao']];
 const HOI_MS = 15000;   // hỏi máy chủ — máy chủ so giờ (toi_gio, nhac, tim_lau), màn không dùng đồng hồ máy quầy
@@ -69,36 +70,45 @@ export default function GiaoHang() {
   // Có tài xế → máy giành được thì in tem túi một lần.
   useEffect(() => {
     for (const c of ds.filter((x) => x.trang_thai === 'doi_tai_xe' && !x.in_tem_luc)) {
-      giaoHangApi.inTem(c.order_id).then((r) => { if (r.duoc) return inTemTui(c, r.lan).then(tai); return null; }).catch(() => {});
+      giaoHangApi.inTem(c.order_id).then((r) => { if (r.duoc) return inTemTui(c, r.lan).then(tai); return null; }).catch((e) => baoLoiTu('tự in tem túi', e));
     }
   }, [ds]);   // eslint-disable-line react-hooks/exhaustive-deps -- chỉ khi danh sách đổi
 
   const lam = async (c, viec, them = {}) => {
     if (dang) return;
-    setDang(true); setLoi('');
+    setDang(true);
+    let tin = '', viecTen = 'làm việc này';   // BAO-1a: câu báo xong / tên việc cho câu báo lỗi
     try {
-      if (viec === 'nhan') await giaoHangApi.nhan(c.order_id);
-      else if (viec === 'goi') await giaoHangApi.goiXe(c.order_id, them.loaiXe, c.trang_thai);
+      if (viec === 'nhan') { viecTen = 'nhận đơn giao'; await giaoHangApi.nhan(c.order_id); tin = `Đã nhận đơn giao ${c.code}`; }
+      else if (viec === 'goi') { viecTen = 'gọi xe'; await giaoHangApi.goiXe(c.order_id, them.loaiXe, c.trang_thai); tin = `Đã gọi xe cho đơn ${c.code}`; }
       else if (viec === 'tem' || viec === 'tem_lai') {
+        viecTen = 'in tem túi';
         const r = await giaoHangApi.inTem(c.order_id, viec === 'tem_lai');
-        if (r.duoc) await inTemTui(c, r.lan);
+        if (r.duoc) { await inTemTui(c, r.lan); tin = `Đã gửi lệnh in tem túi đơn ${c.code}`; }
       } else if (viec === 'dong_the') {
         const lyDo = window.prompt('Lý do đóng thẻ giao lỗi (chỉ đóng thẻ, không đụng tiền / đơn):');
         if (!lyDo) return;
+        viecTen = 'đóng thẻ giao';
         await giaoHangApi.dongThe(c.order_id, lyDo);
+        tin = `Đã đóng thẻ giao đơn ${c.code}`;
         setMoThe(null);
       } else if (viec === 'huy_chuyen') {
         const lyDo = window.prompt('Lý do huỷ chuyến Ahamove (phí huỷ nếu có quán chịu):');
         if (!lyDo) return;
+        viecTen = 'huỷ chuyến';
         await giaoHangApi.huyChuyen(c.order_id, lyDo);
+        tin = `Đã huỷ chuyến Ahamove của đơn ${c.code}`;
       } else if (viec === 'huy_don') {
         const lyDo = window.prompt(c.trang_thai === 'moi' ? 'Lý do từ chối đơn:' : 'Lý do huỷ đơn giao:');
         if (!lyDo) return;
+        viecTen = c.trang_thai === 'moi' ? 'từ chối đơn' : 'huỷ đơn giao';
         await giaoHangApi.huyDon(c.order_id, lyDo, them.doDaPha);
+        tin = c.trang_thai === 'moi' ? `Đã từ chối đơn giao ${c.code}` : `Đã huỷ đơn giao ${c.code}`;
         setMoThe(null);
       }
+      if (tin) baoXong(tin);
       await tai();
-    } catch (e) { setLoi(e.message || 'Không làm được'); await tai(); }
+    } catch (e) { baoLoiTu(viecTen, e); await tai(); }
     finally { setDang(false); }
   };
 

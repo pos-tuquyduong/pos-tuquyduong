@@ -28,6 +28,7 @@ import {
 import InvoicePreview, { HoaDonTo } from "../components/InvoicePreview";
 import { VungTrang, useNhomTheoMa } from "../components/InPhieu";
 import { getLogo } from "../utils/logoCache";
+import { baoXong, baoLoi, baoLoiTu } from "../components/thongBaoKho.js";   // BAO-1a
 import {
   KHOA_BO_IN, LOAI_IN, NHAN_LOAI, NHAN_NHOM, KHO_BILL, KHO_TEM, KHO_PHIEU, SO_BAN_TOI_DA,
   DON_MAU, NHOM_MAU, docBoIn, dungBoIn, khoHoaDon,
@@ -550,7 +551,6 @@ export default function InvoiceSettings() {
   const [logo, setLogo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
   const [previewSize, setPreviewSize] = useState("80mm");
   const [expandedSections, setExpandedSections] = useState({
     header: true,
@@ -636,7 +636,7 @@ export default function InvoiceSettings() {
     } catch (err) {
       console.error("Load settings error:", err);
       if (!hasCache) {
-        showMessage("error", "Không thể tải cài đặt: " + err.message);
+        baoLoiTu("tải cài đặt hóa đơn", err);
       }
     } finally {
       setLoading(false);
@@ -666,9 +666,9 @@ export default function InvoiceSettings() {
           }),
         );
       } catch (e) { console.warn('Không lưu được cache sau khi lưu cài đặt (đã lưu server thành công, chỉ cache lỗi):', e); }
-      showMessage("success", "✓ Đã lưu cài đặt hóa đơn!");
+      baoXong("Đã lưu cài đặt hóa đơn");
     } catch (err) {
-      showMessage("error", "Lỗi: " + err.message);
+      baoLoiTu("lưu cài đặt hóa đơn", err);
     } finally {
       setSaving(false);
     }
@@ -681,7 +681,7 @@ export default function InvoiceSettings() {
       // Tên quán + địa chỉ/SĐT mặc định là của quán (store_*), không phải hằng số: reset không được xoá địa chỉ / đè tên quán
       setChuHd({ chu: chuMacDinhCuaQuan(caiDatTho), an: Object.fromEntries(Object.keys(CHU_MAC_DINH).map((k) => [k, false])), soTo: soToTuCaiDat({}), khUrl: chuHd.khUrl, daSua: khoaChuGhiKhiReset(caiDatTho) });
       setActivePreset("custom");
-      showMessage("info", 'Đã reset. Nhấn "Lưu cài đặt" để áp dụng.');
+      baoXong('Đã reset về mặc định. Nhấn "Lưu cài đặt" để áp dụng.');
     }
   };
 
@@ -697,10 +697,7 @@ export default function InvoiceSettings() {
         show: { ...prev.show, ...preset.show },
       }));
       setActivePreset(key);
-      showMessage(
-        "info",
-        `Đã áp dụng mẫu "${preset.name}". Nhấn Lưu để áp dụng.`,
-      );
+      baoXong(`Đã áp dụng mẫu "${preset.name}". Nhấn Lưu để áp dụng.`);
     }
   };
 
@@ -731,11 +728,11 @@ export default function InvoiceSettings() {
     const file = e.target.files[0];
     if (!file) return;
     if (!["image/jpeg", "image/png", "image/gif"].includes(file.type)) {
-      showMessage("error", "Chỉ chấp nhận file ảnh (JPEG, PNG, GIF)");
+      baoLoi("Chưa tải logo được", "Chỉ nhận file ảnh JPEG, PNG hoặc GIF.");
       return;
     }
     if (file.size > 500 * 1024) {
-      showMessage("error", "File quá lớn (tối đa 500KB)");
+      baoLoi("Chưa tải logo được", "File quá lớn, tối đa 500KB. Chọn ảnh nhỏ hơn.");
       return;
     }
     setSaving(true);
@@ -774,18 +771,13 @@ export default function InvoiceSettings() {
         };
         reader.readAsDataURL(file);
       }
-      showMessage("success", "✓ Đã upload logo!");
+      baoXong("Đã tải logo lên");
     } catch (err) {
-      showMessage("error", "Lỗi: " + err.message);
+      baoLoiTu("tải logo lên", err);
     } finally {
       setSaving(false);
       e.target.value = "";
     }
-  };
-
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: "", text: "" }), 4000);
   };
 
   if (loading) {
@@ -827,10 +819,6 @@ export default function InvoiceSettings() {
           </button>
         </div>
       </div>
-
-      {message.text && (
-        <div className={`message message-${message.type}`}>{message.text}</div>
-      )}
 
       {/* Preset bar */}
       <div className="preset-bar">
@@ -934,9 +922,9 @@ export default function InvoiceSettings() {
                                     }),
                                   );
                                 } catch (ce) { console.warn('Không lưu được cache sau khi xoá logo (đã xoá server thành công, chỉ cache lỗi):', ce); }
-                                showMessage("success", "✓ Đã xóa logo");
+                                baoXong("Đã xóa logo");
                               } catch (err) {
-                                showMessage("error", "Lỗi: " + err.message);
+                                baoLoiTu("xóa logo", err);
                               }
                             }}
                             title="Xóa logo"
@@ -1301,10 +1289,6 @@ export default function InvoiceSettings() {
         .btn-outline { background: white; color: #374151; border: 1px solid #d1d5db; }
         .btn-outline:hover { background: #f3f4f6; }
         
-        .message { padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-weight: 500; }
-        .message-success { background: #d1fae5; color: #065f46; }
-        .message-error { background: #fee2e2; color: #991b1b; }
-        .message-info { background: #dbeafe; color: #1e40af; }
         
         .preset-bar { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
         .preset-label { font-weight: 500; color: #64748b; }

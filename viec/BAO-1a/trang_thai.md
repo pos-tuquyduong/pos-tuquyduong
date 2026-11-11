@@ -1,0 +1,143 @@
+# Trạng thái BAO-1a
+
+## Đối chiếu bản chụp (bước 1)
+- Nhánh `viec/BAO-1a`; `git status` sạch lúc mở phiên; `git fetch origin viec/BAO-1a`: HEAD = FETCH_HEAD = `45fd10c` (không cần kéo).
+- Kho từng nông (shallow) nên bài `thu_BH2.js` G1 báo "bad revision cbbb809" — đã `git fetch --unshallow origin viec/BAO-1a` (chỉ tải thêm lịch sử), sau đó xanh.
+```
+45fd10c PHIEU: BAO-1a
+136d6b0 TIEN-DO: QUAY-UI-1, KH-THE-1 xong; bo P3b; NAP-2 -> KH-NAP-1; CAIDAT-BAO-1 -> BAO-1b; them VOUCHER-2, BAO-1a, BAO-1b, QC-APP-1, GIAO-MA-1, GIAO-DIEN-2; mo VI-ME-1, BAO-1a; quyet dinh 08-09.11 b; lich 09.11 — so v59
+db2d71d Merge pull request #84 from pos-tuquyduong/viec/KH-THE-1
+```
+
+## Bảng màn · nút · trước · sau (nghiệm thu B)
+"Trước" = cái người dùng thấy trước việc này; "Sau" = thông báo nổi góc trên phải (xanh tự ẩn 4 giây, đỏ ở lại tới khi bấm ×).
+
+| Màn | Nút | Trước | Sau |
+|---|---|---|---|
+| Đơn hàng (Orders) | Hủy / Xóa đơn | `alert('Lỗi: …')`; thành công im lặng | xanh "Đã hủy/xóa đơn <mã>" · đỏ "Chưa hủy/xóa đơn được" + lý do |
+| Orders | Gửi sự cố (hàng hỏng) | 3 chỗ `alert` | xanh (câu máy chủ hoặc "Đã ghi nhận hàng hỏng của đơn <mã>") · đỏ "Chưa ghi nhận hàng hỏng được" |
+| Orders | Xác nhận thu nợ | `alert('✅ …')` / `alert('❌ Lỗi kết nối')` | xanh "Đã thu tiền đơn <mã>" · đỏ có lý do / "Không kết nối được máy chủ" |
+| Orders | Tải danh sách đơn | lỗi chỉ ra console | đỏ "Chưa tải danh sách đơn được" |
+| Hoàn tiền (Refunds) | Duyệt / Từ chối | `alert(err.message)`; xong im lặng | xanh "Đã duyệt/từ chối hoàn tiền đơn <mã>" · đỏ |
+| In hóa đơn (InvoicePrint, dùng ở Orders + Bán hàng cũ) | In / In lại | `alert('Lỗi khi in …')`; xong im lặng | xanh "Đã in (lại) hóa đơn <mã>" · đỏ "Chưa in được (đơn đã lưu, không bị ảnh hưởng)" + từng loại hỏng |
+| Bán hàng (cũ, Sales.jsx) | Thu tiền + mọi cảnh báo giỏ (hết hàng, chưa chọn khách, mã sai …) | dòng đỏ đầu trang (bị popup thanh toán che) + dòng trong popup | mọi `setError` → đỏ nổi; xanh "Đã thu tiền đơn <mã>" |
+| Khách hàng (Customers) | Thêm khách · Lưu thay đổi · Đổi quà · Lưu ngày sinh · mở khách theo SĐT · tải DS | dòng đỏ/xanh đầu trang 3 giây + 2 dòng trong modal | xanh "Đã thêm khách <tên>…", "Đã cập nhật thông tin cho <tên>", "Đã đổi quà …", "Đã lưu ngày sinh của <tên>" · đỏ có lý do |
+| Customers → ô Ví khách (ViKhach) | Nạp tay · Điều chỉnh | dòng xanh/đỏ trong khung | xanh "Đã nạp/điều chỉnh … Số dư mới …" · đỏ |
+| Customers → CapHang | Cấp / Thu hồi hạng | dòng chữ cuối khối (cạnh ô PIN) | xanh "Đã cấp hạng <tên> cho khách <SĐT>" · đỏ (đúng chỗ chủ quán không thấy báo) |
+| Customers → MaDangNhapApp | Lấy mã đăng nhập App | dòng đỏ trong khối | đỏ nổi (mã hiện ra là phần "xong") |
+| Customers/Bán hàng cũ → CustomerSearch | Tạo nhanh khách | dòng đỏ trong khung | xanh "Đã thêm khách <tên>" · đỏ nổi; lỗi nhập thiếu (SĐT/tên) vẫn dòng cạnh ô |
+| Thông tin món (ThongTinMon) | Lưu thông tin món | chữ "Đã lưu"/lỗi nhỏ cạnh nút | xanh "Đã lưu thông tin món <tên>" · đỏ |
+| Đơn App (DonApp) | Đang làm · Xong · Thử chuông | dòng đỏ đầu card, xong im lặng | xanh "Đã nhận làm / Đã xong đơn App <số>" · đỏ (tải tự động 15 giây vẫn dòng cũ — không phải nút) |
+| Dọn dữ liệu thử (DonThu) | Liệt kê · Tải DS · Tải sao lưu · Dọn | dòng đỏ giữa trang | xanh từng bước ("Đã liệt kê N dòng", "Đã tải sao lưu toàn bộ", "Đã dọn N dòng") · đỏ |
+| Đăng ký (Registrations) | Tải CSV · Xác nhận · Hoàn tác · Hoàn tác lần xuất · Xóa · Sửa | dòng xanh/đỏ đầu trang (xa nút) | xanh "Đã xóa đăng ký <tên>"… · đỏ; nút khoá khi đang xử lý |
+| Mã chiết khấu (DiscountCodes) | Tạo/Sửa · Bật/Tắt · Xóa | dòng đầu trang; Bật/Tắt im lặng | xanh "Đã tạo/cập nhật/tắt/bật/xóa mã <mã>" · đỏ; nút khoá khi đang xử lý |
+| Cài đặt hóa đơn (InvoiceSettings) | Lưu · Reset · Mẫu · Tải/Xóa logo | khối `message` trên đầu trang | xanh/đỏ nổi (đây là màn riêng, không phải trang Cài đặt) |
+| Báo cáo (Reports) | Kết thúc gói · tải 3 báo cáo | lỗi tải ra console; kết thúc gói im lặng | xanh "Đã kết thúc gói …" · đỏ "Chưa tải báo cáo … được"; nút khoá |
+| Đối soát (DoiSoat, trong Báo cáo) | Ghi số két · Ghi sao kê · Xác nhận tay | dòng xanh/đỏ trên đầu khối | xanh "Đã ghi số két…" · đỏ |
+| Giao hàng (GiaoHang) | Nhận · Gọi xe · In tem · Đóng thẻ · Huỷ chuyến · Huỷ/Từ chối đơn | dòng đỏ đầu trang; xong im lặng | xanh "Đã nhận đơn giao <mã>"… · đỏ "Chưa <việc> được"; tự in tem lỗi → đỏ |
+| Menu (Layout) | Gửi lại việc kho (dải vàng) | lỗi nuốt im | xanh "Đã gửi lại việc kho…" · đỏ |
+| Kho · Đặt hàng / Nhận hàng / Pha chế / Phát sinh | Gửi phiếu | dòng `kho-loi` cuối trang | xanh "Đã gửi/ghi phiếu …" · đỏ nổi |
+| Kho · Định mức | Lưu món/nhóm/hạn mức/công tắc | dòng đầu trang | xanh "Đã lưu <tên>" · đỏ; nút khoá khi đang lưu |
+| Kho · Nguyên liệu (+Nhóm / NCC) | Lưu · Xoá · Thêm | dòng `kho-loi` | xanh "Đã lưu/xoá nguyên liệu <tên>" · đỏ; nút khoá |
+| Kho · Sản phẩm | Lưu công thức | dòng `kho-loi` | xanh "Đã lưu công thức <tên>" · đỏ; nút khoá |
+| Kho · Nhập SX | Xem trước · Nhập | dòng `kho-loi` | xanh "Đã nhập danh mục…" · đỏ |
+| Kho · Xem phiếu | Duyệt · Từ chối · Huỷ · Sửa · Lưu kết quả · In | dòng `kho-loi` cuối trang | xanh "Đã duyệt/từ chối/huỷ/sửa phiếu", "Đã lưu kết quả" · đỏ |
+
+**Không đổi (và vì sao)** — xem mục `## Câu hỏi` / `## Phát hiện`.
+
+## Bảng chỗ vá → đột biến (cổng A17, A18) — `python3 viec/BAO-1a/dot_bien.py` ⇒ 23/23 BẮT
+| Chỗ vá | Đột biến |
+|---|---|
+| kho: đỏ không tự ẩn / xanh tự ẩn | VS-DO-TU-AN · BV-XANH-KHONG-AN |
+| kho: tối đa 3 · thời gian ẩn · chống trùng · gộp báo | VS-TOI-DA-NAM · VS-TG-TU-AN-DAI · BV-GO-CHONG-TRUNG · VS-BAO-NGAY-KHONG-GOM |
+| câu lỗi dễ hiểu | VS-LOI-KY-THUAT-LOT · VS-LOI-TRONG-HIEN-TRONG · VS-LOI-BO-CAU-MAY-CHU · VS-LOI-TU-TIEU-DE |
+| Layout gắn đúng một lần | BV-LAYOUT-GO-THONGBAO · VS-LAYOUT-GAN-HAI-LAN |
+| role / nút đóng / re-export | VS-ROLE-DAO-NGUOC · BV-NUT-DONG-GO-NHAN · VS-THONGBAO-RE-EXPORT |
+| CSS nổi cố định / nút ≥ 44px / mờ khi khoá | VS-CSS-KHONG-NOI · VS-CSS-NUT-DONG-NHO · BV-CSS-KHONG-MO · VS-CSS-MO-GIA |
+| bỏ `alert(` Orders / Refunds / nối ThongBao | BV-ORDERS-ALERT-TRO-LAI · BV-REFUNDS-ALERT-TRO-LAI · VS-ORDERS-BO-NOI-THONGBAO |
+| nút khoá khi đang xử lý | BV-DISCOUNT-MO-NUT |
+
+Tên đầy đủ (cổng A17): VS-DO-TU-AN, BV-XANH-KHONG-AN, VS-TOI-DA-NAM, VS-TG-TU-AN-DAI, BV-GO-CHONG-TRUNG, VS-BAO-NGAY-KHONG-GOM, VS-LOI-KY-THUAT-LOT, VS-LOI-TRONG-HIEN-TRONG, VS-LOI-BO-CAU-MAY-CHU, VS-LOI-TU-TIEU-DE, BV-LAYOUT-GO-THONGBAO, VS-LAYOUT-GAN-HAI-LAN, VS-ROLE-DAO-NGUOC, BV-NUT-DONG-GO-NHAN, VS-THONGBAO-RE-EXPORT, VS-CSS-NUT-DONG-NHO, VS-CSS-KHONG-NOI, BV-ORDERS-ALERT-TRO-LAI, BV-REFUNDS-ALERT-TRO-LAI, VS-ORDERS-BO-NOI-THONGBAO, BV-DISCOUNT-MO-NUT, BV-CSS-KHONG-MO, VS-CSS-MO-GIA, BV-REFUNDS-GO-LOI-GOI, BV-DINHMUC-MO-NUT-LUU-MON, VS-DAY-DO-CU-NHAT.
+
+## Câu hỏi
+(không chặn phần còn lại — việc đã làm xong; chờ chủ quán quyết)
+**ĐÃ TRẢ LỜI (chat soát 10.11): giữ nguyên dải đỏ `bh-loi` có nút Đóng, chủ quán đồng ý, không làm thêm. Không đổi `pages/BanHang/**`.**
+1. (đã chốt — xem dòng trên) **Màn Bán hàng mới (`pages/BanHang/**`) chưa đổi sang thông báo nổi.** Màn này đã có dải đỏ `bh-loi` ở ĐẦU màn bán (có nút Đóng), nằm cạnh giỏ, không bị popup che, và là bản vẽ ĐÃ CHỐT (`ban_mau_pos/`, CLAUDE.md mục 9: đổi thiết kế phải sửa bản mẫu trước và hỏi chủ quán). Các câu quan trọng ("Tiền đã nhận nhưng chưa thấy mã đơn…", "KHÔNG thu lại ngay…") cần nằm lại trên màn tới khi nhân viên đọc. Đề xuất của mình: giữ nguyên dải này; nếu bạn muốn thông báo nổi cho cả màn mới thì báo, mình làm việc riêng (sửa bản mẫu 119 phép trước).
+
+## Phát hiện (không sửa, ngoài phạm vi / không phải nút ghi)
+- `components/CaiDatChuong.jsx` (dùng trong Cài đặt) và mọi thứ của `Settings.jsx`, `pages/CaiDat/**` (kể cả ô PIN `HangThe.jsx`) → thuộc BAO-1b, chưa đụng.
+- `pages/ManKhach/**` (màn quay về phía khách, ngoài Layout) và `Login.jsx` không có nút ghi của nhân viên; không gắn ThongBao ở đó.
+- Lỗi TẢI (đọc) ở Kho (`kho-loi` trong PhatSinh/SanPham/XemPhieu/TonKho/DsPhieu…), DonApp tải tự động 15 giây, GiaoHang tải 15 giây: giữ dòng báo tại chỗ (không phải nút bấm; thông báo nổi sẽ lặp mỗi vòng).
+- `kiem_tra_truoc_khi_giao.js` in "fetch trần = 31 — HẠ NGUONG_FETCH xuống 31" (hằng đang 32 lúc phát hiện; ĐÃ HẠ xuống 31 ở 91b4650 theo chat soát 10.11). Việc này không thêm/bớt `fetch(` nào (so từng file với HEAD: 0 chênh), nên lúc đó mình không hạ (chat soát 10.11 duyệt hạ → đã hạ ở 91b4650).
+  **NGUYÊN NHÂN (tìm ra 10.11, thay cho điều đoán sai ở trên — đoán "chú thích JSX trong Sales" là SAI):** số đếm đã là 31 từ trước việc này. Đếm cùng phép `boGhiChu` + `/\bfetch\s*\(/` theo từng file ở `45fd10c` và `HEAD`: giống hệt (CustomerInput 1 · CustomerSearch 2 · InvoicePrint 2 · Customers 2 · InvoiceSettings 4 · Orders 6 · Sales 7 · Settings 6 · logoCache 1 = 31). Mất 1 chỗ ở **`client/src/pages/Customers.jsx`**: commit `9558de19` (HANG-1 giao diện, 03.11) đổi `fetch(\`/api/pos/membership/status/${encodeURIComponent(phone)}\`, {headers…})` (cũ ~dòng 54) thành `hangApi.trangThai(phone)` (gọi qua `utils/api.js:519`) — một lần dọn thật, đúng chiều. Lúc đó `NGUONG_FETCH` vẫn 32 (kiểm: `git show 9558de19:kiem_tra_truoc_khi_giao.js` dòng 223) nên không ai hạ; sau đó nhánh GIAO-1 (`7123f8d`, còn 3 chỗ ở Customers) gộp vào làm tên "32" sống tiếp. Chốt: ngưỡng cần HẠ 32 → 31 — việc của chủ quán (CLAUDE.md §6: tự đổi bánh cóc phải hỏi); mình KHÔNG đổi. Còn lại 31 `fetch` trần: lần theo `node` đếm theo file ở bảng trên.
+- Kho còn 31 `fetch` trần ngoài `api.js` (Orders, Sales, InvoiceSettings, Customers, CustomerSearch…) — việc cũ, không phải việc này.
+- `npm run lint`: còn các lỗi có sẵn (BanHangMoi `layThe`, ThuTien `tong`, ManKhach, DonAppNoi/InPhieu fast-refresh…); file mới `ThongBao.jsx` + `thongBaoKho.js` sạch.
+
+## Báo cáo 7 mục
+```
+VIỆC:        BAO-1a — Mọi thao tác ngoài Cài đặt báo rõ, dễ hiểu, luôn nhìn thấy
+ĐÃ SỬA:      client/src/components/thongBaoKho.js (mới, kho thông báo) · components/ThongBao.jsx (mới, vẽ) · components/Layout.jsx (gắn một lần, nút "gửi lại việc kho") · index.css (thông báo nổi + nút khoá mờ)
+             28 màn/thành phần nối thông báo (bảng trên): Orders, Refunds, InvoicePrint, Sales, Customers, DonApp, DonThu, Registrations, DiscountCodes, InvoiceSettings, Reports, GiaoHang, ViKhach, CapHang, DoiSoat, ThongTinMon, MaDangNhapApp, CustomerSearch, 9 màn Kho
+             cong_cu/thu_BAO1a.js (mới, 104 ca) · kiem_tra_truoc_khi_giao.js (nối bài vào bộ kiểm) · client/dist (build lại)
+BÀI THỬ:     chạy trên bản chưa vá (45fd10c) → ĐỎ: 7 đạt · 74 hỏng (bản bài thử cuối); sau khi vá → XANH 104 đạt · 0 hỏng; đột biến 31/31 BẮT
+ĐÃ RÀ K4:    grep "alert(" trong client/src → 11 chỗ (Orders 8 · Refunds 2 · InvoicePrint 1), đã xử lý hết, còn 0 · grep "setError|setSuccess|setLoi|setThongBao|setMsg" các màn trong phạm vi → xử lý theo bảng, phần còn lại ghi ở Phát hiện · {error} / {loi} còn vẽ: chỉ lỗi TẢI + lỗi nhập thiếu cạnh ô
+CHƯA KIỂM:   (1) chưa mở trình duyệt thật: không chụp được thông báo nổi hiện trên điện thoại / có đè lên popup không (CSS z-index 10000; popup cao nhất tìm thấy bằng grep là 9999) · (2) chưa thử tay từng nút (bài thử khoá khung thành phần + mỗi màn đã nối + cờ khoá nút, KHÔNG gọi từng nút thật) · (3) "Đã in hóa đơn" dựa vào sự kiện đóng hộp in của trình duyệt · (4) lời gọi thông báo trong hàm cập nhật `setCart` của Sales chưa chạy thật ở StrictMode · (5) chưa hết lỗi lint có sẵn của kho
+GIT:         ad82b074 bằng chứng đỏ · 8229fe92 vòng sửa 1 · 99abceec màn · 52e48854 thành phần (trên nền 45fd10c)
+BÀI HỌC:     (xem mục Bài học)
+```
+
+## Bài học
+- **KHOÁ 1** — `thu_BAO1a.js` D1 bánh cóc `alert(` ≤ 0 + D2 danh sách màn đã nối + D4 cờ khoá nút: làm luôn (file trong Phạm vi). Lý do: lỗi "báo ở chỗ khuất" tái phạm im lặng nếu không có phép đếm.
+- **KHOÁ 2** — người gác chặn `git mv`, `sed -i`, hai lệnh `cd` trong một khối, `python3 … <<EOF` rồi `cd`: sửa file bằng Edit/Write, mỗi lệnh Bash chỉ một `cd` ở đầu. Không cần luật mới (người gác đã chặn đúng).
+- **NGUYÊN TẮC 1** — đề xuất (ngoài Phạm vi, chat soát duyệt): thêm vào `KHUON_LOI.md` K4 một dòng "đổi cách báo lỗi của một màn → grep mọi chỗ vẽ biến lỗi cũ (`{error}`, `{loi}`) kể cả bên TRONG popup — Sales.jsx còn một khối `{error && …}` trong popup thanh toán, `no-undef` của lint mới bắt được".
+- **NGUYÊN TẮC 2** — bài thử cũ khoá ĐÚNG chuỗi mã (thu_KHOIN1 B khoá `if (await ghi(() => api.post(.../in))) setKho(`): thêm tham số vào hàm dùng chung thì cho tham số MẶC ĐỊNH, đừng đổi dạng lời gọi cũ — đã gặp 1 lần (`ghi(lam, viec = 'in phiếu', tin)`).
+- **BỎ** — kho git nông làm `thu_BH2.js` G1 đỏ "bad revision": một lần do máy mây, đã `--unshallow`.
+
+## Soát độc lập — vòng 1 (agent `/ra-soat`, chép tóm lược; KHÔNG ĐẠT, lỗi nhẹ–vừa, không đụng tiền / máy chủ)
+1. D2 xanh oan: chỉ dò import, gỡ lời gọi `baoXong` vẫn 69 đạt → **đã sửa**: D2 đếm lời gọi tối thiểu từng file (bảng `MAN_DA_RA`), đột biến `BV-REFUNDS-GO-LOI-GOI`.
+2. D4 xanh oan: chỉ cần 1 chỗ `disabled` → **đã sửa**: đếm tối thiểu số nút từng file (`KHOA_NUT`), đột biến `BV-DINHMUC-MO-NUT-LUU-MON`.
+3. Quá 3 thông báo bỏ cái cũ nhất kể cả đỏ chưa đọc → **đã sửa** `thongBaoKho.js`: bỏ xanh cũ nhất trước; ca A11, A12; đột biến `VS-DAY-DO-CU-NHAT`.
+4. `Sales.setError` bỏ qua `lyDoLoi` → **đã sửa** (chữ kỹ thuật → câu chung). `setError('')` không còn xoá thông báo đỏ (đỏ ở lại tới khi bấm ×): chủ ý, ghi nhận.
+5. "Đã in hóa đơn" hiện cả khi khách huỷ hộp in → **đã sửa** câu thành "Đã gửi lệnh in hóa đơn …" (trình duyệt không phân biệt in / huỷ).
+Nghi ngờ ghi nhận, không sửa: GiaoHang tự in tem lỗi có thể hiện lại sau mỗi lần poll 15 giây khi đã bấm ×; BanHang/** chưa đổi (Câu hỏi 1).
+Sau vòng sửa 1: thu_BAO1a 99 ca xanh (gốc 45fd10c: 7 đạt · 74 hỏng), đột biến 26/26 BẮT, `npm test -- --day-du` PASS 113 · FAIL 0. Chưa gọi soát vòng 2 (chat soát duyệt).
+
+## Soát độc lập — vòng 2 (agent `/ra-soat`, trên a77194c; KHÔNG ĐẠT, lỗi nhẹ–vừa, không đụng máy chủ / logic tiền)
+Đột biến thực nghiệm do agent chạy trên bản sao thật (đối chứng 99 đạt · 0 hỏng; `dot_bien.py` 26/26 BẮT, không LẠC/HỎNG): gỡ 1 lời gọi `bao*` ở 8 màn (Customers, Kho/NguyenLieu, Kho/PhatSinh, Kho/XemPhieu, Sales, GiaoHang, CapHang, Orders) → ĐỎ cả 8 đúng ca D2; chỉ còn import (NguyenLieu, Customers, Sales) → ĐỎ; gỡ 1 `disabled` ở 6 file (Registrations, Customers, XemPhieu, Orders, CapHang, NguyenLieu) → ĐỎ cả 6 đúng ca D4; thongBaoKho đảo thứ tự bỏ (ds[0], fallback, đỏ trước xanh) → ĐỎ A6/A11/A12; Layout không gắn / gắn 2 lần / bỏ import → ĐỎ B7(+B8). Số `bao*` và `disabled` thực tế == mức tối thiểu ở cả 28 file MAN_DA_RA và 13 file KHOA_NUT. **XANH OAN 2 chỗ:** `Sales.setError` bỏ `lyDoLoi`; `{false && <ThongBao />}` trong Layout.
+LỖI vòng 2 và xử lý ở commit `6aaf4bc` (vòng sửa 2):
+1. `thongBaoKho.js:41` (K3+K5) — đang 3 đỏ chưa đọc rồi có xanh MỚI, vòng bỏ chọn đúng cái xanh vừa thêm → thu tiền xong không thấy "Đã thu tiền…". **Đã sửa:** `t.id !== id` (không bao giờ bỏ chính cái vừa thêm). Ca A13 (ĐỎ trên a77194c), đột biến `VS-MOI-BI-BO`; `VS-DAY-DO-CU-NHAT` đổi neo theo dòng mới. Hệ quả ghi nhận: 4 thông báo đỏ liên tiếp thì đỏ cũ nhất nhường chỗ (như A12) và xanh mới hiện; chủ quán muốn khác thì báo.
+2. `DoiSoat.jsx` (K4, nghiệm thu D) — "Xác nhận tay → tạo đơn", "Lưu số két", "Lưu" (sao kê) không khoá: bấm đúp ghi 2 dòng sổ. **Đã sửa:** cờ `dangGhi` (+ chặn vào lại, `finally`), chữ "Đang lưu…". `DoiSoat.jsx` vào `KHOA_NUT` (D4 ĐỎ trên a77194c: "chỉ 0 chỗ"), đột biến `BV-DOISOAT-MO-NUT-KET`.
+3. B7 Layout bọc có điều kiện vẫn xanh — **đã sửa:** ca B7b + đột biến `VS-LAYOUT-DIEU-KIEN`.
+4. Không ca nào canh `Sales.setError` dùng `lyDoLoi` — **đã sửa:** ca C6 + đột biến `VS-SALES-BO-LYDO`.
+Nghi ngờ ghi nhận, không sửa: GiaoHang tự in tem lỗi hiện lại sau mỗi lần tải 15 giây dù đã bấm ×; `.btn:disabled {opacity:.55}` là luật toàn cục (đổi cả nút Cài đặt / BanHang; `index.css` trong phạm vi, đúng nghiệm thu D); chữ "Đang …" chưa có ở mọi nút khoá; Kho nút In không báo xong (chủ ý).
+Nghiệm thu (agent đếm): A, B, C, E, K5 ĐẠT; D thiếu DoiSoat → đã sửa. Tiền: KHÔNG file `server/` đổi; Sales/Orders/Refunds/Reports chỉ thêm báo + guard chống bấm đúp, không đổi điều kiện / thứ tự gọi API.
+Sau vòng sửa 2: thu_BAO1a 103 ca xanh (gốc 45fd10c: 8 đạt · 76 hỏng), đột biến 30/30 BẮT, `npm test -- --day-du` PASS 113 · FAIL 0 · CẢNH BÁO 1 (chính là gợi ý hạ NGUONG_FETCH).
+Tên đột biến thêm ở vòng 2 (cổng A17): VS-MOI-BI-BO, BV-DOISOAT-MO-NUT-KET, VS-LAYOUT-DIEU-KIEN, VS-SALES-BO-LYDO.
+Đây là vòng sửa 2 trên tối đa 3; chưa gọi soát vòng 3 (chat soát duyệt).
+
+**Bài học vòng 2:** KHOÁ 3 — ca A13 + B7b + C6 + D4 DoiSoat đã thêm (làm luôn). NGUYÊN TẮC 3 (đề xuất ngoài Phạm vi cho `KHUON_LOI.md` K3): giới hạn "tối đa N" có thứ tự loại bỏ phải có ca mà phần tử MỚI chính là phần tử bị chọn loại (A11 chỉ thử xanh vào 1 đỏ, bỏ sót 3 đỏ + 1 xanh). NGUYÊN TẮC 4 (đề xuất, K1): đoán nguyên nhân phải đo trước — lượt trước đoán "chú thích JSX trong Sales" sai, đo từng file theo commit mới ra Customers.jsx.
+
+✓ CỔNG CHẠY ĐẠT  (node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a; kèm CẢNH BÁO A16: gốc in 81 ca ≠ 99 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận)
+HEAD ĐÃ KIỂM: 21a39eee
+
+✓ CỔNG CHẠY ĐẠT  (vòng 2: node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a, cây sạch ở cb7d68c; kèm CẢNH BÁO A16: gốc in 84 ca ≠ 103 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận)
+HEAD ĐÃ KIỂM: cb7d68c6
+
+## Soát độc lập — vòng 3 (agent /ra-soat, trên 91b4650; ĐẠT, chỉ lỗi nhẹ, không đụng máy chủ / tiền)
+Nghiệm thu 7/7 có bằng chứng. git diff 45fd10c^ HEAD -- server package.json rỗng. K5: không luồng hợp lệ nào bị chặn oan (thongBaoKho.js t.id !== id, dedupe cùng câu, guard bấm đúp Refunds/Orders/Reports/DoiSoat).
+LỖI nhẹ và xử lý (vòng sửa 3, tối đa 3 vòng — đây là vòng cuối):
+1. cong_cu/thu_BAO1a.js mục B — K3 xanh oan: ThongBao.jsx sửa thành luôn return null vẫn 103 đạt. ĐÃ SỬA: ca B2b (đòi if (!ds.length) return null; + ds.map( + đúng MỘT return null), đột biến VS-THONGBAO-LUON-NULL (đối chứng 104 đạt, bài đỏ đúng B2b, BẮT).
+2. Hồ sơ ghi số cũ (K1) — ĐÃ SỬA: hằng 32 → 31 (91b4650), 99 ca → 104, đột biến 26/26 → 31/31.
+Nghi ngờ ghi nhận, không sửa: D2 gộp baoXong/baoLoi/baoLoiTu (chưa thử gỡ cả loại baoLoi*); D4 đếm chỗ disabled chứ không kiểm cờ bật trong hàm xử lý (đã thấy đúng ở DoiSoat, Reports); GiaoHang tem lỗi hiện lại sau mỗi lần tải 15 giây dù đã bấm x; .btn:disabled opacity toàn cục.
+Cảnh báo duy nhất của bộ kiểm hiện nay là route GET có lệnh ghi (packages.js:196, products.js:66, sync.js:148) — có từ trước, ngoài phạm vi; gợi ý hạ NGUONG_FETCH đã hết.
+Tên đột biến thêm ở vòng 3 (cổng A17): VS-THONGBAO-LUON-NULL.
+NGUONG_FETCH hạ 32 → 31 (kiem_tra_truoc_khi_giao.js:223, commit 91b4650): lý do HANG-1 9558de19 đã dọn một fetch ở Customers.jsx; chat soát 10.11 duyệt.
+Đề xuất KHUON_LOI.md (để chat soát lúc gộp, KHÔNG tự sửa): K3 — bài thử một thành phần giao diện phải vẽ thử / khoá nhánh vẽ, không chỉ dò chuỗi; K1 — sau mỗi vòng sửa chạy lại để cập nhật mọi số trong báo cáo (số ca, số đột biến, hash, hằng số).
+Quyết định (2) thông báo đỏ: giữ như hiện nay (đỏ cũ nhất nhường chỗ, xanh mới vẫn hiện) — đã đúng ở A12/A13.
+
+✓ CỔNG CHẠY ĐẠT  (vòng 3: node tu_chay/cong.js chay . 45fd10c^ HEAD viec/BAO-1a, cây sạch ở 4b38009d; kèm CẢNH BÁO A16: gốc in 85 ca ≠ 104 ca ở head — bài đỏ nhiều ca trên gốc nên không dừng sớm; chấp nhận). npm test -- --day-du: PASS 113 · FAIL 0 · CẢNH BÁO 1 (route GET có lệnh ghi, có từ trước).
+HEAD ĐÃ KIỂM: 4b38009d
+
+
+(Chủ quán chạy gop_BAO1a.py 11.11 — gộp main, chat soát)
+HEAD ĐÃ KIỂM: d12246d

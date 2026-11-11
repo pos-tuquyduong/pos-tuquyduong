@@ -15,6 +15,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, User, Wallet, AlertCircle, X, Plus, Phone, Loader2, CheckCircle } from "lucide-react";
 import QrScanModal from "./QrScanModal";
 import { customersApi, customersV2Api } from "../utils/api";
+import { baoXong, baoLoiTu } from "./thongBaoKho.js";   // BAO-1a
 
 // QUAN TRỌNG: Giữ nguyên chuẩn API_BASE của project
 const API_BASE = import.meta.env.VITE_API_URL || "/api/pos";
@@ -253,9 +254,10 @@ export default function CustomerSearch({
         isNew: true,
       };
 
+      baoXong(`Đã thêm khách ${newCustomer.name || newCustomer.phone}`);
       handleSelect(newCustomer);
     } catch (err) {
-      setAddError(err.message);
+      baoLoiTu("thêm khách", err);
     } finally {
       setAddLoading(false);
     }

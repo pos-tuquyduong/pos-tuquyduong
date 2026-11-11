@@ -220,7 +220,7 @@ nhom('C · BÁNH CÓC — chỉ được siết, không được nới');
 
 // C1 — fetch trần ngoài api.js. NGƯỠNG CHỈ ĐƯỢC GIẢM.
 // Dọn xong một file thì hạ số này xuống, không bao giờ tăng.
-const NGUONG_FETCH = 32;
+const NGUONG_FETCH = 31; // 32 -> 31: HANG-1 (9558de19) doi 1 fetch o Customers.jsx sang hangApi.trangThai
 {
   let n = 0;
   const theoFile = {};
@@ -513,6 +513,7 @@ chayBaiThat('cong_cu/thu_GIAO1.js');   // GIAO-1: giao Ahamove ở quầy — ph
 chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai ngăn (tiền nạp / thưởng nạp), điểm khi tiêu ví, sổ sách tiền nạp
 chayBaiThat('cong_cu/thu_DIEMMON1.js');   // DIEM-MON-1: tích điểm theo món / gói / hạng — chỉ cộng phần dòng bật, trừ theo dòng (CÁCH 2), I8
 chayBaiThat('cong_cu/thu_KHTHE1.js');   // KH-THE-1: App KH mua thẻ hạng chung giỏ, hạng lên lúc đã thu, giỏ không pha bán mọi giờ, quyền lợi hạng (023)
+chayBaiThat('cong_cu/thu_BAO1a.js');   // BAO-1a: thông báo nổi chung (xanh tự ẩn, đỏ có nút đóng), bánh cóc alert(, nút ghi khoá khi đang xử lý
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong

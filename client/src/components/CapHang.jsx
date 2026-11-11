@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { hangApi } from '../utils/api';
 import { hienNgayGio } from '../utils/ngayVN';
+import { baoXong, baoLoiTu } from './thongBaoKho.js';   // BAO-1a
 
 const THOI_HAN = [['0', 'Không thời hạn'], ['1', '1 tháng'], ['3', '3 tháng'], ['6', '6 tháng'], ['12', '12 tháng']];
 const VIEC = { ban: 'Mua', cap: 'Cấp', thu_hoi: 'Thu hồi' };
@@ -13,7 +14,6 @@ export default function CapHang({ sdt, coQuyen, onDoi }) {
   const [nhatKy, setNhatKy] = useState(null);
   const [chon, setChon] = useState({ tier_id: '', han: '0', pin: '' });
   const [dangGui, setDangGui] = useState(false);
-  const [thongDiep, setThongDiep] = useState('');
 
   const tai = async () => {
     try {
@@ -23,7 +23,7 @@ export default function CapHang({ sdt, coQuyen, onDoi }) {
         setDsHang(ds);
         setChon((c) => ({ ...c, tier_id: c.tier_id || (ds[0] ? String(ds[0].id) : '') }));
       }
-    } catch (e) { setThongDiep('Lỗi: ' + e.message); }
+    } catch (e) { baoLoiTu('tải hạng thẻ', e); }
   };
   useEffect(() => { if (sdt) tai(); }, [sdt, coQuyen]);
 
@@ -34,10 +34,11 @@ export default function CapHang({ sdt, coQuyen, onDoi }) {
       if (viec === 'cap') await hangApi.cap(sdt, Number(chon.tier_id), chon.han === '0' ? null : Number(chon.han), chon.pin);
       else await hangApi.thuHoi(sdt, Number(chon.tier_id), chon.pin);
       setChon((c) => ({ ...c, pin: '' }));
-      setThongDiep(viec === 'cap' ? 'Đã cấp hạng' : 'Đã thu hồi hạng');
+      const hang = dsHang.find((t) => String(t.id) === String(chon.tier_id));
+      baoXong(`${viec === 'cap' ? 'Đã cấp' : 'Đã thu hồi'} hạng ${hang?.name || ''} ${viec === 'cap' ? 'cho' : 'của'} khách ${sdt}`.replace('  ', ' '));
       await tai();
       onDoi?.();
-    } catch (e) { setThongDiep('Lỗi: ' + e.message); } finally { setDangGui(false); }
+    } catch (e) { baoLoiTu(viec === 'cap' ? 'cấp hạng' : 'thu hồi hạng', e); } finally { setDangGui(false); }
   };
 
   const dong = { display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 };
@@ -66,7 +67,6 @@ export default function CapHang({ sdt, coQuyen, onDoi }) {
           )}
         </>
       )}
-      {thongDiep && <div style={{ marginTop: 6, color: thongDiep.startsWith('Lỗi') ? '#b91c1c' : '#15803d' }}>{thongDiep}</div>}
       <div style={{ fontWeight: 600, marginTop: 8 }}>Nhật ký hạng</div>
       {!nhatKy ? <div style={{ color: '#94a3b8' }}>Đang tải...</div> : nhatKy.length === 0 ? <div style={{ color: '#94a3b8' }}>Chưa có.</div> : (
         <div style={{ marginTop: 4, color: '#475569' }}>

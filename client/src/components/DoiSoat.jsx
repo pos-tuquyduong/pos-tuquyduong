@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { api, thanhToanApi } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
+import { baoXong, baoLoi, baoLoiTu } from './thongBaoKho.js';   // BAO-1a
 
 const KIEU = [['ngay', 'Ngày'], ['tuan', 'Tuần'], ['thang', 'Tháng']];
 const NHOM = [
@@ -24,13 +25,13 @@ export default function DoiSoat() {
   const [ngay, setNgay] = useState('');
   const [kq, setKq] = useState(null);
   const [dangChay, setDangChay] = useState(false);
+  const [dangGhi, setDangGhi] = useState(false);   // đang ghi sổ: khoá 3 nút ghi, tránh bấm đúp ra hai dòng
   const [loi, setLoi] = useState('');
-  const [thongBao, setThongBao] = useState('');
   const [ket, setKet] = useState({ so_tien: '', de_lai: '' });
   const [saoKe, setSaoKe] = useState({ da_so: false, ghi_chu: '' });
 
   const chay = async (k = kieu, n = ngay) => {
-    setDangChay(true); setLoi(''); setThongBao('');
+    setDangChay(true); setLoi('');
     try {
       const r = await api.get(`/reports/doi-soat?kieu=${k}${n ? '&ngay=' + n : ''}`);
       setKq(r);
@@ -46,30 +47,35 @@ export default function DoiSoat() {
   useEffect(() => { chay('ngay', ''); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const ghi = async (body, viec) => {
-    setLoi(''); setThongBao('');
+    if (dangGhi) return;
+    setDangGhi(true);
     try {
       await api.post('/reports/doi-soat/ghi', body);
-      setThongBao(viec);
+      baoXong(viec);
       await chay(kieu, ngay);
     } catch (e) {
-      setLoi(e.message || 'Không ghi được');
+      baoLoiTu('ghi đối soát', e);
+    } finally {
+      setDangGhi(false);
     }
   };
   const luuKet = () => {
     const soTien = soNguyen(ket.so_tien), deLai = soNguyen(ket.de_lai);
-    if (soTien === null || deLai === null) { setLoi('Nhập số nguyên đồng, không dấu chấm / phẩy'); return; }
+    if (soTien === null || deLai === null) { baoLoi('Chưa ghi số két được', 'Nhập số nguyên đồng, không dấu chấm / phẩy.'); return; }
     ghi({ loai: 'ket', ky: kq.tu, so_tien: soTien, de_lai: deLai }, 'Đã ghi số két — dòng mới, dòng cũ vẫn còn trong lịch sử');
   };
   const xacNhanTay = async (phienId) => {
     const lyDo = window.prompt('Lý do xác nhận tay (đã thấy tiền trong sao kê…):', '');
-    if (lyDo == null) return;
-    setLoi(''); setThongBao('');
+    if (lyDo == null || dangGhi) return;
+    setDangGhi(true);
     try {
       await thanhToanApi.xacNhanTay(phienId, lyDo.trim());
-      setThongBao('Đã xác nhận tay — đơn đã tạo, nhận lại số hoá đơn đã giữ');
+      baoXong('Đã xác nhận tay — đơn đã tạo, nhận lại số hoá đơn đã giữ');
       await chay(kieu, ngay);
     } catch (e) {
-      setLoi(e.message || 'Không xác nhận được');
+      baoLoiTu('xác nhận tay', e);
+    } finally {
+      setDangGhi(false);
     }
   };
   const luuSaoKe = () => ghi({ loai: 'sao_ke', ky: kq.tu, da_so: saoKe.da_so ? 1 : 0, ghi_chu: saoKe.ghi_chu }, 'Đã ghi đánh dấu sao kê');
@@ -98,7 +104,6 @@ export default function DoiSoat() {
       </div>
 
       {loi && <div className="card mb-1" style={{ color: '#dc2626' }}>{loi}</div>}
-      {thongBao && <div className="card mb-1" style={{ color: '#15803d' }}>{thongBao}</div>}
 
       {kq && (
         <>
@@ -122,7 +127,7 @@ export default function DoiSoat() {
                         <td>{l.bat_bien}{l.nhan ? ` · ${l.nhan}` : ''}</td>
                         <td>{l.mo_ta}
                           {l.xac_nhan_tay && hasPermission('xac_nhan_ck_tay') && (
-                            <button className="btn btn-outline btn-sm" style={{ marginLeft: '0.5rem' }} onClick={() => xacNhanTay(l.xac_nhan_tay)}>Xác nhận tay → tạo đơn</button>
+                            <button className="btn btn-outline btn-sm" style={{ marginLeft: '0.5rem' }} disabled={dangGhi} onClick={() => xacNhanTay(l.xac_nhan_tay)}>Xác nhận tay → tạo đơn</button>
                           )}
                         </td>
                         <td>{l.pham_vi === 'toan_so' ? 'toàn sổ' : l.ngay || 'không rõ ngày'}</td>
@@ -166,7 +171,7 @@ export default function DoiSoat() {
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
                   <input className="input" style={{ width: '12rem' }} inputMode="numeric" placeholder="Tiền đếm cuối ngày" value={ket.so_tien} onChange={(e) => setKet({ ...ket, so_tien: e.target.value })} />
                   <input className="input" style={{ width: '12rem' }} inputMode="numeric" placeholder="Để lại cho mai" value={ket.de_lai} onChange={(e) => setKet({ ...ket, de_lai: e.target.value })} />
-                  <button className="btn btn-primary" onClick={luuKet}>Lưu số két</button>
+                  <button className="btn btn-primary" disabled={dangGhi} onClick={luuKet}>{dangGhi ? 'Đang lưu…' : 'Lưu số két'}</button>
                 </div>
               )}
               {kq.ket.nguoi && <div style={{ fontSize: '0.85rem' }}>Lần ghi cuối: {kq.ket.nguoi} lúc {kq.ket.luc?.replace('T', ' ')}</div>}
@@ -186,7 +191,7 @@ export default function DoiSoat() {
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginTop: '0.5rem' }}>
                   <label><input type="checkbox" checked={saoKe.da_so} onChange={(e) => setSaoKe({ ...saoKe, da_so: e.target.checked })} /> Đã so sao kê</label>
                   <input className="input" style={{ width: '16rem' }} placeholder="Ghi chú" maxLength={200} value={saoKe.ghi_chu} onChange={(e) => setSaoKe({ ...saoKe, ghi_chu: e.target.value })} />
-                  <button className="btn btn-primary" onClick={luuSaoKe}>Lưu</button>
+                  <button className="btn btn-primary" disabled={dangGhi} onClick={luuSaoKe}>{dangGhi ? 'Đang lưu…' : 'Lưu'}</button>
                 </div>
               )}
               {kq.sao_ke && <div style={{ fontSize: '0.85rem' }}>Lần ghi cuối: {kq.sao_ke.nguoi} lúc {kq.sao_ke.luc?.replace('T', ' ')}</div>}

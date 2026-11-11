@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 import ChonNguyenLieu from './ChonNguyenLieu';
 import { so, gio, maGuiMoi, veLuu, raHien } from './chung';
 
@@ -38,12 +39,13 @@ export default function NhanHang({ moPhieu }) {
   const gui = dong.filter((d) => d.tick);
   const hopLe = gui.length && gui.every((d) => Number(d.nhan) > 0);
   const nhan = async () => {
-    setLoi(''); setDangGui(true);
+    setDangGui(true);
     try {
       const r = await api.post('/kho/phieu-nhan', { don_id: don?.id ?? null, ghi_chu: ghiChu, ma_gui: maGui, nha_cung_cap_id: don?.nha_cung_cap_id ?? null,
         dong: gui.map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id, luong: veLuu(d.nhan, d.he_so_doi), don_gia: d.gia === '' ? null : Number(d.gia), han_dung: d.han || null })) });
+      baoXong('Đã ghi phiếu nhận hàng');
       moPhieu(r.phieu.id);
-    } catch (e) { setLoi(e.message); setDangGui(false); }
+    } catch (e) { baoLoiTu('ghi phiếu nhận hàng', e); setDangGui(false); }
   };
 
   const bangDong = (
@@ -69,7 +71,6 @@ export default function NhanHang({ moPhieu }) {
   if (!cheDo) {
     return (
       <div>
-        {loi && <div className="kho-loi">{loi}</div>}
         <div className="kho-buoc"><button className="btn btn-outline" onClick={() => batDau('le')}>🛒 Mua lẻ (không có đơn)</button></div>
         <h4 className="kho-muc">Nhận theo đơn ({gy.don_mo.length})</h4>
         {!gy.don_mo.length && <p className="kho-nho">Không có đơn đặt hàng nào đang chờ nhận.</p>}
@@ -100,7 +101,6 @@ export default function NhanHang({ moPhieu }) {
         </ChonNguyenLieu>
       )}
       <input className="input" placeholder="Số hoá đơn / ghi chú" value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} style={{ width: '100%', marginTop: '0.75rem' }} />
-      {loi && <div className="kho-loi">{loi}</div>}
       <button className="btn btn-primary kho-nut-lon" disabled={dangGui || !hopLe} onClick={nhan}>
         {dangGui ? 'Đang gửi…' : `Gửi phiếu nhận (${gui.length} dòng) — chờ người khác duyệt`}
       </button>

@@ -3,16 +3,15 @@
  */
 import { useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 
 export default function NhapSx() {
   const [file, setFile] = useState(null);
   const [kh, setKh] = useState(null);
   const [daGhi, setDaGhi] = useState(false);
-  const [loi, setLoi] = useState('');
   const [dang, setDang] = useState(false);
 
   const gui = async (ghi) => {
-    setLoi('');
     setDang(true);
     const f = new FormData();
     f.append('file', file);
@@ -21,7 +20,8 @@ export default function NhapSx() {
       const kq = await api.upload('/kho/nhap-sx', f);
       setKh(kq.ke_hoach);
       setDaGhi(kq.da_ghi);
-    } catch (e) { setLoi(e.message); } finally { setDang(false); }
+      if (ghi) baoXong('Đã nhập danh mục từ bản sao lưu SX');
+    } catch (e) { baoLoiTu(ghi ? 'nhập danh mục' : 'xem trước danh mục', e); } finally { setDang(false); }
   };
 
   return (
@@ -32,7 +32,6 @@ export default function NhapSx() {
         <input type="file" accept=".db,.sqlite" onChange={(e) => { setFile(e.target.files[0] || null); setKh(null); setDaGhi(false); }} />
         <button className="btn btn-outline" disabled={!file || dang} onClick={() => gui(false)}>Xem trước</button>
       </div>
-      {loi && <div className="kho-loi">{loi}</div>}
       {kh && (
         <div>
           {daGhi && <div className="kho-ok">✓ Đã nhập xong.</div>}

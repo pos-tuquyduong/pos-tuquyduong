@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 import { boDau, tien } from './chung';
 const THIEU = { gia: ['giá', (n) => n.gia_nhap === null || n.gia_nhap === 0], han: ['hạn dùng', (n) => n.han_ngay == null], toi_thieu: ['tồn tối thiểu', (n) => n.ton_toi_thieu == null] };
 // MỘT vị từ cho cả số trên nút lẫn danh sách khi bấm (nguyên liệu ngừng dùng không tính). Nhân viên không nhận gia_nhap (undefined) → không đếm.
@@ -20,6 +21,7 @@ export default function NguyenLieu({ vaiTro }) {
   const suaDuoc = vaiTro === 'owner' || vaiTro === 'manager';
   const [dl, setDl] = useState({ nguyen_lieu: [], nhom: [], nha_cung_cap: [] });
   const [loi, setLoi] = useState('');
+  const [dang, setDang] = useState(false);   // BAO-1a D: đang lưu / xoá → khóa nút, không bấm hai lần
   const [tim, setTim] = useState('');
   const [sapXep, setSapXep] = useState('ten');
   const [tab, setTab] = useState('tat_ca');
@@ -41,16 +43,20 @@ export default function NguyenLieu({ vaiTro }) {
 
   const luu = async (e) => {
     e.preventDefault();
-    setLoi('');
+    if (dang) return;
+    setDang(true);
     try {
       if (sua.id) await api.put(`/kho/nguyen-lieu/${sua.id}`, sua); else await api.post('/kho/nguyen-lieu', sua);
+      baoXong(`Đã lưu nguyên liệu ${sua.ten}`);
       setSua(null);
       tai();
-    } catch (err) { setLoi(err.message); }
+    } catch (err) { baoLoiTu('lưu nguyên liệu', err); } finally { setDang(false); }
   };
   const xoa = async () => {
     if (!window.confirm(`Xoá hẳn "${sua.ten}"?`)) return;
-    try { await api.delete(`/kho/nguyen-lieu/${sua.id}`); setSua(null); tai(); } catch (err) { setLoi(err.message); }
+    if (dang) return;
+    setDang(true);
+    try { await api.delete(`/kho/nguyen-lieu/${sua.id}`); baoXong(`Đã xoá nguyên liệu ${sua.ten}`); setSua(null); tai(); } catch (err) { baoLoiTu('xoá nguyên liệu', err); } finally { setDang(false); }
   };
   const o = (ten, nhan, kieu = 'text') => (
     <label>{nhan}<input className="input" type={kieu} value={sua[ten] ?? ''} onChange={(e) => setSua({ ...sua, [ten]: e.target.value })} /></label>
@@ -84,14 +90,14 @@ export default function NguyenLieu({ vaiTro }) {
         </div>
         {loi && <div className="kho-loi">{loi}</div>}
         <div className="kho-hang" style={{ marginTop: '1rem' }}>
-          <button className="btn btn-primary" type="submit">Lưu</button>
+          <button className="btn btn-primary" type="submit" disabled={dang}>{dang ? 'Đang lưu…' : 'Lưu'}</button>
           <button className="btn btn-outline" type="button" onClick={() => { setSua(null); setLoi(''); }}>Huỷ</button>
           {sua.id && (
             <button className="btn btn-outline" type="button" onClick={() => setSua({ ...sua, dang_dung: sua.dang_dung ? 0 : 1 })}>
               {sua.dang_dung ? 'Ngừng dùng' : 'Dùng lại'} (bấm Lưu)
             </button>
           )}
-          {sua.id && <button className="btn btn-outline" type="button" onClick={xoa}>Xoá hẳn</button>}
+          {sua.id && <button className="btn btn-outline" type="button" disabled={dang} onClick={xoa}>Xoá hẳn</button>}
         </div>
       </form>
     );
@@ -142,11 +148,11 @@ export default function NguyenLieu({ vaiTro }) {
 
 /** Nhóm nguyên liệu + nhà cung cấp: sửa tên tại chỗ, thêm mới. */
 function DanhMuc({ dl, tai, dong }) {
-  const [loi, setLoi] = useState('');
   const [moi, setMoi] = useState({ nhom: '', 'nha-cung-cap': '' });
+  const [dangGhi, setDangGhi] = useState(false);
   const ghi = async (duong, id, than) => {
-    setLoi('');
-    try { if (id) await api.put(`/kho/${duong}/${id}`, than); else await api.post(`/kho/${duong}`, than); tai(); return true; } catch (e) { setLoi(e.message); return false; }
+    setDangGhi(true);
+    try { if (id) await api.put(`/kho/${duong}/${id}`, than); else await api.post(`/kho/${duong}`, than); baoXong(id ? 'Đã lưu thay đổi' : 'Đã thêm mới'); tai(); return true; } catch (e) { baoLoiTu('lưu', e); return false; } finally { setDangGhi(false); }
   };
   const khoi = (duong, tieuDe, ds) => (
     <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
@@ -161,13 +167,12 @@ function DanhMuc({ dl, tai, dong }) {
       ))}
       <div className="kho-dong">
         <input className="input" placeholder="Thêm mới…" value={moi[duong]} onChange={(e) => setMoi({ ...moi, [duong]: e.target.value })} />
-        <button className="btn btn-outline" onClick={async () => { if (await ghi(duong, null, { ten: moi[duong] })) setMoi({ ...moi, [duong]: '' }); }}>Thêm</button>
+        <button className="btn btn-outline" disabled={dangGhi} onClick={async () => { if (await ghi(duong, null, { ten: moi[duong] })) setMoi({ ...moi, [duong]: '' }); }}>{dangGhi ? 'Đang lưu…' : 'Thêm'}</button>
       </div>
     </div>
   );
   return (
     <div>
-      {loi && <div className="kho-loi">{loi}</div>}
       {khoi('nhom', 'Nhóm nguyên liệu', dl.nhom)}
       {khoi('nha-cung-cap', 'Nhà cung cấp', dl.nha_cung_cap)}
       <button className="btn btn-primary" onClick={dong}>Xong</button>

@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { productsApi } from '../utils/api';
+import { baoXong, baoLoiTu } from './thongBaoKho.js';   // BAO-1a
 import { NHU_CAU, THE_CHAT, GIOI_HAN, tenNhuCau, tenTheChat, demKyTu, coThongTin } from '../utils/thongTinMon';
 
 const dung = (e) => e.stopPropagation();
@@ -55,18 +56,16 @@ export function FormThongTinMon({ mon, onXong }) {
   const [theChat, setTheChat] = useState(mon.the_chat || []);
   const [chu, setChu] = useState({ mo_ta: mon.mo_ta || '', cong_dung: mon.cong_dung || '', thanh_phan: mon.thanh_phan || '' });
   const [dangLuu, setDangLuu] = useState(false);
-  const [loi, setLoi] = useState('');
-  const [daLuu, setDaLuu] = useState(false);
 
-  const bat = (ds, set, ma) => { set(ds.includes(ma) ? ds.filter((x) => x !== ma) : [...ds, ma]); setDaLuu(false); };
+  const bat = (ds, set, ma) => { set(ds.includes(ma) ? ds.filter((x) => x !== ma) : [...ds, ma]); };
   const luu = async () => {
-    setDangLuu(true); setLoi(''); setDaLuu(false);
+    setDangLuu(true);
     try {
       const kq = await productsApi.updateThongTin({ sx_product_type: mon.sx_product_type, sx_product_id: mon.sx_product_id, name: mon.name, code: mon.code, nhu_cau: nhuCau, the_chat: theChat, ...chu });
-      setDaLuu(true);
+      baoXong(`Đã lưu thông tin món ${mon.name}`);
       onXong?.({ nhu_cau: kq.nhu_cau, the_chat: kq.the_chat, mo_ta: kq.mo_ta, cong_dung: kq.cong_dung, thanh_phan: kq.thanh_phan });
     } catch (e) {
-      setLoi(e.message || 'Không lưu được');
+      baoLoiTu('lưu thông tin món', e);
     } finally {
       setDangLuu(false);
     }
@@ -85,15 +84,13 @@ export function FormThongTinMon({ mon, onXong }) {
         <label key={cot} style={{ display: 'block', marginBottom: 6 }}>
           <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{ten} — còn {GIOI_HAN[cot] - demKyTu(chu[cot].trim())} ký tự</span>
           <textarea className="input" rows={2} style={{ width: '100%' }} value={chu[cot]}
-            onChange={(e) => { setChu({ ...chu, [cot]: e.target.value }); setDaLuu(false); }} />
+            onChange={(e) => setChu({ ...chu, [cot]: e.target.value })} />
         </label>
       ))}
       <button type="button" className="btn btn-primary" onClick={luu}
         disabled={dangLuu || CHU.some(([cot]) => demKyTu(chu[cot].trim()) > GIOI_HAN[cot])}>
         {dangLuu ? 'Đang lưu...' : 'Lưu thông tin món'}
       </button>
-      {daLuu && <span style={{ marginLeft: 10, color: '#16a34a', fontSize: '0.85rem' }}>Đã lưu</span>}
-      {loi && <span style={{ marginLeft: 10, color: '#dc2626', fontSize: '0.85rem' }}>{loi}</span>}
     </div>
   );
 }
