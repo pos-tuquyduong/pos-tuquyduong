@@ -36,14 +36,7 @@ Máy chủ tự đối chiếu quan hệ mẹ–con trước khi trừ hoặc gi
 - cong_cu/thu_DIEMTHAT1.js
 - cong_cu/thu_HD1.js
 - cong_cu/thu_NAP1.js
-
-## Bài thử cũ sửa
-- cong_cu/thu_P26b.js — chỉ thêm quan hệ mẹ–con vào hồ sơ khách trước khi bán (đơn trả tài khoản mẹ); không đổi phép kiểm, không đổi số mong đợi (chủ quán duyệt câu 4, 10.11)
-- cong_cu/thu_P26c.js — chỉ thêm quan hệ mẹ–con vào hồ sơ khách trước khi bán (đơn trả tài khoản mẹ); không đổi phép kiểm, không đổi số mong đợi (chủ quán duyệt câu 4, 10.11)
-- cong_cu/thu_GOI1.js — chỉ thêm quan hệ mẹ–con vào hồ sơ khách trước khi bán (đơn trả tài khoản mẹ); không đổi phép kiểm, không đổi số mong đợi (chủ quán duyệt câu 4, 10.11)
-- cong_cu/thu_DIEMTHAT1.js — chỉ thêm quan hệ mẹ–con vào hồ sơ khách trước khi bán (đơn trả tài khoản mẹ); không đổi phép kiểm, không đổi số mong đợi (chủ quán duyệt câu 4, 10.11)
-- cong_cu/thu_HD1.js — chỉ thêm quan hệ mẹ–con vào hồ sơ khách trước khi bán (đơn trả tài khoản mẹ); không đổi phép kiểm, không đổi số mong đợi (chủ quán duyệt câu 4, 10.11)
-- cong_cu/thu_NAP1.js — chỉ thêm quan hệ mẹ–con vào hồ sơ khách trước khi bán (đơn trả tài khoản mẹ); không đổi phép kiểm, không đổi số mong đợi (chủ quán duyệt câu 4, 10.11)
+- cong_cu/gia_lap/kich_ban.js
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_VIME1.js` ĐỎ trên gốc: khách A (mẹ M) gửi `parent_phone` = SĐT người khác có số dư → hôm nay tạo đơn và trừ ví người đó; phải 403
