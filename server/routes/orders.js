@@ -685,8 +685,8 @@ async function taoDon(req, res, phien = null) {
     }
     // ═══ het POS-CONGDON-v1 · LO 2 ═══════════════════════════════════════
     const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
-    // VI-ME-1: có SĐT mẹ hoặc tiền mẹ → máy chủ đối chiếu pos_customers TRƯỚC mọi chỗ đọc / giữ / trừ ví mẹ (chạy cả ở chế độ chỉ tính —
-    // tạo phiên giữ chỗ, chốt phiên). Sai mẹ → 403 KHONG_PHAI_TK_ME, chưa ghi gì.
+    // VI-ME-1: có SĐT mẹ hoặc tiền mẹ → máy chủ đối chiếu pos_customers TRƯỚC mọi chỗ đọc / giữ / trừ ví mẹ — chạy cả ở chế độ chỉ tính
+    // (tạo phiên giữ chỗ, màn khách) và lúc chốt phiên (taoDon ghi thật). Sai mẹ → 403 KHONG_PHAI_TK_ME, chưa ghi gì.
     if (parent_phone || Number(parent_balance_amount) > 0) {
       const sai = await kiemTraMe(phone, parent_phone);
       if (sai) return res.status(sai.status).json(sai.body);
