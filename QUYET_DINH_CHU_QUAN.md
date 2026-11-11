@@ -245,6 +245,19 @@
   Voucher (mức + hạn trong Cài đặt); người được mời nhận khi đăng ký (khách mới thật), người giới thiệu nhận khi đơn đầu của bạn hoàn tất; trần N
   lần / tháng (mặc định 10).
 
+## Đợt quyết định 11.11.2026 (chat bàn 35)
+- 11.11 · Quét QR trên điện thoại khách bằng camera TRƯỚC của màn khách (QUET-1, trước khai trương), không mua máy quét để bàn: máy quầy ra lệnh
+  → màn khách tự bật camera; màn rảnh có nút "Quét thẻ thành viên" cho khách tự bấm; quét xong (hoặc 30 giây) màn tự trở lại màn trước.
+- 11.11 · Bỏ hẳn màn Bán hàng cũ, chuyển 100% sang màn mới; máy chủ khoá: trừ tiền tài khoản (của khách hay của mẹ) luôn cần PIN chủ tài khoản
+  (BO-MAN-CU-1, trước khai trương).
+- 11.11 · Đăng nhập App bằng mật khẩu (MATKHAU-1, trước khai trương): quán KHÔNG biết, không xem được mật khẩu khách; quản lý xem được mọi thông
+  tin khách trừ mật khẩu; giữ đăng nhập 90 ngày; quầy có nút xoá mật khẩu (chủ quán / quản lý). PIN 4 số giữ riêng để xác nhận tiền, quên PIN
+  đặt lại bằng OTP. Màn đăng ký ghi rõ "nhập SĐT có Zalo" vì mã OTP gửi qua Zalo.
+- 11.11 · Đổi điểm (DOI-DIEM-1): quà hiện vật đổi ở quầy (khách nhập PIN), voucher đổi ở App hoặc quầy — MỘT cách đổi chung; thay một phần ý 09.11
+  "bỏ đổi điểm ở quầy" (P3b vẫn bỏ: không đổi trong phiên thanh toán). Quà hết hạn chưa dùng thì hoàn điểm.
+- 11.11 · Cuối danh sách, làm nối tiếp ngay, không chờ — làm hết một lượt: DOI-DIEM-1 → QUET-2 (khách tự quét mã của quán bằng App) →
+  GIOI-THIEU-1 → QUA-TANG-1 (sau cùng).
+
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
   nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).

@@ -31,6 +31,7 @@ mới trước khai trương thường lùi ~1 ngày.
 | **T5 26.11** | **Khai trương sớm nhất** | | |
 
 Bỏ: P3b (đổi điểm chỉ trong App). Gộp: NAP-2 → KH-NAP-1; CAIDAT-BAO-1 → BAO-1b.
+11.11 thêm TRƯỚC khai trương: BO-MAN-CU-1 · MATKHAU-1 (Opus), QUET-1 (Sonnet, sau BAO-1b) → khai trương sớm nhất lùi ~2 ngày (khoảng T7 28.11). CUỐI danh sách, làm nối tiếp không chờ (chủ quán 11.11 — làm hết một lượt): DOI-DIEM-1 → QUET-2 → GIOI-THIEU-1 → QUA-TANG-1 (sau cùng). Đã xong 10–11.11: DIEM-MON-1, VI-ME-1, BAO-1a.
 
 ## Việc phải xong trước khai trương
 | Mã | Việc | Loại · model | Làn |
