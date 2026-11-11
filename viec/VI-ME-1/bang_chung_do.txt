@@ -38,6 +38,7 @@ thu_P26c.js — GỐC:
   157 đạt · 1 hỏng
 GỐC 35f0d48 · thu_P26c.js: thoát 1
   HEAD: 158 đạt · 0 hỏng
+  (chạy lại sau a3d50f7 — goiDaLay bỏ datMe ẩn, A5g datMe tường minh: gốc vẫn đúng dòng ✗ VM1 trên, 157 đạt · 1 hỏng, thoát 1; HEAD 158 đạt · 0 hỏng)
 
 thu_GOI1.js — GỐC:
   ✗ VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi  — HTTP 200 · ví mẹ 0

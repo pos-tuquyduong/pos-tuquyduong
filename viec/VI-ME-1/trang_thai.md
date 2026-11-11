@@ -172,8 +172,51 @@ c4ed786 VI-ME-1: trang thai phien tiep 2 + bang dot bien
   trở lại như gốc; `datMe(con, me)` gọi tường minh trước từng đơn trả tài khoản mẹ (DIEMTHAT1 B4, B8, D5; HD1 A25; NAP1 C3, C7b, E3b, E7c).
   Gốc 35f0d48: mỗi bài đỏ đúng 1 ca VM1 (HTTP 200, ví mẹ bị trừ); HEAD: xanh, số ca +1 (`bang_chung_do.txt`).
 - KB17 (`cong_cu/gia_lap/kich_ban.js`): một lệnh upsert `pos_customers (S, parent_phone = ME)` trước hai đơn trả ví mẹ. Không đổi phép kiểm.
-- 3 việc nhỏ: `ke_hoach.md` §4 tên đột biến theo `dot_bien.py` (đủ 8); bỏ biến `p1` thừa ở `thu_VIME1.js` (23 ca, gốc vẫn 12 đạt · 11 hỏng);
+- 3 việc nhỏ: `ke_hoach.md` §4 tên đột biến theo `dot_bien.py` (đủ 8); bỏ biến `p1` thừa ở `thu_VIME1.js` (23 ca; gốc 12 đạt · 11 hỏng qua `dot_bien.py --goc`, như lần chạy 10.11 — lần đầu trên gốc thật 11 · 12, lý do ở `bang_chung_do.txt`);
   sửa chú thích `orders.js` (chốt phiên là lúc taoDon ghi thật, không phải chế độ chỉ tính).
 - Đột biến: `python3 viec/VI-ME-1/dot_bien.py` → ĐỐI CHỨNG XANH 23 · TỔNG 8 · BẮT 8 · SỐNG 0 · HỎNG 0 · LẠC 0.
 - Lệnh bị người gác chặn phiên này: `$(( ))` và vòng `for` (B-PHANTICH / B-CHUONGTRINH); chạy bài có cụm bí mật trước khi commit
   (B-BIMAT-CHU — commit trước rồi chạy; script nháp có chữ đó cũng bị chặn → dùng Edit); `python3 … && git add …` ghép (B-PHANTICH).
+- Bước 6: `npm test -- --day-du` → PASS 112 · FAIL 1 (chỉ `thu_BH2.js` G1 — kho nông, thiếu cbbb809; giả lập KB17 hết đỏ). Stop hook cũng báo
+  `thu_QUAYUI1.js` sập "Cannot find module express" một lần — chạy lại riêng 63/63 xanh, `node_modules/express` có mặt (thoáng qua, không tái hiện).
+  `git fetch -q --unshallow origin viec/VI-ME-1` → `thu_BH2.js` 100 đạt · 0 hỏng.
+
+## Soát độc lập (/ra-soat lần 2, 11.11 — báo cáo nguyên văn)
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ: không lỗi nào đụng tiền, ví, điểm hay bảo mật lúc quầy chạy. Phần máy chủ đã vá đúng.)
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_P26c.js:177 — hàm phụ `goiDaLay` có dòng `if (them.parent_phone) await datMe(sdt, them.parent_phone);` — tự dựng quan hệ
+   cho MỌI lần gọi có parent_phone, trái ý (b) "datMe tường minh từng ca"; hôm nay một chỗ gọi (A5g, :300); trang_thai.md:172 bỏ sót. — K3 (+K1).
+2. viec/VI-ME-1/ke_hoach.md:63 (ca E1) hứa phép hành vi; thu_VIME1.js:223-224 chỉ soi tĩnh. Lần soát 1 đã nêu, chưa sửa. — K3 nhẹ / K1.
+3. viec/VI-ME-1/ke_hoach.md:14 `giuCho.js:27 TRUONG_DON`; thật là giuCho.js:22. Lần soát 1 đã nêu, chưa sửa. — K1.
+Đã kiểm 8 lỗi / nghi ngờ lần 1: KB17 (gia_lap/chay.js 33 kịch bản ĐẠT), A11 ×6 (cổng chạy ĐẠT), tên đột biến khớp dot_bien.py:23-34,
+  p1 đã bỏ, chú thích orders.js:688-689 đúng, `ban` DIEMTHAT1/HD1/NAP1 như gốc.
+K3: VIME1 gốc 12 · 11, HEAD 23 · 0; P26c gốc 157/1, NAP1 88/1 (đỏ đúng VM1); sáu ca VM1 đủ chặt (403 + code + ví mẹ).
+K4: mọi đơn mẹ mong 200 có datMe tường minh trừ P26c:300 (lỗi 1); NAP1:263, :271 mong 400 NAP_CHI_TIEN_MAT_QR — phép nạp chạy trước
+  kiemTraMe (orders.js:228-237; giuCho.js:43-45), không xanh oan. Mọi lối trừ/giữ ví mẹ qua taoDon; trước orders.js:690 không câu ghi.
+K5: C1, C2, A5, đơn không mẹ (Sales.jsx:730, tinh.js:144 gửi null), phiên giữ 0đ, D1, B7 qua; khách chỉ có pos_registrations chặn theo Q3
+  (docKhach.js:28 vẫn hiện số dư mẹ — chủ quán đã chấp nhận).
+K1: trang_thai.md:175 "gốc VẪN 12 · 11" trong khi :42 ghi 11 · 12 — chữ "vẫn" sai.
+Đường tiền: đối chiếu pos_customers (viMe.js:14), số tiền mẹ qua phép đủ số dư (orders.js:867). P1: không đổi client.
+NGHI NGỜ: không có đột biến "chỉ bỏ kiểm lúc chốt phiên"; SOÁT BẢO MẬT: ĐẠT của mốc c4ed786 (server/ từ đó chỉ đổi chú thích);
+  pos_customers.phone thô (sync.js:290) → 403 oan, chưa thấy dòng nào.
+NGHIỆM THU: 6/6 mục có bằng chứng (C chờ --day-du của phiên chính).
+CHƯA SOÁT ĐƯỢC: --day-du; P26b, GOI1, DIEMTHAT1, HD1 trên gốc (dựa bang_chung_do); dữ liệu production; chốt webhook QR khi quan hệ đổi;
+  đua kiểm–ghi (CHƯA KIỂM theo chủ quán).
+BÀI HỌC: NGUYÊN TẮC K3 — grep MỌI hàm phụ dựng đơn, không chỉ `ban`; KHOÁ — mỗi lỗi soát trước phải có dòng "đã sửa / không sửa vì…".
+```
+
+### Vòng sửa 1 (sau soát lần 2) — từng lỗi
+| Lỗi | Xử lý |
+|---|---|
+| 1 P26c `goiDaLay` datMe ẩn | ĐÃ SỬA (a3d50f7): bỏ dòng trong `goiDaLay`, thêm tham số `sdt`; A5g dựng `con5` + `datMe(con5, me)` tường minh. grep `datMe(` 6 bài: 15 chỗ, đều ở ca. P26c gốc 157 · 1 hỏng (VM1), HEAD 158 · 0 — số không đổi. |
+| 2 ke_hoach E1 | ĐÃ SỬA (bf9f93f): câu E1 ghi đúng là phép tĩnh. |
+| 3 ke_hoach giuCho.js:27 | ĐÃ SỬA (bf9f93f): → `giuCho.js:22`. |
+| K1 "vẫn 12 · 11" | ĐÃ SỬA: ghi rõ nguồn hai con số. |
+| Nghi: đột biến bỏ kiểm lúc chốt | KHÔNG làm: chủ quán dặn ca chốt khi quan hệ đổi giữa chừng ghi CHƯA KIỂM; B2 đỏ trên gốc là bằng chứng hiện có. |
+| Nghi: phone thô (sync.js:290) | KHÔNG sửa: ngoài Phạm vi, ghi Phát hiện. |
+| Nghi: soát bảo mật cũ | Làm lại soát bảo mật (bước 8b) ở HEAD mới. |
+
+## Phát hiện (thêm 11.11)
+- `server/routes/sync.js:290` ghi `pos_customers.phone` thô (không chuẩn hoá) — nếu có dòng như vậy, `kiemTraMe` (tra theo SĐT đã chuẩn hoá)
+  sẽ 403 oan cho con đó. Ngoài Phạm vi, chưa thấy dữ liệu thật; chat xem có cần việc dọn dữ liệu.
