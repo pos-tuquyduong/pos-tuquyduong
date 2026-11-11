@@ -13,6 +13,7 @@ import CaiDatGiaoHang from './CaiDat/GiaoHang';   // GIAO-1
 import CongQr from './CaiDat/CongQr';   // TINGEE-1: cổng QR đang chạy (tên + đã cài)
 import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (hạng, thứ bậc, gói, PIN chủ quán)
 import GoiNap from './CaiDat/GoiNap';   // NAP-1: thẻ Gói nạp tiền (quyền quản lý sản phẩm)
+import TichDiem from './CaiDat/TichDiem';   // DIEM-MON-1: công tắc tích điểm theo món / gói / hạng
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
 
@@ -1609,6 +1610,7 @@ export default function Settings() {
                   <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu'}
                 </button>
               </div>
+              <TichDiem />
             </>
           ) : tab === 'signup' ? (
             /* TAB ƯU ĐÃI KHÁCH MỚI (Bước 4) */
