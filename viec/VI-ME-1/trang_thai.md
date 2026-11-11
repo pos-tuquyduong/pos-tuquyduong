@@ -220,3 +220,33 @@ BÀI HỌC: NGUYÊN TẮC K3 — grep MỌI hàm phụ dựng đơn, không ch�
 ## Phát hiện (thêm 11.11)
 - `server/routes/sync.js:290` ghi `pos_customers.phone` thô (không chuẩn hoá) — nếu có dòng như vậy, `kiemTraMe` (tra theo SĐT đã chuẩn hoá)
   sẽ 403 oan cho con đó. Ngoài Phạm vi, chưa thấy dữ liệu thật; chat xem có cần việc dọn dữ liệu.
+
+## Soát bảo mật lần 2 (11.11, mốc 72398197^..bf9f93f — sau vòng sửa 1)
+Số lỗi trước lọc: 2 · sau lọc: 0 (người soát tự làm cả bước tìm và lọc — không có công cụ sub-task). Báo cáo nguyên văn:
+```
+Mình đã soát bảo mật toàn bộ thay đổi của nhánh viec/VI-ME-1, tính từ mốc 723981971^ tới HEAD. Kết quả: không có lỗ hổng nào đạt ngưỡng báo,
+và bản vá đóng đúng lỗ tiền mẹ mà phiếu nêu.
+Số lỗi trước lọc: 2 · sau lọc: 0
+## Phạm vi đã đọc
+- git diff 723981971^ HEAD: 16 file. Code chạy thật chỉ có 2 chỗ: server/routes/orders.js dòng 30 nạp kiemTraMe; dòng 688–694 cổng mới trong
+  taoDon. server/utils/viMe.js: file mới, 18 dòng.
+- Phần còn lại là bài thử (cong_cu/thu_*.js, cong_cu/gia_lap/kich_ban.js), một dòng đăng ký bài thử ở kiem_tra_truoc_khi_giao.js, và hồ sơ
+  viec/VI-ME-1/* — thuộc loại trừ "chỉ dùng để chạy thử" và "tài liệu".
+## Kiểm tra luồng dữ liệu
+1. Cổng che hết các chỗ đụng ví mẹ trong taoDon — có. Cổng ở orders.js:690 chạy khi có parent_phone hoặc Number(parent_balance_amount) > 0.
+   Đọc ví mẹ (orders.js:860–881) và trừ ví (orders.js:969) đều cần normalizedParentPhone khác rỗng → cổng luôn chạy trước. orders.js:178–684
+   chỉ có lối trả lỗi 4xx sớm. Lối chỉ-tính trả ở orders.js:898, sau cổng.
+2. Phiên giữ chỗ và chốt phiên cũng qua cổng: giuCho.js:47–52 gọi taoDon chỉ-tính trước kiểm PIN và trước INSERT phiên giữ ví mẹ
+   (giuCho.js:57–72) — mẹ sai 403, không giữ chỗ. chotPhien (giuCho.js:105) dựng lại thân đơn từ phien.than (có parent_phone) rồi gọi taoDon
+   — cổng chạy lại.
+3. viMe.js an toàn: truy vấn có tham số; mặc định từ chối (khách rỗng, SĐT mẹ rỗng, không có khách, khách không có mẹ → 403
+   KHONG_PHAI_TK_ME); hai vế chuẩn hoá bằng normalizePhone (cùng hàm chỗ trừ ví); thông báo lỗi không lộ số dư / SĐT mẹ thật.
+## Hai ứng viên đã xét và loại
+| 1 | Dò quan hệ mẹ–con qua 403 khác 200/400 | 2/10 | Cần tài khoản nhân viên, nhân viên vốn tra được khách; chỉ lộ một ý có/không. |
+| 2 | SO_DU_KHONG_DU (orders.js:868–871) in số dư khả dụng ví mẹ | 2/10 | Có từ trước nhánh; nay chỉ hiện khi đã qua cổng đúng mẹ — bản vá thu hẹp. |
+## Chưa kiểm
+- Không chạy bài thử, không dựng ca khai thác (chỉ đọc code).
+- Hạng mục E: kh/index.js:55 chú thích "không cộng ví mẹ"; chưa rà đủ server/utils/donApp.js (file không đổi trong nhánh).
+```
+(Hạng mục E đã có bằng chứng riêng: ca E1 tĩnh `thu_VIME1.js` + donApp.js:281 không có `tru_tai_khoan_me` — soát độc lập lần 2.)
+SOÁT BẢO MẬT: ĐẠT
