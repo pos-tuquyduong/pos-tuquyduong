@@ -48,6 +48,9 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
+  const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
+    + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
 
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);
@@ -169,9 +172,9 @@ async function main() {
     await caDiem('B2 ví 10.000 + tiền mặt 15.000 → 25 điểm (cả phần ví)', r2, 25);
     await caDiem('B3 tiền mặt 30.000 có phí giao 5.000 → 25 điểm (trừ phí trước khi chia)',
       await ban({ customer_phone: sdtMoi(), payment_method: 'cash', cash_amount: 30000, shipping_fee: 5000 }), 25);
-    const me = await coVi(10000);
+    const me = await coVi(10000), con4 = sdtMoi(); await datMe(con4, me);
     await caDiem('B4 ví mẹ 10.000 + chuyển khoản 15.000 → 25 điểm',
-      await ban({ customer_phone: sdtMoi(), parent_phone: me, payment_method: 'transfer', transfer_amount: 15000, parent_balance_amount: 10000 }), 25);
+      await ban({ customer_phone: con4, parent_phone: me, payment_method: 'transfer', transfer_amount: 15000, parent_balance_amount: 10000 }), 25);
     await caDiem('B5 phí giao 5.000, tiền mặt 3.000 + ví 27.000 → 25 điểm (tổng 30.000 − phí)',
       await ban({ customer_phone: await coVi(27000), payment_method: 'cash', balance_amount: 27000, cash_amount: 3000, shipping_fee: 5000 }), 25);
     await caDiem('B6 phí giao âm −5.000 (máy chủ coi 0) + tiền mặt 25.000 → 25 điểm (không 30)',
@@ -179,8 +182,14 @@ async function main() {
     // Câu hỏi 4 (b): phép kiểm tổng cho lệch ±1đ (orders.js paymentSum) — tiền mặt thừa 1đ không thêm điểm.
     await caDiem('B7 ví 1.001 + tiền mặt 24.000 (thừa 1đ, lọt dung sai) → 25 điểm (trần total 25.000, không 25.001)',
       await ban({ customer_phone: await coVi(1001), payment_method: 'cash', balance_amount: 1001, cash_amount: 24000 }), 25);
+    const con8 = sdtMoi(), me8 = await coVi(15001); await datMe(con8, me8);
     await caDiem('B8 ví mẹ 15.001 + tiền mặt 10.000 (thừa 1đ, lọt dung sai) → 25 điểm (trần total)',
-      await ban({ customer_phone: sdtMoi(), parent_phone: await coVi(15001), payment_method: 'cash', cash_amount: 10000, parent_balance_amount: 15001 }), 25);
+      await ban({ customer_phone: con8, parent_phone: me8, payment_method: 'cash', cash_amount: 10000, parent_balance_amount: 15001 }), 25);
+    const viDT = (s) => so('SELECT COALESCE((SELECT balance FROM pos_wallets WHERE phone = ?), 0)', [s]);
+    const meVM = await coVi(10000);
+    const vm = await ban({ customer_phone: sdtMoi(), parent_phone: meVM, payment_method: 'transfer', transfer_amount: 15000, parent_balance_amount: 10000 });
+    k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await viDT(meVM) === 10000,
+      `${moTa(vm)} · ví mẹ ${await viDT(meVM)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -251,8 +260,8 @@ async function main() {
     k('D4 đơn ví 1.001 + tiền mặt 24.000 (thừa 1đ; 25 điểm lúc bán) → /nhan-diem bù đủ 25 × 2 = 50 (không 51)', n4.status === 200
       && await diemDon(d4.order.id) === 50, `${moTa(n4)} · ${d4.order && await diemDon(d4.order.id)}`);
 
-    const s5 = sdtMoi();
-    const d5 = await ban({ customer_phone: s5, parent_phone: await coVi(15001), payment_method: 'cash', cash_amount: 10000, parent_balance_amount: 15001 });
+    const s5 = sdtMoi(), me5 = await coVi(15001); await datMe(s5, me5);
+    const d5 = await ban({ customer_phone: s5, parent_phone: me5, payment_method: 'cash', cash_amount: 10000, parent_balance_amount: 15001 });
     const n5 = await nhan(d5, s5);
     k('D5 đơn ví mẹ 15.001 + tiền mặt 10.000 (thừa 1đ; 25 điểm lúc bán) → /nhan-diem bù đủ 25 × 2 = 50', n5.status === 200
       && await diemDon(d5.order.id) === 50, `${moTa(d5)} / ${moTa(n5)} · ${d5.order && await diemDon(d5.order.id)}`);

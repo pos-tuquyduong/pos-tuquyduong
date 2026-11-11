@@ -26,6 +26,7 @@ const HUY_TRU_DIEM_TU = '2026-10-26';
 const DIEM_THAT_TU = '2026-10-27';
 // NAP-1: ngày đầu "trả bằng ví có điểm" chạy trọn (ghi tạm — chat sửa đúng ngày gộp + 1 lúc duyệt PR).
 const DIEM_VI_TU = '2026-11-08';
+const THE_TU = -1000000;   // DIEM-MON-1: dòng thẻ hạng product_id ≤ THE_TU, dòng gói trả trước giữa THE_TU và 0 (chép server/utils/diemThat.js ID_THE_TU)
 const NAP_TU = -2000000;   // dòng hàng gói nạp: product_id ≤ NAP_TU (chép server/utils/viKhach.js ID_NAP_TU — trọng tài không require server)
 const IN = (ds) => ds.map((t) => `'${t}'`).join(', ');
 const so = (x) => Number(x || 0);
@@ -153,18 +154,31 @@ const BAT_BIEN = {
     const napSql = coMon ? `o.id IN (SELECT order_id FROM pos_order_items WHERE product_id <= ${NAP_TU})` : '0';
     // Cùng lý do: kho dữ liệu tay không có sổ ví → không đơn nào có tiền trả vào tài khoản (hoan = 0).
     const coSo = so((await q("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'pos_balance_transactions'"))[0]?.n);
+    // DIEM-MON-1: kho đã chạy bước 024 (pos_orders có tien_hang_diem — cùng bước thêm pos_order_items.tich_diem) → đọc phần tiền tích điểm đã
+    // lưu, cờ dòng gói và tiền đền của món tắt. Kho dữ liệu tay (không cột) → như trước.
+    const coMonDiem = so((await q(`SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'pos_orders' AND sql LIKE '%tien_hang_diem%'`))[0]?.n);
+    const cotMonDiem = coMonDiem ? 'o.tien_hang_diem AS thd, gi.goi_bat, COALESCE(dt.den_tat, 0) AS den_tat' : 'NULL AS thd, NULL AS goi_bat, 0 AS den_tat';
+    const noiMonDiem = coMonDiem ? `LEFT JOIN (SELECT order_id, MIN(COALESCE(tich_diem, 1)) AS goi_bat FROM pos_order_items
+        WHERE product_id < 0 AND product_id > ${THE_TU} GROUP BY order_id) gi ON gi.order_id = o.id
+      LEFT JOIN (SELECT l.order_id, SUM(l.refund_amount) AS den_tat FROM pos_damage_logs l WHERE l.action = 'refund' AND EXISTS (SELECT 1
+        FROM pos_order_items i WHERE i.order_id = l.order_id AND i.product_code = l.product_code AND i.tich_diem = 0) GROUP BY l.order_id) dt ON dt.order_id = o.id` : '';
     // DOI-SOAT-1: gộp trước rồi JOIN (không câu lồng theo order_id — pos_signup_codes.order_id không chỉ mục: 20.000 đơn mất 12 s).
     const ds = await q(`SELECT o.code, o.total, o.cash_amount, o.transfer_amount, o.shipping_fee, o.balance_amount, o.parent_balance_amount, o.customer_phone, COALESCE(o.flash_discount, 0) AS flash, o.payment_status, o.created_at,
         o.status, o.cancelled_at, ${napSql} AS nap,
-        COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan, COALESCE(h.hoan, 0) AS hoan
+        COALESCE(t.diem, 0) AS diem, COALESCE(s.n, 0) AS da_nhan, COALESCE(h.hoan, 0) AS hoan, COALESCE(h.hoan_r, 0) AS hoan_r, ${cotMonDiem}
       FROM pos_orders o
       LEFT JOIN (SELECT order_id, SUM(points) AS diem FROM pos_point_transactions GROUP BY order_id) t ON t.order_id = o.id
       LEFT JOIN (SELECT order_id, COUNT(*) AS n FROM pos_signup_codes WHERE diem_nhan_luc IS NOT NULL GROUP BY order_id) s ON s.order_id = o.id
-      ${coSo ? `LEFT JOIN (SELECT order_id, SUM(amount) AS hoan FROM pos_balance_transactions WHERE type IN ('refund', 'compensation')
-        GROUP BY order_id) h ON h.order_id = o.id` : 'LEFT JOIN (SELECT NULL AS order_id, 0 AS hoan) h ON 0'}`);
+      ${coSo ? `LEFT JOIN (SELECT order_id, SUM(amount) AS hoan, SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) AS hoan_r
+        FROM pos_balance_transactions WHERE type IN ('refund', 'compensation') GROUP BY order_id) h ON h.order_id = o.id`
+    : 'LEFT JOIN (SELECT NULL AS order_id, 0 AS hoan, 0 AS hoan_r) h ON 0'}
+      ${noiMonDiem}`);
     const lech = ds.flatMap((r) => {
       const vi = so(r.balance_amount) + so(r.parent_balance_amount);
-      const tienDiem = Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount) + vi, so(r.total)) - so(r.shipping_fee)));
+      const traDon = Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount) + vi, so(r.total)) - so(r.shipping_fee)));
+      // DIEM-MON-1: tiền trả × phần tiền hàng của dòng bật đã lưu lúc bán / tiền hàng; NULL = đơn cũ.
+      const hang = so(r.total) - so(r.shipping_fee);
+      const tienDiem = r.thd == null ? traDon : hang > 0 ? Math.round((traDon * so(r.thd)) / hang) : 0;
       const g = Math.floor(tienDiem / per);
       const gThat = Math.floor(Math.max(0, Math.round(Math.min(so(r.cash_amount) + so(r.transfer_amount), so(r.total) - vi) - so(r.shipping_fee))) / per);
       const gCu = Math.floor(so(r.total) / per);
@@ -180,9 +194,19 @@ const BAT_BIEN = {
       const dungBan = (r.status === 'cancelled' && !huyCu) || so(r.nap) ? 0 : diemDung(false, g);   // NAP-1: đơn nạp 0 điểm
       // NAP-1 (chủ quán 06.11): đơn CHƯA HUỶ có tiền trả vào tài khoản (duyệt hoàn, đền bù, kết thúc gói có hoàn — sổ ví 'refund' +
       // 'compensation' của đơn, cộng dồn) giữ điểm phần còn lại: trừ ceil(điểm × tổng tiền trả / tiền tính điểm), không quá điểm. Đơn huỷ: về 0
-      // ở trên. Chép riêng (trọng tài), không gọi diemThat.js.
-      const truHoan = r.status !== 'cancelled' && dungBan > 0 && so(r.hoan) > 0 && tienDiem > 0
-        ? Math.min(dungBan, Math.ceil((dungBan * so(r.hoan)) / tienDiem)) : 0;
+      // ở trên. Chép riêng (trọng tài), không gọi diemThat.js. DIEM-MON-1 (CÁCH 2): đền món tắt / hoàn gói tắt không trừ; đền món bật / hoàn gói bật
+      // tính đủ; 'refund' của đơn không gói (duyệt hoàn) quy theo PHẦN CÒN LẠI sau đền (Q4 = a: × (tiền tính điểm − đền bật) / (tiền trả − đền)).
+      const den = so(r.hoan) - so(r.hoan_r);
+      const coGoi = r.goi_bat != null;
+      const denBat = den - Math.min(den, so(r.den_tat));
+      // Soát vòng 2: tiền hoàn quy đổi là phân số tu / mau — ceil bằng số nguyên lớn, không qua số thực.
+      const N = (x) => BigInt(Number.isFinite(x) ? Math.round(x) : 0);   // chặn NaN / Infinity (cài đặt điểm 0 / rỗng) → không sập (soát vòng 3)
+      const conTra = traDon - den, mau = !coGoi && conTra > 0 ? conTra : 1;
+      const tu = N(denBat + (coGoi && so(r.goi_bat) !== 0 ? so(r.hoan_r) : 0)) * N(mau)
+        + (!coGoi && conTra > 0 ? N(so(r.hoan_r)) * N(Math.max(0, tienDiem - denBat)) : 0n);
+      const tuDiem = N(dungBan) * tu, mauDiem = N(tienDiem) * N(mau);
+      const truHoan = r.status !== 'cancelled' && dungBan > 0 && tu > 0n && tienDiem > 0
+        ? Math.min(dungBan, Number((tuDiem + mauDiem - 1n) / mauDiem)) : 0;
       const dung = dungBan - truHoan;
       if (so(r.diem) === dung || (huyCu && so(r.diem) === 0)) return [];
       const cu = ctx.thuc && (huyCu || r.status !== 'cancelled');

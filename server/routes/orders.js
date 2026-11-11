@@ -27,6 +27,7 @@ const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
 const { ID_NAP_TU, sqlDonNap, laDonNap, LOI_NAP_KHONG_HOAN } = require("../utils/viKhach"); // NAP-1: đơn nạp — một vị từ
 const { tinhUuDai } = require("../utils/uuDai"); // UUDAI-1: giảm hạng + giảm mã — một hàm cho tạo đơn, tinh-thu, phiên payOS
+const { kiemTraMe } = require("../utils/viMe"); // VI-ME-1: đối chiếu mẹ–con trước mọi lối tiền mẹ
 const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từng món — một hàm cho quầy và /api/kh/menu
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
@@ -39,7 +40,7 @@ const router = express.Router();
 // không bán số lẻ (chủ quán chốt 14.10). Chuỗi số nguyên ("2", " 5") vẫn nhận vì màn hình / bài thử cũ có gửi chuỗi.
 const soNguyenDuong = (x) => Number.isInteger(Number(x)) && Number(x) >= 1;
 
-const { tienTinhDiem } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` của tinhDiemDon = tiền khách trả thật
+const { tienTinhDiem, tienHangDiem, batDiem, ID_THE_TU } = require("../utils/diemThat"); // DIEM-THAT-1: đối số `tong` của tinhDiemDon = tiền khách trả thật; DIEM-MON-1: chỉ phần dòng bật điểm
 const giaoHang = require("../utils/giaoHang"); // GIAO-1: đơn giao Ahamove — phí ship từ báo phí của máy chủ, chuyến, huỷ theo bước
 
 // P22-23: MỘT công thức điểm cho đơn thu đủ lúc tạo (POST /) và lúc thu đủ nợ (pay-debt) — đọc cài đặt LÚC GỌI.
@@ -480,6 +481,7 @@ async function taoDon(req, res, phien = null) {
         from_package: !!item.from_package,
         is_special_group: !!product.is_special_group,
         note: item.note ? String(item.note).trim().slice(0, 200) : null,
+        tich_diem: batDiem(product) ? 1 : 0,   // DIEM-MON-1: cờ món LÚC BÁN
       });
     }
 
@@ -509,6 +511,7 @@ async function taoDon(req, res, phien = null) {
         sx_product_type: null,
         sx_product_id: null,
         is_package_item: true,
+        tich_diem: batDiem(pkg) ? 1 : 0,   // DIEM-MON-1
       });
     }
 
@@ -534,7 +537,7 @@ async function taoDon(req, res, phien = null) {
       const cardPrice = membershipGoi.gia;
       subtotal += cardPrice;
       orderItems.push({
-        product_id: -1000000 - membershipTier.id, // né trùng với product_id thường và -pkg.id
+        product_id: ID_THE_TU - membershipTier.id, // né trùng với product_id thường và -pkg.id
         product_code: `THE-${membershipTier.name}`,
         product_name: `🎟️ Thẻ hội viên ${membershipTier.name} · ${membershipGoi.so_thang} tháng`,
         unit: 'thẻ',
@@ -544,6 +547,7 @@ async function taoDon(req, res, phien = null) {
         sx_product_type: null,
         sx_product_id: null,
         is_membership_item: true,
+        tich_diem: batDiem(membershipTier) ? 1 : 0,   // DIEM-MON-1: một cờ cho cả hạng
       });
     }
 
@@ -684,6 +688,12 @@ async function taoDon(req, res, phien = null) {
     }
     // ═══ het POS-CONGDON-v1 · LO 2 ═══════════════════════════════════════
     const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
+    // VI-ME-1: có SĐT mẹ hoặc tiền mẹ → máy chủ đối chiếu pos_customers TRƯỚC mọi chỗ đọc / giữ / trừ ví mẹ — chạy cả ở chế độ chỉ tính
+    // (tạo phiên giữ chỗ, màn khách) và lúc chốt phiên (taoDon ghi thật). Sai mẹ → 403 KHONG_PHAI_TK_ME, chưa ghi gì.
+    if (parent_phone || Number(parent_balance_amount) > 0) {
+      const sai = await kiemTraMe(phone, parent_phone);
+      if (sai) return res.status(sai.status).json(sai.body);
+    }
 
     // === TIER-2: Giảm theo HẠNG THÀNH VIÊN (tầng cùng mức F2, tự động) ===
     // Bám ĐÚNG luật F2 đã có: đơn có dính Flash (flashApplied=true) → KHÔNG cộng giảm hạng,
@@ -928,10 +938,11 @@ async function taoDon(req, res, phien = null) {
     // Đọc cấu hình + tính điểm + tính hạn TRƯỚC khi mở tx. Trong tx chỉ còn 1 INSERT đã kiểm sẵn
     // → một lỗi điểm KHÔNG BAO GIỜ rollback được một ca bán thật.
     let diemTao = null;
+    const tienHangDiemDon = tienHangDiem(orderItems, total - finalShippingFee);   // DIEM-MON-1: lưu vào đơn — mọi lối cộng / trừ điểm đọc số này
     try {
       // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
       // P22-23: chỉ đơn THU ĐỦ lúc tạo (`finalPaymentStatus` máy chủ tự quyết theo nợ, ở trên) — đơn còn nợ cộng ở pay-debt khi thu đủ.
-      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount }), now);
+      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount, tien_hang_diem: tienHangDiemDon }), now);
     } catch (loyPrepErr) {
       console.error('⚠️ LOY-1: lỗi chuẩn bị điểm (bỏ qua, không ảnh hưởng đơn):', loyPrepErr.message);
       diemTao = null;
@@ -993,9 +1004,9 @@ async function taoDon(req, res, phien = null) {
           parent_phone, parent_balance_amount,
           cash_received, change_amount,
           payment_status, due_date,
-          customer_package_id,
+          customer_package_id, tien_hang_diem,
           status, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
         [
           orderCode, phone || null, customer_name || "Khách lẻ",
           subtotal, totalDiscountAmount, discount_reason || null, total,
@@ -1008,7 +1019,7 @@ async function taoDon(req, res, phien = null) {
           normalizedParentPhone || null, actualParentBalanceAmount,
           cash_received || 0, change_amount || 0,
           finalPaymentStatus, due_date || null,
-          customer_package_id || null,
+          customer_package_id || null, tienHangDiemDon,
           notes || null, req.user.username, now,
         ],
       );
@@ -1030,11 +1041,11 @@ async function taoDon(req, res, phien = null) {
         await tx.run(
           `INSERT INTO pos_order_items (
             order_id, product_id, product_code, product_name,
-            quantity, unit_price, total_price, unit, notes, flash_unit_price, tier_unit_price
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            quantity, unit_price, total_price, unit, notes, flash_unit_price, tier_unit_price, tich_diem
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [orderId, item.product_id, item.product_code, item.product_name,
            item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
-           item.flash_unit_price || null, item.tier_unit_price || null],
+           item.flash_unit_price || null, item.tier_unit_price || null, item.tich_diem ?? null],   // DIEM-MON-1: dòng nạp không cờ (đơn nạp 0 điểm, không gộp món)
         );
       }
 
@@ -1305,16 +1316,16 @@ async function taoDon(req, res, phien = null) {
             );
             const c = {};
             for (const r of rows) c[r.key] = r.value;
-            const batDiem = c.nhandiem_enabled === '1' && !flashApplied;   // P22-23: đơn Flash 0 điểm (/nhan-diem từ chối) — bill không hứa điểm
+            const coNhanDiem = c.nhandiem_enabled === '1' && !flashApplied;   // P22-23: đơn Flash 0 điểm (/nhan-diem từ chối) — bill không hứa điểm
             const batVoucher = c.signup_enabled === 'true' || c.signup_enabled === '1';
             const { heSo } = await docCauHinhNhanDiem();   // P22-23: CÙNG hệ số /nhan-diem cộng (hệ số < 1 → 2 ở cả hai)
             const gio = Number(c.nhandiem_han_gio) || 24;
             const hanChu = gio >= 24 && gio % 24 === 0 ? (gio / 24) + ' ngay' : gio + ' gio';
-            if (batDiem && batVoucher) {
+            if (coNhanDiem && batVoucher) {
               return { signup_nhan: 'Ma uu dai',
                 signup_loi: `Tao tai khoan trong ${hanChu} de nhan uu dai va gap ${heSo} diem cua don nay` };
             }
-            if (batDiem) {
+            if (coNhanDiem) {
               return { signup_nhan: 'Ma nhan diem',
                 signup_loi: `Tao tai khoan trong ${hanChu} de nhan gap ${heSo} diem cua don nay` };
             }

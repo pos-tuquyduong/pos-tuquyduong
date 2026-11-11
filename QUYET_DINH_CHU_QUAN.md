@@ -231,6 +231,20 @@
 - 09.11 · Máy in bill tự cắt rời từng liên (2 liên → 2 tờ rời, không in dài rồi xé).
 - 09.11 · Khai trương phải ĐẦY ĐỦ mọi việc, không cắt bớt — sớm nhất T5 26.11 nếu không thêm việc.
 
+## Đợt quyết định 10.11.2026 (chat bàn 35)
+- 10.11 · Mã giảm / voucher KHÔNG áp lên thẻ hạng, nạp tiền, gói trả trước, thẻ quà; đơn có thêm món thường thì mã chỉ tính trên món thường
+  (VOUCHER-2 — chốt câu chờ 09.11).
+- 10.11 · Nạp tiền và thẻ quà CHỈ mua bằng tiền thật (tiền mặt / chuyển khoản): không trừ tiền tài khoản, không mã giảm — chặn vòng lặp "trả 95k nhận
+  100k rồi lấy tiền tài khoản mua tiếp"; máy chủ chặn ở cả quầy và App (KH-NAP-1, QUA-TANG-1). Tiền đã vào tài khoản thì khách mua gì cũng được.
+- 10.11 · Thẻ quà tặng (QUA-TANG-1, làm SAU CÙNG): mệnh giá + khuyến mãi trong Cài đặt (vd trả 95.000đ nhận 100.000đ, tuỳ chọn tối đa N thẻ
+  khuyến mãi / khách / tháng); mỗi thẻ một mã, thuộc người mua tới khi có người nhập. Mua trên App → mã trong "Quà đã mua" + nút Chia sẻ; mua ở
+  quầy có tài khoản → mã vào App của khách (in phiếu nếu khách muốn); không tài khoản → in phiếu mã + QR. Không chuyển thẳng theo SĐT lúc bán.
+  Người nhận nhập mã trong App hoặc quầy quét mã → tiền vào tài khoản (không hạn); mã dùng một lần, hạn nhận 12 tháng (Cài đặt). Mua 0 điểm,
+  tiêu vẫn tích điểm. Mã chưa ai nhập chủ quán huỷ được; đã nhập không hoàn, không đổi tiền mặt.
+- 10.11 · Giới thiệu bạn bè (GIOI-THIEU-1, sau khai trương, sau VOUCHER-2): chỉ qua App; thưởng bằng voucher sinh từ "mẫu voucher" trong Cài đặt
+  Voucher (mức + hạn trong Cài đặt); người được mời nhận khi đăng ký (khách mới thật), người giới thiệu nhận khi đơn đầu của bạn hoàn tất; trần N
+  lần / tháng (mặc định 10).
+
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
   nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).
