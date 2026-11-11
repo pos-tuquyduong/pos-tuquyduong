@@ -69,3 +69,39 @@ Phiếu: `không`.
 ## Phát hiện bổ sung (từ soát lần 1, chưa sửa)
 - HangThe.jsx (xoá hạng → `await tai()`) và GiaoHang.jsx (`datDiemLay` → `await tai()`) nạp đè phần đang gõ dở ở chỗ khác của thẻ; GoiNap / ChuongTrinh bấm "Sửa" khi form khác đang dở bỏ form cũ không hỏi.
 - GiaoHang: phép kiểm số phía quầy lỏng hơn máy chủ (`server/utils/giaoHang.js`), chưa có `<LoiO>` riêng cho giờ nhận và SĐT.
+
+## Nghiệm thu — đếm từng mục (bằng chứng = ca của `cong_cu/thu_BAO1b.js`, 108 ca xanh)
+- A dùng thông báo chung: A1, A1b–A1e (Settings.jsx), A2 (CaiDatChuong), A3 + A4 ×9 thẻ · bánh cóc `alert(` = 0 (thu_BAO1a D1)
+- B báo tại chỗ: B1–B3 (LoiO + 9 thẻ), B4a–B4h (phép kiểm ô chạy thật, ngay trên/dưới ngưỡng), B5, B6 — hạn chế: GiaoHang chỉ kiểm "là số" (Phát hiện)
+- C chưa lưu: C1a–e (thayDoiKho chạy thật), C2a–d, C3, C4a, C4 ×7 thẻ, C5 (Settings.doiThe), C6
+- D PIN: D1a–b (laLoiPin chạy thật), D2a–e, D3a–g, D4
+- E sau khi lưu: E1 ×7, E1b, E2 ×8, E3 ×6, E4
+- F bộ kiểm: F1 · `--day-du` PASS 116 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ: route GET có lệnh ghi)
+- K5 không đổi máy chủ: `git diff 225bbde HEAD --stat -- server` rỗng; bài HANG-1 / KHO-IN-1 / NAP-1 / CT-1a / DIEM-MON-1 / MAN-KHACH-1 / GIAO-1 xanh trong `npm test`; D3g khoá luồng "Lưu không hỏi PIN"
+
+## BÁO CÁO
+```
+VIỆC:        BAO-1b — Màn Cài đặt báo rõ mọi thao tác (gồm CAIDAT-BAO-1)
+ĐÃ SỬA:      client/src/components/{ThanhLuu.jsx,HoiPin.jsx,LoiO.jsx,useThayDoi.js,thayDoiKho.js,loiPin.js,kiemCaiDat.js} (mới) · pages/CaiDat/*.jsx (9 thẻ) ·
+             components/CaiDatChuong.jsx · pages/Settings.jsx (bỏ message/66 setMessage; Settings.doiThe hỏi lại; 3 nút ghi im lặng nay có báo) · index.css · client/dist
+BÀI THỬ:     cong_cu/thu_BAO1b.js trên gốc 225bbde → ĐỎ 76 ca (A1 còn 66 setMessage …); sau khi vá → XANH 108/108; đột biến 61/61 BẮT (lần đầu 41 BẮT + 4 SỐNG → siết)
+ĐÃ RÀ K4:    grep "setMessage|thongDiep|alert(|'Lỗi: ' +" trong Settings.jsx, pages/CaiDat, components → 0 chỗ còn; nút ghi im lặng trong Settings.jsx: 3 chỗ, đã xử lý
+CHƯA KIỂM:   chưa mở giao diện thật bằng trình duyệt (vị trí thanh cố định, hộp PIN, hai thông báo cùng lúc) — chủ quán thử tay 3 thao tác dưới đây; HoiPin/ThanhLuu/useThayDoi
+             chỉ khoá bằng dò mã nguồn + đột biến, không có phép chạy React thật; lần soát độc lập thứ 2 chưa chạy; baoXong(data.message) có thể trống nếu route gói không trả message
+GIT:         xem git log --oneline -2 ở cuối
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 1 · BỎ 1
+```
+Thử tay trên điện thoại (chủ quán): (1) Cài đặt → Hạng thành viên: sửa % giảm rồi bấm Lưu → hộp hỏi PIN hiện; gõ sai PIN → chữ đỏ dưới ô PIN và dữ liệu còn nguyên; gõ đúng → thông báo xanh "Đã lưu … hạng".
+(2) Sửa một ô ở Giờ hoạt động rồi bấm sang thẻ khác → máy hỏi "Còn thay đổi chưa lưu"; thanh vàng cuối màn có Bỏ / Lưu. (3) Ở Gói nạp bỏ trống Tên rồi Lưu → chữ đỏ ngay dưới ô Tên.
+
+## Bài học
+- KHOÁ 1 (đã làm): phép kiểm ô rút ra `kiemCaiDat.js` chạy thật, ca ngay trên/dưới ngưỡng + đột biến nới/siết (soát bắt: bài chỉ dò chuỗi, nới 90 → 900 vẫn xanh). Lý do: K3.
+- KHOÁ 2 (đã làm): ca B5 cấm viết lại số ngưỡng trong thẻ; K4a khoá chốt `taiLoi` của nút phụ. Lý do: K4.
+- KHOÁ 3 (đã làm): bốn ca quá lỏng (D2c, A4, E2, E4) lộ qua đột biến SỐNG → siết; đề xuất ngoài Phạm vi: không.
+- NGUYÊN TẮC 1 (đề xuất, KHUON_LOI.md ngoài Phạm vi): K4 — thêm nút/đường ghi phụ (thanh chưa lưu) thì mọi chốt chặn của nút chính (taiLoi, dangLuu) phải áp luôn cho nút phụ; và `tai()` sau một thao tác ghi cục bộ nạp đè phần đang gõ ở chỗ khác (BAO-1b ManKhach.luu, HangThe xoá hạng).
+- BỎ 1: git kho nông làm BH2 G1 đỏ lúc đầu (môi trường, một lần) — đã `--unshallow`.
+- Dọn KHUON_LOI/CLAUDE: không đề xuất xoá.
+
+✓ CỔNG CHẠY ĐẠT (A16 cảnh báo: gốc in 93 ca vì C0/D0 không nạp được module chưa có — bình thường)
+
+HEAD ĐÃ KIỂM: f8d3e500
