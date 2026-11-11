@@ -71,8 +71,12 @@ khách chỉ có trong `pos_registrations` (không dòng `pos_customers`, `docKh
 - `BV-1-bo-goi` — xoá lời gọi `kiemTraMe` trong `orders.js` → A1, A2, B1, B2 ĐỎ.
 - `VS-1-chi-khi-co-tien` — điều kiện chỉ `parent_balance_amount > 0` → B1 ĐỎ (tạo phiên không gửi tiền mẹ).
 - `VS-2-khong-chuan-hoa` — so `parent_phone` thô → A5 ĐỎ (chặn oan).
-- `VS-3-chi-kiem-ton-tai` — chỉ kiểm khách có mẹ, không so bằng → A1 ĐỎ.
-- `VS-4-sau-chi-tinh` — dời lời gọi xuống sau `if (phien?.chiTinh)` → B1 ĐỎ.
+- `VS-3-chi-kiem-co-me` — chỉ kiểm khách có mẹ, không so bằng → A1 ĐỎ.
+- `VS-4-bo-qua-chi-tinh` — bỏ qua kiểm ở chế độ chỉ tính (`!phien?.chiTinh && …`) → B1 ĐỎ.
+- `VS-5-khong-can-khach` — không có dòng khách vẫn cho qua → A3 ĐỎ.
+- `VS-6-trong-me-cho-qua` — SĐT mẹ rỗng thì cho qua → A4 ĐỎ.
+- `VS-7-chi-khi-co-sdt-me` — điều kiện chỉ `parent_phone` → A4 ĐỎ.
+(Tên chốt theo `dot_bien.py`, sửa 11.11 sau /ra-soat lần 1.)
 
 ## 5. Ngân sách
 ~20 dòng máy chủ (ngân sách phiếu ~40) + ~200 dòng thử. `kiem_tra_truoc_khi_giao.js`: thêm 1 dòng `chayBaiThat('cong_cu/thu_VIME1.js')`.
