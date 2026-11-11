@@ -22,3 +22,7 @@ Xem `ke_hoach.md` mục 9 (Q1–Q6) — cần chủ quán trả lời cùng lúc
 ## Soát kế hoạch (agent phụ chỉ đọc, bước 3)
 Bắt 2 lỗi NẶNG (traLuotMa thoát sớm khi đơn chỉ có voucher; 3 chỗ đọc shipping_fee) + 4 vừa — đã kiểm lại trên code, ghi vào
 `ke_hoach.md` mục 10. DỪNG chờ chủ quán duyệt kế hoạch + trả lời Q1–Q6 (Q5 nay 7 file).
+
+## Stop hook — npm test đỏ oan vì kho nông
+`thu_BH2.js` G1 đỏ: `fatal: bad revision 'cbbb809..HEAD'` — phiên mở từ kho nông (`is-shallow-repository` = true). Đã chạy
+`git fetch -q --unshallow origin viec/VOUCHER-2` (chỉ tải lịch sử, không đổi file) → `npm test`: PASS 111 · FAIL 0 · CẢNH BÁO 1.
