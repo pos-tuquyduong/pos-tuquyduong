@@ -390,10 +390,7 @@ async function phanA(P) {
   const mon = (i, sl = 1) => ({ product_id: sp[i].id, sx_product_type: sp[i].sx_product_type, sx_product_id: sp[i].sx_product_id, quantity: sl });
   let soSdt = 0;
   const sdtMoi = () => '0937' + String(400000 + (++soSdt));
-  const ban = async (body) => {
-    if (body.parent_phone) await datMe(body.customer_phone, body.parent_phone); // VI-ME-1: dựng quan hệ mẹ–con trước khi bán
-    return goi('POST', '/orders', { customer_name: 'Khách HD-1', items: [mon(0)], ...body });
-  };
+  const ban = (body) => goi('POST', '/orders', { customer_name: 'Khách HD-1', items: [mon(0)], ...body });
   const nap = async (sdt, soTien) => {
     const r = await goi('POST', '/wallets/topup', { phone: sdt, amount: soTien, customer_name: 'Khách HD-1', payment_method: 'cash' });
     if (r.status !== 200) throw new Error('không nạp được ví: ' + moTa(r));
@@ -534,9 +531,15 @@ async function phanA(P) {
   await db.run('DELETE FROM pos_point_transactions WHERE id = ?', [Number(tx.lastInsertRowid)]);
   // tài khoản mẹ + chuyển khoản
   const me = sdtMoi(); await nap(me, 30000);
-  const rMe = await ban({ customer_phone: sdtMoi(), parent_phone: me, payment_method: 'transfer', parent_balance_amount: 10000, transfer_amount: 15000 });
+  const conMe = sdtMoi(); await datMe(conMe, me);
+  const rMe = await ban({ customer_phone: conMe, parent_phone: me, payment_method: 'transfer', parent_balance_amount: 10000, transfer_amount: 15000 });
   const aMe = await hd(rMe.order?.id);
   k('A25 tài khoản mẹ + chuyển khoản: hai dòng riêng, tổng = tổng hoá đơn', rMe.status === 200 && bang(aMe.h?.thanh_toan, [{ loai: 'tai_khoan_me', so_tien: 10000 }, { loai: 'chuyen_khoan', so_tien: 15000 }]) && aMe.h.khach_dua === 0, `${moTa(rMe)} ${JSON.stringify(aMe.h?.thanh_toan)}`);
+  const viHD = async (s) => Number((await mot('SELECT COALESCE((SELECT balance FROM pos_wallets WHERE phone = ?), 0) AS b', [s])).b);
+  const meVM = sdtMoi(); await nap(meVM, 30000);
+  const vm = await ban({ customer_phone: sdtMoi(), parent_phone: meVM, payment_method: 'transfer', parent_balance_amount: 10000, transfer_amount: 15000 });
+  k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await viHD(meVM) === 30000,
+    `${moTa(vm)} · ví mẹ ${await viHD(meVM)}`);
   const sFull = sdtMoi(); await nap(sFull, 25000);
   const rFull = await ban({ customer_phone: sFull, payment_method: 'balance', balance_amount: 25000 });
   k('A26 (K5) trừ hết bằng tài khoản: một dòng tài khoản, không tiền mặt', bang((await hd(rFull.order?.id)).h?.thanh_toan, [{ loai: 'tai_khoan', so_tien: 25000 }]));

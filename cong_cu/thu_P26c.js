@@ -577,6 +577,11 @@ async function main() {
     k('C3 duyệt hoàn 5.000 con + 20.000 mẹ → total_spent con −5.000, mẹ −20.000', r.status === 200 && await tieu(con) === tCon - 5000
       && await tieu(me) === tMe - 20000, `${moTa(r)} · con ${tCon} → ${await tieu(con)} · mẹ ${tMe} → ${await tieu(me)}`);
     k('C4 phản hồi duyệt có tong_hoan = 25.000', Number(r.tong_hoan) === 25000, JSON.stringify(r));
+    const me3 = sdtMoi(), con3 = sdtMoi(); await nap(me3, 20000);
+    const vm = await goi('POST', '/orders', { customer_phone: con3, customer_name: 'Khách P26c', parent_phone: me3, items: [mon(0)],
+      payment_method: 'cash', cash_amount: 5000, parent_balance_amount: 20000 });
+    k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await vi(me3) === 20000,
+      `${moTa(vm)} · ví mẹ ${await vi(me3)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════

@@ -699,6 +699,12 @@ async function main() {
         && await vi(me2) === 500000 && await soDong(ml.order?.id, 'cash', con2) === 400000 && await soDong(ml.order?.id, 'hoan_goi', con2) === 1800000,
       `${moTa(ml)} · ${JSON.stringify(dkl.data)} · mẹ ${await vi(me2)} · cash con ${await soDong(ml.order?.id, 'cash', con2)} · hoan_goi ${await soDong(ml.order?.id, 'hoan_goi', con2)}`);
 
+    const me3 = sdtMoi(), con3 = sdtMoi();
+    await nap(me3, 500000);
+    const vm = await muaGoi(con3, G30, { cash_amount: 850000, parent_phone: me3, parent_balance_amount: 500000 });
+    k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await vi(me3) === 500000,
+      `${moTa(vm)} · ví mẹ ${await vi(me3)}`);
+
     const f = sdtMoi();
     const mf = await muaGoi(f, G30, { items: [mon(2, 1, false)], cash_amount: 1375000 });
     const cpF = await goiCua(mf.order?.id);

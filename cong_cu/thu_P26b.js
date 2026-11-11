@@ -390,6 +390,11 @@ async function main() {
     const t = await goi('POST', '/orders', { customer_phone: con, customer_name: 'Con P26b', parent_phone: me2, items: [mon(0)],
       payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
     k('M7 ví mẹ không đủ → 400 SO_DU_KHONG_DU, ví mẹ không đổi', t.status === 400 && t.code === 'SO_DU_KHONG_DU' && await vi(me2) === 10000, moTa(t));
+    const me3 = sdtMoi(), con3 = sdtMoi(); await nap(me3, 100000);
+    const vm = await goi('POST', '/orders', { customer_phone: con3, customer_name: 'Con P26b', parent_phone: me3, items: [mon(0)],
+      payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
+    k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await vi(me3) === 100000,
+      `${moTa(vm)} · ví mẹ ${await vi(me3)}`);
   }
 
   muc('[D] POST /packages/buy đã bỏ');
