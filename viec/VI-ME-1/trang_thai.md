@@ -79,13 +79,14 @@ Bước 6 — `npm test`: PASS 109 · FAIL 0 · CẢNH BÁO 1.
 | `orders.js:690` điều kiện `parent_phone \|\| parent_balance_amount > 0` | `VS-1-chi-khi-co-tien` | B1 |
 | | `VS-7-chi-khi-co-sdt-me` | A4 |
 | lời gọi chạy cả ở chế độ chỉ tính (phiên) | `VS-4-bo-qua-chi-tinh` | B1 |
-| `viMe.js` so `parent_phone` đã chuẩn hoá hai vế | `VS-2-khong-chuan-hoa` | A5 |
+| `viMe.js` so `parent_phone` đã chuẩn hoá hai vế | `VS-2-khong-chuan-hoa` (gỡ cả hai vế) | A5 |
+| `viMe.js` vế phía CSDL `normalizePhone(kh.parent_phone)` (thêm 11.11, soát lần 3) | `VS-8-khong-chuan-hoa-csdl` | A5c |
 | | `VS-3-chi-kiem-co-me` | A1 |
 | `viMe.js` khách phải tồn tại | `VS-5-khong-can-khach` | A3 |
 | `viMe.js` SĐT mẹ rỗng → từ chối | `VS-6-trong-me-cho-qua` | A4 |
 
 Tên đột biến: BV-1-bo-goi, VS-1-chi-khi-co-tien, VS-4-bo-qua-chi-tinh, VS-7-chi-khi-co-sdt-me, VS-2-khong-chuan-hoa, VS-3-chi-kiem-co-me,
-VS-5-khong-can-khach, VS-6-trong-me-cho-qua.
+VS-5-khong-can-khach, VS-6-trong-me-cho-qua, VS-8-khong-chuan-hoa-csdl (thêm 11.11).
 
 Bước 6 (bổ sung) — `npm test -- --day-du`: PASS 111 · FAIL 2 — giả lập quầy `cong_cu/gia_lap/kich_ban.js:328,335` (KB17) bán đơn trả tài khoản
 mẹ mà không dựng quan hệ mẹ–con → 403 KHONG_PHAI_TK_ME (`cong_cu/gia_lap/chay.js`, `cong_cu/thu_gia_lap.js`). Ngoài Phạm vi.
@@ -214,12 +215,12 @@ BÀI HỌC: NGUYÊN TẮC K3 — grep MỌI hàm phụ dựng đơn, không ch�
 | 3 ke_hoach giuCho.js:27 | ĐÃ SỬA (bf9f93f): → `giuCho.js:22`. |
 | K1 "vẫn 12 · 11" | ĐÃ SỬA: ghi rõ nguồn hai con số. |
 | Nghi: đột biến bỏ kiểm lúc chốt | KHÔNG làm: chủ quán dặn ca chốt khi quan hệ đổi giữa chừng ghi CHƯA KIỂM; B2 đỏ trên gốc là bằng chứng hiện có. |
-| Nghi: phone thô (sync.js:290) | KHÔNG sửa: ngoài Phạm vi, ghi Phát hiện. |
+| Nghi: phone thô (sync.js:290) | KHÔNG sửa: ngoài Phạm vi, ghi Phát hiện. (Soát lần 3: nghi ngờ sai — sync.js:243 đã chuẩn hoá; Phát hiện đã rút.) |
 | Nghi: soát bảo mật cũ | Làm lại soát bảo mật (bước 8b) ở HEAD mới. |
 
-## Phát hiện (thêm 11.11)
-- `server/routes/sync.js:290` ghi `pos_customers.phone` thô (không chuẩn hoá) — nếu có dòng như vậy, `kiemTraMe` (tra theo SĐT đã chuẩn hoá)
-  sẽ 403 oan cho con đó. Ngoài Phạm vi, chưa thấy dữ liệu thật; chat xem có cần việc dọn dữ liệu.
+## Phát hiện (thêm 11.11) — ĐÃ RÚT LẠI
+- ~~`server/routes/sync.js:290` ghi `pos_customers.phone` thô~~ — SAI (soát lần 3): `sync.js:243` `const phone = normalizePhone(values[phoneIndex]);`,
+  câu INSERT `:289-297` dùng đúng biến đó. Không có việc dọn dữ liệu. Mình đã chép nghi ngờ của người soát mà không mở code (K1).
 
 ## Soát bảo mật lần 2 (11.11, mốc 72398197^..bf9f93f — sau vòng sửa 1)
 Số lỗi trước lọc: 2 · sau lọc: 0 (người soát tự làm cả bước tìm và lọc — không có công cụ sub-task). Báo cáo nguyên văn:

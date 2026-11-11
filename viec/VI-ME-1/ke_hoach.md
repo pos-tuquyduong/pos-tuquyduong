@@ -48,7 +48,8 @@ Khung: máy chủ thật trên kho tạm (khuôn `thu_P3.js` / `thu_KHACHAPP1.js
 | A2 | A | B (không mẹ) gửi `parent_phone`=M → 403 | ĐỎ |
 | A3 | A | không khách (`customer_phone` rỗng) và SĐT không có trong `pos_customers` gửi `parent_*` → 403 | ĐỎ |
 | A4 | A | `parent_balance_amount > 0`, không `parent_phone` → 403 | ĐỎ (gốc trả 400 lệch tổng) |
-| A5 | A·K5 | A gửi M dạng `+84…` / có dấu cách → qua (chuẩn hoá hai vế) | xanh |
+| A5 | A·K5 | A gửi M dạng `+84…` / có dấu cách → qua (chuẩn hoá vế gửi lên) | xanh |
+| A5c | A·K5 | hồ sơ con ghi SĐT mẹ dạng `+84…` / có dấu cách (dữ liệu cũ), màn gửi dạng chuẩn → qua (chuẩn hoá vế CSDL) | xanh (khoá) |
 | B1 | B | POST /thanh-toan/phien `tru_tai_khoan_me`, `parent_phone`=X → 403; không thêm dòng `pos_phien_thanh_toan`; `dangGiu(X)` = 0 | ĐỎ |
 | B2 | B | phiên đúng mẹ đã giữ → đổi `parent_phone` của A trong CSDL → chốt bằng `tai_khoan` và bằng xác nhận tay → 403, ví M không đổi, không đơn, phiên `loi` | ĐỎ |
 | B3 | B·K5 | tinh-thu có `parent_phone`=X trong thân → 200, số như không gửi | xanh (khoá) |
@@ -70,7 +71,8 @@ khách chỉ có trong `pos_registrations` (không dòng `pos_customers`, `docKh
 ## 4. Đột biến (`viec/VI-ME-1/dot_bien.py`)
 - `BV-1-bo-goi` — xoá lời gọi `kiemTraMe` trong `orders.js` → A1, A2, B1, B2 ĐỎ.
 - `VS-1-chi-khi-co-tien` — điều kiện chỉ `parent_balance_amount > 0` → B1 ĐỎ (tạo phiên không gửi tiền mẹ).
-- `VS-2-khong-chuan-hoa` — so `parent_phone` thô → A5 ĐỎ (chặn oan).
+- `VS-2-khong-chuan-hoa` — so `parent_phone` thô (cả hai vế) → A5 ĐỎ (chặn oan).
+- `VS-8-khong-chuan-hoa-csdl` — chỉ bỏ chuẩn hoá vế CSDL → A5c ĐỎ (hồ sơ cũ ghi SĐT mẹ dạng thô bị chặn oan). Thêm 11.11 sau soát lần 3.
 - `VS-3-chi-kiem-co-me` — chỉ kiểm khách có mẹ, không so bằng → A1 ĐỎ.
 - `VS-4-bo-qua-chi-tinh` — bỏ qua kiểm ở chế độ chỉ tính (`!phien?.chiTinh && …`) → B1 ĐỎ.
 - `VS-5-khong-can-khach` — không có dòng khách vẫn cho qua → A3 ĐỎ.
