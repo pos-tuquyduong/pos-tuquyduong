@@ -149,12 +149,11 @@ async function main() {
 
     // B2: phiên đúng mẹ đã giữ → đổi quan hệ trong CSDL → chốt (tai_khoan; ck_tay xác nhận tay) → 403, ví mẹ không đổi, phiên 'loi'.
     const M2 = await khach({ vi: 10000 }), A2 = await khach({ me: M2 });
-    const p1 = await phien(A2, M2, { cach: 'tai_khoan', don: { items: [mon], customer_phone: A2, parent_phone: M2 } });
     const M3 = await khach({ vi: 25000 }), A3 = await khach({ me: M3 });
     const p2 = await phien(A3, M3);
     const p3 = await goi('POST', '/thanh-toan/phien', { don: { items: [mon], customer_phone: A2, parent_phone: M2 }, cach: 'ck_tay', tru_tai_khoan_me: true, pin_me: PIN });
     k('B2 dựng: phiên tai_khoan A3/M3 giữ 25.000; phiên ck_tay A2/M2 giữ 10.000 còn 15.000', p2.status === 200 && p2.j.phien.giu_vi_me === 25000
-      && p3.status === 200 && p3.j.phien.giu_vi_me === 10000 && p3.j.phien.con_lai === 15000, `${moTa(p1)} · ${moTa(p2)} · ${moTa(p3)}`);
+      && p3.status === 200 && p3.j.phien.giu_vi_me === 10000 && p3.j.phien.con_lai === 15000, `${moTa(p2)} · ${moTa(p3)}`);
     await db.run('UPDATE pos_customers SET parent_phone = NULL WHERE phone IN (?, ?)', [A2, A3]);
     const t2 = await chup(M2, M3);
     const c1 = await goi('POST', `/thanh-toan/phien/${p2.j.phien?.id}/chot`, {});
