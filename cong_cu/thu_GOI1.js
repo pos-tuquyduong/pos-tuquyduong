@@ -60,6 +60,9 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
+  const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
+    + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
 
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);
@@ -664,7 +667,7 @@ async function main() {
       `${moTa(md)} · ${JSON.stringify(dkd.data)} · ${moTa(rd)} · ví ${await vi(d)}`);
 
     const me = sdtMoi(), con = sdtMoi();
-    await nap(me, 500000); await nap(con, 400000);
+    await nap(me, 500000); await nap(con, 400000); await datMe(con, me);
     const ge = await mua30(con, { cash_amount: 450000, balance_amount: 400000, parent_phone: me, parent_balance_amount: 500000 });
     const dke = await duKien(ge.cp);
     const re = await ketThuc(ge.cp, { reason: 'thử', hoan: true, so_tien: 1350000 });
@@ -674,7 +677,7 @@ async function main() {
       `${JSON.stringify(dke.data)} · ${moTa(re)} · mẹ ${await vi(me)} · con ${await vi(con)} · cash con ${await soDong(ge.don, 'cash', con)} · chi con ${await tieu(con)}`);
 
     const me1 = sdtMoi(), con1 = sdtMoi();
-    await nap(me1, 500000); await nap(con1, 400000);
+    await nap(me1, 500000); await nap(con1, 400000); await datMe(con1, me1);
     const ge2 = await mua30(con1, { cash_amount: 450000, balance_amount: 400000, parent_phone: me1, parent_balance_amount: 500000 });
     dungGoi(await lay(con1, ge2.cp, [[0, 15], [1, 5]]), 'B3e2 lấy 20 túi');
     const dke2 = await duKien(ge2.cp);
@@ -684,7 +687,7 @@ async function main() {
         && await vi(me1) === 450000 && await vi(con1) === 0, `${JSON.stringify(dke2.data)} · ${moTa(re2)} · mẹ ${await vi(me1)} · con ${await vi(con1)}`);
 
     const me2 = sdtMoi(), con2 = sdtMoi();
-    await nap(me2, 500000); await nap(con2, 400000);
+    await nap(me2, 500000); await nap(con2, 400000); await datMe(con2, me2);
     const ml = await muaGoi(con2, G30, { package_buy: { package_id: G30, total_qty: 30, pkg_qty: 2 }, cash_amount: 1800000, balance_amount: 400000,
       parent_phone: me2, parent_balance_amount: 500000 });
     const cpsL = (await db.query('SELECT id FROM pos_customer_packages WHERE order_id = ? ORDER BY id', [ml.order?.id])).map((r) => r.id);
@@ -695,6 +698,12 @@ async function main() {
       ml.status === 200 && l1.status === 200 && dkl.data?.me === 0 && dkl.data.vi === 0 && dkl.data.tien_mat === 1350000 && l2.status === 200
         && await vi(me2) === 500000 && await soDong(ml.order?.id, 'cash', con2) === 400000 && await soDong(ml.order?.id, 'hoan_goi', con2) === 1800000,
       `${moTa(ml)} · ${JSON.stringify(dkl.data)} · mẹ ${await vi(me2)} · cash con ${await soDong(ml.order?.id, 'cash', con2)} · hoan_goi ${await soDong(ml.order?.id, 'hoan_goi', con2)}`);
+
+    const me3 = sdtMoi(), con3 = sdtMoi();
+    await nap(me3, 500000);
+    const vm = await muaGoi(con3, G30, { cash_amount: 850000, parent_phone: me3, parent_balance_amount: 500000 });
+    k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await vi(me3) === 500000,
+      `${moTa(vm)} · ví mẹ ${await vi(me3)}`);
 
     const f = sdtMoi();
     const mf = await muaGoi(f, G30, { items: [mon(2, 1, false)], cash_amount: 1375000 });

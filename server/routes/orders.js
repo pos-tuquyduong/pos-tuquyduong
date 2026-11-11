@@ -27,6 +27,7 @@ const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
 const { ID_NAP_TU, sqlDonNap, laDonNap, LOI_NAP_KHONG_HOAN } = require("../utils/viKhach"); // NAP-1: đơn nạp — một vị từ
 const { tinhUuDai } = require("../utils/uuDai"); // UUDAI-1: giảm hạng + giảm mã — một hàm cho tạo đơn, tinh-thu, phiên payOS
+const { kiemTraMe } = require("../utils/viMe"); // VI-ME-1: đối chiếu mẹ–con trước mọi lối tiền mẹ
 const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từng món — một hàm cho quầy và /api/kh/menu
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
@@ -687,6 +688,12 @@ async function taoDon(req, res, phien = null) {
     }
     // ═══ het POS-CONGDON-v1 · LO 2 ═══════════════════════════════════════
     const normalizedParentPhone = parent_phone ? normalizePhone(parent_phone) : null;
+    // VI-ME-1: có SĐT mẹ hoặc tiền mẹ → máy chủ đối chiếu pos_customers TRƯỚC mọi chỗ đọc / giữ / trừ ví mẹ — chạy cả ở chế độ chỉ tính
+    // (tạo phiên giữ chỗ, màn khách) và lúc chốt phiên (taoDon ghi thật). Sai mẹ → 403 KHONG_PHAI_TK_ME, chưa ghi gì.
+    if (parent_phone || Number(parent_balance_amount) > 0) {
+      const sai = await kiemTraMe(phone, parent_phone);
+      if (sai) return res.status(sai.status).json(sai.body);
+    }
 
     // === TIER-2: Giảm theo HẠNG THÀNH VIÊN (tầng cùng mức F2, tự động) ===
     // Bám ĐÚNG luật F2 đã có: đơn có dính Flash (flashApplied=true) → KHÔNG cộng giảm hạng,

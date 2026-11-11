@@ -51,6 +51,9 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
+  const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
+    + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
 
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);
@@ -354,11 +357,16 @@ async function main() {
   const vc2 = await vi(sC2);
   k('C2 ví 21.000 (thưởng 1.000) trả hết → số dư 0, thưởng 0', c2x.status === 200 && vc2.so_du === 0 && vc2.thuong === 0, `${moTa(c2x)} · ${viChu(vc2)}`);
   const sMe = sdtMoi(), sCon = sdtMoi();
-  await banNap(sMe, ID1);
+  await banNap(sMe, ID1); await datMe(sCon, sMe);
   const c3 = await ban({ customer_phone: sCon, parent_phone: sMe, payment_method: 'cash', parent_balance_amount: 21000 });
   const vMe = await vi(sMe);
   k('C3 ví mẹ 105.000 (thưởng 5.000) trả hộ 21.000 → ví mẹ 84.000 · thưởng 4.000', c3.status === 200 && vMe.so_du === 84000 && vMe.thuong === 4000,
     `${moTa(c3)} · ${viChu(vMe)}`);
+  const sMeVM = sdtMoi();
+  await banNap(sMeVM, ID1);
+  const vm = await ban({ customer_phone: sdtMoi(), parent_phone: sMeVM, payment_method: 'cash', parent_balance_amount: 21000 });
+  k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && (await vi(sMeVM)).so_du === 105000,
+    `${moTa(vm)} · ${viChu(await vi(sMeVM))}`);
   const sC4 = sdtMoi();
   await banNap(sC4, ID1);
   const c4a = await goi('POST', '/wallets/deduct', { phone: sC4, amount: 21000, notes: 'trừ tay' });
@@ -426,7 +434,7 @@ async function main() {
   }
   const sMe7 = sdtMoi(), sCon7 = sdtMoi();
   await banNap(sMe7, ID1);
-  await banNap(sCon7, ID1);
+  await banNap(sCon7, ID1); await datMe(sCon7, sMe7);
   const c7b = await ban({ customer_phone: sCon7, parent_phone: sMe7, payment_method: 'cash', parent_balance_amount: 10000, cash_amount: 11000 });
   const d7c = c7b.order ? await den(c7b.order, 5000) : c7b;
   const vCon7 = await vi(sCon7);
@@ -502,7 +510,7 @@ async function main() {
     const e2 = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
     k('E2 trả trọn bằng ví 21.000 (có thưởng) → 21 điểm', e2.status === 200 && (await diemDon(e2.order.id)) === 21, `${moTa(e2)} · ${e2.order && await diemDon(e2.order.id)}`);
     const e3 = await ban({ customer_phone: sE, payment_method: 'cash', balance_amount: 10000, cash_amount: 11000 });
-    const sCon = sdtMoi();
+    const sCon = sdtMoi(); await datMe(sCon, sE);
     const e3b = await ban({ customer_phone: sCon, parent_phone: sE, payment_method: 'transfer', parent_balance_amount: 10000, transfer_amount: 14000, shipping_fee: 3000 });
     k('E3 ví 10.000 + tiền mặt 11.000 → 21 điểm; ví mẹ 10.000 + CK 14.000, phí giao 3.000 → 21 điểm',
       e3.status === 200 && (await diemDon(e3.order.id)) === 21 && e3b.status === 200 && (await diemDon(e3b.order.id)) === 21,
@@ -526,7 +534,7 @@ async function main() {
     const e7a = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });
     const e7b = await ban({ customer_phone: sE, payment_method: 'cash', balance_amount: 10400, cash_amount: 10600 });
     const sC7 = sdtMoi();
-    await napTay(sC7, 5000);
+    await napTay(sC7, 5000); await datMe(sC7, sE);
     const e7c = await ban({ customer_phone: sC7, parent_phone: sE, payment_method: 'cash', balance_amount: 5000, parent_balance_amount: 5000, cash_amount: 11000 });
     await napTay(sE, 21000);
     const e7d = await ban({ customer_phone: sE, payment_method: 'balance', balance_amount: 21000 });

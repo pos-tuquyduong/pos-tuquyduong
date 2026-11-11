@@ -56,6 +56,9 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
+  const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
+    + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
 
   const sx = { che: 'loi', daLam: new Map() };
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
@@ -168,8 +171,7 @@ async function main() {
     items: [mon(0, sl, true)], customer_package_id: cp, payment_method: 'cash', cash_amount: 0 });
   const daGiao = (cp) => so('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [cp]);
   // Một đơn mua gói 300.000 / 10 lượt (trả theo `tra`), rồi lấy `daLay` ly qua các đơn lấy từ gói.
-  const goiDaLay = async (tra, daLay, them = {}) => {
-    const sdt = sdtMoi();
+  const goiDaLay = async (tra, daLay, them = {}, sdt = sdtMoi()) => {
     await nap(sdt, 1000000);
     const goiId = await taoGoi(300000, 10);
     const m = await muaGoi(sdt, goiId, 10, tra, them);
@@ -293,7 +295,8 @@ async function main() {
       `${moTa(h4)} · ví ${g4.vi0} → ${await vi(g4.sdt)}`);
 
     const me = sdtMoi(); await nap(me, 100000);
-    const g5 = await goiDaLay({ balance_amount: 200000, parent_balance_amount: 100000 }, 4, { parent_phone: me });
+    const con5 = sdtMoi(); await datMe(con5, me);
+    const g5 = await goiDaLay({ balance_amount: 200000, parent_balance_amount: 100000 }, 4, { parent_phone: me }, con5);
     const vMe = await vi(me);
     const h5 = await huy(g5.don);
     k('A5g ví mẹ 100.000 + ví con 200.000, lấy 4 → mẹ +100.000, con +80.000', h5.status === 200 && await vi(me) === vMe + 100000
@@ -564,7 +567,7 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[C3 + C4] duyệt hoàn giảm total_spent (con + mẹ); thông báo có tổng hoàn');
   {
-    const me = sdtMoi(), con = sdtMoi(); await nap(me, 20000); await nap(con, 5000);
+    const me = sdtMoi(), con = sdtMoi(); await nap(me, 20000); await nap(con, 5000); await datMe(con, me);
     const d = await taoDon({ customer_phone: con, parent_phone: me, items: [mon(0)], payment_method: 'cash', cash_amount: 0,
       balance_amount: 5000, parent_balance_amount: 20000 });
     const tieu = (s) => so('SELECT total_spent FROM pos_wallets WHERE phone = ?', [s]);
@@ -573,6 +576,11 @@ async function main() {
     k('C3 duyệt hoàn 5.000 con + 20.000 mẹ → total_spent con −5.000, mẹ −20.000', r.status === 200 && await tieu(con) === tCon - 5000
       && await tieu(me) === tMe - 20000, `${moTa(r)} · con ${tCon} → ${await tieu(con)} · mẹ ${tMe} → ${await tieu(me)}`);
     k('C4 phản hồi duyệt có tong_hoan = 25.000', Number(r.tong_hoan) === 25000, JSON.stringify(r));
+    const me3 = sdtMoi(), con3 = sdtMoi(); await nap(me3, 20000);
+    const vm = await goi('POST', '/orders', { customer_phone: con3, customer_name: 'Khách P26c', parent_phone: me3, items: [mon(0)],
+      payment_method: 'cash', cash_amount: 5000, parent_balance_amount: 20000 });
+    k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await vi(me3) === 20000,
+      `${moTa(vm)} · ví mẹ ${await vi(me3)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════

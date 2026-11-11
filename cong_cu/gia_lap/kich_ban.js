@@ -325,6 +325,8 @@ const KICH_BAN = [
     // B5 ví mẹ (soát vòng 3): ví mẹ 30.000, hai đơn trừ ví mẹ 25.000 chồng nhau → một đơn bị chặn, ví mẹ không âm.
     const ME = sdtMoi();
     await c.nap(ME, 30000);
+    await c.db.run(`INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, 'Khách KB17', ?)
+      ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone`, [S, ME]);   // VI-ME-1: máy chủ chỉ trừ ví mẹ khi hồ sơ con ghi đúng mẹ
     const banMe = () => c.goi('chu', 'POST', '/orders', { customer_phone: S, customer_name: 'Khách KB17', parent_phone: ME, items: [c.mon(0)],
       payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
     const [m1, m2] = await c.chong(banMe, banMe);

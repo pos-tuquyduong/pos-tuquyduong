@@ -59,6 +59,9 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
+  const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
+    + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
 
   // Công tắc — đặt TRƯỚC khi nạp route (route lấy hàm bằng destructuring lúc require).
   // P26d: co.ban = true (SQLITE_BUSY) hoặc chuỗi mã (vd 'TRANSACTION_BUSY' — dạng Turso); co.banLan = n → lần mở giao dịch THỨ n
@@ -338,7 +341,7 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[MẸ] ví mẹ (parent_phone / parent_balance_amount — Sales.jsx gửi): trừ đúng, hoàn đúng MỘT lần (soát vòng 3)');
   {
-    const me = sdtMoi(), con = sdtMoi(); await nap(me, 100000); await nap(con, 50000);
+    const me = sdtMoi(), con = sdtMoi(); await nap(me, 100000); await nap(con, 50000); await datMe(con, me);
     const donMe = (conTra = 0) => taoDon({ customer_phone: con, customer_name: 'Con P26b', parent_phone: me, items: [mon(0)],
       payment_method: 'cash', cash_amount: 0, balance_amount: conTra, parent_balance_amount: 25000 - conTra });
     const v0 = await vi(me);
@@ -383,10 +386,15 @@ async function main() {
     k('M10 yêu cầu cũ (dữ liệu trước bản vá) trên đơn có ví mẹ → duyệt 200, ví mẹ +20.000, hoàn mẹ đúng 1 dòng',
       r10.status === 200 && await vi(me) === vMe10 + 20000 && await dongHoanVi(d10, me) === 1,
       `${moTa(r10)} · ví mẹ ${vMe10} → ${await vi(me)} · ${await dongHoanVi(d10, me)} dòng hoàn mẹ`);
-    const me2 = sdtMoi(); await nap(me2, 10000);
+    const me2 = sdtMoi(); await nap(me2, 10000); await datMe(con, me2);
     const t = await goi('POST', '/orders', { customer_phone: con, customer_name: 'Con P26b', parent_phone: me2, items: [mon(0)],
       payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
     k('M7 ví mẹ không đủ → 400 SO_DU_KHONG_DU, ví mẹ không đổi', t.status === 400 && t.code === 'SO_DU_KHONG_DU' && await vi(me2) === 10000, moTa(t));
+    const me3 = sdtMoi(), con3 = sdtMoi(); await nap(me3, 100000);
+    const vm = await goi('POST', '/orders', { customer_phone: con3, customer_name: 'Con P26b', parent_phone: me3, items: [mon(0)],
+      payment_method: 'cash', cash_amount: 0, parent_balance_amount: 25000 });
+    k('VM1 (VI-ME-1) đơn trả tài khoản mẹ khi hồ sơ khách CHƯA ghi mẹ → 403 KHONG_PHAI_TK_ME, ví mẹ không đổi', vm.status === 403 && vm.code === 'KHONG_PHAI_TK_ME' && await vi(me3) === 100000,
+      `${moTa(vm)} · ví mẹ ${await vi(me3)}`);
   }
 
   muc('[D] POST /packages/buy đã bỏ');
