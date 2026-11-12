@@ -6,9 +6,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { mayOQuan, datMayOQuan, keuChuong, AM_LUONG_MAC_DINH } from '../components/DonAppNoi';
-import HopHuyDon from '../components/HopHuyDon';   // HUY-1: huỷ đơn App qua cùng route huỷ của quầy (oid)
+import HopHuyDon, { hienNutHuy } from '../components/HopHuyDon';   // HUY-1: huỷ đơn App qua cùng route huỷ của quầy (oid)
 import { useAuth } from '../contexts/AuthContext';
-import { ngayVN } from '../utils/ngayVN';
 
 const NHAN = { da_tra: ['Mới', '#dc2626'], dang_lam: ['Đang làm', '#d97706'], xong: ['Xong', '#16a34a'], da_huy: ['Đã huỷ', '#6b7280'] };
 const tien = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
@@ -20,10 +19,9 @@ export default function DonApp() {
   const [dangBam, setDangBam] = useState(null);
   const [may, setMay] = useState(mayOQuan());
   const [huy, setHuy] = useState(null);
-  const { user } = useAuth();
-  // HUY-1 (B): chỉ giấu nút — máy chủ kiểm lại quyền + ngày (quản lý: đơn trong ngày; chủ quán: mọi ngày)
-  const huyDuoc = (d) => d.oid && d.tien_trinh !== 'da_huy'
-    && (user?.role === 'owner' || (user?.role === 'manager' && (d.gio || '').slice(0, 10) === ngayVN()));
+  const { user, hasPermission } = useAuth();
+  // HUY-1 (B): luật hiện nút một chỗ (hienNutHuy); ngày theo giờ thu (gio) — máy chủ kiểm lại theo ngày tạo đơn
+  const huyDuoc = (d) => d.oid && d.tien_trinh !== 'da_huy' && hienNutHuy(user, hasPermission, d.gio);
 
   const tai = async () => {
     try {

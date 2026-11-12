@@ -4,9 +4,14 @@
 // Không hoàn tác 5 giây (tiền đã vào tài khoản khách / đã ra khỏi két).
 import { useState, useEffect } from 'react';
 import { ordersApi } from '../utils/api';
-import { baoXong, baoLoiTu } from './thongBaoKho.js';
+import { baoXong, baoLoi, baoLoiTu } from './thongBaoKho.js';
+import { ngayVN } from '../utils/ngayVN';
 
 const tien = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+
+/** Hiện nút "Huỷ đơn"? — CÙNG luật máy chủ (orders.js route huỷ): quyền cancel_order, đơn ngày trước chỉ chủ quán. Chỉ giấu nút; máy chủ kiểm lại. */
+export const hienNutHuy = (user, hasPermission, ngayTao) => hasPermission('cancel_order')
+  && (user?.role === 'owner' || String(ngayTao || '').slice(0, 10) === ngayVN());
 
 /** don = { id (pos_orders.id), code, ten_khach, co_tai_khoan }; dong() đóng hộp; xong() chạy sau khi huỷ được (tải lại danh sách). */
 export default function HopHuyDon({ don, dong, xong }) {
@@ -32,7 +37,9 @@ export default function HopHuyDon({ don, dong, xong }) {
         + (h.tien_mat > 0 ? ` — trả khách ${tien(h.tien_mat)} tiền mặt từ két` : ''));
       xong();
     } catch (e) {
-      baoLoiTu('huỷ đơn', e);
+      // Đơn giao đang pha cần chọn "đồ đã pha" — hộp này không có chỗ chọn, dẫn sang màn Giao hàng (giaoHang.js CHON_DO_DA_PHA)
+      if (e?.code === 'CHON_DO_DA_PHA') baoLoi('Chưa huỷ đơn được', 'Đơn giao đang pha — huỷ ở màn Giao hàng để chọn đồ đã pha (dùng lại / bỏ đi).');
+      else baoLoiTu('huỷ đơn', e);
     } finally {
       setDangGui(false);
     }

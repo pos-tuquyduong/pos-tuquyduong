@@ -15,7 +15,7 @@ import { ordersApi, productsApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
 import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
-import HopHuyDon from '../components/HopHuyDon';   // HUY-1
+import HopHuyDon, { hienNutHuy } from '../components/HopHuyDon';   // HUY-1
 import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { useAuth } from '../contexts/AuthContext';
 import { ngayVN, khoangNgay, docGioVN, hienNgay, hienGio, hienNgayGio } from '../utils/ngayVN';
@@ -24,7 +24,7 @@ const ID_NAP_TU = -2000000;   // QUAY-UI-1 D: dòng nạp có product_id ≤ s�
 const laDonNap = (don) => (don?.items || []).some((i) => Number(i.product_id) <= ID_NAP_TU);
 
 export default function Orders() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -999,9 +999,8 @@ export default function Orders() {
                 </button>
               )}
 
-              {/* HUY-1 (A, B): huỷ cả đơn — quản lý đơn trong ngày, chủ quán mọi ngày (máy chủ kiểm lại, đây chỉ giấu nút) */}
-              {selectedOrder.status === 'completed' && !laDonNap(selectedOrder) && (user?.role === 'owner'
-                || (user?.role === 'manager' && String(selectedOrder.created_at || '').slice(0, 10) === ngayVN())) && (
+              {/* HUY-1 (A, B): huỷ cả đơn — luật hiện nút một chỗ (hienNutHuy); máy chủ kiểm lại */}
+              {selectedOrder.status === 'completed' && !laDonNap(selectedOrder) && hienNutHuy(user, hasPermission, selectedOrder.created_at) && (
                 <button onClick={() => setHuyDon(selectedOrder)} style={{
                   flex: 1, minWidth: '120px', padding: '0.75rem',
                   background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca',
