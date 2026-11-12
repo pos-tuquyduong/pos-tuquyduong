@@ -87,3 +87,18 @@ SỐ CA cong_cu/thu_P24.js: 33
 SỐ CA cong_cu/thu_DOISOAT1.js: 134
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 89
 SỐ CA cong_cu/gia_lap/chay.js: 33
+
+═══ Phiên 12.11 (sau Q9, Q10) ═══
+cong_cu/thu_gia_lap.js (Q9 — chỉ đổi neo M11) bản mới trên bản sao gốc 078723f (cùng cách chạy như trên):
+  ✗ M11 huỷ đơn bỏ cổng trạng thái (huỷ được đơn đã hoàn) (routes/orders.js)  — chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+  179 đạt · 1 hỏng
+Trên HEAD (fd9d3db): 180 đạt · 0 hỏng; `✓ M11 huỷ đơn bỏ cổng trạng thái (huỷ được đơn đã hoàn) → KB13 → I11`.
+
+ban_mau_pos/thu/thu_hd.js (Q10 — bài mới của bản mẫu) trên bản mẫu GỐC (ban_mau_pos.html chưa sửa), `bash ban_mau_pos/chay_thu.sh`:
+  thu_hd         ✗ SẬP — ReferenceError: moHuyDon is not defined
+  ⚠ 1 bài thử bị sập — mỗi bài tính là 1 hỏng
+  TỔNG: 119 đạt · 1 hỏng
+Sau khi sửa bản mẫu (1acc855): thu_hd 13 đạt · 0 hỏng; TỔNG: 132 đạt · 0 hỏng.
+
+SỐ CA cong_cu/thu_gia_lap.js: 180
+SỐ CA ban_mau_pos/thu/thu_hd.js: 13
