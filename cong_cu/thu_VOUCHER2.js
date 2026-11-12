@@ -440,7 +440,7 @@ async function main() {
     k('G2 xoá đơn → voucher về available', r3.status === 200 && xoa.status === 200 && (await grant(vb)).status === 'available' && (await luot(vb)) === 0, moTa(xoa));
     const r4 = await goi('POST', '/pos/orders', { customer_phone: a.sdt, customer_name: 'K', items: [mon(0)], vouchers: [vb], payment_method: 'balance', balance_amount: 45000 });
     const yc = r4.order ? await goi('POST', '/pos/refunds', { order_id: r4.order.id, reason: 'thử VOUCHER-2' }) : {};
-    const dy = yc.id || yc.data?.id || yc.refund?.id;
+    const dy = yc.refund_id;
     const duyet = dy ? await goi('POST', `/pos/refunds/${dy}/approve`, {}) : {};
     k('G2 duyệt hoàn → voucher về available', duyet.status === 200 && (await grant(vb)).status === 'available' && (await luot(vb)) === 0, `${moTa(yc)} / ${moTa(duyet)}`);
 
