@@ -1,4 +1,4 @@
-# VOUCHER-2 — kế hoạch (chờ chủ quán duyệt)
+# VOUCHER-2 — kế hoạch (chủ quán duyệt 11.11, Q1/Q2/Q4 sửa — mục 11; Q7–Q10 chờ trả lời)
 
 ## 0. Tóm tắt lời thường
 Voucher hôm nay chỉ có một loại (đổi điểm), mỗi đơn chỉ nhận MỘT mã, và mã giảm tính cả trên tiền thẻ hạng / gói. Kế hoạch:
@@ -206,3 +206,77 @@ Dự kiến: `BV-V2-KIEM-CHU` (bỏ kiểm SĐT) · `VS-V2-PHAN-TRAM-TRUOC` (vou
    trước khi lưu — nghiệm thu A) và GIỮ chụp luật vào mã (B3: sửa mẫu không đổi voucher đã phát).
 9. **Q5 sau soát:** 7 file — `server/utils/diemKhach.js`, `server/utils/manKhach.js`, `cong_cu/gia_lap/bat_bien.js`, `cong_cu/thu_UUDAI1.js`,
    `cong_cu/thu_KHTHE1.js`, `cong_cu/thu_P26c.js`, `cong_cu/thu_DOISOAT1.js` (nếu chữ bất biến đổi).
+
+## 11. Sửa theo trả lời chủ quán 11.11 (Q1–Q6) — mục này THẮNG mục 2–10 chỗ trái ý
+Đọc lại code trong lượt này (nhánh `0aae07e`): `server/routes/signup-codes.js:290-445` (`nhanMaUuDai`), `:460-530` (hoàn tác),
+`server/utils/maKhach.js:150-200` (App tạo tài khoản ở `xacMinhMa`), `server/routes/registrations.js:246-293` ("Thêm khách"),
+`server/routes/orders.js:1252-1283` (in mã bill mọi đơn), `server/utils/diemKhach.js:30-80`, `server/utils/tienDaTra.js:13-26`,
+`cong_cu/gia_lap/bat_bien.js:286-318`, `cong_cu/thu_DOISOAT1.js:312-313`, `cong_cu/thu_P26c.js:866-875`.
+
+### 11.1 Q1 — hai loại voucher, chọn ở MẪU
+- `pos_mau_voucher` + cột `chinh_chu INTEGER DEFAULT 0` (0 = "Chia sẻ được", 1 = "Chỉ chính chủ"); `phatVoucher` chụp vào cột mới
+  `pos_discount_codes.chinh_chu DEFAULT 0` (sửa mẫu sau không đổi voucher đã phát — như B3). Voucher cũ: cột mặc định 0 = chia sẻ được (giữ như cũ).
+- `kiemVoucher`: `chinh_chu = 1` và SĐT đơn ≠ `grant.customer_phone` (hoặc đơn không SĐT) → 400 `VOUCHER_CHINH_CHU`
+  "Voucher này chỉ dùng cho chủ tài khoản". Chia sẻ được → ai gửi mã cũng dùng (grant vẫn chuyển `used`, ghi đơn). Bỏ `VOUCHER_NGUOI_KHAC` ở mục 2.3.
+- Mã khuyến mãi chung: không đổi (ai cũng dùng).
+- Đổi điểm (`/redeem`) qua `phatVoucher` với `chinh_chu = 0` — hành vi y cũ; DOI-DIEM-1 sau này chọn mẫu chính chủ.
+- Ca thay C4: **C4a** voucher chính chủ của B trên đơn A → 400 `VOUCHER_CHINH_CHU`, không đơn, `used_count` 0; **C4b** cùng voucher trên đơn
+  của B → 200 (K5); **C4c** voucher chia sẻ của B trên đơn A → 200, grant `used` ghi đơn A; **C4d** voucher chính chủ, đơn không SĐT → 400.
+  H4 đổi theo: App khách A gửi voucher chính chủ của B → `VOUCHER_CHINH_CHU`. Đột biến `BV-V2-CHINH-CHU` (bỏ vế kiểm), `VS-V2-CHINH-CHU-MOI-MA`
+  (kiểm SĐT cho cả voucher chia sẻ — C4c đỏ).
+
+### 11.2 Q4 — tối đa MỘT voucher % mỗi đơn
+- `kiemVoucher` đếm voucher % món (`percent`, không ship) trong danh sách: > 1 → 400 `VOUCHER_PHAN_TRAM_HAI` "Mỗi đơn chỉ dùng một voucher giảm %"
+  (tinh-thu / báo giá: mềm qua `voucher_loi`, voucher % thứ hai bị bỏ). Voucher % áp trên các dòng mẫu quy định (`ap_dung`: tất cả / nhóm / món —
+  Q3), tính trên phần còn lại SAU voucher tiền. Voucher tiền: nhiều cái trong giới hạn N. Câu Q4 cũ (10% rồi 10%) bỏ.
+- Voucher ship %: KHÔNG tính là "voucher giảm %" của Q4 (chỉ giảm dòng phí giao, đã kẹp ≤ phí) — xem câu hỏi Q10.
+- Ca: **C8** voucher % thứ hai → 400 `VOUCHER_PHAN_TRAM_HAI`, đúng câu; **C8b** 1 voucher % + 2 voucher tiền → 200 (K5); **C8c** tinh-thu → `voucher_loi`
+  có mã thứ hai, tổng chỉ tính voucher % đầu. Đột biến `VS-V2-PHAN-TRAM-HAI` (`> 1` thành `> 2`).
+
+### 11.3 Q2 — mã ưu đãi in bill chỉ cho khách đăng ký lần đầu, phát voucher theo mẫu
+- Đường DUY NHẤT vẫn là `nhanMaUuDai` (`signup-codes.js` `/claim`, `/api/kh/nhan-ma-bill`). Thay khối INSERT `pos_discount_codes` mã = mã bill
+  (`signup-codes.js:400-418`) bằng `phatVoucher(tx, mau, phone, 'khach_moi', { nguon_id: signupRow.id })` — sinh mã RIÊNG vào ví tài khoản; mã in bill
+  không gõ thẳng ở ô mã được nữa (không còn dòng `pos_discount_codes` cùng chữ). Mẫu = cài đặt mới `signup_mau_voucher_id` (chọn trong Cài đặt →
+  Voucher, file mới `MauVoucher.jsx`); chưa chọn / mẫu tắt → 400 `UU_DAI_CHUA_CO_MAU`. Bỏ phép `MA_TRUNG` (mã mới sinh không trùng).
+- "Chưa có tài khoản, đăng ký LẦN ĐẦU" (đề xuất Q9): SĐT phải có tài khoản (`pos_customers`) tạo **SAU lúc in bill** (`created_at ≥ issued_at`) —
+  tức lúc mua chưa có tài khoản. Không có tài khoản → 400 `CAN_TAO_TAI_KHOAN` "Tạo tài khoản trước rồi nhập mã"; tài khoản có từ trước khi in bill
+  → 400 `KHACH_DA_CO_TAI_KHOAN` "Số điện thoại này đã có tài khoản — ưu đãi chỉ dành cho khách đăng ký lần đầu". Giữ: một SĐT nhận một lần
+  (`claimed_phone`), mỗi mã một lần (`claimed_at`), hạn giờ, bill đã thanh toán, bill SĐT khác.
+- App: khách tạo tài khoản (`maKhach.xacMinhMa`, không sửa) rồi nhập mã ở `/api/kh/nhan-ma-bill` (không đổi đường). Quầy: form "Thêm khách"
+  (`client/src/`) thêm ô "Mã trên bill (nếu có)" — tạo khách xong gọi `POST /signup-codes/claim` có sẵn; lỗi mã báo đỏ, khách đã lưu
+  (lưu khách là việc riêng). `registrations.js` KHÔNG cần sửa (đã trong Phạm vi nhưng không dùng).
+- Dữ liệu cũ: voucher khách mới đã claim (mã = mã bill, không có grant) vẫn dùng ở ô mã như cũ (P20b `orders.js:631` giữ), `layMaKhachMoi` giữ.
+  Bước 026: cấu hình cũ `signup_scope = 'order'` + `signup_discount_value > 0` → tạo SẴN một mẫu y cấu hình (kiểu, giá trị, đơn tối thiểu, hạn,
+  chia sẻ được) và ghi `signup_mau_voucher_id` — quầy không gián đoạn sau khi lên bản; `signup_scope = 'item'` (giảm 1 món nhóm khach_moi — Q3 đổi
+  nghĩa "nhóm") → không tạo mẫu, chủ quán chọn mẫu (ghi CHƯA KIỂM / Phát hiện).
+- Hoàn tác (`/:id/reset`, K4): xoá voucher của lần claim theo grant `nguon='khach_moi' AND nguon_id = signupRow.id` (chỉ khi chưa dùng, trong câu xoá)
+  + giữ nhánh cũ (mã cùng chữ). Ca **Q2e**.
+- Ca: **Q2a** khách mới (tài khoản tạo sau bill) nhận → 1 grant `nguon='khach_moi'`, mã ≠ mã bill, hạn = hôm nay + `han_ngay` của mẫu; **Q2b** tài khoản có
+  trước bill → 400 `KHACH_DA_CO_TAI_KHOAN`, không grant, mã bill chưa bị chiếm; **Q2c** SĐT chưa có tài khoản → 400 `CAN_TAO_TAI_KHOAN`; **Q2d** mã bill
+  gõ ở ô mã chung → không áp (`MA_KHONG_TON_TAI`); **Q2e** hoàn tác xoá voucher mới; **Q2f** hai lần claim đua cùng mã → một grant; **Q2g** quầy "Thêm
+  khách" + mã → grant. Đột biến `BV-V2-KHACH-CU` (bỏ vế `created_at ≥ issued_at`), `VS-V2-KHACH-CU-SO-NHAM` (`>` thay `≥` — tạo cùng giây với in bill).
+- Hợp đồng `/api/kh` (`HOP_DONG_API_KH.md`): `/nhan-ma-bill` thêm hai `code` mới + `UU_DAI_CHUA_CO_MAU`; trả `data.voucher_code` là mã MỚI trong ví
+  (giữ tên trường, nghĩa ghi rõ); PHIEN_BAN 13 → 14 (cùng đợt mục 2.5).
+
+### 11.4 Q5 — từng file thêm: sửa chỗ nào · vì sao · theo luật nào
+| File | Sửa chỗ nào | Vì sao | Luật |
+|---|---|---|---|
+| `server/utils/diemKhach.js` | `layVoucherKhach` (`:30-62`): chọn thêm `d.min_order`, `d.chinh_chu`, `g.nguon`, luật mẫu; mỗi dòng thêm `mo_ta` = `moTaVoucher` | ví quầy + App hiện câu từ MỘT hàm, biết chính chủ / nguồn | nghiệm thu A, H, I; LUAT §2 "một quy tắc — một hàm" |
+| `server/utils/manKhach.js` | `dungHien` (`:127-139`): thêm dòng từng voucher + "Giảm phí giao" từ `chiTiet` | màn khách là đường thứ 5 đọc kết quả `taoDon`; không sửa thì màn khách lệch bill | K4 đường song song; nghiệm thu I |
+| `cong_cu/gia_lap/bat_bien.js` | I12 (`:286-299`): phép cũ GIỮ NGUYÊN cho grant `nguon='doi_diem'` (mặc định cột = 'doi_diem' → mọi grant cũ + ca DS_I12 vẫn soát như cũ); THÊM phép cho grant nguồn khác: đúng 1 mã, `usage_limit 1`. I13 (`:307-318`): `so_don` cộng thêm số grant `used` của đơn completed (trừ đơn đã đếm qua `discount_code`) | không đổi thì đơn dùng voucher làm I13 lệch oan, grant khách mới làm I12 đỏ oan | Q5 chủ quán: "chỉ đổi cách đếm mã cho đúng nhiều voucher, không bỏ / nới phép nào" |
+| `cong_cu/thu_UUDAI1.js` | ca K4b (`:436`): số mong đợi 310.500 → 340.500 (gói 300.000 không giảm; món 50.000 − hạng 5.000 − mã 10 % 4.500) | luật 10.11: mã không áp lên gói | Q6; LUAT §6.8 bài sửa thường |
+| `cong_cu/thu_KHTHE1.js` | ca B12b (`:268-271`): chỉ thẻ + mã 10 % → không giảm, `ma_loi`/`MA_KHONG_AP_MON_THUONG`, tong App = tinh-thu = 250.000; B12 (thẻ + món + mã 5.000) giữ so App = quầy | luật 10.11: mã không áp lên thẻ | Q6 |
+| `cong_cu/thu_P26c.js` | ca M4a (`:866-875`): xem câu hỏi Q8 — chỉ đổi số thì mất khả năng bắt N8–N10 | luật 10.11 | Q6 + "không nới" |
+| `cong_cu/thu_DOISOAT1.js` | dự kiến KHÔNG sửa: ca I12 (`:312`) chèn grant không `nguon` → mặc định 'doi_diem' → vẫn đỏ đúng câu; ca I13 (`:313`) không đơn → giữ. Chỉ sửa nếu chữ bất biến đổi | — | Q5 |
+| `server/routes/signup-codes.js` | `nhanMaUuDai` (`:400-418`) phát qua `phatVoucher`; thêm kiểm tài khoản (`:333-350`); hoàn tác (`:470-520`) xoá theo grant | Q2 | Q2 chủ quán; LUAT §5 (một giao dịch, điều kiện trong câu ghi) |
+| `server/routes/registrations.js` | không sửa (quầy gọi `/claim` có sẵn sau "Thêm khách") | đường ngắn nhất, không làm đường thứ hai | Q2 "không làm đường thứ hai" |
+
+### 11.5 Phát hiện MỚI khi đọc lại — đường tiền, cần chủ quán duyệt (Q7)
+`tienDaTraTheoDong` (`server/utils/tienDaTra.js:13-26`) chia "tiền khách trả" (total − phí ship) theo tỉ lệ lên MỌI dòng, cả dòng gói / thẻ.
+Luật 10.11 làm giảm chỉ nằm trên món → đơn trộn sẽ chia SAI: vd gói 300.000 + món 50.000, mã 10 % món (−5.000) → máy hiểu gói đã trả 295.714, món
+49.285 (thật: gói 300.000, món 45.000). Hậu quả: đền món tối đa 49.285 > 45.000 khách trả (đền lố — `damages.js`), kết thúc gói hoàn thiếu
+(`soTienHoanGoi`), huỷ đơn có gói tính "đã dùng" lệch (`soTienHoan`). Đơn CŨ (mã đã giảm cả gói) thì cách chia cũ ĐÚNG. Đề xuất: cột mới
+`pos_orders.giam_mon_thuong INTEGER DEFAULT 0` (026; đơn từ VOUCHER-2 ghi 1); `tienDaTraTheoDong` với đơn cờ 1: dòng `product_id < 0` (gói / thẻ / nạp)
+đã trả = giá đầy đủ, phần còn lại chia tỉ lệ trên món; đơn cũ giữ y cách cũ. ~8 dòng trong `tienDaTra.js` (trong Phạm vi), không đổi tên / tham số
+hàm nào. Đụng hàm HUY-1 cũng đọc (chỉ đọc, không sửa) → báo chat. Ca: **F7** đơn trộn có mã → đền món tối đa 45.000 (45.001 → 400), kết thúc gói
+hoàn theo 300.000; **F7b** đơn cũ cờ 0 → y số cũ. Đột biến `BV-V2-DA-TRA-CHIA-DEU` (bỏ nhánh cờ).
