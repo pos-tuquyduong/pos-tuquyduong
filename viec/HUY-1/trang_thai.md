@@ -60,3 +60,15 @@ Chi tiết + đề xuất ở cuối `ke_hoach.md`, mục "Câu hỏi mới 11.1
 ## Phát hiện (11.11)
 - `server/utils/viKhach.js:6-7` chú thích chỉ nói dòng tiền mặt / CK hoàn vào ví là `'hoan_goi'`; HUY-1 dùng mã riêng (Q2) → chú thích cần thêm mã mới (ngoài Phạm vi; hành vi vẫn đúng nhờ thứ tự ghi).
 - `server/utils/doiSoat.js:252-260`: tiền đền cho khách lẻ không SĐT ra khỏi két nhưng công thức két không tính (đang liệt kê CẦN XEM) — trái chữ "lối DUY NHẤT lấy tiền mặt ra khỏi két" của phiếu E. Không đụng.
+
+## Phiên 12.11.2026 — `tiep` sau khi chủ quán đồng ý Q6, Q7, Q8 (11.11)
+
+### Bước 1 — đối chiếu bản chụp
+- Nhánh: `viec/HUY-1`; `git status --short` sạch (hook mở phiên đã kéo `eb4c4d3 → 078723f`).
+- `git fetch origin viec/HUY-1` → HEAD `078723f` · FETCH_HEAD `078723f` (bằng nhau, không kéo).
+- `git log --oneline -3`:
+  ```
+  078723f PHIEU: HUY-1 Pham vi them giaoHang.js + 5 bai thu (Q6, Q7), tra loi Q6-Q8 — chu quan 11.11
+  eb4c4d3 HUY-1 doi chieu ke hoach voi code moi 11.11 (muc 0), cau hoi Q6-Q8, DUNG cho duyet lai
+  aa5874f PHIEU: HUY-1 11.11 buoc nang cap 025 + ghi chu main moi (DIEM-MON-1, VI-ME-1, NAP-1, BAO-1a) + VOUCHER-2 song song
+  ```
