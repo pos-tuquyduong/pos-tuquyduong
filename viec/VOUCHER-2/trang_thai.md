@@ -58,3 +58,7 @@ Bắt 2 lỗi NẶNG (traLuotMa thoát sớm khi đơn chỉ có voucher; 3 ch�
   cài kiểu "giảm 1 món nhóm khách mới" thì bạn chọn mẫu trong Cài đặt → Voucher (máy không tự đổi nghĩa tiền).
 - **Q10 — Voucher ship theo % có tính là "voucher giảm %" của Q4 không?** **Đề xuất:** KHÔNG — Q4 chỉ cho voucher giảm % trên món; voucher ship
   (số tiền hay %) chỉ giảm phí giao, đã kẹp không quá phí giao, vẫn tính vào N.
+
+## Stop hook 12.11 — npm test đỏ oan vì kho nông (lần 2)
+Phiên lại mở từ kho nông → `thu_BH2.js` G1 `fatal: bad revision 'cbbb809..HEAD'`. Chạy `git fetch -q --unshallow origin viec/VOUCHER-2`
+(chỉ tải lịch sử, không đổi file) → `npm test`: PASS 111 · FAIL 0 · CẢNH BÁO 1. Không sửa code, không đụng bộ kiểm.
