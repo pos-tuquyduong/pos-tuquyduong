@@ -105,3 +105,48 @@ Thử tay trên điện thoại (chủ quán): (1) Cài đặt → Hạng thành
 ✓ CỔNG CHẠY ĐẠT (A16 cảnh báo: gốc in 93 ca vì C0/D0 không nạp được module chưa có — bình thường)
 
 HEAD ĐÃ KIỂM: f8d3e500
+
+## Vòng sửa 2 + 3 và soát lần 2 (chat soát 11.11, chạy 12.11)
+Vòng sửa 2 (commit 60f5a18): (1) `tai({ giu })` ở HangThe (xoá hạng) và GiaoHang (lưu điểm lấy hàng) không nạp đè phần đang gõ — hàm thuần `ghepSauTai`
+(`kiemCaiDat.js`), ảnh chụp vẫn là số máy chủ giữ; (2) `baoXong` không bao giờ trống (`thongBaoKho.js`: dự phòng "Đã xong"; Settings.jsx lưu gói / hoàn tác claim có
+câu riêng); (3) lỗi tải Settings.jsx (`loadData`, `loadBackupInfo`) báo bằng `baoLoiTu`, hết `console.error`. Bài thử: nhóm G (G0–G6c) đỏ 11 ca trên mã cũ → xanh; 17 đột biến mới.
+Soát độc lập lần 2 (agent riêng, báo cáo chép nguyên): ĐẠT, còn lỗi nhẹ.
+```
+ĐẠT (còn vài lỗi nhẹ, không đụng tiền, không lộ thông tin, không chặn oan luồng hợp lệ)
+LỖI 1  Settings.jsx:370 `.catch(() => {})` nuốt lỗi tải danh sách sản phẩm của popup gói — K4  → ĐÃ SỬA vòng 3 (G6d + BV-SETTINGS-GOI-NUOT-LOI)
+LỖI 2  HangThe.jsx:42-46 / kiemCaiDat.js:9-12: khi giu, hạng chỉ có ở máy chủ nối CUỐI ds còn ảnh chụp xếp theo sort_order → thanh "chưa lưu" hiện oan (hiếm: thiết bị khác thêm hạng đúng lúc đang xoá) — K3/K4 → CHƯA SỬA, ghi Phát hiện
+LỖI 3  `onBo={tai}` truyền event vào `tai({ giu } = {})` — event.giu undefined nên đúng ý; rất nhẹ → CHƯA SỬA, ghi Phát hiện
+CHƯA SOÁT: --day-du quá giờ lúc soát (phiên chính đã chạy lại: PASS 116 · FAIL 0), không chạy dot_bien, không thử tay.
+BÀI HỌC (soát): K4 — sửa mẫu "lỗi chỉ ghi log" thì grep luôn `.catch(() => {})`; K3 — hàm ghép danh sách cần ca thứ tự.
+```
+Vòng sửa 3 (commit b188799): lỗi 1 — bài G6d đỏ trên code vòng 2 (125 đạt · 1 hỏng) → vá → 126 đạt · 0 hỏng; đột biến 79/79 BẮT (thêm BV-SETTINGS-GOI-NUOT-LOI).
+Luật 6.5: lỗi còn lại (2, 3) đều NHẸ, không đụng tiền / ví / điểm / lộ thông tin / ngoài Phạm vi — không hỏi chủ quán, ghi Phát hiện. Đây là vòng sửa 3 (≤ 3), không cần vòng 4.
+Phát hiện thêm (chưa sửa): lỗi 2 và 3 ở trên. Cách gọn khi làm sau: `ghepSauTai` trả kết quả sắp theo `sort_order` giảm dần; đổi `onBo={() => tai()}`.
+Bảng đột biến mới (vòng 2–3): ghepSauTai · VS-GHEP-LUON-LAY-MAYCHU · BV-GHEP-GIU-HANG-DA-XOA · BV-GHEP-BO-HANG-MOI-MAYCHU · BV-GHEP-MAT-HANG-CHUA-LUU; HangThe · BV-HANG-XOA-NAP-DE · BV-HANG-GIU-KHONG-GHEP · BV-HANG-GIU-DE-LAMTRON · VS-HANG-LUU-CUNG-GIU; GiaoHang · BV-GIAOHANG-DIEMLAY-NAP-DE · BV-GIAOHANG-GIU-DE-O · VS-GIAOHANG-GIU-BO-CHUP; baoXong · BV-BAOXONG-CAU-TRONG · VS-BAOXONG-LUON-DA-XONG; Settings · BV-SETTINGS-GOI-MESSAGE-TRAN · BV-SETTINGS-HOANTAC-MESSAGE-TRAN · BV-SETTINGS-TAI-CONSOLE · BV-SETTINGS-BACKUP-CONSOLE · BV-SETTINGS-GOI-NUOT-LOI.
+
+## Nghiệm thu (cập nhật sau vòng 3 — bằng chứng = ca `cong_cu/thu_BAO1b.js`, 126 ca xanh)
+A (A1–A4) · B (B1–B6, B4a–h) · C (C1–C6) · D (D1–D4) · E (E1–E4) · F (F1; `--day-du` PASS 116 · FAIL 0 · CẢNH BÁO 1 cũ) · K5 (server không đổi) — đủ 7/7 mục, chi tiết ở bảng nghiệm thu phía trên; vòng 2–3 thêm nhóm G (G0–G6d).
+
+## BÁO CÁO (bản cuối, thay bản trên)
+```
+VIỆC:        BAO-1b — Màn Cài đặt báo rõ mọi thao tác (gồm CAIDAT-BAO-1)
+ĐÃ SỬA:      vòng 2–3: client/src/components/{kiemCaiDat.js (ghepSauTai),thongBaoKho.js (baoXong không trống)} · pages/CaiDat/{HangThe,GiaoHang}.jsx (tai({ giu })) ·
+             pages/Settings.jsx (2 chỗ baoXong có câu dự phòng, 3 chỗ lỗi tải → baoLoiTu) · client/dist · cong_cu/thu_BAO1b.js (nhóm G) · viec/BAO-1b/dot_bien.py
+BÀI THỬ:     thu_BAO1b.js nhóm G trên mã trước vòng 2 → ĐỎ 11 ca; G6d trên mã vòng 2 → ĐỎ 1 ca; sau vá → XANH 126/126; đột biến 79/79 BẮT
+ĐÃ RÀ K4:    grep "tai()" sau thao tác ghi cục bộ trong pages/CaiDat + CaiDatChuong → HangThe xoá hạng, GiaoHang lưu điểm: đã xử lý; còn lại chỉ nạp danh sách riêng.
+             grep "console.error|\.catch\(\(\) => \{\}\)|baoXong\(<biến>.message\)" Settings.jsx → 0 chỗ còn
+CHƯA KIỂM:   chưa mở giao diện thật bằng trình duyệt; phần nạp lại chỉ khoá bằng hàm thuần + dò mã + đột biến, không chạy React thật; lỗi nhẹ 2 (thứ tự ds so với ảnh chụp
+             khi thiết bị khác thêm hạng) và 3 (onBo={tai}) chưa sửa; Render/Turso thật chưa thử
+GIT:         b188799 BAO-1b: vòng sửa 3 … · 60f5a18 BAO-1b: vòng sửa 2 …
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 0
+```
+
+## Bài học (vòng 2–3)
+- KHOÁ 1 (đã làm): G6c/G6d khoá "hết console.error và hết .catch(() => {})" ở Settings.jsx; G1 chạy thật ghepSauTai; G4 chạy thật baoXong. Lý do: K4 — soát nêu chỗ cùng khuôn mà phép trước chỉ canh một dạng.
+- KHOÁ 2 (đề xuất, chưa làm — việc sau): ca thứ tự cho `ghepSauTai` (kết quả phải cùng thứ tự với ảnh chụp). Lý do: K3.
+- NGUYÊN TẮC 1 (đề xuất, KHUON_LOI.md ngoài Phạm vi): K4 — sửa mẫu "lỗi chỉ ghi log" thì grep cả `.catch(() => {})`; hàm ghép danh sách sau nạp lại phải giữ cùng thứ tự với ảnh chụp dùng để so "có thay đổi".
+- BỎ: kho nông làm BH2 G1 đỏ lần nữa (môi trường) — đã `--unshallow`.
+
+✓ CỔNG CHẠY ĐẠT (A16 cảnh báo: gốc in 106 ca, head 126 — bài dừng sớm trên gốc vì chưa có module, bình thường)
+
+HEAD ĐÃ KIỂM: b1887991
