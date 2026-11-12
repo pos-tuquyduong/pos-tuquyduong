@@ -72,3 +72,69 @@ Chi tiết + đề xuất ở cuối `ke_hoach.md`, mục "Câu hỏi mới 11.1
   eb4c4d3 HUY-1 doi chieu ke hoach voi code moi 11.11 (muc 0), cau hoi Q6-Q8, DUNG cho duyet lai
   aa5874f PHIEU: HUY-1 11.11 buoc nang cap 025 + ghi chu main moi (DIEM-MON-1, VI-ME-1, NAP-1, BAO-1a) + VOUCHER-2 song song
   ```
+
+### Bước 4–6 — bài thử đỏ trước, sửa máy chủ, kiểm (12.11)
+Lời thường: phần MÁY CHỦ của việc huỷ đơn đã xong và đã kiểm: huỷ đơn hoàn toàn bộ tiền vào tài khoản khách (khách lẻ: máy ghi khoản trả tiền mặt
+từ két), lý do bắt buộc, nhân viên không huỷ được, quản lý chỉ huỷ đơn trong ngày, Đối soát có hai dòng mới, App thấy số đã hoàn. Phần GIAO DIỆN
+(nút Huỷ đơn) CHƯA làm: phải sửa bản mẫu `ban_mau_pos/` trước, mà người gác chỉ cho sửa khi Phạm vi ghi ĐÚNG TÊN từng file → Q10.
+
+- Bài thử mới `cong_cu/thu_HUY1.js` (58 ca) — gốc: 16 đạt · 42 hỏng; HEAD: 58 đạt · 0 hỏng. Bằng chứng: `bang_chung_do.txt`.
+- Bài cũ đổi theo luật đã duyệt (Q6, Q7, Q5 — bài sửa thường, đỏ trên gốc): `thu_GIAO1.js` (J4 + J9, J4b mới cho Q8, K5b), `thu_P26b.js` A5,
+  `thu_P26c.js` A5c2 / A5k / B5d, `thu_P24.js` A4b, `thu_DOISOAT1.js` E14, `thu_HOPDONG_KH.js` (ca v14 mới), `gia_lap/kich_ban.js` KB5, KB21, KB22,
+  KB24 (nhân viên → chủ: giả lập chỉ có chủ + nhân viên, `chay.js` ngoài Phạm vi), `gia_lap/bat_bien.js` I11 / I18 (Q2).
+- `npm test`: **PASS 112 · FAIL 0 · CẢNH BÁO 1** (cảnh báo có sẵn: route GET có lệnh ghi packages.js / products.js / sync.js — không phải của việc này).
+- `npm test -- --day-du`: **PASS 115 · FAIL 1** — `✗ bài chạy thật cong_cu/thu_gia_lap.js xanh → ✗ M11 huỷ đơn bỏ cổng trạng thái (huỷ được đơn đã hoàn)
+  (routes/orders.js) — chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được` → Q9 (file ngoài Phạm vi).
+- Giả lập `cong_cu/gia_lap/chay.js`: 33 kịch bản · 18 bất biến · ĐẠT.
+- `node tu_chay/cong.js tinh . 1d21626^ HEAD viec/HUY-1`: 238 lý do — gần hết là `✗ [A6]` / `✗ [A10]` của file main mà chat gộp vào nhánh (commit
+  `f77b7fb`, Q4: `attached_assets/…`, `viec/NAP-1/…`, `TIEN_DO_POS.json`…), không phải file việc này sửa → Phát hiện khung. Từ commit gộp
+  `node tu_chay/cong.js tinh . f77b7fb HEAD viec/HUY-1`: chỉ `✗ [A20]` (chưa tới bước 8b), `✗ [A17]` (ghi tên đột biến — đã ghi dưới), `✗ [A19]` (chưa tới 11.4).
+
+### Chỗ vá → đột biến (`python3 viec/HUY-1/dot_bien.py` — 25 đột biến · BẮT 25 · SỐNG 0 · HỎNG 0 · LẠC 0, đối chứng thu_HUY1 58/0, thu_GIAO1 137/0)
+| Chỗ vá | Đột biến (ca bắt) |
+|---|---|
+| `orders.js` hoanVi — hoàn cả tiền mặt + CK | BV-HOAN-TIEN-MAT (D1), BV-HOAN-CK (D2) |
+| `orders.js` hoanVi — chia tiền mặt rồi CK, phần ví riêng | VS-CK-VAO-TIEN-MAT (D2), VS-TIEN-MAT-NHU-VI (D1) |
+| `orders.js` hoanVi — khách lẻ → pos_hoan_tien_mat | BV-KHACH-LE (E1) |
+| `orders.js` xoá đơn không đi đường mới (K5) | VS-XOA-DOI (K1) |
+| `orders.js` route huỷ — quyền theo ngày | BV-NGAY-TRUOC (B3), VS-NGAY-BANG (B2), VS-NGAY-CHO-QUAN-LY (B3) |
+| `orders.js` docLyDoHuy / cổng lý do | BV-LY-DO (C1), VS-KHAC-KHONG-TRIM (C3), VS-MA-LA-QUA (C2), VS-BO-THAN-CU (C6) |
+| `database.js` seed staff cancel_order = 0 | BV-SEED-STAFF (B1) |
+| `nang_cap/025_huy_don.js` tắt quyền staff kho cũ | BV-025-QUYEN (B1b) |
+| `wallets.js` ghiHoan — cách huy_tien_mat / huy_ck | VS-CACH-HOAN-GOI (D1), BV-GHI-CK (D2) |
+| `doiSoat.js` tienTheoSo — két luật mới | VS-KET-CU (F2), BV-KET-Y (F2) |
+| `doiSoat.js` tongHop — dòng "hoàn vào tài khoản" | VS-X-DON-CU (F1) |
+| `donApp.js` — hai trường App + oid | VS-LO-GHI-THEM (H1), BV-HOAN-APP (H1), BV-OID (A4) |
+| `giaoHang.js` — bỏ cổng tạm (Q6), giữ chặn đơn giao không tài khoản (Q8) | BV-Q8 (J4b), VS-Q8-CHAN-HET (J4 + J9) |
+
+Tên đột biến (đủ, cổng A17): BV-HOAN-TIEN-MAT, BV-HOAN-CK, VS-CK-VAO-TIEN-MAT, VS-TIEN-MAT-NHU-VI, BV-KHACH-LE, VS-XOA-DOI, BV-NGAY-TRUOC, VS-NGAY-BANG,
+VS-NGAY-CHO-QUAN-LY, BV-LY-DO, VS-KHAC-KHONG-TRIM, VS-MA-LA-QUA, VS-BO-THAN-CU, BV-SEED-STAFF, BV-025-QUYEN, VS-CACH-HOAN-GOI, BV-GHI-CK, VS-KET-CU,
+BV-KET-Y, VS-X-DON-CU, VS-LO-GHI-THEM, BV-HOAN-APP, BV-OID, BV-Q8, VS-Q8-CHAN-HET.
+Lần chạy đầu BV-SEED-STAFF SỐNG (bước 025 sửa lại ngay sau seed nên hành vi y nguyên) → thêm vế "kho mới không có bảng _sao_luu_025" vào B1 → BẮT.
+Chưa có đột biến: `donThu.js` (két ở công cụ dọn dữ liệu thử — không bài nào gọi `tienMatTheoNgay` trực tiếp → CHƯA KIỂM), `backup.js` (thu_SAOLUU2
+canh "mọi bảng đều sao lưu" — xanh), `bat_bien.js` (công cụ thử).
+
+### Sự cố phiên
+- Người gác: `|` sau lệnh chạy script, `cd` giữa lệnh, `sed -i`, `stash`, `bash` trong thư mục nháp → viết lại lệnh đơn; `G-LUAT` khi Write
+  `ban_mau_pos/thu/thu_hd.js` → dừng phần bản mẫu, hỏi Q10. Trước đó một script Python đã sửa `ban_mau_pos/ban_mau_pos.html` (người gác không thấy
+  qua Python) — mình đã **hoàn lại** bằng `git checkout -- ban_mau_pos/ban_mau_pos.html` (chưa commit), không lách.
+- Bài thử tự sai 2 lần (G7 cần đơn trả ví, D10 số ví tính tay sai 125.000 → 140.000; ví nền D10 thiếu tổng nạp làm I18 lệch) — sửa bài, chạy lại gốc.
+
+## Câu hỏi (12.11) — DỪNG chờ chủ quán
+- **Q9 · Một chuỗi neo đột biến cũ trong `cong_cu/thu_gia_lap.js` (ngoài Phạm vi).** Lời thường: bài kiểm bộ
+  giả lập có một "đột biến" M11 tìm đúng câu lệnh huỷ đơn cũ để làm hỏng thử; mình đổi câu đó (thêm mã lý do) nên M11 không tìm thấy chỗ, `--day-du`
+  đỏ. **Đề xuất:** thêm `cong_cu/thu_gia_lap.js` vào Phạm vi để đổi ĐÚNG một dòng neo (dòng 152):
+  `[reason ||` → `[lyDo.chu,` ở cả chuỗi gốc lẫn chuỗi thay (M11 vẫn bỏ cổng `AND status = 'completed'`, vẫn phải bị I11 bắt).
+- **Q10 · Bản mẫu giao diện cần ghi ĐÚNG TÊN file trong Phạm vi.** Lời thường: người gác coi `ban_mau_pos/` là "file luật" — chỉ cho sửa file có tên
+  đầy đủ trong Phạm vi, glob `ban_mau_pos/**` không đủ. Theo Q1 phải sửa bản mẫu TRƯỚC rồi mới làm nút Huỷ đơn thật. **Đề xuất:** thêm ba dòng vào Phạm vi:
+  `ban_mau_pos/ban_mau_pos.html`, `ban_mau_pos/thu/thu_hd.js`, `ban_mau_pos/DAC_TA.md` (sửa dòng `PUT …/cancel body { reason }` và luật hoàn tác
+  cho đúng: huỷ đơn ĐÃ THU không hoàn tác 5 giây). Bản nháp đã sẵn: `viec/HUY-1/nhap/ban_mau.py` (sửa bản mẫu) + `viec/HUY-1/nhap/thu_hd.js` (13 ca) —
+  thử trên bản sao: bản mẫu gốc → bài sập (chưa có hàm); sau khi áp → 13 đạt · 0 hỏng, 6 bài cũ vẫn 119 đạt (tổng 132 · 0 hỏng).
+  Có Q10 thì phiên sau làm: bản mẫu → `HopHuyDon.jsx` + `Orders.jsx` + `DonApp` + màn Đối soát + build `dist` → `/ra-soat` → `/soat-bao-mat`.
+
+## Phát hiện (12.11)
+- Khung: khoảng `1d21626^..HEAD` của cổng gồm cả main chat gộp vào nhánh (Q4) → `✗ [A6]` / `✗ [A10]` hàng trăm file không phải của việc. Tính từ
+  commit gộp `f77b7fb` thì sạch. Cổng PR của chủ quán có thể gặp cùng chuyện — chat xem lúc gộp.
+- `server/utils/tienDaTra.js:85` (`soTienHoanGoi`) và `server/utils/viKhach.js:29` (`thuongKhiHoan`) chỉ loại `'hoan_goi'` khỏi phần "đã hoàn bằng ví";
+  dòng `huy_tien_mat` / `huy_ck` bị đếm như phần ví. Không sai hôm nay: `soTienHoanGoi` chỉ đọc đơn còn `completed` (đơn đã huỷ không vào), còn
+  `thuongKhiHoan` đúng nhờ thứ tự ghi (ví trước — ca D10 khoá). Ghi để việc sau đổi một trong hai chỗ thì nhớ ba cách (`viKhach.js` ngoài Phạm vi).

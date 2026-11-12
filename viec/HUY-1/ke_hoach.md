@@ -1,4 +1,9 @@
-# HUY-1 — kế hoạch (CHỜ DUYỆT LẠI — đối chiếu code mới 11.11, mục 0 + Q6, Q7, Q8)
+# HUY-1 — kế hoạch (chủ quán duyệt Q6, Q7, Q8 ngày 11.11; 12.11 máy chủ đã làm theo kế hoạch — giao diện chờ Q10, xem trang_thai.md)
+
+Lệch so với kế hoạch khi làm (12.11): (1) hai mã nguồn sổ ví chốt tên `huy_tien_mat` / `huy_ck` (Q2); (2) ca H5 hợp đồng nằm ở cả `thu_HUY1.js` lẫn
+ca v14 mới của `thu_HOPDONG_KH.js`; (3) D11–D13 (đơn giao) khoá trong `thu_GIAO1.js` J4 + J9 / J4b thay vì `thu_HUY1.js`; (4) giả lập không có tài
+khoản quản lý (`chay.js` ngoài Phạm vi) → bốn chỗ nhân viên huỷ đổi sang CHỦ, ca nhân viên 403 giữ; (5) `donThu.js` thêm `pos_hoan_tien_mat` vào bảng đi
+theo đơn (thu_KHSDT1 D14 bắt); (6) G8 (thẻ hội viên) phủ qua `thu_DOISOAT1.js` E14 + giả lập KB22; G9 (đơn nạp) giữ ở `thu_NAP1.js`; H4 giữ ở bài KH cũ.
 
 Lời thường: hiện nay huỷ đơn chỉ trả lại phần khách trả bằng ví; phần tiền mặt / chuyển khoản không được ghi vào đâu. Kế hoạch giữ NGUYÊN
 lệnh huỷ đang có ở máy chủ (một giao dịch, đã chặn huỷ hai lần) và thêm: hoàn TOÀN BỘ tiền đã trả vào ví khách (khách lẻ: ghi một khoản
