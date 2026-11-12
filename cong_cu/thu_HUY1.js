@@ -300,7 +300,7 @@ async function main() {
     k('G1b đơn đã đền một phần rồi huỷ → tổng điểm của đơn = 0 (không trừ hai lần)', diem7 > 0
       && (await so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ?', [d7.id])) === 0, `earn ${diem7}`);
     const s10 = sdtMoi();
-    await db.run('INSERT INTO pos_wallets (phone, balance, thuong, total_topup, total_spent, created_at, updated_at) VALUES (?, 100000, 20000, 0, 0, ?, ?)', [s10, getNow(), getNow()]);
+    await db.run('INSERT INTO pos_wallets (phone, balance, thuong, total_topup, total_spent, created_at, updated_at) VALUES (?, 100000, 20000, 100000, 0, ?, ?)', [s10, getNow(), getNow()]);
     await db.run(`INSERT INTO pos_balance_transactions (customer_phone, type, amount, thuong, balance_before, balance_after, payment_method, notes, created_by, created_at)
       VALUES (?, 'adjust', 100000, 20000, 0, 100000, 'cash', 'nền thử', 'thu', ?)`, [s10, getNow()]);
     const d10a = await tienMat(s10);
@@ -332,7 +332,7 @@ async function main() {
     k('E3 khách lẻ: không ghi dòng sổ ví nào', (await so('SELECT COUNT(*) FROM pos_balance_transactions WHERE order_id IN (?, ?)', [a.id, b.id])) === 0);
     let trung = null;
     try { await db.run("INSERT INTO pos_hoan_tien_mat (order_id, so_tien, luc) VALUES (?, 1, '2026-01-01T00:00:00')", [a.id]); } catch (e) { trung = e; }
-    k('E5 bảng hoàn tiền mặt UNIQUE theo đơn — dòng thứ hai bị chặn', !!trung);
+    k('E5 bảng hoàn tiền mặt UNIQUE theo đơn — đã có một dòng, dòng thứ hai bị chặn', ra.length === 1 && !!trung && (await hoanTM(a.id)).length === 1);
     const ghi = [];
     const quet = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, f.name);
@@ -397,8 +397,10 @@ async function main() {
       && [c, e].filter((r) => r.status === 200).length === 1 && (await vi(s6)) === 25000 && (await hoanTM(le.id)).length === 1,
     `${[a, b, c, e].map(moTa).join(' / ')} ví ${await vi(s6)}`);
     // G7 yêu cầu hoàn đang chờ
-    const d7 = await tienMat(sdtMoi());
-    const yc = await goi('POST', '/refunds', { order_id: d7.id, reason: 'thử HUY1' });
+    const s7 = sdtMoi();
+    await nap(s7, 25000);
+    const d7 = await ban({ customer_phone: s7, items: [mon(0)], payment_method: 'balance', balance_amount: 25000 });
+    const yc =await goi('POST', '/refunds', { order_id: d7.id, reason: 'thử HUY1' });
     await huy(d7.id);
     const ycSau = yc.refund_id ? await mot('SELECT status FROM pos_refund_requests WHERE id = ?', [yc.refund_id]) : null;
     const duyet = yc.refund_id ? await goi('POST', `/refunds/${yc.refund_id}/approve`, {}) : { status: 0 };
