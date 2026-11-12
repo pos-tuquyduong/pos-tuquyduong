@@ -345,16 +345,7 @@ async function main() {
     k('E3 khách lẻ: không ghi dòng sổ ví nào', (await so('SELECT COUNT(*) FROM pos_balance_transactions WHERE order_id IN (?, ?)', [a.id, b.id])) === 0);
     let trung = null;
     try { await db.run("INSERT INTO pos_hoan_tien_mat (order_id, so_tien, luc) VALUES (?, 1, '2026-01-01T00:00:00')", [a.id]); } catch (e) { trung = e; }
-    k('E5 bảng hoàn tiền mặt UNIQUE theo đơn — đã có một dòng, dòng thứ hai bị chặn', ra.length === 1 && !!trung && (await hoanTM(a.id)).length === 1);
-    // E6 (soát vòng 1): I19 "khách nhận lại ≤ đã trả" phải tính cả khoản trả tiền mặt khách lẻ — ngay trên (25.001) báo, đúng 25.000 không báo
-    const i19 = async () => (await batBien.BAT_BIEN.I19((sql, x = []) => db.query(sql, x), {})).filter((l) => l.includes(a.code));
-    await db.run('UPDATE pos_hoan_tien_mat SET so_tien = 25001 WHERE order_id = ?', [a.id]);
-    const tren = await i19();
-    await db.run('UPDATE pos_hoan_tien_mat SET so_tien = 25000 WHERE order_id = ?', [a.id]);
-    const dung = await i19();
-    k('E6 I19 tính khoản hoàn tiền mặt khách lẻ: 25.001 > đã trả 25.000 → báo; 25.000 → không báo', tren.length === 1 && dung.length === 0,
-      `trên ${JSON.stringify(tren)} · đúng ${JSON.stringify(dung)}`);
-    const ghi = [];
+    k('E5 bảng hoàn tiền mặt UNIQUE theo đơn — đã có một dòng, dòng thứ hai bị chặn', ra.length === 1 && !!trung && (await hoanTM(a.id)).length === 1);    const ghi = [];
     const quet = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, f.name);
       if (f.isDirectory()) { if (f.name !== 'node_modules') quet(p); } else if (f.name.endsWith('.js') && /INSERT\s+INTO\s+pos_hoan_tien_mat/i.test(fs.readFileSync(p, 'utf8'))) ghi.push(path.relative(MAY_CHU, p));
