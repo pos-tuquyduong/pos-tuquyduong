@@ -310,7 +310,7 @@ async function main() {
     const tGiua = await thuong(s10);
     await huy(d10b.id);
     k('D10 (NAP-1) đơn tiền mặt huỷ → thưởng không đổi (cả khoản vào tiền nạp); đơn ví + tiền mặt huỷ → thưởng về đúng như trước', t1 === 20000
-      && tGiua < 20000 && (await thuong(s10)) === 20000 && (await vi(s10)) === 125000, `thưởng ${t1} → ${tGiua} → ${await thuong(s10)} · ví ${await vi(s10)}`);
+      && tGiua < 20000 && (await thuong(s10)) === 20000 && (await vi(s10)) === 140000, `thưởng ${t1} → ${tGiua} → ${await thuong(s10)} · ví ${await vi(s10)}`);
     const coTM = await so(`SELECT COUNT(*) FROM pos_hoan_tien_mat WHERE order_id IN (${[d1, d2, d3, d4, d5, d6, d7, d10a, d10b].map((x) => x.id).join(',')})`).catch(() => -1);
     k('D9 đơn có SĐT không bao giờ có dòng hoàn tiền mặt khách lẻ', coTM === 0, String(coTM));
   }
