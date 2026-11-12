@@ -1,9 +1,15 @@
 // KH-API-2 (F) — thẻ Cài đặt "Giờ hoạt động": lịch tuần, ngày nghỉ, câu báo ngoài giờ, ngừng nhận đơn App trước giờ đóng.
 // Lưu 4 khoá gio_hd_* qua PUT /settings (máy chủ kiểm bằng gioHoatDong.kiemCaiDat — sai một khoá thì không ghi khoá nào).
 // Chỉ App KH đọc (GET /api/kh/gio-hoat-dong); quầy KHÔNG bị chặn theo giờ hoạt động.
+// BAO-1b: báo qua thông báo chung; lỗi ô dưới ô; sửa mà chưa Lưu → thanh "Có thay đổi chưa lưu" (Bỏ = nạp lại số máy chủ giữ).
 import { useState, useEffect } from 'react';
 import { Save, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../utils/api';
+import { baoXong, baoLoi, baoLoiTu, lyDoLoi } from '../../components/thongBaoKho.js';
+import LoiO from '../../components/LoiO';
+import ThanhLuu from '../../components/ThanhLuu';
+import useThayDoi from '../../components/useThayDoi';
+import { ngungHopLe } from '../../components/kiemCaiDat.js';
 
 const THU = [[2, 'Thứ Hai'], [3, 'Thứ Ba'], [4, 'Thứ Tư'], [5, 'Thứ Năm'], [6, 'Thứ Sáu'], [7, 'Thứ Bảy'], [8, 'Chủ nhật']];
 const NGAY_MAC_DINH = { mo: '07:00', dong: '22:00', nghi: false };
@@ -15,25 +21,27 @@ export default function GioHoatDong() {
   const [dangTai, setDangTai] = useState(true);
   const [dangLuu, setDangLuu] = useState(false);
   const [taiLoi, setTaiLoi] = useState(false);   // chưa nạp được cài đặt → KHÔNG cho Lưu (Lưu gửi đủ 4 khoá, sẽ xoá cài đặt đã có)
-  const [thongDiep, setThongDiep] = useState('');
+  const [loiO, setLoiO] = useState({});   // tai / ngung / luu → câu lỗi hiện dưới chỗ đó
   const [coLich, setCoLich] = useState(false);
   const [lich, setLich] = useState(() => Object.fromEntries(THU.map(([t]) => [t, { ...NGAY_MAC_DINH }])));
   const [ngayNghi, setNgayNghi] = useState([]);
   const [thongBao, setThongBao] = useState('');
   const [ngung, setNgung] = useState('0');
+  const [coDoi, chup] = useThayDoi({ coLich, lich, ngayNghi, thongBao, ngung });
 
   const tai = async () => {
     setDangTai(true);
     try {
       const s = (await api.get('/settings')).data || {};
       const l = s.gio_hd_lich ? docJson(s.gio_hd_lich, null) : null;
-      setCoLich(!!l);
-      if (l) setLich(Object.fromEntries(THU.map(([t]) => [t, l[t]?.nghi ? { ...NGAY_MAC_DINH, nghi: true } : { ...NGAY_MAC_DINH, ...l[t], nghi: false }])));
-      setNgayNghi(docJson(s.gio_hd_ngay_nghi || '[]', []));
-      setThongBao(s.gio_hd_thong_bao || '');
-      setNgung(s.gio_hd_ngung_truoc_phut || '0');
-      setTaiLoi(false);
-    } catch (err) { setTaiLoi(true); setThongDiep('Lỗi: chưa tải được cài đặt — tải lại trang trước khi sửa (' + err.message + ')'); }
+      const lichMoi = l ? Object.fromEntries(THU.map(([t]) => [t, l[t]?.nghi ? { ...NGAY_MAC_DINH, nghi: true } : { ...NGAY_MAC_DINH, ...l[t], nghi: false }])) : Object.fromEntries(THU.map(([t]) => [t, { ...NGAY_MAC_DINH }]));
+      const nghiMoi = docJson(s.gio_hd_ngay_nghi || '[]', []);
+      const tbMoi = s.gio_hd_thong_bao || '';
+      const ngungMoi = s.gio_hd_ngung_truoc_phut || '0';
+      setCoLich(!!l); setLich(lichMoi); setNgayNghi(nghiMoi); setThongBao(tbMoi); setNgung(ngungMoi);
+      chup({ coLich: !!l, lich: lichMoi, ngayNghi: nghiMoi, thongBao: tbMoi, ngung: ngungMoi });
+      setTaiLoi(false); setLoiO({});
+    } catch (err) { setTaiLoi(true); setLoiO({ tai: lyDoLoi(err) }); baoLoiTu('tải giờ hoạt động', err); }
     finally { setDangTai(false); }
   };
   useEffect(() => { tai(); }, []);
@@ -43,19 +51,24 @@ export default function GioHoatDong() {
 
   const luu = async () => {
     if (taiLoi) return;
-    setDangLuu(true);
+    const ng = String(ngung).trim() || '0';
+    if (!ngungHopLe(ng)) {
+      setLoiO({ ngung: 'Số phút ngừng nhận đơn phải từ 0 đến 600' });
+      baoLoi('Chưa lưu giờ hoạt động được', 'Sửa ô "Ngừng nhận đơn App trước giờ đóng" rồi bấm Lưu lại.');
+      return;
+    }
+    setLoiO({}); setDangLuu(true);
     try {
       const lichLuu = Object.fromEntries(THU.map(([t]) => [t, lich[t].nghi ? { nghi: true } : { mo: lich[t].mo, dong: lich[t].dong }]));
       await api.put('/settings', { settings: {
         gio_hd_lich: coLich ? JSON.stringify(lichLuu) : '',
         gio_hd_ngay_nghi: JSON.stringify(ngayNghi.filter((d) => d.ngay).map((d) => ({ ngay: d.ngay, ly_do: (d.ly_do || '').trim() }))),
         gio_hd_thong_bao: thongBao,
-        gio_hd_ngung_truoc_phut: String(ngung).trim() || '0',
+        gio_hd_ngung_truoc_phut: ng,
       } });
-      setThongDiep('Đã lưu giờ hoạt động');
-      setTimeout(() => setThongDiep((t) => (t === 'Đã lưu giờ hoạt động' ? '' : t)), 3000);   // không xoá lời báo tải lỗi của tai() sau đó
+      baoXong(coLich ? 'Đã lưu giờ hoạt động (lịch tuần)' : 'Đã lưu giờ hoạt động (mở cả ngày)');
       await tai();
-    } catch (err) { setThongDiep('Lỗi: ' + err.message); }
+    } catch (err) { setLoiO({ luu: lyDoLoi(err) }); baoLoiTu('lưu giờ hoạt động', err); }
     finally { setDangLuu(false); }
   };
 
@@ -68,7 +81,7 @@ export default function GioHoatDong() {
         App khách xem quán đang mở hay nghỉ. <b>Quầy bán bình thường, không bị chặn.</b> Giờ đóng nhỏ hơn giờ mở = mở
         qua nửa đêm (vd 18:00 → 02:00).
       </p>
-      {thongDiep && <div style={{ padding: 8, marginBottom: 8, background: thongDiep.startsWith('Lỗi') ? '#fee2e2' : '#dcfce7', borderRadius: 6 }}>{thongDiep}</div>}
+      <LoiO loi={loiO.tai && `Chưa tải được giờ hoạt động — tải lại trang trước khi sửa: ${loiO.tai}`} />
 
       <label style={{ ...hang, borderTop: 'none', fontWeight: 600 }}>
         <input type="checkbox" checked={coLich} onChange={(e) => setCoLich(e.target.checked)} />
@@ -116,10 +129,13 @@ export default function GioHoatDong() {
         <input type="number" className="input" style={{ width: 80, textAlign: 'right' }} min="0" max="600" value={ngung} onChange={(e) => setNgung(e.target.value)} />
         <span>phút</span>
       </div>
+      <LoiO loi={loiO.ngung} />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-        <button className="btn btn-primary" onClick={luu} disabled={dangLuu || taiLoi}><Save size={16} /> {dangLuu ? 'Đang lưu...' : 'Lưu'}</button>
+        <button className="btn btn-primary" onClick={luu} disabled={dangLuu || taiLoi}><Save size={16} /> {dangLuu ? 'Đang lưu…' : 'Lưu'}</button>
       </div>
+      <LoiO loi={loiO.luu} />
+      <ThanhLuu id="gio-hoat-dong" coDoi={coDoi} dangLuu={dangLuu} onLuu={luu} onBo={tai} />
     </>
   );
 }

@@ -514,6 +514,7 @@ chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai n
 chayBaiThat('cong_cu/thu_DIEMMON1.js');   // DIEM-MON-1: tích điểm theo món / gói / hạng — chỉ cộng phần dòng bật, trừ theo dòng (CÁCH 2), I8
 chayBaiThat('cong_cu/thu_KHTHE1.js');   // KH-THE-1: App KH mua thẻ hạng chung giỏ, hạng lên lúc đã thu, giỏ không pha bán mọi giờ, quyền lợi hạng (023)
 chayBaiThat('cong_cu/thu_BAO1a.js');   // BAO-1a: thông báo nổi chung (xanh tự ẩn, đỏ có nút đóng), bánh cóc alert(, nút ghi khoá khi đang xử lý
+chayBaiThat('cong_cu/thu_BAO1b.js');   // BAO-1b: Cài đặt báo rõ mọi thao tác — hết chữ báo đầu trang, lỗi dưới ô, thanh "Có thay đổi chưa lưu", hỏi PIN lúc bấm Lưu
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong
