@@ -469,6 +469,27 @@ async function main() {
     co.mocTruocTx = null;
     k('G4 hai đơn cùng voucher → đúng một 200, một 400 VOUCHER_DA_DUNG; lượt = 1', chen?.status === 200 && sau.status === 400 && sau.code === 'VOUCHER_DA_DUNG'
       && (await luot(vr)) === 1 && Number((await grant(vr)).used_order_id) === chen.order?.id, `${chen && moTa(chen)} / ${moTa(sau)}`);
+    // G4b / G4c — MỖI điều kiện của câu tiêu tự đứng được (K3: mỗi vế một ca): giữa phép kiểm (ngoài giao dịch) và giao dịch, chỉ MỘT phía đổi.
+    const vb4 = await phat(a.sdt, 'tien', 10000);
+    co.mocTruocTx = async () => { await db.run("UPDATE pos_voucher_grants SET status = 'used' WHERE code = ?", [vb4]); };
+    const g4b = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vb4] }, 40000);
+    co.mocTruocTx = null;
+    k('G4b ví voucher vừa chuyển "used" (mã chưa tăng lượt) → 400 VOUCHER_DA_DUNG, lượt mã KHÔNG tăng (rollback)', g4b.status === 400 && g4b.code === 'VOUCHER_DA_DUNG'
+      && (await luot(vb4)) === 0, moTa(g4b));
+    const vc4 = await phat(a.sdt, 'tien', 10000);
+    co.mocTruocTx = async () => { await db.run('UPDATE pos_discount_codes SET used_count = 1 WHERE code = ?', [vc4]); };
+    const g4c = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vc4] }, 40000);
+    co.mocTruocTx = null;
+    k('G4c mã vừa hết lượt (ví còn "available") → 400 VOUCHER_DA_DUNG, ví vẫn available', g4c.status === 400 && g4c.code === 'VOUCHER_DA_DUNG'
+      && (await grant(vc4)).status === 'available', moTa(g4c));
+    // G5 — đơn kiểu cũ (voucher ở ô mã) huỷ: trả ĐÚNG một lượt (mã nhiều lượt để MAX(0) không che lỗi trả hai lần).
+    const vcu = await phat(a.sdt, 'tien', 5000);
+    await db.run('UPDATE pos_discount_codes SET usage_limit = 5, used_count = 3 WHERE code = ?', [vcu]);
+    const g5 = await ban({ customer_phone: a.sdt, items: [mon(0)], discount_code: vcu }, 45000);
+    const l5 = await luot(vcu);
+    const h5 = g5.order ? await goi('PUT', `/pos/orders/${g5.order.id}/cancel`, { reason: 'thử VOUCHER-2' }) : {};
+    k('G5 voucher ở ô mã (đơn ghi discount_code) → lượt 3 → 4; huỷ → về 3 (không trừ hai lần)', g5.status === 200 && (await donDb(g5.order.id)).discount_code === vcu
+      && l5 === 4 && h5.status === 200 && (await luot(vcu)) === 3, `${moTa(g5)} · ${l5} → ${await luot(vcu)}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -506,6 +527,10 @@ async function main() {
     const h4 = await baoGiaApp(a, gioApp([[0, 1]], { vouchers: [vb] }));
     k('H4 khách A gửi voucher chính chủ của B → báo giá không áp (50.000) + voucher_loi VOUCHER_CHINH_CHU', h4.status === 200 && h4.tong === 50000
       && h4.voucher_loi?.[0]?.code === 'VOUCHER_CHINH_CHU' && h4.voucher_loi?.[0]?.ma === vb, JSON.stringify(h4).slice(0, 200));
+    const tr3c = await soDon();
+    const h3c = await ban({ customer_phone: B0.sdt, items: [mon(0)], discount_code: v4 }, 50000);
+    k('H3c POST quầy: voucher chính chủ của người khác gõ ở ô mã → MỀM như mã cũ (đơn 200, 50.000, không ghi mã, voucher không tiêu)', h3c.status === 200
+      && (await tongDon(h3c)) === 50000 && (await donDb(h3c.order.id)).discount_code == null && (await soDon()) === tr3c + 1 && (await grant(v4)).status === 'available', moTa(h3c));
     const sai = await baoGiaApp(a, gioApp([[0, 1]], { vouchers: 'ABC' }));
     k('H5 vouchers không phải mảng chuỗi → 400 YEU_CAU_KHONG_HOP_LE', sai.status === 400 && sai.code === 'YEU_CAU_KHONG_HOP_LE', moTa(sai));
   });
