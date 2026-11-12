@@ -169,8 +169,9 @@ async function main() {
     co.truocCommit = async (tx) => { trongTx = Number((await tx.queryOne("SELECT COUNT(*) AS n FROM pos_point_transactions WHERE order_id = ? AND type = 'adjust'", [d4.id])).n); };
     const h4b = await huy(d4.id);
     co.truocCommit = null;
-    k('A4b dòng trừ nằm TRONG giao dịch huỷ: đọc ngay trước commit thấy 1; ví hoàn 10.000', h4b.status === 200 && trongTx === 1
-      && await vi(s4) === 10000 && await diemDon(d4.id) === 0, `${moTa(h4b)} · trong giao dịch ${trongTx} · ví ${await vi(s4)}`);
+    // HUY-1 (chủ quán 05.11): huỷ hoàn TOÀN BỘ đã trả (ví 10.000 + tiền mặt 15.000) vào ví → 25.000
+    k('A4b dòng trừ nằm TRONG giao dịch huỷ: đọc ngay trước commit thấy 1; ví hoàn 25.000 (toàn bộ)', h4b.status === 200 && trongTx === 1
+      && await vi(s4) === 25000 && await diemDon(d4.id) === 0, `${moTa(h4b)} · trong giao dịch ${trongTx} · ví ${await vi(s4)}`);
 
     const s5 = sdtMoi();
     const d5 = await tienMat(s5);

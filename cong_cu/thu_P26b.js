@@ -408,10 +408,15 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[A5] hoàn vào ví của mỗi đơn ≤ số đơn đó đã trả bằng ví (mọi ví, kể cả đơn đã xoá)');
   {
-    const ds = await db.query(`SELECT order_id, SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) AS hoan,
+    // HUY-1 (chủ quán 05.11): huỷ đơn hoàn cả phần tiền mặt / CK vào ví — dòng riêng cách huy_tien_mat / huy_ck, KHÔNG phải tiền ví (như I11);
+    // phần ví vẫn canh. Đơn 1003, 1019 (tiền mặt, huỷ) phải có đúng dòng huy_tien_mat = 25.000.
+    const ds = await db.query(`SELECT order_id, SUM(CASE WHEN type = 'refund' AND COALESCE(payment_method, '') NOT IN ('huy_tien_mat', 'huy_ck') THEN amount ELSE 0 END) AS hoan,
         -SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS tra
       FROM pos_balance_transactions WHERE order_id IS NOT NULL GROUP BY order_id HAVING hoan > tra + 0.5`);
-    k('A5 không đơn nào được hoàn vào ví nhiều hơn số đã trả bằng ví', ds.length === 0, JSON.stringify(ds));
+    const tm = await db.query(`SELECT order_id, SUM(amount) AS n FROM pos_balance_transactions WHERE type = 'refund' AND payment_method = 'huy_tien_mat'
+      AND order_id IN (1003, 1019) GROUP BY order_id`);
+    k('A5 không đơn nào được hoàn vào ví (phần ví) nhiều hơn số đã trả bằng ví; đơn tiền mặt huỷ 1003, 1019 hoàn 25.000 dòng huy_tien_mat', ds.length === 0
+      && tm.length === 2 && tm.every((r) => Number(r.n) === 25000), JSON.stringify(ds) + ' ' + JSON.stringify(tm));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
