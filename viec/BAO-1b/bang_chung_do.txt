@@ -16,4 +16,8 @@ Các ca ĐỎ trên gốc (rút gọn theo mục; dòng đầy đủ in ra bởi
   B4 ✗ B4 không nạp được components/kiemCaiDat.js (chưa có) · B5 · B6 GoiNap số lẻ · K4a ManKhach.luu không chặn taiLoi · D4 HoiPin · C6 thanh che nút (vòng sửa 1 sau soát)
   F  ✗ F1 kiem_tra_truoc_khi_giao.js chưa nối thu_BAO1b.js
 
-SỐ CA cong_cu/thu_BAO1b.js: 108
+VÒNG SỬA 2 (bài HIỆN TẠI trên client/src của 619251d, trước khi vá): 109 đạt · 12 hỏng
+  G  ✗ G0 chưa có ghepSauTai · G2a/G2b/G2c HangThe.tai chưa có { giu } · G3a/G3b GiaoHang.tai chưa có { giu } · G4b baoXong(rỗng) ra null · G5 baoXong(data.message) trần · G6a/b/c còn console.error
+  (F1 đỏ ở bản sao đó chỉ vì bản sao không chép kiem_tra_truoc_khi_giao.js của HEAD — không tính)
+
+SỐ CA cong_cu/thu_BAO1b.js: 125

@@ -15,7 +15,7 @@ import LoiO from '../../components/LoiO';
 import ThanhLuu from '../../components/ThanhLuu';
 import HoiPin from '../../components/HoiPin';
 import useThayDoi from '../../components/useThayDoi';
-import { kiemHang } from '../../components/kiemCaiDat.js';
+import { kiemHang, ghepSauTai } from '../../components/kiemCaiDat.js';
 
 let soTam = 0;   // khoá tạm cho hạng chưa lưu (chưa có id)
 const docVe = (t) => ({ ...t, khoa: 'h' + t.id, quyen_loi: t.quyen_loi || '', goi: (t.goi || []).map((g) => ({ ...g, gia: g.gia ?? '' })) });
@@ -36,12 +36,15 @@ export default function HangThe() {
   const [pin, setPin] = useState({ mat_khau: '', pin_cu: '', pin: '', pin_lai: '' });
   const [coDoi, chup] = useThayDoi({ ds, lamTron });
 
-  const tai = async () => {
+  // giu = nạp lại sau thao tác ghi cục bộ (xoá hạng): KHÔNG đè phần đang gõ dở ở chỗ khác; ảnh chụp vẫn là số máy chủ giữ
+  const tai = async ({ giu } = {}) => {
     try {
       const r = await hangApi.ds();
       const moi = (r.data?.tiers || []).map(docVe).sort((a, b) => b.sort_order - a.sort_order);
       const tron = { round_to: r.data?.round_to ?? 500, round_mode: r.data?.round_mode || 'nearest' };
-      setDs(moi); setLamTron(tron); chup({ ds: moi, lamTron: tron }); setLoiHang({}); setLoiLuu(''); setTaiLoi('');
+      giu ? setDs((cu) => ghepSauTai(cu, moi)) : setDs(moi);
+      if (!giu) setLamTron(tron);
+      chup({ ds: moi, lamTron: tron }); if (!giu) { setLoiHang({}); setLoiLuu(''); } setTaiLoi('');
       setCoPin((await hangApi.coPin()).data?.co_pin === true);
     } catch (e) { setTaiLoi(lyDoLoi(e)); baoLoiTu('tải danh sách hạng', e); }
   };
@@ -64,7 +67,7 @@ export default function HangThe() {
     if (xoaCho !== h.khoa) { setXoaCho(h.khoa); return; }
     setXoaCho(null);
     if (!h.id) { setDs((d) => d.filter((x) => x.khoa !== h.khoa)); return; }
-    setHoiPin({ tieuDe: `Xoá hạng ${h.name} — gõ PIN chủ quán`, ten: 'xoá hạng', viec: async (pinSua) => { await hangApi.xoa(h.id, pinSua); baoXong(`Đã xoá hạng ${h.name}`); await tai(); } });
+    setHoiPin({ tieuDe: `Xoá hạng ${h.name} — gõ PIN chủ quán`, ten: 'xoá hạng', viec: async (pinSua) => { await hangApi.xoa(h.id, pinSua); baoXong(`Đã xoá hạng ${h.name}`); await tai({ giu: true }); } });
   };
   // Kiểm trước từng ô (máy chủ vẫn kiểm lại hết): ô nào sai hiện chữ đỏ ngay dưới ô đó, chưa hỏi PIN.
   const batLuu = () => {

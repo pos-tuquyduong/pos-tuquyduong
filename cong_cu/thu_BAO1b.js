@@ -167,6 +167,41 @@ const CD = (t) => SX('pages', 'CaiDat', t + '.jsx');
   }
   k('E4 GiaoHang: nút Lưu khoá khi đang lưu (trước đây bấm đôi được)', CD('GiaoHang').includes('onClick={luu} disabled={dangLuu}') && /Đang lưu…/.test(CD('GiaoHang')));
 
+  muc('G · vòng sửa 2: nạp lại không đè phần đang gõ; baoXong không trống; lỗi tải báo rõ');
+  if (!V.loiNap) {
+    k('G0 nạp được ghepSauTai', typeof V.ghepSauTai === 'function');
+    if (typeof V.ghepSauTai === 'function') {
+      const cu = [{ id: 1, name: 'A đang gõ' }, { id: 2, name: 'B đã xoá' }, { khoa: 't1', name: 'Mới chưa lưu' }];
+      const moi = [{ id: 1, name: 'A máy chủ' }, { id: 3, name: 'C máy chủ' }];
+      const r = V.ghepSauTai(cu, moi);
+      k('G1a hạng cũ còn trên máy chủ giữ NGUYÊN bản đang gõ', r.find((h) => h.id === 1)?.name === 'A đang gõ');
+      k('G1b hạng đã xoá khỏi máy chủ thì bỏ; hạng chưa lưu (chưa có id) giữ', !r.some((h) => h.id === 2) && r.some((h) => h.name === 'Mới chưa lưu'));
+      k('G1c hạng mới chỉ có ở máy chủ thì thêm vào, không trùng', r.filter((h) => h.id === 3).length === 1 && r.length === 3);
+      k('G1d không có gì đang gõ → ra đúng bản máy chủ', JSON.stringify(V.ghepSauTai(moi, moi)) === JSON.stringify(moi));
+    }
+  }
+  const ht3 = CD('HangThe'), gh3 = CD('GiaoHang');
+  k('G2a HangThe.tai nhận { giu } và khi giu thì ghép bằng ghepSauTai, không setDs(moi) đè', /const tai = async \(\{ giu \} = \{\}\) =>/.test(ht3) && /ghepSauTai\(/.test(ht3) && /giu \? setDs\(\(cu\) => ghepSauTai\(cu, moi\)\)/.test(ht3));
+  k('G2b HangThe: xoá hạng nạp lại bằng tai({ giu: true }); lưu cả danh sách vẫn tai() thường', /hangApi\.xoa\([^;]*;[^;]*;\s*await tai\(\{ giu: true \}\)/.test(ht3) && /baoXong\(`Đã lưu \$\{ds\.length\}[^\n]*\n\s*await tai\(\);/.test(ht3));
+  k('G2c HangThe: khi giu thì không đè ô làm tròn đang gõ (setLamTron chỉ khi !giu)', /if \(!giu\) setLamTron\(/.test(ht3));
+  k('G3a GiaoHang.tai nhận { giu }; giu thì KHÔNG setO(moi) đè ô đang gõ nhưng vẫn chụp số máy chủ', /const tai = async \(\{ giu \} = \{\}\) =>/.test(gh3) && /if \(!giu\) setO\(moi\);\s*chup\(moi\)/.test(gh3));
+  k('G3b GiaoHang: lưu điểm lấy hàng nạp lại bằng tai({ giu: true }); lưu cài đặt vẫn tai() thường', /giaoHangApi\.diemLay\(than\)[^\n]*await tai\(\{ giu: true \}\)/.test(gh3) && /baoXong\('Đã lưu cài đặt giao hàng'\); await tai\(\);/.test(gh3));
+  let TB;
+  try { TB = await import(pathToFileURL(path.join(SRC, 'components', 'thongBaoKho.js')).href); } catch (e) { TB = { loiNap: e.message }; }
+  k('G4a nạp được thongBaoKho.js', !TB.loiNap, TB.loiNap || '');
+  if (!TB.loiNap) {
+    const cuoi = () => TB.laySnapshot().at(-1)?.tieuDe;
+    TB.baoXong(undefined); const a = cuoi();
+    TB.baoXong('   '); const b = cuoi();
+    TB.baoXong(''); const c = cuoi();
+    k('G4b baoXong(undefined / rỗng / dấu cách) vẫn hiện một câu có chữ', [a, b, c].every((x) => typeof x === 'string' && x.trim().length > 0), JSON.stringify([a, b, c]));
+    TB.baoXong('Đã lưu gói Trà'); k('G4c baoXong có câu thì giữ NGUYÊN câu đó', cuoi() === 'Đã lưu gói Trà');
+  }
+  k('G5 Settings: không baoXong(<biến>.message) trần — máy chủ không trả message thì dùng câu riêng theo việc', !/baoXong\(\s*[\w.]+\.message\s*\)/.test(st));
+  k('G6a Settings.loadData báo lỗi tải bằng baoLoiTu (không console.error)', /const loadData = async[\s\S]{0,2200}?catch \(err\) \{ baoLoiTu\('tải dữ liệu/.test(st));
+  k('G6b Settings.loadBackupInfo báo lỗi tải bằng baoLoiTu', /const loadBackupInfo = async[\s\S]{0,900}?catch \(err\) \{ baoLoiTu\('tải thông tin sao lưu/.test(st));
+  k('G6c Settings.jsx hết console.error', !/console\.error/.test(st));
+
   muc('F · nối vào bộ kiểm');
   const kt = fs.existsSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js')) ? fs.readFileSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js'), 'utf8') : '';
   k("F1 kiem_tra_truoc_khi_giao.js có chayBaiThat('cong_cu/thu_BAO1b.js')", /^chayBaiThat\('cong_cu\/thu_BAO1b\.js'\)/m.test(kt));

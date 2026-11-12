@@ -89,6 +89,24 @@ DOT_BIEN = [
   ('BV-GIAOHANG-NUT-LUU-KHONG-KHOA', [(CD + 'GiaoHang.jsx', 'onClick={luu} disabled={dangLuu}>', 'onClick={luu}>', 1)], r'✗ E4', T),
   ('BV-INPHIEU-CHU-DANG-LUU', [(CD + 'InPhieu.jsx', "{dangLuu ? 'Đang lưu…' : 'Lưu'}", "{'Lưu'}", 1)], r'✗ E3 CaiDat/InPhieu', T),
   ('BV-TICHDIEM-MO-CONG-TAC', [(CD + 'TichDiem.jsx', 'disabled={!duocSua || dangLuu}', 'disabled={!duocSua}', 1)], r'✗ E2 CaiDat/TichDiem', T),
+  # ── G: vòng sửa 2 — nạp lại không đè phần đang gõ; baoXong không trống; lỗi tải báo rõ ──
+  ('VS-GHEP-LUON-LAY-MAYCHU', [(KC, 'return [...cu.filter((h) => !h.id || conMayChu.has(h.id)), ...moi.filter((h) => !coCu.has(h.id))];', 'return moi;', 1)], r'✗ G1[abc]', T),
+  ('BV-GHEP-GIU-HANG-DA-XOA', [(KC, 'cu.filter((h) => !h.id || conMayChu.has(h.id))', 'cu', 1)], r'✗ G1b', T),
+  ('BV-GHEP-BO-HANG-MOI-MAYCHU', [(KC, ', ...moi.filter((h) => !coCu.has(h.id))]', ']', 1)], r'✗ G1c', T),
+  ('BV-GHEP-MAT-HANG-CHUA-LUU', [(KC, '!h.id || conMayChu.has(h.id)', 'conMayChu.has(h.id)', 1)], r'✗ G1b', T),
+  ('BV-HANG-XOA-NAP-DE', [(CD + 'HangThe.jsx', 'await tai({ giu: true }); } });', 'await tai(); } });', 1)], r'✗ G2b', T),
+  ('BV-HANG-GIU-KHONG-GHEP', [(CD + 'HangThe.jsx', 'giu ? setDs((cu) => ghepSauTai(cu, moi)) : setDs(moi);', 'setDs(moi);', 1)], r'✗ G2a', T),
+  ('BV-HANG-GIU-DE-LAMTRON', [(CD + 'HangThe.jsx', 'if (!giu) setLamTron(tron);', 'setLamTron(tron);', 1)], r'✗ G2c', T),
+  ('VS-HANG-LUU-CUNG-GIU', [(CD + 'HangThe.jsx', 'baoXong(`Đã lưu ${ds.length} hạng thành viên: ${ds.map((h) => h.name).join(\', \')}`);\n      await tai();', 'baoXong(`Đã lưu ${ds.length} hạng thành viên: ${ds.map((h) => h.name).join(\', \')}`);\n      await tai({ giu: true });', 1)], r'✗ G2b', T),
+  ('BV-GIAOHANG-DIEMLAY-NAP-DE', [(CD + 'GiaoHang.jsx', "baoXong('Đã lưu điểm lấy hàng'); await tai({ giu: true });", "baoXong('Đã lưu điểm lấy hàng'); await tai();", 1)], r'✗ G3b', T),
+  ('BV-GIAOHANG-GIU-DE-O', [(CD + 'GiaoHang.jsx', 'if (!giu) setO(moi);', 'setO(moi);', 1)], r'✗ G3a', T),
+  ('VS-GIAOHANG-GIU-BO-CHUP', [(CD + 'GiaoHang.jsx', 'chup(moi); if (!giu) setLoiO({});', 'if (!giu) chup(moi); if (!giu) setLoiO({});', 1)], r'✗ G3a', T),
+  ('BV-BAOXONG-CAU-TRONG', [(C + 'thongBaoKho.js', "them('xong', String(chu ?? '').trim() || 'Đã xong')", "them('xong', chu)", 1)], r'✗ G4b', T),
+  ('VS-BAOXONG-LUON-DA-XONG', [(C + 'thongBaoKho.js', "String(chu ?? '').trim() || 'Đã xong'", "'Đã xong'", 1)], r'✗ G4c', T),
+  ('BV-SETTINGS-GOI-MESSAGE-TRAN', [(ST, "data.message || `Đã ${editingPkg ? 'lưu' : 'thêm'} gói ${pkgForm.name}`", 'data.message', 1)], r'✗ G5', T),
+  ('BV-SETTINGS-HOANTAC-MESSAGE-TRAN', [(ST, 'data.message || `Đã hoàn tác claim ưu đãi của SĐT ${row.claimed_phone}`', 'data.message', 1)], r'✗ G5', T),
+  ('BV-SETTINGS-TAI-CONSOLE', [(ST, "baoLoiTu('tải dữ liệu của thẻ này', err)", 'console.error(err)', 1)], r'✗ G6[ac]', T),
+  ('BV-SETTINGS-BACKUP-CONSOLE', [(ST, "baoLoiTu('tải thông tin sao lưu', err)", 'console.error(err)', 1)], r'✗ G6[bc]', T),
 ]
 
 

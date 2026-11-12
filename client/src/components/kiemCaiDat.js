@@ -4,6 +4,13 @@ export const PT_TOI_DA = 90, THANG_TOI_THIEU = 1, THANG_TOI_DA = 60, GIAY_TOI_TH
 
 const trongKhoang = (v, a, b) => v !== '' && v !== null && Number.isInteger(Number(v)) && Number(v) >= a && Number(v) <= b;
 
+/** Nạp lại danh sách hạng sau một thao tác ghi cục bộ (xoá hạng): giữ NGUYÊN bản đang gõ của hạng còn tồn tại, bỏ hạng máy chủ đã xoá,
+ *  giữ hạng chưa lưu (chưa có id), thêm hạng chỉ có ở máy chủ. */
+export function ghepSauTai(cu, moi) {
+  const conMayChu = new Set(moi.map((h) => h.id)), coCu = new Set(cu.map((h) => h.id));
+  return [...cu.filter((h) => !h.id || conMayChu.has(h.id)), ...moi.filter((h) => !coCu.has(h.id))];
+}
+
 /** Hạng thành viên → { '<khoa>:name' | ':pt' | ':dacbiet' | ':goi': câu lỗi }. Rỗng = hợp lệ. */
 export function kiemHang(ds) {
   const l = {};

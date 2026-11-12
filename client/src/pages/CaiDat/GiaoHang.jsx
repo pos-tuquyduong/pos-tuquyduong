@@ -22,13 +22,15 @@ export default function CaiDatGiaoHang() {
   const [dangLuu, setDangLuu] = useState(false);
   const [coDoi, chup] = useThayDoi(o);
 
-  const tai = async () => {
+  // giu = nạp lại sau lưu điểm lấy hàng: KHÔNG đè các ô cài đặt đang gõ dở; ảnh chụp vẫn là số máy chủ giữ
+  const tai = async ({ giu } = {}) => {
     try {
       const r = await giaoHangApi.caiDat();
       setKq(r);
       const c = r.cai_dat;
       const moi = { ...Object.fromEntries(O.map(([k, , f]) => [k, String(c[f])])), giao_gio_nhan: c.gio_nhan, giao_loai_xe: c.loai_xe, giao_sdt_quan: c.sdt_quan };
-      setO(moi); chup(moi); setLoiO({});
+      if (!giu) setO(moi);
+      chup(moi); if (!giu) setLoiO({});
     } catch (e) { setLoiO({ tai: lyDoLoi(e) }); baoLoiTu('tải cài đặt giao hàng', e); }
   };
   useEffect(() => { tai(); }, []);
@@ -53,7 +55,7 @@ export default function CaiDatGiaoHang() {
   };
   const datDiemLay = async (than) => {
     setDangLuu(true);
-    try { await giaoHangApi.diemLay(than); setGoiY([]); setDiaChi(''); baoXong('Đã lưu điểm lấy hàng'); await tai(); } catch (e) { setLoiO({ diaChi: lyDoLoi(e) }); baoLoiTu('lưu điểm lấy hàng', e); }
+    try { await giaoHangApi.diemLay(than); setGoiY([]); setDiaChi(''); baoXong('Đã lưu điểm lấy hàng'); await tai({ giu: true }); } catch (e) { setLoiO({ diaChi: lyDoLoi(e) }); baoLoiTu('lưu điểm lấy hàng', e); }
     setDangLuu(false);
   };
 

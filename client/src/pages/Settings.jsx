@@ -166,7 +166,7 @@ export default function Settings() {
       } else if (tab === 'tiers') {
         await loadUuDaiChung();   // hạng + gói tự tải trong HangThe
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { baoLoiTu('tải dữ liệu của thẻ này', err); }
     finally { setLoading(false); }
   };
 
@@ -184,7 +184,7 @@ export default function Settings() {
         return;
       }
       setBackupInfo(data);
-    } catch (err) { console.error(err); }
+    } catch (err) { baoLoiTu('tải thông tin sao lưu', err); }
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -388,7 +388,7 @@ export default function Settings() {
       };
       const data = await pkgApi(editingPkg ? 'PUT' : 'POST', url, body);
       if (!data.success) throw new Error(data.error);
-      baoXong(data.message); setShowPkgModal(false); await loadPackages();
+      baoXong(data.message || `Đã ${editingPkg ? 'lưu' : 'thêm'} gói ${pkgForm.name}`); setShowPkgModal(false); await loadPackages();
     } catch (err) { baoLoiTu('lưu gói sản phẩm', err); } finally { setSaving(false); }
   };
   const deletePkg = async (pkg) => {
@@ -450,7 +450,7 @@ export default function Settings() {
     try {
       const data = await pkgApi('POST', `/api/pos/signup-codes/${row.id}/reset`);
       if (!data.success) throw new Error(data.error);
-      baoXong(data.message);
+      baoXong(data.message || `Đã hoàn tác claim ưu đãi của SĐT ${row.claimed_phone}`);
       await loadClaimedSignupCodes();
     } catch (err) {
       baoLoiTu('hoàn tác claim ưu đãi', err);
