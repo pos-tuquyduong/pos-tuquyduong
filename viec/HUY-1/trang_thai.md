@@ -268,3 +268,62 @@ CHƯA KIỂM: mình không chạy bài thử hay đột biến, và không đọ
 Mình cũng chưa soát lối xoá đơn sau khi đơn đã huỷ, vì lối đó không đổi trong PR này.
 ```
 SOÁT BẢO MẬT: ĐẠT
+
+## Cổng (12.11 lần 2, HEAD be35e93, cây sạch)
+- `node tu_chay/cong.js chay . 1d21626^ HEAD viec/HUY-1` → `✗ CỔNG ĐỎ (CHẠY) — 28 lý do`, toàn `✗ [A16] … thiếu dòng "SỐ CA cong_cu/thu_<bài main>.js"`
+  (vd thu_KHAPI2, thu_KHMUA1, thu_KHO1, thu_KHTHE1, thu_KHTOMTAT1, thu_NAP1, thu_P20, thu_P2223, thu_P3, thu_QUAYUI1, thu_SEPAY1, thu_TINGEE1, thu_UUDAI1,
+  thu_VIME1 …): bài thử của main mà chat gộp vào nhánh (commit `f77b7fb`, Q4) — đỏ trên gốc cũ vì code main chưa có, không phải bài việc này đổi.
+  Cùng Phát hiện khung 12.11 lần 1.
+- `node tu_chay/cong.js chay . f77b7fb HEAD viec/HUY-1` (từ commit gộp — đúng phần việc này):
+✓ CỔNG CHẠY ĐẠT
+
+## Nghiệm thu — đếm từng mục
+- A Huỷ ở mọi bước — thu_HUY1 A1 (đơn quầy đã xong), A2 (đơn App "" / dang_lam / xong), A3 (đơn chưa thu), A4 (`oid`); giao diện: bản mẫu thu_hd 13 ca +
+  `Orders.jsx` / `DonApp.jsx` nút Huỷ đơn, build + `--day-du` "dist KHỚP src"; bấm thật → CHƯA KIỂM (thử tay 3 thao tác).
+- B Quyền — thu_HUY1 B1, B1b (025), B2, B3, B4, B5 (ranh giờ VN); thu_GIAO1 K5b; giao diện `hienNutHuy` (quyền + ngày) — CHƯA KIỂM bấm tay.
+- C Lý do — thu_HUY1 C0–C6, C1b, C5b; bản mẫu thu_hd ("Khác" toàn dấu cách vẫn khoá).
+- D Hoàn tài khoản — thu_HUY1 D1–D7, D9, D10, D8 (I11 · I18 · I19); thu_GIAO1 J4 + J9.
+- E Khách lẻ — thu_HUY1 E1–E5; thu_GIAO1 J4b (Q8).
+- F Đối soát — thu_HUY1 F1, F2, F3, F5; thu_DOISOAT1 E14; màn `DoiSoat.jsx` hai dòng (CHƯA KIỂM bấm tay); F4 `donThu.js` CHƯA KIỂM.
+- G Đi kèm — thu_HUY1 G1–G7 (điểm, mã, kho, đơn đã huỷ, duyệt hoàn, hai người cùng bấm); thu_P26c B5d / A5c2 / A5k; thu_P24 A4b; giả lập KB22.
+- H App — thu_HUY1 H1, H1b, H2, H3, H5, H6 (ví mẹ — mới); thu_HOPDONG_KH v14; H4 bài KH cũ.
+- K5 Không đổi — thu_HUY1 K1 (xoá đơn); thu_P26b (duyệt hoàn); thu_GOI1 / thu_NAP1 qua `npm test`.
+
+## Bài học
+1. **KHOÁ (đề xuất, ngoài Phạm vi)** — thêm bảng tiền mới thì cùng PR đưa nó vào bất biến "khách nhận lại ≤ đã trả". Lỗi: I19 không cộng `pos_hoan_tien_mat`
+   (soát vòng 1, lỗi 1). Đề xuất: `cong_cu/thu_gia_lap.js` khung I19 (~486) thêm `CREATE TABLE pos_hoan_tien_mat (order_id INTEGER, so_tien INTEGER)` + ca
+   "25.001 > 25.000"; `bat_bien.js` I19 cộng bảng đó (bản vá đã thử, đỏ → xanh, đột biến bắt — Q11). Lý do KHOÁ: đã có cách máy kiểm, có ca đỏ.
+2. **KHOÁ (đề xuất khung, ngoài Phạm vi)** — cổng `chay` với mốc `<PHIEU đầu>^` đỏ 28 lý do A16 vì main gộp vào nhánh (Q4). Đề xuất `tu_chay/cong.js`: nhánh có
+   commit `GOP-<MÃ>` thì tính từ commit gộp cuối; ca đỏ: nhánh giả có commit gộp chứa bài thử mới → hiện nay đỏ A16, sau vá đạt.
+3. **NGUYÊN TẮC (đề xuất K4, `KHUON_LOI.md` ngoài Phạm vi)** — giấu nút ở giao diện phải đọc CÙNG luật với máy chủ (quyền + ngày), đặt MỘT hàm dùng chung.
+   Đã gây: HUY-1 giấu theo vai trò ở hai màn, trong khi máy chủ theo quyền `cancel_order` (soát vòng 1, lỗi 2) → `hienNutHuy`.
+4. **NGUYÊN TẮC (đề xuất K7)** — gỡ một khối bằng Edit với chuỗi thay rỗng: chuỗi gốc phải gồm đúng MỘT dấu xuống dòng ở một đầu, không thì dòng sau dính
+   vào dòng trước. Đã gây: `dot_bien.py` SyntaxError (lần chạy đột biến đầu hỏng), `thu_HUY1.js` hai lệnh trên một dòng — hai lần trong cùng một phiên.
+   Chặn: sau khi gỡ khối, `git diff` xem dòng ranh giới trước khi chạy.
+5. **BỎ** — hộp Huỷ không xử lý `CHON_DO_DA_PHA` của đơn giao đang pha: một lần, đã sửa bằng lời dẫn sang màn Giao hàng.
+Dọn: không có lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` mà việc này làm thay bằng phép kiểm.
+
+## Báo cáo 7 mục
+```
+VIỆC:        HUY-1 — Huỷ đơn ở POS từ lúc nhận đơn: hoàn TOÀN BỘ tiền đã trả vào tài khoản khách (khách lẻ: trả tiền mặt), lý do bắt buộc, quản lý / chủ quán
+ĐÃ SỬA:      (máy chủ — phiên trước) server/routes/orders.js hoanVi + route huỷ (quyền theo ngày, docLyDoHuy, GET /orders/ly-do-huy, trả { hoan });
+             server/routes/wallets.js ghiHoan (huy_tien_mat / huy_ck); server/nang_cap/025_huy_don.js; server/database.js seed staff cancel_order 0;
+             server/utils/doiSoat.js (két + hai dòng), donApp.js (hoan_vao_tai_khoan, ly_do_huy, oid), donThu.js, giaoHang.js (Q6, Q8); backup.js; HOP_DONG_API_KH.md v14.
+             (phiên này) ban_mau_pos/ban_mau_pos.html (khungHuyDon, moHuyDon, xacNhanHuyDon, nút ở Lịch sử đơn + thẻ App), ban_mau_pos/thu/thu_hd.js (13 ca),
+             ban_mau_pos/DAC_TA.md; client/src/components/HopHuyDon.jsx (mới, hienNutHuy), pages/Orders.jsx (nút Huỷ đơn, hộp Xoá chỉ còn xoá hẳn),
+             pages/DonApp.jsx (nút Huỷ đơn), components/DoiSoat.jsx (hai dòng), utils/api.js (cancel, lyDoHuy); client/dist; cong_cu/thu_gia_lap.js:152 neo M11 (Q9).
+BÀI THỬ:     thu_HUY1.js gốc 078723f → 16 đạt · 43 hỏng (C0, C1, B1, B3, A1, A4, H3, H6 …); HEAD → 59 · 0. thu_hd.js bản mẫu gốc → SẬP (moHuyDon is not defined),
+             sau sửa 13 · 0 (tổng bản mẫu 132 · 0). thu_gia_lap.js gốc → ✗ M11 không áp được (179 · 1), HEAD 180 · 0. Bài sửa thường (GIAO1, P26b, P26c, P24,
+             DOISOAT1, HOPDONG_KH, giả lập) đỏ trên gốc — bang_chung_do.txt. Đột biến 26 · BẮT 26. npm test -- --day-du PASS 116 · FAIL 0 · CẢNH BÁO 1 (có sẵn).
+             Cổng từ f77b7fb: ✓ CỔNG CHẠY ĐẠT. /ra-soat ĐẠT (8 lỗi nhẹ → vòng sửa 1). /soat-bao-mat 4 → 0 sau lọc: ĐẠT.
+ĐÃ RÀ K4:    grep "ordersApi.cancel\|\.huyDon(" trong client/src → 2 chỗ: Orders.jsx (đã chuyển sang HopHuyDon), GiaoHang/index.jsx (giaoHangApi.huyDon, thân cũ
+             { reason } — máy chủ vẫn nhận, ca C6 + thu_GIAO1 J3 khoá); grep "status = 'cancelled'" server/routes + server/utils → 1 chỗ ghi (orders.js route huỷ);
+             luật hiện nút: 2 màn → 1 hàm hienNutHuy.
+CHƯA KIỂM:   bấm thật giao diện (HopHuyDon, nút ở Lịch sử đơn / Đơn App, hai dòng Đối soát, hienNutHuy theo quyền + ngày, lời dẫn CHON_DO_DA_PHA) — thử tay 3 thao
+             tác ở trên; donThu.js tienMatTheoNgay (không bài nào gọi thẳng); bước 025 trên Turso production; hai người bấm cùng lúc trên Turso nhiều máy (G6 chỉ
+             SQLite một tiến trình); bất biến giả lập chưa canh pos_hoan_tien_mat (Q11); DonApp giấu nút theo ngày thu, máy chủ theo ngày tạo.
+GIT:         be35e93 HUY-1 soat bao mat: 4 nghi van truoc loc, 0 sau loc — DAT
+             76486f3 HUY-1 soat vong 1: tra lai xuong dong bi dinh khi go E6 (thu_HUY1, dot_bien.py)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài học
+```
+HEAD ĐÃ KIỂM: be35e93
