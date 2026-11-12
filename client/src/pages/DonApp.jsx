@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { mayOQuan, datMayOQuan, keuChuong, AM_LUONG_MAC_DINH } from '../components/DonAppNoi';
+import HopHuyDon from '../components/HopHuyDon';   // HUY-1: huỷ đơn App qua cùng route huỷ của quầy (oid)
+import { useAuth } from '../contexts/AuthContext';
+import { ngayVN } from '../utils/ngayVN';
 
 const NHAN = { da_tra: ['Mới', '#dc2626'], dang_lam: ['Đang làm', '#d97706'], xong: ['Xong', '#16a34a'], da_huy: ['Đã huỷ', '#6b7280'] };
 const tien = (n) => Number(n || 0).toLocaleString('vi-VN') + 'đ';
@@ -16,6 +19,11 @@ export default function DonApp() {
   const [loi, setLoi] = useState('');
   const [dangBam, setDangBam] = useState(null);
   const [may, setMay] = useState(mayOQuan());
+  const [huy, setHuy] = useState(null);
+  const { user } = useAuth();
+  // HUY-1 (B): chỉ giấu nút — máy chủ kiểm lại quyền + ngày (quản lý: đơn trong ngày; chủ quán: mọi ngày)
+  const huyDuoc = (d) => d.oid && d.tien_trinh !== 'da_huy'
+    && (user?.role === 'owner' || (user?.role === 'manager' && (d.gio || '').slice(0, 10) === ngayVN()));
 
   const tai = async () => {
     try {
@@ -88,6 +96,9 @@ export default function DonApp() {
               {d.tien_trinh === 'dang_lam' && (
                 <button className="btn btn-primary" disabled={dangBam === d.id} onClick={() => bam(d, 'xong')}>Xong</button>
               )}
+              {huyDuoc(d) && (
+                <button className="btn btn-outline" style={{ color: '#b91c1c', marginLeft: 8 }} onClick={() => setHuy(d)}>✕ Huỷ đơn</button>
+              )}
               {d.nguoi_lam && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
                 Làm: {d.nguoi_lam} {(d.luc_lam || '').slice(11, 16)}{d.nguoi_xong ? ` · Xong: ${d.nguoi_xong} ${(d.luc_xong || '').slice(11, 16)}` : ''}
               </div>}
@@ -95,6 +106,10 @@ export default function DonApp() {
           );
         })}
       </div>
+      {huy && (
+        <HopHuyDon don={{ id: huy.oid, code: huy.so_hd || huy.ma_bill, ten_khach: huy.ten_khach, co_tai_khoan: true }}
+          dong={() => setHuy(null)} xong={() => { setHuy(null); tai(); }} />
+      )}
     </div>
   );
 }
