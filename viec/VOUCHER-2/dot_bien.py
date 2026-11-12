@@ -61,7 +61,8 @@ DOT_BIEN = [
   ('BV-V2-MAU-QUYEN', [(R, "router.post('/mau', authenticate, checkPermission('manage_promotions'),", "router.post('/mau', authenticate,", 1)], r'✗ A1 ', 'V2'),
   ('VS-V2-MO-TA-TRAN', [(V, "laPhanTram(m.kieu) && Number(m.tran) > 0 ?", "Number(m.tran) > 0 ?", 1)], r'✗ A2 moTa', 'V2'),
   # ── hoaDon.js / donApp.js ──
-  ('BV-V2-HOA-DON-VOUCHER', [(H, 'giam_ma: Math.max(0, giamMa - giamVoucher),', 'giam_ma: giamMa,', 1)], r'✗ I2 ', 'V2'),
+  ('BV-V2-HOA-DON-VOUCHER', [(H, '...(vouchers.length ? { vouchers } : {}),', '', 1)], r'✗ I2 ', 'V2'),
+  ('VS-V2-HOA-DON-PHI-GOC', [(H, 'const phiGiao = so(o.shipping_fee);', 'const phiGiao = so(o.shipping_fee) + giamShip;', 1)], r'✗ I2 ', 'V2'),
   ('BV-V2-APP-VOUCHER', [(D, '...(vouchers.length ? { vouchers } : {}),', '', 1)], r'✗ H2 ', 'V2'),
   ('VS-V2-APP-BAM-CU', [(D, "...(Array.isArray(b.vouchers) && b.vouchers.length ? [b.vouchers] : [])", "b.vouchers ?? null", 1)], r'✗ K1 ', 'KHTHE1'),
   ('BV-V2-APP-SAI-DANG', [(D, "  if (b.vouchers != null && !(Array.isArray(b.vouchers)", "  if (false && !(Array.isArray(b.vouchers)", 1)], r'✗ H5 ', 'V2'),

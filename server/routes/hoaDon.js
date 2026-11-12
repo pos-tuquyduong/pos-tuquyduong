@@ -106,15 +106,15 @@ async function dungHoaDon(o) {
   const phanTramDong = items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map((m) => Math.round((so(m.unit_price) - so(m.tier_unit_price)) * 100 / so(m.unit_price)));
   const phanTramHang = phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null;
   const { giamHang, giamFlash, giamMa } = tinhGiam(o);
-  // VOUCHER-2: từng voucher món của đơn (grant đã tiêu) tách khỏi giảm mã; voucher ship = giam_ship (cột shipping_fee là phần khách trả).
+  // VOUCHER-2: từng voucher món của đơn (grant đã tiêu) + giảm phí giao (giam_ship; cột shipping_fee là phần khách trả) — CHỈ THÊM để xem.
+  // giam_ma / phi_giao GIỮ nghĩa cũ (giam_ma gồm voucher, phi_giao = phần khách trả) → tờ in hiện tại cộng vẫn khớp tổng; tách dòng chờ mẫu in (Q14).
   // Voucher ở ô mã (discount_code — đơn kiểu cũ) giữ nguyên trong giảm mã như trước, không tách dòng.
   const vouchers = (await query(`SELECT g.code AS ma, g.so_tien_giam AS so_tien FROM pos_voucher_grants g
     JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code) WHERE g.used_order_id = ? AND COALESCE(d.giam_ship, 0) = 0
       AND UPPER(g.code) <> UPPER(?) ORDER BY g.id`, [o.id, o.discount_code || '']))
     .filter((v) => so(v.so_tien) > 0).map((v) => ({ ma: v.ma, so_tien: so(v.so_tien) }));
-  const giamVoucher = vouchers.reduce((t, v) => t + v.so_tien, 0);
   const giamShip = so(o.giam_ship);
-  const phiGiao = so(o.shipping_fee) + giamShip;
+  const phiGiao = so(o.shipping_fee);
   const soLan = so((await queryOne('SELECT COUNT(*) AS n FROM pos_invoice_logs WHERE order_id = ? AND is_deleted = 0', [o.id]))?.n);
 
   return {
@@ -134,7 +134,7 @@ async function dungHoaDon(o) {
         thanh_tien_goc: goc * sl, thanh_tien: (hang ?? goc) * sl,
       };
     }),
-    tien: { gia_goc: gocTong, giam_hang: giamHang, giam_flash: giamFlash, giam_ma: Math.max(0, giamMa - giamVoucher), ma_giam: o.discount_code || null,
+    tien: { gia_goc: gocTong, giam_hang: giamHang, giam_flash: giamFlash, giam_ma: giamMa, ma_giam: o.discount_code || null,
       // VOUCHER-2: hai trường mới CHỈ có khi đơn dùng voucher / voucher ship — đơn không voucher giữ y bố cục cũ (K5).
       ...(vouchers.length ? { vouchers } : {}), phi_giao: phiGiao, ...(giamShip ? { giam_ship: giamShip } : {}), tong: tongDon },
     thanh_toan: dungThanhToan(o),

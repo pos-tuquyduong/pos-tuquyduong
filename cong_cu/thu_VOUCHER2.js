@@ -553,9 +553,11 @@ async function main() {
     const r = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [v1, v2], discount_code: mc, giao: await baoPhi(25000) }, 53000);
     const hd = r.order ? await goi('GET', `/pos/hoa-don/${r.order.id}`) : {};
     const t = hd.hoa_don?.tien || {};
-    k('I2 hoá đơn: dòng voucher từng mã (10.000), giảm mã chung 2.000, phí giao 25.000 + giảm phí giao 10.000, tổng 53.000', r.status === 200
-      && Array.isArray(t.vouchers) && t.vouchers.length === 1 && t.vouchers[0].ma === v1 && t.vouchers[0].so_tien === 10000 && t.giam_ma === 2000
-      && t.phi_giao === 25000 && t.giam_ship === 10000 && t.tong === 53000, `${moTa(r)} ${JSON.stringify(t)}`);
+    // Tờ in hiện tại chưa có dòng voucher (mẫu in chờ chủ quán — Q14): giam_ma / phi_giao GIỮ nghĩa cũ để cộng khớp tổng; dòng voucher THÊM riêng.
+    k('I2 hoá đơn: thêm vouchers [mã, 10.000] + giam_ship 10.000; giam_ma (mã 2.000 + voucher 10.000) và phi_giao (khách trả 15.000) giữ nghĩa cũ — gốc − giảm + phí = tổng 53.000',
+      r.status === 200 && Array.isArray(t.vouchers) && t.vouchers.length === 1 && t.vouchers[0].ma === v1 && t.vouchers[0].so_tien === 10000 && t.giam_ma === 12000
+      && t.phi_giao === 15000 && t.giam_ship === 10000 && t.tong === 53000 && t.gia_goc - t.giam_hang - t.giam_flash - t.giam_ma + t.phi_giao === t.tong,
+      `${moTa(r)} ${JSON.stringify(t)}`);
     const bc = await goi('GET', `/pos/reports/discounts?from=${getToday()}&to=${getToday()}`);
     const dongV = (bc.by_voucher || []).find((x) => x.code === v1);
     k('I3 báo cáo mã có nhóm theo voucher (mã, số đơn, tiền giảm) + tổng giảm phí giao quán bù', bc.status === 200 && Number(dongV?.usage_count) === 1
