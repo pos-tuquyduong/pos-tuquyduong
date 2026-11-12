@@ -253,3 +253,18 @@ BÀI HỌC:
 | `donApp.js` tomTatDonThat — hoàn vào tài khoản CHÍNH khách (ví mẹ không tính) | BV-HOAN-ME (H6) |
 Tên đột biến (đủ, cổng A17): 25 tên ở bảng phiên trước + BV-HOAN-ME.
 Giao diện (`client/src/`) không có đột biến: không có bài thử chạy màn quầy — CHƯA KIỂM, thử tay 3 thao tác ở trên.
+
+## Soát bảo mật
+`/soat-bao-mat` (subagent độc lập, chỉ đọc, phạm vi `f77b7fb..HEAD` — bỏ main đã gộp). Số lỗ hổng TRƯỚC lọc: 4 · SAU lọc (điểm ≥ 8): 0.
+Trước lọc (nguyên văn tóm tắt): (1) quản lý huỷ đơn khách lẻ trả CK → lấy tiền mặt từ két — điểm 2 (phiếu E cố ý; cần cancel_order + trong ngày, có ghi
+lý do / người / giờ); (2) quản lý biến tiền mặt / CK của đơn thành tiền trong ví khách — điểm 3 (trần = đã trả − đền, cổng `AND status = 'completed'` +
+`changes`, không hoàn hai lần); (3) cổng "trong ngày" so `created_at.slice(0,10)` với dữ liệu cũ giờ UTC — điểm 2; (4) App KH thấy số đã hoàn + lý do —
+điểm 1 (chỉ dòng SĐT đơn = SĐT ví, chỉ nhãn lý do, đơn của khách trong token).
+
+Báo cáo SAU lọc (nguyên văn):
+```
+Không có lỗ hổng nào đạt ngưỡng tin cậy ≥ 8.
+CHƯA KIỂM: mình không chạy bài thử hay đột biến, và không đọc thân hàm ghiVi / thuongKhiHoan (wallets.js:87, phần thưởng nạp khi hoàn).
+Mình cũng chưa soát lối xoá đơn sau khi đơn đã huỷ, vì lối đó không đổi trong PR này.
+```
+SOÁT BẢO MẬT: ĐẠT
