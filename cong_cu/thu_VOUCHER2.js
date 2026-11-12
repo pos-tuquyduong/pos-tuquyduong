@@ -376,8 +376,8 @@ async function main() {
     await la400('E3 3 voucher tiền + 1 voucher ship (N = 3) → 400 VUOT_SO_VOUCHER', await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [...ds, s4], giao: await baoPhi(30000) }, 62000), 'VUOT_SO_VOUCHER', tr, s4);
     // Q10: 1 voucher % món + 1 voucher ship % → không phải "hai voucher %". 50.000 − 10 % = 45.000; phí 30.000 − 50 % (trần 10.000) = 20.000 → 65.000.
     const vp = await phat(a.sdt, 'phan_tram', 10), s5 = await phat(a.sdt, 'ship_phan_tram', 50, { tran: 10000 });
-    const e6 = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vp, s5], giao: await baoPhi(30000) }, 65000);
-    k('E6 (Q10) voucher % món + voucher ship % → 200, 65.000', e6.status === 200 && (await tongDon(e6)) === 65000, moTa(e6));
+    const e6 = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [s5, vp], giao: await baoPhi(30000) }, 65000);   // ship % gửi TRƯỚC: thứ tự không đổi kết quả
+    k('E6 (Q10) voucher ship % (gửi trước) + voucher % món → 200, 65.000', e6.status === 200 && (await tongDon(e6)) === 65000, moTa(e6));
   });
 
   // ═════════════════════════════════════════════════════════════════════════
