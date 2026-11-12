@@ -15,7 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 O, W, DB, NC = 'server/routes/orders.js', 'server/routes/wallets.js', 'server/database.js', 'server/nang_cap/025_huy_don.js'
-DS, DA, GH = 'server/utils/doiSoat.js', 'server/utils/donApp.js', 'server/utils/giaoHang.js'NGAY = 'if (req.user.role !== "owner" && String(order.created_at || "").slice(0, 10) < now.slice(0, 10)) {'
+DS, DA, GH = 'server/utils/doiSoat.js', 'server/utils/donApp.js', 'server/utils/giaoHang.js'
+NGAY = 'if (req.user.role !== "owner" && String(order.created_at || "").slice(0, 10) < now.slice(0, 10)) {'
 TONG = 'viCon + meTra + (huy ? tienMat + ck : 0)'
 Y_KET = "(SELECT COALESCE(SUM(so_tien), 0) FROM pos_hoan_tien_mat WHERE DATE(luc) BETWEEN ? AND ?)' : '0'"
 
@@ -53,7 +54,8 @@ DOT_BIEN = [
   ('BV-HOAN-APP', [(DA, "hoan_vao_tai_khoan: tt === 'da_huy' ? (ext?.hoan ?? 0) : null,", "hoan_vao_tai_khoan: tt === 'da_huy' ? 0 : null,", 1)], r'✗ H1 ', 'thu_HUY1.js'),
   ('BV-OID', [(DA, 'o.id AS oid, o.code, o.customer_name', 'o.code, o.customer_name', 1)], r'✗ A4 ', 'thu_HUY1.js'),
   ('BV-HOAN-ME', [(DA, 'JOIN pos_orders o ON o.id = t.order_id AND o.customer_phone = t.customer_phone', 'JOIN pos_orders o ON o.id = t.order_id', 1)],
-   r'✗ H6 ', 'thu_HUY1.js'),   # soát vòng 1  # ── giaoHang.js: Q6 bỏ cổng tạm, Q8 giữ chặn đơn giao không tài khoản ──
+   r'✗ H6 ', 'thu_HUY1.js'),   # soát vòng 1
+  # ── giaoHang.js: Q6 bỏ cổng tạm, Q8 giữ chặn đơn giao không tài khoản ──
   ('BV-Q8', [(GH, 'if (!order.customer_phone && (Number(order.cash_amount)', 'if (false && (Number(order.cash_amount)', 1)], r'✗ J4b ', 'thu_GIAO1.js'),
   ('VS-Q8-CHAN-HET', [(GH, 'if (!order.customer_phone && (Number(order.cash_amount)', 'if ((Number(order.cash_amount)', 1)], r'✗ J4 \+ J9 ', 'thu_GIAO1.js'),
 ]

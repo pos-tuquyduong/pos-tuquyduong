@@ -345,7 +345,8 @@ async function main() {
     k('E3 khách lẻ: không ghi dòng sổ ví nào', (await so('SELECT COUNT(*) FROM pos_balance_transactions WHERE order_id IN (?, ?)', [a.id, b.id])) === 0);
     let trung = null;
     try { await db.run("INSERT INTO pos_hoan_tien_mat (order_id, so_tien, luc) VALUES (?, 1, '2026-01-01T00:00:00')", [a.id]); } catch (e) { trung = e; }
-    k('E5 bảng hoàn tiền mặt UNIQUE theo đơn — đã có một dòng, dòng thứ hai bị chặn', ra.length === 1 && !!trung && (await hoanTM(a.id)).length === 1);    const ghi = [];
+    k('E5 bảng hoàn tiền mặt UNIQUE theo đơn — đã có một dòng, dòng thứ hai bị chặn', ra.length === 1 && !!trung && (await hoanTM(a.id)).length === 1);
+    const ghi = [];
     const quet = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, f.name);
       if (f.isDirectory()) { if (f.name !== 'node_modules') quet(p); } else if (f.name.endsWith('.js') && /INSERT\s+INTO\s+pos_hoan_tien_mat/i.test(fs.readFileSync(p, 'utf8'))) ghi.push(path.relative(MAY_CHU, p));
