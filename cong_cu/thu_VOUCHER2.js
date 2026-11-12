@@ -134,6 +134,13 @@ async function main() {
   const phat = async (sdt, kieu, gia_tri, o = {}) => {
     const mau = { ten: o.ten || `V2 ${kieu} ${gia_tri}`, kieu, gia_tri, tran: o.tran || 0, don_toi_thieu: o.min || 0, ap_dung: o.ap_dung || 'tat_ca',
       ap_dung_ids: o.ids || null, han_ngay: o.han || 30, chinh_chu: o.chinh_chu ? 1 : 0, id: o.mau_id || null };
+    if (typeof vc.phatVoucher !== 'function') {   // gốc chưa có hàm: ghi thẳng như /redeem cũ để TỪNG ca đỏ riêng (không sập cả mục)
+      const code = 'V2G' + ngauNhien().slice(0, 8).toUpperCase(), han = addDaysToDateString(getToday(), mau.han_ngay);
+      await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, valid_to, is_active)
+        VALUES (?, ?, ?, ?, ?, 1, 0, ?, 1)`, [code, /phan_tram/.test(kieu) ? 'percent' : 'fixed', gia_tri, mau.don_toi_thieu, mau.tran, han]);
+      await db.run("INSERT INTO pos_voucher_grants (code, customer_phone, status, granted_at, expires_at) VALUES (?, ?, 'available', ?, ?)", [code, sdt, getNow(), han]);
+      return code;
+    }
     const tx = await db.beginTransaction();
     try { const r = await vc.phatVoucher(tx, mau, sdt, o.nguon || 'tay', {}); await tx.commit(); return r.code; } catch (e) { await tx.rollback(); throw e; }
   };
