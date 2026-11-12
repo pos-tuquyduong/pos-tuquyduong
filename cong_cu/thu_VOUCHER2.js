@@ -185,10 +185,12 @@ async function main() {
       f({ kieu: 'ship_tien', gia_tri: 15000, tran: 0, don_toi_thieu: 0, ap_dung: 'tat_ca', han_ngay: 30 }),
       f({ kieu: 'ship_phan_tram', gia_tri: 50, tran: 20000, don_toi_thieu: 100000, ap_dung: 'tat_ca', han_ngay: 14 }),
       f({ kieu: 'phan_tram', gia_tri: 10, tran: 0, don_toi_thieu: 0, ap_dung: 'nhom', ap_dung_ids: '[92]', han_ngay: 30 }),
+      f({ kieu: 'tien', gia_tri: 5000, tran: 9000, don_toi_thieu: 0, ap_dung: 'tat_ca', han_ngay: 3 }),
     ];
     const mong = ['Giảm 20.000đ cho đơn từ 50.000đ · HSD 30 ngày', 'Giảm 10% tối đa 30.000đ · HSD 7 ngày', 'Giảm 15.000đ phí giao · HSD 30 ngày',
-      'Giảm 50% phí giao tối đa 20.000đ cho đơn từ 100.000đ · HSD 14 ngày', 'Giảm 10% cho món chọn · HSD 30 ngày'];
-    k('A2 moTaVoucher dựng đúng câu 4 kiểu + áp dụng món chọn', cau.every((c, i) => c === mong[i]), JSON.stringify(cau));
+      'Giảm 50% phí giao tối đa 20.000đ cho đơn từ 100.000đ · HSD 14 ngày', 'Giảm 10% cho món chọn · HSD 30 ngày',
+      'Giảm 5.000đ · HSD 3 ngày'];
+    k('A2 moTaVoucher dựng đúng câu 4 kiểu + áp dụng món chọn + voucher tiền không in trần', cau.every((c, i) => c === mong[i]), JSON.stringify(cau));
     const xt = await goi('POST', '/pos/rewards/mau/mo-ta', mau);
     k('A2 cửa xem trước (không ghi) trả cùng câu', xt.status === 200 && xt.mo_ta === mong[0], moTa(xt) + ' ' + xt.mo_ta);
     const sai = await Promise.all([{ ...mau, gia_tri: 0 }, { ...mau, kieu: 'phan_tram', gia_tri: 101 }, { ...mau, tran: -1 }, { ...mau, kieu: 'la' },
@@ -403,6 +405,11 @@ async function main() {
     const mMin = await maChung('fixed', 5000, { min: 50000 });
     const f6 = await tinhThu({ customer_phone: c.sdt, items: [mon(1)], membership_buy: { tier_id: hangId, so_thang: 1 }, discount_code: mMin });
     k('F6 mã chung tối thiểu 50.000, giỏ thẻ 100.000 + món 33.333 → không áp (133.333)', f6.status === 200 && f6.total === 133333 && f6.ma_loi_code === 'MA_KHONG_AP_DUNG', JSON.stringify(f6).slice(0, 200));
+
+    const vMin = await phat(c.sdt, 'tien', 5000, { min: 50000 });
+    tr = await soDon();
+    await la400('F6b voucher tối thiểu 50.000, giỏ thẻ 100.000 + món 33.333 → 400 VOUCHER_CHUA_DU_DON (tính trên món thường)',
+      await ban({ customer_phone: c.sdt, items: [mon(1)], membership_buy: { tier_id: hangId, so_thang: 1 }, vouchers: [vMin] }, 128333), 'VOUCHER_CHUA_DU_DON', tr, vMin);
 
     // F7 (Q7) — tiền đã trả theo dòng, số tính tay: món 45.000, gói 300.000.
     const tx = { query: db.query, queryOne: db.queryOne };
