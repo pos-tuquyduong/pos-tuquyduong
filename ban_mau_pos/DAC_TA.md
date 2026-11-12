@@ -7,8 +7,8 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 ## 0 · CÁCH DÙNG BỘ NÀY
 
 - `ban_mau_pos.html` — **mở bằng trình duyệt, bấm thử được**. Đây là **bản vẽ đã chốt với chủ quán**, không phải gợi ý.
-- `thu/` + `chay_thu.sh` — **119 phép thử** chạy trên chính bản mẫu (`bash chay_thu.sh`).
-- Luật làm việc: **đổi thiết kế thì sửa bản mẫu trước**, chạy lại 119 phép, rồi mới sửa mã thật. Bản mẫu và mã thật lệch nhau là mất điểm tựa.
+- `thu/` + `chay_thu.sh` — **132 phép thử** chạy trên chính bản mẫu (`bash chay_thu.sh`).
+- Luật làm việc: **đổi thiết kế thì sửa bản mẫu trước**, chạy lại 132 phép, rồi mới sửa mã thật. Bản mẫu và mã thật lệch nhau là mất điểm tựa.
 - Bản mẫu **chỉ là giao diện**: dữ liệu bên trong là giả, không gọi API. Đừng chép mã của nó vào `client/src` — chép **hành vi**, không chép mã.
 
 ## 1 · NĂM MÀN / KHỐI TRONG BẢN MẪU, ỨNG VỚI VIỆC NÀO
@@ -29,7 +29,9 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 - `[CHẮC]` `GET /api/pos/orders/:id/nhat-ky` → **nhật ký** trong ngăn Lịch sử. Trả `data[]` gồm `luc, loai, noi_dung, nguoi`; `loai` ∈ `tao · thu · doi · huy`. (`:66`)
 - `[CHẮC]` `POST /api/pos/orders/:id/doi-cach-tra` body `{ sang: 'cash'|'transfer', ly_do }` → **⇄ Đổi cách trả**. Từ chối kèm mã: `THIEU_LY_DO · DA_LA_CACH_NAY · TRANG_THAI_KHONG_DOI_DUOC · CHUA_THU_XONG · KHONG_TRONG_NGAY · TRA_KET_HOP · VUA_BI_DOI`. (`:112`)
 - `[CHẮC]` `POST /api/pos/orders/:id/pay-debt` body `{ payment_method, amount? }` → **thu bill đang chờ**. Đã chặn thu hai lần, trả `409 DA_THU_ROI`. (`server/routes/orders.js:1221`)
-- `[CHẮC]` `PUT /api/pos/orders/:id/cancel` body `{ reason }` → **huỷ bill**, hoàn kho. (`orders.js:1349`)
+- `[CHẮC]` `PUT /api/pos/orders/:id/cancel` body `{ ly_do_ma, ghi_them }` → **huỷ bill** và **huỷ đơn đã thu** (HUY-1), hoàn kho; đơn đã thu
+  hoàn TOÀN BỘ đã trả vào tài khoản khách (khách lẻ: trả tiền mặt từ két). Danh sách lý do: `GET /api/pos/orders/ly-do-huy`. Thân cũ
+  `{ reason }` vẫn nhận (tính là lý do "khác"). Quyền: quản lý + chủ quán đơn trong ngày, đơn ngày trước chỉ chủ quán. (`orders.js`, `docLyDoHuy`)
 - `[CHẮC]` Client đã có sẵn `ordersApi.payDebt` / `.cancel` / `.list` / `.get` / `.create` trong `client/src/utils/api.js`. **Ba đường mới chưa có hàm gọi** — phải thêm vào đúng tệp này, không gọi `fetch` trần (bộ kiểm canh ngưỡng `fetch` trần = 34, chỉ được giảm).
 - `[CHẮC]` **Chưa có API** cho: hàng đợi in, cài đặt in, mã QR thành viên mới, tem. P16/P17/P15 phải làm thêm.
 
@@ -37,6 +39,7 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 
 1. `[CHẮC]` **Bấm In mới ghi đơn.** Màn xem trước là bước kiểm; bấm *Quay lại* thì **chưa có gì được ghi**, giỏ hàng còn nguyên.
 2. `[CHẮC]` **Hoàn tác 5 giây chỉ cho thao tác không in giấy**: thu bill, huỷ bill, đổi cách trả. Việc đã in ra giấy thì không hoàn tác — sửa bằng *đổi cách trả* hoặc *huỷ*.
+   **Huỷ đơn ĐÃ THU (HUY-1) KHÔNG hoàn tác** — tiền đã hoàn vào tài khoản khách / trả tiền mặt khỏi két.
 3. `[CHẮC]` **Mỗi việc một chỗ làm.** Thu tiền bill chưa thu **chỉ** ở màn Bán hàng. Lịch sử đơn chỉ có nút *"Mở ở màn Bán hàng"*, **không có nút thu**. Hai nơi thu được một đơn là hai nơi thu hai lần.
 4. `[CHẮC]` **Tờ in lại luôn có dòng "IN LẠI · LẦN n"** — để pha chế không làm thêm ly, thu ngân không thu thêm lần.
 5. `[CHẮC]` **Lệnh in không bao giờ mất.** Máy tắt → lệnh **chờ**, bật lại **tự in**. Máy báo lỗi (hết giấy) → **không tự in lại** (có thể đã ra nửa tờ), người bấm in lại.
@@ -50,6 +53,13 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 - `[CHẮC]` **Đang mở một thẻ thì lưới món bị khoá** — chạm món không thêm được, tránh lỡ tay thêm vào bill đã in.
 - `[CHẮC]` Thu tiền mặt = 2 chạm: 💵 → chọn tờ khách đưa (*Đúng tiền* đứng đầu, mỗi tờ ghi sẵn tiền thối).
 - `[CHẮC]` Huỷ bill **bắt buộc chọn lý do**; nút huỷ khoá cho tới khi chọn.
+
+**Huỷ đơn đã thu (HUY-1, chủ quán 05.11)**
+- `[CHẮC]` Nút **✕ Huỷ đơn** ở chi tiết đơn đã thu (Lịch sử đơn) và ở thẻ đơn App. Huỷ **cả đơn**, không huỷ từng món.
+- `[CHẮC]` Năm lý do: *Pha nhầm món · Bấm nhầm · Hết nguyên liệu · Khách đổi ý · Khác*, kèm ô ghi thêm — **bắt buộc khi "Khác"** (toàn dấu cách
+  không tính). Nút Huỷ đơn khoá cho tới khi đủ.
+- `[CHẮC]` Hộp báo trước: khách có tài khoản "hoàn X vào tài khoản …"; khách lẻ "trả khách X tiền mặt từ két". Huỷ ngay, **không hoàn tác 5 giây**.
+  (`thu/thu_hd.js`)
 
 **Ghi chú từng ly (P14)**
 - `[CHẮC]` Hai phần **không đụng nhau**: bỏ nút mặc định không làm mất chữ đã gõ, và ngược lại.
@@ -86,7 +96,7 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 ## 7 · KIỂM BẢN MẪU CÒN NGUYÊN
 
 ```bash
-bash chay_thu.sh          # phải: TỔNG: 119 đạt · 0 hỏng
+bash chay_thu.sh          # phải: TỔNG: 132 đạt · 0 hỏng
 ```
 - `[CHẮC]` Bài nào **không in ra được kết quả** bị tính là **SẬP = hỏng** — bộ chạy không bao giờ im lặng bỏ qua.
 - `[CHẮC]` Sửa bản mẫu xong mà số phép thử **giảm**, hoặc có bài sập, là đã làm hỏng một hành vi đã chốt.
