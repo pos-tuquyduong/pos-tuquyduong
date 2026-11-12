@@ -215,8 +215,8 @@ async function main() {
 
   // Đơn App: đơn thật (CK) + phiên đã thu + dòng pos_don_app — như KH-MUA-1 ghi sau khi tiền về
   let soApp = 0;
-  const donAppMoi = async (sdt, tienTrinh) => {
-    const o = await chuyenKhoan(sdt, 1);
+  const donAppMoi = async (sdt, tienTrinh, coSan = null) => {
+    const o = coSan || await chuyenKhoan(sdt, 1);
     const now = getNow();
     const p = await db.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, con_lai, cach, trang_thai, het_han, order_id, nguoi_tao, tao_luc, luc_chot)
       VALUES ('{}', ?, ?, 0, ?, 'payos', 'da_thu', ?, ?, 'app', ?, ?)`, [GIA[1], sdt, GIA[1], now, o.id, now, now]);
@@ -248,6 +248,17 @@ async function main() {
       && !JSON.stringify(ds2).includes('GHI_NOI_BO_K'), JSON.stringify({ t: dong2?.tien_trinh, h: dong2?.hoan_vao_tai_khoan, l: dong2?.ly_do_huy }));
     k('H2 khách khác đọc mã đơn App này → null (404 như cũ)', (await donApp.chiTietDon(sdtMoi(), ds[1].ma)) === null);
     k('A2b ví khách đơn App +60.000 (ba đơn CK 20.000 hoàn vào tài khoản)', (await vi(sdt)) === 60000, `ví ${await vi(sdt)}`);
+    // H6 (soát vòng 1): đơn App của con trả ví mẹ 10.000 + tiền mặt 10.000 → App của con thấy hoàn 10.000 (phần ví mẹ về ví mẹ, không tính)
+    const me = sdtMoi(), con = sdtMoi();
+    await db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con', me]);
+    await nap(me, 50000);
+    const om = await ban({ customer_phone: con, parent_phone: me, items: [mon(1)], payment_method: 'combined', parent_balance_amount: 10000, cash_amount: 10000 });
+    const xm = await donAppMoi(con, 'xong', om);
+    const hm = await huy(om.id, { ly_do_ma: 'bam_nham' });
+    const tm = await donApp.chiTietDon(con, xm.ma);
+    k('H6 đơn App ví mẹ 10.000 + tiền mặt 10.000 → huỷ 200; App con: hoan_vao_tai_khoan = 10.000 (ví mẹ không tính); mẹ về 50.000', hm.status === 200
+      && tm?.hoan_vao_tai_khoan === 10000 && (await vi(me)) === 50000 && (await vi(con)) === 10000,
+    `${moTa(hm)} h ${tm?.hoan_vao_tai_khoan} mẹ ${await vi(me)} con ${await vi(con)}`);
   }
 
   // ═══ D · hoàn toàn bộ vào tài khoản ═══
@@ -335,6 +346,14 @@ async function main() {
     let trung = null;
     try { await db.run("INSERT INTO pos_hoan_tien_mat (order_id, so_tien, luc) VALUES (?, 1, '2026-01-01T00:00:00')", [a.id]); } catch (e) { trung = e; }
     k('E5 bảng hoàn tiền mặt UNIQUE theo đơn — đã có một dòng, dòng thứ hai bị chặn', ra.length === 1 && !!trung && (await hoanTM(a.id)).length === 1);
+    // E6 (soát vòng 1): I19 "khách nhận lại ≤ đã trả" phải tính cả khoản trả tiền mặt khách lẻ — ngay trên (25.001) báo, đúng 25.000 không báo
+    const i19 = async () => (await batBien.BAT_BIEN.I19((sql, x = []) => db.query(sql, x), {})).filter((l) => l.includes(a.code));
+    await db.run('UPDATE pos_hoan_tien_mat SET so_tien = 25001 WHERE order_id = ?', [a.id]);
+    const tren = await i19();
+    await db.run('UPDATE pos_hoan_tien_mat SET so_tien = 25000 WHERE order_id = ?', [a.id]);
+    const dung = await i19();
+    k('E6 I19 tính khoản hoàn tiền mặt khách lẻ: 25.001 > đã trả 25.000 → báo; 25.000 → không báo', tren.length === 1 && dung.length === 0,
+      `trên ${JSON.stringify(tren)} · đúng ${JSON.stringify(dung)}`);
     const ghi = [];
     const quet = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, f.name);
