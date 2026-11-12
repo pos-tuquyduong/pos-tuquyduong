@@ -268,6 +268,13 @@
 - 11.11 (c) · Khách không tài khoản không đặt được đơn giao online; huỷ đơn giao của khách không tài khoản trả tiền mặt / CK vẫn chặn trên
   máy; chỉ khách lẻ đến quầy mới trả tiền mặt từ két (HUY-1 Q8).
 
+## Đợt quyết định 12.11.2026 (chat bàn 36)
+- 12.11 · Kết nối kho dữ liệu (KET-NOI-1, TRƯỚC khai trương): xem dữ liệu mà rớt kết nối thì máy tự thử lại; ghi tiền (thu tiền, đơn App,
+  nạp tiền) gắn "mã lượt bấm" như Kho — rớt mạng tự gửi lại, bấm hai lần cũng chỉ ra MỘT đơn; ghi khác rớt thì báo lỗi, không tự ghi lại.
+- 12.11 · VOUCHER-2 Q7: đơn từ VOUCHER-2 trở đi — gói / thẻ / nạp tính đã trả đủ giá, phần giảm của mã / voucher chỉ chia trên món (đền và hoàn
+  tính theo đó); đơn cũ giữ cách cũ. Q9: mã in trên bill cho khách mới — chỉ SĐT có hồ sơ khách tạo SAU lúc in bill (khách quầy đã có SĐT từ
+  trước thì không nhận); quầy nhập mã ở form "Thêm khách mới". Q10: voucher ship (tiền hay %) không tính là "voucher giảm %".
+
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
   nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).

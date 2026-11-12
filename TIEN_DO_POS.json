@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 62,
-  "cap_nhat": "2026-11-11",
+  "phien_ban_so": 63,
+  "cap_nhat": "2026-11-12",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -1439,10 +1439,10 @@
       "ma": "BAO-1b",
       "ten": "Thong bao ro phan 2 — Cai dat (gom CAIDAT-BAO-1): dung thanh phan BAO-1a; Hang thanh vien / PIN chu quan bao ngay duoi o + noi; thanh luu co dinh 'co thay doi chua luu'; nut Luu mo khi thieu PIN; hoi PIN luc bam Luu. Mo SAU DIEM-MON-1 (Settings.jsx, CaiDat/**). [Th] Sonnet",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "d7c430f",
+      "ngay": "2026-11-12"
     },
     {
       "ma": "QC-APP-1",
@@ -1555,6 +1555,15 @@
     {
       "ma": "NHATKY-CAIDAT-1",
       "ten": "Nhat ky thay doi Cai dat (thu App KH 11.11 a muc 3): moi man Cai dat ghi ai · luc · cu -> moi (nhat la gia, Gio vang, voucher, goi, quyen); man tien quan trong co \"khoi phuc gia tri cu\". [T] Opus, CUOI danh sach (lam noi tiep, khong cho)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "KET-NOI-1",
+      "ten": "Ket noi Turso ben vung (chu quan 12.11, TRUOC khai truong; goc: Cai dat bao \"socket hang up\" khi Render goi Turso — database.js query/run nem loi ngay, khong thu lai): (1) DOC (query / queryOne ngoai giao dich) gap loi mang (socket hang up, ECONNRESET, fetch failed…) -> tu thu lai toi da 2 lan, cho ngan; (2) GHI TIEN (thu tien / tao don o quay, dat don App, nap tien — ke hoach liet ke DU moi duong) gan \"ma luot bam\": DUNG LAI khuon ma_gui cua Kho (kho/duong.js khiTrung: khoa duy nhat, trung -> tra ban ghi da co); man hinh rot mang thi tu gui lai CUNG ma -> khong bao gio ra don doi, bam 2 lan cung chi 1 don; (3) GHI KHAC rot mang -> bao loi ro, KHONG tu ghi lai; (4) dem + ghi nhat ky moi lan rot ket noi. Khong doi thu vien. Mo SAU khi VOUCHER-2 gop (cung sua duong tao don); so buoc nang cap cap luc viet phieu. [T] Opus lan 1, truoc MATKHAU-1",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,
