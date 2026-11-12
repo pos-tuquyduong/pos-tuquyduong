@@ -1,16 +1,19 @@
 VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
 
-SỐ CA cong_cu/thu_VOUCHER2.js: 74
+SỐ CA cong_cu/thu_VOUCHER2.js: 80
 SỐ CA cong_cu/thu_UUDAI1.js: 88
 SỐ CA cong_cu/thu_KHTHE1.js: 73
 SỐ CA cong_cu/thu_P26c.js: 161
 
 Bản gốc: python3 cong_cu/ban_sao_goc.py e3ef76a <nháp>/goc_e3ef76a  (e3ef76a = PHIEU trả lời Q7–Q10; server/ y như main)
-Số ca (dòng tổng trên code ĐÃ VÁ, HEAD 497b75a6): thu_VOUCHER2 74 đạt · 0 hỏng · thu_UUDAI1 88 · 0 · thu_KHTHE1 73 · 0 · thu_P26c 161 · 0.
+Số ca (dòng tổng trên code ĐÃ VÁ, HEAD 0e60873d): thu_VOUCHER2 80 đạt · 0 hỏng · thu_UUDAI1 88 · 0 · thu_KHTHE1 73 · 0 · thu_P26c 161 · 0.
 
-── thu_VOUCHER2.js (bài MỚI, commit 497b75a6) trên gốc: node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_e3ef76a/server
-Dòng tổng: VOUCHER-2: 4 đạt · 70 hỏng   (thoát 1)
-4 ca xanh trên gốc đều là ca "KHÔNG ĐỔI" (K5): K1, K2, K3, H3 (App cũ gửi ma_giam = mã voucher → báo ra y như trước). Đúng ý — hành vi cũ phải giữ.
+── thu_VOUCHER2.js (bài MỚI, commit 0e60873d) trên gốc: node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_e3ef76a/server
+Dòng tổng: VOUCHER-2: 5 đạt · 75 hỏng   (thoát 1)
+5 ca xanh trên gốc đều là ca "KHÔNG ĐỔI" (K5): K1, K2, K3, H3 (App cũ gửi ma_giam = mã voucher → báo ra y như trước), G5 (voucher ở ô mã cũ huỷ →
+trả đúng MỘT lượt như trước — khoá đột biến VS-V2-TRA-HAI-LAN). Đúng ý — hành vi cũ phải giữ.
+Ca thêm sau lần ghi trước (đều ĐỎ trên gốc): A2 câu voucher tiền có trần · A4 Cài đặt gắn MauVoucher · F6b tối thiểu voucher tính món thường ·
+G4b / G4c mỗi điều kiện của câu tiêu một ca · H3c ô mã cũ MỀM ở POST quầy. E6 đổi thứ tự (ship % gửi trước) — vẫn đỏ trên gốc.
 Ca G2 duyệt hoàn từng XANH OAN trên gốc (voucher chưa từng bị tiêu nên "về available" đúng sẵn) → siết ở 497b75a6: đòi đơn 45.000 + voucher đã
 'used' trước khi duyệt → nay đỏ trên gốc. Gốc chưa có phatVoucher → bài ghi thẳng mã + grant (như /redeem cũ) để TỪNG ca đỏ riêng, không sập cả mục.
 Thêm so với lần ghi đầu (5e983af): H3b ô mã cũ không lách luật chính chủ — đỏ trên gốc (gốc áp mã, không ma_giam_loi).
