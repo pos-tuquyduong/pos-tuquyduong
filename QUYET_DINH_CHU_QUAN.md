@@ -257,6 +257,16 @@
   "bỏ đổi điểm ở quầy" (P3b vẫn bỏ: không đổi trong phiên thanh toán). Quà hết hạn chưa dùng thì hoàn điểm.
 - 11.11 · Cuối danh sách, làm nối tiếp ngay, không chờ — làm hết một lượt: DOI-DIEM-1 → QUET-2 (khách tự quét mã của quán bằng App) →
   GIOI-THIEU-1 → QUA-TANG-1 (sau cùng).
+- 11.11 (c) · Kho nội dung App KH cho `/admin` (ND-API-1, TRƯỚC khai trương): nhà riêng ở nhờ máy chủ POS (`/api/nd`, bảng nd_*, hợp đồng
+  riêng); ai sửa nằm trong Cài đặt › Phân quyền (mặc định chủ quán); Lưu nháp → Cập nhật toàn bộ thành phiên bản mới, giữ mọi bản, quay lại
+  được; khoá sao lưu chỉ đọc cho bản sao thứ hai. Màn nhân viên POS KHÔNG mở sửa chữ; chữ gửi tới khách vào Cài đặt POS (CHU-KHACH-1) và nhật
+  ký thay đổi Cài đặt (NHATKY-CAIDAT-1) — cuối danh sách.
+- 11.11 (c) · Voucher (VOUCHER-2): HAI loại, chọn ở mẫu — "Chia sẻ được" (ai cầm mã cũng dùng) / "Chỉ chính chủ"; voucher đã phát
+  trước đây giữ chia sẻ được; mã khuyến mãi chung ai cũng dùng. Mỗi đơn tối đa MỘT voucher % (áp món / nhóm theo mẫu), voucher tiền nhiều
+  cái trong giới hạn N. Mã in trên hoá đơn cho khách mới: chỉ người CHƯA có tài khoản, đăng ký LẦN ĐẦU mới nhập được → phát voucher vào
+  tài khoản mới. Bài thử / bất biến cũ chỉ đổi số theo luật, không nới phép kiểm — rà thật kỹ.
+- 11.11 (c) · Khách không tài khoản không đặt được đơn giao online; huỷ đơn giao của khách không tài khoản trả tiền mặt / CK vẫn chặn trên
+  máy; chỉ khách lẻ đến quầy mới trả tiền mặt từ két (HUY-1 Q8).
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
