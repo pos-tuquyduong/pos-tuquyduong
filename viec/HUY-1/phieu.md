@@ -69,6 +69,12 @@ Trục trặc lúc bán (pha nhầm, bấm nhầm, hết nguyên liệu, khách 
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
+- server/utils/giaoHang.js
+- cong_cu/thu_GIAO1.js
+- cong_cu/thu_P26b.js
+- cong_cu/thu_P26c.js
+- cong_cu/thu_P24.js
+- cong_cu/thu_DOISOAT1.js
 
 <!-- Chủ quán 05.11 (Q1–Q5 kế hoạch 83c832f):
      Q1 CÓ — phiếu thắng bản vẽ: sửa ban_mau_pos trước (nút Huỷ đơn ở chi tiết Lịch sử đơn + màn Đơn App, 5 lý do của phiếu, KHÔNG hoàn tác 5 giây).
@@ -78,6 +84,16 @@ Trục trặc lúc bán (pha nhầm, bấm nhầm, hết nguyên liệu, khách 
      Q4 — KHÔNG tự dựng lại nhánh: khi CK-NOIDUNG-1 (và NAP-1, chủ quán đưa lên trước HUY-1) đã gộp, CHAT gộp main vào viec/HUY-1 bằng script rồi
         chủ quán mới gửi "tiep". Tiền thật khách trả khi huỷ đơn vào ĐÚNG ngăn ví của NAP-1 (tiền nạp, không phải thưởng).
      Q5 CÓ — thêm server/utils/donThu.js, cong_cu/gia_lap/kich_ban.js (đổi 4 chỗ huỷ bằng nhân viên sang quản lý). -->
+<!-- Chủ quán 11.11 (Q6–Q8 kế hoạch eb4c4d3):
+     Q6 CÓ — thêm server/utils/giaoHang.js (xoá đúng chỗ chặn tạm "HUY-1 xoá đúng dòng này") + cong_cu/thu_GIAO1.js (J4, J9, K5b, J2 đổi theo luật
+        mới). Các chặn khác của đơn giao GIỮ: còn chuyến Ahamove thì huỷ chuyến trước; tài xế đã lấy hàng thì dùng "Báo sự cố".
+     Q7 CÓ — thêm thu_P26b.js, thu_P26c.js, thu_P24.js, thu_DOISOAT1.js: chỉ đổi số tiền mong đợi theo luật 05.11 (huỷ hoàn TOÀN BỘ), là bài
+        sửa thường (đỏ trên gốc) — KHÔNG ghi vào "## Bài thử cũ sửa". thu_P26c.js + thu_DOISOAT1.js cũng nằm trong Phạm vi VOUCHER-2 (song song):
+        chỉ sửa đúng ca của mình, không viết lại cả file, để gộp không đụng.
+     Q8 CÓ — chủ quán: khách không tài khoản thì KHÔNG đặt được đơn giao online, nên ca này gần như không có; vẫn CHẶN huỷ trên máy cho an toàn
+        (đơn GIAO của khách không tài khoản trả tiền mặt / CK) như hôm nay; chỉ khách lẻ ĐẾN QUẦY mới được
+        trả tiền mặt từ két. Hai điều ngoài Phạm vi (ghi chú viKhach.js, khoản đền khách lẻ không SĐT ở két) → ghi Phát hiện, không sửa. -->
+
 ## Bài thử đỏ
 Có — `cong_cu/thu_HUY1.js` ĐỎ trên code gốc: huỷ đơn có tài khoản trả tiền mặt / chuyển khoản / ví / trộn → ví tăng đúng toàn bộ, sổ ví đủ dòng;
 khách lẻ → ghi khoản hoàn tiền mặt, két trừ đúng; staff → 403; manager huỷ đơn hôm qua → 403, owner được; lý do trống → 400; đơn đang pha / đơn
