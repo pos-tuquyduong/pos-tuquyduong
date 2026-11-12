@@ -150,3 +150,7 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 1 · BỎ 0
 ✓ CỔNG CHẠY ĐẠT (A16 cảnh báo: gốc in 106 ca, head 126 — bài dừng sớm trên gốc vì chưa có module, bình thường)
 
 HEAD ĐÃ KIỂM: b1887991
+
+
+## Gộp (chat soát cuối 12.11, bàn 36): ĐẠT — vòng 2–3 đúng 3 việc chat nêu + .catch nuốt lỗi; 2 lỗi nhẹ ghi Phát hiện (thứ tự hạng, onBo={tai}).
+HEAD ĐÃ KIỂM: d47ceac
