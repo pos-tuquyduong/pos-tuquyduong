@@ -102,3 +102,10 @@ Sau khi sửa bản mẫu (1acc855): thu_hd 13 đạt · 0 hỏng; TỔNG: 132 �
 
 SỐ CA cong_cu/thu_gia_lap.js: 180
 SỐ CA ban_mau_pos/thu/thu_hd.js: 13
+
+═══ Soát vòng 1 (12.11) — thu_HUY1.js thêm H6 (App không tính ví mẹ); bài đổi sau lần ghi trên → chạy lại cả hai (A16) ═══
+Bản mới (108cb67) trên bản sao gốc 078723f:
+  ✗ H6 đơn App ví mẹ 10.000 + tiền mặt 10.000 → huỷ 200; App con: hoan_vao_tai_khoan = 10.000 (ví mẹ không tính); mẹ về 50.000  — HTTP 200 h undefined mẹ 50000 con 0
+  THỬ HUY-1: 16 đạt · 43 hỏng
+Trên HEAD d8e62be: THỬ HUY-1: 59 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_HUY1.js: 59
