@@ -193,6 +193,11 @@ async function main() {
     k('A2 cửa xem trước (không ghi) trả cùng câu', xt.status === 200 && xt.mo_ta === mong[0], moTa(xt) + ' ' + xt.mo_ta);
     const sai = await Promise.all([{ ...mau, gia_tri: 0 }, { ...mau, kieu: 'phan_tram', gia_tri: 101 }, { ...mau, tran: -1 }, { ...mau, kieu: 'la' },
       { ...mau, han_ngay: 0 }, { ...mau, ten: ' ' }].map((m) => goi('POST', '/pos/rewards/mau', m)));
+    const doc = (...p) => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', ...p), 'utf8'); } catch { return ''; } };
+    const mv = doc('pages', 'CaiDat', 'MauVoucher.jsx'), st = doc('pages', 'Settings.jsx');
+    k('A4 Cài đặt: Settings.jsx gắn <MauVoucher />; màn mới gọi máy chủ qua utils/api.js (không fetch trần), xem trước câu từ /rewards/mau/mo-ta, báo lưu BAO-1a',
+      /import MauVoucher from '\.\/CaiDat\/MauVoucher'/.test(st) && /<MauVoucher \/>/.test(st) && /from '\.\.\/\.\.\/utils\/api'/.test(mv) && !/\bfetch\(/.test(mv)
+      && /api\.post\('\/rewards\/mau\/mo-ta'/.test(mv) && /baoXong\(/.test(mv) && /baoLoiTu\(/.test(mv) && /voucher_toi_da/.test(mv));
     k('A3 giá trị 0 / % > 100 / trần âm / kiểu lạ / hạn 0 / tên rỗng → 400 MAU_KHONG_HOP_LE', sai.every((r) => r.status === 400 && r.code === 'MAU_KHONG_HOP_LE'),
       sai.map(moTa).join(' | '));
   });
