@@ -62,3 +62,14 @@ Bắt 2 lỗi NẶNG (traLuotMa thoát sớm khi đơn chỉ có voucher; 3 ch�
 ## Stop hook 12.11 — npm test đỏ oan vì kho nông (lần 2)
 Phiên lại mở từ kho nông → `thu_BH2.js` G1 `fatal: bad revision 'cbbb809..HEAD'`. Chạy `git fetch -q --unshallow origin viec/VOUCHER-2`
 (chỉ tải lịch sử, không đổi file) → `npm test`: PASS 111 · FAIL 0 · CẢNH BÁO 1. Không sửa code, không đụng bộ kiểm.
+
+## Phiên 12.11 (lần 2) — làm tiếp sau trả lời Q7–Q10
+### Bước 1 — đối chiếu bản chụp
+- Nhánh `viec/VOUCHER-2`, cây sạch. HEAD `e3ef76a` · FETCH_HEAD `e3ef76a` — bằng nhau, không kéo (hook mở phiên đã kéo `c58ef77 → e3ef76a`).
+- `git log --oneline -3`:
+  ```
+  e3ef76a PHIEU: VOUCHER-2 tra loi Q7-Q10 (dong y de xuat) — chu quan 12.11
+  c58ef77 VOUCHER-2: trang thai - npm test xanh sau unshallow (phien 12.11)
+  6dc4ec1 VOUCHER-2: ke hoach sua theo Q1/Q2/Q4 (muc 11) + cau hoi Q7-Q10 (duong tien da tra theo dong, bai cu P26c M4a)
+  ```
+### Bước 3 — kế hoạch cập nhật theo Q7–Q10: `ke_hoach.md` mục 12. Người gác chặn `[SED-I]` (sed -i) → sửa bằng Edit.

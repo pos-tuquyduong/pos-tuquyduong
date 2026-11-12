@@ -1,4 +1,4 @@
-# VOUCHER-2 — kế hoạch (chủ quán duyệt 11.11, Q1/Q2/Q4 sửa — mục 11; Q7–Q10 chờ trả lời)
+# VOUCHER-2 — kế hoạch (chủ quán duyệt 11.11 + 12.11: Q1/Q2/Q4 sửa — mục 11; Q7–Q10 đồng ý — mục 12)
 
 ## 0. Tóm tắt lời thường
 Voucher hôm nay chỉ có một loại (đổi điểm), mỗi đơn chỉ nhận MỘT mã, và mã giảm tính cả trên tiền thẻ hạng / gói. Kế hoạch:
@@ -280,3 +280,16 @@ Luật 10.11 làm giảm chỉ nằm trên món → đơn trộn sẽ chia SAI: 
 đã trả = giá đầy đủ, phần còn lại chia tỉ lệ trên món; đơn cũ giữ y cách cũ. ~8 dòng trong `tienDaTra.js` (trong Phạm vi), không đổi tên / tham số
 hàm nào. Đụng hàm HUY-1 cũng đọc (chỉ đọc, không sửa) → báo chat. Ca: **F7** đơn trộn có mã → đền món tối đa 45.000 (45.001 → 400), kết thúc gói
 hoàn theo 300.000; **F7b** đơn cũ cờ 0 → y số cũ. Đột biến `BV-V2-DA-TRA-CHIA-DEU` (bỏ nhánh cờ).
+
+## 12. Trả lời chủ quán 12.11 (Q7–Q10 — đồng ý cả 4 đề xuất) — mục này THẮNG mục 2–11 chỗ trái ý
+- **Q7 CÓ** — bước 026 thêm `pos_orders.giam_mon_thuong INTEGER DEFAULT 0`; `taoDon` ghi 1 cho mọi đơn mới. `tienDaTraTheoDong` (`server/utils/tienDaTra.js`)
+  với đơn cờ 1: dòng `product_id < 0` (gói / thẻ / nạp) đã trả = giá đủ, phần còn lại (total − ship − Σ dòng đó) chia tỉ lệ trên món thường; đơn
+  cờ 0 giữ y cách cũ. Không đổi tên / tham số `tienDaTraTheoDong`, `soTienHoan` (HUY-1 đang gọi). Ca **F7** (số tính tay, K3): gói 300.000 + món
+  50.000, mã 10 % món → món đã trả 45.000, gói đã trả 300.000; đền món 45.000 qua, 45.001 bị chặn; kết thúc gói tính trên 300.000.
+  **F7b** đơn cờ 0 → y số cũ. Đột biến `BV-V2-DA-TRA-CHIA-DEU` (bỏ nhánh cờ).
+- **Q8 CÓ** — `thu_P26c` M4a GIỮ cho đơn CŨ: bài tạo đơn qua máy rồi đặt `giam_mon_thuong = 0` + ghi giảm như cũ bằng câu ghi thẳng vào kho thử →
+  N8–N10 vẫn bị bắt; THÊM ca **M4c** luật mới (mã không giảm gói, khách trả 600.000). Không bỏ, không nới ca nào.
+- **Q9 CÓ** — "chưa có tài khoản" = `pos_customers` của SĐT tạo SAU lúc in bill (`created_at ≥ issued_at`), như 11.3; quầy: ô mã bill trong form
+  Thêm khách; bước 026 tự tạo mẫu đúng ưu đãi khách mới đang chạy (kiểu `order`), kiểu `item` để chủ quán chọn mẫu.
+- **Q10 CÓ** — voucher ship (số tiền hay %) KHÔNG tính là "voucher giảm %" của Q4; chỉ giảm phí giao, kẹp ≤ phí giao, vẫn tính vào N. Ca **E6**:
+  1 voucher % món + 1 voucher ship % → 200 (không `VOUCHER_PHAN_TRAM_HAI`). Đột biến `VS-V2-SHIP-LA-PHAN-TRAM` (đếm ship % vào Q4 — E6 đỏ).
