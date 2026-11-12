@@ -1,0 +1,100 @@
+VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
+
+SỐ CA cong_cu/thu_VOUCHER2.js: 74
+SỐ CA cong_cu/thu_UUDAI1.js: 88
+SỐ CA cong_cu/thu_KHTHE1.js: 73
+SỐ CA cong_cu/thu_P26c.js: 161
+
+Bản gốc: python3 cong_cu/ban_sao_goc.py e3ef76a <nháp>/goc_e3ef76a  (e3ef76a = PHIEU trả lời Q7–Q10; server/ y như main)
+Số ca (dòng tổng trên code ĐÃ VÁ, HEAD 497b75a6): thu_VOUCHER2 74 đạt · 0 hỏng · thu_UUDAI1 88 · 0 · thu_KHTHE1 73 · 0 · thu_P26c 161 · 0.
+
+── thu_VOUCHER2.js (bài MỚI, commit 497b75a6) trên gốc: node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_e3ef76a/server
+Dòng tổng: VOUCHER-2: 4 đạt · 70 hỏng   (thoát 1)
+4 ca xanh trên gốc đều là ca "KHÔNG ĐỔI" (K5): K1, K2, K3, H3 (App cũ gửi ma_giam = mã voucher → báo ra y như trước). Đúng ý — hành vi cũ phải giữ.
+Ca G2 duyệt hoàn từng XANH OAN trên gốc (voucher chưa từng bị tiêu nên "về available" đúng sẵn) → siết ở 497b75a6: đòi đơn 45.000 + voucher đã
+'used' trước khi duyệt → nay đỏ trên gốc. Gốc chưa có phatVoucher → bài ghi thẳng mã + grant (như /redeem cũ) để TỪNG ca đỏ riêng, không sập cả mục.
+Thêm so với lần ghi đầu (5e983af): H3b ô mã cũ không lách luật chính chủ — đỏ trên gốc (gốc áp mã, không ma_giam_loi).
+
+Các dòng ✗ của lần chạy đầu trên gốc (5e983af, 3 đạt · 70 hỏng — danh sách ca y như trên trừ H3b / G2 siết; cắt 220 ký tự):
+  ✗ A1 chủ quán tạo mẫu → 200 có id; nhân viên → 403  — HTTP 404 / HTTP 404
+  ✗ A1 sửa giá trị 25.000 + tắt → danh sách có mẫu, gia_tri 25000, bat 0, kèm mo_ta
+  ✗ A2 moTaVoucher dựng đúng câu 4 kiểu + áp dụng món chọn  — ["","","","",""]
+  ✗ A2 cửa xem trước (không ghi) trả cùng câu  — HTTP 404 undefined
+  ✗ A3 giá trị 0 / % > 100 / trần âm / kiểu lạ / hạn 0 / tên rỗng → 400 MAU_KHONG_HOP_LE  — HTTP 404 ×6
+  ✗ B1 phatVoucher → 1 mã + 1 grant đúng SĐT, nguon, mau_id, hạn = hôm nay + 31 ngày, dùng 1 lần, đơn tối thiểu chụp vào mã
+  ✗ B2 đổi điểm vẫn trừ 200 điểm + đẻ mã 15.000 dùng 1 lần, hạn 20 ngày, grant nguon doi_diem, chia sẻ được  — HTTP 200 (grant không có nguon)
+  ✗ B3 sửa mẫu sau khi phát → voucher đã phát giữ 7.000 và hạn cũ  — null
+  ✗ C1 2 voucher tiền + 1 voucher % → … tổng 61.500 (tính tay)  — HTTP 400 · Số tiền thanh toán (61.500đ) không khớp tổng đơn hàng thật (83.333đ)
+  ✗ C1 / I1 grant ghi đơn + số giảm từng voucher (10.000, 6.833), lượt mã = 1, đơn cờ giam_mon_thuong = 1
+  ✗ C2 voucher thứ N+1 (4 > 3) → 400 VUOT_SO_VOUCHER  — HTTP 400 · không khớp tổng (50.000đ)
+  ✗ C2 N = 2 (Cài đặt) → 3 voucher (ngay trên) bị chặn
+  ✗ C2 N = 2 → đúng 2 voucher (bằng ngưỡng) → 200, tổng 47.000
+  ✗ C3 mã chung 3.000 + voucher 10.000 cùng đơn → 70.333  — tổng thật 80.333đ
+  ✗ C4a voucher CHỈ CHÍNH CHỦ của B trên đơn khách A → 400 VOUCHER_CHINH_CHU
+  ✗ C4d voucher chính chủ, đơn không SĐT → 400 VOUCHER_CHINH_CHU
+  ✗ C4b cùng voucher trên đơn của chính B → 200 (K5)
+  ✗ C4c voucher CHIA SẺ của B trên đơn A → 200, grant used ghi đơn A
+  ✗ C5 voucher hết hạn → 400 VOUCHER_HET_HAN
+  ✗ C5 voucher đã dùng (dùng lại v1 của C1) → 400 VOUCHER_DA_DUNG
+  ✗ C5 đơn tối thiểu 83.334, món thường 83.333 (ngay dưới) → 400 VOUCHER_CHUA_DU_DON
+  ✗ C5 đơn tối thiểu = 83.333 (bằng) → 200, 78.333
+  ✗ C5 mã voucher không có → 400 VOUCHER_KHONG_TON_TAI  — HTTP 200 · đơn 0→1 (gốc bỏ qua trường vouchers)
+  ✗ C6 voucher 200.000 > tiền món 83.333 → kẹp, tổng 0, giảm ghi đúng 83.333
+  ✗ C7 tinh-thu có voucher hỏng → 200 MỀM: tính voucher tốt (46.000) + voucher_loi
+  ✗ C8 voucher % thứ hai → 400 VOUCHER_PHAN_TRAM_HAI
+  ✗ C8 lời báo đúng câu chủ quán
+  ✗ C8c tinh-thu → voucher_loi có mã % thứ hai, tổng chỉ tính % đầu (45.000)
+  ✗ C8b 1 voucher % + 2 voucher tiền → 200, 36.000 (K5)
+  ✗ C9 voucher % nhóm món → 10 % × 33.333 = 3.333, tổng 80.000
+  ✗ C9 voucher nhóm món, giỏ không có món nhóm → 400 VOUCHER_KHONG_CO_MON
+  ✗ D1 giờ flash + voucher % → 400 VOUCHER_PHAN_TRAM_FLASH
+  ✗ D2 giờ flash + voucher tiền → 200, đúng 63.333  — tổng thật 73.333đ
+  ✗ E1 ship tiền 15.000 trên phí 30.000 → tổng 65.000; shipping_fee 15.000, giam_ship 15.000
+  ✗ E4 chuyến giao ghi phí khách trả 15.000  — null
+  ✗ E1 ship 50 % có trần 10.000 → tổng 70.000
+  ✗ E1 ship 50.000 trên phí 30.000 → kẹp 30.000, tổng 50.000
+  ✗ E2 đơn tại quán + voucher ship → 400 VOUCHER_SHIP_CAN_GIAO  — HTTP 200 · đơn 1→2
+  ✗ E2 lời báo "Voucher giao hàng chỉ dùng cho đơn giao"
+  ✗ E2b phí ship gõ tay (không qua giao) + voucher ship → 400 VOUCHER_SHIP_CAN_GIAO
+  ✗ E3 3 voucher tiền + 1 voucher ship (N = 3) → 400 VUOT_SO_VOUCHER
+  ✗ E6 (Q10) voucher % món + voucher ship % → 200, 65.000
+  ✗ F1 thẻ 100.000 + món 50.000 + mã chung 10 % → 145.000  — tổng thật 135.000đ (gốc giảm cả thẻ)
+  ✗ F2 gói 300.000 + món 50.000 + mã 10 % → 345.000  — tổng thật 315.000đ (gốc giảm cả gói)
+  ✗ F3 chỉ thẻ + voucher → 400 MA_KHONG_AP_MON_THUONG
+  ✗ F3 chỉ thẻ + mã chung → mềm: không giảm (100.000)  — gốc discount_amount 10000
+  ✗ F4 nạp + voucher → 400 NAP_CHI_TIEN_MAT_QR  — HTTP 200 · đơn 2→3
+  ✗ F5 phiên thanh toán: gói + món + mã 10 % → tổng 345.000  — HTTP 200 315000
+  ✗ F6 mã chung tối thiểu 50.000, giỏ thẻ 100.000 + món 33.333 → không áp  — gốc discount_amount 5000
+  ✗ F7 đơn mới gói + món + mã 10 % món → gói đã trả 300.000, món 45.000  — [] (F2 không tạo được đơn)
+  ✗ F7 kết thúc gói chưa lấy lượt nào → hoàn theo 300.000
+  ✗ F7 đền món: 45.001 → 400 VUOT_GIA; 45.000 → 200
+  ✗ F7b cùng đơn đặt cờ đơn CŨ (0) → chia cũ: gói 295.714, món 49.285
+  ✗ G1 huỷ đơn 3 voucher + mã chung → mọi grant available …  — tổng thật 49.000đ
+  ✗ G1b đơn CHỈ voucher (không mã chung) huỷ → voucher về available
+  ✗ G2 xoá đơn → voucher về available
+  ✗ G2 duyệt hoàn → voucher về available
+  ✗ G3 phiên ck_tay tổng 40.000 (đã trừ voucher) → huỷ → voucher vẫn available  — HTTP 200 50000
+  ✗ G3 phiên tiền mặt chốt → đơn 40.000, voucher used  — TIEN_KHACH_DUA_THIEU
+  ✗ G4 hai đơn cùng voucher → đúng một 200, một 400 VOUCHER_DA_DUNG
+  ✗ H1 GET /kh/voucher → dòng có mo_ta (câu từ mẫu) + nguon
+  ✗ H2 báo giá với vouchers[] → tong 72.000, giam[] có 2 dòng loai voucher kèm ma  — giam: []
+  ✗ H2 POST /kh/don với vouchers[] → 200, hai voucher used  — 409 GIA_DA_DOI
+  ✗ H3 App cũ gửi ma_giam = mã voucher → vẫn áp (45.000), dòng giảm loai voucher
+  ✗ H4 khách A gửi voucher chính chủ của B → voucher_loi VOUCHER_CHINH_CHU
+  ✗ H5 vouchers không phải mảng chuỗi → 400 YEU_CAU_KHONG_HOP_LE  — HTTP 200
+  ✗ I2 hoá đơn: dòng voucher từng mã, giảm mã chung 2.000, phí giao 25.000 + giảm phí giao 10.000, tổng 53.000
+  ✗ I3 báo cáo mã có nhóm theo voucher + tổng giảm phí giao quán bù
+  ✗ I4 bất biến I12 / I13 (so BẰNG) … → không dòng lệch  — "quà #1 mã …: dòng điểm null 0 (giá 0) …" (I12 đỏ với grant không từ đổi điểm)
+  ✗ K5 lấy từ gói (dòng 0đ) + món 50.000 + voucher 10.000 → 200, 40.000
+
+── Bài CŨ sửa theo hành vi chủ quán ĐÃ duyệt đổi (LUAT_XAY_APP §6.8 — bài sửa thường, đỏ trên gốc, KHÔNG vào "## Bài thử cũ sửa"):
+node cong_cu/thu_UUDAI1.js --may-chu <nháp>/goc_e3ef76a/server → 75 đạt · 13 hỏng. Hai ca do VOUCHER-2 đổi (luật 10.11, Q6):
+  ✗ G3d mua gói + món, Vàng, mã 10 % dùng chung → mã chỉ trên phần MÓN còn lại (không trên gói): 350.000 − 5.000 − 4.500 = 340.500  — tổng thật (310.500đ)
+  ✗ K4b MUA GÓI 300.000 + món 50.000, Vàng, mã 10 % → mã chỉ trên món … 340.500  — tinh-thu 310500
+  (11 dòng ✗ còn lại E5, S1–S10 đọc client/src — bản sao gốc chỉ có server/, không liên quan VOUCHER-2; trên cây thật đều xanh.)
+node cong_cu/thu_KHTHE1.js --may-chu <nháp>/goc_e3ef76a/server → 70 đạt · 3 hỏng:
+  ✗ B12b giỏ chỉ thẻ + mã 10%: mã KHÔNG áp lên thẻ — tong App = tinh-thu quầy = 250.000, báo MA_KHONG_AP_MON_THUONG ở cả hai  — 225000 / 225000 · null / null
+  (G1, G1b đọc hoá đơn App — bản sao gốc thiếu file ngoài server/; trên cây thật xanh.)
+node cong_cu/thu_P26c.js --may-chu <nháp>/goc_e3ef76a/server →
+  ✖ Bài thử sập: SQLITE_ERROR: no such column: giam_mon_thuong   (ca M1b "đơn CŨ" đặt cờ giam_mon_thuong = 0 — gốc chưa có cột Q7; thoát 1)
+  Các ca mới / đổi của P26c (Q8 + cùng khuôn): M1b (đơn cũ) · M1c (luật mới) · M4a (đơn cũ) · M4c (luật mới) · N4a (đơn cũ) · N4c (luật mới, Q7).
