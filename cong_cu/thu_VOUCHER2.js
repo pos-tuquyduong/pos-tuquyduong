@@ -439,10 +439,12 @@ async function main() {
     const xoa = r3.order ? await goi('DELETE', `/pos/orders/${r3.order.id}`, { reason: 'thử VOUCHER-2' }) : {};
     k('G2 xoá đơn → voucher về available', r3.status === 200 && xoa.status === 200 && (await grant(vb)).status === 'available' && (await luot(vb)) === 0, moTa(xoa));
     const r4 = await goi('POST', '/pos/orders', { customer_phone: a.sdt, customer_name: 'K', items: [mon(0)], vouchers: [vb], payment_method: 'balance', balance_amount: 45000 });
+    const daTieu = (await grant(vb)).status === 'used' && (await tongDon(r4)) === 45000;   // K3: chứng minh voucher ĐÃ tiêu trước khi duyệt hoàn
     const yc = r4.order ? await goi('POST', '/pos/refunds', { order_id: r4.order.id, reason: 'thử VOUCHER-2' }) : {};
     const dy = yc.refund_id;
     const duyet = dy ? await goi('POST', `/pos/refunds/${dy}/approve`, {}) : {};
-    k('G2 duyệt hoàn → voucher về available', duyet.status === 200 && (await grant(vb)).status === 'available' && (await luot(vb)) === 0, `${moTa(yc)} / ${moTa(duyet)}`);
+    k('G2 duyệt hoàn đơn 45.000 (voucher đã tiêu) → voucher về available, lượt 0', daTieu && duyet.status === 200 && (await grant(vb)).status === 'available'
+      && (await luot(vb)) === 0, `đã tiêu ${daTieu} · ${moTa(yc)} / ${moTa(duyet)}`);
 
     // G3 — phiên giữ chỗ: tạo với voucher (tổng ĐÃ trừ voucher) → huỷ → voucher không tiêu; phiên tiền mặt chốt → tiêu.
     const vq = await phat(a.sdt, 'tien', 10000);
