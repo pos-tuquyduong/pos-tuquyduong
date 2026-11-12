@@ -76,6 +76,35 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
+- server/utils/diemKhach.js
+- server/utils/manKhach.js
+- cong_cu/gia_lap/bat_bien.js
+- cong_cu/thu_UUDAI1.js
+- cong_cu/thu_KHTHE1.js
+- cong_cu/thu_P26c.js
+- cong_cu/thu_DOISOAT1.js
+- server/routes/signup-codes.js
+- server/routes/registrations.js
+
+<!-- Chủ quán 11.11 (Q1–Q6 kế hoạch VOUCHER-2) — Q1, Q2, Q4 chủ quán SỬA khác đề xuất; kế hoạch phải sửa theo:
+     Q1 SỬA — HAI loại voucher, chọn ở MẪU voucher (Cài đặt): "Chia sẻ được" (ai cầm mã cũng dùng, như luật 15.07) hoặc "Chỉ chính chủ" (chỉ đơn
+        của tài khoản được phát; dùng sai → báo "Voucher này chỉ dùng cho chủ tài khoản"). Voucher đã phát trước đây GIỮ như cũ (chia sẻ được).
+        Thưởng giới thiệu (GIOI-THIEU-1), phiếu quà đổi điểm (DOI-DIEM-1) sau này sẽ chọn "Chỉ chính chủ". Mã khuyến mãi chung vẫn ai cũng dùng.
+     Q2 SỬA — Mã ưu đãi in trên hoá đơn cho khách mới KHÔNG dùng thẳng ở ô mã nữa: chỉ người CHƯA có tài khoản, đăng ký tài khoản LẦN ĐẦU (App
+        hoặc quầy) mới nhập được; hợp lệ → phát MỘT voucher (theo mẫu chủ quán chọn trong Cài đặt) vào tài khoản mới; mỗi mã in dùng một lần;
+        SĐT đã có tài khoản → báo rõ, không phát. Đường nhận mã sẵn có (signup-codes.js nhanMaUuDai, /api/kh/nhan-ma-bill) đi qua hàm phát voucher
+        — không làm đường thứ hai. Hợp đồng /api/kh ghi rõ. Đã thêm signup-codes.js + registrations.js vào Phạm vi; cần file khác → câu hỏi, DỪNG.
+     Q3 CÓ — voucher "nhóm món / món chọn" giảm trên tổng tiền các món thuộc nhóm / danh sách; đơn tối thiểu tính trên tiền món thường cả đơn.
+     Q4 SỬA — mỗi đơn tối đa MỘT voucher % (áp cho món / nhóm nào do MẪU trong Cài đặt quy định); voucher tiền dùng nhiều cái trong giới hạn N;
+        chọn voucher % thứ hai → báo rõ "Mỗi đơn chỉ dùng một voucher giảm %".
+     Q5, Q6 CÓ — CHỦ QUÁN DẶN CẨN TRỌNG TỐI ĐA, không phá luật chung, không ảnh hưởng việc sau:
+        · ke_hoach.md ghi cho TỪNG file thêm: sửa chỗ nào, vì sao, theo luật nào;
+        · bài thử cũ CHỈ đổi số mong đợi đúng theo luật 10.11 (mã không áp lên thẻ / gói / nạp) — không nới, không bỏ phép kiểm nào; mỗi ca đổi
+          ghi lý do; là bài sửa thường (đỏ trên gốc), KHÔNG ghi vào "## Bài thử cũ sửa";
+        · bat_bien.js chỉ đổi cách đếm mã cho đúng nhiều voucher, không bỏ / nới phép đối soát nào;
+        · thu_P26c.js + thu_DOISOAT1.js cũng nằm trong Phạm vi HUY-1 (song song): chỉ sửa đúng ca của mình, không viết lại cả file;
+        · chạy --day-du + cong.js chay (gồm giả lập quầy) trước khi báo xanh; soát độc lập + soát bảo mật rà RIÊNG các file này.
+     Kế hoạch sửa theo Q1 / Q2 / Q4 mới: cập nhật ke_hoach.md rồi làm tiếp; đổi lớn hoặc cần file ngoài Phạm vi → câu hỏi, DỪNG. -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_VOUCHER2.js` ĐỎ trên code gốc: đơn 2 voucher tiền + 1 voucher % → tổng đúng thứ tự; voucher thứ N+1 → từ chối; mã chung + voucher
