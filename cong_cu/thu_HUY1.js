@@ -162,9 +162,11 @@ async function main() {
   muc('[B] Quyền — staff không huỷ; manager chỉ đơn trong ngày (giờ VN); đơn ngày trước chỉ owner');
   {
     const q = await so("SELECT allowed FROM pos_permissions WHERE role = 'staff' AND permission = 'cancel_order'");
+    const saoLuu0 = await so("SELECT COUNT(*) FROM sqlite_master WHERE name = '_sao_luu_025_pos_permissions'");
     const d = await tienMat(sdtMoi());
     const b1 = await huy(d.id, { ly_do_ma: 'pha_nham' }, tk.staff);
-    k('B1 staff huỷ → 403, quyền cancel_order của staff = 0 (kho mới)', b1.status === 403 && q === 0 && (await don(d.id)).status === 'completed', `${moTa(b1)} quyền ${q}`);
+    k('B1 staff huỷ → 403, quyền cancel_order của staff = 0 (kho mới: seed đã 0, bước 025 không phải đổi — không có bảng sao lưu)', b1.status === 403 && q === 0
+      && saoLuu0 === 0 && (await don(d.id)).status === 'completed', `${moTa(b1)} quyền ${q} sao lưu ${saoLuu0}`);
     // kho đang chạy: staff đang = 1 → bước 025 chạy lại đặt 0 (một lần, có sao lưu)
     await db.run("UPDATE pos_permissions SET allowed = 1 WHERE role = 'staff' AND permission = 'cancel_order'");
     await db.run('DELETE FROM pos_nang_cap WHERE so = 25').catch(() => {});
