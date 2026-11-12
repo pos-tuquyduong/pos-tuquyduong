@@ -6,9 +6,9 @@ SỐ CA cong_cu/thu_KHTHE1.js: 73
 SỐ CA cong_cu/thu_P26c.js: 161
 
 Bản gốc: python3 cong_cu/ban_sao_goc.py e3ef76a <nháp>/goc_e3ef76a  (e3ef76a = PHIEU trả lời Q7–Q10; server/ y như main)
-Số ca (dòng tổng trên code ĐÃ VÁ, HEAD 0e60873d): thu_VOUCHER2 80 đạt · 0 hỏng · thu_UUDAI1 88 · 0 · thu_KHTHE1 73 · 0 · thu_P26c 161 · 0.
+Số ca (dòng tổng trên code ĐÃ VÁ, HEAD f737aa65): thu_VOUCHER2 80 đạt · 0 hỏng · thu_UUDAI1 88 · 0 · thu_KHTHE1 73 · 0 · thu_P26c 161 · 0.
 
-── thu_VOUCHER2.js (bài MỚI, commit 0e60873d) trên gốc: node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_e3ef76a/server
+── thu_VOUCHER2.js (bài MỚI, commit f737aa65 — I2 đổi: hoá đơn giữ nghĩa cũ giam_ma / phi_giao, chỉ thêm vouchers / giam_ship; chạy lại: vẫn 5 · 75, I2 đỏ) trên gốc: node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_e3ef76a/server
 Dòng tổng: VOUCHER-2: 5 đạt · 75 hỏng   (thoát 1)
 5 ca xanh trên gốc đều là ca "KHÔNG ĐỔI" (K5): K1, K2, K3, H3 (App cũ gửi ma_giam = mã voucher → báo ra y như trước), G5 (voucher ở ô mã cũ huỷ →
 trả đúng MỘT lượt như trước — khoá đột biến VS-V2-TRA-HAI-LAN). Đúng ý — hành vi cũ phải giữ.
