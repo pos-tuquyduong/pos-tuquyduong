@@ -4,7 +4,7 @@
     python3 viec/HUY-1/dot_bien.py --liet-ke          (chỉ in danh sách)
     python3 viec/HUY-1/dot_bien.py --help
 
-Khuôn viec/VI-ME-1/dot_bien.py: chép server/ + cong_cu/ + HOP_DONG_API_KH.md ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink),
+Khuôn viec/VI-ME-1/dot_bien.py: chép server/ + cong_cu/ + HOP_DONG_API_KH.md + kiem_tra_truoc_khi_giao.js ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink),
 thay chuỗi (mỗi chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, K3), chạy bài thử của đột biến TRONG bản sao
 (`node <tạm>/cong_cu/<bài>` — thu_GIAO1.js không có --may-chu, đọc server/ cạnh nó). BẮT = thoát ≠ 0 VÀ có dòng `✗` khớp mẫu ĐÚNG ca phải
 bắt. Bài sập hoặc đỏ không khớp mẫu = LẠC. Xanh trọn = SỐNG. Không đụng server/ thật, data/, Turso.
@@ -64,7 +64,8 @@ def ban_sao(thay):
   tmp = tempfile.mkdtemp(prefix='dotbien_huy1_')
   shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
   shutil.copytree(os.path.join(GOC, 'cong_cu'), os.path.join(tmp, 'cong_cu'), ignore=shutil.ignore_patterns('node_modules'))
-  shutil.copy(os.path.join(GOC, 'HOP_DONG_API_KH.md'), tmp)
+  for tep in ('HOP_DONG_API_KH.md', 'kiem_tra_truoc_khi_giao.js'):   # thu_HUY1 H5 đọc hợp đồng; thu_GIAO1 T2 đọc bộ kiểm
+    shutil.copy(os.path.join(GOC, tep), tmp)
   os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
   for f, goc, moi, n in thay:
     p = os.path.join(tmp, f)
