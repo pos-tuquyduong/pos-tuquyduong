@@ -390,7 +390,8 @@ export const ordersApi = {
   get: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
   tinhThu: (data) => api.post('/orders/tinh-thu', data),   // BH-2: số máy chủ sẽ tính (hạng, mã) — không ghi gì
-  cancel: (id, reason) => api.put(`/orders/${id}/cancel`, { reason }),
+  cancel: (id, lyDo) => api.put(`/orders/${id}/cancel`, lyDo),   // HUY-1: lyDo = { ly_do_ma, ghi_them } → { hoan: { tai_khoan, tien_mat } }
+  lyDoHuy: () => api.get('/orders/ly-do-huy'),
   delete: (id) => api.delete(`/orders/${id}`),
   payDebt: (id, data) => api.post(`/orders/${id}/pay-debt`, data)
 };
