@@ -281,6 +281,7 @@ async function main() {
     const c5 = await ban({ customer_phone: e.sdt, items: [mon(0), mon(1)], vouchers: [vbang] }, 78333);
     k('C5 đơn tối thiểu = 83.333 (bằng) → 200, 78.333', c5.status === 200 && (await tongDon(c5)) === 78333, moTa(c5));
     const vrac = 'KHONGCO9';
+    tr = await soDon();
     await la400('C5 mã voucher không có → 400 VOUCHER_KHONG_TON_TAI', await ban({ customer_phone: e.sdt, items: [mon(0)], vouchers: [vrac] }, 50000), 'VOUCHER_KHONG_TON_TAI', tr);
 
     const vto = await phat(e.sdt, 'tien', 200000);
@@ -420,7 +421,7 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[G] Huỷ / xoá / duyệt hoàn → trả MỌI voucher + lượt mã chung; phiên QR không tiêu; hai đơn cùng voucher → một đơn');
   await chay('G', async () => {
-    const a = await khach();
+    const a = await khach(100000);
     const mc = await maChung('fixed', 1000, { luot: 5 });
     const vs = [await phat(a.sdt, 'tien', 2000), await phat(a.sdt, 'tien', 3000), await phat(a.sdt, 'phan_tram', 10)];
     // 50.000 − 1.000 − 2.000 − 3.000 = 44.000 → 10 % = 4.400 → 39.600.
@@ -437,7 +438,7 @@ async function main() {
     const r3 = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vb] }, 45000);
     const xoa = r3.order ? await goi('DELETE', `/pos/orders/${r3.order.id}`, { reason: 'thử VOUCHER-2' }) : {};
     k('G2 xoá đơn → voucher về available', r3.status === 200 && xoa.status === 200 && (await grant(vb)).status === 'available' && (await luot(vb)) === 0, moTa(xoa));
-    const r4 = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vb] }, 45000);
+    const r4 = await goi('POST', '/pos/orders', { customer_phone: a.sdt, customer_name: 'K', items: [mon(0)], vouchers: [vb], payment_method: 'balance', balance_amount: 45000 });
     const yc = r4.order ? await goi('POST', '/pos/refunds', { order_id: r4.order.id, reason: 'thử VOUCHER-2' }) : {};
     const dy = yc.id || yc.data?.id || yc.refund?.id;
     const duyet = dy ? await goi('POST', `/pos/refunds/${dy}/approve`, {}) : {};
