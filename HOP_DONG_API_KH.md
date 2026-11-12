@@ -1,6 +1,6 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 13
+PHIEN_BAN: 14
 NGAY: 2026-11-09
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1 + KH-THE-1) (routes/chuong-trinh.js, routes/tiers.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
@@ -35,15 +35,30 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
 | `POST /gia-han` | có | — | `token`, `het_han` — xem "Tự gia hạn" |
 | `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4" |
 | `GET /diem` | có | — | `points`, `history` |
-| `GET /voucher` | có | `?all=1` lấy cả mã đã dùng / hết hạn | `data[]`, `ma_khach_moi` |
+| `GET /voucher` | có | `?all=1` lấy cả mã đã dùng / hết hạn | `data[]`, `ma_khach_moi` — mỗi dòng `data[]` thêm `mo_ta`, `nguon`, `kieu` (v14): xem "Ghi chú v14" |
 | `GET /don` | có | `?trang=N` (20 đơn / trang) | `trang`, `con_nua`, `data[] { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, cach_tra, giu_vi, con_lai, kenh, cach_nhan, tra[] { cach, so_tien }, so_mon, mon_dau, giam }` — gồm cả đơn App chưa trả (v5); `kenh` … `giam` (v12): xem "Ghi chú v12"; `cach_tra` / `giu_vi` / `con_lai` (v6): xem "Ghi chú v6"; `so_hd`, `tien_ve_da_cong_vi`, `thong_bao_tien_ve` (v10): xem "Ghi chú v10" |
 | `GET /don/:ma` | có | — (`ma` = mã đơn App hoặc mã bill) | `don { ma, so_hd, ngay, tong, da_tra, trang_thai, thanh_toan, tien_trinh, qr, tien_ve_cho_doi_soat, tien_ve_da_cong_vi, thong_bao_tien_ve, mon[] { ma, ten, so_luong, don_gia, thanh_tien, ghi_chu, loai? }, cach_tra, giu_vi, con_lai, kenh, cach_nhan, tra[] { cach, so_tien }, so_mon, mon_dau, giam, hoa_don[] { loai, trai, phai, dam, gach, ghi_chu } }` — trường v6: xem "Ghi chú v6"; v10: "Ghi chú v10"; v12: "Ghi chú v12"; dòng thẻ (v13): "Ghi chú v13" |
-| `POST /gio/bao-gia` | có | `{ mon[] { ma, so_luong, ghi_chu? } \| { loai: "the", hang_id, so_thang, so_luong? }, ma_giam?, cach_nhan: "tai_quan" }` — xem "Đặt đơn", dòng thẻ: "Ghi chú v13" | `dong[] { ma, so_luong, don_gia, thanh_tien }` (dòng thẻ thêm `loai, hang_id, so_thang`, `ma` null), `tam_tinh, giam[] { loai, so_tien }, phi_giao, tong, ma_giam_loi` |
+| `POST /gio/bao-gia` | có | `{ mon[] { ma, so_luong, ghi_chu? } \| { loai: "the", hang_id, so_thang, so_luong? }, ma_giam?, vouchers?, cach_nhan: "tai_quan" }` — xem "Đặt đơn", dòng thẻ: "Ghi chú v13", `vouchers`: "Ghi chú v14" | `dong[] { ma, so_luong, don_gia, thanh_tien }` (dòng thẻ thêm `loai, hang_id, so_thang`, `ma` null), `tam_tinh, giam[] { loai, so_tien, ma? }, phi_giao, tong, ma_giam_loi, voucher_loi[] { ma, code, error }` |
 | `POST /don` | có | thân báo giá + `cach_tra`, `pin?`, `khoa_gui`, `tong_da_xem` — xem "Đặt đơn" | `ma_don, so_hd, tong, giu_vi, con_lai, tien_trinh, qr { chuoi, het_han } \| null, trung` |
 | `POST /don/:ma/huy` | có | — (`ma` = mã đơn App) | `ma_don, tien_trinh` |
 | `POST /nhan-ma-bill` | có | `{ ma }` | kết quả nhận ưu đãi khách mới |
 | `POST /nhan-diem` | có | `{ ma }` | kết quả nhân điểm theo mã trên bill |
 | `PUT /pin` | có | `{ pin, pin_lai }` (4 số) | — |
+
+### Ghi chú v14 — voucher (VOUCHER-2, chủ quán chốt 08–12.11)
+- **Ví voucher** (`GET /voucher`): mỗi dòng `data[]` thêm `mo_ta` (câu khách thấy, máy chủ dựng — vd "Giảm 20.000đ cho đơn từ 50.000đ · HSD 12/12/2026";
+  App hiện nguyên, không tự dựng câu), `nguon` (`doi_diem` · `khach_moi` · `gioi_thieu` · … — nguồn phát; mã lạ thì hiện như thường), `kieu` (`tien` ·
+  `phan_tram` · `ship_tien` · `ship_phan_tram`), kèm các cột luật của mã `min_order`, `giam_ship`, `ap_dung`, `chinh_chu` (0 = ai cầm mã cũng dùng; 1 = chỉ
+  chủ tài khoản). Trường cũ giữ nguyên.
+- **Nhiều voucher một đơn** (`POST /gio/bao-gia`, `POST /don`): thân thêm `vouchers` = mảng mã trong ví (≤ 10 chuỗi, mỗi mã ≤ 32 ký tự; sai dạng → 400
+  `YEU_CAU_KHONG_HOP_LE`). Mỗi đơn tối đa N voucher (Cài đặt quán, mặc định 3) + MỘT mã khuyến mãi chung ở `ma_giam`. Thứ tự: mã chung → voucher tiền
+  → MỘT voucher % trên phần còn lại; tổng giảm không quá tiền món. Mã / voucher KHÔNG giảm thẻ hạng, gói, nạp. Voucher ship chỉ giảm phí giao — App hôm nay chỉ
+  nhận tại quán, nên báo `VOUCHER_SHIP_CAN_GIAO`. Báo giá: `giam[]` thêm dòng `loai: "voucher"` (voucher món) / `"voucher_ship"` kèm `ma`; voucher không áp
+  được → không tính, báo ở `voucher_loi[] { ma, code, error }` (App hiện `error` cạnh mã): `VOUCHER_KHONG_TON_TAI` · `VOUCHER_CHINH_CHU` · `VOUCHER_DA_DUNG` ·
+  `VOUCHER_HET_HAN` · `VUOT_SO_VOUCHER` · `VOUCHER_SHIP_CAN_GIAO` · `MA_KHONG_AP_MON_THUONG` · `VOUCHER_CHUA_DU_DON` · `VOUCHER_PHAN_TRAM_FLASH` ·
+  `VOUCHER_PHAN_TRAM_HAI` · `VOUCHER_KHONG_CO_MON`. Đặt đơn tạo theo ĐÚNG các voucher báo giá đã nhận. Thiếu `vouchers` → băm khoá gửi y như cũ.
+- **Tương thích:** App cũ gửi mã voucher ở `ma_giam` vẫn chạy như trước (dòng `ma_giam`); voucher sai luật mới (vd chỉ chính chủ) → `ma_giam_loi` với các
+  `code` trên. `ma_giam_loi.code` có thêm `MA_KHONG_AP_MON_THUONG` (giỏ chỉ có thẻ hạng: mã không áp).
 
 ### Ghi chú v13 — mua thẻ hạng trên App (KH-THE-1, chủ quán duyệt 08–09.11)
 - **Dòng thẻ** trong `mon[]` của `POST /gio/bao-gia` và `POST /don`: `{ loai: "the", hang_id, so_thang, so_luong? }` — `hang_id` = `id` của `/hang`,
@@ -222,7 +237,9 @@ Ngày sinh (v9): `NGAY_SINH_SAI` 400 · `NGAY_SINH_DA_CO` 409.
 `KHOA_GUI_DA_DUNG` 409 · `DANG_XU_LY` 503 · `GIA_DA_DOI` 409 · `VI_KHONG_DU` 400 · `CACH_KHONG_KHOP` 400 · `CHUA_CO_PIN` 400 · `PIN_SAI` 400 ·
 `PIN_DANG_KHOA` 423 · `DA_TRA_GOI_QUAN` 400 · `DON_KHONG_HOP_LE` 400 · `PAYOS_CHUA_CAU_HINH` 503 · `PAYOS_LOI` 502 · `QUA_NHIEU_LAN` 429 · `KHO_BAN` 409.
 Mua thẻ (v13): `NHIEU_THE` 400 · `HANG_CHI_CAP` 400 · `GOI_HANG_KHONG_BAN` 400 · `DA_CO_HANG_CAO_HON` 400.
-Trong `ma_giam_loi.code` của báo giá: `MA_KHONG_TON_TAI` · `MA_KHONG_AP_DUNG` · `MA_KHONG_CO_MON` · `MA_KHONG_LOI_HON`.
+Trong `ma_giam_loi.code` của báo giá: `MA_KHONG_TON_TAI` · `MA_KHONG_AP_DUNG` · `MA_KHONG_CO_MON` · `MA_KHONG_LOI_HON` · `MA_KHONG_AP_MON_THUONG` (v14).
+Trong `voucher_loi[].code` của báo giá (v14): `VOUCHER_KHONG_TON_TAI` · `VOUCHER_CHINH_CHU` · `VOUCHER_DA_DUNG` · `VOUCHER_HET_HAN` · `VUOT_SO_VOUCHER` ·
+`VOUCHER_SHIP_CAN_GIAO` · `MA_KHONG_AP_MON_THUONG` · `VOUCHER_CHUA_DU_DON` · `VOUCHER_PHAN_TRAM_FLASH` · `VOUCHER_PHAN_TRAM_HAI` · `VOUCHER_KHONG_CO_MON`.
 `nhan-ma-bill` / `nhan-diem` dùng hàm quầy, thêm các mã: `THIEU_MA` 400 · `MA_KHONG_TON_TAI` 404 · `MA_DA_DUNG` 409 · `UU_DAI_DANG_TAT` 400 ·
 `SDT_DA_NHAN` 400 · `DON_FLASH_KHONG_DIEM` 400 · `CAU_HINH_DIEM_SAI` 400 · `CHUA_CAU_HINH_NHOM` 500 · `MA_KHONG_GAN_DON` 400 · `KHONG_THAY_DON` 404 ·
 `DON_DA_HUY` 400 · `DON_DA_HOAN` 400 · `DON_KHONG_HOP_LE` 400 · `BILL_CHUA_THANH_TOAN` 400 · `BILL_SDT_KHAC` 400 · `NHANDIEM_DANG_TAT` 400 ·
@@ -253,7 +270,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 13,
+  "phien_ban": 14,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -273,7 +290,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     { "pt": "POST", "duong": "/nhan-ma-bill", "token": true, "tra": [] },
     { "pt": "POST", "duong": "/nhan-diem", "token": true, "tra": [] },
     { "pt": "PUT", "duong": "/pin", "token": true, "tra": [] },
-    { "pt": "POST", "duong": "/gio/bao-gia", "token": true, "tra": ["dong[].ma", "dong[].so_luong", "dong[].don_gia", "dong[].thanh_tien", "tam_tinh", "giam[].loai", "giam[].so_tien", "phi_giao", "tong", "ma_giam_loi"] },
+    { "pt": "POST", "duong": "/gio/bao-gia", "token": true, "tra": ["dong[].ma", "dong[].so_luong", "dong[].don_gia", "dong[].thanh_tien", "tam_tinh", "giam[].loai", "giam[].so_tien", "phi_giao", "tong", "ma_giam_loi", "voucher_loi"] },
     { "pt": "POST", "duong": "/don", "token": true, "tra": ["ma_don", "so_hd", "tong", "giu_vi", "con_lai", "tien_trinh", "qr.chuoi", "qr.het_han", "trung"] },
     { "pt": "POST", "duong": "/don/:ma/huy", "token": true, "tra": ["ma_don", "tien_trinh"] }
   ],
@@ -286,7 +303,9 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     "CHUA_GIAO", "NGOAI_GIO", "QUA_GIO_NHAN_DON", "HET_HANG", "MON_KHONG_BAN", "KHOA_GUI_SAI", "KHOA_GUI_DA_DUNG", "DANG_XU_LY", "GIA_DA_DOI",
     "VI_KHONG_DU", "CACH_KHONG_KHOP", "CHUA_CO_PIN", "PIN_SAI", "PIN_DANG_KHOA", "DA_TRA_GOI_QUAN", "PAYOS_CHUA_CAU_HINH", "PAYOS_LOI",
     "MA_KHONG_AP_DUNG", "MA_KHONG_CO_MON", "MA_KHONG_LOI_HON", "NGAY_SINH_SAI", "NGAY_SINH_DA_CO",
-    "NHIEU_THE", "HANG_CHI_CAP", "GOI_HANG_KHONG_BAN", "DA_CO_HANG_CAO_HON"]
+    "NHIEU_THE", "HANG_CHI_CAP", "GOI_HANG_KHONG_BAN", "DA_CO_HANG_CAO_HON",
+    "VOUCHER_KHONG_TON_TAI", "VOUCHER_CHINH_CHU", "VOUCHER_DA_DUNG", "VOUCHER_HET_HAN", "VUOT_SO_VOUCHER", "VOUCHER_SHIP_CAN_GIAO", "MA_KHONG_AP_MON_THUONG",
+    "VOUCHER_CHUA_DU_DON", "VOUCHER_PHAN_TRAM_FLASH", "VOUCHER_PHAN_TRAM_HAI", "VOUCHER_KHONG_CO_MON"]
 }
 ```
 <!-- HET HOP_DONG_MAY_DOC -->
@@ -336,3 +355,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   uống bán mọi giờ và đã thu là `xong`; `GET /hang` thêm `quyen_loi[]`; mã lỗi mới `NHIEU_THE`, `HANG_CHI_CAP`, `GOI_HANG_KHONG_BAN`, `DA_CO_HANG_CAO_HON`
   (mã quầy). Ghi bù phần NAP-1: đơn trả bằng ví vẫn có điểm; đơn nạp hiện trong `GET /don`, 0 điểm. Không xoá / đổi tên trường cũ — App v12 bỏ qua
   trường lạ là chạy nguyên (giỏ chỉ đồ uống băm khoá gửi y như cũ).
+- v14 · 12.11.2026 · VOUCHER-2: `GET /voucher` mỗi dòng thêm `mo_ta`, `nguon`, `kieu` + cột luật mã (`min_order`, `giam_ship`, `ap_dung`, `chinh_chu`);
+  `POST /gio/bao-gia` / `POST /don` nhận `vouchers[]` (nhiều voucher một đơn + một mã chung), báo giá thêm `voucher_loi[]`, `giam[]` thêm `loai` `voucher` /
+  `voucher_ship` kèm `ma`; mã / voucher không áp lên thẻ hạng (`MA_KHONG_AP_MON_THUONG`); 11 mã lỗi voucher. Không xoá / đổi tên trường cũ — App v13 gửi
+  `ma_giam` (kể cả mã voucher) chạy như trước; giỏ không `vouchers` băm khoá gửi y như cũ.

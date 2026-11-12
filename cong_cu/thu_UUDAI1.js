@@ -378,8 +378,9 @@ async function main() {
     const giaHangGoi = g3b.order ? await so('SELECT COUNT(*) FROM pos_order_items WHERE order_id = ? AND product_id < 0 AND tier_unit_price IS NOT NULL', [g3b.order.id]) : NaN;
     k('G3c dòng gói không có giá hạng', giaHangGoi === 0, `${giaHangGoi}`);
     const mG3 = await taoMa('percent', 10);
-    await caDon('G3d mua gói + món, Vàng, mã 10 % dùng chung → mã trên phần còn lại (gồm dòng gói như cũ): 350.000 − 5.000 − 34.500 = 310.500',
-      await ban({ customer_phone: await khachHang(), ...muaGoi, discount_code: mG3 }, 310500), 310500, 5000, mG3);
+    // VOUCHER-2 (luật 10.11, Q6): mã không áp lên gói — chỉ phần món (bài cũ: gồm dòng gói, 310.500).
+    await caDon('G3d mua gói + món, Vàng, mã 10 % dùng chung → mã chỉ trên phần MÓN còn lại (không trên gói): 350.000 − 5.000 − 4.500 = 340.500',
+      await ban({ customer_phone: await khachHang(), ...muaGoi, discount_code: mG3 }, 340500), 340500, 5000, mG3);
     await caDon('G4 nhóm đặc biệt 30.000 → special 20 %: 24.000', await ban({ customer_phone: await khachHang(), items: [mon(2, 1)] }, 24000), 24000, 6000, null);
     const s5 = await khachHang();
     await caDon('G5a đơn KHÔNG mã, khách Vàng → 90.000 như cũ', await ban({ customer_phone: s5, items: [mon(0, 2)] }, 90000), 90000, 10000, null);
@@ -432,8 +433,9 @@ async function main() {
       caK4.push(['K4a LẤY TỪ GÓI 1 món + mua 2 × 39.000, Vàng, mã tiền 5.000 → 78.000 − 7.800 − 5.000 = 65.200',
         { customer_phone: s, items: [{ ...mon(0, 1), from_package: true }, mon(1, 2)], customer_package_id: cp, discount_code: await taoMa('fixed', 5000) }, 65200]);
     }
-    caK4.push(['K4b MUA GÓI 300.000 + món 50.000, Vàng, mã 10 % → 310.500',
-      { customer_phone: await khachHang(), items: [mon(0, 1)], package_buy: { package_id: goiK4, total_qty: 10, pkg_qty: 1 }, discount_code: await taoMa('percent', 10) }, 310500]);
+    // VOUCHER-2 (luật 10.11, Q6): mã chỉ trên món 50.000 − hạng 5.000 → 4.500 (bài cũ 310.500 — mã giảm cả gói).
+    caK4.push(['K4b MUA GÓI 300.000 + món 50.000, Vàng, mã 10 % → mã chỉ trên món: 350.000 − 5.000 − 4.500 = 340.500',
+      { customer_phone: await khachHang(), items: [mon(0, 1)], package_buy: { package_id: goiK4, total_qty: 10, pkg_qty: 1 }, discount_code: await taoMa('percent', 10) }, 340500]);
     caK4.push(['K4c MUA THẺ 100.000 + món 50.000, Vàng, mã tiền 5.000 → 150.000 − 5.000 − 5.000 = 140.000',
       { customer_phone: await khachHang(), items: [mon(0, 1)], membership_buy: { tier_id: hangId, so_thang: 3 }, discount_code: await taoMa('fixed', 5000) }, 140000]);
     for (const [ten, than, tong] of caK4) {

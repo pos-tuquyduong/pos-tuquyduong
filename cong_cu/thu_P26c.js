@@ -833,11 +833,21 @@ async function main() {
     k('M1a món 50.000 + ship 10.000, mã 10 % → tổng 55.000; đền 45.001 → 400 VUOT_GIA, 45.000 → 200, ví +45.000 (trần = total − ship)',
       Number(d1.order?.total) === 55000 && a1.status === 400 && a1.code === 'VUOT_GIA' && b1.status === 200 && await vi(sdt) === v1 + 45000,
       `${moTa(d1)} · tổng ${d1.order?.total} · ${moTa(a1)} / ${moTa(b1)} · ví ${v1} → ${await vi(sdt)}`);
-    const g1 = await goiDaLay({ cash_amount: 280000 }, 1, { shipping_fee: 10000, discount_code: 'GIAM10_LUOI3' });
+    // VOUCHER-2 (Q7 / Q8, chủ quán 12.11): luật 10.11 — mã không giảm gói. Ca M1b GIỮ cho ĐƠN CŨ trên production (gói được giảm, cờ
+    // giam_mon_thuong = 0): bán gói không mã rồi ghi thẳng giảm như đơn cũ → N1 vẫn bị bắt. M1c: cùng giỏ theo luật mới.
+    const g1 = await goiDaLay({ cash_amount: 310000 }, 1, { shipping_fee: 10000 });
+    await db.run(`UPDATE pos_orders SET total = 280000, discount = 30000, discount_amount = 30000, discount_code = 'GIAM10_LUOI3', discount_type = 'percent',
+      discount_value = 10, cash_amount = 280000, giam_mon_thuong = 0 WHERE id = ?`, [g1.don]);
     const tong1 = await so('SELECT total FROM pos_orders WHERE id = ?', [g1.don]);
     const h1 = await huy(g1.don);
-    k('M1b gói 300.000 + ship 10.000, mã 10 % → tổng 280.000; lấy 1/10, owner huỷ → ví +253.000 (280.000 − ⌈270.000 × 1/10⌉ — hoàn GỒM ship)',
+    k('M1b (đơn CŨ) gói 300.000 + ship 10.000, mã 10 % → tổng 280.000; lấy 1/10, owner huỷ → ví +253.000 (280.000 − ⌈270.000 × 1/10⌉ — hoàn GỒM ship)',
       tong1 === 280000 && h1.status === 200 && await vi(g1.sdt) === g1.vi0 + 253000, `tổng ${tong1} · ${moTa(h1)} · ví ${g1.vi0} → ${await vi(g1.sdt)}`);
+    const g1c = await goiDaLay({ cash_amount: 310000 }, 1, { shipping_fee: 10000, discount_code: 'GIAM10_LUOI3' });
+    const d1c = await mot('SELECT total, discount_code, giam_mon_thuong FROM pos_orders WHERE id = ?', [g1c.don]);
+    const h1c = await huy(g1c.don);
+    k('M1c (luật 10.11) gói 300.000 + ship 10.000, mã 10 % → mã không áp, tổng 310.000; lấy 1/10, owner huỷ → ví +280.000 (310.000 − 300.000 × 1/10)',
+      Number(d1c?.total) === 310000 && d1c?.discount_code == null && Number(d1c?.giam_mon_thuong) === 1 && h1c.status === 200
+      && await vi(g1c.sdt) === g1c.vi0 + 280000, `${JSON.stringify(d1c)} · ${moTa(h1c)} · ví ${g1c.vi0} → ${await vi(g1c.sdt)}`);
 
     // N2 (VS-AU3-P26C-DATRA-GIA-GOC) — giá đã trả theo TỪNG dòng. Dữ liệu như đơn bán lúc flash (B1a) nhưng CHỈ dòng flash đổi giá.
     const d2 = await taoDon({ customer_phone: sdt, items: [mon(0), mon(3)], payment_method: 'cash', cash_amount: 55000 });
@@ -865,15 +875,26 @@ async function main() {
 
     // N8 (VS-AU3-SL-DONG-GOI-SL-1), N9 (…-TONG-1), N10 (VS-AU3-SL-HOAN-2-GOI-KHONG-CHIA-SL) — MỘT dòng mua 2 gói: số lượng dòng, tiền dòng,
     // mẫu số "đã dùng" quantity × total_qty. Có giảm: dòng ghi 1 gói thì đã trả mỗi gói 300.000 thay vì 270.000 (không giảm thì như nhau).
+    // VOUCHER-2 (Q8, chủ quán 12.11): M4a GIỮ cho ĐƠN CŨ (cờ giam_mon_thuong = 0 + giảm ghi như cũ) — N8–N10 vẫn phải bị bắt; M4c theo luật mới.
     const s4 = sdtMoi(), goi4 = await taoGoi(300000, 10);
-    const m4 = await muaGoi(s4, goi4, 10, { cash_amount: 540000 }, { package_buy: { package_id: goi4, total_qty: 10, pkg_qty: 2 }, discount_code: 'GIAM10_LUOI3' });
+    const m4 = await muaGoi(s4, goi4, 10, { cash_amount: 600000 }, { package_buy: { package_id: goi4, total_qty: 10, pkg_qty: 2 } });
+    await db.run(`UPDATE pos_orders SET total = 540000, discount = 60000, discount_amount = 60000, discount_code = 'GIAM10_LUOI3', discount_type = 'percent',
+      discount_value = 10, cash_amount = 540000, giam_mon_thuong = 0 WHERE id = ?`, [m4.order?.id]);
+    const tong4 = await so('SELECT total FROM pos_orders WHERE id = ?', [m4.order?.id]);
     const dong4 = await mot(`SELECT oi.quantity, o.subtotal, (SELECT SUM(total_price) FROM pos_order_items WHERE order_id = o.id) AS tien
       FROM pos_orders o JOIN pos_order_items oi ON oi.order_id = o.id AND oi.product_id < 0 WHERE o.id = ?`, [m4.order?.id]);
     const l4 = await lay(s4, await goiCua(m4.order?.id), 1);
     const h4 = await huy(m4.order?.id);
-    k('M4a 2 gói × 300.000 một dòng, mã 10 % (trả 540.000), lấy 1 → owner huỷ: ví +513.000 (540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000',
-      Number(m4.order?.total) === 540000 && l4.status === 200 && h4.status === 200 && await vi(s4) === 513000 && await tongHoan(m4.order?.id) === 513000,
-      `${moTa(m4)} · tổng ${m4.order?.total} · ${moTa(l4)} · ${moTa(h4)} · ví ${await vi(s4)} · tổng hoàn ${await tongHoan(m4.order?.id)}`);
+    k('M4a (đơn CŨ) 2 gói × 300.000 một dòng, mã 10 % (trả 540.000), lấy 1 → owner huỷ: ví +513.000 (540.000 − ⌈540.000 × 1/(2×10)⌉), tổng hoàn 513.000',
+      tong4 === 540000 && l4.status === 200 && h4.status === 200 && await vi(s4) === 513000 && await tongHoan(m4.order?.id) === 513000,
+      `${moTa(m4)} · tổng ${tong4} · ${moTa(l4)} · ${moTa(h4)} · ví ${await vi(s4)} · tổng hoàn ${await tongHoan(m4.order?.id)}`);
+    const s4c = sdtMoi(), goi4c = await taoGoi(300000, 10);
+    const m4c = await muaGoi(s4c, goi4c, 10, { cash_amount: 600000 }, { package_buy: { package_id: goi4c, total_qty: 10, pkg_qty: 2 }, discount_code: 'GIAM10_LUOI3' });
+    const l4c = await lay(s4c, await goiCua(m4c.order?.id), 1);
+    const h4c = await huy(m4c.order?.id);
+    k('M4c (luật 10.11) 2 gói × 300.000 + mã 10 % → mã không giảm gói, khách trả 600.000; lấy 1 → owner huỷ: ví +570.000 (600.000 − 600.000 × 1/(2×10))',
+      Number(m4c.order?.total) === 600000 && l4c.status === 200 && h4c.status === 200 && await vi(s4c) === 570000 && await tongHoan(m4c.order?.id) === 570000,
+      `${moTa(m4c)} · tổng ${m4c.order?.total} · ${moTa(l4c)} · ${moTa(h4c)} · ví ${await vi(s4c)}`);
     k('M4b cùng đơn (đọc trước khi huỷ): dòng gói quantity 2; SUM(total_price) các dòng = subtotal = 600.000 (báo cáo doanh thu cộng cột này)',
       Number(dong4?.quantity) === 2 && Number(dong4?.tien) === 600000 && Number(dong4?.subtotal) === 600000, JSON.stringify(dong4));
   }
@@ -909,13 +930,22 @@ async function main() {
     await db.run('INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id) VALUES (78, ?, ?)', [sp[0].sx_product_type, sp[0].sx_product_id]);
     await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active,
       discount_scope, applicable_group_id) VALUES ('GIAM5K_1MON_LUOI4', 'fixed', 5000, 0, 0, 0, 0, 1, 'item', 78)`);
+    // VOUCHER-2 (Q7): đơn mới (cờ giam_mon_thuong = 1) dòng gói đã trả ĐỦ 300.000 → N4a giữ cho ĐƠN CŨ (đặt cờ 0) để đột biến vẫn bị bắt; N4c luật mới.
     const s4 = sdtMoi(), goi4 = await taoGoi(300000, 10);
     const m4 = await muaGoi(s4, goi4, 10, { cash_amount: 320000 }, { items: [mon(0)], discount_code: 'GIAM5K_1MON_LUOI4' });
+    await db.run('UPDATE pos_orders SET giam_mon_thuong = 0 WHERE id = ?', [m4.order?.id]);
     const l4 = await lay(s4, await goiCua(m4.order?.id), 1);
     const h4 = await huy(m4.order?.id);
-    k('N4a gói 300.000 / 10 + món 25.000, mã giảm 1 món 5.000 → tổng 320.000; lấy 1 → owner huỷ: ví +290.461 (320.000 − ⌈⌊300.000 × 320.000 / 325.000⌋ / 10⌉)',
+    k('N4a (đơn CŨ) gói 300.000 / 10 + món 25.000, mã giảm 1 món 5.000 → tổng 320.000; lấy 1 → owner huỷ: ví +290.461 (320.000 − ⌈⌊300.000 × 320.000 / 325.000⌋ / 10⌉)',
       Number(m4.order?.total) === 320000 && l4.status === 200 && h4.status === 200 && await vi(s4) === 290461,
       `${moTa(m4)} · tổng ${m4.order?.total} · ${moTa(l4)} · ${moTa(h4)} · ví ${await vi(s4)}`);
+    const s4n = sdtMoi(), goi4n = await taoGoi(300000, 10);
+    const m4n = await muaGoi(s4n, goi4n, 10, { cash_amount: 320000 }, { items: [mon(0)], discount_code: 'GIAM5K_1MON_LUOI4' });
+    const l4n = await lay(s4n, await goiCua(m4n.order?.id), 1);
+    const h4n = await huy(m4n.order?.id);
+    k('N4c (luật mới, Q7) cùng giỏ → dòng gói đã trả đủ 300.000; lấy 1 → owner huỷ: ví +290.000 (320.000 − 300.000 / 10)',
+      Number(m4n.order?.total) === 320000 && l4n.status === 200 && h4n.status === 200 && await vi(s4n) === 290000,
+      `${moTa(m4n)} · tổng ${m4n.order?.total} · ${moTa(l4n)} · ${moTa(h4n)} · ví ${await vi(s4n)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════

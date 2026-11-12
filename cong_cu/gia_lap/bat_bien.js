@@ -283,8 +283,12 @@ const BAT_BIEN = {
   // So với quà HIỆN TẠI: chủ sửa quà sau khi đổi thì đỏ (không kịch bản nào sửa quà).
   // Trần giảm + loại %: phía MÁY CHỦ CHƯA PHỦ (KB19 chỉ có quà cố định không trần — loyalty.js:183 bỏ trần / viết cứng 'fixed'
   // vẫn xanh); vế trần thử bằng dữ liệu tay ±1 (soát vòng 3 lỗi 1, 4). Việc chia giả lập 2 lượt thêm quà % có trần.
+  // VOUCHER-2 (Q5, chủ quán 11.11): phép trên GIỮ NGUYÊN cho grant nguồn 'doi_diem' (mặc định cột — mọi grant cũ / chèn tay không nguồn vẫn soát
+  // như cũ). Grant nguồn khác (phatVoucher: khách mới, giới thiệu…) không có dòng điểm → soát: đúng 1 mã, dùng tối đa 1, KHÔNG trỏ dòng điểm nào.
+  // Kho không có cột nguon (giả lập tay thu_gia_lap) → y như trước.
   async I12(q) {
-    const ds = await q(`SELECT g.id, g.code, g.customer_phone AS sdt, t.type, t.customer_phone AS sdt_tx, t.points,
+    const coNguon = (await q("SELECT name FROM pragma_table_info('pos_voucher_grants') WHERE name = 'nguon'")).length > 0;
+    const ds = await q(`SELECT g.id, g.code, g.customer_phone AS sdt, t.type, t.customer_phone AS sdt_tx, t.points, ${coNguon ? 'g.nguon' : "'doi_diem'"} AS nguon, g.point_tx_id,
         r.points_cost, r.discount_type AS loai_qua, r.discount_value AS tri_gia_qua, r.max_discount AS tran_qua,
         (SELECT x.max_discount FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS tran,
         (SELECT x.discount_type FROM pos_discount_codes x WHERE x.code = g.code ORDER BY x.rowid LIMIT 1) AS discount_type,
@@ -293,10 +297,13 @@ const BAT_BIEN = {
         (SELECT COUNT(*) FROM pos_discount_codes x WHERE x.code = g.code) AS so_ma
       FROM pos_voucher_grants g LEFT JOIN pos_point_transactions t ON t.id = g.point_tx_id
       LEFT JOIN pos_reward_catalog r ON r.id = g.reward_id`);
-    return ds.filter((r) => r.type !== 'redeem' || r.sdt_tx !== r.sdt || so(r.points) !== -so(r.points_cost) || so(r.so_ma) !== 1
+    const khac = ds.filter((r) => (r.nguon || 'doi_diem') !== 'doi_diem');
+    return [...khac.filter((r) => r.point_tx_id != null || so(r.so_ma) !== 1 || so(r.usage_limit) !== 1)
+      .map((r) => `voucher #${r.id} mã ${r.code} (nguồn ${r.nguon}): ${so(r.so_ma)} mã, dùng tối đa ${r.usage_limit}, dòng điểm ${r.point_tx_id ?? 'không'}`),
+    ...ds.filter((r) => !khac.includes(r)).filter((r) => r.type !== 'redeem' || r.sdt_tx !== r.sdt || so(r.points) !== -so(r.points_cost) || so(r.so_ma) !== 1
       || r.discount_type !== r.loai_qua || so(r.discount_value) !== so(r.tri_gia_qua) || so(r.tran) !== so(r.tran_qua) || so(r.usage_limit) !== 1)
       .map((r) => `quà #${r.id} mã ${r.code}: dòng điểm ${r.type} ${so(r.points)} (giá ${so(r.points_cost)}), ${so(r.so_ma)} mã `
-        + `${r.discount_type} ${so(r.discount_value)} (quà ${r.loai_qua} ${so(r.tri_gia_qua)}), trần ${so(r.tran)} (quà ${so(r.tran_qua)}), dùng tối đa ${r.usage_limit}`);
+        + `${r.discount_type} ${so(r.discount_value)} (quà ${r.loai_qua} ${so(r.tri_gia_qua)}), trần ${so(r.tran)} (quà ${so(r.tran_qua)}), dùng tối đa ${r.usage_limit}`)];
   },
   // I13 (AU-G2) — used_count ≤ usage_limit; used_count = số đơn CÒN HIỆU LỰC (completed) ĐÃ ÁP mã + số lần /increment-usage trả
   // 200 (sổ quầy). P26c (H7 = 4A): huỷ / xoá / duyệt hoàn đơn đã áp mã TRẢ lượt (tienDaTra.js traLuotMa). "Đã áp" = mã trên đơn VÀ
@@ -304,10 +311,14 @@ const BAT_BIEN = {
   // giá lấy từ hồ sơ khách (orders.js:504–520) hoặc trống. Giới hạn: hồ sơ khách trùng đúng loại + trị giá của mã gõ mà không áp;
   // xoá đơn đã áp mã làm mất dòng đơn (không kịch bản nào làm hai việc này). So với loại / trị giá mã HIỆN TẠI: chủ sửa mã đã
   // dùng (PUT /discount-codes/:id) thì đỏ oan — không kịch bản nào sửa mã; kịch bản sau thêm việc đó phải đổi phép này.
+  // VOUCHER-2: đơn dùng voucher trong danh sách (không ở ô mã) ghi qua grant `used_order_id` — "đơn đã áp" cộng thêm số grant của mã gắn đơn
+  // completed mà discount_code của đơn KHÁC mã (đơn ghi mã ở ô mã đã đếm ở vế đầu). Kho không có bảng grant (giả lập tay) → y như trước.
   async I13(q, ctx) {
+    const coGrant = (await q("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'pos_voucher_grants'")).length > 0;
     const ds = await q(`SELECT d.code, d.usage_limit, d.used_count,
         (SELECT COUNT(*) FROM pos_orders o WHERE o.status = 'completed' AND UPPER(o.discount_code) = UPPER(d.code) AND o.discount_type = d.discount_type
-          AND o.discount_value = d.discount_value) AS so_don
+          AND o.discount_value = d.discount_value)${coGrant ? ` + (SELECT COUNT(*) FROM pos_voucher_grants g JOIN pos_orders o ON o.id = g.used_order_id
+          WHERE UPPER(g.code) = UPPER(d.code) AND o.status = 'completed' AND UPPER(COALESCE(o.discount_code, '')) <> UPPER(d.code))` : ''} AS so_don
       FROM pos_discount_codes d`);
     return ds.flatMap((r) => {
       const tay = ctx.thuc ? 0 : ctx.soQuay.tangMa.get(String(r.code).toUpperCase()) || 0;   // DOI-SOAT-1: dữ liệu thật không biết lần tăng tay → chỉ canh used_count ≥ số đơn đã áp

@@ -487,7 +487,13 @@ async function main() {
     k('H2 POST /kh/don với vouchers[] (trả tài khoản) → 200, hai voucher used', dd.status === 200 && (await grant(v1)).status === 'used' && (await grant(v2)).status === 'used', moTa(dd));
     const v3 = await phat(a.sdt, 'tien', 5000);
     const cu = await baoGiaApp(a, gioApp([[0, 1]], { ma_giam: v3 }));
-    k('H3 App cũ gửi ma_giam = mã voucher → vẫn áp (45.000), dòng giảm loai voucher', cu.status === 200 && cu.tong === 45000 && (cu.giam || []).some((x) => x.loai === 'voucher' && x.ma === v3), JSON.stringify(cu).slice(0, 200));
+    k('H3 App cũ gửi ma_giam = mã voucher → vẫn áp (45.000), báo ra y như trước (dòng ma_giam 5.000, không dòng voucher)', cu.status === 200 && cu.tong === 45000
+      && (cu.giam || []).some((x) => x.loai === 'ma_giam' && x.so_tien === 5000) && !(cu.giam || []).some((x) => x.loai === 'voucher'), JSON.stringify(cu).slice(0, 200));
+    const v4 = await phat(a.sdt, 'tien', 5000, { chinh_chu: true });
+    const B0 = await khach();
+    const lau = await baoGiaApp(B0, gioApp([[0, 1]], { ma_giam: v4 }));
+    k('H3b ô mã cũ KHÔNG lách luật mới: voucher chính chủ của A gõ ở ma_giam của B → không áp, ma_giam_loi VOUCHER_CHINH_CHU', lau.status === 200 && lau.tong === 50000
+      && lau.ma_giam_loi?.code === 'VOUCHER_CHINH_CHU', JSON.stringify(lau).slice(0, 200));
     const B = await khach();
     const vb = await phat(B.sdt, 'tien', 5000, { chinh_chu: true });
     const h4 = await baoGiaApp(a, gioApp([[0, 1]], { vouchers: [vb] }));
