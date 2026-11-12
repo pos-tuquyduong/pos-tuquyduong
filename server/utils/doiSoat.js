@@ -107,26 +107,33 @@ async function tienTheoSo(tu, den, cach) {
     chiDoc(`SELECT COALESCE(SUM(${jTien}), 0) AS n FROM pos_order_log WHERE loai = 'thu' AND DATE(luc) BETWEEN ? AND ?`, [cach, tu, den]),
     chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions
       WHERE type = 'topup' AND order_id IS NULL AND COALESCE(payment_method, 'cash') = ? AND DATE(created_at) BETWEEN ? AND ?`, [cach, tu, den]),
-    // Huỷ đơn chỉ hoàn VÍ phần khách trả bằng ví; tiền mặt / CK của đơn thường không vào đâu → trả tận tay. Đơn MUA GÓI hoàn phần tiền
-    // mặt / CK vào ví khách (dòng 'hoan_goi') nên két không ra. "Đơn mua gói" nhận theo DÒNG HÀNG gói (product_id = −pkg.id), KHÔNG theo
-    // gói khách: huỷ đơn mua gói xoá luôn gói khách chưa giao lượt nào (orders.js, route huỷ) nên nhìn lại sau huỷ thì gói khách đã mất.
-    chiDoc(`SELECT COALESCE(SUM(o.${cot}), 0) AS n FROM pos_orders o WHERE o.status = 'cancelled' AND DATE(o.cancelled_at) BETWEEN ? AND ?
-      AND NOT EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id < 0 AND oi.product_id > -1000000)`, [tu, den]),
+    // Đơn huỷ TRƯỚC HUY-1 (huy_ly_do_ma NULL): huỷ chỉ hoàn VÍ phần khách trả bằng ví; tiền mặt / CK của đơn thường không vào đâu → trả tận
+    // tay. Đơn MUA GÓI hoàn phần tiền mặt / CK vào ví khách (dòng 'hoan_goi') nên két không ra. "Đơn mua gói" nhận theo DÒNG HÀNG gói
+    // (product_id = −pkg.id), KHÔNG theo gói khách: huỷ đơn mua gói xoá luôn gói khách chưa giao lượt nào (orders.js, route huỷ).
+    // HUY-1: đơn huỷ có mã lý do hoàn toàn bộ vào ví khách → két không ra; khách lẻ → khoản pos_hoan_tien_mat (tiền mặt, theo ngày ghi).
+    chiDoc(`SELECT COALESCE(SUM(o.${cot}), 0) + ${cach === 'cash' ? '(SELECT COALESCE(SUM(so_tien), 0) FROM pos_hoan_tien_mat WHERE DATE(luc) BETWEEN ? AND ?)' : '0'} AS n
+      FROM pos_orders o WHERE o.status = 'cancelled' AND o.huy_ly_do_ma IS NULL AND DATE(o.cancelled_at) BETWEEN ? AND ?
+      AND NOT EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id < 0 AND oi.product_id > -1000000)`,
+    cach === 'cash' ? [tu, den, tu, den] : [tu, den]),
   ]);
   const t = { ban: so(ban[0].n), thu_no: so(thuNo[0].n), nap_vi: so(napVi[0].n), tra_ra: so(traRa[0].n) };
   return { ...t, rong: t.ban + t.thu_no + t.nap_vi - t.tra_ra };
 }
 
 async function tongHop(tu, den) {
-  const [tm, ck, nap, chi, diem] = await Promise.all([
+  const [tm, ck, nap, chi, diem, huy] = await Promise.all([
     tienTheoSo(tu, den, 'cash'), tienTheoSo(tu, den, 'transfer'),
     chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions WHERE type = 'topup' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(COALESCE(balance_amount, 0) + COALESCE(parent_balance_amount, 0)), 0) AS n FROM pos_orders WHERE status = 'completed' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(CASE WHEN points > 0 THEN points END), 0) AS cong, COALESCE(-SUM(CASE WHEN points < 0 THEN points END), 0) AS tru
       FROM pos_point_transactions WHERE DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
+    // HUY-1 (F): "Huỷ đơn — hoàn vào tài khoản khách" = dòng hoàn ví của đơn huỷ có mã lý do (mọi ví, theo ngày ghi); "Hoàn tiền mặt khách lẻ"
+    chiDoc(`SELECT (SELECT COALESCE(SUM(t.amount), 0) FROM pos_balance_transactions t JOIN pos_orders o ON o.id = t.order_id
+        WHERE t.type = 'refund' AND o.status = 'cancelled' AND o.huy_ly_do_ma IS NOT NULL AND DATE(t.created_at) BETWEEN ? AND ?) AS tk,
+      (SELECT COALESCE(SUM(so_tien), 0) FROM pos_hoan_tien_mat WHERE DATE(luc) BETWEEN ? AND ?) AS tm`, [tu, den, tu, den]),
   ]);
   return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) },
-    giao: await doiSoatGiao(chiDoc, tu, den) };
+    huy_don: { hoan_tai_khoan: so(huy[0].tk), hoan_tien_mat: so(huy[0].tm) }, giao: await doiSoatGiao(chiDoc, tu, den) };
 }
 
 // ─── NAP-1 — sổ sách tiền nạp (Báo cáo): nạp KHÔNG là doanh thu; thưởng nạp là khoản giảm khi khách tiêu ───
