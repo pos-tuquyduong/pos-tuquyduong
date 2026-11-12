@@ -69,6 +69,10 @@ Trục trặc lúc bán (pha nhầm, bấm nhầm, hết nguyên liệu, khách 
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
+- cong_cu/thu_gia_lap.js
+- ban_mau_pos/ban_mau_pos.html
+- ban_mau_pos/thu/thu_hd.js
+- ban_mau_pos/DAC_TA.md
 - server/utils/giaoHang.js
 - cong_cu/thu_GIAO1.js
 - cong_cu/thu_P26b.js
@@ -93,6 +97,13 @@ Trục trặc lúc bán (pha nhầm, bấm nhầm, hết nguyên liệu, khách 
      Q8 CÓ — chủ quán: khách không tài khoản thì KHÔNG đặt được đơn giao online, nên ca này gần như không có; vẫn CHẶN huỷ trên máy cho an toàn
         (đơn GIAO của khách không tài khoản trả tiền mặt / CK) như hôm nay; chỉ khách lẻ ĐẾN QUẦY mới được
         trả tiền mặt từ két. Hai điều ngoài Phạm vi (ghi chú viKhach.js, khoản đền khách lẻ không SĐT ở két) → ghi Phát hiện, không sửa. -->
+
+<!-- Chủ quán 12.11 (Q9–Q10 trạng thái ee5d28d):
+     Q9 CÓ — thêm cong_cu/thu_gia_lap.js: CHỈ đổi chuỗi neo của đột biến M11 (dòng ~152, `[reason ||` → chuỗi mới) ở cả chuỗi gốc lẫn chuỗi thay.
+        M11 vẫn bỏ cổng `AND status = 'completed'` và vẫn phải bị I11 bắt. Không đổi đột biến / phép kiểm nào khác trong file.
+     Q10 CÓ — thêm ban_mau_pos/ban_mau_pos.html, ban_mau_pos/thu/thu_hd.js, ban_mau_pos/DAC_TA.md (tên đủ để người gác cho sửa). Áp bản nháp
+        viec/HUY-1/nhap/ bằng công cụ sửa file thường (Edit / Write — người gác thấy được), KHÔNG sửa file luật bằng script Python hay lệnh vòng.
+        Xong bản mẫu rồi làm nút Huỷ đơn thật theo Q1 05.11 → build dist → /ra-soat → /soat-bao-mat. Áp xong thì xoá viec/HUY-1/nhap/. -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_HUY1.js` ĐỎ trên code gốc: huỷ đơn có tài khoản trả tiền mặt / chuyển khoản / ví / trộn → ví tăng đúng toàn bộ, sổ ví đủ dòng;
