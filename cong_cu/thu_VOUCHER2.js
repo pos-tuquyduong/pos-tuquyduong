@@ -482,6 +482,7 @@ async function main() {
     co.mocTruocTx = null;
     k('G4c mã vừa hết lượt (ví còn "available") → 400 VOUCHER_DA_DUNG, ví vẫn available', g4c.status === 400 && g4c.code === 'VOUCHER_DA_DUNG'
       && (await grant(vc4)).status === 'available', moTa(g4c));
+    await db.run('UPDATE pos_discount_codes SET used_count = 0 WHERE code = ?', [vc4]);   // trả dữ liệu tay về đúng sổ (I4 soát BẰNG)
     // G5 — đơn kiểu cũ (voucher ở ô mã) huỷ: trả ĐÚNG một lượt (mã nhiều lượt để MAX(0) không che lỗi trả hai lần).
     const vcu = await phat(a.sdt, 'tien', 5000);
     await db.run('UPDATE pos_discount_codes SET usage_limit = 5, used_count = 3 WHERE code = ?', [vcu]);
@@ -490,6 +491,7 @@ async function main() {
     const h5 = g5.order ? await goi('PUT', `/pos/orders/${g5.order.id}/cancel`, { reason: 'thử VOUCHER-2' }) : {};
     k('G5 voucher ở ô mã (đơn ghi discount_code) → lượt 3 → 4; huỷ → về 3 (không trừ hai lần)', g5.status === 200 && (await donDb(g5.order.id)).discount_code === vcu
       && l5 === 4 && h5.status === 200 && (await luot(vcu)) === 3, `${moTa(g5)} · ${l5} → ${await luot(vcu)}`);
+    await db.run('UPDATE pos_discount_codes SET usage_limit = 1, used_count = 0 WHERE code = ?', [vcu]);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
