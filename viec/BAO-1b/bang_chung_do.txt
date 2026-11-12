@@ -20,4 +20,6 @@ VÒNG SỬA 2 (bài HIỆN TẠI trên client/src của 619251d, trước khi v�
   G  ✗ G0 chưa có ghepSauTai · G2a/G2b/G2c HangThe.tai chưa có { giu } · G3a/G3b GiaoHang.tai chưa có { giu } · G4b baoXong(rỗng) ra null · G5 baoXong(data.message) trần · G6a/b/c còn console.error
   (F1 đỏ ở bản sao đó chỉ vì bản sao không chép kiem_tra_truoc_khi_giao.js của HEAD — không tính)
 
-SỐ CA cong_cu/thu_BAO1b.js: 125
+VÒNG SỬA 3 (soát lần 2 nêu .catch(() => {}) ở Settings.jsx): bài thêm G6d trên code vòng 2 (60f5a18) → 125 đạt · 1 hỏng: ✗ G6d Settings.jsx hết .catch(() => {}) nuốt lỗi
+
+SỐ CA cong_cu/thu_BAO1b.js: 126

@@ -201,6 +201,7 @@ const CD = (t) => SX('pages', 'CaiDat', t + '.jsx');
   k('G6a Settings.loadData báo lỗi tải bằng baoLoiTu (không console.error)', /const loadData = async[\s\S]{0,2200}?catch \(err\) \{ baoLoiTu\('tải dữ liệu/.test(st));
   k('G6b Settings.loadBackupInfo báo lỗi tải bằng baoLoiTu', /const loadBackupInfo = async[\s\S]{0,900}?catch \(err\) \{ baoLoiTu\('tải thông tin sao lưu/.test(st));
   k('G6c Settings.jsx hết console.error', !/console\.error/.test(st));
+  k('G6d Settings.jsx hết .catch(() => {}) nuốt lỗi; tải danh sách sản phẩm cho gói báo bằng baoLoiTu', !/\.catch\(\(\) => \{\}\)/.test(st) && /\.catch\(\(e\) => baoLoiTu\('tải danh sách sản phẩm cho gói', e\)\)/.test(st));
 
   muc('F · nối vào bộ kiểm');
   const kt = fs.existsSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js')) ? fs.readFileSync(path.join(GOC, 'kiem_tra_truoc_khi_giao.js'), 'utf8') : '';

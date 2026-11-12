@@ -367,7 +367,7 @@ export default function Settings() {
     if (allProducts.length === 0) {
       pkgApi('GET', '/api/pos/products?with_stock=true').then(data => {
         if (Array.isArray(data)) setAllProducts(data);
-      }).catch(() => {});
+      }).catch((e) => baoLoiTu('tải danh sách sản phẩm cho gói', e));
     }
   };
   // GOI-1 (Q1): gói có danh sách loại → Tổng SL SP = cộng SL các loại, không gõ tay (máy chủ cũng tự tính lại).

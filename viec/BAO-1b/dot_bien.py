@@ -106,6 +106,7 @@ DOT_BIEN = [
   ('BV-SETTINGS-GOI-MESSAGE-TRAN', [(ST, "data.message || `Đã ${editingPkg ? 'lưu' : 'thêm'} gói ${pkgForm.name}`", 'data.message', 1)], r'✗ G5', T),
   ('BV-SETTINGS-HOANTAC-MESSAGE-TRAN', [(ST, 'data.message || `Đã hoàn tác claim ưu đãi của SĐT ${row.claimed_phone}`', 'data.message', 1)], r'✗ G5', T),
   ('BV-SETTINGS-TAI-CONSOLE', [(ST, "baoLoiTu('tải dữ liệu của thẻ này', err)", 'console.error(err)', 1)], r'✗ G6[ac]', T),
+  ('BV-SETTINGS-GOI-NUOT-LOI', [(ST, ".catch((e) => baoLoiTu('tải danh sách sản phẩm cho gói', e))", '.catch(() => {})', 1)], r'✗ G6d', T),
   ('BV-SETTINGS-BACKUP-CONSOLE', [(ST, "baoLoiTu('tải thông tin sao lưu', err)", 'console.error(err)', 1)], r'✗ G6[bc]', T),
 ]
 
