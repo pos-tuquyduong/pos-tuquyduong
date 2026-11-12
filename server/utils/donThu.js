@@ -290,7 +290,10 @@ async function donDuLieuThu(than, nguoi) {
     // Như xoá đơn (orders.js DELETE): CHỈ đơn completed trả lượt — huỷ / duyệt hoàn đã trả rồi. Chụp dòng sắp sửa trước.
     const traMa = (banChup.pos_orders || []).filter((o) => o.status === 'completed');
     const suaTruoc = {
-      pos_discount_codes: await tx.query(`SELECT * FROM pos_discount_codes WHERE UPPER(code) IN (${dau(traMa)})`, traMa.map((o) => String(o.discount_code || '').toUpperCase())),
+      // VOUCHER-2: traLuotMa trả lượt cả mã của các voucher đơn đã tiêu (grant used_order_id) — chụp luôn các mã đó.
+      pos_discount_codes: await tx.query(`SELECT * FROM pos_discount_codes WHERE UPPER(code) IN (${dau(traMa)})
+        OR UPPER(code) IN (SELECT UPPER(code) FROM pos_voucher_grants WHERE used_order_id IN ${trong(traMa.map((o) => o.id))})`,
+      traMa.map((o) => String(o.discount_code || '').toUpperCase())),
       pos_voucher_grants: await tx.query(`SELECT * FROM pos_voucher_grants WHERE used_order_id IN ${trong(traMa.map((o) => o.id))}`),
     };
     for (const o of traMa) await traLuotMa(tx, o);

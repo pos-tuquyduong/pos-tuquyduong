@@ -19,7 +19,7 @@ const { congQr } = require('./congQr');   // SEPAY-1: cổng QR của phiên cac
 const HAN_PHUT = 10;
 const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay, Tingee dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
 const CACH = ['payos', 'ck_tay', 'tien_mat', 'tai_khoan'];
-const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'discount_reason', 'notes', 'is_new_customer',
+const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'vouchers', 'discount_reason', 'notes', 'is_new_customer',   // VOUCHER-2: vouchers
   'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy', 'giao', 'goi_nap_id'];   // GIAO-1: đơn giao trả QR / tài khoản / tiền mặt qua phiên
 const GIO = "strftime('%Y-%m-%dT%H:%M:%S', ?, ?)";
 const loi = (status, code, error) => ({ status, body: { error, code } });

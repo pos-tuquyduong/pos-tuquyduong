@@ -76,6 +76,7 @@ const BACKUP_TABLES = [
   // điểm còn phụ thuộc cấu hình tại thời điểm bán và các lần đổi quà.
   { name: 'pos_point_transactions', label: 'Giao dịch điểm thưởng', key: 'id' },
   { name: 'pos_reward_catalog', label: 'Kho quà', key: 'id' },
+  { name: 'pos_mau_voucher', label: 'Mẫu voucher', key: 'id' },   // VOUCHER-2: cài đặt (không dính tiền) — khôi phục được
   { name: 'pos_voucher_grants', label: 'Voucher đã phát', key: 'id' },
 
   // Gói: danh mục trước, gói của khách sau

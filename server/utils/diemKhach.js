@@ -4,6 +4,7 @@
  */
 const { query, queryOne } = require('../database');
 const { getNow } = require('./helpers');
+const { moTaVoucher, kieuCuaMa } = require('./voucherCode');   // VOUCHER-2: câu khách thấy — MỘT hàm cho quầy và App
 
 // Số dư điểm = SUM(points) các dòng CÒN HẠN. Không lưu số dư rời (bài học từ ví).
 const BALANCE_SQL = `
@@ -34,8 +35,9 @@ async function layVoucherKhach(phone, tatCa) {
   // không đụng bảng grants (LOY-2c sẽ đồng bộ status; tới lúc đó lọc này vẫn đúng).
   const rows = await query(
     `SELECT g.id, g.code, g.status, g.granted_at, g.expires_at, g.used_order_id, g.used_at,
-            r.name AS reward_name,
-            d.discount_type, d.discount_value, d.max_discount, d.used_count, d.is_active
+            r.name AS reward_name, g.nguon,
+            d.discount_type, d.discount_value, d.max_discount, d.used_count, d.is_active,
+            d.min_order, d.giam_ship, d.ap_dung, d.chinh_chu
      FROM pos_voucher_grants g
      LEFT JOIN pos_reward_catalog r ON r.id = g.reward_id
      LEFT JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code)
@@ -58,6 +60,10 @@ async function layVoucherKhach(phone, tatCa) {
       status: used ? 'used' : expired ? 'expired' : disabled ? 'disabled' : 'available',
       is_used: used,
       is_expired: expired,
+      // VOUCHER-2: câu dựng từ luật đã chụp vào mã (sửa mẫu sau không đổi câu của voucher đã phát) + kiểu để quầy / App lọc.
+      kieu: kieuCuaMa(v),
+      mo_ta: moTaVoucher({ kieu: kieuCuaMa(v), gia_tri: v.discount_value, tran: v.max_discount, don_toi_thieu: v.min_order, ap_dung: v.ap_dung,
+        het_han: v.expires_at }),
     };
   });
 }

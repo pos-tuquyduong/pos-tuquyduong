@@ -163,6 +163,11 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     const loiGiao = kiemGiaoHang(settings);
     if (loiGiao) return res.status(400).json({ success: false, error: loiGiao, code: 'CAI_DAT_KHONG_HOP_LE' });
 
+    // VOUCHER-2: số voucher tối đa mỗi đơn — số nguyên 1–10 (máy chủ chặn VUOT_SO_VOUCHER theo số này).
+    if ('voucher_toi_da' in settings && !(/^\d{1,2}$/.test(String(settings.voucher_toi_da).trim()) && Number(settings.voucher_toi_da) >= 1 && Number(settings.voucher_toi_da) <= 10)) {
+      return res.status(400).json({ success: false, error: 'Số voucher tối đa mỗi đơn phải là số nguyên từ 1 đến 10', code: 'CAI_DAT_KHONG_HOP_LE' });
+    }
+
     let updated = 0;
     const timestamp = getNow();
 

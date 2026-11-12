@@ -4,10 +4,10 @@
  *
  * NGUYÊN TẮC:
  * - POS là nguồn sự thật của điểm & voucher, khóa theo SĐT. App KH gọi thẳng 3 API này.
- * - Voucher TỰ DO CHUYỂN NHƯỢNG (chốt 15.07.2026): ai cầm mã cũng dùng được, chỉ giới hạn
- *   DÙNG 1 LẦN (usage_limit=1). Ví voucher theo SĐT chỉ là bản ghi "khách này đã đổi gì".
- * - Voucher đổi ra = 1 dòng trong pos_discount_codes với usage_limit=1
- *   → luồng bán CÓ SẴN tự kiểm hạn/lượt dùng và tự tăng used_count. KHÔNG sửa orders.js.
+ * - Voucher đổi điểm TỰ DO CHUYỂN NHƯỢNG (chốt 15.07.2026): ai cầm mã cũng dùng được, chỉ giới hạn DÙNG 1 LẦN (usage_limit=1).
+ *   VOUCHER-2 (Q1, 11.11): mẫu voucher chọn "Chia sẻ được" hoặc "Chỉ chính chủ"; quà đổi điểm hôm nay = chia sẻ được.
+ * - Voucher đổi ra = 1 dòng pos_discount_codes (usage_limit=1) + 1 dòng ví, phát qua utils/voucherCode.js phatVoucher;
+ *   đơn kiểm + tiêu voucher ở orders.js (kiemVoucherDon, giao dịch taoDon).
  * - Đổi điểm là giao dịch NGUYÊN TỬ: trừ điểm + đẻ mã + ghi ví — lỗi bất kỳ bước nào → hủy sạch
  *   (không mất điểm, không đẻ mã mồ côi). Khác với cộng điểm khi bán (ở đó điểm không được
  *   phép kéo đổ đơn); ở đây all-or-nothing CHÍNH LÀ yêu cầu nghiệp vụ.
@@ -20,24 +20,12 @@ const express = require('express');
 const { query, queryOne, run, beginTransaction } = require('../database');
 const { authenticate, authenticateServiceOrUser, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
-const { generateVoucherCode } = require('../utils/voucherCode');
+const { phatVoucher, mauTuQua } = require('../utils/voucherCode');   // VOUCHER-2: đổi điểm phát voucher qua hàm chung
 // KH-API-1: số dư / lịch sử điểm + ví voucher dùng chung với /api/kh (cùng câu, cùng cách suy trạng thái).
 const { BALANCE_SQL, layDiemKhach, layVoucherKhach } = require('../utils/diemKhach');
 const { loiGhi } = require('./wallets');
 
 const router = express.Router();
-
-/**
- * Cộng ngày vào phần ngày của getNow() → 'YYYY-MM-DD'.
- * Thuần, tất định, test được. Dùng UTC nội bộ để tránh lệch múi giờ khi cộng ngày.
- * (pos_discount_codes.valid_to được orders.js so sánh dạng chuỗi ngày 'YYYY-MM-DD'.)
- */
-function addDaysToDate(nowStr, days) {
-  const [y, m, d] = String(nowStr).slice(0, 10).split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + days);
-  return dt.toISOString().slice(0, 10);
-}
 
 // Mã voucher: dùng chung utils/voucherCode.js (không định nghĩa lại ở đây — xem file đó
 // để biết bảng chữ cái + lý do bỏ ký tự dễ nhầm).
@@ -98,17 +86,6 @@ router.post('/redeem', authenticateServiceOrUser, async (req, res) => {
     }
 
     const now = getNow();
-    const validTo = addDaysToDate(now, parseInt(reward.valid_days, 10) || 30);
-    const validFrom = now.slice(0, 10);
-
-    // Sinh mã chưa trùng (UNIQUE trên cột code là chốt chặn cuối).
-    let code = null;
-    for (let i = 0; i < 5; i++) {
-      const candidate = generateVoucherCode();
-      const dup = await queryOne('SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [candidate]);
-      if (!dup) { code = candidate; break; }
-    }
-    if (!code) return res.status(500).json({ error: 'Không sinh được mã, thử lại' });
 
     // ── Transaction: all-or-nothing ──
     const tx = await beginTransaction();
@@ -130,23 +107,9 @@ router.post('/redeem', authenticateServiceOrUser, async (req, res) => {
       );
       const pointTxId = Number(ptRes.lastInsertRowid);
 
-      // 2) Đẻ mã giảm giá dùng-một-lần → luồng bán có sẵn tự hiểu.
-      await tx.run(
-        `INSERT INTO pos_discount_codes (
-           code, discount_type, discount_value, min_order, max_discount,
-           usage_limit, used_count, valid_from, valid_to, is_active, notes, created_by, created_at
-         ) VALUES (?, ?, ?, 0, ?, 1, 0, ?, ?, 1, ?, ?, ?)`,
-        [code, reward.discount_type, reward.discount_value, reward.max_discount || 0,
-         validFrom, validTo, `Đổi điểm: ${reward.name} (${phone})`, req.user.username, now],
-      );
-
-      // 3) Ghi vào ví voucher của khách.
-      const grantRes = await tx.run(
-        `INSERT INTO pos_voucher_grants (
-           code, customer_phone, reward_id, status, point_tx_id, granted_at, expires_at
-         ) VALUES (?, ?, ?, 'available', ?, ?, ?)`,
-        [code, phone, rewardId, pointTxId, now, validTo],
-      );
+      // 2–3) VOUCHER-2: đẻ mã dùng-một-lần + ghi ví voucher qua MỘT hàm phát (cùng giao dịch); quà = mẫu "chia sẻ được", nguồn doi_diem.
+      const { code, grant_id: grantId, het_han: validTo } = await phatVoucher(tx, mauTuQua(reward), phone, 'doi_diem',
+        { reward_id: rewardId, point_tx_id: pointTxId, ghi_chu: `Đổi điểm: ${reward.name} (${phone})`, nguoi: req.user.username });
 
       await tx.commit();
 
@@ -155,7 +118,7 @@ router.post('/redeem', authenticateServiceOrUser, async (req, res) => {
         message: `Đã đổi ${cost} điểm lấy "${reward.name}"`,
         data: {
           code,
-          grant_id: Number(grantRes.lastInsertRowid),
+          grant_id: grantId,
           reward_name: reward.name,
           discount_type: reward.discount_type,
           discount_value: reward.discount_value,

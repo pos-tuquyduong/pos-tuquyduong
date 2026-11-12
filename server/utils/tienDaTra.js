@@ -9,20 +9,25 @@
  * `chanTren` (trần đền — damages.js): đơn có mã giảm 1 MÓN thì không biết món nào được giảm (giảm không ghi xuống dòng) →
  * MỌI dòng "đã trả = giá dòng − toàn bộ giảm của mã" — không bao giờ đền quá (chủ quán chốt Câu hỏi 2, 12.10; làm đúng cần cột
  * giảm theo dòng → P26d).
+ * VOUCHER-2 (Q7, chủ quán 12.11): đơn có cờ `giam_mon_thuong` = 1 (từ VOUCHER-2) — mã / voucher chỉ giảm món thường → dòng gói / thẻ / nạp
+ * (product_id < 0) đã trả ĐỦ giá; phần còn lại của số khách trả chia theo tỉ lệ trên món thường. Đơn cũ (cờ 0) giữ y cách chia cũ.
  */
 async function tienDaTraTheoDong(tx, order, chanTren = false) {
   const dong = await tx.query(`SELECT product_id, product_code, quantity, unit_price, flash_unit_price, tier_unit_price
     FROM pos_order_items WHERE order_id = ? ORDER BY id`, [order.id]);
   const gia = dong.map((d) => Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0) * Number(d.quantity));
+  const du = dong.map((d) => Number(order.giam_mon_thuong) === 1 && Number(d.product_id) < 0);   // dòng không nhận giảm → đã trả đủ giá
   const tong = gia.reduce((a, b) => a + b, 0);
-  const tra = Math.min(tong, Math.max(0, Number(order.total || 0) - Number(order.shipping_fee || 0)));
+  const tongDu = gia.reduce((a, b, i) => a + (du[i] ? b : 0), 0);
+  const tra = Math.min(tong, Math.max(0, Number(order.total || 0) - Number(order.shipping_fee || 0))) - tongDu;
   const ma = chanTren && order.discount_code
     ? await tx.queryOne('SELECT discount_scope FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [order.discount_code]) : null;
   if (ma?.discount_scope === 'item') {
     const giam = Number(order.discount || 0) - Number(order.flash_discount || 0) - Number(order.tier_discount || 0);
-    return dong.map((d, i) => ({ ...d, da_tra: Math.max(0, gia[i] - giam) }));
+    return dong.map((d, i) => ({ ...d, da_tra: du[i] ? gia[i] : Math.max(0, gia[i] - giam) }));
   }
-  return dong.map((d, i) => ({ ...d, da_tra: tong > 0 ? Math.floor((gia[i] * tra) / tong) : 0 }));
+  const tongMon = tong - tongDu;
+  return dong.map((d, i) => ({ ...d, da_tra: du[i] ? gia[i] : tongMon > 0 ? Math.floor((gia[i] * Math.max(0, tra)) / tongMon) : 0 }));
 }
 
 /**
@@ -54,12 +59,17 @@ async function soTienHoan(tx, order, viDaTra) {
 /**
  * Đơn đã áp mã bị huỷ / xoá / duyệt hoàn → trả một lượt mã (không dưới 0), voucher đổi điểm về `available`; điểm không hoàn
  * (H7 = 4A). Đơn cũ (trước P26c máy chủ lưu mã cả khi không áp) chỉ trả khi loại + trị giá giảm của đơn khớp mã.
+ * VOUCHER-2: đơn có thể có NHIỀU voucher (grant `used_order_id` = đơn) và không có mã chung — trả lượt từng mã voucher (trừ mã trùng
+ * `discount_code`: đơn cũ dùng quà đổi điểm ở ô mã, đã trả ở câu đầu), rồi mọi grant về `available`.
  */
 async function traLuotMa(tx, order) {
-  if (!order.discount_code) return;
+  if (order.discount_code) {
+    await tx.run(`UPDATE pos_discount_codes SET used_count = MAX(0, used_count - 1)
+      WHERE UPPER(code) = UPPER(?) AND discount_type = ? AND discount_value = ?`, [order.discount_code, order.discount_type, order.discount_value]);
+  }
   await tx.run(`UPDATE pos_discount_codes SET used_count = MAX(0, used_count - 1)
-    WHERE UPPER(code) = UPPER(?) AND discount_type = ? AND discount_value = ?`, [order.discount_code, order.discount_type, order.discount_value]);
-  await tx.run(`UPDATE pos_voucher_grants SET status = 'available', used_order_id = NULL, used_at = NULL WHERE used_order_id = ?`, [order.id]);
+    WHERE UPPER(code) IN (SELECT UPPER(code) FROM pos_voucher_grants WHERE used_order_id = ?) AND UPPER(code) <> UPPER(?)`, [order.id, order.discount_code || '']);
+  await tx.run(`UPDATE pos_voucher_grants SET status = 'available', used_order_id = NULL, used_at = NULL, so_tien_giam = NULL WHERE used_order_id = ?`, [order.id]);
 }
 
 /**

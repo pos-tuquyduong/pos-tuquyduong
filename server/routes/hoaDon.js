@@ -50,11 +50,10 @@ async function dungDiem(o) {
     "SELECT 1 AS c FROM pos_balance_transactions WHERE order_id = ? AND type IN ('refund', 'compensation') LIMIT 1", [o.id]));
   const loaiCong = traTK ? "type IN ('earn', 'adjust')" : "type = 'earn'";
   const cong = so((await queryOne(`SELECT COALESCE(SUM(points), 0) AS n FROM pos_point_transactions WHERE order_id = ? AND customer_phone = ? AND ${loaiCong}`, [o.id, o.customer_phone]))?.n);
-  const doi = o.discount_code
-    ? so((await queryOne(
-      `SELECT COALESCE(-SUM(t.points), 0) AS n FROM pos_voucher_grants g JOIN pos_point_transactions t ON t.id = g.point_tx_id
-        WHERE UPPER(g.code) = UPPER(?) AND g.customer_phone = ?`, [o.discount_code, o.customer_phone]))?.n)
-    : 0;
+  // VOUCHER-2: quà của đơn = grant mang mã ở ô mã (đơn cũ) HOẶC grant đơn đã tiêu (used_order_id — nhiều voucher); mỗi grant đếm một lần.
+  const doi = so((await queryOne(
+    `SELECT COALESCE(-SUM(t.points), 0) AS n FROM pos_voucher_grants g JOIN pos_point_transactions t ON t.id = g.point_tx_id
+      WHERE g.customer_phone = ? AND (g.used_order_id = ? OR UPPER(g.code) = UPPER(?))`, [o.customer_phone, o.id, o.discount_code || '']))?.n);
   const truoc = so((await queryOne(
     `SELECT COALESCE(SUM(points), 0) AS n FROM pos_point_transactions
       WHERE customer_phone = ? AND created_at <= ? AND (order_id IS NULL OR order_id < ?) AND (expires_at IS NULL OR expires_at > ?)`,
@@ -107,7 +106,15 @@ async function dungHoaDon(o) {
   const phanTramDong = items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map((m) => Math.round((so(m.unit_price) - so(m.tier_unit_price)) * 100 / so(m.unit_price)));
   const phanTramHang = phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null;
   const { giamHang, giamFlash, giamMa } = tinhGiam(o);
-  const phiGiao = so(o.shipping_fee);
+  // VOUCHER-2: từng voucher món của đơn (grant đã tiêu) tách khỏi giảm mã; voucher ship = giam_ship (cột shipping_fee là phần khách trả).
+  // Voucher ở ô mã (discount_code — đơn kiểu cũ) giữ nguyên trong giảm mã như trước, không tách dòng.
+  const vouchers = (await query(`SELECT g.code AS ma, g.so_tien_giam AS so_tien FROM pos_voucher_grants g
+    JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code) WHERE g.used_order_id = ? AND COALESCE(d.giam_ship, 0) = 0
+      AND UPPER(g.code) <> UPPER(?) ORDER BY g.id`, [o.id, o.discount_code || '']))
+    .filter((v) => so(v.so_tien) > 0).map((v) => ({ ma: v.ma, so_tien: so(v.so_tien) }));
+  const giamVoucher = vouchers.reduce((t, v) => t + v.so_tien, 0);
+  const giamShip = so(o.giam_ship);
+  const phiGiao = so(o.shipping_fee) + giamShip;
   const soLan = so((await queryOne('SELECT COUNT(*) AS n FROM pos_invoice_logs WHERE order_id = ? AND is_deleted = 0', [o.id]))?.n);
 
   return {
@@ -127,7 +134,9 @@ async function dungHoaDon(o) {
         thanh_tien_goc: goc * sl, thanh_tien: (hang ?? goc) * sl,
       };
     }),
-    tien: { gia_goc: gocTong, giam_hang: giamHang, giam_flash: giamFlash, giam_ma: giamMa, ma_giam: o.discount_code || null, phi_giao: phiGiao, tong: tongDon },
+    tien: { gia_goc: gocTong, giam_hang: giamHang, giam_flash: giamFlash, giam_ma: Math.max(0, giamMa - giamVoucher), ma_giam: o.discount_code || null,
+      // VOUCHER-2: hai trường mới CHỈ có khi đơn dùng voucher / voucher ship — đơn không voucher giữ y bố cục cũ (K5).
+      ...(vouchers.length ? { vouchers } : {}), phi_giao: phiGiao, ...(giamShip ? { giam_ship: giamShip } : {}), tong: tongDon },
     thanh_toan: dungThanhToan(o),
     khach_dua: o.payment_method === 'cash' ? so(o.cash_received) : 0,
     tra_lai: o.payment_method === 'cash' ? so(o.change_amount) : 0,
