@@ -73,3 +73,33 @@ Phiên lại mở từ kho nông → `thu_BH2.js` G1 `fatal: bad revision 'cbbb8
   6dc4ec1 VOUCHER-2: ke hoach sua theo Q1/Q2/Q4 (muc 11) + cau hoi Q7-Q10 (duong tien da tra theo dong, bai cu P26c M4a)
   ```
 ### Bước 3 — kế hoạch cập nhật theo Q7–Q10: `ke_hoach.md` mục 12. Người gác chặn `[SED-I]` (sed -i) → sửa bằng Edit.
+
+### Bước 4–5 (12.11, lần 2) — đã làm
+- `cong_cu/thu_VOUCHER2.js` mới: đỏ trên gốc (4 đạt · 70 hỏng — 4 ca xanh là ca "không đổi"), xanh trên code vá (74 · 0) — `bang_chung_do.txt`.
+- Máy chủ: mẫu voucher (`/rewards/mau`, bước 026), MỘT hàm phát `phatVoucher` (đổi điểm đi qua), nhiều voucher một đơn (`kiemVoucherDon` + `tinhUuDai`
+  mở rộng), voucher ship, luật 10.11 (mã / voucher không áp thẻ / gói / nạp), Q7 (`tienDaTraTheoDong` cờ `giam_mon_thuong`), `traLuotMa` trả mọi voucher
+  (giữ tên + tham số), App `vouchers[]` + hợp đồng v14, hoá đơn / báo cáo / màn khách / dọn đơn thử.
+- Voucher gửi ở ô mã cũ (quầy / App trước VOUCHER-2): vẫn qua MỌI phép voucher mới (chính chủ, ship, phạm vi) nhưng đơn ghi `discount_code` và báo ra y như
+  trước (K5 — P26c D1b / D3, UUDAI1 D1 giữ nguyên).
+- Bài cũ trong Phạm vi đổi số theo luật đã duyệt (đỏ trên gốc, ghi `SỐ CA`): UUDAI1 G3d + K4b, KHTHE1 B12b, P26c M1b–c, M4a–c, N4a–c.
+- `npm test`: PASS 110 · FAIL 1 — chỉ `thu_GOI1.js` (ngoài Phạm vi, xem Q12). Cổng `tinh`: chỉ A18 (đột biến — đang làm), A19 / A20 (chưa tới bước).
+- Người gác chặn (đọc lý do, làm lại đúng dạng): `[SED-I]` sed -i → Edit; `[B-BIMAT-CHU]` chạy bài có cụm bí mật chưa commit → commit trước (và một
+  lần vì chính ghi chú này có chữ đó); `[B-PHANTICH]` ×4 lệnh ghép `python … && node …` → tách lệnh; `[GIT-LENH]` ls-remote; `[B-CHUONGTRINH]` vòng for → Grep.
+
+## Câu hỏi (12.11, lần 2) — mình ghi đề xuất, bạn chỉ cần "đồng ý" hoặc sửa
+Việc này là gì: phần Q2 (mã in bill → voucher cho khách đăng ký lần đầu) và luật "mã không giảm gói" làm đổi kết quả của một số bài thử CŨ nằm NGOÀI
+Phạm vi phiếu. Mình không được sửa file ngoài Phạm vi, nên dừng hỏi. Mọi phần khác làm trong Phạm vi (giao diện làm tiếp trong phiên này).
+- **Q11 — Thêm 5 bài thử cũ vào Phạm vi cho Q2/Q9.** Đã đọc code: `cong_cu/thu_P20.js:106` tạo SĐT KHÔNG có hồ sơ khách rồi nhận mã (`:143`, `:155`, … ~30 chỗ
+  `claim(…)`) và dùng thẳng mã bill làm mã giảm (`:357-368`, nhóm G "P20b"); `cong_cu/gia_lap/kich_ban.js:76` tạo "Khách quen" CÓ hồ sơ từ trước rồi
+  nhận mã ở `:217`; `cong_cu/thu_KH1.js:534-577`, `cong_cu/thu_KHAPI2.js:392-443`, `cong_cu/thu_HD1.js:587` nhận mã qua `/kh/nhan-ma-bill` / `/claim`.
+  Theo Q2 + Q9 các ca đó sẽ ra `CAN_TAO_TAI_KHOAN` / `KHACH_DA_CO_TAI_KHOAN` hoặc mã bill không còn gõ được ở ô mã. **Đề xuất:** thêm 5 file trên vào Phạm vi;
+  chỉ sửa đúng các ca bị Q2 đổi: (a) ca nhận mã hợp lệ → tạo hồ sơ khách SAU lúc in bill trước khi nhận (không đổi điều đang kiểm); (b) ca dùng mã bill ở ô mã
+  (P20b) → dùng mã voucher mới trả về ở `data.voucher_code` (cùng cổng đơn gốc); (c) ca "khách quen" của giả lập → đổi mong đợi thành
+  `KHACH_DA_CO_TAI_KHOAN`. Mỗi ca đổi ghi lý do, là bài sửa thường (đỏ trên gốc); không bỏ / nới phép nào.
+- **Q12 — `cong_cu/thu_GOI1.js` ca B3c (`:647-650`) — ngoài Phạm vi.** Ca mua gói 30 túi CÓ mã giảm 10 % (trả 1.215.000) rồi kiểm hoàn theo giá đã trả.
+  Luật 10.11 làm mã không giảm gói → đơn thành 1.350.000 → bài sập (hiện là bài DUY NHẤT đỏ của `npm test`). **Đề xuất:** thêm file vào Phạm vi; giữ
+  B3c cho ĐƠN CŨ (bán không mã rồi ghi thẳng giảm như đơn cũ + cờ "đơn cũ") để phép "hoàn theo giá đã trả" vẫn bị canh; THÊM ca luật mới (mã không giảm
+  gói, hoàn theo 1.350.000) — đúng khuôn bạn đã duyệt ở Q8.
+- **Q13 — xác nhận:** ngoài M4a (Q8), hai ca cùng khuôn trong `thu_P26c.js` cũng bị luật 10.11 / Q7 đổi số và mình ĐÃ làm theo đúng cách Q8: M1b (gói + ship
+  + mã) giữ cho đơn cũ + thêm M1c; N4a (gói + món + mã 1 món — Q7 làm dòng gói đã trả đủ 300.000) giữ cho đơn cũ + thêm N4c. Không bỏ / nới ca nào.
+  **Đề xuất:** đồng ý (muốn khác thì mình sửa lại).
