@@ -1,7 +1,7 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 61,
+  "phien_ban_so": 62,
   "cap_nhat": "2026-11-11",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
@@ -1528,6 +1528,33 @@
     {
       "ma": "QUET-2",
       "ten": "Khach tu quet ma cua quan (cach B, chu quan 11.11): man khach hien QR cua don dang thu (ma mot lan, song ngan); khach quet bang camera dien thoai -> App KH (da dang nhap) hoi \"Gan vao don nay?\" -> may quay hien khach; khach chon voucher / phieu qua trong App ap vao don; POS + hop dong /api/kh (lam cung chat App KH). [T] Opus, CUOI danh sach (lam noi tiep, khong cho), sau DOI-DIEM-1",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "ND-API-1",
+      "ten": "Kho noi dung App KH cho /admin (thu App KH 11.11 a, chu quan: TRUOC khai truong): \"nha rieng\" o nho may chu POS — module rieng (server/nd/**), duong rieng /api/nd/* (khong nam trong /api/kh), bang rieng nd_ban (moi phien ban, giu het, mot ban dang_chay) / nd_nhap (nhap theo khoa) / nd_anh (anh WebP <= 500 KB, ma bam, luu ngay trong bang de xuat / nhap mang theo) / nd_nhat_ky; khong khoa ngoai sang bang POS, khong doc / ghi tien, khach, don; kho chi la \"hop chua\" JSON (khoa [a-zA-Z0-9._-] <= 80, mot ban <= 1 MB). Cua theo thu App: GET ban-dang-chay?co=, GET anh/<ma> (cache lau), POST dang-nhap (tai khoan POS -> ve rieng ~12 gio + quyen[], gioi han sai nhu dang nhap POS), GET/PUT/DELETE nhap, POST cap-nhat (ban_goc khac -> 409 CO_BAN_MOI_HON), GET phien-ban(/:so), POST quay-lai (tao ban MOI), POST anh (kiem byte dau tep), GET xuat / POST nhap-toan-bo. Kiem QUYEN moi lan ghi (thu quyen co hieu luc ngay); CORS chi tuquyduong.com + app-kh.pages.dev. Phan quyen: nhom \"App khach hang — noi dung\" 4 quyen (Xem che do sua · Sua / Luu nhap · Cap nhat toan bo + quay lai · Xuat / nhap toan bo), mac dinh chi chu quan. Khoa sao luu CHI DOC (chi goi duoc GET /api/nd/xuat; tao / thu hoi trong Cai dat, chi chu quan). nd_* vao BACKUP_TABLES. Hop dong RIENG HOP_DONG_API_ND.md v1 (khong chung so phien ban /api/kh). [T] Opus (soat bao mat co), lan 2 ngay sau HUY-1",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "CHU-KHACH-1",
+      "ten": "Ra chu POS gui toi KHACH (thu App KH 11.11 a muc 3): man nhan vien KHONG mo sua chu; moi chu khach doc (hoa don, tem ly, tin Zalo, noi dung CK QR, loi moi danh gia Google, cau mo ta voucher / chuong trinh) nam trong Cai dat POS co xem truoc; cau POS tra cho App ma khach doc nguyen van (thong_bao_tien_ve, ly_do…) -> POS tra MA, App lay chu tu danh muc noi dung App (giu truong cau cu de tuong thich). Buoc 1: lap danh sach cho con viet cung. [Th] Sonnet, CUOI danh sach (lam noi tiep, khong cho)",
+      "tang": 1,
+      "trang_thai": "dang_mo",
+      "patch": null,
+      "commit": null,
+      "ngay": null
+    },
+    {
+      "ma": "NHATKY-CAIDAT-1",
+      "ten": "Nhat ky thay doi Cai dat (thu App KH 11.11 a muc 3): moi man Cai dat ghi ai · luc · cu -> moi (nhat la gia, Gio vang, voucher, goi, quyen); man tien quan trong co \"khoi phuc gia tri cu\". [T] Opus, CUOI danh sach (lam noi tiep, khong cho)",
       "tang": 1,
       "trang_thai": "dang_mo",
       "patch": null,

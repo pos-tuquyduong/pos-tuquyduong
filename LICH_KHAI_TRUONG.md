@@ -12,6 +12,16 @@
      từ nay KHÔNG sửa `app_kh/` trong kho POS (giữ tới khi app mới chạy, rồi xoá). Đơn ở quầy vẫn đi thẳng POS.
      UUDAI-1 duyệt 27.10 (f7165ea). -->
 
+## Lịch 11.11.2026 (sổ v62 — thay bảng 09.11 bên dưới; tốc độ thật: việc Opus ~1,5 ngày, Sonnet ~1 ngày)
+| Làn | Thứ tự việc | Xong dự kiến |
+|---|---|---|
+| Opus làn 1 | VOUCHER-2 → MATKHAU-1 → COMBO-1a → TOPPING-1 → GIOVANG-1 → CT-1b → KENH-1 → MANKHACH-2b → BO-MAN-CU-1 | ~T4 25.11 |
+| Opus làn 2 | HUY-1 → ND-API-1 → KH-NAP-1 → QUA-1 → KH-MUA-2 → GIAO-MA-1 → KHO-3 → KHO-2c | ~T3 24.11 |
+| Sonnet | BAO-1b → QC-APP-1 → MANKHACH-2a → QUET-1 → COMBO-1b → KHUNG-KIEM-1 → GIAO-DIEN-2 (+ P17 nếu cần) | ~CN 22.11 |
+| Chủ quán | dọn dữ liệu thử · kiểm kê đầu kỳ · tắt SX → chạy thử toàn quán → sửa lỗi (~3–4 ngày) | |
+| **Khai trương** | sớm nhất T7 28.11 nếu mọi việc trơn tru · **thực tế khoảng T5 03.12** | |
+| Cuối danh sách (nối tiếp, không chờ) | DOI-DIEM-1 → QUET-2 → GIOI-THIEU-1 → QUA-TANG-1 (sau cùng) · CHU-KHACH-1 · NHATKY-CAIDAT-1 | ~T2 07.12 |
+
 ## Lịch 09.11.2026 (sổ v59 — thay bảng "Lịch theo làn" 02.11 bên dưới; chủ quán chọn làm ĐẦY ĐỦ)
 Hai làn Opus song song (làn 1 = việc sửa vùng tính giá, nối tiếp; làn 2 = hạng · tài khoản · App · kho) + làn Sonnet. Ngày là dự kiến; mỗi yêu cầu
 mới trước khai trương thường lùi ~1 ngày.
