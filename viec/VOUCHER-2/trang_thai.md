@@ -103,3 +103,53 @@ Phạm vi phiếu. Mình không được sửa file ngoài Phạm vi, nên dừn
 - **Q13 — xác nhận:** ngoài M4a (Q8), hai ca cùng khuôn trong `thu_P26c.js` cũng bị luật 10.11 / Q7 đổi số và mình ĐÃ làm theo đúng cách Q8: M1b (gói + ship
   + mã) giữ cho đơn cũ + thêm M1c; N4a (gói + món + mã 1 món — Q7 làm dòng gói đã trả đủ 300.000) giữ cho đơn cũ + thêm N4c. Không bỏ / nới ca nào.
   **Đề xuất:** đồng ý (muốn khác thì mình sửa lại).
+
+### Bước 4–6 (12.11, lần 2, tiếp) — đột biến, giao diện Cài đặt, kiểm
+- `viec/VOUCHER-2/dot_bien.py`: **40/40 bị bắt**, đối chứng xanh (thu_VOUCHER2 80 · 0, thu_KHTHE1 73 · 0). Một đột biến từng SỐNG (VS-V2-SHIP-LA-PHAN-TRAM)
+  → ca E6 đổi thứ tự (voucher ship % gửi trước) → nay bị bắt. Thêm ca để MỖI vế chặn có ca riêng: G4b / G4c (hai điều kiện câu tiêu), G5 (trả đúng một lượt —
+  `MAX(0)` từng che lỗi), H3c (ô mã cũ mềm ở POST), F6b, A2 (voucher tiền không in trần).
+- Bảng chỗ vá → đột biến (tên = nguyên chuỗi đầu trong `dot_bien.py`):
+
+| Chỗ vá | Đột biến |
+|---|---|
+| orders.js `kiemVoucherDon` chính chủ (Q1) | BV-V2-CHINH-CHU · VS-V2-CHINH-CHU-MOI-MA |
+| tối đa N | VS-V2-N-NOI |
+| voucher ship chỉ đơn giao (có báo phí) | BV-V2-SHIP-CAN-GIAO · VS-V2-SHIP-GO-TAY |
+| giờ flash không voucher % | BV-V2-FLASH-PHAN-TRAM |
+| một voucher % (Q4) / ship % không tính (Q10) | VS-V2-PHAN-TRAM-HAI · VS-V2-SHIP-LA-PHAN-TRAM |
+| nhóm / món chọn (Q3) | BV-V2-NHOM-MON |
+| tối thiểu voucher theo món thường | VS-V2-TOI-THIEU-SUBTOTAL |
+| tinh-thu / báo giá mềm | BV-V2-TINH-THU-MEM |
+| luật 10.11 (mã chung + voucher không áp thẻ / gói / nạp) | BV-V2-KHONG-GIAM-THE · VS-V2-MA-TREN-THE · VS-V2-MA-TOI-THIEU-SUBTOTAL · BV-V2-MA-KHONG-MON-THUONG · BV-V2-NAP-VOUCHER |
+| tổng đơn / cột phí giao / chuyến | BV-V2-TONG-BO-VOUCHER · VS-V2-SHIP-COT-GOC · VS-V2-CHUYEN-PHI-GOC |
+| cờ giam_mon_thuong (Q7) | BV-V2-CO-MON-THUONG · BV-V2-DA-TRA-CHIA-DEU |
+| tiêu voucher trong giao dịch (G4) | BV-V2-TIEU-VI · BV-V2-TIEU-LUOT |
+| ô mã cũ (K5) | BV-V2-K5-O-MA · BV-V2-O-MA-MEM |
+| uuDai.js thứ tự / kẹp ship | VS-V2-PHAN-TRAM-TRUOC · VS-V2-SHIP-KHONG-KEP |
+| tienDaTra.js traLuotMa | BV-V2-TRA-VOUCHER · VS-V2-TRA-HAI-LAN · BV-V2-THOAT-SOM |
+| voucherCode.js phatVoucher / moTaVoucher | VS-V2-HAN-TU-MAU · VS-V2-CHUP-LUAT · VS-V2-MO-TA-TRAN |
+| loyalty.js đổi điểm qua phatVoucher | BV-V2-PHAT-NGUON |
+| rewards.js quyền mẫu | BV-V2-MAU-QUYEN |
+| hoaDon.js dòng voucher / phí giao | BV-V2-HOA-DON-VOUCHER · VS-V2-HOA-DON-PHI-GOC |
+| donApp.js vouchers[] / băm giỏ / sai dạng | BV-V2-APP-VOUCHER · VS-V2-APP-BAM-CU · BV-V2-APP-SAI-DANG |
+
+- Giao diện: `client/src/pages/CaiDat/MauVoucher.jsx` (mới) + `Settings.jsx` 2 dòng (thẻ Điểm thưởng, dưới "Tích điểm"); `npm run build`, dist đã commit.
+- Hoá đơn (`hoaDon.js`): giữ NGUYÊN nghĩa `giam_ma` (gồm voucher) và `phi_giao` (phần khách trả) để tờ in hiện tại cộng khớp tổng; chỉ THÊM `vouchers[]`,
+  `giam_ship` (có khi đơn dùng voucher) — tách dòng trên tờ in chờ Q14.
+- `npm test -- --day-du`: **PASS 115 · FAIL 1 · CẢNH BÁO 1** — FAIL duy nhất `thu_GOI1.js` (chờ Q12); cảnh báo "route GET có lệnh ghi" có từ trước. Giả lập quầy xanh.
+
+## Câu hỏi (12.11, lần 2 — tiếp)
+- **Q14 — Màn Bán hàng + tờ in là bản vẽ ĐÃ CHỐT (CLAUDE.md §9), bản mẫu `ban_mau_pos/` chưa có phần voucher, và `ban_mau_pos/` không nằm trong Phạm vi.**
+  Nghiệm thu I cần: chọn / bỏ nhiều voucher của khách ở màn Bán hàng, giỏ / hoá đơn / tem hiện từng dòng giảm; Q9 cần ô "Mã trên bill" ở form Thêm khách.
+  Luật §9: đổi thiết kế thì sửa bản mẫu TRƯỚC, sửa bản mẫu phải hỏi bạn. **Đề xuất (bạn chỉ cần "đồng ý"):** (1) thêm `ban_mau_pos/**` vào Phạm vi;
+  (2) Bán hàng: khi chọn khách có voucher, ngay DƯỚI ô mã khuyến mãi hiện hàng chip "🎟 <câu mo_ta>" (bấm chọn / bấm lại bỏ; đủ N thì chip còn lại mờ; chip
+  lỗi viền đỏ + lý do máy chủ); giỏ thêm từng dòng "Voucher <MÃ> −x" và "Giảm phí giao −x"; (3) tờ in / tem: thêm dòng "Voucher <MÃ> −x" dưới dòng ưu
+  đãi, và "Phí giao <gốc>" + "Giảm phí giao −x" khi có voucher ship; (4) Thêm khách: ô "Mã trên bill (nếu có)" như Q9. Mình sửa bản mẫu trước, chạy
+  `bash ban_mau_pos/chay_thu.sh` (số phép không giảm), rồi mới sửa mã thật.
+
+## Phát hiện
+- `server/utils/dongHoaDon.js` (hoá đơn App) chưa có dòng voucher — đơn App dùng voucher hiện giảm trong dòng "mã" (tổng vẫn khớp). Làm cùng Q14.
+- `/discount-codes/validate` (chỉ màn Bán hàng CŨ, bỏ ở BO-MAN-CU-1) chưa biết luật 10.11 / voucher — chỉ xem trước, không ghi tiền; máy chủ tính lại ở taoDon.
+- Đường dọn đơn thử (`donThu.js`) đã chụp thêm mã của voucher đơn — chưa có ca thử riêng (bài cũ thu_KHSDT1 xanh).
+
+### Dừng (12.11) — chờ chủ quán trả lời Q11–Q14. Chưa chạy /ra-soat, /soat-bao-mat, cổng chạy: còn phần Q2 + giao diện Bán hàng / in.
