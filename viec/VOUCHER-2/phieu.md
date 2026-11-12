@@ -106,6 +106,17 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
         · chạy --day-du + cong.js chay (gồm giả lập quầy) trước khi báo xanh; soát độc lập + soát bảo mật rà RIÊNG các file này.
      Kế hoạch sửa theo Q1 / Q2 / Q4 mới: cập nhật ke_hoach.md rồi làm tiếp; đổi lớn hoặc cần file ngoài Phạm vi → câu hỏi, DỪNG. -->
 
+<!-- Chủ quán 12.11 (Q7–Q10 trạng thái c58ef77) — đồng ý cả 4 đề xuất:
+     Q7 CÓ — đơn tạo từ VOUCHER-2 trở đi có cờ (bước 026). Với đơn có cờ: dòng gói / thẻ / nạp tính đã trả ĐỦ giá, phần giảm của mã / voucher chỉ
+        chia trên món thường. Đơn cũ giữ cách chia cũ. Không đổi tên / tham số tienDaTraTheoDong, soTienHoan (HUY-1 đang gọi). Ca thử dùng SỐ TÍNH TAY
+        (K3): gói 300.000 + món 50.000, mã 10% món → món đã trả 45.000, gói đã trả 300.000; đền món không quá 45.000; kết thúc gói tính trên 300.000.
+     Q8 CÓ — giữ ca M4a của thu_P26c cho đơn CŨ (đặt cờ "đơn cũ" + giảm như cũ), N8–N10 vẫn phải bị bắt; THÊM ca M4c theo luật mới (mã không giảm
+        gói, khách trả 600.000). Không bỏ, không nới ca nào.
+     Q9 CÓ — "chưa có tài khoản" = hồ sơ khách (pos_customers) của SĐT tạo SAU lúc in bill; SĐT đã có trong POS từ trước (kể cả khách quầy chưa dùng
+        App) → không nhận. Câu báo như đề xuất. Quầy: ô mã bill trong form Thêm khách. Lên bản: tự tạo mẫu voucher đúng ưu đãi khách mới đang chạy
+        (giảm cả đơn); kiểu "giảm 1 món nhóm khách mới" thì để chủ quán chọn mẫu trong Cài đặt → Voucher. Cần file ngoài Phạm vi → câu hỏi, DỪNG.
+     Q10 CÓ — voucher ship (số tiền hay %) KHÔNG tính là "voucher giảm %" của Q4; chỉ giảm phí giao, không quá phí giao, vẫn tính vào N. -->
+
 ## Bài thử đỏ
 Có — `cong_cu/thu_VOUCHER2.js` ĐỎ trên code gốc: đơn 2 voucher tiền + 1 voucher % → tổng đúng thứ tự; voucher thứ N+1 → từ chối; mã chung + voucher
 cùng đơn; voucher % giờ flash → từ chối, voucher tiền vẫn qua; voucher ship chỉ trừ phí giao; đơn có thẻ hạng / nạp / gói → mã chỉ tính phần món
