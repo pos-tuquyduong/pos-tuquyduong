@@ -107,7 +107,7 @@ async function dungHoaDon(o) {
   const phanTramHang = phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null;
   const { giamHang, giamFlash, giamMa } = tinhGiam(o);
   // VOUCHER-2: từng voucher món của đơn (grant đã tiêu) + giảm phí giao (giam_ship; cột shipping_fee là phần khách trả) — CHỈ THÊM để xem.
-  // giam_ma / phi_giao GIỮ nghĩa cũ (giam_ma gồm voucher, phi_giao = phần khách trả) → tờ in hiện tại cộng vẫn khớp tổng; tách dòng chờ mẫu in (Q14).
+  // giam_ma / phi_giao GIỮ nghĩa cũ (giam_ma gồm voucher, phi_giao = phần khách trả); tờ (client/src/utils/hoaDon.js) tách dòng voucher + phí giao gốc (Q14).
   // Voucher ở ô mã (discount_code — đơn kiểu cũ) giữ nguyên trong giảm mã như trước, không tách dòng.
   const vouchers = (await query(`SELECT g.code AS ma, g.so_tien_giam AS so_tien FROM pos_voucher_grants g
     JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code) WHERE g.used_order_id = ? AND COALESCE(d.giam_ship, 0) = 0
