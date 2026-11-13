@@ -151,8 +151,8 @@ async function main() {
     k('A10 id không có trong kho → 400, danh sách cũ còn nguyên', a10.status === 400 && a10.code === 'QUANG_CAO_KHONG_HOP_LE' && JSON.stringify((await docQuay()).dong) === JSON.stringify(r7.dong), moTa(a10));
     const a13 = await luu([dong({ id: id2, chu_dai: 'Trùng 1' }), dong({ id: id2, chu_dai: 'Trùng 2' })]);
     k('A13 hai dòng cùng id → 400, danh sách cũ còn nguyên (không để dòng sau đè dòng trước)', a13.status === 400 && a13.code === 'QUANG_CAO_KHONG_HOP_LE' && JSON.stringify((await docQuay()).dong) === JSON.stringify(r7.dong), moTa(a13));
-    const a14 = [await luu([dong({ id: true })]), await luu([dong({ id: '1' })]), await luu([dong({ id: -1 })]), await luu([dong({ id: 1.5 })])];
-    k('A14 id không phải số nguyên dương (true · "1" · -1 · 1.5) → 400, không ghi', a14.every((r) => r.status === 400 && r.code === 'QUANG_CAO_KHONG_HOP_LE') && JSON.stringify((await docQuay()).dong) === JSON.stringify(r7.dong), a14.map(moTa).join(' | '));
+    const a14 = [await luu([dong({ id: true })]), await luu([dong({ id: String(id2) })]), await luu([dong({ id: -1 })]), await luu([dong({ id: 1.5 })])];
+    k('A14 id không phải số nguyên dương (true · chuỗi của id có thật · -1 · 1.5) → 400, không ghi', a14.every((r) => r.status === 400 && r.code === 'QUANG_CAO_KHONG_HOP_LE') && JSON.stringify((await docQuay()).dong) === JSON.stringify(r7.dong), a14.map(moTa).join(' | '));
     const a8 = await luu([], { gio_vang: true });
     const r8 = await docQuay();
     k('A8 (K5) lưu danh sách rỗng → 200, xoá hết; công tắc Giờ vàng nhớ = true', a8.status === 200 && r8.dong.length === 0 && r8.gio_vang === true && (await dem1()) === 0, moTa(a8));

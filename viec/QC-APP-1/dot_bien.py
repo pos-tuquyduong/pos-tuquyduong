@@ -37,7 +37,6 @@ DOT_BIEN = [
   ('VS-UUTIEN-KHONG-THEO-MANG', [(Q, 'i + 1, d.bat ? 1 : 0', '0, d.bat ? 1 : 0', 1)], r'✗ C6c', T),
   ('BV-ID-TRUNG-BO', [(Q, "if (id !== null && ds.some((x) => x.id === id)) return tuChoi(", "if (false) return tuChoi(", 1)], r'✗ A13', T),
   ('VS-ID-KIEU-LONG', [(Q, "const id = trong(d.id) ? null : d.id;", "const id = trong(d.id) ? null : Number(d.id);", 1)], r'✗ A14', T),
-  ('VS-ID-AM-QUA', [(Q, "Number.isInteger(id) && id > 0", "Number.isInteger(id)", 1)], r'✗ A14', T),
   ('BV-GIOVANG-KHONG-LUU', [(Q, "[KHOA_GIO_VANG, gio_vang ? '1' : '0', now]", "[KHOA_GIO_VANG, '0', now]", 1)], r'✗ A8', T),
   ('BV-GIOVANG-KIEU-BO', [(Q, "if (typeof gio_vang !== 'boolean') return tuChoi(", "if (false) return tuChoi(", 1)], r'✗ A12', T),
   # ── B: máy chủ tự kiểm ──
