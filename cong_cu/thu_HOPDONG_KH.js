@@ -236,6 +236,11 @@ async function main() {
     await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 80000)', [SDT]);
     maBill = (await don()).signup_code;
     maDiem = (await don()).signup_code;
+    // VOUCHER-2 Q11(a) (chủ quán Q2 11.11 + Q9 12.11): nhận mã bill phát voucher theo MẪU (y cấu hình trên: 10 % cả đơn) và chỉ cho tài khoản tạo SAU
+    // lúc in bill — khách mẫu đăng nhập trước khi có bill, nên ghi giờ in của mã bill mẫu = giờ tạo tài khoản (cùng giây vẫn nhận).
+    await datCaiDat('signup_mau_voucher_id', Number((await db.run(`INSERT INTO pos_mau_voucher (ten, kieu, gia_tri, tran, don_toi_thieu, ap_dung, han_ngay,
+      chinh_chu, bat, tao_luc) VALUES ('Khách mới mẫu', 'phan_tram', 10, 0, 0, 'tat_ca', 30, 0, 1, ?)`, [getNow()])).lastInsertRowid));
+    await db.run('UPDATE pos_signup_codes SET issued_at = (SELECT created_at FROM pos_customers WHERE phone = ?) WHERE code = ?', [SDT, maBill]);
   };
 
   muc('[I2] gọi TỪNG cửa: 200 + đủ trường `tra`; token: true thiếu token → 401 KH_TOKEN_SAI');
