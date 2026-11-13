@@ -643,12 +643,25 @@ async function main() {
     // Giảm 10 % dựng bằng MÃ GIẢM (KHACH-CK-1, chủ quán 29.10: bỏ chiết khấu riêng trong hồ sơ khách — bản cũ dựng bằng hồ sơ 10 %).
     await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active)
       VALUES ('GOI2_GIAM10', 'percent', 10, 0, 0, 0, 0, 1)`);
+    // VOUCHER-2 (Q12, chủ quán 12.11 — khuôn Q8): luật 10.11 — mã không giảm gói. B3c GIỮ cho ĐƠN CŨ trên production (gói được giảm, cờ
+    // giam_mon_thuong = 0): mua không mã rồi ghi thẳng giảm 10 % như đơn cũ → phép "hoàn theo giá ĐÃ TRẢ" vẫn được canh. B3e: luật mới.
     const c = sdtMoi();
-    const gc = await mua30(c, { cash_amount: 1215000, discount_code: 'GOI2_GIAM10' });
+    const gc = await mua30(c);
+    await db.run(`UPDATE pos_orders SET total = 1215000, discount = 135000, discount_amount = 135000, discount_code = 'GOI2_GIAM10', discount_type = 'percent',
+      discount_value = 10, cash_amount = 1215000, giam_mon_thuong = 0 WHERE id = ?`, [gc.don]);
     dungGoi(await lay(c, gc.cp, [[0, 10]]), 'B3c lấy 10 CT1');
     const dkc = await duKien(gc.cp);
-    k('B3c mua có giảm 10 % (trả 1.215.000), đã lấy 10/30 → hoàn theo giá ĐÃ TRẢ 1.215.000 × 20/30 = 810.000 (giá niêm yết ra 900.000)', dkc.data?.tong === 810000
+    k('B3c (đơn CŨ) mua có giảm 10 % (trả 1.215.000), đã lấy 10/30 → hoàn theo giá ĐÃ TRẢ 1.215.000 × 20/30 = 810.000 (giá niêm yết ra 900.000)', dkc.data?.tong === 810000
       && (await ketThuc(gc.cp, { reason: 'thử', hoan: true, so_tien: 810000 })).status === 200 && await vi(c) === 810000, `${JSON.stringify(dkc.data)} · ví ${await vi(c)}`);
+    const e = sdtMoi();
+    const ge = await mua30(e, { discount_code: 'GOI2_GIAM10' });
+    const de = await mot('SELECT total, discount_code, giam_mon_thuong FROM pos_orders WHERE id = ?', [ge.don]);
+    dungGoi(await lay(e, ge.cp, [[0, 10]]), 'B3e lấy 10 CT1');
+    const dke = await duKien(ge.cp);
+    k('B3e (luật 10.11) mua gói 30 kèm mã 10 % → mã không áp, trả 1.350.000; đã lấy 10/30 → hoàn 1.350.000 × 20/30 = 900.000', Number(de?.total) === 1350000
+      && de?.discount_code == null && Number(de?.giam_mon_thuong) === 1 && dke.data?.tong === 900000
+      && (await ketThuc(ge.cp, { reason: 'thử', hoan: true, so_tien: 900000 })).status === 200 && await vi(e) === 900000,
+    `${JSON.stringify(de)} · ${JSON.stringify(dke.data)} · ví ${await vi(e)}`);
 
     // KHACH-CK-1: hồ sơ dữ liệu cũ percent 10, mua gói KHÔNG mã, trả đủ niêm yết 1.350.000 → 200, tổng KHÔNG giảm (gốc tự giảm → 400).
     const cHs = sdtMoi();
