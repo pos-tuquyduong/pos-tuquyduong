@@ -152,6 +152,7 @@ async function main() {
     k('A8 (K5) lưu danh sách rỗng → 200, xoá hết; công tắc Giờ vàng nhớ = true', a8.status === 200 && r8.dong.length === 0 && r8.gio_vang === true && (await dem1()) === 0, moTa(a8));
     const a12 = await luu([], { gio_vang: 'co' });
     k('A12 gio_vang không phải đúng/sai → 400', a12.status === 400 && a12.code === 'QUANG_CAO_KHONG_HOP_LE', moTa(a12));
+    await db.run("UPDATE pos_permissions SET allowed = 1 WHERE role = 'manager' AND permission = 'manage_settings'");
     const a7b = await luu([dong()], { token: tk.manager });
     k('A7b (K5) quản lý có manage_settings + PIN đúng → 200', a7b.status === 200, moTa(a7b));
     const [pa, pb] = await Promise.all([luu([dong({ chu_dai: 'A1' }), dong({ chu_dai: 'A2' }), dong({ chu_dai: 'A3' })]), luu([dong({ chu_dai: 'B1' }), dong({ chu_dai: 'B2' })])]);
@@ -245,9 +246,9 @@ async function main() {
     const d0 = c1.data?.[0] || {};
     k('C2 danh sách TRẮNG đúng 10 trường (không bat / cac_thu / kieu_ngay / ngày / ghi chú / thời điểm sửa)',
       Object.keys(d0).sort().join() === 'chu_dai,chu_nut,den_gio,dich,id,ma_mon,phu,tieu_de,tu_gio,uu_tien', Object.keys(d0).join());
-    k('C2b giá trị: hằng ngày uudai, tiêu đề/phụ/nút giữ nguyên, giờ null, ma_mon null, id là số, ưu tiên 1,2,3…',
+    k('C2b giá trị: hằng ngày uudai, tiêu đề/phụ/nút giữ nguyên, giờ null, ma_mon null, id là số, ưu tiên = vị trí lúc lưu (1,5,6…)',
       d0.dich === 'uudai' && d0.tieu_de === 'T' && d0.phu === 'P' && d0.chu_nut === 'N' && d0.tu_gio === null && d0.den_gio === null && d0.ma_mon === null && Number.isInteger(d0.id)
-      && c1.data.map((d) => d.uu_tien).join() === '1,2,3,4,5,6,7', c1.data?.map((d) => d.uu_tien).join());
+      && c1.data.map((d) => d.uu_tien).join() === '1,5,6,7,8,9,10', c1.data?.map((d) => d.uu_tien).join());
     const kh = c1.data?.[1] || {};
     k('C3 khung giờ trả NGUYÊN tu_gio/den_gio (App tự so giờ) — máy chủ không lọc theo giờ', kh.tu_gio === '08:00' && kh.den_gio === '11:30');
     datVN('2026-11-13T23:30:00');
@@ -349,8 +350,8 @@ async function main() {
     await luu([dong({ chu_dai: 'Giữ qua dọn' })], { gio_vang: true });
     const dt = require(path.join(MAY_CHU, 'utils', 'donThu.js'));
     imLang();
-    const lk = await dt.lietKe({}, 'thu').catch((e) => ({ loi: e.message }));
-    const kqDon = lk && lk.ma_xac_nhan ? await dt.donDuLieuThu({ ma_xac_nhan: lk.ma_xac_nhan, go_xac_nhan: dt.CHU_XAC_NHAN }, 'thu').catch((e) => ({ loi: e.message })) : { loi: JSON.stringify(lk).slice(0, 80) };
+    const lk = await dt.lietKe({ truoc_ngay: '2099-01-01' }, 'thu').catch((e) => ({ loi: e.message }));
+    const kqDon = lk && lk.ma_xac_nhan ? await dt.donDuLieuThu({ truoc_ngay: '2099-01-01', ma_xac_nhan: lk.ma_xac_nhan, go_xac_nhan: dt.CHU_XAC_NHAN }, 'thu').catch((e) => ({ loi: e.message })) : { loi: JSON.stringify(lk).slice(0, 80) };
     noiLai();
     const conLai = await docQuay();
     k('F5 chạy dọn dữ liệu thử thật → dòng quảng cáo + công tắc Giờ vàng còn nguyên', !kqDon.loi && conLai.dong?.[0]?.chu_dai === 'Giữ qua dọn' && conLai.gio_vang === true, JSON.stringify(kqDon).slice(0, 120));
