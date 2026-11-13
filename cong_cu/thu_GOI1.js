@@ -644,7 +644,7 @@ async function main() {
     await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active)
       VALUES ('GOI2_GIAM10', 'percent', 10, 0, 0, 0, 0, 1)`);
     // VOUCHER-2 (Q12, chủ quán 12.11 — khuôn Q8): luật 10.11 — mã không giảm gói. B3c GIỮ cho ĐƠN CŨ trên production (gói được giảm, cờ
-    // giam_mon_thuong = 0): mua không mã rồi ghi thẳng giảm 10 % như đơn cũ → phép "hoàn theo giá ĐÃ TRẢ" vẫn được canh. B3e: luật mới.
+    // giam_mon_thuong = 0): mua không mã rồi ghi thẳng giảm 10 % như đơn cũ → phép "hoàn theo giá ĐÃ TRẢ" vẫn được canh. B3f: luật mới.
     const c = sdtMoi();
     const gc = await mua30(c);
     await db.run(`UPDATE pos_orders SET total = 1215000, discount = 135000, discount_amount = 135000, discount_code = 'GOI2_GIAM10', discount_type = 'percent',
@@ -656,9 +656,9 @@ async function main() {
     const sB3e = sdtMoi();
     const gB3e = await mua30(sB3e, { discount_code: 'GOI2_GIAM10' });
     const dB3e = await mot('SELECT total, discount_code, giam_mon_thuong FROM pos_orders WHERE id = ?', [gB3e.don]);
-    dungGoi(await lay(sB3e, gB3e.cp, [[0, 10]]), 'B3e lấy 10 CT1');
+    dungGoi(await lay(sB3e, gB3e.cp, [[0, 10]]), 'B3f lấy 10 CT1');
     const dkB3e = await duKien(gB3e.cp);
-    k('B3e (luật 10.11) mua gói 30 kèm mã 10 % → mã không áp, trả 1.350.000; đã lấy 10/30 → hoàn 1.350.000 × 20/30 = 900.000', Number(dB3e?.total) === 1350000
+    k('B3f (luật 10.11) mua gói 30 kèm mã 10 % → mã không áp, trả 1.350.000; đã lấy 10/30 → hoàn 1.350.000 × 20/30 = 900.000', Number(dB3e?.total) === 1350000
       && dB3e?.discount_code == null && Number(dB3e?.giam_mon_thuong) === 1 && dkB3e.data?.tong === 900000
       && (await ketThuc(gB3e.cp, { reason: 'thử', hoan: true, so_tien: 900000 })).status === 200 && await vi(sB3e) === 900000,
     `${JSON.stringify(dB3e)} · ${JSON.stringify(dkB3e.data)} · ví ${await vi(sB3e)}`);
@@ -774,7 +774,10 @@ async function main() {
     // LUOI-3 — AU3-13 / AU3-14: trần "hoàn ≤ total − đã nhận (hoàn + ĐỀN)" chỉ chặn khi sổ có khoản đền VƯỢT số đã trả của dòng — đó là
     // DỮ LIỆU TRƯỚC P26c 12.10 (trần đền theo giá gốc), còn trên production; qua API hiện nay không dựng được (viec/LUOI-3/ke_hoach.md mục 0).
     const p = sdtMoi();
-    const gp = await mua30(p, { items: [mon(2, 1, false)], cash_amount: 1237500, discount_code: 'GOI2_GIAM10' });   // giảm 10 % bằng mã (KHACH-CK-1)
+    // VOUCHER-2 (khuôn Q12): đơn TRƯỚC P26c = đơn CŨ, mã giảm cả gói (luật 10.11 nay không giảm gói) — mua không mã rồi ghi giảm 10 % như đơn cũ.
+    const gp = await mua30(p, { items: [mon(2, 1, false)], cash_amount: 1375000 });
+    await db.run(`UPDATE pos_orders SET total = 1237500, discount = 137500, discount_amount = 137500, discount_code = 'GOI2_GIAM10', discount_type = 'percent',
+      discount_value = 10, cash_amount = 1237500, giam_mon_thuong = 0 WHERE id = ?`, [gp.don]);
     await db.run("UPDATE pos_orders SET created_at = '2026-09-30 08:00:00' WHERE id = ?", [gp.don]);   // đơn cũ: mua trước, đền sau, cả hai trước P26c
     await db.run(`INSERT INTO pos_damage_logs (order_id, order_code, customer_phone, product_code, product_name, quantity, unit_price, damage_value,
       reason, action, refund_amount, returned_to_stock, created_at) VALUES (?, ?, ?, ?, ?, 1, 25000, 25000, 'damaged', 'refund', 25000, 0, '2026-10-01 09:00:00')`,
@@ -932,9 +935,13 @@ async function main() {
     await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active)
       VALUES ('GIAM320K_LUOI4', 'fixed', 320000, 0, 0, 0, 0, 1)`);
     const r = sdtMoi();
-    const gr = await muaGoi(r, await taoGoi(), { items: [mon(2, 2, false)], discount_code: 'GIAM320K_LUOI4', cash_amount: 30000 });
-    let lech = false, dkr = {}, rr = {}, sr = {}, truoc = NaN, sau = NaN;
+    // VOUCHER-2 (khuôn Q12): đơn TRƯỚC P26c = đơn CŨ, mã giảm cả gói — mua không mã rồi ghi giảm 320.000 như đơn cũ (cờ giam_mon_thuong = 0).
+    const gr = await muaGoi(r, await taoGoi(), { items: [mon(2, 2, false)], cash_amount: 350000 });
+    let lech = false, dkr = {}, rr = {}, sr = {}, truoc = NaN, sau = NaN, tongR = NaN;
     if (gr.status === 200) {
+      await db.run(`UPDATE pos_orders SET total = 30000, discount = 320000, discount_amount = 320000, discount_code = 'GIAM320K_LUOI4', discount_type = 'fixed',
+        discount_value = 320000, cash_amount = 30000, giam_mon_thuong = 0 WHERE id = ?`, [gr.order.id]);
+      tongR = await so('SELECT total FROM pos_orders WHERE id = ?', [gr.order.id]);
       const cpR = await goiCua(gr.order.id);
       await db.run("UPDATE pos_orders SET created_at = '2026-09-30 08:00:00' WHERE id = ?", [gr.order.id]);   // đơn + đền đều trước P26c
       await db.run(`INSERT INTO pos_damage_logs (order_id, order_code, customer_phone, product_code, product_name, quantity, unit_price, damage_value,
@@ -951,9 +958,9 @@ async function main() {
       sau = await so('SELECT COUNT(*) FROM pos_balance_transactions WHERE order_id = ?', [gr.order.id]);
     }
     k('B3r gói 300.000 + 2 CT3, mã giảm 320.000 → tổng 30.000; đền cũ 50.000 (lệch I19) → hoan-du-kien 0, kết thúc có hoàn → 200 hoan 0, ghi chú "hoàn 0đ", sổ + ví không đổi',
-      Number(gr.order?.total) === 30000 && lech && dkr.data?.tong === 0 && rr.status === 200 && rr.hoan === 0 && String(sr?.notes).includes('(hoàn 0đ)')
+      tongR === 30000 && lech && dkr.data?.tong === 0 && rr.status === 200 && rr.hoan === 0 && String(sr?.notes).includes('(hoàn 0đ)')
         && sau === truoc && await vi(r) === 50000,
-      `${moTa(gr)} · tổng ${gr.order?.total} · lệch I19 ${lech} · ${JSON.stringify(dkr.data)} · ${moTa(rr)} hoan ${rr.hoan} · sổ ${truoc} → ${sau} · ví ${await vi(r)}`);
+      `${moTa(gr)} · tổng ${tongR} · lệch I19 ${lech} · ${JSON.stringify(dkr.data)} · ${moTa(rr)} hoan ${rr.hoan} · sổ ${truoc} → ${sau} · ví ${await vi(r)}`);
   }
 
   sv.close();
