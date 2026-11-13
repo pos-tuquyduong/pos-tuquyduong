@@ -327,3 +327,7 @@ GIT:         be35e93 HUY-1 soat bao mat: 4 nghi van truoc loc, 0 sau loc — DAT
 BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài học
 ```
 HEAD ĐÃ KIỂM: be35e93
+
+
+## Gộp (chat soát cuối 12.11, bàn 36): ĐẠT. Chủ quán 12.11: Q11 (I19 cộng pos_hoan_tien_mat + khung I19 thu_gia_lap.js) và Bài học 2 (cổng tính từ commit GOP-<MÃ> cuối) gom vào KHUNG-KIEM-1. Hợp đồng /api/kh: HUY-1 giữ v14; VOUCHER-2 lên v15 khi gộp.
+HEAD ĐÃ KIỂM: 1303956
