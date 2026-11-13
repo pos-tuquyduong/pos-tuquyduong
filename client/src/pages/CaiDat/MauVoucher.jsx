@@ -1,6 +1,7 @@
 // VOUCHER-2 — Cài đặt → Mẫu voucher. Mỗi lần phát (đổi điểm, giới thiệu, khách mới…) máy chủ sinh MỘT mã riêng từ mẫu (utils/voucherCode.js).
 // Câu khách thấy do MÁY CHỦ dựng (POST /rewards/mau/mo-ta) — màn này không tự dựng câu. Lưu cần quyền manage_promotions (máy chủ chặn).
 // "Tối đa N voucher / đơn" là cài đặt voucher_toi_da (1–10). Sửa mẫu không đổi voucher đã phát.
+// Q2 (chủ quán 11.11): "Mẫu cho ưu đãi khách mới" = cài đặt signup_mau_voucher_id — mã in bill đổi ra MỘT voucher theo mẫu này (rỗng: chưa phát).
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,12 +27,15 @@ export default function MauVoucher() {
   const [form, setForm] = useState(null);   // null = đang đóng; { id? , … } = đang thêm / sửa
   const [xem, setXem] = useState('');
   const [toiDa, setToiDa] = useState('3');
+  const [mauKM, setMauKM] = useState('');
   const [dangLuu, setDangLuu] = useState(false);
 
   const tai = async () => {
     try {
       setDs((await api.get('/rewards/mau')).data || []);
-      setToiDa(String((await api.get('/settings')).data?.voucher_toi_da || '3'));
+      const cd = (await api.get('/settings')).data || {};
+      setToiDa(String(cd.voucher_toi_da || '3'));
+      setMauKM(String(cd.signup_mau_voucher_id || ''));
     } catch (e) { baoLoiTu('tải mẫu voucher', e); }
   };
   useEffect(() => { tai(); }, []);
@@ -61,6 +65,11 @@ export default function MauVoucher() {
   const luuToiDa = async () => {
     try { await api.put('/settings', { settings: { voucher_toi_da: toiDa } }); baoXong(`Đã lưu: tối đa ${toiDa} voucher mỗi đơn`); } catch (e) { baoLoiTu('lưu số voucher tối đa', e); }
   };
+  const luuMauKM = async (v) => {
+    setMauKM(v);
+    try { await api.put('/settings', { settings: { signup_mau_voucher_id: v } }); baoXong(v ? 'Đã chọn mẫu cho ưu đãi khách mới' : 'Đã bỏ mẫu ưu đãi khách mới (mã bill chưa phát voucher)'); }
+    catch (e) { baoLoiTu('lưu mẫu ưu đãi khách mới', e); }
+  };
   const sua = (m) => setForm({ ...m, ap_dung_ids: (() => { try { return JSON.parse(m.ap_dung_ids || '[]').join(', '); } catch { return ''; } })() });
   const o = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? (e.target.checked ? 1 : 0) : e.target.value }));
 
@@ -76,6 +85,13 @@ export default function MauVoucher() {
         <input id="voucher-toi-da" type="number" min="1" max="10" value={toiDa} onChange={(e) => setToiDa(e.target.value)} style={{ ...O, width: 70 }} disabled={!duocSua} />
         {duocSua && <button className="btn btn-outline" onClick={luuToiDa}>Lưu</button>}
         {duocSua && !form && <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => setForm({ ...MOI })}>+ Thêm mẫu</button>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        <label htmlFor="mau-khach-moi">Mẫu cho ưu đãi khách mới (mã in trên bill):</label>
+        <select id="mau-khach-moi" value={mauKM} onChange={(e) => luuMauKM(e.target.value)} disabled={!duocSua} style={{ ...O, width: 'auto', minWidth: 220 }}>
+          <option value="">— Chưa chọn (khách nhập mã sẽ được báo) —</option>
+          {ds.filter((m) => m.bat || String(m.id) === mauKM).map((m) => <option key={m.id} value={String(m.id)}>{m.ten} — {m.mo_ta}</option>)}
+        </select>
       </div>
 
       {form && (
