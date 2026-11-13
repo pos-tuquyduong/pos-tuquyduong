@@ -1,8 +1,8 @@
 {
   "he": "POS",
   "tep_nay_thuoc_ve": "Kho ma POS (Render · pos-tuquyduong.io.vn) — dat o goc, ngang hang package.json",
-  "phien_ban_so": 63,
-  "cap_nhat": "2026-11-12",
+  "phien_ban_so": 64,
+  "cap_nhat": "2026-11-13",
   "cach_dung": "Nguon su that duy nhat ve tien do cua kho ma nay. Tu TU-CHAY-2 (01.10) may khong ghi so: chu quan ghi sau khi gop va quay chay on (lenh do chat soan).",
   "viec": [
     {
@@ -635,10 +635,10 @@
       "ma": "HUY-1",
       "ten": "Huy don o POS tu luc nhan don (chu quan chot 05.11): quan ly + chu quan trong ngay, ngay truoc chi chu quan; ly do bat buoc; huy ca don; khach co tai khoan hoan TOAN BO tien da tra vao vi, khach le tra tien mat (ngoai le duy nhat cua ket), doi soat ghi rieng (buoc 020). [T] Opus, lam sau CK-NOIDUNG-1",
       "tang": 1,
-      "trang_thai": "dang_mo",
+      "trang_thai": "xong",
       "patch": null,
-      "commit": null,
-      "ngay": null
+      "commit": "171109f",
+      "ngay": "2026-11-13"
     },
     {
       "ma": "KH-TOMTAT-1",
