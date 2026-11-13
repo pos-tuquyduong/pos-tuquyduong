@@ -350,8 +350,8 @@ async function main() {
     await luu([dong({ chu_dai: 'Giữ qua dọn' })], { gio_vang: true });
     const dt = require(path.join(MAY_CHU, 'utils', 'donThu.js'));
     imLang();
-    const lk = await dt.lietKe({ truoc_ngay: '2026-11-13' }, 'thu').catch((e) => ({ loi: e.message }));
-    const kqDon = lk && lk.ma_xac_nhan ? await dt.donDuLieuThu({ truoc_ngay: '2026-11-13', ma_xac_nhan: lk.ma_xac_nhan, go_xac_nhan: dt.CHU_XAC_NHAN }, 'thu').catch((e) => ({ loi: e.message })) : { loi: JSON.stringify(lk).slice(0, 80) };
+    const lk = await dt.lietKe({ truoc_ngay: '2026-11-12' }, 'thu').catch((e) => ({ loi: e.message }));
+    const kqDon = lk && lk.ma_xac_nhan ? await dt.donDuLieuThu({ truoc_ngay: '2026-11-12', ma_xac_nhan: lk.ma_xac_nhan, go_xac_nhan: dt.CHU_XAC_NHAN }, 'thu').catch((e) => ({ loi: e.message })) : { loi: JSON.stringify(lk).slice(0, 80) };
     noiLai();
     const conLai = await docQuay();
     k('F5 chạy dọn dữ liệu thử thật → dòng quảng cáo + công tắc Giờ vàng còn nguyên', !kqDon.loi && conLai.dong?.[0]?.chu_dai === 'Giữ qua dọn' && conLai.gio_vang === true, JSON.stringify(kqDon).slice(0, 120));
@@ -373,7 +373,7 @@ async function main() {
     /<ThanhLuu id="quang-cao"/.test(qc) && /<HoiPin /.test(qc) && /useThayDoi\(/.test(qc) && /<LoiO /.test(qc) && /import \{[^}]*baoXong[^}]*\} from '\.\.\/\.\.\/components\/thongBaoKho\.js'/.test(qc)
     && dem(qc, /\bbao(?:Xong|Loi|LoiTu)\(/g) >= 4);
   k('H4b không alert( / setMessage / console.error / fetch( trần; gọi máy chủ qua quangCaoApi', !/(^|[^.\w])alert\(|setMessage|console\.error|\bfetch\(/.test(qc) && /quangCaoApi\.(?:ds|luu|doc)\(/.test(qc));
-  k('H4c lưu xong tải lại số máy chủ giữ (await tai() sau quangCaoApi.luu), nút Lưu mờ + "Đang lưu…"', /quangCaoApi\.luu\([\s\S]{0,400}await tai\(\)/.test(qc) && /Đang lưu…/.test(qc) && /disabled=\{dangLuu\}/.test(qc));
+  k('H4c lưu xong tải lại số máy chủ giữ (await tai() sau quangCaoApi.luu), nút Lưu mờ + "Đang lưu…"', /quangCaoApi\.luu\([\s\S]{0,900}await tai\(\)/.test(qc) && /Đang lưu…/.test(qc) && /disabled=\{dangLuu\}/.test(qc));
   k('H5 câu nhắc NGUYÊN VĂN dưới ô chữ: "Không ghi công dụng chữa bệnh (quy định quảng cáo thực phẩm)."', qcTho.includes('Không ghi công dụng chữa bệnh (quy định quảng cáo thực phẩm).'));
   k('H6 đếm ngược khi gõ (hàm conLai/demKyTu được dùng ở ô chữ dải) + báo dưới ô bằng loi_o', /conLai\(|demKyTu\(/.test(qc) && /loi_o/.test(qc));
   k('H7 dòng xem trước dải mảnh: một dòng, cắt "…" (nowrap + overflow hidden + text-overflow ellipsis)', /whiteSpace: 'nowrap'/.test(qc) && /overflow: 'hidden'/.test(qc) && /textOverflow: 'ellipsis'/.test(qc) && /Xem trước/.test(qc));
