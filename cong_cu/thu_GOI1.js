@@ -653,15 +653,15 @@ async function main() {
     const dkc = await duKien(gc.cp);
     k('B3c (đơn CŨ) mua có giảm 10 % (trả 1.215.000), đã lấy 10/30 → hoàn theo giá ĐÃ TRẢ 1.215.000 × 20/30 = 810.000 (giá niêm yết ra 900.000)', dkc.data?.tong === 810000
       && (await ketThuc(gc.cp, { reason: 'thử', hoan: true, so_tien: 810000 })).status === 200 && await vi(c) === 810000, `${JSON.stringify(dkc.data)} · ví ${await vi(c)}`);
-    const e = sdtMoi();
-    const ge = await mua30(e, { discount_code: 'GOI2_GIAM10' });
-    const de = await mot('SELECT total, discount_code, giam_mon_thuong FROM pos_orders WHERE id = ?', [ge.don]);
-    dungGoi(await lay(e, ge.cp, [[0, 10]]), 'B3e lấy 10 CT1');
-    const dke = await duKien(ge.cp);
-    k('B3e (luật 10.11) mua gói 30 kèm mã 10 % → mã không áp, trả 1.350.000; đã lấy 10/30 → hoàn 1.350.000 × 20/30 = 900.000', Number(de?.total) === 1350000
-      && de?.discount_code == null && Number(de?.giam_mon_thuong) === 1 && dke.data?.tong === 900000
-      && (await ketThuc(ge.cp, { reason: 'thử', hoan: true, so_tien: 900000 })).status === 200 && await vi(e) === 900000,
-    `${JSON.stringify(de)} · ${JSON.stringify(dke.data)} · ví ${await vi(e)}`);
+    const sB3e = sdtMoi();
+    const gB3e = await mua30(sB3e, { discount_code: 'GOI2_GIAM10' });
+    const dB3e = await mot('SELECT total, discount_code, giam_mon_thuong FROM pos_orders WHERE id = ?', [gB3e.don]);
+    dungGoi(await lay(sB3e, gB3e.cp, [[0, 10]]), 'B3e lấy 10 CT1');
+    const dkB3e = await duKien(gB3e.cp);
+    k('B3e (luật 10.11) mua gói 30 kèm mã 10 % → mã không áp, trả 1.350.000; đã lấy 10/30 → hoàn 1.350.000 × 20/30 = 900.000', Number(dB3e?.total) === 1350000
+      && dB3e?.discount_code == null && Number(dB3e?.giam_mon_thuong) === 1 && dkB3e.data?.tong === 900000
+      && (await ketThuc(gB3e.cp, { reason: 'thử', hoan: true, so_tien: 900000 })).status === 200 && await vi(sB3e) === 900000,
+    `${JSON.stringify(dB3e)} · ${JSON.stringify(dkB3e.data)} · ví ${await vi(sB3e)}`);
 
     // KHACH-CK-1: hồ sơ dữ liệu cũ percent 10, mua gói KHÔNG mã, trả đủ niêm yết 1.350.000 → 200, tổng KHÔNG giảm (gốc tự giảm → 400).
     const cHs = sdtMoi();
