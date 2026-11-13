@@ -73,7 +73,7 @@ async function main() {
   const R = (f) => path.join(MAY_CHU, 'routes', f);
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'settings', 'refunds', 'thanh-toan', 'wallets', 'rewards', 'loyalty', 'reports', 'damages', 'signup-codes']) app.use('/api/pos/' + r, require(R(r + '.js')));
+  for (const r of ['orders', 'settings', 'refunds', 'thanh-toan', 'wallets', 'rewards', 'loyalty', 'reports', 'damages', 'signup-codes', 'discount-codes']) app.use('/api/pos/' + r, require(R(r + '.js')));
   app.use('/api/pos/hoa-don', require(R('hoaDon.js')));
   app.use('/api/kh', require(R('kh')));
   app.use('/api/kh', require(R('kh/loi.js')).loiTangKh);
@@ -608,6 +608,10 @@ async function main() {
     await taoTk(s2, b2.issued_at);
     const r2 = await nhan(b2.code, s2);
     k('Q2a2 tài khoản tạo CÙNG giây in bill → vẫn nhận (≥, không >)', r2.status === 200 && !!(await grantBill(b2)), moTa(r2));
+    const b2c = await bill(), s2c = sdtQ2();
+    await taoTk(s2c, truGiay(b2c.issued_at, -1).replace('T', ' '));
+    const r2c = await nhan(b2c.code, s2c);
+    k('Q2a3 tài khoản ghi giờ kiểu cũ (dấu cách) 1 giây SAU bill → vẫn nhận (so sau khi chuẩn hoá, không so chuỗi thô)', r2c.status === 200 && !!(await grantBill(b2c)), moTa(r2c));
 
     const b3 = await bill(), s3 = sdtQ2(), s3b = sdtQ2();
     await taoTk(s3, truGiay(b3.issued_at, 1));
@@ -661,9 +665,14 @@ async function main() {
     const tr8 = await soDon();
     const r8 = await ban({ customer_phone: s8, items: [mon(0)], vouchers: [v8] }, 35000);
     const r8b = await ban({ customer_phone: s8, items: [mon(0)], discount_code: v8 }, 35000);
-    k('Q2i P20b: đơn gốc của mã bill đã huỷ → voucher mới bị chặn 400 MA_DON_GOC_KHONG_HOP_LE (cả danh sách voucher lẫn ô mã), không đơn, không tiêu',
-      [r8, r8b].every((r) => r.status === 400 && r.code === 'MA_DON_GOC_KHONG_HOP_LE') && (await soDon()) === tr8 && (await grant(v8))?.status === 'available',
-      `${moTa(r8)} / ${moTa(r8b)}`);
+    const r8c = await goi('POST', '/pos/discount-codes/validate', { code: v8, order_subtotal: 50000, items: [] });
+    k('Q2i P20b: đơn gốc của mã bill đã huỷ → voucher mới bị chặn 400 MA_DON_GOC_KHONG_HOP_LE (danh sách voucher, ô mã, /validate), không đơn, không tiêu',
+      [r8, r8b, r8c].every((r) => r.status === 400 && r.code === 'MA_DON_GOC_KHONG_HOP_LE') && (await soDon()) === tr8 && (await grant(v8))?.status === 'available',
+      `${moTa(r8)} / ${moTa(r8b)} / ${moTa(r8c)}`);
+    const d8 = await mot('SELECT id, code FROM pos_discount_codes WHERE code = ?', [v8]);
+    const r8d = await goi('PUT', `/pos/discount-codes/${d8.id}`, { code: 'DOITEN' + soQ2 });
+    k('Q2n voucher khách mới (nối mã bill qua ví) KHÔNG đổi tên được → 400 MA_BILL_KHONG_DOI_TEN, mã giữ nguyên', r8d.status === 400 && r8d.code === 'MA_BILL_KHONG_DOI_TEN'
+      && (await mot('SELECT code FROM pos_discount_codes WHERE id = ?', [d8.id])).code === v8, moTa(r8d));
 
     let b026 = null;
     try { b026 = require(path.join(MAY_CHU, 'nang_cap', '026_voucher.js')); } catch { /* gốc chưa có bước 026 */ }
