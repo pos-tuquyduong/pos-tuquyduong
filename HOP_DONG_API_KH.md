@@ -68,6 +68,13 @@ Không xoá / đổi tên trường cũ — App v13 bỏ qua trường lạ là 
   `VOUCHER_PHAN_TRAM_HAI` · `VOUCHER_KHONG_CO_MON`. Đặt đơn tạo theo ĐÚNG các voucher báo giá đã nhận. Thiếu `vouchers` → băm khoá gửi y như cũ.
 - **Tương thích:** App cũ gửi mã voucher ở `ma_giam` vẫn chạy như trước (dòng `ma_giam`); voucher sai luật mới (vd chỉ chính chủ) → `ma_giam_loi` với các
   `code` trên. `ma_giam_loi.code` có thêm `MA_KHONG_AP_MON_THUONG` (giỏ chỉ có thẻ hạng: mã không áp).
+- **Mã in bill → voucher cho khách đăng ký LẦN ĐẦU** (`POST /nhan-ma-bill`, chủ quán Q2 11.11 + Q9 12.11): chỉ nhận được khi tài khoản của SĐT được tạo SAU
+  lúc in bill. Nhận → máy chủ phát MỘT voucher RIÊNG theo mẫu chủ quán chọn vào ví (`GET /voucher`, `nguon: "khach_moi"`); `data.voucher_code` giữ tên,
+  nay là mã MỚI trong ví (không còn là mã in bill — mã bill không gõ ở ô mã được nữa), thêm `data.mo_ta` (câu khách thấy). Lỗi mới: `CAN_TAO_TAI_KHOAN`
+  400 (SĐT chưa có tài khoản) · `KHACH_DA_CO_TAI_KHOAN` 400 (tài khoản có trước bill) · `UU_DAI_CHUA_CO_MAU` 400 (quán chưa chọn mẫu); `MA_TRUNG` không
+  còn trả. Voucher khách mới nhận trước bản này (mã = mã bill) vẫn ở `ma_khach_moi` như cũ.
+- **Hoá đơn** (`hoa_don[]` của `GET /don/:ma`): đơn dùng voucher có thêm dòng `loai: "voucher"` (trai = "Voucher <MÃ>", phai = "−x") ngay dưới `giam_ma`
+  (`giam_ma` nay chỉ còn phần mã chung / quà); đơn giao có voucher ship: `phi_giao` in phí GỐC + dòng `loai: "giam_ship"` (trai = "Giảm phí giao").
 
 ### Ghi chú v13 — mua thẻ hạng trên App (KH-THE-1, chủ quán duyệt 08–09.11)
 - **Dòng thẻ** trong `mon[]` của `POST /gio/bao-gia` và `POST /don`: `{ loai: "the", hang_id, so_thang, so_luong? }` — `hang_id` = `id` của `/hang`,
@@ -108,8 +115,8 @@ Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (ch�
   `tai_khoan_me` (ví mẹ) · `chuyen_khoan` (QR / chuyển khoản) · `tien_mat`. Đơn trả ví + QR → hai dòng. Tổng `so_tien` = `da_tra`. Đơn App chưa trả /
   huỷ trước khi trả → `[]`; đơn cũ thiếu tiền → `null`.
 - `so_mon` (tổng số ly / món, số nguyên) và `mon_dau` (tên món đầu): `null` khi đơn thật không còn dòng món.
-- `giam`: tổng tiền đã giảm = giảm hạng + Flash + mã / quà (số dương, đúng tổng các dòng `giam_hang` `giam_flash` `giam_ma` in trên `hoa_don[]`);
-  `0` khi không giảm; `null` khi đơn cũ thiếu tổng. Phí giao KHÔNG tính là giảm.
+- `giam`: tổng tiền đã giảm = giảm hạng + Flash + mã / quà (số dương, đúng tổng các dòng `giam_hang` `giam_flash` `giam_ma` `voucher` (v15) in trên `hoa_don[]`);
+  `0` khi không giảm; `null` khi đơn cũ thiếu tổng. Phí giao KHÔNG tính là giảm (kể cả dòng `giam_ship` — v15).
 
 ### Ghi chú v11 — số hoá đơn và tiền về muộn (CK-NOIDUNG-1)
 - `so_hd` (`GET /don`, `GET /don/:ma`, `POST /don`): số hoá đơn POS của đơn — ĐÚNG chuỗi in to trên bill và trong nội dung chuyển khoản: `APP0016` (đơn App),
@@ -133,7 +140,8 @@ Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (ch�
   cùng dữ liệu + cùng chữ ở Cài đặt hoá đơn; App chỉ vẽ theo thứ tự, không tự tính / xếp. Mỗi dòng đủ 6 trường: `loai` (xem dưới), `trai`, `phai`
   (chữ, có thể rỗng), `dam` (true = in đậm cả dòng), `gach` (chữ gạch ngang — giá gốc của món có giá hạng, còn lại rỗng), `ghi_chu` (ghi chú của món).
   `loai`: `canh_bao` (đơn huỷ / hoàn) · `ten_quan` · `dia_chi` · `so_bill` (trai = chữ "SỐ BILL", phai = số bill) · `nhan` · `gio` (trai = giờ, phai = nhân viên — RỖNG với đơn App, chủ quán 03.11)
-  · `khach` (trai = nhãn, phai = tên) · `mon` (trai = "SL x tên", phai = thành tiền) · dòng tiền `gia_goc` `giam_hang` `giam_flash` `giam_ma` `phi_giao` `tong`
+  · `khach` (trai = nhãn, phai = tên) · `mon` (trai = "SL x tên", phai = thành tiền) · dòng tiền `gia_goc` `giam_hang` `giam_flash` `giam_ma` `voucher` (v15)
+  `phi_giao` `giam_ship` (v15) `tong`
   · `tieu_de` (đầu mục THANH TOÁN / ĐIỂM THƯỞNG) · dòng trả `tu_tk` `tu_tk_me` `ck` `tm` `ghi_no` `dua_tra` `ma_gd` (v11: trai = "Mã GD", phai = mã giao dịch ngân hàng) · dòng điểm `diem_truoc` `diem_doi` `diem_cong`
   `diem_co` · `chan` (lời cảm ơn, chính sách, ghi chú). App bỏ qua `loai` lạ nhưng vẫn vẽ `trai` / `phai`. KHÔNG có QR, mã nhận điểm, SĐT. Đơn App chưa
   có đơn thật (đang chờ trả, hoặc huỷ TRƯỚC khi trả) hoặc máy chủ không dựng được tờ → `[]` (App tự vẽ từ `mon[]`).
@@ -252,8 +260,8 @@ Trong `voucher_loi[].code` của báo giá (v15): `VOUCHER_KHONG_TON_TAI` · `VO
 `nhan-ma-bill` / `nhan-diem` dùng hàm quầy, thêm các mã: `THIEU_MA` 400 · `MA_KHONG_TON_TAI` 404 · `MA_DA_DUNG` 409 · `UU_DAI_DANG_TAT` 400 ·
 `SDT_DA_NHAN` 400 · `DON_FLASH_KHONG_DIEM` 400 · `CAU_HINH_DIEM_SAI` 400 · `CHUA_CAU_HINH_NHOM` 500 · `MA_KHONG_GAN_DON` 400 · `KHONG_THAY_DON` 404 ·
 `DON_DA_HUY` 400 · `DON_DA_HOAN` 400 · `DON_KHONG_HOP_LE` 400 · `BILL_CHUA_THANH_TOAN` 400 · `BILL_SDT_KHAC` 400 · `NHANDIEM_DANG_TAT` 400 ·
-`MA_DA_NHAN_DIEM` 400 · `TICH_DIEM_DANG_TAT` 400 · `DON_KHONG_DU_DIEM` 400 · `KHONG_THEM_DIEM` 400 · `MA_TRUNG` 409 (cùng `MA_HET_HAN`,
-`SDT_KHONG_HOP_LE` ở trên). `MA_HET_HAN` của `nhan-ma-bill` ghi đúng số giờ của cài đặt hạn mã (bằng số giờ in trên bill).
+`MA_DA_NHAN_DIEM` 400 · `TICH_DIEM_DANG_TAT` 400 · `DON_KHONG_DU_DIEM` 400 · `KHONG_THEM_DIEM` 400 · `MA_TRUNG` 409 (không còn trả từ v15) ·
+`CAN_TAO_TAI_KHOAN` 400 (v15) · `KHACH_DA_CO_TAI_KHOAN` 400 (v15) · `UU_DAI_CHUA_CO_MAU` 400 (v15) (cùng `MA_HET_HAN`, `SDT_KHONG_HOP_LE` ở trên). `MA_HET_HAN` của `nhan-ma-bill` ghi đúng số giờ của cài đặt hạn mã (bằng số giờ in trên bill).
 Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa (không lộ lời máy). App hiện nguyên `error`.
 
 ## Đã hẹn (chưa có — ghi vào khi xong, tăng PHIEN_BAN)
@@ -314,7 +322,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     "MA_KHONG_AP_DUNG", "MA_KHONG_CO_MON", "MA_KHONG_LOI_HON", "NGAY_SINH_SAI", "NGAY_SINH_DA_CO",
     "NHIEU_THE", "HANG_CHI_CAP", "GOI_HANG_KHONG_BAN", "DA_CO_HANG_CAO_HON",
     "VOUCHER_KHONG_TON_TAI", "VOUCHER_CHINH_CHU", "VOUCHER_DA_DUNG", "VOUCHER_HET_HAN", "VUOT_SO_VOUCHER", "VOUCHER_SHIP_CAN_GIAO", "MA_KHONG_AP_MON_THUONG",
-    "VOUCHER_CHUA_DU_DON", "VOUCHER_PHAN_TRAM_FLASH", "VOUCHER_PHAN_TRAM_HAI", "VOUCHER_KHONG_CO_MON"]
+    "VOUCHER_CHUA_DU_DON", "VOUCHER_PHAN_TRAM_FLASH", "VOUCHER_PHAN_TRAM_HAI", "VOUCHER_KHONG_CO_MON",
+    "CAN_TAO_TAI_KHOAN", "KHACH_DA_CO_TAI_KHOAN", "UU_DAI_CHUA_CO_MAU"]
 }
 ```
 <!-- HET HOP_DONG_MAY_DOC -->
@@ -369,5 +378,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   (nhãn ngắn lý do quán huỷ, không có ghi chú nội bộ). Không xoá / đổi tên trường cũ — App v13 bỏ qua trường lạ là chạy nguyên.
 - v15 · 12.11.2026 · VOUCHER-2 (máy viết v14; chat gộp 13.11 đổi v15 vì HUY-1 gộp trước): `GET /voucher` mỗi dòng thêm `mo_ta`, `nguon`, `kieu` + cột luật mã (`min_order`, `giam_ship`, `ap_dung`, `chinh_chu`);
   `POST /gio/bao-gia` / `POST /don` nhận `vouchers[]` (nhiều voucher một đơn + một mã chung), báo giá thêm `voucher_loi[]`, `giam[]` thêm `loai` `voucher` /
-  `voucher_ship` kèm `ma`; mã / voucher không áp lên thẻ hạng (`MA_KHONG_AP_MON_THUONG`); 11 mã lỗi voucher. Không xoá / đổi tên trường cũ — App v13 gửi
+  `voucher_ship` kèm `ma`; mã / voucher không áp lên thẻ hạng (`MA_KHONG_AP_MON_THUONG`); 11 mã lỗi voucher; `nhan-ma-bill` chỉ cho tài khoản tạo sau lúc in
+  bill, phát voucher MỚI theo mẫu (`data.voucher_code` = mã mới, thêm `data.mo_ta`; lỗi `CAN_TAO_TAI_KHOAN`, `KHACH_DA_CO_TAI_KHOAN`, `UU_DAI_CHUA_CO_MAU`);
+  `hoa_don[]` thêm dòng `voucher`, `giam_ship`. Không xoá / đổi tên trường cũ — App v13 gửi
   `ma_giam` (kể cả mã voucher) chạy như trước; giỏ không `vouchers` băm khoá gửi y như cũ.
