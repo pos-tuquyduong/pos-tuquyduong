@@ -208,6 +208,13 @@ export default function DoiSoat() {
             </div>
           )}
 
+          {(t?.huy_don?.hoan_tai_khoan > 0 || t?.huy_don?.hoan_tien_mat > 0) && (
+            <div className="card mb-1">   {/* HUY-1 (F): số máy chủ tính — két tiền mặt ở trên đã trừ phần hoàn tiền mặt khách lẻ */}
+              <div>Huỷ đơn — hoàn vào tài khoản khách: <b>{dong(t.huy_don.hoan_tai_khoan)}</b></div>
+              <div>Hoàn tiền mặt khách lẻ: <b>{dong(t.huy_don.hoan_tien_mat)}</b> (đã tính vào "trả ra" của tiền mặt)</div>
+            </div>
+          )}
+
           {t?.giao?.so_don > 0 && (
             <div className="card mb-1">   {/* GIAO-1 (K): tiền ship Ahamove của kỳ */}
               <b>Giao hàng Ahamove · {t.giao.so_don} đơn</b>

@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi, api } from '../utils/api';
 import { ngayVN, hienNgayGio } from '../utils/ngayVN';
+import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';
+import { coChuaLuu } from '../components/thayDoiKho.js';
+import ThanhLuu from '../components/ThanhLuu';
 import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
 import GioHoatDong from './CaiDat/GioHoatDong';
 import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phiếu kho
@@ -46,7 +49,7 @@ export default function Settings() {
   const [allPerms, setAllPerms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  
 
   // Loyalty settings (LOY-1)
   const [loyalty, setLoyalty] = useState({
@@ -164,7 +167,7 @@ export default function Settings() {
       } else if (tab === 'tiers') {
         await loadUuDaiChung();   // hạng + gói tự tải trong HangThe
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { baoLoiTu('tải dữ liệu của thẻ này', err); }
     finally { setLoading(false); }
   };
 
@@ -182,7 +185,7 @@ export default function Settings() {
         return;
       }
       setBackupInfo(data);
-    } catch (err) { console.error(err); }
+    } catch (err) { baoLoiTu('tải thông tin sao lưu', err); }
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -258,7 +261,7 @@ export default function Settings() {
   // Doi the LA tai lai du lieu tu may chu (useEffect [tab]) — phan gia vua
   // go ma chua luu se bi ghi de va MAT, khong canh bao gi. Truoc day chi mat
   // khi bam the khac; hang nhom moi them mot duong nua de mat.
-  // Chi hoi khi dang o the Gia ban, vi chi the do co phep dem thay doi.
+  // BAO-1b: the nao co thanh "Co thay doi chua luu" (ThanhLuu) tu ghi vao thayDoiKho -> coChuaLuu() hoi lai o day; the Gia ban co phep dem rieng.
   const doiThe = (t) => {
     if (t !== tab && tab === 'products') {
       const n = demThayDoi();
@@ -266,6 +269,7 @@ export default function Settings() {
         `Còn ${n} thay đổi chưa lưu ở bảng giá. Rời đi sẽ mất. Vẫn rời?`
       )) return;
     }
+    if (t !== tab && tab !== 'products' && coChuaLuu() && !window.confirm('Còn thay đổi chưa lưu ở thẻ này. Rời đi sẽ mất. Vẫn rời?')) return;
     setTab(t);
   };
 
@@ -320,8 +324,7 @@ export default function Settings() {
     if (okGia && okNhom) {
       chupLaiGia(products, signupGroupMembers);
     } else {
-      setMessage('Chưa lưu được hết — số thay đổi vẫn còn, bấm lại để thử.');
-      setTimeout(() => setMessage(''), 5000);
+      baoLoi('Chưa lưu được hết', 'Số thay đổi vẫn còn, bấm Lưu lại để thử.');
     }
   };
   // ═══ het POS-MOTNUTLUU-v1 ════════════════════════════════════════════
@@ -339,11 +342,10 @@ export default function Settings() {
         };
       });
       const data = await pkgApi('PUT', '/api/pos/product-groups/khach_moi/members', { members });
-      setMessage(data.success ? `Đã lưu nhóm sản phẩm (${data.data.count} món)` : 'Lỗi: ' + data.error);
-      setTimeout(() => setMessage(''), 3000);
+      if (data.success) baoXong(`Đã lưu nhóm sản phẩm khách mới (${data.data.count} món)`); else baoLoiTu('lưu nhóm sản phẩm', data);
       return !!data.success;   // POS-MOTNUTLUU-v1: may chu tra success=false cung la HONG
     } catch (err) {
-      setMessage('Lỗi: ' + err.message);
+      baoLoiTu('lưu nhóm sản phẩm', err);
       return false;
     } finally {
       setSavingSignupGroup(false);
@@ -366,17 +368,17 @@ export default function Settings() {
     if (allProducts.length === 0) {
       pkgApi('GET', '/api/pos/products?with_stock=true').then(data => {
         if (Array.isArray(data)) setAllProducts(data);
-      }).catch(() => {});
+      }).catch((e) => baoLoiTu('tải danh sách sản phẩm cho gói', e));
     }
   };
   // GOI-1 (Q1): gói có danh sách loại → Tổng SL SP = cộng SL các loại, không gõ tay (máy chủ cũng tự tính lại).
   const doiLoai = (items) => setPkgForm({ ...pkgForm, package_items: items, total_qty: items.length ? items.reduce((s, i) => s + (i.qty || 0), 0) : pkgForm.total_qty });
   const savePkg = async () => {
-    if (!pkgForm.code || !pkgForm.name) { setMessage('Lỗi: Mã và tên bắt buộc'); return; }
-    if (!(parseFloat(pkgForm.price) > 0)) { setMessage('Lỗi: Giá bán của gói phải lớn hơn 0đ'); return; }
-    if (pkgForm.package_items.some(i => !(Number.isInteger(i.qty) && i.qty >= 1))) { setMessage('Lỗi: SP đã tích trong gói phải có SL từ 1 trở lên'); return; }
+    if (!pkgForm.code || !pkgForm.name) { baoLoi('Chưa lưu gói sản phẩm được', 'Mã và tên bắt buộc'); return; }
+    if (!(parseFloat(pkgForm.price) > 0)) { baoLoi('Chưa lưu gói sản phẩm được', 'Giá bán của gói phải lớn hơn 0đ'); return; }
+    if (pkgForm.package_items.some(i => !(Number.isInteger(i.qty) && i.qty >= 1))) { baoLoi('Chưa lưu gói sản phẩm được', 'SP đã tích trong gói phải có SL từ 1 trở lên'); return; }
     // P26c (Câu hỏi 3): số lượt bán theo gói đã cài — không cho lưu gói dưới 1 lượt (máy chủ cũng chặn).
-    if (!(parseInt(pkgForm.total_qty) >= 1)) { setMessage('Lỗi: Tổng SL SP của gói phải từ 1 trở lên'); return; }
+    if (!(parseInt(pkgForm.total_qty) >= 1)) { baoLoi('Chưa lưu gói sản phẩm được', 'Tổng SL SP của gói phải từ 1 trở lên'); return; }
     setSaving(true);
     try {
       const url = editingPkg ? `/api/pos/packages/${editingPkg.id}` : '/api/pos/packages';
@@ -387,17 +389,21 @@ export default function Settings() {
       };
       const data = await pkgApi(editingPkg ? 'PUT' : 'POST', url, body);
       if (!data.success) throw new Error(data.error);
-      setMessage(data.message); setShowPkgModal(false); await loadPackages();
-    } catch (err) { setMessage('Lỗi: ' + err.message); } finally { setSaving(false); }
+      baoXong(data.message || `Đã ${editingPkg ? 'lưu' : 'thêm'} gói ${pkgForm.name}`); setShowPkgModal(false); await loadPackages();
+    } catch (err) { baoLoiTu('lưu gói sản phẩm', err); } finally { setSaving(false); }
   };
   const deletePkg = async (pkg) => {
     if (!confirm(`Xóa gói "${pkg.name}"?`)) return;
     const data = await pkgApi('DELETE', `/api/pos/packages/${pkg.id}`);
-    setMessage(data.success ? data.message : 'Lỗi: ' + data.error); if (data.success) await loadPackages();
+    if (data.success) { baoXong(data.message || `Đã xoá gói ${pkg.name}`); await loadPackages(); } else baoLoiTu('xoá gói', data);
   };
   const togglePkg = async (pkg) => {
-    await pkgApi('PUT', `/api/pos/packages/${pkg.id}`, { is_active: !pkg.is_active });
-    await loadPackages();
+    try {
+      const data = await pkgApi('PUT', `/api/pos/packages/${pkg.id}`, { is_active: !pkg.is_active });
+      if (data && data.success === false) throw data;
+      baoXong(`Đã ${pkg.is_active ? 'tắt' : 'bật'} gói ${pkg.name}`);
+      await loadPackages();
+    } catch (err) { baoLoiTu(`${pkg.is_active ? 'tắt' : 'bật'} gói`, err); }
   };
 
   // Products functions
@@ -426,10 +432,9 @@ export default function Settings() {
         price: p.price,
         is_special_group: !!p.is_special_group
       })));
-      setMessage('Đã lưu giá thành công!');
-      setTimeout(() => setMessage(''), 3000);
+      baoXong('Đã lưu giá thành công');
       return true;   // POS-MOTNUTLUU-v1: bao cho nut gop biet da luu duoc
-    } catch (err) { setMessage('Lỗi: ' + err.message); return false; }
+    } catch (err) { baoLoiTu('lưu giá bán', err); return false; }
     finally { setSaving(false); }
   };
 
@@ -446,11 +451,10 @@ export default function Settings() {
     try {
       const data = await pkgApi('POST', `/api/pos/signup-codes/${row.id}/reset`);
       if (!data.success) throw new Error(data.error);
-      setMessage(data.message);
-      setTimeout(() => setMessage(''), 4000);
+      baoXong(data.message || `Đã hoàn tác claim ưu đãi của SĐT ${row.claimed_phone}`);
       await loadClaimedSignupCodes();
     } catch (err) {
-      setMessage('Lỗi: ' + err.message);
+      baoLoiTu('hoàn tác claim ưu đãi', err);
     } finally {
       setResettingSignupId(null);
     }
@@ -489,11 +493,10 @@ export default function Settings() {
         },
       });
       if (!kq.success) throw new Error(kq.error || 'Không lưu được');
-      setMessage('Đã lưu cấu hình nhân điểm');
-      setTimeout(() => setMessage(''), 3000);
+      baoXong('Đã lưu cấu hình nhân điểm');
       await loadNhanDiemCfg();
     } catch (err) {
-      setMessage('Lỗi: ' + err.message);
+      baoLoiTu('lưu cấu hình nhân điểm', err);
     } finally {
       setSaving(false);
     }
@@ -532,9 +535,8 @@ export default function Settings() {
         },
       });
       if (!data.success) throw new Error(data.error);
-      setMessage('Đã lưu cấu hình ưu đãi khách mới!');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+      baoXong('Đã lưu cấu hình ưu đãi khách mới');
+    } catch (err) { baoLoiTu('lưu ưu đãi khách mới', err); }
     finally { setSaving(false); }
   };
 
@@ -565,9 +567,8 @@ export default function Settings() {
         },
       });
       if (!data.success) throw new Error(data.error);
-      setMessage('Đã lưu cài đặt điểm thưởng!');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+      baoXong('Đã lưu cài đặt điểm thưởng');
+    } catch (err) { baoLoiTu('lưu cài đặt điểm thưởng', err); }
     finally { setSaving(false); }
   };
 
@@ -595,19 +596,26 @@ export default function Settings() {
       if (!data.success) throw new Error(data.error);
       setRewardForm({ name: '', points_cost: '', discount_type: 'fixed', discount_value: '', max_discount: '', valid_days: '30' });
       await loadRewards();
-      setMessage('Đã thêm quà!');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+      baoXong('Đã thêm quà');
+    } catch (err) { baoLoiTu('thêm quà', err); }
     finally { setSaving(false); }
   };
   const toggleReward = async (r) => {
-    const data = await pkgApi('PUT', `/api/pos/rewards/${r.id}`, { is_active: r.is_active ? 0 : 1 });
-    if (data.success) await loadRewards();
+    try {
+      const data = await pkgApi('PUT', `/api/pos/rewards/${r.id}`, { is_active: r.is_active ? 0 : 1 });
+      if (!data.success) throw data;
+      baoXong(`Đã ${r.is_active ? 'tắt' : 'bật'} quà ${r.name}`);
+      await loadRewards();
+    } catch (err) { baoLoiTu(`${r.is_active ? 'tắt' : 'bật'} quà`, err); }
   };
   const deleteReward = async (r) => {
     if (!window.confirm(`Ẩn quà "${r.name}"?`)) return;
-    const data = await pkgApi('DELETE', `/api/pos/rewards/${r.id}`);
-    if (data.success) await loadRewards();
+    try {
+      const data = await pkgApi('DELETE', `/api/pos/rewards/${r.id}`);
+      if (!data.success) throw data;
+      baoXong(`Đã ẩn quà ${r.name}`);
+      await loadRewards();
+    } catch (err) { baoLoiTu('ẩn quà', err); }
   };
 
   // Flash sale functions (F1)
@@ -653,10 +661,9 @@ export default function Settings() {
         },
       });
       if (!data.success) throw new Error(data.error);
-      setMessage('Đã lưu cấu hình flash sale!');
-      setTimeout(() => setMessage(''), 3000);
+      baoXong('Đã lưu cấu hình flash sale');
       await loadFlash();
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    } catch (err) { baoLoiTu('lưu cấu hình flash sale', err); }
     finally { setSaving(false); }
   };
 
@@ -666,16 +673,15 @@ export default function Settings() {
       const data = await api.get('/settings');
       const s = data.data || {};
       setUuDaiChung(Object.fromEntries(LOAI_MA_CHUNG.map(([k]) => [k, s[k] === '0' ? '0' : '1'])));
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    } catch (err) { baoLoiTu('tải cách dùng mã giảm', err); }
   };
   const saveUuDaiChung = async () => {
     setSaving(true);
     try {
       await api.put('/settings', { settings: uuDaiChung });
-      setMessage('Đã lưu cách dùng mã giảm với giá hạng');
-      setTimeout(() => setMessage(''), 3000);
+      baoXong('Đã lưu cách dùng mã giảm với giá hạng');
       await loadUuDaiChung();
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    } catch (err) { baoLoiTu('lưu cách dùng mã giảm với giá hạng', err); }
     finally { setSaving(false); }
   };
   // Permissions functions
@@ -691,9 +697,8 @@ export default function Settings() {
     try {
       await usersApi.updatePermissions('manager', permissions.manager);
       await usersApi.updatePermissions('staff', permissions.staff);
-      setMessage('Đã lưu phân quyền!');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+      baoXong('Đã lưu phân quyền');
+    } catch (err) { baoLoiTu('lưu phân quyền', err); }
     finally { setSaving(false); }
   };
 
@@ -724,22 +729,21 @@ export default function Settings() {
           display_name: userForm.display_name,
           role: userForm.role
         });
-        setMessage('Đã cập nhật nhân viên!');
+        baoXong('Đã cập nhật nhân viên');
       } else {
         // Create new user
         if (!userForm.username || !userForm.password) {
-          setMessage('Lỗi: Vui lòng nhập đầy đủ thông tin');
+          baoLoi('Chưa lưu nhân viên được', 'Vui lòng nhập đầy đủ thông tin');
           setSaving(false);
           return;
         }
         await usersApi.create(userForm);
-        setMessage('Đã thêm nhân viên mới!');
+        baoXong('Đã thêm nhân viên mới');
       }
       setShowUserModal(false);
       loadData();
-      setTimeout(() => setMessage(''), 3000);
     } catch (err) { 
-      setMessage('Lỗi: ' + err.message); 
+      baoLoiTu('lưu nhân viên', err); 
     }
     finally { setSaving(false); }
   };
@@ -747,20 +751,18 @@ export default function Settings() {
   const toggleUserActive = async (user) => {
     try {
       await usersApi.update(user.id, { is_active: !user.is_active });
-      setMessage(user.is_active ? 'Đã vô hiệu hóa nhân viên' : 'Đã kích hoạt nhân viên');
+      baoXong(user.is_active ? `Đã vô hiệu hóa nhân viên ${user.display_name || user.username}` : `Đã kích hoạt nhân viên ${user.display_name || user.username}`);
       loadData();
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    } catch (err) { baoLoiTu('đổi trạng thái nhân viên', err); }
   };
 
   const deleteUser = async (user) => {
     if (!confirm(`Xóa vĩnh viễn nhân viên "${user.display_name || user.username}"?\nHành động này không thể hoàn tác.`)) return;
     try {
       await usersApi.delete(user.id);
-      setMessage('Đã xóa nhân viên');
+      baoXong('Đã xóa nhân viên');
       loadData();
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    } catch (err) { baoLoiTu('xoá nhân viên', err); }
   };
 
   const openResetPassword = (user) => {
@@ -772,20 +774,19 @@ export default function Settings() {
 
   const resetPassword = async () => {
     if (!newPassword || newPassword.length < 6) {
-      setMessage('Lỗi: Mật khẩu phải có ít nhất 6 ký tự');
+      baoLoi('Chưa đặt lại mật khẩu được', 'Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setMessage('Lỗi: Mật khẩu xác nhận không khớp');
+      baoLoi('Chưa đặt lại mật khẩu được', 'Mật khẩu xác nhận không khớp');
       return;
     }
     setSaving(true);
     try {
       await usersApi.resetPassword(editingUser.id, newPassword);
-      setMessage('Đã đặt lại mật khẩu!');
+      baoXong('Đã đặt lại mật khẩu');
       setShowPasswordModal(false);
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) { setMessage('Lỗi: ' + err.message); }
+    } catch (err) { baoLoiTu('đặt lại mật khẩu', err); }
     finally { setSaving(false); }
   };
 
@@ -808,9 +809,9 @@ export default function Settings() {
       a.download = `POS-backup-${ngayVN()}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-      setMessage('✅ Đã tải file backup');
+      baoXong('Đã tải file backup');
     } catch (err) {
-      setMessage('Lỗi: ' + err.message);
+      baoLoiTu('tải file sao lưu', err);
     } finally {
       setExporting(false);
     }
@@ -834,7 +835,7 @@ export default function Settings() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setMessage('Lỗi: ' + err.message);
+      baoLoiTu('tải bảng sao lưu', err);
     }
   };
 
@@ -843,7 +844,7 @@ export default function Settings() {
     if (!file) return;
 
     if (!file.name.endsWith('.xlsx')) {
-      setMessage('Lỗi: Vui lòng chọn file .xlsx');
+      baoLoi('Chưa đọc file khôi phục được', 'Vui lòng chọn file .xlsx');
       e.target.value = '';
       return;
     }
@@ -866,10 +867,10 @@ export default function Settings() {
         setRestoreFile(file);
         setShowRestoreConfirm(true);
       } else {
-        setMessage('Lỗi: ' + data.error);
+        baoLoiTu('đọc file khôi phục', data);
       }
     } catch (err) {
-      setMessage('Lỗi: ' + err.message);
+      baoLoiTu('đọc file khôi phục', err);
     }
     e.target.value = '';
   };
@@ -895,14 +896,14 @@ export default function Settings() {
           .filter(r => r.status === 'restored')
           .map(r => `${r.sheet}: ${r.rows}/${r.total}`)
           .join(', ');
-        setMessage(`✅ Khôi phục thành công! ${summary}. Trang sẽ tải lại...`);
+        baoXong(`Khôi phục thành công! ${summary}. Trang sẽ tải lại...`);
         setShowRestoreConfirm(false);
         setTimeout(() => window.location.reload(), 3000);
       } else {
-        setMessage('Lỗi: ' + data.error);
+        baoLoiTu('khôi phục dữ liệu', data);
       }
     } catch (err) {
-      setMessage('Lỗi: ' + err.message);
+      baoLoiTu('khôi phục dữ liệu', err);
     } finally {
       setRestoring(false);
     }
@@ -912,7 +913,6 @@ export default function Settings() {
     <>
       <header className="page-header"><h1 className="page-title">⚙️ Cài đặt</h1></header>
       <div className="page-content">
-        {message && <div className={`alert ${message.includes('Lỗi') ? 'alert-danger' : 'alert-success'}`}>{message}</div>}
         <CongQr />
 
         {/* POS-BOCUC-v1: hang chon NHOM. Hang the ben duoi chi hien the
@@ -1046,6 +1046,7 @@ export default function Settings() {
                   );
                 })()}
               </div>
+              <ThanhLuu id="gia-ban" coDoi={demThayDoi() > 0} dangLuu={saving || savingSignupGroup} onLuu={luuTatCaThayDoi} onBo={loadData} />
               <table className="table">
                 <thead>
                   <tr>
@@ -1187,7 +1188,7 @@ export default function Settings() {
                         </td>
                         <td>
                           <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', marginRight: '0.25rem' }}
-                            onClick={() => { if (locked) { setMessage(`Lỗi: ${pkg.active_users} KH đang dùng gói — không sửa được. Tạo gói mới!`); return; } openPkgModal(pkg); }}>
+                            onClick={() => { if (locked) { baoLoi('Chưa sửa gói được', `${pkg.active_users} KH đang dùng gói — không sửa được. Tạo gói mới!`); return; } openPkgModal(pkg); }}>
                             {locked ? '🔒' : <Edit2 size={14} />}
                           </button>
                           <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', color: '#ef4444' }} onClick={() => deletePkg(pkg)}><Trash2 size={14} /></button>

@@ -274,8 +274,9 @@ async function main() {
       `${moTa(h)} · ví ${g.vi0} → ${await vi(g.sdt)}`);
     const dongSo = JSON.stringify(await db.query("SELECT payment_method AS cach, amount FROM pos_balance_transactions WHERE order_id = ? AND type = 'refund' ORDER BY id", [g.don]));
     const tieu = (sdt) => so('SELECT total_spent FROM pos_wallets WHERE phone = ?', [sdt]);
-    k('A5c2 sổ: 100.000 phần ví (cash) + 80.000 phần tiền mặt (hoan_goi); total_spent về 0 (mua 100.000 − hoàn 100.000), không âm',
-      dongSo === JSON.stringify([{ cach: 'cash', amount: 100000 }, { cach: 'hoan_goi', amount: 80000 }]) && await tieu(g.sdt) === 0,
+    // HUY-1 (Q2): phần tiền mặt khi HUỶ đơn ghi cách riêng huy_tien_mat (xoá đơn / kết thúc gói vẫn hoan_goi)
+    k('A5c2 sổ: 100.000 phần ví (cash) + 80.000 phần tiền mặt (huy_tien_mat); total_spent về 0 (mua 100.000 − hoàn 100.000), không âm',
+      dongSo === JSON.stringify([{ cach: 'cash', amount: 100000 }, { cach: 'huy_tien_mat', amount: 80000 }]) && await tieu(g.sdt) === 0,
       `${dongSo} · total_spent ${await tieu(g.sdt)}`);
 
     const g2 = await goiDaLay({ cash_amount: 300000 }, 0);
@@ -325,11 +326,12 @@ async function main() {
     const dThe = await taoDon({ customer_phone: sdt, items: [mon(0)], payment_method: 'balance', balance_amount: 25000 });
     await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at)
       VALUES (?, 1, 'Vàng', 25000, ?, datetime('now'), datetime('now', '+30 days'))`, [sdt, dThe]);
-    const hThe = await huy(dThe, 'staff');
+    // HUY-1 (B): nhân viên không còn quyền huỷ → ca dùng quản lý (cũng KHÔNG có refund_package) — cổng gói vẫn chỉ bắt đơn MUA gói
+    const hThe = await huy(dThe, 'manager');
     const dLay = (await goiDaLay({ cash_amount: 300000 }, 0));
     const lNv = await lay(dLay.sdt, dLay.cp, 1);
-    const hLay = await huy(lNv.order?.id, 'staff');
-    k('A5k (K5) nhân viên huỷ đơn mua THẺ, đơn LẤY từ gói → 200, 200 (cổng chỉ bắt đơn MUA gói)', hThe.status === 200 && hLay.status === 200,
+    const hLay = await huy(lNv.order?.id, 'manager');
+    k('A5k (K5) quản lý (không có quyền hoàn gói) huỷ đơn mua THẺ, đơn LẤY từ gói → 200, 200 (cổng chỉ bắt đơn MUA gói)', hThe.status === 200 && hLay.status === 200,
       `${moTa(hThe)} / ${moTa(hLay)}`);
   }
 
@@ -507,7 +509,8 @@ async function main() {
     const d = await taoDon({ customer_phone: sdt, items: [mon(0, 2)], payment_method: 'cash', cash_amount: 50000 });
     await baoHong(d, { product_code: sp[0].code, quantity: 1, action: 'refund', refund_amount: 10000 });
     const v = await vi(sdt); const hh = await huy(d);
-    k('B5d (K5) đơn tiền mặt đã đền 10.000 → huỷ 200, ví không đổi (không âm)', hh.status === 200 && await vi(sdt) === v, `${moTa(hh)} · ví ${v} → ${await vi(sdt)}`);
+    // HUY-1 (chủ quán 05.11): huỷ hoàn TOÀN BỘ đã trả trừ phần đã đền → 50.000 − 10.000 = 40.000 vào ví (tổng khách nhận lại = 50.000)
+    k('B5d (K5) đơn tiền mặt 50.000 đã đền 10.000 → huỷ 200, ví +40.000', hh.status === 200 && await vi(sdt) === v + 40000, `${moTa(hh)} · ví ${v} → ${await vi(sdt)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════

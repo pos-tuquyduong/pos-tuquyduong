@@ -22,7 +22,7 @@
 const crypto = require('crypto');
 const { query, queryOne, run } = require('../database');
 const { getNow, soHdCuaMa, chuoiSoHd } = require('./helpers');
-const { taoDon } = require('../routes/orders');
+const { taoDon, LY_DO_HUY } = require('../routes/orders');
 const { layMenuQuay } = require('../routes/products');
 const { docCaiDat, dangMo } = require('./gioHoatDong');
 const { taoPhien, chotPhien, gomRes } = require('./giuCho');
@@ -366,6 +366,9 @@ async function tomTatDonThat(rows) {
   for (const o of await query(`SELECT * FROM pos_orders WHERE id IN (${cho})`, ids)) kq.set(o.id, { o });
   for (const m of await query(`SELECT order_id, SUM(quantity) AS n, (SELECT product_name FROM pos_order_items i WHERE i.order_id = g.order_id ORDER BY i.id LIMIT 1) AS ten
       FROM pos_order_items g WHERE order_id IN (${cho}) GROUP BY order_id`, ids)) Object.assign(kq.get(m.order_id) || {}, { n: Number(m.n), ten: m.ten });
+  // HUY-1 (H): tiền đã hoàn vào tài khoản CHÍNH khách của đơn (SĐT đơn = SĐT token; ví mẹ không tính)
+  for (const h of await query(`SELECT t.order_id, SUM(t.amount) AS n FROM pos_balance_transactions t JOIN pos_orders o ON o.id = t.order_id AND o.customer_phone = t.customer_phone
+      WHERE t.type = 'refund' AND t.order_id IN (${cho}) GROUP BY t.order_id`, ids)) Object.assign(kq.get(h.order_id) || {}, { hoan: Number(h.n) });
   return kq;
 }
 
@@ -378,6 +381,9 @@ function tomDon(r, ext) {
     tien_ve_cho_doi_soat: tt === 'da_huy' && !!r.tien_ve,
     tien_ve_da_cong_vi: Number(r.vao_vi || 0),
     thong_bao_tien_ve: thongBaoTienVe(r),
+    // HUY-1 (H): đơn đã huỷ → số đã hoàn vào tài khoản khách + CHỈ nhãn lý do (không "ghi thêm" của nhân viên); đơn khác → null
+    hoan_vao_tai_khoan: tt === 'da_huy' ? (ext?.hoan ?? 0) : null,
+    ly_do_huy: tt === 'da_huy' ? (LY_DO_HUY[ext?.o?.huy_ly_do_ma] ?? null) : null,
     ...cachTraCua(r),
     ...tomTat(r, ext),
   };
@@ -429,7 +435,7 @@ async function huyDon(phone, ma) {
  *  HÔM NAY (tiền về được cộng vào tài khoản khách thay vì tạo đơn) một dòng tien_trinh 'vao_vi' — quầy thấy ngay, không có nút Đang làm / Xong. */
 async function dsQuay() {
   const ds = await query(`SELECT a.id, a.ma, a.than, a.tien_trinh_quay, a.nguoi_lam, a.luc_lam, a.nguoi_xong, a.luc_xong,
-      p.giu_vi, p.con_lai, p.trang_thai AS p_tt, p.het_han, p.luc_chot, o.code, o.customer_name, o.status
+      p.giu_vi, p.con_lai, p.trang_thai AS p_tt, p.het_han, p.luc_chot, o.id AS oid, o.code, o.customer_name, o.status
     FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id JOIN pos_orders o ON o.id = p.order_id
     WHERE p.trang_thai = 'da_thu' AND (p.luc_chot >= ? OR (a.tien_trinh_quay <> 'xong' AND ${DON_CON})) ORDER BY a.id DESC LIMIT 100`, [getNow().slice(0, 10) + 'T00:00:00']);
   const vv = await query(`SELECT s.id, s.so_tien, s.ly_do, s.luc, a.ma, c.name, ${SO_GIU} AS so_hd
@@ -438,7 +444,7 @@ async function dsQuay() {
     WHERE s.ket_qua = 'vao_vi' AND s.luc >= ? ORDER BY s.id DESC LIMIT 100`, [getNow().slice(0, 10) + 'T00:00:00']);
   return [...vv.map((r) => ({ id: `vao_vi:${r.id}`, ma: r.ma, so_hd: r.so_hd, gio: r.luc, ten_khach: r.name, tien_trinh: 'vao_vi', so_tien: r.so_tien,
     ly_do: r.ly_do, mon: [] })), ...ds.map((r) => { const dong = JSON.parse(r.than).dong; return {
-    id: r.id, ma: r.ma, ma_bill: r.code, so_hd: soHdCuaMa(r.code), gio: r.luc_chot, ten_khach: r.customer_name,
+    id: r.id, oid: r.oid, ma: r.ma, ma_bill: r.code, so_hd: soHdCuaMa(r.code), gio: r.luc_chot, ten_khach: r.customer_name,   // oid: HUY-1 huỷ qua route quầy
     co_the: dong.find((d) => d.loai === 'the')?.ten ?? null,   // KH-THE-1: quầy không pha dòng thẻ — chỉ hiện nhãn
     mon: dong.filter((d) => d.loai !== 'the').map((d) => ({ ten: d.ten, so_luong: d.so_luong, ghi_chu: d.ghi_chu })),
     da_tra: r.giu_vi + r.con_lai, tra_vi: r.giu_vi, tra_qr: r.con_lai,

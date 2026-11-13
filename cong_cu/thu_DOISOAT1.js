@@ -629,12 +629,16 @@ async function main() {
     k('E13 két 11.01 ghi lại SAU sao kê → ô sao kê tuần 11→17.01 vẫn lấy dòng SAO KÊ (đã so = 1), không phải dòng két',
       kT2b.status === 201 && t11.sao_ke?.loai === 'sao_ke' && t11.sao_ke?.da_so === 1, JSON.stringify(t11.sao_ke));
     // Vòng sửa 4: huỷ đơn THẺ hội viên trả tiền mặt — dòng thẻ product_id = −1.000.000 − tier.id (không phải dòng gói) → tiền trả tận tay
-    const dThe = await taoDon({ customer_phone: sdtMoi(), items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
+    // HUY-1 (chủ quán 05.11): khách CÓ SĐT → huỷ hoàn toàn bộ vào tài khoản khách → két KHÔNG trả ra; Đối soát có dòng "hoàn vào tài khoản"
+    const sdtThe = sdtMoi();
+    const dThe = await taoDon({ customer_phone: sdtThe, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
     const hThe = await huy(dThe);
     const n12 = await ds('chu', 'ngay', '2027-01-12');
-    k(`E14 mua thẻ ${Number(hang.card_price).toLocaleString('vi-VN')} tiền mặt rồi huỷ cùng ngày 12.01 → "trả ra" = giá thẻ (thẻ KHÔNG phải gói), ròng 0`,
-      hThe.status === 200 && n12.tien?.tien_mat?.ban === Number(hang.card_price) && n12.tien?.tien_mat?.tra_ra === Number(hang.card_price) && n12.tien?.tien_mat?.rong === 0,
-      `${moTa(hThe)} · ${JSON.stringify(n12.tien?.tien_mat)}`);
+    const viThe = Number((await db.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [sdtThe]))?.balance || 0);
+    k(`E14 khách có SĐT mua thẻ ${Number(hang.card_price).toLocaleString('vi-VN')} tiền mặt rồi huỷ cùng ngày 12.01 → ví khách + giá thẻ, két "trả ra" 0, ròng = giá thẻ`,
+      hThe.status === 200 && n12.tien?.tien_mat?.ban === Number(hang.card_price) && n12.tien?.tien_mat?.tra_ra === 0 && n12.tien?.tien_mat?.rong === Number(hang.card_price)
+      && viThe === Number(hang.card_price) && n12.tien?.huy_don?.hoan_tai_khoan === Number(hang.card_price),
+      `${moTa(hThe)} · ${JSON.stringify(n12.tien?.tien_mat)} · ví ${viThe} · ${JSON.stringify(n12.tien?.huy_don)}`);
   }
 
   // ═════════════════════════════════════════════════════════════════════════

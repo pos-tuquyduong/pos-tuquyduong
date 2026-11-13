@@ -256,7 +256,7 @@ const t=n=>n.toLocaleString('vi-VN')+'đ';
 const so3=n=>'#'+String(n).padStart(3,'0');
 const gio=ms=>new Date(ms).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
 
-const S={man:'ban',khach:null,timKH:'',quet:null,amThanh:true,loc:'tatca',chon:null,doi:null,lyDoi:null,huy:null,lyDo:null,
+const S={man:'ban',khach:null,timKH:'',quet:null,amThanh:true,loc:'tatca',chon:null,doi:null,lyDoi:null,huy:null,lyDo:null,huyDon:null,lyDoHuy:null,ghiThemHuy:'',
   cai:{ may:{khach:'quay',tem:'tem',pc:'quay'}, ban:{khach:1,tem:1,pc:1},
         quay:{khach:true,tem:true,pc:false}, ngoai:{khach:true,tem:true,pc:false}, app:{khach:false,tem:true,pc:true} },
   bat:{quay:true,tem:true,pc:true}, hetGiay:{quay:false,tem:false,pc:false}, lenh:[], idLenh:0, inLai:null, chonLai:{},
@@ -396,6 +396,28 @@ function doiCach(){ const d=S.don.find(x=>x.so===S.doi); if(!d||d.tt!=='da'||!S.
   hen=setTimeout(()=>{ d.cach=sang; d.dangDoi=false; ghi(d,'dc',`Đổi ${ten(tu)} → ${ten(sang)} · ${ly}`); S.bao=null; clearInterval(dem); ve(); },5000);
   S.hoanFn=()=>{ d.dangDoi=false; }; ve(); }
 function daGiao(so){ const d=S.don.find(x=>x.so===so); if(d){ d.giao=true; ghi(d,'d','Khách đã lấy'); S.ve='moi'; } ve(); }
+// HUY-1 (chủ quán 05.11): huỷ ĐƠN ĐÃ THU — ở chi tiết Lịch sử đơn và thẻ đơn App. Huỷ CẢ đơn; lý do bắt buộc ("Khác" phải ghi thêm);
+// hoàn TOÀN BỘ đã trả vào tài khoản khách (khách lẻ: trả tiền mặt từ két). KHÔNG hoàn tác 5 giây — tiền đã vào tài khoản khách.
+const LY_DO_HUY=[['pha_nham','Pha nhầm món'],['bam_nham','Bấm nhầm'],['het_nguyen_lieu','Hết nguyên liệu'],['khach_doi_y','Khách đổi ý'],['khac','Khác']];
+const huyDuoc=()=>!!S.lyDoHuy&&(S.lyDoHuy!=='khac'||!!S.ghiThemHuy.trim());
+const hoanCua=d=>d.khach?`hoàn ${t(d.tong)} vào tài khoản ${d.khach.ten}`:`trả khách ${t(d.tong)} tiền mặt từ két`;
+function moHuyDon(so){ S.huyDon=so; S.lyDoHuy=null; S.ghiThemHuy=''; ve(); }
+function khungHuyDon(d){
+  return `<div style="background:#fef2f2;border-radius:10px;padding:10px;margin-top:8px">
+    <div style="font-size:.8rem;font-weight:800;color:#991b1b;margin-bottom:6px">Huỷ đơn ${so3(d.so)} — lý do (bắt buộc)</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">${LY_DO_HUY.map(([ma,nhan])=>`<button class="nv" style="${S.lyDoHuy===ma?'background:#fee2e2;border-color:#dc2626':''}" onclick="S.lyDoHuy='${ma}';ve()">${nhan}</button>`).join('')}</div>
+    <input id="ghi-them-huy" placeholder="${S.lyDoHuy==='khac'?'Ghi rõ lý do (bắt buộc)':'Ghi thêm (không bắt buộc)'}" value="${S.ghiThemHuy}" style="width:100%;margin-top:7px;padding:7px;border:1px solid #fecaca;border-radius:8px;box-sizing:border-box"
+      oninput="S.ghiThemHuy=this.value;document.getElementById('nut-huy-don').disabled=!huyDuoc()">
+    <div style="font-size:.76rem;color:#7f1d1d;margin:7px 0">Huỷ cả đơn: ${hoanCua(d)}; trả hàng về kho. Không hoàn tác được.</div>
+    <div style="display:flex;gap:6px"><button class="nut xam" style="flex:1" onclick="S.huyDon=null;ve()">Không huỷ</button>
+      <button id="nut-huy-don" class="nut" style="flex:1.4;background:#dc2626" ${huyDuoc()?'':'disabled'} onclick="xacNhanHuyDon()">Huỷ đơn</button></div></div>`;
+}
+function xacNhanHuyDon(){ const d=S.don.find(x=>x.so===S.huyDon); if(!d||d.tt!=='da'||!huyDuoc()) return;
+  const nhan=LY_DO_HUY.find(x=>x[0]===S.lyDoHuy)[1], them=S.ghiThemHuy.trim();
+  const ly=S.lyDoHuy==='khac'?them:them?`${nhan} · ${them}`:nhan, hoan=hoanCua(d);
+  d.tt='huy'; d.lyDo=ly; d.giao=true; ghi(d,'h',`Huỷ đơn · ${ly} · ${hoan} · trả hàng về kho`);
+  S.huyDon=null; S.lyDoHuy=null; S.ghiThemHuy=''; if(S.ve===d.so) S.ve='moi';
+  thongBao(`${so3(d.so)} đã huỷ — ${hoan}`); }
 function thongBao(chu){ clearTimeout(hen); S.bao={chu}; hen=setTimeout(()=>{S.bao=null; ve();},6000); ve(); }
 
 // ─── thu bill đang mở ngoài bàn: không in gì thêm (khách đã cầm bill) ───
@@ -589,7 +611,8 @@ function khungApp(d){
     <div class="hai">
       <button class="nutto" style="background:var(--luc)" onclick="daGiao(${d.so})">✓ Khách đã lấy<small>đóng thẻ này</small></button>
       <button class="nutto" style="background:#475569" onclick="moInLai(${d.so})">🖨 In lại…<small>chọn tờ cần in</small></button>
-    </div>`;
+    </div>
+    ${S.huyDon===d.so?khungHuyDon(d):`<button class="nv" style="width:100%;margin-top:8px;color:#b91c1c" onclick="moHuyDon(${d.so})">✕ Huỷ đơn</button>`}`;
 }
 function khungInLai(d){
   const tems=temCua(d);
@@ -677,6 +700,7 @@ function ngan(){
   const coDoi=d.tt==='da'&&d.nguon!=='app'&&!d.dangDoi;
   let chan='';
   if(S.inLai===d.so) chan=khungInLai(d);
+  else if(S.huyDon===d.so) chan=khungHuyDon(d);
   else if(S.doi===d.so) chan=`<div style="background:#faf5ff;border-radius:10px;padding:10px">
       <div style="font-size:.8rem;font-weight:800;margin-bottom:6px">Đổi cách trả</div>
       <div style="font-size:.9rem;margin-bottom:8px"><s style="color:var(--mo)">${d.cach==='cash'?'💵 Tiền mặt':QR(14,2)+' Chuyển khoản'}</s> → <b>${d.cach==='cash'?QR(14,2)+' Chuyển khoản':'💵 Tiền mặt'}</b></div>
@@ -688,7 +712,8 @@ function ngan(){
       ${d.tt==='cho'?`<button class="nut" style="background:var(--duong)" onclick="moThe(${d.so})">→ Mở ở màn Bán hàng để thu</button>`:''}
       <button class="nut xam" onclick="moInLai(${d.so})">🖨 In lại…</button>
       ${coDoi?`<button class="nut" style="background:#f5f3ff;color:#6d28d9" onclick="S.doi=${d.so};S.lyDoi=null;ve()">⇄ Đổi cách trả</button>`:''}
-      ${d.tt==='da'?`<button class="nut xam">↩ Hoàn tiền <small style="font-weight:400">(đã có trong POS)</small></button>`:''}</div>`;
+      ${d.tt==='da'?`<button class="nut xam">↩ Hoàn tiền <small style="font-weight:400">(đã có trong POS)</small></button>`:''}
+      ${d.tt==='da'?`<button class="nut" style="background:#fef2f2;color:#b91c1c" onclick="moHuyDon(${d.so})">✕ Huỷ đơn</button>`:''}</div>`;
   return `<div class="ngan">
     <div class="hd"><b style="font-size:1.4rem">${so3(d.so)}${d.nguon==='app'?' 📱':''}</b><span style="cursor:pointer;font-size:1.2rem;padding:4px 8px" onclick="S.chon=null;S.doi=null;S.inLai=null;ve()">✕</span></div>
     <div class="bd">

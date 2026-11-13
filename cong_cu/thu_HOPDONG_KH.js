@@ -110,7 +110,12 @@ async function main() {
   // v12 (KH-TOMTAT-1): khối máy đọc ghi đủ 6 trường tóm tắt (cả /don, /don/:ma) + hợp đồng có mục chữ "Ghi chú v12"
   const thieuV12 = ['kenh', 'cach_nhan', 'tra', 'so_mon', 'mon_dau', 'giam'].flatMap((f) => [['/don', 'data[].' + f], ['/don/:ma', 'don.' + f]]).filter(([d, f]) => !traCua(d).includes(f));
   k('v12: khối máy đọc ghi đủ kenh / cach_nhan / tra / so_mon / mon_dau / giam (cả /don, /don/:ma)', thieuV12.length === 0, thieuV12.map((x) => x.join(' ')).join(', '));
-  k('v12: hợp đồng có mục "Ghi chú v12" ghi đủ 6 trường', /### Ghi chú v12/.test(md) && ['kenh', 'cach_nhan', 'tra[]', 'so_mon', 'mon_dau', 'giam'].every((f) => cat(md, '### Ghi chú v12', '### Ghi chú v11').includes('`' + f)));
+  // v14 (HUY-1): đơn bị huỷ — số đã hoàn vào tài khoản + nhãn lý do (cả /don, /don/:ma) + mục chữ "Ghi chú v14"
+  const thieuV14 = ['hoan_vao_tai_khoan', 'ly_do_huy'].flatMap((f) => [['/don', 'data[].' + f], ['/don/:ma', 'don.' + f]]).filter(([d, f]) => !traCua(d).includes(f));
+  k('v14: khối máy đọc ghi đủ hoan_vao_tai_khoan / ly_do_huy (cả /don, /don/:ma) + mục "Ghi chú v14"', thieuV14.length === 0
+    && /### Ghi chú v14/.test(md) && ['hoan_vao_tai_khoan', 'ly_do_huy'].every((f) => (md.split('### Ghi chú v14')[1] || '').slice(0, 1500).includes('`' + f)),
+  thieuV14.map((x) => x.join(' ')).join(', '));
+  k('v12: hợp đồng có mục "Ghi chú v12" ghi đủ 6 trường',/### Ghi chú v12/.test(md) && ['kenh', 'cach_nhan', 'tra[]', 'so_mon', 'mon_dau', 'giam'].every((f) => cat(md, '### Ghi chú v12', '### Ghi chú v11').includes('`' + f)));
   const dongGv = bangChu.split('\n').find((l) => l.includes('`GET /gio-vang`')) || '';
   k('cửa /gio-vang ghi rõ "không có suất"', /không có suất/i.test(dongGv), dongGv.slice(0, 80));
 

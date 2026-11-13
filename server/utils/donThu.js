@@ -33,7 +33,8 @@ const COT_BI_MAT = ['pin_code', 'password', 'ma_bam'];  // nhật ký nhân viê
 // Bảng gắn đơn qua order_id (con có khoá ngoại tới pos_orders đứng trước — khoá ngoại đang bật).
 const BANG_THEO_DON = ['pos_order_items', 'pos_refund_requests', 'pos_damage_logs', 'pos_promotion_usage', 'pos_invoice_logs',
   'pos_order_log', 'pos_membership_purchases', 'pos_customer_packages', 'pos_point_transactions', 'pos_balance_transactions', 'pos_signup_codes',
-  'pos_giao_chuyen', 'pos_giao_bao_phi'];   // GIAO-1: chuyến + báo phí đi theo đơn
+  'pos_giao_chuyen', 'pos_giao_bao_phi',   // GIAO-1: chuyến + báo phí đi theo đơn
+  'pos_hoan_tien_mat'];   // HUY-1: khoản trả tiền mặt khách lẻ khi huỷ đơn — két của ngày đó đã đếm (tienMatTheoNgay) nên xoá đơn đã đếm két thì giữ đơn
 // Theo ngày X: [bảng, cột SĐT, cột giờ, có order_id] — dòng gắn đơn chỉ đi theo đơn.
 const BANG_THEO_NGAY = [['pos_point_transactions', 'customer_phone', 'created_at', true], ['pos_voucher_grants', 'customer_phone', 'granted_at', false],
   ['pos_kh_ma_dang_nhap', 'sdt', 'tao_luc', false], ['pos_kh_lan_thu', 'sdt', 'tao_luc', false]];
@@ -71,13 +72,15 @@ function chiaPhan(chuoi) {
 }
 
 // Tiền mặt vào (+) / ra (−) két theo ngày của từng đơn ('d<id>') và nạp ví của từng SĐT ('s<sđt>') — CÙNG công thức doiSoat.js
-// tienTheoSo('cash'): bán = cash_amount − thu nợ, theo ngày tạo; thu nợ theo ngày thu; huỷ (trừ đơn mua gói) trả ra theo ngày huỷ.
+// tienTheoSo('cash'): bán = cash_amount − thu nợ, theo ngày tạo; thu nợ theo ngày thu; huỷ trước HUY-1 (trừ đơn mua gói) trả ra theo ngày huỷ;
+// huỷ từ HUY-1 (có mã lý do) chỉ trả ra khoản hoàn tiền mặt khách lẻ (pos_hoan_tien_mat) theo ngày ghi.
 const J_TIEN_MAT = `CASE WHEN json_valid(chi_tiet) THEN (CASE WHEN json_extract(chi_tiet, '$.cach') = 'cash' THEN json_extract(chi_tiet, '$.so_tien') END) END`;
 const tienMatTheoNgay = (q, idDon, sdt) => q.query(`SELECT 'd' || o.id AS khoa, DATE(o.created_at) AS ngay, o.cash_amount
     - (SELECT COALESCE(SUM(${J_TIEN_MAT}), 0) FROM pos_order_log WHERE order_id = o.id AND loai = 'thu') AS n FROM pos_orders o WHERE o.id IN ${trong(idDon)}
   UNION ALL SELECT 'd' || order_id, DATE(luc), ${J_TIEN_MAT} FROM pos_order_log WHERE loai = 'thu' AND order_id IN ${trong(idDon)}
-  UNION ALL SELECT 'd' || o.id, DATE(o.cancelled_at), -o.cash_amount FROM pos_orders o WHERE o.status = 'cancelled' AND o.id IN ${trong(idDon)}
-    AND NOT EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id < 0 AND oi.product_id > -1000000)
+  UNION ALL SELECT 'd' || o.id, DATE(o.cancelled_at), -o.cash_amount FROM pos_orders o WHERE o.status = 'cancelled' AND o.huy_ly_do_ma IS NULL
+    AND o.id IN ${trong(idDon)} AND NOT EXISTS (SELECT 1 FROM pos_order_items oi WHERE oi.order_id = o.id AND oi.product_id < 0 AND oi.product_id > -1000000)
+  UNION ALL SELECT 'd' || order_id, DATE(luc), -so_tien FROM pos_hoan_tien_mat WHERE order_id IN ${trong(idDon)}
   UNION ALL SELECT 's' || customer_phone, DATE(created_at), amount FROM pos_balance_transactions WHERE type = 'topup'
     AND COALESCE(payment_method, 'cash') = 'cash' AND customer_phone IN (${dau(sdt)})`, sdt);
 /** Dòng tiền → các khoá (gom theo `khoa(dòng, két)`) có tổng khác 0 trong một két đã đếm. Tiền ngày e thuộc lần đếm ĐẦU TIÊN từ e,
