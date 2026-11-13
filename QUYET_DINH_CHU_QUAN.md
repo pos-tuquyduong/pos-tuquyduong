@@ -257,6 +257,23 @@
   "bỏ đổi điểm ở quầy" (P3b vẫn bỏ: không đổi trong phiên thanh toán). Quà hết hạn chưa dùng thì hoàn điểm.
 - 11.11 · Cuối danh sách, làm nối tiếp ngay, không chờ — làm hết một lượt: DOI-DIEM-1 → QUET-2 (khách tự quét mã của quán bằng App) →
   GIOI-THIEU-1 → QUA-TANG-1 (sau cùng).
+- 11.11 (c) · Kho nội dung App KH cho `/admin` (ND-API-1, TRƯỚC khai trương): nhà riêng ở nhờ máy chủ POS (`/api/nd`, bảng nd_*, hợp đồng
+  riêng); ai sửa nằm trong Cài đặt › Phân quyền (mặc định chủ quán); Lưu nháp → Cập nhật toàn bộ thành phiên bản mới, giữ mọi bản, quay lại
+  được; khoá sao lưu chỉ đọc cho bản sao thứ hai. Màn nhân viên POS KHÔNG mở sửa chữ; chữ gửi tới khách vào Cài đặt POS (CHU-KHACH-1) và nhật
+  ký thay đổi Cài đặt (NHATKY-CAIDAT-1) — cuối danh sách.
+- 11.11 (c) · Voucher (VOUCHER-2): HAI loại, chọn ở mẫu — "Chia sẻ được" (ai cầm mã cũng dùng) / "Chỉ chính chủ"; voucher đã phát
+  trước đây giữ chia sẻ được; mã khuyến mãi chung ai cũng dùng. Mỗi đơn tối đa MỘT voucher % (áp món / nhóm theo mẫu), voucher tiền nhiều
+  cái trong giới hạn N. Mã in trên hoá đơn cho khách mới: chỉ người CHƯA có tài khoản, đăng ký LẦN ĐẦU mới nhập được → phát voucher vào
+  tài khoản mới. Bài thử / bất biến cũ chỉ đổi số theo luật, không nới phép kiểm — rà thật kỹ.
+- 11.11 (c) · Khách không tài khoản không đặt được đơn giao online; huỷ đơn giao của khách không tài khoản trả tiền mặt / CK vẫn chặn trên
+  máy; chỉ khách lẻ đến quầy mới trả tiền mặt từ két (HUY-1 Q8).
+
+## Đợt quyết định 12.11.2026 (chat bàn 36)
+- 12.11 · Kết nối kho dữ liệu (KET-NOI-1, TRƯỚC khai trương): xem dữ liệu mà rớt kết nối thì máy tự thử lại; ghi tiền (thu tiền, đơn App,
+  nạp tiền) gắn "mã lượt bấm" như Kho — rớt mạng tự gửi lại, bấm hai lần cũng chỉ ra MỘT đơn; ghi khác rớt thì báo lỗi, không tự ghi lại.
+- 12.11 · VOUCHER-2 Q7: đơn từ VOUCHER-2 trở đi — gói / thẻ / nạp tính đã trả đủ giá, phần giảm của mã / voucher chỉ chia trên món (đền và hoàn
+  tính theo đó); đơn cũ giữ cách cũ. Q9: mã in trên bill cho khách mới — chỉ SĐT có hồ sơ khách tạo SAU lúc in bill (khách quầy đã có SĐT từ
+  trước thì không nhận); quầy nhập mã ở form "Thêm khách mới". Q10: voucher ship (tiền hay %) không tính là "voucher giảm %".
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,

@@ -1,9 +1,12 @@
 // KH-MUA-1 (H) — thẻ Cài đặt "Chuông đơn App": bật / tắt, chọn tiếng, âm lượng — CHUNG cả quán (chủ quán Q2), lưu 3 khoá don_app_chuong_*
-// qua PUT /settings (máy chủ kiểm giá trị). Máy nào kêu do công tắc "Máy ở quán" ở màn Đơn App (riêng từng máy).
+// qua PUT /settings (máy chủ kiểm giá trị). BAO-1b: báo qua thông báo chung + chữ đỏ dưới nút Lưu (thẻ nằm cùng tab Giờ hoạt động nên KHÔNG gắn
+// thêm thanh "chưa lưu" — hai thanh cố định sẽ chồng nhau; nút Lưu riêng của thẻ vẫn ở ngay dưới ô). Máy nào kêu do công tắc "Máy ở quán" ở màn Đơn App (riêng từng máy).
 import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { api } from '../utils/api';
 import { TIENG_CHUONG, AM_LUONG_MAC_DINH, keuChuong } from './DonAppNoi';
+import { baoXong, baoLoiTu, lyDoLoi } from './thongBaoKho.js';
+import LoiO from './LoiO';
 
 export default function CaiDatChuong() {
   const [bat, setBat] = useState(true);
@@ -11,7 +14,7 @@ export default function CaiDatChuong() {
   const [amLuong, setAmLuong] = useState(AM_LUONG_MAC_DINH);
   const [taiLoi, setTaiLoi] = useState(false);
   const [dangLuu, setDangLuu] = useState(false);
-  const [thongDiep, setThongDiep] = useState('');
+  const [loi, setLoi] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -20,16 +23,16 @@ export default function CaiDatChuong() {
         setBat(s.don_app_chuong_bat !== '0');
         if (TIENG_CHUONG.some(([k]) => k === s.don_app_chuong_tieng)) setTieng(s.don_app_chuong_tieng);
         if (s.don_app_chuong_am_luong != null) setAmLuong(Number(s.don_app_chuong_am_luong));
-      } catch (e) { setTaiLoi(true); setThongDiep('Lỗi: chưa tải được cài đặt chuông (' + e.message + ')'); }
+      } catch (e) { setTaiLoi(true); setLoi(`Chưa tải được cài đặt chuông: ${lyDoLoi(e)}`); baoLoiTu('tải cài đặt chuông', e); }
     })();
   }, []);
 
   const luu = async () => {
-    setDangLuu(true);
+    setDangLuu(true); setLoi('');
     try {
       await api.put('/settings', { settings: { don_app_chuong_bat: bat ? '1' : '0', don_app_chuong_tieng: tieng, don_app_chuong_am_luong: String(amLuong) } });
-      setThongDiep('Đã lưu cài đặt chuông');
-    } catch (e) { setThongDiep('Lỗi: ' + e.message); }
+      baoXong(`Đã lưu cài đặt chuông đơn App (${bat ? 'bật' : 'tắt'}, âm lượng ${amLuong})`);
+    } catch (e) { setLoi(lyDoLoi(e)); baoLoiTu('lưu cài đặt chuông', e); }
     finally { setDangLuu(false); }
   };
 
@@ -39,7 +42,6 @@ export default function CaiDatChuong() {
       <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 0.75rem' }}>
         Áp cho cả quán. Chỉ máy bật "Máy ở quán" (màn Đơn App) mới kêu — mỗi đơn mới kêu một lần.
       </p>
-      {thongDiep && <div style={{ padding: 8, marginBottom: 8, background: thongDiep.startsWith('Lỗi') ? '#fee2e2' : '#dcfce7', borderRadius: 6 }}>{thongDiep}</div>}
       <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <input type="checkbox" checked={bat} onChange={(e) => setBat(e.target.checked)} /> Bật chuông
       </label>
@@ -53,8 +55,9 @@ export default function CaiDatChuong() {
         <button className="btn btn-outline" onClick={() => keuChuong(tieng, amLuong)}>Thử</button>
       </div>
       <button className="btn btn-primary" onClick={luu} disabled={dangLuu || taiLoi}>
-        <Save size={16} /> {dangLuu ? 'Đang lưu...' : 'Lưu'}
+        <Save size={16} /> {dangLuu ? 'Đang lưu…' : 'Lưu'}
       </button>
+      <LoiO loi={loi} />
     </div>
   );
 }

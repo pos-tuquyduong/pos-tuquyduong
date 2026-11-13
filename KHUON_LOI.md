@@ -102,6 +102,11 @@ từ gói, server vẫn cho 0 đồng. Sửa đúng thì cảnh báo tự tắt,
 - K1 · Đoán nguyên nhân phải đo trước (BAO-1a đoán sai file làm số fetch giảm). Sau mỗi vòng sửa cập nhật lại MỌI số trong báo cáo (số ca,
   đột biến, mã commit, hằng số). Việc tiền: chạy --day-du / cong.js chay rồi mới viết "xanh" (VI-ME-1 bỏ sót giả lập quầy).
 
+## Bổ sung 12.11.2026 (chat soát BAO-1b vòng 2–3)
+- K4 · Sửa kiểu "lỗi chỉ ghi log" (console.error): grep CẢ `.catch(() => {})` và `catch {}` rỗng — lỗi bị nuốt im lặng cũng là lỗi giấu.
+- K7 · Báo lỗi rõ làm lộ lỗi cũ bị giấu (BAO-1b lộ "socket hang up" Render → Turso): lỗi mạng ≠ lỗi mã; đường GHI tiền không được tự gửi lại
+  nếu không có mã chống trùng (KET-NOI-1).
+
 ## NĂM CÂU TỰ HỎI TRƯỚC KHI BÁO "XONG" — bắt buộc trả lời từng câu
 
 1. **Bài thử này có chạy trên bản CHƯA vá không, và nó có hỏng không?** (K3)

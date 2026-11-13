@@ -1,8 +1,13 @@
 // CT-1a — thẻ Cài đặt "Chương trình": chương trình đặc biệt (học sinh giỏi, sinh nhật, khác) + khoảng tuổi cho ngày sinh khách.
+// BAO-1b: báo qua thông báo chung; lỗi ô hiện dưới ô; form đang sửa có thanh "Có thay đổi chưa lưu".
 // CHỈ lưu cấu hình và hiển thị — áp ưu đãi vào đơn tại quầy là việc CT-1b. Máy chủ kiểm mọi giá trị (sai → 400, hiện nguyên lời báo).
 import { useEffect, useState } from 'react';
 import { Plus, Save, Pencil, Trash2, Power } from 'lucide-react';
 import { chuongTrinhApi } from '../../utils/api';
+import { baoXong, baoLoi, baoLoiTu, lyDoLoi } from '../../components/thongBaoKho.js';
+import LoiO from '../../components/LoiO';
+import ThanhLuu from '../../components/ThanhLuu';
+import useThayDoi from '../../components/useThayDoi';
 
 const LOAI = { sinh_nhat: 'Sinh nhật', hoc_sinh_gioi: 'Học sinh giỏi', khac: 'Khác' };
 const KY = { moi_khach: 'mỗi khách', ngay: 'mỗi ngày', nam_hoc: 'mỗi năm học', nam: 'mỗi năm' };
@@ -26,7 +31,8 @@ export default function CaiDatChuongTrinh() {
   const [taiLoi, setTaiLoi] = useState(false);
   const [form, setForm] = useState(null);   // null = đóng; { id?, ...trường } = đang thêm / sửa
   const [dangLuu, setDangLuu] = useState(false);
-  const [thongDiep, setThongDiep] = useState('');
+  const [loiO, setLoiO] = useState({});   // ô → câu lỗi dưới ô (ten / uu_dai / tuoi / tai)
+  const [coDoi, chup] = useThayDoi(form);
   const [choXoa, setChoXoa] = useState(null);   // id chương trình đang chờ bấm Xoá lần hai
 
   const tai = async () => {
@@ -35,7 +41,7 @@ export default function CaiDatChuongTrinh() {
       setDs(r.data || []);
       setTuoi(r.khoang_tuoi || { toi_thieu: 5, toi_da: 100 });
       setTaiLoi(false);
-    } catch (e) { setTaiLoi(true); setThongDiep('Lỗi: chưa tải được danh sách — tải lại trang (' + e.message + ')'); }
+    } catch (e) { setTaiLoi(true); setLoiO((l) => ({ ...l, tai: lyDoLoi(e) })); baoLoiTu('tải danh sách chương trình', e); }
   };
   useEffect(() => { tai(); }, []);
   useEffect(() => {
@@ -44,36 +50,42 @@ export default function CaiDatChuongTrinh() {
     return () => clearTimeout(h);
   }, [choXoa]);
 
-  const bao = (loi, e) => setThongDiep(loi ? `Lỗi: ${e.message}` : e);
   const sua = (truong, v) => setForm((cu) => ({ ...cu, [truong]: v }));
-  const mo = (c) => setForm(c ? { ...TRONG, ...c, mien_gia_toi_da: c.mien_gia_toi_da ?? '', bat_dau: c.bat_dau || '', ket_thuc: c.ket_thuc || '' } : { ...TRONG });
+  const moForm = (f) => { setForm(f); chup(f); setLoiO((l) => ({ ...l, ten: '', form: '' })); };
+  const mo = (c) => moForm(c ? { ...TRONG, ...c, mien_gia_toi_da: c.mien_gia_toi_da ?? '', bat_dau: c.bat_dau || '', ket_thuc: c.ket_thuc || '' } : { ...TRONG });
 
   const luu = async () => {
-    setDangLuu(true); setThongDiep('');
     const so = (v) => (v === '' || v === null ? null : Number(v));
+    if (!String(form.ten || '').trim()) { setLoiO((l) => ({ ...l, ten: 'Nhập tên chương trình' })); baoLoi('Chưa lưu chương trình được', 'Nhập tên chương trình rồi bấm Lưu lại.'); return; }
+    setDangLuu(true); setLoiO((l) => ({ ...l, ten: '', form: '' }));
     const du = { ten: form.ten, mo_ta: form.mo_ta, loai: form.loai, mien_so_mon: so(form.mien_so_mon), mien_gia_toi_da: so(form.mien_gia_toi_da),
       giam_ca_don_pt: so(form.giam_ca_don_pt), giam_con_lai_pt: so(form.giam_con_lai_pt), chi_tai_quan: !!form.chi_tai_quan, can_xem_giay_to: !!form.can_xem_giay_to,
       gioi_han_ky: form.gioi_han_ky, gioi_han_so: so(form.gioi_han_so), bat_dau: form.bat_dau || null, ket_thuc: form.ket_thuc || null, dang_bat: !!form.dang_bat };
     try {
       if (form.id) await chuongTrinhApi.sua(form.id, du); else await chuongTrinhApi.them(du);
-      setForm(null); bao(false, 'Đã lưu.'); await tai();
-    } catch (e) { bao(true, e); }
+      baoXong(`Đã lưu chương trình ${form.ten}`);
+      moForm(null); await tai();
+    } catch (e) { setLoiO((l) => ({ ...l, form: lyDoLoi(e) })); baoLoiTu('lưu chương trình', e); }
     setDangLuu(false);
   };
   const batTat = async (c) => {
-    try { await chuongTrinhApi.sua(c.id, { dang_bat: !c.dang_bat }); await tai(); } catch (e) { bao(true, e); }
+    setDangLuu(true);
+    try { await chuongTrinhApi.sua(c.id, { dang_bat: !c.dang_bat }); baoXong(`Đã ${c.dang_bat ? 'tắt' : 'bật'} chương trình ${c.ten}`); await tai(); } catch (e) { baoLoiTu(`${c.dang_bat ? 'tắt' : 'bật'} chương trình`, e); }
+    setDangLuu(false);
   };
   const xoa = async (c) => {
     if (choXoa !== c.id) { setChoXoa(c.id); return; }
-    setChoXoa(null);
-    try { await chuongTrinhApi.xoa(c.id); bao(false, 'Đã xoá.'); await tai(); } catch (e) { bao(true, e); }
+    setChoXoa(null); setDangLuu(true);
+    try { await chuongTrinhApi.xoa(c.id); baoXong(`Đã xoá chương trình ${c.ten}`); await tai(); } catch (e) { baoLoiTu('xoá chương trình', e); }
+    setDangLuu(false);
   };
   const luuTuoi = async () => {
-    setThongDiep('');
+    setLoiO((l) => ({ ...l, tuoi: '' })); setDangLuu(true);
     try {
       const r = await chuongTrinhApi.datKhoangTuoi(Number(tuoi.toi_thieu), Number(tuoi.toi_da));
-      setTuoi(r.khoang_tuoi); bao(false, 'Đã lưu khoảng tuổi.');
-    } catch (e) { bao(true, e); }
+      setTuoi(r.khoang_tuoi); baoXong(`Đã lưu khoảng tuổi ${r.khoang_tuoi.toi_thieu}–${r.khoang_tuoi.toi_da}`);
+    } catch (e) { setLoiO((l) => ({ ...l, tuoi: lyDoLoi(e) })); baoLoiTu('lưu khoảng tuổi', e); }
+    setDangLuu(false);
   };
 
   const o = { display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 160px' };
@@ -84,7 +96,7 @@ export default function CaiDatChuongTrinh() {
         Khai báo các chương trình đặc biệt (học sinh giỏi, sinh nhật…). Ở bước này POS chỉ <b>lưu</b> và cho App hiện “áp dụng tại quán” — chưa tự giảm giá vào đơn.
         Chương trình chỉ hiện trên App khi đang <b>bật</b> và nằm trong ngày bắt đầu – kết thúc.
       </p>
-      {thongDiep && <div style={{ padding: 8, marginBottom: 8, background: thongDiep.startsWith('Lỗi') ? '#fee2e2' : '#dcfce7', borderRadius: 6 }}>{thongDiep}</div>}
+      <LoiO loi={loiO.tai && `Chưa tải được danh sách chương trình: ${loiO.tai}`} />
 
       {ds.map((c) => (
         <div key={c.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '0.6rem 0', borderTop: '1px solid #eee' }}>
@@ -93,9 +105,9 @@ export default function CaiDatChuongTrinh() {
             {c.mo_ta && <div style={{ fontSize: 13 }}>{c.mo_ta}</div>}
             <div style={{ fontSize: 12, color: '#6b7280' }}>{tomTat(c)}</div>
           </div>
-          <button className="btn btn-outline" onClick={() => batTat(c)} title={c.dang_bat ? 'Tắt' : 'Bật'}><Power size={14} /> {c.dang_bat ? 'Tắt' : 'Bật'}</button>
+          <button className="btn btn-outline" onClick={() => batTat(c)} disabled={dangLuu} title={c.dang_bat ? 'Tắt' : 'Bật'}><Power size={14} /> {c.dang_bat ? 'Tắt' : 'Bật'}</button>
           <button className="btn btn-outline" onClick={() => mo(c)}><Pencil size={14} /> Sửa</button>
-          <button className="btn btn-outline" onClick={() => xoa(c)} style={choXoa === c.id ? { background: '#fee2e2', borderColor: '#ef4444' } : undefined}>
+          <button className="btn btn-outline" onClick={() => xoa(c)} disabled={dangLuu} style={choXoa === c.id ? { background: '#fee2e2', borderColor: '#ef4444' } : undefined}>
             <Trash2 size={14} /> {choXoa === c.id ? 'Bấm lần nữa để xoá' : 'Xoá'}
           </button>
         </div>
@@ -107,7 +119,7 @@ export default function CaiDatChuongTrinh() {
         <div style={{ marginTop: 12, padding: 12, border: '1px solid #e5e7eb', borderRadius: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 8 }}>{form.id ? 'Sửa chương trình' : 'Chương trình mới'}</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <label style={o}>Tên<input className="input" maxLength={80} value={form.ten} onChange={(e) => sua('ten', e.target.value)} /></label>
+            <label style={o}>Tên<input className="input" maxLength={80} value={form.ten} onChange={(e) => sua('ten', e.target.value)} /><LoiO loi={loiO.ten} /></label>
             <label style={o}>Loại
               <select className="input" value={form.loai} onChange={(e) => sua('loai', e.target.value)}>{Object.entries(LOAI).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>
             </label>
@@ -134,8 +146,9 @@ export default function CaiDatChuongTrinh() {
           <label style={{ display: 'block', marginTop: 8 }}><input type="checkbox" checked={!!form.dang_bat} onChange={(e) => sua('dang_bat', e.target.checked)} /> Bật ngay</label>
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button className="btn btn-primary" onClick={luu} disabled={dangLuu}><Save size={14} /> {dangLuu ? 'Đang lưu…' : 'Lưu'}</button>
-            <button className="btn btn-outline" onClick={() => setForm(null)}>Bỏ</button>
+            <button className="btn btn-outline" disabled={dangLuu} onClick={() => moForm(null)}>Bỏ</button>
           </div>
+          <LoiO loi={loiO.form} />
         </div>
       )}
 
@@ -147,9 +160,11 @@ export default function CaiDatChuongTrinh() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <label style={o}>Từ (tuổi)<input type="number" className="input" min={0} max={150} value={tuoi.toi_thieu} onChange={(e) => setTuoi({ ...tuoi, toi_thieu: e.target.value })} /></label>
           <label style={o}>Đến (tuổi)<input type="number" className="input" min={0} max={150} value={tuoi.toi_da} onChange={(e) => setTuoi({ ...tuoi, toi_da: e.target.value })} /></label>
-          <button className="btn btn-outline" onClick={luuTuoi} disabled={taiLoi}><Save size={14} /> Lưu khoảng tuổi</button>
+          <button className="btn btn-outline" onClick={luuTuoi} disabled={taiLoi || dangLuu}><Save size={14} /> Lưu khoảng tuổi</button>
         </div>
+        <LoiO loi={loiO.tuoi} />
       </div>
+      <ThanhLuu id="chuong-trinh" coDoi={coDoi} dangLuu={dangLuu} onLuu={luu} onBo={() => moForm(null)} />
     </>
   );
 }

@@ -47,7 +47,7 @@ function them(loai, tieuDe, lyDo) {
 }
 
 /** Báo xong: nói rõ đã làm gì, vd baoXong('Đã lưu khách Nguyễn Thị Hoa'). */
-export const baoXong = (chu) => them('xong', chu);
+export const baoXong = (chu) => them('xong', String(chu ?? '').trim() || 'Đã xong');
 
 /** Báo lỗi: tiêu đề = việc không làm được; lý do = câu máy chủ trả hoặc cách sửa. Không tự ẩn. */
 export const baoLoi = (tieuDe, lyDo) => them('loi', tieuDe, lyDo);
