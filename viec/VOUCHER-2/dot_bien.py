@@ -16,6 +16,9 @@ GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 O, U, T = 'server/routes/orders.js', 'server/utils/uuDai.js', 'server/utils/tienDaTra.js'
 V, D, H = 'server/utils/voucherCode.js', 'server/utils/donApp.js', 'server/routes/hoaDon.js'
 L, R = 'server/routes/loyalty.js', 'server/routes/rewards.js'
+S, DC, ST = 'server/routes/signup-codes.js', 'server/routes/discount-codes.js', 'server/routes/settings.js'
+CH, TJ = 'client/src/utils/hoaDon.js', 'client/src/pages/BanHang/tinh.js'
+CV, KJ = 'client/src/pages/BanHang/ChipVoucher.jsx', 'client/src/pages/Customers.jsx'
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
 DOT_BIEN = [
@@ -66,6 +69,26 @@ DOT_BIEN = [
   ('BV-V2-APP-VOUCHER', [(D, '...(vouchers.length ? { vouchers } : {}),', '', 1)], r'✗ H2 ', 'V2'),
   ('VS-V2-APP-BAM-CU', [(D, "...(Array.isArray(b.vouchers) && b.vouchers.length ? [b.vouchers] : [])", "b.vouchers ?? null", 1)], r'✗ K1 ', 'KHTHE1'),
   ('BV-V2-APP-SAI-DANG', [(D, "  if (b.vouchers != null && !(Array.isArray(b.vouchers)", "  if (false && !(Array.isArray(b.vouchers)", 1)], r'✗ H5 ', 'V2'),
+  # ── Q2 (13.11): mã bill → voucher theo mẫu cho khách đăng ký lần đầu — signup-codes.js / orders.js / discount-codes.js / settings.js ──
+  ('BV-V2-KHACH-CU', [(S, 'if (loiKhach) return res.status', 'if (false) return res.status', 1)], r'✗ Q2b ', 'V2'),
+  ('VS-V2-KHACH-CU-SO-NHAM', [(S, "REPLACE(created_at, ' ', 'T') >= REPLACE(?, ' ', 'T')", "REPLACE(created_at, ' ', 'T') > REPLACE(?, ' ', 'T')", 1)], r'✗ Q2a2 ', 'V2'),
+  ('VS-V2-KHACH-CU-CHUOI-THO', [(S, "REPLACE(created_at, ' ', 'T') >= REPLACE(?, ' ', 'T')", "created_at >= ?", 1)], r'✗ Q2a3 ', 'V2'),
+  ('BV-V2-MAU-TAT', [(S, "WHERE id = ? AND bat = 1'", "WHERE id = ?'", 1)], r'✗ Q2h ', 'V2'),
+  ('BV-V2-RESET-GRANT', [(S, "WHERE g.nguon = 'khach_moi' AND g.nguon_id = ? ORDER BY g.id DESC LIMIT 1`", "WHERE 0 AND g.nguon_id = ? ORDER BY g.id DESC LIMIT 1`", 1)], r'✗ Q2e ', 'V2'),
+  ('BV-V2-P20B-VOUCHER', [(O, '      : loiGoc ? ["MA_DON_GOC_KHONG_HOP_LE", loiGoc.error]\n', '', 1)], r'✗ Q2i ', 'V2'),
+  ('VS-V2-P20B-O-MA-MEM', [(O, '      if (l.code === "MA_DON_GOC_KHONG_HOP_LE") return res.status(400)', '      if (false) return res.status(400)', 1)], r'✗ Q2i ', 'V2'),
+  ('BV-V2-VALIDATE-P20B', [(DC, 'const maBill = await maBillCuaVoucher(discountCode.code);',
+                            "const maBill = await queryOne('SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL', [discountCode.code]);", 1)], r'✗ Q2i ', 'V2'),
+  ('BV-V2-DOI-TEN-VOUCHER', [(DC, "\n        || await queryOne(\"SELECT id FROM pos_voucher_grants WHERE nguon = 'khach_moi' AND UPPER(code) = UPPER(?)\", [existing.code])", '', 1)], r'✗ Q2n ', 'V2'),
+  ('BV-V2-CAI-MAU-KM', [(ST, "if ('signup_mau_voucher_id' in settings &&", "if (false &&", 1)], r'✗ Q2l ', 'V2'),
+  ('BV-V2-THEM-KHACH-MA', [(KJ, "await api.post('/signup-codes/claim', { code: maBill, phone: formData.phone })", "({})", 1)], r'✗ Q2k ', 'V2'),
+  # ── Q14 (13.11): Bán hàng + tờ bill quầy / hoá đơn App ──
+  ('VS-V2-HD-GOP-VOUCHER', [(CH, "const giamMa = (tien.giam_ma || 0) - vc.reduce((s, v) => s + v.so_tien, 0);", "const giamMa = tien.giam_ma || 0;", 1)], r'✗ Q14d bill', 'V2'),
+  ('VS-V2-HD-PHI-KHACH-TRA', [(CH, "dinhDangTien((tien.phi_giao || 0) + giamShip)", "dinhDangTien(tien.phi_giao || 0)", 1)], r'✗ Q14d bill', 'V2'),
+  ('BV-V2-HD-BO-DONG', [(CH, "  if (hien('giam_ma')) vc.forEach", "  if (false) vc.forEach", 1)], r'✗ Q14e ', 'V2'),
+  ('BV-V2-TINH-GUI-VOUCHER', [(TJ, "    ...(vouchers.length ? { vouchers } : {}),   // VOUCHER-2", "    // VOUCHER-2", 1)], r'✗ Q14a ', 'V2'),
+  ('BV-V2-BO-LOI', [(TJ, "return { chon: chon.filter((m) => !(m in loi)), loi };", "return { chon, loi };", 1)], r'✗ Q14b ', 'V2'),
+  ('VS-V2-CHIP-KHONG-MO', [(CV, "disabled={!dangChon && chon.length >= toiDa}", "disabled={false}", 1)], r'✗ Q14c ', 'V2'),
 ]
 
 BAI = {'V2': 'thu_VOUCHER2.js', 'KHTHE1': 'thu_KHTHE1.js', 'P26c': 'thu_P26c.js', 'UUDAI1': 'thu_UUDAI1.js'}
