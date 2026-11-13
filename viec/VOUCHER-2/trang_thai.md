@@ -238,3 +238,12 @@ phép / hạ ngưỡng — phải hỏi bạn, nên mình dừng ở đây. Mọ
 - `CLAUDE.md` §3 / §9 còn ghi "119 phép" của bản mẫu (thật đã là 132 trước việc này, nay 156) — máy không sửa CLAUDE.md.
 - Tờ in quầy / hoá đơn App: dòng "Voucher <MÃ>" và "Giảm phí giao" dùng nhãn cố định (như dòng "Mã GD"), chưa có ô đổi chữ ở Cài đặt hoá đơn; ẩn
   dòng "giảm mã / quà" thì ẩn luôn dòng voucher, ẩn "phí giao" thì ẩn luôn "giảm phí giao" (để tờ cộng vẫn khớp).
+
+### Kiểm (13.11, HEAD 05136650)
+- `npm test -- --day-du`: **PASS 117 · FAIL 1 · CẢNH BÁO 1**. FAIL duy nhất = phép E9 `/claim: chiếm mã … TRƯỚC khi phát voucher` (Q15 — chờ chủ quán,
+  KHÔNG tự sửa bộ kiểm, K8). Cảnh báo "route GET có lệnh ghi" có từ trước. dist khớp src, giả lập quầy xanh.
+- `node tu_chay/cong.js tinh . 171109f HEAD viec/VOUCHER-2` (gốc = main đã gộp ở c2fc201): chỉ `✗ [A20]` (chưa tới soát bảo mật) và `✗ [A19]` (chưa tới
+  bước 11.4) — Phạm vi / A17 / A18 qua.
+- Chưa chạy: `/ra-soat`, `/soat-bao-mat`, `cong.js chay`, báo cáo 7 mục — để sau khi chủ quán trả lời Q15 (bộ kiểm phải xanh trước).
+
+### Dừng (13.11) — chờ chủ quán trả lời Q15.
