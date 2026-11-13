@@ -167,6 +167,10 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     if ('voucher_toi_da' in settings && !(/^\d{1,2}$/.test(String(settings.voucher_toi_da).trim()) && Number(settings.voucher_toi_da) >= 1 && Number(settings.voucher_toi_da) <= 10)) {
       return res.status(400).json({ success: false, error: 'Số voucher tối đa mỗi đơn phải là số nguyên từ 1 đến 10', code: 'CAI_DAT_KHONG_HOP_LE' });
     }
+    // VOUCHER-2 (Q2): mẫu voucher cho ưu đãi khách mới — id mẫu (số nguyên dương) hoặc rỗng (chưa chọn → nhận mã báo UU_DAI_CHUA_CO_MAU).
+    if ('signup_mau_voucher_id' in settings && !/^(\d{1,9})?$/.test(String(settings.signup_mau_voucher_id ?? '').trim())) {
+      return res.status(400).json({ success: false, error: 'Mẫu voucher khách mới không hợp lệ', code: 'CAI_DAT_KHONG_HOP_LE' });
+    }
 
     let updated = 0;
     const timestamp = getNow();

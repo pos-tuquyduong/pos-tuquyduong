@@ -32,7 +32,7 @@ const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từn
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable, goiBanDuoc, hanSauDong } = require("../utils/membershipStatus");
-const { kiemDonCuaMa, docCauHinhNhanDiem } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem; P22-23: hệ số nhân điểm
+const { kiemDonCuaMa, docCauHinhNhanDiem, maBillCuaVoucher } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem; P22-23: hệ số nhân điểm
 
 const router = express.Router();
 
@@ -655,10 +655,7 @@ async function taoDon(req, res, phien = null) {
         // completed + paid — cùng hàm kiểm với /claim, /nhan-diem. `claimed_at IS NOT NULL`: mã tay / voucher đổi điểm có thể
         // trùng chữ với mã bill chưa claim (mỗi nguồn chỉ kiểm trùng trong bảng mình) — không được chặn nhầm. Trả về TRƯỚC
         // giao dịch → không tạo đơn, used_count không tăng.
-        const maBill = await queryOne(
-          "SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL",
-          [codeRecord.code],
-        );
+        const maBill = await maBillCuaVoucher(codeRecord.code);   // VOUCHER-2: cùng hàm với kiemVoucherDon (voucher mới qua grant khach_moi)
         if (maBill) {
           const kqDon = await kiemDonCuaMa(maBill);
           if (kqDon.loi) return res.status(400).json({ error: kqDon.loi.error, code: "MA_DON_GOC_KHONG_HOP_LE" });
@@ -784,6 +781,7 @@ async function taoDon(req, res, phien = null) {
     const dsVoucher = kv.ds;
     if (voucherOMa && !dsVoucher.some((v) => v.code.toUpperCase() === voucherOMa)) {   // ô mã cũ: MỀM ở mọi đường, báo ở ma_loi như mọi mã gõ vào (P26c D3)
       const l = kv.loi.find((x) => x.ma === voucherOMa);
+      if (l.code === "MA_DON_GOC_KHONG_HOP_LE") return res.status(400).json({ error: l.error, code: l.code });   // P20b: ô mã cứng như trước VOUCHER-2
       maLoi = { error: l.error, code: l.code };
       kv.loi = kv.loi.filter((x) => x !== l);
       voucherOMa = null;
@@ -1428,6 +1426,9 @@ async function kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong,
   for (const ma of maVoucher) {
     const v = await queryOne(`SELECT d.*, g.id AS grant_id, g.customer_phone AS chu, g.status AS trang_thai FROM pos_voucher_grants g
       JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code) WHERE UPPER(g.code) = ? ORDER BY g.id LIMIT 1`, [ma]);
+    // P20b (Q2): voucher khách mới chỉ dùng được khi đơn gốc của mã bill còn completed + paid — cùng kiemDonCuaMa với /claim.
+    const maBill = v ? await maBillCuaVoucher(v.code) : null;
+    const loiGoc = maBill ? (await kiemDonCuaMa(maBill)).loi : null;
     const ship = !!Number(v?.giam_ship), phanTram = v?.discount_type === "percent";
     let dong = null;
     if (v && v.ap_dung && v.ap_dung !== "tat_ca") {
@@ -1442,6 +1443,7 @@ async function kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong,
       dong = mon.filter((i) => khop(orderItems[i]) && orderItems[i].total_price > 0);
     }
     const sai = !v || !Number(v.is_active) ? ["VOUCHER_KHONG_TON_TAI", "Không có voucher này hoặc voucher đã tắt"]
+      : loiGoc ? ["MA_DON_GOC_KHONG_HOP_LE", loiGoc.error]
       : Number(v.chinh_chu) && v.chu !== phone ? ["VOUCHER_CHINH_CHU", "Voucher này chỉ dùng cho chủ tài khoản"]
         : v.trang_thai !== "available" || (Number(v.usage_limit) > 0 && Number(v.used_count) >= Number(v.usage_limit)) ? ["VOUCHER_DA_DUNG", "Voucher đã được dùng"]
           : (v.valid_from && homNay < v.valid_from) || (v.valid_to && homNay > v.valid_to) ? ["VOUCHER_HET_HAN", "Voucher đã hết hạn"]

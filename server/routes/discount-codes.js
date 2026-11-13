@@ -10,7 +10,7 @@ const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, getToday } = require('../utils/helpers');
 const { findEligibleItemForGroup, computeItemDiscountAmount } = require('../utils/itemScopeDiscount');
-const { kiemDonCuaMa } = require('./signup-codes'); // MA-GIAM-1: /validate dùng CÙNG phép kiểm đơn gốc với POST /orders
+const { kiemDonCuaMa, maBillCuaVoucher } = require('./signup-codes'); // MA-GIAM-1: /validate dùng CÙNG phép kiểm đơn gốc với POST /orders
 
 const router = express.Router();
 
@@ -80,10 +80,7 @@ router.post('/validate', authenticate, async (req, res) => {
 
     // MA-GIAM-1 (A2): voucher sinh từ mã in bill — cùng câu tra + cùng hàm kiểm đơn gốc với cổng P20b của POST /orders (orders.js),
     // để màn Bán hàng báo hỏng ngay lúc kiểm mã thay vì lúc tạo đơn. Tra bằng mã CHUẨN trong kho, không bằng chữ người gõ.
-    const maBill = await queryOne(
-      'SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL',
-      [discountCode.code]
-    );
+    const maBill = await maBillCuaVoucher(discountCode.code);   // VOUCHER-2: cùng hàm với POST /orders (voucher mới qua grant khach_moi)
     if (maBill) {
       const kqDon = await kiemDonCuaMa(maBill);
       if (kqDon.loi) return res.status(400).json({ error: kqDon.loi.error, code: 'MA_DON_GOC_KHONG_HOP_LE' });
@@ -266,7 +263,9 @@ router.put('/:id', authenticate, checkPermission('manage_promotions'), async (re
     // Kiểm tra mã trùng (nếu đổi mã)
     if (code && code.trim().toUpperCase() !== existing.code) {
       // MA-GIAM-1 (A8): voucher mã in bill không đổi tên — cổng đơn gốc tra theo chữ mã, đổi tên là lách cổng. Trường khác sửa như cũ.
-      const maBill = await queryOne('SELECT id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?)', [existing.code]);
+      // VOUCHER-2 (Q2): voucher khách mới nay là mã RIÊNG nối mã bill qua ví (grant khach_moi) — đổi tên làm đứt nối đó, cũng chặn.
+      const maBill = await queryOne('SELECT id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?)', [existing.code])
+        || await queryOne("SELECT id FROM pos_voucher_grants WHERE nguon = 'khach_moi' AND UPPER(code) = UPPER(?)", [existing.code]);
       if (maBill) {
         return res.status(400).json({ error: 'Mã này sinh từ mã in bill — không đổi tên được', code: 'MA_BILL_KHONG_DOI_TEN' });
       }

@@ -3,13 +3,12 @@
  *
  * POST /claim: cửa nhận mã — khách nhập mã in trên bill lúc tạo tài khoản App KH.
  * Kiểm hạn theo cài đặt hạn mã nhandiem_han_gio (rolling từ lúc in — KH-API-2, đúng số giờ bill in) + chặn SĐT đã từng claim →
- * phát ra 1 voucher THẬT trong pos_discount_codes, dùng đúng cấu hình owner đặt trong
- * Cài đặt (đọc qua pos_settings, key tiền tố `signup_`).
+ * phát ra 1 voucher THẬT (phatVoucher) theo mẫu voucher chủ quán chọn trong Cài đặt → Voucher.
  *
- * ĐỔI THIẾT KẾ (09.08.2026, theo yêu cầu owner): mã voucher = ĐÚNG mã đã in trên bill,
- * KHÔNG sinh mã mới lúc claim nữa. Trước đây claim xong sẽ ra 1 mã khác hẳn — gây nhầm
- * lẫn (khách/nhân viên tưởng mã in-bill dùng được luôn). Giờ khách chỉ cần nhớ đúng 1 mã
- * duy nhất xuyên suốt từ lúc in tới lúc áp ở quầy.
+ * ĐỔI THIẾT KẾ (VOUCHER-2, chủ quán Q2 11.11 + Q9 12.11 — thay luật 09.08 "mã voucher = mã in bill"): mã in bill KHÔNG còn gõ
+ * thẳng ở ô mã. Chỉ SĐT có tài khoản tạo SAU lúc in bill (đăng ký lần đầu) mới nhận được; nhận → phatVoucher sinh MỘT voucher RIÊNG
+ * theo mẫu chủ quán chọn (signup_mau_voucher_id) vào ví tài khoản (grant nguon 'khach_moi', nguon_id = dòng mã bill).
+ * Voucher khách mới đã claim TRƯỚC VOUCHER-2 (mã = mã bill, không grant) vẫn dùng ở ô mã như cũ.
  *
  * ĐÃ VÁ (09.08.2026, chuẩn bị cho App KH): dùng lại đúng cơ chế `authenticateServiceOrUser`
  * đã có sẵn từ POS-1 (worker đồng bộ) — nhận header `X-Service-Key` khớp biến môi trường
@@ -19,15 +18,14 @@
 
 const express = require('express');
 const { query, queryOne, run, beginTransaction } = require('../database');
-const { normalizePhone, getNow, getToday, addDaysToDateString } = require('../utils/helpers');
+const { normalizePhone, getNow } = require('../utils/helpers');
 const { authenticate, checkPermission, authenticateServiceOrUser } = require('../middleware/auth');
 const { loiMayChu } = require('./kh/loi');
 const { tienTinhDiem, truDiemHoan } = require('../utils/diemThat'); // DIEM-THAT-1: điểm gốc mã bill theo tiền khách trả thật; NAP-1: trừ phần đã trả vào tài khoản
 const { docDuLieuNhanDiem, tinhDiemNhanMa } = require('../utils/nhanDiem'); // HD-1: cùng hàm với hoá đơn
+const { phatVoucher, moTaVoucher, laPhanTram } = require('../utils/voucherCode'); // VOUCHER-2 (Q2): mã bill → voucher theo mẫu
 
 const router = express.Router();
-
-const DEFAULT_VALID_DAYS = 30;
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  POS-P20-v1 — mã in bill chỉ dùng được khi bill ĐÃ THANH TOÁN
@@ -101,12 +99,29 @@ async function getSignupConfig() {
   for (const r of rows) cfg[r.key] = r.value;
   return {
     enabled: cfg.signup_enabled === '1' || cfg.signup_enabled === 'true',
-    scope: cfg.signup_scope === 'item' ? 'item' : 'order', // mặc định 'order' nếu chưa cấu hình
-    discountType: cfg.signup_discount_type === 'fixed' ? 'fixed' : 'percent',
-    discountValue: Number(cfg.signup_discount_value) || 0,
-    minOrder: Number(cfg.signup_min_order) || 0,
-    validDays: Number(cfg.signup_voucher_valid_days) || DEFAULT_VALID_DAYS,
+    // VOUCHER-2 (Q2): voucher phát theo MẪU chủ quán chọn ở Cài đặt → Voucher (bước 026 tạo sẵn mẫu y ưu đãi giảm cả đơn đang chạy).
+    mauId: Number(cfg.signup_mau_voucher_id) || 0,
   };
+}
+
+// VOUCHER-2 (Q2, Q9 chủ quán 12.11): chỉ khách "đăng ký LẦN ĐẦU" — hồ sơ khách (pos_customers) của SĐT tạo SAU lúc in bill (cùng giây vẫn được).
+// So chuỗi giờ VN sau khi đổi dấu cách → 'T' (dữ liệu cũ ghi 'YYYY-MM-DD HH:mm:ss'). → lỗi { status, code, error } | null.
+async function kiemKhachLanDau(phone, issuedAt) {
+  const kh = await queryOne(
+    "SELECT REPLACE(created_at, ' ', 'T') >= REPLACE(?, ' ', 'T') AS sau_bill FROM pos_customers WHERE phone = ?", [issuedAt, phone]);
+  if (!kh) return { status: 400, code: 'CAN_TAO_TAI_KHOAN', error: 'Tạo tài khoản trước rồi nhập mã.' };
+  if (!Number(kh.sau_bill)) {
+    return { status: 400, code: 'KHACH_DA_CO_TAI_KHOAN', error: 'Số điện thoại này đã có tài khoản — ưu đãi chỉ dành cho khách đăng ký lần đầu.' };
+  }
+  return null;
+}
+
+// VOUCHER-2 P20b: mã voucher → dòng mã bill đã sinh ra nó ({ order_id }) | null. Voucher mới: grant nguon 'khach_moi' + nguon_id; voucher cũ
+// (trước VOUCHER-2): cùng chữ với mã bill đã claim. MỘT hàm cho POST /orders (ô mã + danh sách voucher) và /discount-codes/validate.
+async function maBillCuaVoucher(code) {
+  return (await queryOne(
+    "SELECT s.order_id FROM pos_voucher_grants g JOIN pos_signup_codes s ON s.id = g.nguon_id WHERE g.nguon = 'khach_moi' AND UPPER(g.code) = UPPER(?) LIMIT 1",
+    [code])) || queryOne('SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL', [code]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -348,42 +363,18 @@ async function nhanMaUuDai(req, res) {
     }
     if (billSdtKhac(signupRow, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);
 
-    // Nhóm sản phẩm áp dụng — chỉ cần khi scope='item', dùng đúng nhóm seed sẵn ở Bước 1.
-    let applicableGroupId = null;
-    if (config.scope === 'item') {
-      const group = await queryOne("SELECT id FROM pos_product_groups WHERE code = 'khach_moi'");
-      if (!group) {
-        return res.status(500).json({ success: false, error: 'Chưa cấu hình nhóm sản phẩm cho ưu đãi khách mới', code: 'CHUA_CAU_HINH_NHOM' });
-      }
-      applicableGroupId = group.id;
+    // VOUCHER-2 (Q2, Q9 chủ quán 11–12.11): chỉ khách đăng ký LẦN ĐẦU (tài khoản tạo SAU lúc in bill); voucher theo MẪU ở Cài đặt → Voucher.
+    // Báo TRƯỚC khi chiếm mã — mã bill chưa bị chiếm, khách tạo tài khoản rồi nhập lại được.
+    const loiKhach = await kiemKhachLanDau(phone, signupRow.issued_at);
+    if (loiKhach) return res.status(loiKhach.status).json({ success: false, error: loiKhach.error, code: loiKhach.code });
+    const mau = config.mauId ? await queryOne('SELECT * FROM pos_mau_voucher WHERE id = ? AND bat = 1', [config.mauId]) : null;
+    if (!mau) {
+      return res.status(400).json({ success: false, error: 'Quán chưa chọn mẫu voucher cho ưu đãi khách mới — báo quầy giúp mình.', code: 'UU_DAI_CHUA_CO_MAU' });
     }
 
-    // Sinh mã voucher: DÙNG THẲNG mã đã in-bill (rawCode) — không sinh mã mới nữa (đổi
-    // thiết kế 09.08.2026). Chỉ cần phòng hờ trùng cực hiếm với 1 mã chiết khấu KHÁC đã
-    // tồn tại từ trước (owner tự tạo tay, hoặc mã đổi-điểm) — tránh vỡ UNIQUE giữa transaction.
-    const voucherCode = rawCode;
-    const existingDiscountCode = await queryOne(
-      'SELECT id FROM pos_discount_codes WHERE UPPER(code) = ?',
-      [voucherCode]
-    );
-    if (existingDiscountCode) {
-      return res.status(409).json({
-        success: false,
-        error: 'Mã này đang trùng với 1 mã khác trong hệ thống, vui lòng liên hệ quầy để được hỗ trợ.',
-        code: 'MA_TRUNG',
-      });
-    }
-
-    // BUG-FIX (09.08.2026): valid_to phải là NGÀY THUẦN ("2026-09-08"), khớp đúng quy ước
-    // cột này dùng ở mọi nơi khác trong hệ thống — trước đây lưu ngày+giờ đầy đủ, chỉ lộ lỗi
-    // đúng vào NGÀY CUỐI hết hạn (so sánh chuỗi coi "còn hạn" dù thực ra đã qua giờ hết hạn).
-    // BUG-FIX (09.08.2026): dùng đúng hàm dùng chung addDaysToDateString() (tính theo lịch
-    // Y-M-D, không dính giờ/múi giờ) — thay vì cộng mili-giây rồi format lại theo UTC (có thể
-    // lệch 1 ngày so với lịch Việt Nam thật, tuỳ giờ claim trong ngày).
-    const validTo = addDaysToDateString(getToday(), config.validDays);
-
-    // Giao dịch NGUYÊN TỬ — đánh dấu đã claim + phát voucher, lỗi bất kỳ bước nào → hủy sạch
-    // (đúng khuôn mẫu loyalty.js /redeem, không để mã "claimed" mồ côi không có voucher).
+    // Giao dịch NGUYÊN TỬ — chiếm mã + phát voucher (phatVoucher: MỘT mã RIÊNG vào ví tài khoản, hạn tính từ lúc phát; mã in bill không còn là mã
+    // giảm), lỗi bất kỳ bước nào → huỷ sạch (đúng khuôn loyalty.js /redeem, không để mã "claimed" mồ côi không có voucher).
+    let phat = null;
     const tx = await beginTransaction();
     try {
       // POS-P20-v2: CHIẾM MÃ bằng `AND claimed_at IS NULL` + đọc changes — cùng
@@ -401,24 +392,7 @@ async function nhanMaUuDai(req, res) {
         return baoChiemHong(res, signupRow.id, 'claimed_at',
           { status: 409, code: 'MA_DA_DUNG', error: 'Mã này vừa được sử dụng.' });
       }
-      await tx.run(
-        `INSERT INTO pos_discount_codes (
-           code, discount_type, discount_value, min_order, usage_limit, used_count,
-           valid_from, valid_to, is_active, notes, discount_scope, applicable_group_id, created_at
-         ) VALUES (?, ?, ?, ?, 1, 0, ?, ?, 1, ?, ?, ?, ?)`,
-        [
-          voucherCode, config.discountType, config.discountValue,
-          config.scope === 'order' ? config.minOrder : 0,
-          // BUG-FIX (09.08.2026): valid_from phải để NULL (dùng được ngay), không phải `now`.
-          // Cột này ở mọi nơi khác lưu dạng CHỈ NGÀY ("2026-08-09"), còn `now` là ngày+giờ đầy
-          // đủ ("2026-08-09T21:32:39") — so sánh chuỗi "2026-08-09" < "2026-08-09T21:32:39" ra
-          // TRUE (vì là tiền tố của nhau) → hệ thống hiểu nhầm "chưa tới ngày bắt đầu", chặn
-          // nhầm voucher vừa tạo. Voucher khách-mới không cần giới hạn ngày bắt đầu — để null.
-          null, validTo,
-          `Ưu đãi khách mới (claim ${now})`,
-          config.scope, applicableGroupId, now,
-        ]
-      );
+      phat = await phatVoucher(tx, mau, phone, 'khach_moi', { nguon_id: signupRow.id, ghi_chu: `Ưu đãi khách mới — mã bill ${signupRow.code}` });
       await tx.commit();
     } catch (txErr) {
       await tx.rollback();
@@ -428,11 +402,12 @@ async function nhanMaUuDai(req, res) {
     res.json({
       success: true,
       data: {
-        voucher_code: voucherCode,
-        discount_type: config.discountType,
-        discount_value: config.discountValue,
-        scope: config.scope,
-        valid_to: validTo,
+        voucher_code: phat.code,   // VOUCHER-2: mã MỚI trong ví tài khoản (không còn là mã in bill)
+        discount_type: laPhanTram(mau.kieu) ? 'percent' : 'fixed',
+        discount_value: Number(mau.gia_tri),
+        scope: 'order',
+        valid_to: phat.het_han,
+        mo_ta: moTaVoucher({ ...mau, het_han: phat.het_han }),
       },
     });
   } catch (err) {
@@ -477,7 +452,10 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
 
     // An toàn: không hoàn tác nếu voucher đã THẬT SỰ được dùng trong 1 đơn hàng (used_count > 0)
     // — tránh xoá mất dấu vết 1 giao dịch thật đã xảy ra chỉ vì bấm nhầm nút hoàn tác.
-    const voucherRow = await queryOne('SELECT id, used_count FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [signupRow.code]);
+    // VOUCHER-2 (Q2): voucher của lần nhận này = grant nguon 'khach_moi' + nguon_id (mới nhất); dữ liệu cũ: mã cùng chữ mã bill.
+    const voucherRow = (await queryOne(`SELECT d.id, d.used_count, g.id AS grant_id FROM pos_voucher_grants g JOIN pos_discount_codes d
+        ON UPPER(d.code) = UPPER(g.code) WHERE g.nguon = 'khach_moi' AND g.nguon_id = ? ORDER BY g.id DESC LIMIT 1`, [signupRow.id]))
+      || await queryOne('SELECT id, used_count FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [signupRow.code]);
     if (voucherRow && voucherRow.used_count > 0) {
       return res.status(400).json({
         success: false,
@@ -511,7 +489,10 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
       const xoa = voucherRow
         ? await tx.run('DELETE FROM pos_discount_codes WHERE id = ? AND COALESCE(used_count, 0) = 0', [voucherRow.id])
         : { changes: 0 };
-      if (voucherRow && xoa.changes === 0) {
+      // VOUCHER-2: xoá dòng ví của voucher — chỉ khi còn 'available' (vừa dùng ở đơn khác → dừng).
+      const xoaVi = voucherRow?.grant_id
+        ? await tx.run("DELETE FROM pos_voucher_grants WHERE id = ? AND status = 'available'", [voucherRow.grant_id]) : { changes: 1 };
+      if (voucherRow && (xoa.changes === 0 || xoaVi.changes === 0)) {
         await tx.rollback();
         return res.status(400).json({ success: false, error: 'Voucher này vừa được dùng trong 1 đơn hàng — không hoàn tác.' });
       }
@@ -531,6 +512,7 @@ router.post('/:id/reset', authenticate, checkPermission('manage_settings'), asyn
 
 module.exports = router;
 module.exports.kiemDonCuaMa = kiemDonCuaMa; // P20b: POST /orders dùng CÙNG phép kiểm đơn gốc (khuôn wallets.js)
+module.exports.maBillCuaVoucher = maBillCuaVoucher; // VOUCHER-2 P20b: voucher → mã bill sinh ra nó (orders.js, discount-codes.js)
 module.exports.nhanMaUuDai = nhanMaUuDai;     // KH-API-1: /api/kh/nhan-ma-bill
 module.exports.nhanDiemMaBill = nhanDiemMaBill; // KH-API-1: /api/kh/nhan-diem
 module.exports.docCauHinhNhanDiem = docCauHinhNhanDiem; // P22-23: bill in hệ số CÙNG hàm với /nhan-diem
