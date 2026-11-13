@@ -13,7 +13,7 @@
 - 13.11 — bước 2 (đọc) xong; bước 3: `ke_hoach.md` viết xong, agent phụ soát. Phiếu: "CÓ kế hoạch chủ quán duyệt" → commit, push, DỪNG chờ duyệt.
 
 ## Câu hỏi
-Xem `ke_hoach.md` mục "Cần chủ quán trả lời" (Q-A … Q-D của phiếu + Q-E, Q-F, Q-G máy thêm).
+Xem `ke_hoach.md` mục "Cần chủ quán trả lời" (Q-A … Q-D của phiếu + Q-E, Q-F, Q-G, Q-H máy thêm).
 
 ## Phát hiện
 - `server/routes/auth.js` `POST /login`: không giới hạn số lần sai (đọc trong lượt này — không có bộ đếm nào trong file). Ngoài Phạm vi →
