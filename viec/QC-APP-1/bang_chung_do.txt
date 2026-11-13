@@ -1,0 +1,16 @@
+QC-APP-1 — bằng chứng ĐỎ: bài HIỆN TẠI chạy trên server/ + client/src/ của commit d121491 (gốc, trước khi vá; commit PHIEU: QC-APP-1)
+Lệnh:  python3 viec/QC-APP-1/dot_bien.py --goc d121491 thu_QCAPP1.js thu_HOPDONG_KH.js
+
+cong_cu/thu_QCAPP1.js (bài MỚI)  — 1 đạt · 21 hỏng (thoát 1)
+  A  ✗ A0 chưa có server/routes/quang-cao.js · A0c chưa có bảng pos_quang_cao (các nhóm A/B/C/D/F của máy chủ không chạy được — không có route / bảng)
+  H  ✗ H1 chưa có QuangCao.jsx / quangCao.js · H2 / H2b chưa có quangCaoApi, loi_o · H3 / H3b Settings.jsx chưa có thẻ · H4 / H4b / H4c / H4d
+     ✗ H5 câu nhắc · H6 đếm ngược · H7 xem trước · H8 nhãn · H9 công tắc Giờ vàng · H10 ô chọn món · H11 loi_o → ô · H12 hàm thuần
+  I  ✗ I1 chưa nối kiem_tra_truoc_khi_giao.js · I2 hợp đồng chưa ghi cửa GET /quang-cao
+
+cong_cu/thu_HOPDONG_KH.js (bài CŨ, thêm ca v16 + gieo một dòng quảng cáo) — ĐỎ trên gốc, thoát 2
+  ✗ v16: khối máy đọc ghi đủ bay_gio + 10 trường của data[] (/quang-cao), token: false; mục "Ghi chú v16"…
+  ✖ Bài thử sập: SQLITE_ERROR: no such table: pos_quang_cao   (gieo dòng quảng cáo — chưa có bảng 028)
+  (đỏ trên gốc nên KHÔNG thuộc mục "Bài thử cũ sửa": mục đó chỉ cho bài cũ đổi mà VẪN XANH trên gốc — LUAT_XAY_APP §6.8–6.9)
+
+SỐ CA thu_QCAPP1.js: 125
+SỐ CA thu_HOPDONG_KH.js: 93
