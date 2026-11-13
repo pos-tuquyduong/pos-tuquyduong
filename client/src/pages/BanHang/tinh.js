@@ -155,12 +155,19 @@ export function dungDonHang({ gio, tamTinh, cach, khach, soDuDung = 0, soDuMeDun
 const chuanMa = (ma) => String(ma || '').trim().toUpperCase();
 
 /** Khoá phần giỏ ảnh hưởng tiền: SĐT + tổng số lượng từng món + mã. Ghi chú / tách dòng KHÔNG đổi khoá → không gọi lại máy chủ. */
-export function khoaTinh(gio, khach, ma, giao = null) {
+export function khoaTinh(gio, khach, ma, giao = null, vouchers = []) {
   const soLuong = {};
   for (const m of gio) soLuong[m.product_id] = (soLuong[m.product_id] || 0) + m.quantity;
   const mon = Object.keys(soLuong).sort((a, b) => a - b).map((id) => [Number(id), soLuong[id]]);
   const the = layThe(gio);   // QUAY-UI-1: cùng hạng khác số tháng = giá khác → đổi khoá
-  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma), ...(giao ? { giao: giao.ma_bao_phi } : {}), ...(the ? { the: [the.the.tier_id, the.the.so_thang] } : {}) });   // NAP-1: gói nạp nằm trong `mon` (product_id −2000000 − mã gói)
+  return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma), ...(giao ? { giao: giao.ma_bao_phi } : {}), ...(the ? { the: [the.the.tier_id, the.the.so_thang] } : {}),
+    ...(vouchers.length ? { vc: vouchers } : {}) });   // NAP-1: gói nạp nằm trong `mon` (product_id −2000000 − mã gói). VOUCHER-2: chọn / bỏ voucher → hỏi lại
+}
+/** VOUCHER-2: voucher máy chủ báo không dùng được (tinh-thu voucher_loi[]) → bỏ khỏi danh sách chọn (đơn KHÔNG gửi voucher hỏng — POST sẽ 400)
+ *  + lý do theo mã để chip viền đỏ. → { chon, loi: { MÃ: lời máy chủ } } */
+export function boVoucherLoi(chon, voucherLoi = []) {
+  const loi = Object.fromEntries((voucherLoi || []).map((x) => [x.ma, x.error]));
+  return { chon: chon.filter((m) => !(m in loi)), loi };
 }
 /** NAP-1: dòng gói nạp trong giỏ (giỏ nạp chỉ có đúng một dòng này) hoặc null. */
 export const layGoiNap = (gio) => gio.find((m) => m.goi_nap_id) || null;
@@ -201,7 +208,7 @@ export function kiemTraThe(gio, khach, hang, tier) {
 
 /** Thân tinh-thu / phần `don` của phiên: CHỈ khách, món, mã — không trường tiền nào (máy chủ tự tra giá).
  *  GIAO-1: `giao` = { ma_bao_phi, ten, sdt, ghi_chu } — phí ship máy chủ lấy từ báo phí, màn hình không gửi số phí. */
-export function thanTinhThu(gio, khach, ma, giao = null) {
+export function thanTinhThu(gio, khach, ma, giao = null, vouchers = []) {
   const nap = layGoiNap(gio);   // NAP-1: giỏ nạp — đơn riêng, không giao
   if (nap) return { customer_phone: khach?.phone || null, customer_name: khach?.name || 'Khách lẻ', items: [], goi_nap_id: nap.goi_nap_id };
   const the = layThe(gio);   // QUAY-UI-1: thẻ đi bằng membership_buy, không nằm trong items
@@ -219,6 +226,7 @@ export function thanTinhThu(gio, khach, ma, giao = null) {
       note: m.note ? String(m.note).trim().slice(0, GHI_CHU_TOI_DA) : null,
     })),
     discount_code: chuanMa(ma) || null,
+    ...(vouchers.length ? { vouchers } : {}),   // VOUCHER-2: chỉ khi có chọn — giỏ không voucher gửi thân y cũ
   };
 }
 
@@ -255,8 +263,8 @@ export function nutThuSang({ coSo, dangGui, cach, phaiTra, dua }) {
 }
 
 /** Thân POST /thanh-toan/phien. PIN chỉ gửi khi có trừ tài khoản (máy chủ kiểm PIN của CHỦ tài khoản bị trừ). */
-export function thanPhien({ gio, khach, ma, cach, dungTK, dungMe, pin, pinMe, giao = null }) {
-  const don = thanTinhThu(gio, khach, ma, giao);
+export function thanPhien({ gio, khach, ma, cach, dungTK, dungMe, pin, pinMe, giao = null, vouchers = [] }) {
+  const don = thanTinhThu(gio, khach, ma, giao, vouchers);
   if (dungMe && khach?.parent_phone) don.parent_phone = khach.parent_phone;
   const than = { cach, don, tru_tai_khoan: !!dungTK, tru_tai_khoan_me: !!dungMe };
   if (dungTK) than.pin = pin;
