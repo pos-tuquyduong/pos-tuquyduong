@@ -102,7 +102,7 @@ DOT_BIEN = [
   # ── H: giao diện ──
   ('BV-UI-BO-HOIPIN', [(QJ, '<HoiPin mo=', '<Khong mo=', 1)], r'✗ H4 ', T),
   ('BV-UI-BO-THANHLUU', [(QJ, '<ThanhLuu id="quang-cao"', '<Khong id="quang-cao"', 1)], r'✗ H4 ', T),
-  ('BV-UI-BO-LOI-O', [(QJ, "const o = (t) => <LoiO loi={loiO[`${d.khoa}:${t}`]} />;", "const o = () => null;", 1)], r'✗ H4 ', T),
+  ('BV-UI-BO-LOI-O', [(QJ, "const o = (t) => <LoiO loi={loiO[`${d.khoa}:${t}`]} />;", "const o = () => null;", 1)], r'✗ H4d', T),
   ('VS-UI-ALERT', [(QJ, "baoXong(`Đã lưu ${ds.length} dòng quảng cáo`);", "baoXong(`Đã lưu ${ds.length} dòng quảng cáo`); alert('x');", 1)], r'✗ H4b', T),
   ('VS-UI-FETCH-TRAN', [(QJ, 'const r = await quangCaoApi.ds();', "const r = await quangCaoApi.ds(); void fetch('/api/pos/quang-cao');", 1)], r'✗ H4b', T),
   ('BV-UI-BO-TAI-LAI', [(QJ, "      baoXong(`Đã lưu ${ds.length} dòng quảng cáo`);\n      await tai();", "      baoXong(`Đã lưu ${ds.length} dòng quảng cáo`);", 1)], r'✗ H4c', T),

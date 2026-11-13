@@ -284,9 +284,10 @@ async function main() {
     const cp = (await luu([dong({ chu_dai: 'Trước' }), dong({ chu_dai: 'Sau' })]), await App(null));
     k('C6b đổi chỗ rồi lưu → đổi theo', ten(cp) === 'Trước | Sau' && cp.data[0].uu_tien < cp.data[1].uu_tien);
     const ids = (await docQuay()).dong.map((d) => ({ id: d.id, chu_dai: d.chu_dai }));
-    await luu([dong({ id: ids[1].id, chu_dai: ids[1].chu_dai }), dong({ id: ids[0].id, chu_dai: ids[0].chu_dai })]);
+    const i0 = ids[0] || {}, i1 = ids[1] || {};
+    await luu([dong({ id: i1.id, chu_dai: i1.chu_dai }), dong({ id: i0.id, chu_dai: i0.chu_dai })]);
     const dao = await App(null);
-    k('C6c đổi chỗ hai dòng ĐÃ CÓ id rồi lưu → cửa trả theo thứ tự mới, id giữ nguyên', ten(dao) === `${ids[1].chu_dai} | ${ids[0].chu_dai}` && dao.data[0].id === ids[1].id && dao.data[0].uu_tien < dao.data[1].uu_tien, ten(dao));
+    k('C6c đổi chỗ hai dòng ĐÃ CÓ id rồi lưu → cửa trả theo thứ tự mới, id giữ nguyên', ids.length >= 2 && ten(dao) === `${i1.chu_dai} | ${i0.chu_dai}` && dao.data[0]?.id === i1.id && dao.data[0].uu_tien < dao.data[1].uu_tien, ten(dao));
     const nho = JSON.stringify(await App(null));
     k('C7 không rò: câu trả lời không chứa chữ "bat", "cac_thu", "created", "updated", "pin"', !/"bat"|cac_thu|created|updated|"pin|error/.test(nho), nho);
 
