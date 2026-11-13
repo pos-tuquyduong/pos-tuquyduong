@@ -250,6 +250,10 @@ async function main() {
     const than = THAN[ten(c)] ? await THAN[ten(c)]() : undefined;
     const r = await goi(c.pt, url, than, c.token ? tk : null);
     if (ten(c) === 'POST /don') maDonApp = r.j.ma_don || null;
+    if (ten(c) === 'POST /nhan-ma-bill') {   // v15 (VOUCHER-2 Q2): data.voucher_code = mã MỚI trong ví (không còn là mã in bill) + data.mo_ta
+      k('nhan-ma-bill v15: data.voucher_code là mã MỚI (≠ mã in bill) + data.mo_ta là chuỗi', !!r.j.data?.voucher_code && r.j.data.voucher_code !== maBill
+        && typeof r.j.data?.mo_ta === 'string', JSON.stringify(r.j.data || null));
+    }
     const thieu = (c.tra || []).filter((d) => !coDuong(r.j, d.split('.')));
     k(`${ten(c)} → 200, đủ ${(c.tra || []).length} trường`, r.status === 200 && r.j.success === true && thieu.length === 0,
       `HTTP ${r.status}${r.j.code ? ' · ' + r.j.code : ''}${thieu.length ? ' · thiếu ' + thieu.join(', ') : ''}`);
