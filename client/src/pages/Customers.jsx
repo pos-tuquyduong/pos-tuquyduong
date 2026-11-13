@@ -29,7 +29,8 @@ export default function Customers() {
     parent_phone: '',
     relationship: '',
     requested_product: 'Nước ép',
-    requested_cycles: 1
+    requested_cycles: 1,
+    ma_bill: ''   // VOUCHER-2 (Q9): mã in trên bill của lần mua đầu — khách mới đăng ký tại quầy nhận ưu đãi khách mới
   });
   const [submitting, setSubmitting] = useState(false);
   const [khachTrung, setKhachTrung] = useState(null);   // QUAY-UI-1 C: khách đã có ngay khi gõ đủ SĐT (máy chủ vẫn chặn 409 khi lưu)
@@ -137,14 +138,26 @@ export default function Customers() {
         requested_cycles: formData.requested_cycles
       });
 
-      baoXong(`Đã thêm khách ${formData.name || formData.phone}. Chờ đồng bộ với SX.`);
+      // VOUCHER-2 (Q2 · Q9): có mã trên bill → nhận ưu đãi khách mới qua ĐÚNG cửa /claim (cùng hàm App). Khách ĐÃ lưu; mã lỗi chỉ báo, không bỏ khách.
+      let phat = '';
+      const maBill = String(formData.ma_bill || '').trim();
+      if (maBill) {
+        try {
+          const r = await api.post('/signup-codes/claim', { code: maBill, phone: formData.phone });
+          phat = ` Đã phát voucher ${r.data?.voucher_code || ''}${r.data?.mo_ta ? ` (${r.data.mo_ta})` : ''} vào tài khoản.`;
+        } catch (eMa) {
+          baoLoiTu('nhận mã trên bill (khách đã lưu)', eMa);
+        }
+      }
+      baoXong(`Đã thêm khách ${formData.name || formData.phone}. Chờ đồng bộ với SX.${phat}`);
       setShowModal(false);
       setFormData({
         phone: '', name: '', notes: '',
         parent_phone: '',
         relationship: '',
         requested_product: 'Nước ép',
-        requested_cycles: 1
+        requested_cycles: 1,
+    ma_bill: ''   // VOUCHER-2 (Q9): mã in trên bill của lần mua đầu — khách mới đăng ký tại quầy nhận ưu đãi khách mới
       });
       loadCustomers();
     } catch (err) {
@@ -589,6 +602,18 @@ export default function Customers() {
                     value={formData.notes}
                     onChange={(e) => setFormData({...formData, notes: e.target.value})}
                     placeholder="Ghi chú thêm..."
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Mã trên bill (nếu có)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={formData.ma_bill}
+                    onChange={(e) => setFormData({...formData, ma_bill: e.target.value})}
+                    placeholder="Mã in trên bill lần mua đầu — nhận ưu đãi khách mới"
+                    maxLength={20}
                   />
                 </div>
 
