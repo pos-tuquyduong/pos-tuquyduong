@@ -85,6 +85,7 @@ function buildApiError(response, data) {
   );
   err.status = response.status;
   err.code = data && data.code;
+  err.loi_o = data && data.loi_o;   // QC-APP-1: máy chủ chỉ ô nào sai ({ dong, truong }) để màn hiện dưới đúng ô
   return err;
 }
 
@@ -527,6 +528,12 @@ export const hangApi = {
   cap: (sdt, tierId, soThang, pin) => api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin }),
   thuHoi: (sdt, tierId, pin) => api.post('/membership/thu-hoi', { phone: sdt, tier_id: tierId, pin }),
   nhatKy: (sdt) => api.get(`/membership/nhat-ky/${encodeURIComponent(sdt)}`)
+};
+
+// QC-APP-1 · Cài đặt "Quảng cáo trên App" (quyền manage_settings; lưu cần PIN chủ quán): đọc / lưu CẢ danh sách một lần
+export const quangCaoApi = {
+  ds: () => api.get('/quang-cao'),
+  luu: (body) => api.put('/quang-cao', body)
 };
 
 export default api;
