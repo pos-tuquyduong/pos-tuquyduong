@@ -1,0 +1,111 @@
+HUY-1 — bằng chứng ĐỎ trên code GỐC, 12.11.2026
+Cách chạy: bản sao code gốc 078723f trong thư mục nháp (git archive 078723f server client/src cong_cu tu_chay HOP_DONG_API_KH.md
+kiem_tra_truoc_khi_giao.js, node_modules nối symlink), chép BẢN MỚI của từng bài vào đó rồi chạy `node cong_cu/<bài>` (dòng ✗ + dòng tổng).
+Chạy lại sau lần đổi bài cuối (bb1c62c — thêm vế seed vào B1) — cổng A16.
+
+═══ cong_cu/thu_HUY1.js (bài mới) trên gốc ═══
+  ✗ C0 GET /orders/ly-do-huy → đúng 5 mã: pha_nham · bam_nham · het_nguyen_lieu · khach_doi_y · khac (kèm nhãn)  — HTTP 404 · Không tìm thấy đơn hàng []
+  ✗ C1 thiếu lý do → 400 LY_DO_BAT_BUOC  — HTTP 200
+  ✗ C2 mã lý do lạ → 400 LY_DO_BAT_BUOC  — HTTP 400 · DON_KHONG_HUY_DUOC · Đơn hàng đã được hủy trước đó
+  ✗ C3 "khác" mà ghi thêm toàn dấu cách → 400 LY_DO_BAT_BUOC  — HTTP 400 · DON_KHONG_HUY_DUOC · Đơn hàng đã được hủy trước đó
+  ✗ C1b thân cũ { reason } toàn dấu cách → 400 LY_DO_BAT_BUOC  — HTTP 400 · DON_KHONG_HUY_DUOC · Đơn hàng đã được hủy trước đó
+  ✗ C1–C3 bị từ chối thì đơn vẫn completed, ví không đổi
+  ✗ C4 "khác" + ghi thêm → 200; lưu huy_ly_do_ma = khac, cancelled_reason = ghi thêm đã cắt, người huỷ, giờ huỷ  — HTTP 400 · DON_KHONG_HUY_DUOC undefined "Không có lý do" h1_manager
+  ✗ C5 mã có sẵn, không ghi thêm → 200, cancelled_reason = nhãn "Hết nguyên liệu"  — HTTP 200 undefined "Không có lý do"
+  ✗ C5b mã có sẵn + ghi thêm → cancelled_reason = "Bấm nhầm · bàn 3"  — "Không có lý do"
+  ✗ C6 thân cũ { reason } (màn Giao hàng, bài cũ) → 200, mã khac, lý do giữ nguyên chữ  — HTTP 200 undefined "màn cũ gửi"
+  ✗ B1 staff huỷ → 403, quyền cancel_order của staff = 0 (kho mới: seed đã 0, bước 025 không phải đổi — không có bảng sao lưu)  — HTTP 200 quyền 1 sao lưu 0
+  ✗ B1b kho cũ (staff cancel_order = 1) → bước 025 đặt 0, có bảng _sao_luu_025_pos_permissions, manager giữ 1  — hỏng null staff 1 sao lưu 0 manager 1
+  ✗ B2 manager huỷ đơn hôm nay → 200  — HTTP 400 · DON_KHONG_HUY_DUOC · Đơn hàng đã được hủy trước đó
+  ✗ B3 manager huỷ đơn hôm qua → 403 HUY_DON_NGAY_TRUOC, đơn vẫn completed, ví không đổi  — HTTP 200 cancelled ví 0
+  ✗ B4 owner huỷ đơn hôm qua → 200, ví +25.000  — HTTP 400 · DON_KHONG_HUY_DUOC · Đơn hàng đã được hủy trước đó ví 0
+  ✗ B5 ranh giờ VN: tạo 23:59:59 hôm qua → manager 403; tạo 00:00:00 hôm nay → manager 200  — HTTP 200 / HTTP 200
+  ✗ A1 đơn quầy đã xong (tiền mặt) → 200, trả về hoan.tai_khoan = 25.000, hoan.tien_mat = 0  — HTTP 200 undefined
+  ✗ A4 màn Đơn App (dsQuay) trả oid = id đơn thật để gọi cùng route huỷ  — [["AHUY13",null],["AHUY12",null],["AHUY11",null]]
+  ✗ H3 đơn App chưa huỷ → hoan_vao_tai_khoan = null, ly_do_huy = null (có trường)  — {}
+  ✗ H1 GET /don/:ma đơn bị huỷ → da_huy, hoan_vao_tai_khoan = 20.000, ly_do_huy = "Hết nguyên liệu", không lộ ghi thêm  — {"t":"da_huy"}
+  ✗ H1b GET /don (danh sách) cùng hai trường  — {"t":"da_huy"}
+  ✗ A2b ví khách đơn App +60.000 (ba đơn CK 20.000 hoàn vào tài khoản)  — ví 0
+  ✗ D1 tiền mặt 25.000 → ví +25.000, một dòng sổ cách huy_tien_mat, ghi chú "tiền mặt"  — []
+  ✗ D2 chuyển khoản 20.000 → ví +20.000, dòng cách huy_ck, ghi chú "chuyển khoản"  — []
+  ✗ D4 ví 10.000 + tiền mặt 15.000 → hai dòng (cash 10.000 · huy_tien_mat 15.000), ví = 25.000  — [{"customer_phone":"0937500016","amount":10000,"payment_method":"cash","notes":"Hoàn tiền hủy đơn ORD-20261112-HD0017"}]
+  ✗ D5 ví mẹ 10.000 + tiền mặt 15.000 → mẹ về 100.000, con +15.000  — mẹ 100000 con 0
+  ✗ D6 nợ đã thu một phần (10.000 + thu 5.000, còn nợ 10.000) → ví +15.000  — HTTP 200 ví 0
+  ✗ D7 đơn 50.000 đã đền 10.000 → huỷ chỉ hoàn 40.000 (tổng nhận lại = 50.000)  — HTTP 200 huỷ +0
+  ✗ D10 (NAP-1) đơn tiền mặt huỷ → thưởng không đổi (cả khoản vào tiền nạp); đơn ví + tiền mặt huỷ → thưởng về đúng như trước  — thưởng 20000 → 18000 → 20000 · ví 100000
+  ✗ D9 đơn có SĐT không bao giờ có dòng hoàn tiền mặt khách lẻ  — -1
+  ✗ E1 khách lẻ tiền mặt 25.000 → một dòng hoàn tiền mặt 25.000; trả về hoan.tien_mat = 25.000, tai_khoan = 0  — HTTP 200 [] undefined
+  ✗ E4 dòng có đơn, số, người làm, lúc (giờ VN hôm nay), mã lý do, lý do  — {}
+  ✗ E2 khách lẻ chuyển khoản 20.000 → dòng hoàn tiền mặt 20.000 (trả bằng tiền mặt)  — []
+  ✗ E5 bảng hoàn tiền mặt UNIQUE theo đơn — đã có một dòng, dòng thứ hai bị chặn
+  ✗ E5b lối DUY NHẤT ghi khoản hoàn tiền mặt: chỉ routes/orders.js  — []
+  ✗ F1 tổng hợp ngày có huy_don.hoan_tai_khoan (+45.000 = 25.000 tiền mặt + 20.000 CK) và huy_don.hoan_tien_mat (+45.000 khách lẻ)  — X +NaN Y +NaN undefined
+  ✗ F2 két tiền mặt "trả ra" +45.000 = đúng Y (đơn có SĐT trả tiền mặt KHÔNG trừ két)  — tiền mặt trả ra +50000
+  ✗ F3 chuyển khoản "trả ra" +0 (tiền CK đã về, rồi hoàn vào ví / trả bằng tiền mặt)  — CK trả ra +40000
+  ✗ D-mã ví +20.000 = số khách thật trả sau giảm  — ví 0
+  ✗ G6 hai người bấm huỷ cùng lúc → đúng một 200; ví +25.000 một lần; khoản hoàn tiền mặt một dòng  — 200 / 400 DON_KHONG_HUY_DUOC / 200 / 400 DON_KHONG_HUY_DUOC ví 0
+  ✗ G4 đơn mua gói: manager → 403 như cũ; owner → 200, ví +100.000 dòng huy_tien_mat (không còn hoan_goi)  — dòng hoan_goi
+  ✗ H5 PHIEN_BAN ≥ 14; dòng GET /don và GET /don/:ma có hoan_vao_tai_khoan, ly_do_huy; nhật ký có dòng HUY-1  — PHIEN_BAN 13
+THỬ HUY-1: 16 đạt · 42 hỏng
+Ca XANH trên gốc là ca canh (luồng giữ nguyên, K5): A3, A2, H2, D3, G1b, E3, F5, G1, G2, G3, G5, G7, K1, D8 I11 / I18 / I19.
+
+═══ Bài cũ ĐỔI vì hành vi chủ quán đã duyệt đổi (luật 6.8 — bài sửa thường, KHÔNG phải "## Bài thử cũ sửa"): bản MỚI trên gốc ═══
+cong_cu/thu_GIAO1.js (Q6, Q8):
+  ✗ J4 + J9 đơn giao trả tiền mặt / chuyển khoản (quản lý, đang pha) → huỷ 200, ví khách + toàn bộ 85.000 (gồm phí ship)  — 200 409 CHO_HUY_1 +0 / 200 409 CHO_HUY_1 +0
+  ✗ J4b đơn giao không tài khoản khách trả tiền mặt → 409 GIAO_KHONG_TAI_KHOAN, đơn còn  — 200 409 CHO_HUY_1
+  ✗ K5b đơn KHÔNG giao: nhân viên → 403; quản lý thiếu lý do → 400 LY_DO_BAT_BUOC; quản lý lý do ngắn (đơn thường không đòi 3 ký tự) → 200  — 200 400 DON_KHONG_HUY_DUOC 400
+  134 đạt · 3 hỏng
+cong_cu/thu_P26b.js (Q7):
+  ✗ A5 không đơn nào được hoàn vào ví (phần ví) nhiều hơn số đã trả bằng ví; đơn tiền mặt huỷ 1003, 1019 hoàn 25.000 dòng huy_tien_mat  — [] []
+  103 đạt · 1 hỏng
+cong_cu/thu_P26c.js (Q7):
+  ✗ A5c2 sổ: 100.000 phần ví (cash) + 80.000 phần tiền mặt (huy_tien_mat); total_spent về 0 (mua 100.000 − hoàn 100.000), không âm  — [{"cach":"cash","amount":100000},{"cach":"hoan_goi","amount":80000}] · total_spent 0
+  ✗ B5d (K5) đơn tiền mặt 50.000 đã đền 10.000 → huỷ 200, ví +40.000  — HTTP 200 · ví 10000 → 10000
+  156 đạt · 2 hỏng
+  (A5k đổi từ nhân viên sang quản lý: xanh trên gốc — nằm trong bài đỏ trên gốc; bản GỐC của bài trên code MỚI đỏ ở A5k / A5c2 / B5d — luật 6.9)
+cong_cu/thu_P24.js (Q7):
+  ✗ A4b dòng trừ nằm TRONG giao dịch huỷ: đọc ngay trước commit thấy 1; ví hoàn 25.000 (toàn bộ)  — HTTP 200 · trong giao dịch 1 · ví 10000
+  32 đạt · 1 hỏng
+cong_cu/thu_DOISOAT1.js (Q7):
+  ✗ E14 khách có SĐT mua thẻ 500.000 tiền mặt rồi huỷ cùng ngày 12.01 → ví khách + giá thẻ, két "trả ra" 0, ròng = giá thẻ  — HTTP 200 · {"ban":500000,"thu_no":0,"nap_vi":0,"tra_ra":500000,"rong":0} · ví 0 · undefined
+  133 đạt · 1 hỏng
+cong_cu/thu_HOPDONG_KH.js (hợp đồng v14):
+  ✗ v14: khối máy đọc ghi đủ hoan_vao_tai_khoan / ly_do_huy (cả /don, /don/:ma) + mục "Ghi chú v14"  — /don data[].hoan_vao_tai_khoan, /don/:ma don.hoan_vao_tai_khoan, /don data[].ly_do_huy, /don/:ma don.ly_do_huy
+  88 đạt · 1 hỏng
+cong_cu/gia_lap/kich_ban.js + bat_bien.js (Q2, Q5) → node cong_cu/gia_lap/chay.js:
+  ✗ KB5 → HTTP: huỷ đơn trả ví 10.000 + tiền mặt 15.000 → 200, ví +25.000: HTTP 200
+  ✗ KB22 → HTTP: nhân viên huỷ đơn mua thẻ → 403 (HUY-1): HTTP 200
+  ✗ KB22 → HTTP: mua thẻ → 1 dòng mua thẻ; chủ huỷ → 200, ví + giá thẻ, dòng mua thẻ bị gỡ: 1 dòng / HTTP 400 · DON_KHONG_HUY_DUOC · ví 0 → 500000 · còn 0
+  Giả lập: 33 kịch bản · 18 bất biến · KHÔNG ĐẠT (3 lệch)
+
+═══ Số ca trên code ĐÃ VÁ (HEAD) ═══
+SỐ CA cong_cu/thu_HUY1.js: 58
+SỐ CA cong_cu/thu_GIAO1.js: 137
+SỐ CA cong_cu/thu_P26b.js: 104
+SỐ CA cong_cu/thu_P26c.js: 158
+SỐ CA cong_cu/thu_P24.js: 33
+SỐ CA cong_cu/thu_DOISOAT1.js: 134
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 89
+SỐ CA cong_cu/gia_lap/chay.js: 33
+
+═══ Phiên 12.11 (sau Q9, Q10) ═══
+cong_cu/thu_gia_lap.js (Q9 — chỉ đổi neo M11) bản mới trên bản sao gốc 078723f (cùng cách chạy như trên):
+  ✗ M11 huỷ đơn bỏ cổng trạng thái (huỷ được đơn đã hoàn) (routes/orders.js)  — chuỗi gốc khớp 0 lần, cần 1 — đột biến không áp được
+  179 đạt · 1 hỏng
+Trên HEAD (fd9d3db): 180 đạt · 0 hỏng; `✓ M11 huỷ đơn bỏ cổng trạng thái (huỷ được đơn đã hoàn) → KB13 → I11`.
+
+ban_mau_pos/thu/thu_hd.js (Q10 — bài mới của bản mẫu) trên bản mẫu GỐC (ban_mau_pos.html chưa sửa), `bash ban_mau_pos/chay_thu.sh`:
+  thu_hd         ✗ SẬP — ReferenceError: moHuyDon is not defined
+  ⚠ 1 bài thử bị sập — mỗi bài tính là 1 hỏng
+  TỔNG: 119 đạt · 1 hỏng
+Sau khi sửa bản mẫu (1acc855): thu_hd 13 đạt · 0 hỏng; TỔNG: 132 đạt · 0 hỏng.
+
+SỐ CA cong_cu/thu_gia_lap.js: 180
+SỐ CA ban_mau_pos/thu/thu_hd.js: 13
+
+═══ Soát vòng 1 (12.11) — thu_HUY1.js thêm H6 (App không tính ví mẹ); bài đổi sau lần ghi trên → chạy lại cả hai (A16) ═══
+Bản mới (108cb67) trên bản sao gốc 078723f:
+  ✗ H6 đơn App ví mẹ 10.000 + tiền mặt 10.000 → huỷ 200; App con: hoan_vao_tai_khoan = 10.000 (ví mẹ không tính); mẹ về 50.000  — HTTP 200 h undefined mẹ 50000 con 0
+  THỬ HUY-1: 16 đạt · 43 hỏng
+Trên HEAD d8e62be: THỬ HUY-1: 59 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_HUY1.js: 59

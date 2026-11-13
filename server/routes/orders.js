@@ -142,6 +142,11 @@ router.get("/", authenticate, async (req, res) => {
   }
 });
 
+/** HUY-1 (C): GET /api/pos/orders/ly-do-huy — danh sách lý do huỷ cho hộp Huỷ đơn (đứng TRƯỚC /:id). */
+router.get("/ly-do-huy", authenticate, (req, res) => {
+  res.json({ data: Object.entries(LY_DO_HUY).map(([ma, nhan]) => ({ ma, nhan })) });
+});
+
 /**
  * GET /api/pos/orders/:id
  * Chi tiết đơn hàng
@@ -1521,14 +1526,39 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
 
 // P26c: hoàn ví khi huỷ / xoá đơn còn hiệu lực — số tiền theo soTienHoan (Q4 gói, H2 = 1B toàn bộ vào ví, H4 trừ tiền đã đền),
 // ví mẹ nhận trước. Đơn không gói, không đền: đúng như P26b (phần ví con + phần ví mẹ).
-async function hoanVi(tx, order, nguoi, luc, viec) {
+// HUY-1 (D, E — chủ quán 05.11): `huy` = { ma, chu } (chỉ route huỷ) → hoàn TOÀN BỘ đã trả: soTienHoan nhận cả tiền mặt + CK (vẫn trừ phần
+// đền, mẹ nhận trước, đơn gói như cũ); phần ngoài ví chia tiền mặt (≤ cash_amount) rồi CK. Khách lẻ (không SĐT) → MỘT khoản trả tiền mặt từ két
+// (pos_hoan_tien_mat — lối duy nhất lấy tiền mặt ra khỏi két). Xoá đơn không truyền `huy` → y như cũ (K5). Trả { tai_khoan, tien_mat }.
+async function hoanVi(tx, order, nguoi, luc, viec, huy = null) {
   const meTra = order.parent_phone ? Number(order.parent_balance_amount || 0) : 0;
-  const { me, con, coGoi } = await soTienHoan(tx, order, Number(order.balance_amount || 0) + meTra);
+  const viCon = Number(order.balance_amount || 0), tienMat = Number(order.cash_amount || 0), ck = Number(order.transfer_amount || 0);
+  const { me, con, coGoi } = await soTienHoan(tx, order, viCon + meTra + (huy ? tienMat + ck : 0));
   // Đơn mua gói: phần vượt số khách trả bằng ví (= phần tiền mặt / CK, H2) ghi dòng riêng cách 'hoan_goi', KHÔNG giảm total_spent
   // (nó chưa từng là tiền chi từ ví — soát vòng 1 lỗi 4). Đối soát: I11 canh phần ví, I19 canh cả đơn.
-  const tuVi = coGoi ? Math.min(con, Number(order.balance_amount || 0)) : con;
-  await ghiHoan(tx, order, { me, tuVi, tienMat: con - tuVi }, { nguoi, luc, ghiChu: `Hoàn tiền ${viec} đơn ${order.code}`,
+  const tuVi = coGoi || huy ? Math.min(con, viCon) : con;
+  const ngoaiVi = con - tuVi;
+  if (huy && !order.customer_phone) {
+    if (ngoaiVi > 0) {
+      await tx.run('INSERT INTO pos_hoan_tien_mat (order_id, so_tien, ly_do_ma, ly_do, nguoi, luc) VALUES (?, ?, ?, ?, ?, ?)',
+        [order.id, ngoaiVi, huy.ma, huy.chu, nguoi, luc]);
+    }
+    return { tai_khoan: 0, tien_mat: ngoaiVi };
+  }
+  const phanTienMat = huy ? Math.min(ngoaiVi, tienMat) : ngoaiVi;
+  await ghiHoan(tx, order, { me, tuVi, tienMat: phanTienMat, ck: ngoaiVi - phanTienMat, huy: !!huy }, { nguoi, luc, ghiChu: `Hoàn tiền ${viec} đơn ${order.code}`,
     ghiChuMe: `Hoàn tiền mẹ ${viec} đơn ${order.code} (KH: ${order.customer_name})` });
+  return { tai_khoan: me + con, tien_mat: 0 };
+}
+
+// HUY-1 (C): lý do huỷ — MỘT danh sách cho máy chủ, màn quầy (GET /orders/ly-do-huy) và App (nhãn, utils/donApp.js).
+const LY_DO_HUY = { pha_nham: 'Pha nhầm món', bam_nham: 'Bấm nhầm', het_nguyen_lieu: 'Hết nguyên liệu', khach_doi_y: 'Khách đổi ý', khac: 'Khác' };
+/** Thân huỷ → { ma, chu } hoặc null (thiếu / mã lạ / "khác" mà không ghi thêm). Thân cũ { reason } (màn Giao hàng) = "khác" + ghi thêm = reason. */
+function docLyDoHuy(body) {
+  const moi = body?.ly_do_ma != null;
+  const ma = moi ? String(body.ly_do_ma) : 'khac';
+  const them = String((moi ? body.ghi_them : body?.reason) ?? '').trim().slice(0, 300);
+  if (!Object.hasOwn(LY_DO_HUY, ma) || (ma === 'khac' && !them)) return null;
+  return { ma, chu: ma === 'khac' ? them : them ? `${LY_DO_HUY[ma]} · ${them}` : LY_DO_HUY[ma] };
 }
 
 /**
@@ -1542,14 +1572,14 @@ router.put(
   checkPermission("cancel_order"),
   async (req, res) => {
     try {
-      const { reason } = req.body;
+      const lyDo = docLyDoHuy(req.body);
       const now = getNow();
 
       // ========== ATOMIC TRANSACTION: Hoàn tiền + hủy đơn ==========
       // P26b: đọc đơn TRONG giao dịch; cổng DUY NHẤT là UPDATE có điều kiện `AND status = 'completed'` + kiểm số dòng đổi.
       // Đơn đã hoàn / đã huỷ / hai người bấm huỷ cùng lúc: lệnh thua 400, ví không đổi, KHÔNG tới khối hoàn kho SX bên dưới.
       const tx = await beginTransaction();
-      let order, orderItems, huyGiao;
+      let order, orderItems, huyGiao, hoan;
       try {
         order = await tx.queryOne("SELECT * FROM pos_orders WHERE id = ?", [req.params.id]);
         if (!order) {
@@ -1560,11 +1590,21 @@ router.put(
           await tx.rollback();
           return res.status(400).json(LOI_NAP_KHONG_HOAN);
         }
+        // HUY-1 (B): quản lý huỷ đơn TRONG NGÀY (giờ VN, cùng quy ước getNow với created_at); đơn ngày trước chỉ chủ quán.
+        if (req.user.role !== "owner" && String(order.created_at || "").slice(0, 10) < now.slice(0, 10)) {
+          await tx.rollback();
+          return res.status(403).json({ error: "Đơn của ngày trước — chỉ chủ quán huỷ được", code: "HUY_DON_NGAY_TRUOC" });
+        }
         // GIAO-1 (J): đơn giao — quản lý / chủ quán + lý do, huỷ theo bước chuyến; đơn không giao trả null, đường cũ y nguyên.
-        huyGiao = await giaoHang.kiemHuyDonGiao(tx, order, req.user, req.body);
+        // HUY-1: nhận lý do đã ghép (mã + ghi thêm); thiếu lý do thì cổng giao báo trước (≥ 3 ký tự), đơn thường báo ngay dưới — cùng mã lỗi.
+        huyGiao = await giaoHang.kiemHuyDonGiao(tx, order, req.user, { ...req.body, reason: lyDo?.chu });
         if (huyGiao?.loi) {
           await tx.rollback();
           return res.status(huyGiao.loi.status).json(huyGiao.loi.body);
+        }
+        if (!lyDo) {   // HUY-1 (C): lý do bắt buộc — mã có sẵn, "khác" phải ghi thêm
+          await tx.rollback();
+          return res.status(400).json({ error: "Chọn lý do huỷ (chọn \"Khác\" thì ghi thêm)", code: "LY_DO_BAT_BUOC" });
         }
         // P26c (Q4): đơn MUA gói — chỉ owner hoặc vai trò có quyền refund_package (mặc định chỉ owner, H9).
         const cancelBuyPkgs = await tx.query("SELECT id, delivered_qty FROM pos_customer_packages WHERE order_id = ?", [order.id]);
@@ -1578,9 +1618,9 @@ router.put(
         }
         const doi = await tx.run(
           `UPDATE pos_orders
-          SET status = 'cancelled', cancelled_reason = ?, cancelled_by = ?, cancelled_at = ?
+          SET status = 'cancelled', cancelled_reason = ?, huy_ly_do_ma = ?, cancelled_by = ?, cancelled_at = ?
           WHERE id = ? AND status = 'completed'`,
-          [reason || "Không có lý do", req.user.username, now, order.id],
+          [lyDo.chu, lyDo.ma, req.user.username, now, order.id],
         );
         if (doi.changes !== 1) {
           await tx.rollback();
@@ -1590,15 +1630,15 @@ router.put(
             code: "DON_KHONG_HUY_DUOC",
           });
         }
-        if (huyGiao) await giaoHang.chotHuyGiao(tx, huyGiao, { ...order, cancelled_reason: reason }, req.user, now);   // GIAO-1: chuyến → huy, "Bỏ đi" → hàng hỏng
+        if (huyGiao) await giaoHang.chotHuyGiao(tx, huyGiao, { ...order, cancelled_reason: lyDo.chu }, req.user, now);   // GIAO-1: chuyến → huy, "Bỏ đi" → hàng hỏng
 
         // GOI-2 (A4): gói của đơn đã kết thúc ở Báo cáo → Gói SP → tiền đã chốt theo gói, không huỷ (= không hoàn lần hai).
         if (cancelBuyPkgs.length && await goiDaKetThuc(tx, order.id)) {
           await tx.rollback();
           return res.status(400).json(LOI_GOI_DA_KET_THUC);
         }
-        // Hoàn lại vào ví khách / mẹ — P26b: qua ghiVi (tương đối, trong giao dịch này). P26c: số tiền theo soTienHoan.
-        await hoanVi(tx, order, req.user.username, now, "hủy");
+        // Hoàn lại vào ví khách / mẹ — P26b: qua ghiVi (tương đối, trong giao dịch này). P26c: số tiền theo soTienHoan. HUY-1: toàn bộ đã trả.
+        hoan = await hoanVi(tx, order, req.user.username, now, "hủy", lyDo);
         await traLuotMa(tx, order);
         await truDiemDon(tx, order, req.user.username, now, "Huỷ");
 
@@ -1710,7 +1750,7 @@ router.put(
         }
       }
 
-      res.json({ success: true, message: "Đã hủy đơn hàng" });
+      res.json({ success: true, message: "Đã hủy đơn hàng", hoan });
     } catch (err) {
       loiGhi(res, err);
     }
@@ -1878,3 +1918,4 @@ router.delete("/:id", authenticate, async (req, res) => {
 
 module.exports = router;
 module.exports.taoDon = taoDon;   // P3: chốt phiên thanh toán (utils/giuCho.js)
+module.exports.LY_DO_HUY = LY_DO_HUY;   // HUY-1: nhãn lý do huỷ cho App (utils/donApp.js)

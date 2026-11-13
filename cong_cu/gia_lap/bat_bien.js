@@ -31,6 +31,8 @@ const NAP_TU = -2000000;   // dòng hàng gói nạp: product_id ≤ NAP_TU (ch�
 const IN = (ds) => ds.map((t) => `'${t}'`).join(', ');
 const so = (x) => Number(x || 0);
 const tien = (x) => so(x).toLocaleString('vi-VN') + 'đ';
+// Dòng hoàn KHÔNG phải tiền đã chi từ ví (I11, I18): phần tiền mặt / CK đưa vào ví — đơn mua gói (P26c) và huỷ đơn (HUY-1, wallets.js ghiHoan).
+const NGOAI_VI = "('hoan_goi', 'huy_tien_mat', 'huy_ck')";
 
 const BAT_BIEN = {
   // I1 — mã bill chỉ dùng trên đơn đã thu, chưa huỷ. Huỷ/hoàn SAU lúc dùng là hợp lệ (>= vì getNow theo giây).
@@ -263,6 +265,7 @@ const BAT_BIEN = {
     return lech;
   },
   // I11 (P26b, Q9) — theo TỪNG ví (ví khách + ví mẹ): mỗi ví, theo một order_id, tổng refund ≤ phần ví đó đã trả cho đơn.
+  // HUY-1 (Q2): huỷ đơn hoàn cả tiền mặt / CK vào ví — dòng cách 'huy_tien_mat' / 'huy_ck' cùng loại với 'hoan_goi' (NGOAI_VI).
   // P26c (H2 = 1B): hoàn đơn MUA gói đưa cả phần tiền mặt / CK vào ví khách — phần VƯỢT số đã trả bằng ví ghi dòng riêng cách
   // 'hoan_goi' và KHÔNG tính ở đây (phần ví vẫn canh như mọi đơn); I19 canh theo cả đơn (đơn còn). Đơn mua gói đã XOÁ: dòng 'hoan_goi'
   // không còn gì để đối chiếu — CHƯA KIỂM (P26c Phát hiện 6).
@@ -271,7 +274,7 @@ const BAT_BIEN = {
   // ví lệch > 0,5 ⇒ có một ví lệch ≥ 1 ⇒ I11 lệch, nên I10 ⊂ I11. Tiền lẻ < 1đ chia nhiều ví thì I10 thấy mà I11 không.)
   async I11(q) {
     const ds = await q(`SELECT order_id, customer_phone,
-        SUM(CASE WHEN type = 'refund' AND COALESCE(payment_method, '') <> 'hoan_goi' THEN amount ELSE 0 END) AS hoan,
+        SUM(CASE WHEN type = 'refund' AND COALESCE(payment_method, '') NOT IN ${NGOAI_VI} THEN amount ELSE 0 END) AS hoan,
         -SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS tra
       FROM pos_balance_transactions WHERE order_id IS NOT NULL GROUP BY order_id, customer_phone`);
     return ds.filter((r) => so(r.hoan) > so(r.tra) + 0.5)
@@ -387,7 +390,7 @@ const BAT_BIEN = {
     const ds = await q(`SELECT w.phone, w.total_topup, w.total_spent,
         (SELECT COALESCE(SUM(CASE WHEN t.type = 'topup' OR (t.type = 'adjust' AND t.amount > 0) THEN t.amount ELSE 0 END), 0)
           FROM pos_balance_transactions t WHERE t.customer_phone = w.phone) AS nap,
-        (SELECT COALESCE(SUM(CASE WHEN t.type = 'purchase' OR (t.type = 'refund' AND COALESCE(t.payment_method, '') <> 'hoan_goi')
+        (SELECT COALESCE(SUM(CASE WHEN t.type = 'purchase' OR (t.type = 'refund' AND COALESCE(t.payment_method, '') NOT IN ${NGOAI_VI})
           OR (t.type = 'adjust' AND t.amount < 0) THEN -t.amount ELSE 0 END), 0)
           FROM pos_balance_transactions t WHERE t.customer_phone = w.phone) AS tieu
       FROM pos_wallets w`);

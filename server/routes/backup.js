@@ -107,6 +107,7 @@ const BACKUP_TABLES = [
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
+  { name: 'pos_hoan_tien_mat', label: 'Hoàn tiền mặt khách lẻ', key: 'id' },   // HUY-1 (bước 025): tiền mặt ra két khi huỷ đơn khách lẻ
   { name: 'pos_promotion_usage', label: 'Lịch sử dùng khuyến mãi', key: 'id' },
   { name: 'pos_invoice_logs', label: 'Nhật ký hoá đơn', key: 'id' },
 
@@ -143,6 +144,7 @@ const BANG_KHONG_KHOI_PHUC = ['pos_wallets', 'pos_orders', 'pos_order_items', 'p
   'pos_giao_bao_phi', 'pos_giao_chuyen', 'pos_giao_tin',   // GIAO-1: phí ship / phí Ahamove / chống xử lý tin lặp — sổ tiền
   'pos_pin_chu_quan',   // HANG-1: file cũ không được đặt lại PIN chủ quán / gỡ khoá sai PIN — quên PIN: chủ quán nhờ chat soạn cách xoá PIN (không có nút)
   'pos_membership_tiers',   // HANG-1 câu 4a (chủ quán 05.11): % giảm, gói, cách có hạng chỉ sửa ở Cài đặt có PIN chủ quán — file không vượt PIN
+  'pos_hoan_tien_mat',   // HUY-1: tiền mặt ra két — sổ tiền, file cũ không ghi đè
   'pos_goi_nap'];   // NAP-1 (chủ quán 06.11): gói nạp chỉ chủ quán + PIN sửa — file cũ không vượt PIN (gói "trả ít → vào nhiều" là lối tạo tiền ví)
 
 /** Trang _Metadata của mọi file sao lưu — backup_date giờ VN dạng T: khôi phục nhận ra file MỚI (GIO-VN-1), không đổi giờ. */

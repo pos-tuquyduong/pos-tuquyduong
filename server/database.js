@@ -1070,7 +1070,7 @@ async function seedDefaultData() {
       ['staff', 'approve_refund', 0],
       ['staff', 'export_data', 0],
       ['staff', 'import_data', 0],
-      ['staff', 'cancel_order', 1],
+      ['staff', 'cancel_order', 0],   // HUY-1 B: huỷ đơn chỉ quản lý / chủ quán (kho đang chạy: bước nâng cấp 025)
       ['staff', 'view_all_orders', 0],
       ['staff', 'manage_promotions', 0],
       ['staff', 'manage_permissions', 0],

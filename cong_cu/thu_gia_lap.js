@@ -149,7 +149,7 @@ const DOT_BIEN = [
   ['M10 báo hỏng hoàn ví ghi loại dòng ngoài danh sách trắng', 'routes/damages.js',
     "loai: 'compensation'", "loai: 'den_bu'", 1, 6, 'I4'],
   ['M11 huỷ đơn bỏ cổng trạng thái (huỷ được đơn đã hoàn)', 'routes/orders.js',
-    "WHERE id = ? AND status = 'completed'`,\n          [reason ||", "WHERE id = ? AND 1`,\n          [reason ||", 1, 13, 'I11'],
+    "WHERE id = ? AND status = 'completed'`,\n          [lyDo.chu,", "WHERE id = ? AND 1`,\n          [lyDo.chu,", 1, 13, 'I11'],
   ['M12 xoá đơn hoàn ví bất kể trạng thái', 'routes/orders.js',
     'if (order.status === "completed") {', 'if (true) {', 1, 14, 'I11'],
   ['M13 duyệt hoàn trả phần ví mẹ vào ví con (Q9)', 'routes/refunds.js',

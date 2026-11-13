@@ -157,9 +157,10 @@ async function kiemHuyDonGiao(tx, order, user, body) {
   if (['dang_giao', 'xong', 'giao_loi', 'da_dong'].includes(c.trang_thai)) {
     return { loi: { status: 409, body: { error: 'Tài xế đã lấy hàng — không huỷ trên máy, dùng "Báo sự cố"', code: 'DANG_GIAO_KHONG_HUY' } } };
   }
-  // Phiếu J: tới khi HUY-1 gộp chỉ huỷ đơn giao chưa thu / thu bằng tài khoản (đường huỷ cũ chỉ hoàn phần ví). HUY-1 xoá đúng dòng này.
-  if (Number(order.cash_amount) > 0 || Number(order.transfer_amount) > 0) {
-    return { loi: { status: 409, body: { error: 'Đơn giao trả tiền mặt / chuyển khoản chưa huỷ được trên máy (chờ việc HUY-1) — báo chủ quán', code: 'CHO_HUY_1' } } };
+  // HUY-1 (Q8, chủ quán 11.11): huỷ hoàn toàn bộ vào tài khoản khách; đơn giao KHÔNG có tài khoản khách mà trả tiền mặt / CK → không huỷ trên máy
+  // (lối trả tiền mặt từ két chỉ cho khách lẻ ĐẾN QUẦY — khách giao ở xa).
+  if (!order.customer_phone && (Number(order.cash_amount) > 0 || Number(order.transfer_amount) > 0)) {
+    return loi(409, 'GIAO_KHONG_TAI_KHOAN', 'Đơn giao chưa có tài khoản khách — không huỷ trên máy, báo chủ quán');
   }
   const daPha = ['dang_pha', 'chuyen_huy'].includes(c.trang_thai);
   if (daPha && !['dung_lai', 'bo_di'].includes(body?.do_da_pha)) {

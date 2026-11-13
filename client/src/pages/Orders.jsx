@@ -7,7 +7,7 @@
  * - Xác nhận thanh toán nợ (TM/CK)
  * - Sort theo các cột
  * - Filter theo trạng thái thanh toán
- * - Xóa/Hủy đơn (Owner only)
+ * - Xóa hẳn đơn (Owner only) · Huỷ đơn ở chi tiết đơn (HUY-1: quản lý trong ngày, chủ quán mọi ngày)
  */
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -15,6 +15,7 @@ import { ordersApi, productsApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
 import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
+import HopHuyDon, { hienNutHuy } from '../components/HopHuyDon';   // HUY-1
 import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { useAuth } from '../contexts/AuthContext';
 import { ngayVN, khoangNgay, docGioVN, hienNgay, hienGio, hienNgayGio } from '../utils/ngayVN';
@@ -23,7 +24,7 @@ const ID_NAP_TU = -2000000;   // QUAY-UI-1 D: dòng nạp có product_id ≤ s�
 const laDonNap = (don) => (don?.items || []).some((i) => Number(i.product_id) <= ID_NAP_TU);
 
 export default function Orders() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -72,8 +73,7 @@ export default function Orders() {
   // State cho modal xóa/hủy
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteOrder, setDeleteOrder] = useState(null);
-  const [deleteType, setDeleteType] = useState('cancel'); // 'cancel' | 'delete'
-  const [deleteReason, setDeleteReason] = useState('');
+  const [huyDon, setHuyDon] = useState(null);   // HUY-1: đơn đang mở hộp Huỷ đơn
   const [deleting, setDeleting] = useState(false);
 
   // Tính from/to từ preset
@@ -230,36 +230,27 @@ export default function Orders() {
   const handleOpenDeleteModal = (order, e) => {
     e.stopPropagation();
     setDeleteOrder(order);
-    setDeleteType(order.status === 'cancelled' ? 'delete' : 'cancel');
-    setDeleteReason('');
     setShowDeleteModal(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteOrder) return;
-    
+
     // Double confirm cho xóa hẳn
-    if (deleteType === 'delete') {
-      const confirmed = window.confirm(
-        `⚠️ XÓA VĨNH VIỄN đơn #${deleteOrder.code}?\n\nHành động này KHÔNG THỂ hoàn tác!`
-      );
-      if (!confirmed) return;
-    }
-    
+    const confirmed = window.confirm(
+      `⚠️ XÓA VĨNH VIỄN đơn #${deleteOrder.code}?\n\nHành động này KHÔNG THỂ hoàn tác!`
+    );
+    if (!confirmed) return;
+
     setDeleting(true);
     try {
-      if (deleteType === 'delete') {
-        await ordersApi.delete(deleteOrder.id);
-      } else {
-        await ordersApi.cancel(deleteOrder.id, deleteReason || 'Hủy đơn');
-      }
-      
+      await ordersApi.delete(deleteOrder.id);
       setShowDeleteModal(false);
-      baoXong(deleteType === 'delete' ? `Đã xóa đơn ${deleteOrder.code}` : `Đã hủy đơn ${deleteOrder.code}`);
+      baoXong(`Đã xóa đơn ${deleteOrder.code}`);
       setDeleteOrder(null);
       loadOrders(); // Reload
     } catch (err) {
-      baoLoiTu(deleteType === 'delete' ? 'xóa đơn' : 'hủy đơn', err);
+      baoLoiTu('xóa đơn', err);
     } finally {
       setDeleting(false);
     }
@@ -684,7 +675,7 @@ export default function Orders() {
                                 padding: '6px 8px',
                                 cursor: 'pointer'
                               }}
-                              title="Xóa/Hủy đơn"
+                              title="Xóa hẳn đơn"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -1007,6 +998,18 @@ export default function Orders() {
                   <AlertTriangle size={18} /> Xử lý sự cố
                 </button>
               )}
+
+              {/* HUY-1 (A, B): huỷ cả đơn — luật hiện nút một chỗ (hienNutHuy); máy chủ kiểm lại */}
+              {selectedOrder.status === 'completed' && !laDonNap(selectedOrder) && hienNutHuy(user, hasPermission, selectedOrder.created_at) && (
+                <button onClick={() => setHuyDon(selectedOrder)} style={{
+                  flex: 1, minWidth: '120px', padding: '0.75rem',
+                  background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca',
+                  borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}>
+                  <X size={18} /> Huỷ đơn
+                </button>
+              )}
               
               <button
                 onClick={handlePrintInvoice}
@@ -1186,7 +1189,7 @@ export default function Orders() {
 
       {/* Modal In hóa đơn */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
-      {/* Modal Xóa/Hủy đơn hàng (Owner only) */}
+      {/* Modal Xóa hẳn đơn hàng (Owner only) */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       {showDeleteModal && deleteOrder && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)',
@@ -1199,75 +1202,12 @@ export default function Orders() {
             </div>
             
             <div style={{ padding: '1rem' }}>
-              {/* Chọn loại xử lý */}
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ fontWeight: '500', marginBottom: '0.5rem', display: 'block' }}>
-                  Chọn cách xử lý:
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {deleteOrder?.status !== 'cancelled' && (
-                  <label style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.5rem',
-                    padding: '0.75rem',
-                    border: deleteType === 'cancel' ? '2px solid #f59e0b' : '1px solid #ddd',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: deleteType === 'cancel' ? '#fef3c7' : 'white'
-                  }}>
-                    <input 
-                      type="radio" 
-                      name="deleteType" 
-                      checked={deleteType === 'cancel'}
-                      onChange={() => setDeleteType('cancel')}
-                    />
-                    <div>
-                      <div style={{ fontWeight: '600' }}>❌ Hủy đơn (giữ lịch sử)</div>
-                      <div style={{ fontSize: '0.8rem', color: '#666' }}>Đơn sẽ được đánh dấu đã hủy</div>
-                    </div>
-                  </label>
-                  )}
-                  
-                  <label style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.5rem',
-                    padding: '0.75rem',
-                    border: deleteType === 'delete' ? '2px solid #ef4444' : '1px solid #ddd',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: deleteType === 'delete' ? '#fee2e2' : 'white'
-                  }}>
-                    <input 
-                      type="radio" 
-                      name="deleteType" 
-                      checked={deleteType === 'delete'}
-                      onChange={() => setDeleteType('delete')}
-                    />
-                    <div>
-                      <div style={{ fontWeight: '600' }}>🗑️ Xóa hẳn (không khôi phục)</div>
-                      <div style={{ fontSize: '0.8rem', color: '#666' }}>Xóa vĩnh viễn khỏi hệ thống</div>
-                    </div>
-                  </label>
-                </div>
+              {/* HUY-1: hộp này chỉ còn XOÁ HẲN (owner, K5 không đổi). Huỷ đơn có lý do + hoàn tiền: chi tiết đơn → "Huỷ đơn" (HopHuyDon). */}
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', border: '2px solid #ef4444', borderRadius: '8px', background: '#fee2e2' }}>
+                <div style={{ fontWeight: '600' }}>🗑️ Xóa hẳn (không khôi phục)</div>
+                <div style={{ fontSize: '0.8rem', color: '#666' }}>Xóa vĩnh viễn khỏi hệ thống. Muốn huỷ đơn (giữ lịch sử, hoàn tiền cho khách):
+                  mở chi tiết đơn → "Huỷ đơn".</div>
               </div>
-
-              {/* Lý do (chỉ khi hủy) */}
-              {deleteType === 'cancel' && (
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontWeight: '500', marginBottom: '0.5rem', display: 'block' }}>
-                    Lý do hủy:
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="VD: Khách hủy, nhập sai..."
-                    value={deleteReason}
-                    onChange={e => setDeleteReason(e.target.value)}
-                  />
-                </div>
-              )}
 
               {/* Thông báo hoàn tiền/kho */}
               <div style={{ 
@@ -1298,16 +1238,22 @@ export default function Orders() {
                   Đóng
                 </button>
                 <button 
-                  style={{ padding: '0.75rem 1.5rem', background: deleteType === 'delete' ? '#ef4444' : '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ padding: '0.75rem 1.5rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                   onClick={handleConfirmDelete}
                   disabled={deleting}
                 >
-                  {deleting ? 'Đang xử lý...' : (deleteType === 'delete' ? '🗑️ Xóa hẳn' : '❌ Hủy đơn')}
+                  {deleting ? 'Đang xử lý...' : '🗑️ Xóa hẳn'}
                 </button>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {huyDon && (
+        <HopHuyDon don={{ id: huyDon.id, code: huyDon.code, ten_khach: huyDon.customer_name, co_tai_khoan: !!huyDon.customer_phone }}
+          dong={() => setHuyDon(null)}
+          xong={() => { setHuyDon(null); setShowDetailModal(false); setSelectedOrder(null); loadOrders(); }} />
       )}
 
       {showInvoiceModal && selectedOrder && (

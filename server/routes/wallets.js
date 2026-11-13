@@ -104,12 +104,15 @@ async function ghiVi(tx, { phone, ten = null, loai, soTien, orderId = null, cach
  * P26c / GOI-2 — ghi MỘT khoản hoàn của đơn vào ví, chỗ duy nhất cho cả huỷ / xoá đơn (orders.js `hoanVi`) lẫn kết thúc gói
  * (packages.js): `tuVi` = phần khách đã trả bằng ví → dòng 'cash', giảm total_spent; `tienMat` = phần tiền mặt / CK đưa vào ví (H2 = 1B)
  * → dòng 'hoan_goi', KHÔNG giảm total_spent (chưa từng là tiền chi từ ví); `me` → ví mẹ, giảm total_spent mẹ. Đối soát: I11 phần ví, I19 cả đơn.
+ * HUY-1 (`huy`, chỉ route huỷ đơn): phần tiền mặt → dòng 'huy_tien_mat', phần CK (`ck`) → dòng 'huy_ck' (chủ quán Q2: khách xem lịch sử tài
+ * khoản thấy đúng nguồn), cũng KHÔNG giảm total_spent — bất biến I11 / I18 bỏ qua cả ba cách. Chỗ gọi khác không truyền → y như cũ.
  */
-async function ghiHoan(tx, order, { me, tuVi, tienMat }, { nguoi, luc, ghiChu, ghiChuMe }) {
-  for (const [soTien, cachTra, cot] of [[tuVi, 'cash', 'total_spent'], [tienMat, 'hoan_goi', null]]) {
+async function ghiHoan(tx, order, { me, tuVi, tienMat, ck = 0, huy = false }, { nguoi, luc, ghiChu, ghiChuMe }) {
+  for (const [soTien, cachTra, cot, them] of [[tuVi, 'cash', 'total_spent', ''], [tienMat, huy ? 'huy_tien_mat' : 'hoan_goi', null, huy ? ' — phần tiền mặt' : ''],
+    [ck, 'huy_ck', null, ' — phần chuyển khoản']]) {
     if (soTien > 0 && order.customer_phone) {
       await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name, loai: 'refund', soTien, orderId: order.id, cachTra,
-        ghiChu, nguoi, luc, cot, soCot: -soTien });
+        ghiChu: them ? ghiChu + them : ghiChu, nguoi, luc, cot, soCot: -soTien });
     }
   }
   if (me > 0) {
