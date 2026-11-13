@@ -18,8 +18,10 @@ export const conLai = (s) => GIOI_HAN.chu_dai - demKyTu(s);
 function laNgayThat(s) {
   if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
   const [y, m, d] = s.split('-').map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d));
-  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+  // Tính tay, không qua Date (đồng hồ điện thoại / UTC — thu_GIOVN1 G1): ngày có thật trên lịch.
+  const nhuan = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const ngayCuaThang = [31, nhuan ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+  return m >= 1 && m <= 12 && d >= 1 && d <= ngayCuaThang;
 }
 
 const trong = (v) => v === '' || v === null || v === undefined;
