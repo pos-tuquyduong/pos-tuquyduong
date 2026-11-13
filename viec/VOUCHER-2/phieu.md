@@ -76,6 +76,15 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
+- cong_cu/thu_P20.js
+- cong_cu/gia_lap/kich_ban.js
+- cong_cu/thu_KH1.js
+- cong_cu/thu_KHAPI2.js
+- cong_cu/thu_HD1.js
+- cong_cu/thu_GOI1.js
+- ban_mau_pos/ban_mau_pos.html
+- ban_mau_pos/DAC_TA.md
+- ban_mau_pos/thu/thu_voucher.js
 - server/utils/diemKhach.js
 - server/utils/manKhach.js
 - cong_cu/gia_lap/bat_bien.js
@@ -116,6 +125,25 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
         App) → không nhận. Câu báo như đề xuất. Quầy: ô mã bill trong form Thêm khách. Lên bản: tự tạo mẫu voucher đúng ưu đãi khách mới đang chạy
         (giảm cả đơn); kiểu "giảm 1 món nhóm khách mới" thì để chủ quán chọn mẫu trong Cài đặt → Voucher. Cần file ngoài Phạm vi → câu hỏi, DỪNG.
      Q10 CÓ — voucher ship (số tiền hay %) KHÔNG tính là "voucher giảm %" của Q4; chỉ giảm phí giao, không quá phí giao, vẫn tính vào N. -->
+
+<!-- Chủ quán 12.11 (Q11–Q14 trạng thái d38def4) — đồng ý cả 4 đề xuất (Q14 sau khi xem demo của chat; N mặc định 3):
+     BƯỚC 0 — CHAT ĐÃ LÀM (13.11): máy KHÔNG được gộp main (người gác chặn) → chat gộp main 171109f (có HUY-1) vào nhánh bằng commit
+        "GOP-VOUCHER-2 gop main 171109f …": HOP_DONG_API_KH.md giữ v14 của HUY-1 nguyên văn, phần voucher của việc này đổi thành **v15** (PHIEN_BAN 15,
+        "phien_ban": 15, "Ghi chú v15", dòng nhật ký v15, hai dòng mã lỗi (v15)); client/dist dựng lại. Chat đã chạy trên bản gộp: thu_HOPDONG_KH 89/89,
+        thu_HUY1 59/59, thu_VOUCHER2 80/80, thu_P26c 161/161 xanh; thu_GOI1 đỏ đúng B3c (Q12). Máy: kéo nhánh, chạy lại các bài trên + npm test; số ca
+        bài cũ đổi sau gộp thì ghi lại SỐ CA trong bang_chung_do (A16); cổng chạy về sau tính từ commit gộp này. Thấy gì lạ do gộp → câu hỏi, DỪNG.
+     Q11 CÓ — thêm 5 bài cũ; chỉ sửa đúng các ca Q2 / Q9 đổi: (a) ca nhận mã hợp lệ → tạo hồ sơ khách SAU lúc in bill rồi mới nhận; (b) P20b dùng mã voucher
+        mới trả về (data.voucher_code); (c) "khách quen" giả lập → mong đợi KHACH_DA_CO_TAI_KHOAN. Mỗi ca đổi ghi lý do, đỏ trên gốc; không bỏ / nới phép nào.
+     Q12 CÓ — thu_GOI1.js B3c: giữ cho ĐƠN CŨ (cờ đơn cũ, phép "hoàn theo giá đã trả" vẫn canh) + THÊM ca luật mới (mã không giảm gói, hoàn theo 1.350.000).
+     Q13 CÓ — M1b / M1c, N4a / N4c trong thu_P26c.js làm đúng cách Q8: đồng ý.
+     Q14 CÓ — sửa bản mẫu TRƯỚC (ban_mau_pos.html + DAC_TA.md + bài mới ban_mau_pos/thu/thu_voucher.js; `bash ban_mau_pos/chay_thu.sh` số phép không
+        giảm), sửa bằng Edit / Write, không bằng script Python; rồi mới sửa mã thật:
+        (1) Bán hàng: chọn khách có voucher → ngay DƯỚI ô mã khuyến mãi hiện hàng chip "🎟 <mo_ta>": bấm chọn, bấm lại bỏ; đủ N thì chip còn lại mờ; chip
+            không dùng được → viền đỏ + lý do máy chủ. Giỏ thêm từng dòng "Voucher <MÃ> −x" và "Giảm phí giao −x".
+        (2) Bill khách (tờ in quầy + hoá đơn App dongHoaDon.js): dòng "Voucher <MÃ> −x" dưới dòng ưu đãi; có voucher ship thì "Phí giao <gốc>" +
+            "Giảm phí giao −x". TEM CỐC và phiếu pha chế KHÔNG đổi.
+        (3) Form "Thêm khách mới": ô "Mã trên bill (nếu có)" theo Q9.
+        Cần file ngoài Phạm vi → câu hỏi, DỪNG. -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_VOUCHER2.js` ĐỎ trên code gốc: đơn 2 voucher tiền + 1 voucher % → tổng đúng thứ tự; voucher thứ N+1 → từ chối; mã chung + voucher
