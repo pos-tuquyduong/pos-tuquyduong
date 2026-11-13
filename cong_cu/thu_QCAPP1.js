@@ -281,6 +281,10 @@ async function main() {
     k('C6 thứ tự theo uu_tien = thứ tự lưu', ten(await App(null)) === 'Sau | Trước');
     const cp = (await luu([dong({ chu_dai: 'Trước' }), dong({ chu_dai: 'Sau' })]), await App(null));
     k('C6b đổi chỗ rồi lưu → đổi theo', ten(cp) === 'Trước | Sau' && cp.data[0].uu_tien < cp.data[1].uu_tien);
+    const ids = (await docQuay()).dong.map((d) => ({ id: d.id, chu_dai: d.chu_dai }));
+    await luu([dong({ id: ids[1].id, chu_dai: ids[1].chu_dai }), dong({ id: ids[0].id, chu_dai: ids[0].chu_dai })]);
+    const dao = await App(null);
+    k('C6c đổi chỗ hai dòng ĐÃ CÓ id rồi lưu → cửa trả theo thứ tự mới, id giữ nguyên', ten(dao) === `${ids[1].chu_dai} | ${ids[0].chu_dai}` && dao.data[0].id === ids[1].id && dao.data[0].uu_tien < dao.data[1].uu_tien, ten(dao));
     const nho = JSON.stringify(await App(null));
     k('C7 không rò: câu trả lời không chứa chữ "bat", "cac_thu", "created", "updated", "pin"', !/"bat"|cac_thu|created|updated|"pin|error/.test(nho), nho);
 
@@ -364,6 +368,7 @@ async function main() {
   const qcTho = doc('client', 'src', 'pages', 'CaiDat', 'QuangCao.jsx');
   const api = sach(doc('client', 'src', 'utils', 'api.js'));
   k('H1 có pages/CaiDat/QuangCao.jsx và pages/CaiDat/quangCao.js', qc.length > 0 && doc('client', 'src', 'pages', 'CaiDat', 'quangCao.js').length > 0);
+  k('H2b api.js: lỗi máy chủ mang theo loi_o (màn đưa về đúng ô)', /err\.loi_o = data && data\.loi_o/.test(api));
   k('H2 api.js có quangCaoApi (GET / PUT /quang-cao qua axios chung)', /export const quangCaoApi = \{/.test(api) && /api\.get\('\/quang-cao'\)/.test(api) && /api\.put\('\/quang-cao'/.test(api));
   k('H3 Settings.jsx: nhập QuangCao, quyền manage_settings, nhóm Khách hàng, nút "📣 Quảng cáo trên App", nhánh vẽ <QuangCao',
     /import QuangCao from '\.\/CaiDat\/QuangCao'/.test(st) && /quangCao: 'manage_settings'/.test(st) && /\['quangCao', 'manage_settings'\]/.test(st)
@@ -375,7 +380,7 @@ async function main() {
   k('H4b không alert( / setMessage / console.error / fetch( trần; gọi máy chủ qua quangCaoApi', !/(^|[^.\w])alert\(|setMessage|console\.error|\bfetch\(/.test(qc) && /quangCaoApi\.(?:ds|luu|doc)\(/.test(qc));
   k('H4c lưu xong tải lại số máy chủ giữ (await tai() sau quangCaoApi.luu), nút Lưu mờ + "Đang lưu…"', /quangCaoApi\.luu\([\s\S]{0,900}await tai\(\)/.test(qc) && /Đang lưu…/.test(qc) && /disabled=\{dangLuu\}/.test(qc));
   k('H5 câu nhắc NGUYÊN VĂN dưới ô chữ: "Không ghi công dụng chữa bệnh (quy định quảng cáo thực phẩm)."', qcTho.includes('Không ghi công dụng chữa bệnh (quy định quảng cáo thực phẩm).'));
-  k('H6 đếm ngược khi gõ (hàm conLai/demKyTu được dùng ở ô chữ dải) + báo dưới ô bằng loi_o', /conLai\(|demKyTu\(/.test(qc) && /loi_o/.test(qc));
+  k('H6 đếm ngược khi gõ: "Còn n ký tự" / "Quá n ký tự" từ conLai(chữ dải) + báo dưới ô bằng loi_o', /conLai\(/.test(qc) && /Còn \$\{con\} ký tự/.test(qcTho) && /Quá \$\{-con\} ký tự/.test(qcTho) && /loi_o/.test(qc));
   k('H7 dòng xem trước dải mảnh: một dòng, cắt "…" (nowrap + overflow hidden + text-overflow ellipsis)', /whiteSpace: 'nowrap'/.test(qc) && /overflow: 'hidden'/.test(qc) && /textOverflow: 'ellipsis'/.test(qc) && /Xem trước/.test(qc));
   k('H8 đủ nhãn: Menu · Một món · Ưu đãi · Trắc nghiệm thể trạng · Không mở gì; hằng ngày / các thứ / từ ngày – đến ngày; Bật/Tắt; ▲▼',
     ['Menu', 'Một món', 'Ưu đãi', 'Trắc nghiệm thể trạng', 'Không mở gì', 'Hằng ngày', 'Các thứ trong tuần', 'Từ ngày – đến ngày', 'Bật', 'Tắt'].every((x) => qcTho.includes(x))
@@ -401,6 +406,9 @@ async function main() {
       !!l({ kieu_ngay: 'khoang', tu_ngay: '2026-11-13' })['x:den_ngay'] && !!l({ kieu_ngay: 'khoang', tu_ngay: '2026-02-30', den_ngay: '2026-03-01' })['x:tu_ngay']
       && !!l({ kieu_ngay: 'khoang', tu_ngay: '2026-11-14', den_ngay: '2026-11-13' })['x:den_ngay'] && Object.keys(l({ kieu_ngay: 'khoang', tu_ngay: '2026-11-13', den_ngay: '2026-11-13' })).length === 0
       && !!l({ kieu_ngay: 'thu', cac_thu: [] })['x:cac_thu'] && !!l({ dich: 'mon', ma_mon: '' })['x:ma_mon']);
+    k('H12e2 kiemDong: 29.2 — năm nhuận 2028 hợp lệ; 2026 và 2100 (chia hết 100, không chia hết 400) không có thật; 2000 có thật',
+      Object.keys(l({ kieu_ngay: 'khoang', tu_ngay: '2028-02-29', den_ngay: '2028-03-01' })).length === 0 && !!l({ kieu_ngay: 'khoang', tu_ngay: '2026-02-29', den_ngay: '2026-03-01' })['x:tu_ngay']
+      && !!l({ kieu_ngay: 'khoang', tu_ngay: '2100-02-29', den_ngay: '2100-03-01' })['x:tu_ngay'] && Object.keys(l({ kieu_ngay: 'khoang', tu_ngay: '2000-02-29', den_ngay: '2000-03-01' })).length === 0);
     k('H12f kiemDong: tiêu đề 41 / phụ 81 / nút 21 → báo; 40 / 80 / 20 hợp lệ; quá 20 dòng → báo',
       !!l({ tieu_de: 'a'.repeat(41) })['x:tieu_de'] && !!l({ phu: 'a'.repeat(81) })['x:phu'] && !!l({ chu_nut: 'a'.repeat(21) })['x:chu_nut']
       && Object.keys(l({ tieu_de: 'a'.repeat(40), phu: 'a'.repeat(80), chu_nut: 'a'.repeat(20) })).length === 0 && !!M.kiemDong(Array.from({ length: 21 }, (_, i) => d({ khoa: 'k' + i }))).chung);
