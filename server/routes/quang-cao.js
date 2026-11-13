@@ -143,8 +143,9 @@ router.put('/', ...quyen, async (req, res) => {
     for (const [i, d] of dong.entries()) {
       const k = await kiemDong(d, tonTai);
       if (k.loi) return tuChoi(res, `Dòng ${i + 1}: ${k.loi}`, { dong: i, truong: k.truong });
-      const id = trong(d.id) ? null : Number(d.id);
-      if (id !== null && !Number.isInteger(id)) return tuChoi(res, `Dòng ${i + 1}: mã dòng không hợp lệ`, { dong: i, truong: 'chu_dai' });
+      const id = trong(d.id) ? null : d.id;
+      if (id !== null && !(Number.isInteger(id) && id > 0)) return tuChoi(res, `Dòng ${i + 1}: mã dòng không hợp lệ`, { dong: i, truong: 'chu_dai' });
+      if (id !== null && ds.some((x) => x.id === id)) return tuChoi(res, `Dòng ${i + 1}: trùng mã với một dòng ở trên — tải lại trang`, { dong: i, truong: 'chu_dai' });
       ds.push({ ...k.dong, id });
     }
     const pin = await kiemPinChuQuan(req.body.pin);
