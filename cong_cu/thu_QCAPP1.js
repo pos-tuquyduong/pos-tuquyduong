@@ -350,8 +350,8 @@ async function main() {
     await luu([dong({ chu_dai: 'Giữ qua dọn' })], { gio_vang: true });
     const dt = require(path.join(MAY_CHU, 'utils', 'donThu.js'));
     imLang();
-    const lk = await dt.lietKe({ truoc_ngay: '2099-01-01' }, 'thu').catch((e) => ({ loi: e.message }));
-    const kqDon = lk && lk.ma_xac_nhan ? await dt.donDuLieuThu({ truoc_ngay: '2099-01-01', ma_xac_nhan: lk.ma_xac_nhan, go_xac_nhan: dt.CHU_XAC_NHAN }, 'thu').catch((e) => ({ loi: e.message })) : { loi: JSON.stringify(lk).slice(0, 80) };
+    const lk = await dt.lietKe({ truoc_ngay: '2026-11-13' }, 'thu').catch((e) => ({ loi: e.message }));
+    const kqDon = lk && lk.ma_xac_nhan ? await dt.donDuLieuThu({ truoc_ngay: '2026-11-13', ma_xac_nhan: lk.ma_xac_nhan, go_xac_nhan: dt.CHU_XAC_NHAN }, 'thu').catch((e) => ({ loi: e.message })) : { loi: JSON.stringify(lk).slice(0, 80) };
     noiLai();
     const conLai = await docQuay();
     k('F5 chạy dọn dữ liệu thử thật → dòng quảng cáo + công tắc Giờ vàng còn nguyên', !kqDon.loi && conLai.dong?.[0]?.chu_dai === 'Giữ qua dọn' && conLai.gio_vang === true, JSON.stringify(kqDon).slice(0, 120));
