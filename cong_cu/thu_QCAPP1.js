@@ -152,7 +152,7 @@ async function main() {
     k('A8 (K5) lưu danh sách rỗng → 200, xoá hết; công tắc Giờ vàng nhớ = true', a8.status === 200 && r8.dong.length === 0 && r8.gio_vang === true && (await dem1()) === 0, moTa(a8));
     const a12 = await luu([], { gio_vang: 'co' });
     k('A12 gio_vang không phải đúng/sai → 400', a12.status === 400 && a12.code === 'QUANG_CAO_KHONG_HOP_LE', moTa(a12));
-    await db.run("UPDATE pos_permissions SET allowed = 1 WHERE role = 'manager' AND permission = 'manage_settings'");
+    await db.run("INSERT OR REPLACE INTO pos_permissions (role, permission, allowed, created_at) VALUES ('manager', 'manage_settings', 1, '2026-11-13T00:00:00')");
     const a7b = await luu([dong()], { token: tk.manager });
     k('A7b (K5) quản lý có manage_settings + PIN đúng → 200', a7b.status === 200, moTa(a7b));
     const [pa, pb] = await Promise.all([luu([dong({ chu_dai: 'A1' }), dong({ chu_dai: 'A2' }), dong({ chu_dai: 'A3' })]), luu([dong({ chu_dai: 'B1' }), dong({ chu_dai: 'B2' })])]);
