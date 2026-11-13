@@ -88,6 +88,9 @@ async function main() {
   const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(true); k(`${ten}: bài chạy hết mục`, false, e.message); } };
   for (const [a, b] of [['signup_enabled', '1'], ['signup_discount_type', 'percent'], ['signup_discount_value', '10'], ['nhandiem_enabled', '1'],
     ['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['flash_enabled', 'false'], ['thanh_toan_payos_bat_buoc', '0']]) await datCaiDat(a, b);
+  // VOUCHER-2 Q11(a) (chủ quán Q2 11.11): nhận mã bill phát voucher theo MẪU chọn ở Cài đặt → Voucher — mẫu y cấu hình trên (10 % cả đơn).
+  await datCaiDat('signup_mau_voucher_id', Number((await db.run(`INSERT INTO pos_mau_voucher (ten, kieu, gia_tri, tran, don_toi_thieu, ap_dung, han_ngay,
+    chinh_chu, bat, tao_luc) VALUES ('Khách mới KHAPI2', 'phan_tram', 10, 0, 0, 'tat_ca', 30, 0, 1, ?)`, [getNow()])).lastInsertRowid));
 
   // Món 0 thường 45.000 · món 1 nhóm đặc biệt 33.333. Hạng thử 12,5 % / 7 %; hạng 0 %; hạng tắt.
   const sp = await db.query('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 2');
@@ -396,7 +399,9 @@ async function main() {
     const a = await khachMoi(), b = await khachMoi();
     const r30 = await goi('POST', '/kh/nhan-ma-bill', { ma: ma30 }, a.tk);
     const r49 = await goi('POST', '/kh/nhan-ma-bill', { ma: ma49 }, b.tk);
-    k('G2 cài hạn 48 giờ: mã in 30 giờ trước → App nhận được (200)', !!ma30 && r30.status === 200, `${moTa(r30)} · ${r30.j.error || ''}`);
+    // VOUCHER-2 Q11(b): nhận được = voucher MỚI trong ví (≠ mã bill).
+    k('G2 cài hạn 48 giờ: mã in 30 giờ trước → App nhận được (200), voucher mã mới', !!ma30 && r30.status === 200 && !!r30.j.data?.voucher_code
+      && r30.j.data.voucher_code !== ma30, `${moTa(r30)} · ${r30.j.error || ''} · ${r30.j.data?.voucher_code}`);
     k('G2 mã in 49 giờ trước → 400 MA_HET_HAN, lời ghi "48 giờ"', r49.status === 400 && r49.j.code === 'MA_HET_HAN' && /48 giờ/.test(r49.j.error || '')
       && !/24 giờ/.test(r49.j.error || ''), `${moTa(r49)} · ${r49.j.error}`);
     const q = await goi('POST', '/pos/signup-codes/claim', { code: maQuay, phone: (await khachMoi()).sdt }, tkChu);
