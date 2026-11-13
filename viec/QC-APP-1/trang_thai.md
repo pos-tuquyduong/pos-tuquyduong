@@ -89,3 +89,10 @@ Sự cố: (a) soát độc lập tìm id trùng / sai kiểu ở PUT cả danh 
 - BỎ: kho nông làm `thu_BH2` đỏ (một lần, môi trường — cách xử lý đã có ở skill bước 1.3); hai chỗ lệch chữ báo nhẹ (null → "phải là chữ").
 - Dọn: không có lời dặn nào trong KHUON_LOI / CLAUDE.md mới có phép máy thay → không đề xuất xoá.
 - Phát hiện (ngoài Phạm vi, ghi để sau): ba bản vị từ Giờ vàng (`manKhach.js:200`, `orders.js:587`, `kh/index.js docGioVang`) — gom khi GIOVANG-1; ba cửa /api/kh công khai chung một xô lượt (nên tách xô nếu Trang chủ App gọi cả ba mỗi lần mở).
+
+## Cổng
+✓ CỔNG CHẠY ĐẠT (node tu_chay/cong.js chay . d121491^ HEAD viec/QC-APP-1; kèm cảnh báo A16 "gốc in 22 ca ≠ 127" — bài trên gốc dừng sớm vì chưa có route / bảng, bằng chứng đỏ ở bang_chung_do.txt)
+
+GIT (git log --oneline -2): f545fa4a QC-APP-1: dòng SỐ CA đúng dạng · 35eed91d QC-APP-1: trang_thai.md, bằng chứng vòng sửa 1
+
+HEAD ĐÃ KIỂM: f545fa4a
