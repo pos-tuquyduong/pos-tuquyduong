@@ -10,7 +10,7 @@
  *  Khuôn thu_UUDAI1.js / thu_KHTHE1.js: database.js thật + libsql thật trên kho TẠM, SX giả. co.mocTruocTx chạy TRỌN một lệnh khác trước khi
  *  giao dịch kế tiếp mở (hai quầy chồng nhau TẤT ĐỊNH). Số tiền tính TAY (K3), có bộ số đi qua phân số lẻ.
  *  Món: M0 = 50.000 · M1 = 33.333 (nhóm 92) · M2 = 20.000. Gói 300.000 · thẻ 100.000 · gói nạp 100.000.
- *  Phần Q2 (mã bill → voucher cho khách đăng ký lần đầu) CHƯA có ở bài này — chờ chủ quán mở Phạm vi (trang_thai.md ## Câu hỏi).
+ *  [Q2] mã bill → MỘT voucher theo mẫu (Cài đặt) cho khách có tài khoản tạo SAU lúc in bill (chủ quán Q2 11.11, Q9 12.11).
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -73,7 +73,7 @@ async function main() {
   const R = (f) => path.join(MAY_CHU, 'routes', f);
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'settings', 'refunds', 'thanh-toan', 'wallets', 'rewards', 'loyalty', 'reports', 'damages']) app.use('/api/pos/' + r, require(R(r + '.js')));
+  for (const r of ['orders', 'settings', 'refunds', 'thanh-toan', 'wallets', 'rewards', 'loyalty', 'reports', 'damages', 'signup-codes']) app.use('/api/pos/' + r, require(R(r + '.js')));
   app.use('/api/pos/hoa-don', require(R('hoaDon.js')));
   app.use('/api/kh', require(R('kh')));
   app.use('/api/kh', require(R('kh/loi.js')).loiTangKh);
@@ -565,6 +565,127 @@ async function main() {
     const q = (sql, p) => db.query(sql, p);
     const lech = [...await batBien.BAT_BIEN.I12(q), ...await batBien.BAT_BIEN.I13(q, { thuc: false, soQuay: { tangMa: new Map() } })];
     k('I4 bất biến I12 / I13 (so BẰNG) sau mọi kịch bản dùng / huỷ voucher → không dòng lệch', lech.length === 0, JSON.stringify(lech).slice(0, 400));
+  });
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[Q2] Mã in bill → MỘT voucher theo mẫu, chỉ cho khách có tài khoản tạo SAU lúc in bill (Q2 · Q9)');
+  await chay('Q2', async () => {
+    await datCaiDat('signup_enabled', '1');
+    const tm = await goi('POST', '/pos/rewards/mau', { ten: 'Khách mới V2', kieu: 'tien', gia_tri: 15000, tran: 0, don_toi_thieu: 0, ap_dung: 'tat_ca', han_ngay: 10, chinh_chu: 1 });
+    const cd = await goi('PUT', '/pos/settings', { settings: { signup_mau_voucher_id: String(tm.id) } });
+    const cdSai = await goi('PUT', '/pos/settings', { settings: { signup_mau_voucher_id: 'abc' } });
+    k('Q2l cài mẫu khách mới: id mẫu → 200; chữ lạ → 400 CAI_DAT_KHONG_HOP_LE', cd.status === 200 && cdSai.status === 400 && cdSai.code === 'CAI_DAT_KHONG_HOP_LE',
+      `${moTa(cd)} / ${moTa(cdSai)}`);
+    const bill = async () => {
+      const r = await ban({ items: [mon(2)] }, 20000);
+      const s = r.order?.signup_code ? await mot('SELECT * FROM pos_signup_codes WHERE code = ?', [r.order.signup_code]) : null;
+      if (!s) throw new Error('đơn không có mã bill: ' + moTa(r));
+      return s;
+    };
+    let soQ2 = 0;
+    const sdtQ2 = () => '09' + String(62000000 + (++soQ2)).padStart(8, '0');
+    const taoTk = async (sdt, luc) => Number((await db.run('INSERT INTO pos_customers (phone, name, created_at) VALUES (?, ?, ?)', [sdt, 'Khách ' + sdt, luc || getNow()])).lastInsertRowid);
+    const nhan = (ma, sdt) => goi('POST', '/pos/signup-codes/claim', { code: ma, phone: sdt });
+    const truGiay = (luc, s) => new Date(new Date(luc + 'Z').getTime() - s * 1000).toISOString().slice(0, 19);
+    const grantBill = (s) => mot("SELECT * FROM pos_voucher_grants WHERE nguon = 'khach_moi' AND nguon_id = ?", [s.id]);
+    const daNhan = async (s) => !!(await mot('SELECT claimed_at FROM pos_signup_codes WHERE id = ?', [s.id])).claimed_at;
+
+    const b1 = await bill(), s1 = sdtQ2();
+    await taoTk(s1);
+    const r1 = await nhan(b1.code, s1);
+    const g1 = await grantBill(b1), d1 = r1.data ? await mot('SELECT * FROM pos_discount_codes WHERE code = ?', [r1.data.voucher_code]) : null;
+    k('Q2a tài khoản tạo SAU bill → 200, voucher_code MỚI ≠ mã bill, 1 grant khach_moi đúng SĐT + mẫu, hạn = hôm nay + 10, luật mẫu chụp vào mã',
+      r1.status === 200 && !!g1 && r1.data.voucher_code !== b1.code && g1.code === r1.data.voucher_code && g1.customer_phone === s1
+      && Number(g1.mau_id) === Number(tm.id) && g1.expires_at === addDaysToDateString(getToday(), 10) && !!d1 && Number(d1.discount_value) === 15000
+      && d1.discount_type === 'fixed' && Number(d1.chinh_chu) === 1 && Number(d1.usage_limit) === 1 && r1.data.valid_to === g1.expires_at,
+    `${moTa(r1)} ${JSON.stringify(g1)}`);
+    k('Q2d mã bill KHÔNG còn là mã giảm: không có dòng pos_discount_codes cùng chữ; gõ ở ô mã → tinh-thu MA_KHONG_TON_TAI, đơn đủ giá',
+      !(await mot('SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [b1.code]))
+      && (await tinhThu({ items: [mon(0)], discount_code: b1.code })).ma_loi_code === 'MA_KHONG_TON_TAI'
+      && (await tongDon(await ban({ items: [mon(0)], discount_code: b1.code }, 50000))) === 50000);
+
+    const b2 = await bill(), s2 = sdtQ2();
+    await taoTk(s2, b2.issued_at);
+    const r2 = await nhan(b2.code, s2);
+    k('Q2a2 tài khoản tạo CÙNG giây in bill → vẫn nhận (≥, không >)', r2.status === 200 && !!(await grantBill(b2)), moTa(r2));
+
+    const b3 = await bill(), s3 = sdtQ2(), s3b = sdtQ2();
+    await taoTk(s3, truGiay(b3.issued_at, 1));
+    await taoTk(s3b, '2026-01-01 08:00:00');
+    const r3 = await nhan(b3.code, s3), r3b = await nhan(b3.code, s3b);
+    k('Q2b tài khoản có TRƯỚC bill 1 giây (và dạng giờ cũ có dấu cách) → 400 KHACH_DA_CO_TAI_KHOAN, không grant, mã bill chưa bị chiếm',
+      [r3, r3b].every((r) => r.status === 400 && r.code === 'KHACH_DA_CO_TAI_KHOAN') && !(await grantBill(b3)) && !(await daNhan(b3)), `${moTa(r3)} / ${moTa(r3b)}`);
+    const r4 = await nhan(b3.code, sdtQ2());
+    k('Q2c SĐT chưa có tài khoản → 400 CAN_TAO_TAI_KHOAN, mã chưa bị chiếm', r4.status === 400 && r4.code === 'CAN_TAO_TAI_KHOAN' && !(await daNhan(b3)), moTa(r4));
+
+    await goi('PUT', `/pos/rewards/mau/${tm.id}`, { bat: 0 });
+    const s5 = sdtQ2(); await taoTk(s5);
+    const r5 = await nhan(b3.code, s5);
+    await goi('PUT', `/pos/rewards/mau/${tm.id}`, { bat: 1 });
+    await datCaiDat('signup_mau_voucher_id', '');
+    const r5b = await nhan(b3.code, s5);
+    await datCaiDat('signup_mau_voucher_id', String(tm.id));
+    k('Q2h mẫu đang tắt / chưa chọn mẫu → 400 UU_DAI_CHUA_CO_MAU, mã chưa bị chiếm', [r5, r5b].every((r) => r.status === 400 && r.code === 'UU_DAI_CHUA_CO_MAU')
+      && !(await daNhan(b3)), `${moTa(r5)} / ${moTa(r5b)}`);
+
+    const b6 = await bill(), s6a = sdtQ2(), s6b = sdtQ2();
+    await taoTk(s6a); await taoTk(s6b);
+    let r6b = null;
+    co.mocTruocTx = async () => { r6b = await nhan(b6.code, s6b); };
+    const r6a = await nhan(b6.code, s6a);
+    const n6 = await so("SELECT COUNT(*) AS n FROM pos_voucher_grants WHERE nguon = 'khach_moi' AND nguon_id = ?", [b6.id]);
+    k('Q2f hai SĐT nhận CÙNG mã bill chồng nhau → một 200, một 409 MA_DA_DUNG, đúng 1 grant', r6b?.status === 200 && r6a.status === 409 && r6a.code === 'MA_DA_DUNG'
+      && n6 === 1, `${moTa(r6a)} / ${r6b && moTa(r6b)} · grant ${n6}`);
+
+    const rs = await goi('POST', `/pos/signup-codes/${b1.id}/reset`, {});
+    k('Q2e hoàn tác lần nhận → 200, xoá grant + mã voucher mới, mã bill nhận lại được', rs.status === 200 && !(await grantBill(b1))
+      && !(await mot('SELECT id FROM pos_discount_codes WHERE code = ?', [r1.data.voucher_code])) && !(await daNhan(b1)), moTa(rs));
+    const v2 = (await grantBill(b2)).code;
+    const dung = await ban({ customer_phone: s2, items: [mon(0)], vouchers: [v2] }, 35000);
+    const rs2 = await goi('POST', `/pos/signup-codes/${b2.id}/reset`, {});
+    k('Q2e2 voucher đã dùng trong đơn → hoàn tác 400, grant + mã còn nguyên', dung.status === 200 && rs2.status === 400 && (await grantBill(b2))?.status === 'used'
+      && !!(await mot('SELECT id FROM pos_discount_codes WHERE code = ?', [v2])), `${moTa(dung)} / ${moTa(rs2)}`);
+
+    const b7 = await bill(), s7 = sdtQ2();
+    const tk7 = kyTokenKhach(await taoTk(s7));
+    const r7 = await goiTk(tk7, 'POST', '/kh/nhan-ma-bill', { ma: b7.code });
+    const vi7 = await goiTk(tk7, 'GET', '/kh/voucher');
+    const dv7 = (vi7.data || []).find((x) => x.code === r7.data?.voucher_code);
+    k('Q2g App /kh/nhan-ma-bill (CÙNG hàm) → 200, voucher mới nằm trong ví App, nguon khach_moi, mo_ta từ mẫu', r7.status === 200 && !!dv7 && dv7.nguon === 'khach_moi'
+      && dv7.mo_ta === 'Giảm 15.000đ · HSD ' + addDaysToDateString(getToday(), 10).split('-').reverse().join('/'), `${moTa(r7)} ${JSON.stringify(dv7)}`);
+
+    const b8 = await bill(), s8 = sdtQ2();
+    await taoTk(s8);
+    const v8 = (await nhan(b8.code, s8)).data?.voucher_code;
+    await goi('PUT', `/pos/orders/${b8.order_id}/cancel`, { reason: 'thử Q2i' });
+    const tr8 = await soDon();
+    const r8 = await ban({ customer_phone: s8, items: [mon(0)], vouchers: [v8] }, 35000);
+    const r8b = await ban({ customer_phone: s8, items: [mon(0)], discount_code: v8 }, 35000);
+    k('Q2i P20b: đơn gốc của mã bill đã huỷ → voucher mới bị chặn 400 MA_DON_GOC_KHONG_HOP_LE (cả danh sách voucher lẫn ô mã), không đơn, không tiêu',
+      [r8, r8b].every((r) => r.status === 400 && r.code === 'MA_DON_GOC_KHONG_HOP_LE') && (await soDon()) === tr8 && (await grant(v8))?.status === 'available',
+      `${moTa(r8)} / ${moTa(r8b)}`);
+
+    let b026 = null;
+    try { b026 = require(path.join(MAY_CHU, 'nang_cap', '026_voucher.js')); } catch { /* gốc chưa có bước 026 */ }
+    const chay026 = async (cfg) => {
+      for (const [key, v] of Object.entries(cfg)) await datCaiDat(key, v);
+      await db.run("DELETE FROM pos_settings WHERE key = 'signup_mau_voucher_id'");
+      const truoc = await so('SELECT COALESCE(MAX(id), 0) AS n FROM pos_mau_voucher');
+      const tx = await db.beginTransaction();
+      try { await b026.chay(tx, { themCot: async () => {} }); await tx.commit(); } catch (e) { await tx.rollback(); throw e; }
+      return { moi: await mot('SELECT * FROM pos_mau_voucher WHERE id > ?', [truoc]), id: (await mot("SELECT value FROM pos_settings WHERE key = 'signup_mau_voucher_id'"))?.value };
+    };
+    const m1 = b026 ? await chay026({ signup_scope: 'order', signup_discount_type: 'percent', signup_discount_value: '10', signup_min_order: '50000', signup_voucher_valid_days: '15' }) : {};
+    const m2 = b026 ? await chay026({ signup_scope: 'item' }) : {};
+    await datCaiDat('signup_mau_voucher_id', String(tm.id));
+    k('Q2j bước 026: ưu đãi giảm cả đơn 10 % từ 50.000, hạn 15 ngày → tạo SẴN mẫu y cấu hình (chia sẻ được) + ghi signup_mau_voucher_id; kiểu giảm 1 món → không tạo',
+      !!m1.moi && m1.moi.kieu === 'phan_tram' && Number(m1.moi.gia_tri) === 10 && Number(m1.moi.don_toi_thieu) === 50000 && Number(m1.moi.han_ngay) === 15
+      && Number(m1.moi.chinh_chu) === 0 && m1.id === String(m1.moi.id) && !m2.moi && !m2.id, JSON.stringify({ m1, m2 }));
+
+    const kh = (() => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'Customers.jsx'), 'utf8'); } catch { return ''; } })();
+    k('Q2k quầy: form Thêm khách mới có ô "Mã trên bill (nếu có)", lưu khách xong gọi /signup-codes/claim qua utils/api.js', /Mã trên bill \(nếu có\)/.test(kh)
+      && /api\.post\('\/signup-codes\/claim'/.test(kh));
+    await datCaiDat('signup_enabled', '0');
   });
 
   // ═════════════════════════════════════════════════════════════════════════
