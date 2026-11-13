@@ -153,3 +153,88 @@ Phạm vi phiếu. Mình không được sửa file ngoài Phạm vi, nên dừn
 - Đường dọn đơn thử (`donThu.js`) đã chụp thêm mã của voucher đơn — chưa có ca thử riêng (bài cũ thu_KHSDT1 xanh).
 
 ### Dừng (12.11) — chờ chủ quán trả lời Q11–Q14. Chưa chạy /ra-soat, /soat-bao-mat, cổng chạy: còn phần Q2 + giao diện Bán hàng / in.
+
+## Phiên 13.11 — làm tiếp sau trả lời Q11–Q14 (chat đã gộp main 171109f có HUY-1)
+### Bước 1 — đối chiếu bản chụp
+- Nhánh `viec/VOUCHER-2`, cây sạch. HEAD `e94708f` · FETCH_HEAD `e94708f` — bằng nhau, không kéo.
+- `git log --oneline -3`:
+  ```
+  e94708f PHIEU: VOUCHER-2 Pham vi them 5 bai cu (Q11), thu_GOI1 (Q12), ban mau (Q14); tra loi Q11-Q14 — chu quan 12.11
+  c2fc201 GOP-VOUCHER-2 gop main 171109f (chat 13.11, truoc tiep Q11-Q14; hop dong phan voucher doi v15)
+  171109f Merge pull request #91 from pos-tuquyduong/viec/HUY-1
+  ```
+- Kho nông → `git fetch -q --unshallow origin viec/VOUCHER-2` (chỉ tải lịch sử).
+- `npm test` trên bản gộp: PASS 113 · FAIL 1 · CẢNH BÁO 1 — FAIL duy nhất `thu_GOI1.js` (B3c, Q12 — đúng như chat báo). Không thấy gì lạ do gộp.
+
+### Bước 4–6 (13.11) — đã làm
+- **Q2 máy chủ** (`server/routes/signup-codes.js`): `nhanMaUuDai` phát voucher qua `phatVoucher(tx, mau, phone, 'khach_moi', { nguon_id })` theo mẫu
+  `signup_mau_voucher_id` (mẫu tắt / chưa chọn → 400 `UU_DAI_CHUA_CO_MAU`); `kiemKhachLanDau` — hồ sơ khách tạo SAU lúc in bill (≥, so sau khi đổi dấu
+  cách → 'T'); chưa có → `CAN_TAO_TAI_KHOAN`, có trước → `KHACH_DA_CO_TAI_KHOAN` (báo TRƯỚC khi chiếm mã). Bỏ nhánh `MA_TRUNG` / chép cấu hình `signup_*`.
+  Hoàn tác (`/:id/reset`) xoá voucher theo grant `khach_moi` + `nguon_id` (giữ nhánh dữ liệu cũ cùng chữ). `maBillCuaVoucher` (MỘT hàm, P20b): voucher
+  mới qua grant, voucher cũ cùng chữ — `orders.js` (ô mã + `kiemVoucherDon`; ô mã giữ 400 cứng như trước), `discount-codes.js` `/validate`.
+  K4 đã rà: `discount-codes.js` PUT đổi tên — voucher khách mới cũng chặn `MA_BILL_KHONG_DOI_TEN` (đổi tên làm đứt nối ví ↔ mã bill). `settings.js`: kiểm
+  `signup_mau_voucher_id` (rỗng hoặc số nguyên).
+- **Q11** bài cũ (mỗi ca đổi ghi lý do trong bài; đỏ trên gốc — `bang_chung_do.txt`): `thu_P20` (helper `claim` tạo hồ sơ khách ngay trước khi nhận; G/H
+  dùng mã voucher mới; 5 ca hoàn tác của DỮ LIỆU CŨ đưa về dạng cũ bằng `veDangCu`; thêm ca "voucher là mã MỚI" ở G1–G12), `thu_KH1` (E6 tài khoản mới sau
+  bill, E3 voucher trong ví `nguon khach_moi`, Q11 khách của bill tạo tài khoản sau bill, G lỗi nội bộ dùng tài khoản sau bill), `thu_KHAPI2` (mẫu + G2
+  voucher mã mới), `thu_HD1` (A28d), `gia_lap/kich_ban.js` (hồ sơ khách đúng giây in bill; KB13 khách quen → `KHACH_DA_CO_TAI_KHOAN`, "dùng mã" qua nhận
+  điểm cùng mã để I1 nhánh 'refunded' vẫn được phủ — đột biến tay tắt nhánh đó → KB13 → I1 lệch, đã trả lại).
+- **Q12** `thu_GOI1`: B3c giữ cho đơn CŨ (mua không mã rồi ghi giảm + cờ `giam_mon_thuong = 0`) + **B3f** luật mới (hoàn 900.000). Cùng khuôn (dữ liệu trước
+  P26c, gói + mã): **B3p**, **B3r** dựng đơn cũ y như vậy — không bỏ / nới phép nào (khuôn Q8 / Q12 chủ quán đã duyệt; ghi ở đây để chủ quán biết).
+- **Q14 bản mẫu** (sửa bằng Edit / Write): `ban_mau_pos.html` ô "🏷 Mã khuyến mãi" + hàng chip voucher ngay dưới + dòng giảm trên giỏ / bill khách;
+  `thu/thu_voucher.js` 24 phép (sập trên bản mẫu cũ); `DAC_TA.md` mục mới. `bash ban_mau_pos/chay_thu.sh`: **156 đạt · 0 hỏng** (trước 132).
+- **Q14 mã thật**: `BanHang/ChipVoucher.jsx` (mới) + `BanHangMoi.jsx` (ví voucher `/loyalty/vouchers/:sdt`, chọn / bỏ, `voucher_loi` → bỏ chọn + viền đỏ,
+  dòng "Voucher <MÃ>" + "Phí giao" gốc + "Giảm phí giao"; 496 dòng); `tinh.js` (`vouchers` vào khoá / thân tinh-thu / phiên — chỉ khi có chọn, thân cũ y
+  nguyên; `boVoucherLoi`); `utils/hoaDon.js` (tờ quầy = hoá đơn App: dòng `voucher` dưới `giam_ma`, `phi_giao` gốc + `giam_ship`; đơn không voucher y cũ);
+  `Customers.jsx` ô "Mã trên bill (nếu có)" (Q9 — lưu khách xong gọi `/signup-codes/claim`; mã lỗi chỉ báo, khách đã lưu); `MauVoucher.jsx` chọn "Mẫu cho
+  ưu đãi khách mới". `npm run build` → dist đã commit. Tem cốc / phiếu pha chế KHÔNG đổi.
+- **Hợp đồng `/api/kh` v15** (cùng đợt, chưa gộp main — không tăng thêm số): `nhan-ma-bill` (3 mã mới, `MA_TRUNG` không còn trả, `voucher_code` = mã mới,
+  thêm `mo_ta`), `hoa_don[]` dòng `voucher` / `giam_ship`, nghĩa `giam`. `thu_HOPDONG_KH` 90 · 0.
+- Bài thử: `thu_VOUCHER2` **105 · 0** (thêm [Q2] 15 ca, [Q14] 9 ca); P20 178 · KH1 157 · KHAPI2 101 · HD1 158 · GOI1 115 · HOPDONG_KH 90 · UUDAI1 88 ·
+  KHTHE1 73 · P26c 161 — đều 0 hỏng. Giả lập quầy 33 kịch bản · 18 bất biến · ĐẠT.
+- Đột biến `python3 viec/VOUCHER-2/dot_bien.py`: **57/57 bị bắt**, đối chứng xanh (thu_VOUCHER2 105 · 0, thu_KHTHE1 73 · 0).
+
+Bảng chỗ vá → đột biến (thêm phiên 13.11; tên = nguyên chuỗi đầu trong `dot_bien.py`):
+
+| Chỗ vá | Đột biến |
+|---|---|
+| signup-codes.js kiemKhachLanDau (Q9) | BV-V2-KHACH-CU · VS-V2-KHACH-CU-SO-NHAM · VS-V2-KHACH-CU-CHUOI-THO |
+| signup-codes.js mẫu đang bật | BV-V2-MAU-TAT |
+| signup-codes.js hoàn tác theo grant | BV-V2-RESET-GRANT |
+| orders.js P20b voucher mới (kiemVoucherDon / ô mã cứng) | BV-V2-P20B-VOUCHER · VS-V2-P20B-O-MA-MEM |
+| discount-codes.js /validate + chặn đổi tên | BV-V2-VALIDATE-P20B · BV-V2-DOI-TEN-VOUCHER |
+| settings.js signup_mau_voucher_id | BV-V2-CAI-MAU-KM |
+| Customers.jsx ô mã bill | BV-V2-THEM-KHACH-MA |
+| utils/hoaDon.js tách dòng | VS-V2-HD-GOP-VOUCHER · VS-V2-HD-PHI-KHACH-TRA · BV-V2-HD-BO-DONG |
+| tinh.js / ChipVoucher.jsx | BV-V2-TINH-GUI-VOUCHER · BV-V2-BO-LOI · VS-V2-CHIP-KHONG-MO |
+
+Không có đột biến riêng (phòng thủ, ghi thẳng): vế `AND status = 'available'` khi hoàn tác xoá dòng ví — phép `used_count = 0` cùng giao dịch đã chặn trước
+(tiêu voucher tăng lượt mã + đổi ví trong MỘT giao dịch — G4b / G4c), nên bỏ vế này đột biến vẫn SỐNG; giữ làm khoá thứ hai.
+
+### Sự cố phiên 13.11
+- Người gác chặn: `[B-PHANTICH]` ×6 (lệnh ghép `python … && node …`, `git commit && node`, `node … > file`) → tách lệnh / bỏ ghi file; `[B-BIMAT-CHU]` ×3
+  (chạy bài có cụm bí mật chưa commit; một lần vì chính ghi chú này) → commit trước; `[GIT-LENH]` `git stash` → dựng bản gốc bằng
+  `cong_cu/ban_sao_goc.py`; `[B-CD-VITRI]` / `[B-CD]` (mkdir + cd chung một lệnh) → tách.
+- `DAC_TA.md` bản mẫu: Q14 dặn sửa bằng Edit / Write — mình lỡ sửa file này bằng script Python (nội dung đã soát diff, UTF-8 nguyên vẹn; `ban_mau_pos.html`
+  + bài thử sửa đúng bằng Edit / Write).
+- Bài thử đỏ bất ngờ: `thu_GOI1` B3p / B3r (gói + mã — cùng khuôn B3c, chưa nằm trong Q12) → làm đúng khuôn đơn cũ; tên ca mới B3e trùng → đổi B3f.
+
+## Câu hỏi (13.11) — mình ghi đề xuất, bạn chỉ cần "đồng ý" hoặc sửa
+Việc này là gì: phần Q2 (mã in bill → voucher theo mẫu) làm đỏ MỘT phép tĩnh của bộ kiểm tự động. Luật kho (CLAUDE.md §6): sửa bộ kiểm — ngoài thêm
+phép / hạ ngưỡng — phải hỏi bạn, nên mình dừng ở đây. Mọi phần khác đã xong và xanh (xem trên).
+- **Q15 — phép E9 trong `kiem_tra_truoc_khi_giao.js` (dòng ~453).** Phép này canh "chặn hai người nhận cùng mã": trong thân `/claim`, câu chặn
+  `if (!chiem || chiem.changes !== 1) { rollback; return }` phải đứng TRƯỚC lệnh phát voucher — nó tìm lệnh phát bằng chữ `INSERT INTO pos_discount_codes`.
+  Q2 chuyển việc phát sang hàm chung `phatVoucher(...)` (luật "một quy tắc — một hàm"; đổi điểm đã đi qua hàm này), nên chữ đó không còn trong `/claim`
+  → phép báo đỏ dù câu chặn vẫn đứng trước lệnh phát (`server/routes/signup-codes.js`: câu chặn rồi mới tới `phatVoucher(tx, …)`). **Lỗ phép cảnh báo
+  đã tìm (K8): không có** — chạy thật: `thu_P20` [E] đua hai người cùng mã → một 200 + một 409, đúng 1 voucher; `thu_VOUCHER2` Q2f cùng ca → 1 grant; giả
+  lập KB11 xanh. **Đề xuất:** sửa ĐÚNG một dòng của E9 — chấp nhận lệnh phát là `INSERT INTO pos_discount_codes` HOẶC `phatVoucher(` (vẫn đòi câu chặn
+  đứng trước lệnh phát, không nới gì khác):
+  `const chenVoucher = m ? k.slice(sauUpdate).search(/INSERT INTO pos_discount_codes|phatVoucher\(/) : -1;`
+  Bạn đồng ý thì phiên sau mình sửa dòng đó, chạy lại `npm test -- --day-du`, cổng `chay`, rồi soát độc lập + soát bảo mật và báo cáo 7 mục.
+
+## Phát hiện (13.11)
+- `client/src/components/CustomerSearch.jsx` (form "Thêm khách hàng mới" của màn Bán hàng CŨ `Sales.jsx` — không còn gắn đường trong `App.jsx`) chưa có ô
+  mã trên bill. Không sửa (màn cũ, chờ BO-MAN-CU-1).
+- `CLAUDE.md` §3 / §9 còn ghi "119 phép" của bản mẫu (thật đã là 132 trước việc này, nay 156) — máy không sửa CLAUDE.md.
+- Tờ in quầy / hoá đơn App: dòng "Voucher <MÃ>" và "Giảm phí giao" dùng nhãn cố định (như dòng "Mã GD"), chưa có ô đổi chữ ở Cài đặt hoá đơn; ẩn
+  dòng "giảm mã / quà" thì ẩn luôn dòng voucher, ẩn "phí giao" thì ẩn luôn "giảm phí giao" (để tờ cộng vẫn khớp).

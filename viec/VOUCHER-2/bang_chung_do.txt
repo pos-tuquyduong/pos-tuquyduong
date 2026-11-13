@@ -1,6 +1,12 @@
 VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
 
-SỐ CA cong_cu/thu_VOUCHER2.js: 80
+SỐ CA cong_cu/thu_VOUCHER2.js: 105
+SỐ CA cong_cu/thu_P20.js: 178
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_HD1.js: 158
+SỐ CA cong_cu/thu_GOI1.js: 115
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 90
 SỐ CA cong_cu/thu_UUDAI1.js: 88
 SỐ CA cong_cu/thu_KHTHE1.js: 73
 SỐ CA cong_cu/thu_P26c.js: 161
@@ -101,3 +107,70 @@ node cong_cu/thu_KHTHE1.js --may-chu <nháp>/goc_e3ef76a/server → 70 đạt ·
 node cong_cu/thu_P26c.js --may-chu <nháp>/goc_e3ef76a/server →
   ✖ Bài thử sập: SQLITE_ERROR: no such column: giam_mon_thuong   (ca M1b "đơn CŨ" đặt cờ giam_mon_thuong = 0 — gốc chưa có cột Q7; thoát 1)
   Các ca mới / đổi của P26c (Q8 + cùng khuôn): M1b (đơn cũ) · M1c (luật mới) · M4a (đơn cũ) · M4c (luật mới) · N4a (đơn cũ) · N4c (luật mới, Q7).
+
+════ Phiên 13.11 (sau trả lời Q11–Q14; gốc của phần Q2 / Q11 = d919c83e — server/ trước vá Q2, bản sao: python3 cong_cu/ban_sao_goc.py d919c83e <nháp>/goc_q2;
+     bài chép vào <nháp>/goc_q2/cong_cu/ vì bài không có --may-chu; client/src chưa đổi chép vào bản gốc cho thu_HD1) ════
+── thu_P20.js (Q11 a+b, commit d919c83e) trên gốc d919c83e (server trước vá Q2): node <nháp>/goc_q2/cong_cu/thu_P20.js (bản chép bài vào cây gốc)
+Dòng tổng: 172 đạt · 6 hỏng
+  ✗ G1 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — Z7FQPY / Z7FQPY
+  ✗ G2 gốc trả ví: voucher là mã MỚI (≠ mã bill) — Q2  — 4AG9WN / 4AG9WN
+  ✗ G3 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — H6XNDC / H6XNDC
+  ✗ G4 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — NESPZQ / NESPZQ
+  ✗ G8 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — JKQA73 / JKQA73
+  ✗ G12 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — RH5ZZK / RH5ZZK
+Trên code vá: 178 đạt · 0 hỏng
+
+── thu_KH1.js (Q11 a+b, commit 7a0bf47e) trên gốc d919c83e: node <nháp>/goc_q2/cong_cu/thu_KH1.js
+Dòng tổng: 156 đạt · 1 hỏng
+  ✗ E3 /voucher liệt kê voucher phát qua /claim cho SĐT này (ví, nguon khach_moi)  — HTTP 200 · 
+Trên code vá: 157 đạt · 0 hỏng
+
+── thu_KHAPI2.js (Q11 a+b, commit 820b4471) trên gốc d919c83e: node <nháp>/goc_q2/cong_cu/thu_KHAPI2.js
+Dòng tổng: 99 đạt · 1 hỏng
+  ✗ G2 cài hạn 48 giờ: mã in 30 giờ trước → App nhận được (200), voucher mã mới  — HTTP 200 ·  · 7GKKNF
+Trên code vá: 101 đạt · 0 hỏng
+
+── thu_HD1.js (Q11 a+b, commit e12b9a4d) trên gốc d919c83e (+ client/src chưa đổi chép vào bản gốc): node <nháp>/goc_q2/cong_cu/thu_HD1.js
+Dòng tổng: 157 đạt · 1 hỏng
+  ✗ A28d mã đã CLAIM ưu đãi khách mới (claimed_at) → uu_dai = false …  — HTTP 200 4GEWS2 (voucher = mã bill)
+Trên code vá: 158 đạt · 0 hỏng
+
+── cong_cu/gia_lap/kich_ban.js (Q11 a+c, commit 55df9a21) — giả lập quầy trên gốc: node cong_cu/gia_lap/chay.js --may-chu <nháp>/goc_q2/server
+Giả lập: 33 kịch bản · 18 bất biến · KHÔNG ĐẠT (1 lệch)
+  ✗ KB13 → HTTP: khách quen nhận ưu đãi khách mới → 400 KHACH_DA_CO_TAI_KHOAN; dùng mã (nhận điểm) → … : HTTP 200 / HTTP 200 / HTTP 200 / HTTP 200
+Trên code vá: 33 kịch bản · 18 bất biến · ĐẠT. Đột biến tay "nhánh refunded của I1 = false" (bat_bien.js, trả lại ngay) → KB13 → I1 lệch: KB13 vẫn phủ nhánh đó.
+
+── thu_GOI1.js (Q12 + cùng khuôn B3p, B3r — commit 38f9a6cd, 02e58f86, 736dc22d) trên gốc e3ef76a (trước luật 10.11 / Q7): node cong_cu/thu_GOI1.js --may-chu <nháp>/goc_e3/server
+✖ Bài thử sập: SQLITE_ERROR: no such column: giam_mon_thuong   (thoát ≠ 0 — B3c đơn cũ ghi cờ Q7 mà gốc chưa có)
+Trước khi sửa bài (bài cũ) trên code VOUCHER-2: ✖ Bài thử sập: không mua được gói 30: HTTP 400 · Số tiền thanh toán (1.215.000đ) không khớp tổng đơn hàng thật (1.350.000đ).
+Trên code vá: 115 đạt · 0 hỏng
+
+── ban_mau_pos/thu/thu_voucher.js (bài MỚI của bản mẫu, Q14, commit 51a7804a) trên bản mẫu GỐC (ban_mau_pos.html của 51a7804a, chưa có voucher):
+   node <nháp>/bm_goc/thu/thu_voucher.js → ReferenceError: latVoucher is not defined (sập, không in dòng tổng — chay_thu.sh tính là HỎNG)
+Trên bản mẫu đã sửa (3a356f56): 24 đạt · 0 hỏng · bash ban_mau_pos/chay_thu.sh: TỔNG 156 đạt · 0 hỏng (trước 132 — không giảm)
+
+── thu_HOPDONG_KH.js (Q11 a+b + ca v15, commit 7dc3903e) trên gốc d919c83e (server + HOP_DONG_API_KH.md của gốc): node <nháp>/goc_q2/cong_cu/thu_HOPDONG_KH.js
+Dòng tổng: 89 đạt · 1 hỏng
+  ✗ nhan-ma-bill v15: data.voucher_code là mã MỚI (≠ mã in bill) + data.mo_ta là chuỗi  — {"voucher_code":"JC95HF",…} (= mã bill, không mo_ta)
+Trước khi sửa bài (bài cũ) trên code vá Q2: 86 đạt · 3 hỏng (I5 signup-codes 3 mã mới ngoài ma_loi; nhan-ma-bill 400 UU_DAI_CHUA_CO_MAU; I3).
+Trên code vá + hợp đồng v15: 90 đạt · 0 hỏng
+
+── thu_VOUCHER2.js (thêm [Q2] 45468afa/aa846b55/a0fe00b6/9c788792 + [Q14] 97497710/a0fe00b6) trên gốc d919c83e (server/ + client/src trước phiên này):
+   node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q2/server
+Dòng tổng: VOUCHER-2: 81 đạt · 18 hỏng   (thoát 1; lần chạy trước khi thêm Q2a3 / Q2n ở 9c788792: 81 · 17)
+  ✗ Q2l cài mẫu khách mới: id mẫu → 200; chữ lạ → 400 CAI_DAT_KHONG_HOP_LE  — HTTP 200 / HTTP 200
+  ✗ Q2a tài khoản tạo SAU bill → 200, voucher_code MỚI ≠ mã bill, 1 grant khach_moi …  — HTTP 200 null
+  ✗ Q2d mã bill KHÔNG còn là mã giảm …
+  ✗ Q2a2 tài khoản tạo CÙNG giây in bill → vẫn nhận (≥, không >)  — HTTP 200
+  ✗ Q2a3 tài khoản ghi giờ kiểu cũ (dấu cách) 1 giây SAU bill → vẫn nhận …  — HTTP 200 (gốc không phát grant)
+  ✗ Q2b tài khoản có TRƯỚC bill 1 giây … → 400 KHACH_DA_CO_TAI_KHOAN …  — HTTP 200 / HTTP 409 · MA_DA_DUNG
+  ✗ Q2c SĐT chưa có tài khoản → 400 CAN_TAO_TAI_KHOAN …  — HTTP 409 · MA_DA_DUNG
+  ✗ Q2h mẫu đang tắt / chưa chọn mẫu → 400 UU_DAI_CHUA_CO_MAU …  — HTTP 409 · MA_DA_DUNG ×2
+  ✗ Q2f hai SĐT nhận CÙNG mã bill chồng nhau → … đúng 1 grant  — HTTP 409 / HTTP 200 · grant 0
+  ✗ Q2e hoàn tác lần nhận → 200, xoá grant + mã voucher mới …  — HTTP 200 (không có grant trước hoàn tác)
+  ✗ Q2: bài chạy hết mục  — Cannot read properties of null (reading 'code')   (Q2e2 / Q2g / Q2i / Q2j / Q2k / Q2m không tới — mục sập trên gốc)
+  ✗ Q14a ×3 (tinh.js thanTinhThu / khoaTinh / thanPhien chưa có vouchers) · ✗ Q14b (boVoucherLoi chưa có) · ✗ Q14c (Bán hàng chưa có chip)
+  ✗ Q14d bill quầy … — ["gia_goc|Giá gốc|50.000đ","giam_ma|Giảm mã / quà|−12.000đ","phi_giao|Phí giao Ahamove|+15.000đ","tong|TỔNG HÓA ĐƠN|53.000đ"]
+  ✗ Q14e hoá đơn App … không có dòng loai "voucher"
+Ca xanh trên gốc trong hai mục mới: Q14d K5 (đơn không voucher → bố cục tờ y cũ) — đúng ý, hành vi cũ phải giữ.
+Trên code vá: VOUCHER-2: 105 đạt · 0 hỏng
