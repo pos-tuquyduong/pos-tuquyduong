@@ -685,6 +685,9 @@ async function main() {
     const kh = (() => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'Customers.jsx'), 'utf8'); } catch { return ''; } })();
     k('Q2k quầy: form Thêm khách mới có ô "Mã trên bill (nếu có)", lưu khách xong gọi /signup-codes/claim qua utils/api.js', /Mã trên bill \(nếu có\)/.test(kh)
       && /api\.post\('\/signup-codes\/claim'/.test(kh));
+    const mvQ2 = (() => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'CaiDat', 'MauVoucher.jsx'), 'utf8'); } catch { return ''; } })();
+    k('Q2m Cài đặt → Voucher: chọn "Mẫu cho ưu đãi khách mới" lưu signup_mau_voucher_id qua /settings (utils/api.js, báo lưu BAO-1a)',
+      /Mẫu cho ưu đãi khách mới/.test(mvQ2) && /api\.put\('\/settings', \{ settings: \{ signup_mau_voucher_id: v \} \}\)/.test(mvQ2) && /signup_mau_voucher_id \|\| ''/.test(mvQ2));
     await datCaiDat('signup_enabled', '0');
   });
 
@@ -707,11 +710,13 @@ async function main() {
     const bo = T.boVoucherLoi ? T.boVoucherLoi(['VA', 'VB', 'VC'], [{ ma: 'VB', code: 'VOUCHER_PHAN_TRAM_HAI', error: 'Voucher VB: Mỗi đơn chỉ dùng một voucher giảm %' }]) : {};
     k('Q14b voucher máy chủ báo lỗi → bỏ khỏi danh sách chọn + giữ lý do theo mã (chip viền đỏ); voucher khác giữ nguyên', JSON.stringify(bo.chon) === '["VA","VC"]'
       && bo.loi?.VB === 'Voucher VB: Mỗi đơn chỉ dùng một voucher giảm %', JSON.stringify(bo));
-    const bh = (() => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'BanHang', 'BanHangMoi.jsx'), 'utf8'); } catch { return ''; } })();
-    const iO = bh.indexOf('Mã khuyến mãi'), iC = bh.indexOf('bh-chip-voucher');
-    k('Q14c Bán hàng: ví voucher của khách (/loyalty/vouchers), chip "🎟 mo_ta" NGAY DƯỚI ô mã khuyến mãi, đủ N (voucher_toi_da) thì mờ, lỗi viền đỏ + lý do;'
-      + ' giỏ có dòng "Voucher <MÃ>" + "Giảm phí giao"', iO > 0 && iC > iO && /\/loyalty\/vouchers\//.test(bh) && /🎟/.test(bh) && /mo_ta/.test(bh)
-      && /voucher_toi_da/.test(bh) && /voucher_loi/.test(bh) && /Voucher \$\{/.test(bh) && /Giảm phí giao/.test(bh) && !/\bfetch\(/.test(bh));
+    const docBH = (f) => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'BanHang', f), 'utf8'); } catch { return ''; } };
+    const bh = docBH('BanHangMoi.jsx'), cv = docBH('ChipVoucher.jsx');
+    const iO = bh.indexOf('Mã khuyến mãi'), iC = bh.indexOf('<ChipVoucher ');
+    k('Q14c Bán hàng: ví voucher của khách (/loyalty/vouchers), chip "🎟 mo_ta" (ChipVoucher) gắn NGAY DƯỚI ô mã khuyến mãi, đủ N (voucher_toi_da) thì mờ,'
+      + ' lỗi viền đỏ + lý do; giỏ có dòng "Voucher <MÃ>" + "Giảm phí giao"', iO > 0 && iC > iO && iC - iO < 400 && /\/loyalty\/vouchers\//.test(bh)
+      && /bh-chip-voucher/.test(cv) && /🎟 \{v\.mo_ta\}/.test(cv) && /disabled=\{!dangChon && chon\.length >= toiDa\}/.test(cv) && /loiV &&/.test(cv)
+      && /voucher_toi_da/.test(bh) && /voucher_loi/.test(bh) && /Voucher \$\{/.test(bh) && /Giảm phí giao/.test(bh) && !/\bfetch\(/.test(bh + cv));
     // Tờ bill quầy (CÙNG hàm dựng hoá đơn App): đơn mã chung 2.000 + voucher 10.000 + voucher ship 10.000 trên phí giao 25.000 (số tính tay ở I2).
     const a = await khach();
     const v1 = await phat(a.sdt, 'tien', 10000), v2 = await phat(a.sdt, 'ship_tien', 10000);
