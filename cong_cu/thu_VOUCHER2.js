@@ -638,7 +638,7 @@ async function main() {
       && n6 === 1, `${moTa(r6a)} / ${r6b && moTa(r6b)} · grant ${n6}`);
 
     const rs = await goi('POST', `/pos/signup-codes/${b1.id}/reset`, {});
-    k('Q2e hoàn tác lần nhận → 200, xoá grant + mã voucher mới, mã bill nhận lại được', rs.status === 200 && !(await grantBill(b1))
+    k('Q2e hoàn tác lần nhận → 200, xoá grant + mã voucher mới, mã bill nhận lại được', !!g1 && rs.status === 200 && !(await grantBill(b1))
       && !(await mot('SELECT id FROM pos_discount_codes WHERE code = ?', [r1.data.voucher_code])) && !(await daNhan(b1)), moTa(rs));
     const v2 = (await grantBill(b2)).code;
     const dung = await ban({ customer_phone: s2, items: [mon(0)], vouchers: [v2] }, 35000);
