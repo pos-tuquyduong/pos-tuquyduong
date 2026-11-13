@@ -111,10 +111,12 @@ async function main() {
   const dong = (kv = {}) => ({ chu_dai: 'Giảm 10% trà sáng', tieu_de: '', phu: '', chu_nut: '', dich: '', ma_mon: null, kieu_ngay: 'hang_ngay',
     cac_thu: [], tu_ngay: null, den_ngay: null, tu_gio: null, den_gio: null, bat: true, ...kv });
   const luu = (ds, o = {}) => goi('PUT', '/pos/quang-cao', { dong: ds, gio_vang: o.gio_vang ?? false, ...('pin' in o ? (o.pin === undefined ? {} : { pin: o.pin }) : { pin: PIN }) }, o.token || tk.owner);
-  const docQuay = () => goi('GET', '/pos/quang-cao');
+  const docQuay = async () => { const r = await goi('GET', '/pos/quang-cao'); return { ...r, dong: Array.isArray(r.dong) ? r.dong : [], mon: Array.isArray(r.mon) ? r.mon : [] }; };
   const chup = async () => JSON.stringify(await docQuay());
   const dem1 = async () => Number((await mot('SELECT COUNT(*) AS n FROM pos_quang_cao'))?.n);
-  const App = (kv) => goi('GET', '/kh/quang-cao', undefined, kv);
+  const App = async (kv) => { const r = await goi('GET', '/kh/quang-cao', undefined, kv); return { ...r, data: Array.isArray(r.data) ? r.data : [] }; };
+  // Giờ vàng: "không có dòng" chỉ tính khi cửa trả 200 (cửa sập 500 không được coi là đạt)
+  const khongGV = async () => { const r = await App(null); return r.status === 200 && !r.data.some((d) => d.id === 'gio_vang'); };
 
   muc('[A] Cài đặt ở quầy — quyền, PIN chủ quán, lưu / đọc');
   k('A0 nạp được server/routes/quang-cao.js', !!routeQC, loiNap);
@@ -257,14 +259,14 @@ async function main() {
     datVN('2026-11-13T10:00:00');
     const cm = m1(c1);
     k('C4 món bán được → dich "mon" + ma_mon; món ĐÃ TẮT và món CHƯA GIÁ → dich "menu", ma_mon null',
-      cm[0].dich === 'mon' && cm[0].ma_mon === ma(0) && cm[1].dich === 'menu' && cm[1].ma_mon === null && cm[2].dich === 'menu' && cm[2].ma_mon === null, JSON.stringify(cm));
+      cm[0]?.dich === 'mon' && cm[0]?.ma_mon === ma(0) && cm[1]?.dich === 'menu' && cm[1]?.ma_mon === null && cm[2]?.dich === 'menu' && cm[2]?.ma_mon === null, JSON.stringify(cm));
     await db.run('UPDATE pos_products SET is_active = 0 WHERE id = ?', [sp[0].id]);
-    k('C4b món vừa bị tắt → lần đọc sau đổi ngay sang "menu"', m1(await App(null))[0].dich === 'menu');
+    k('C4b món vừa bị tắt → lần đọc sau đổi ngay sang "menu"', m1(await App(null))[0]?.dich === 'menu');
     await db.run('UPDATE pos_products SET is_active = 1 WHERE id = ?', [sp[0].id]);
     await db.run('UPDATE pos_products SET price = NULL WHERE id = ?', [sp[0].id]);
-    k('C4c món bị xoá giá → "menu"', m1(await App(null))[0].dich === 'menu');
+    k('C4c món bị xoá giá → "menu"', m1(await App(null))[0]?.dich === 'menu');
     await db.run('UPDATE pos_products SET price = 30000 WHERE id = ?', [sp[0].id]);
-    k('C4d món có lại → "mon"', m1(await App(null))[0].dich === 'mon');
+    k('C4d món có lại → "mon"', m1(await App(null))[0]?.dich === 'mon');
     datVN('2026-11-15T00:00:00');
     const cn = ten(await App(null));
     k('C5 Chủ nhật 15.11 00:00:00: thấy "Chủ nhật" + Khoảng (ngày cuối gồm cả hai đầu), không thấy "Chỉ thứ Hai"', cn.includes('Chủ nhật') && cn.includes('Khoảng 13-15') && !cn.includes('Chỉ thứ Hai'), cn);
@@ -296,7 +298,7 @@ async function main() {
     const gvChay = await goi('GET', '/kh/gio-vang', undefined, null);
     k('D0 (K5) /gio-vang giữ nguyên cách trả (dang_chay true lúc 15:30, 5 trường)', gvChay.dang_chay === true && gvChay.phan_tram === 20 && gvChay.mon?.length === 1 && gv0.dang_chay === false
       && Object.keys(gvChay).sort().join() === 'bat_dau,dang_chay,ket_thuc,mon,phan_tram,status,success', JSON.stringify(gvChay));
-    k('D1 công tắc TẮT + Giờ vàng đang chạy → KHÔNG có dòng gio_vang', !(await App(null)).data.some((d) => d.id === 'gio_vang'));
+    k('D1 công tắc TẮT + Giờ vàng đang chạy → KHÔNG có dòng gio_vang', await khongGV());
     await luu([dong({ chu_dai: 'Thường' })], { gio_vang: true });
     const g1 = await App(null), g = g1.data?.[0] || {};
     k('D2 công tắc BẬT + đang chạy → dòng đầu id "gio_vang", uu_tien 0, den_gio "16:00", dich "menu", chữ do máy chủ dựng',
@@ -304,17 +306,24 @@ async function main() {
       && g.tieu_de === '' && g.phu === '' && g.chu_nut === '' && g1.data.length === 2 && g1.data[1].chu_dai === 'Thường', JSON.stringify(g1.data));
     k('D2b chữ dải Giờ vàng ≤ 32 ký tự nhìn thấy (phần trăm lớn nhất 90)', (() => { const n = Array.from(new Intl.Segmenter('vi', { granularity: 'grapheme' }).segment(g.chu_dai || '')).length; return n > 0 && n <= 32; })());
     k('D2c dòng gio_vang có đúng 10 trường như dòng thường', Object.keys(g).sort().join() === 'chu_dai,chu_nut,den_gio,dich,id,ma_mon,phu,tieu_de,tu_gio,uu_tien', Object.keys(g).join());
+    await datCai('flash_percent', '35');
+    const g35 = (await App(null)).data[0] || {};
+    await datCai('flash_percent', '90');
+    const g90 = (await App(null)).data[0] || {};
+    await datCai('flash_percent', '20');
+    k('D2d chữ dải theo ĐÚNG phần trăm Giờ vàng đang cài (35 → "giảm 35%", 90 → "giảm 90%", ≤ 32 ký tự)', g35.chu_dai === '⏰ Giờ vàng: giảm 35% đến 16:00' && g90.chu_dai === '⏰ Giờ vàng: giảm 90% đến 16:00'
+      && Array.from(new Intl.Segmenter('vi', { granularity: 'grapheme' }).segment(g90.chu_dai || '')).length <= 32, `${g35.chu_dai} | ${g90.chu_dai}`);
     datVN('2026-11-13T10:00:00');
-    k('D3 BẬT nhưng chưa tới giờ (10:00) → không có dòng', !(await App(null)).data.some((d) => d.id === 'gio_vang'));
+    k('D3 BẬT nhưng chưa tới giờ (10:00) → không có dòng', await khongGV());
     datVN('2026-11-13T16:00:00');
-    k('D3b đúng 16:00:00 (mốc cuối không tính) → không có dòng', !(await App(null)).data.some((d) => d.id === 'gio_vang'));
+    k('D3b đúng 16:00:00 (mốc cuối không tính) → không có dòng', await khongGV());
     datVN('2026-11-13T15:00:00');
     k('D3c đúng 15:00:00 (mốc đầu tính) → có dòng', (await App(null)).data[0]?.id === 'gio_vang');
     datVN('2026-11-13T15:30:00');
     await datCai('flash_enabled', 'false');
-    k('D4 Giờ vàng tắt ở Cài đặt giờ vàng → không có dòng', !(await App(null)).data.some((d) => d.id === 'gio_vang'));
+    k('D4 Giờ vàng tắt ở Cài đặt giờ vàng → không có dòng', await khongGV());
     await datCai('flash_enabled', 'true'); await datCai('flash_product_keys', '[]');
-    k('D4b Giờ vàng bật nhưng không có món (quầy không giảm được) → không có dòng', !(await App(null)).data.some((d) => d.id === 'gio_vang'));
+    k('D4b Giờ vàng bật nhưng không có món (quầy không giảm được) → không có dòng', await khongGV());
     await datCai('flash_product_keys', JSON.stringify([ma(0)])); await datCai('flash_start', '22:00'); await datCai('flash_end', '02:00');
     datVN('2026-11-14T01:00:00');
     const dq = (await App(null)).data[0] || {};
@@ -377,6 +386,7 @@ async function main() {
   k('H4 QuangCao.jsx nối ThanhLuu + HoiPin + useThayDoi + LoiO + thông báo chung (baoXong/baoLoi/baoLoiTu)',
     /<ThanhLuu id="quang-cao"/.test(qc) && /<HoiPin /.test(qc) && /useThayDoi\(/.test(qc) && /<LoiO /.test(qc) && /import \{[^}]*baoXong[^}]*\} from '\.\.\/\.\.\/components\/thongBaoKho\.js'/.test(qc)
     && dem(qc, /\bbao(?:Xong|Loi|LoiTu)\(/g) >= 4);
+  k('H4d lỗi của TỪNG ô hiện dưới đúng ô (LoiO đọc loiO[`${khoa}:${ô}`])', /loiO\[`\$\{d\.khoa\}:\$\{t\}`\]/.test(qcTho));
   k('H4b không alert( / setMessage / console.error / fetch( trần; gọi máy chủ qua quangCaoApi', !/(^|[^.\w])alert\(|setMessage|console\.error|\bfetch\(/.test(qc) && /quangCaoApi\.(?:ds|luu|doc)\(/.test(qc));
   k('H4c lưu xong tải lại số máy chủ giữ (await tai() sau quangCaoApi.luu), nút Lưu mờ + "Đang lưu…"', /quangCaoApi\.luu\([\s\S]{0,900}await tai\(\)/.test(qc) && /Đang lưu…/.test(qc) && /disabled=\{dangLuu\}/.test(qc));
   k('H5 câu nhắc NGUYÊN VĂN dưới ô chữ: "Không ghi công dụng chữa bệnh (quy định quảng cáo thực phẩm)."', qcTho.includes('Không ghi công dụng chữa bệnh (quy định quảng cáo thực phẩm).'));
@@ -419,9 +429,9 @@ async function main() {
 
   muc('[I] Nối vào bộ kiểm');
   const kt = doc('kiem_tra_truoc_khi_giao.js');
-  k('I1 kiem_tra_truoc_khi_giao.js nối cong_cu/thu_QCAPP1.js', /chayBaiThat\('cong_cu\/thu_QCAPP1\.js'\)/.test(kt));
+  k('I1 kiem_tra_truoc_khi_giao.js nối cong_cu/thu_QCAPP1.js', /^chayBaiThat\('cong_cu\/thu_QCAPP1\.js'\)/m.test(kt));
   const md = doc('HOP_DONG_API_KH.md');
-  k('I2 hợp đồng ghi cửa GET /quang-cao (bảng chữ) — chi tiết v16 do thu_HOPDONG_KH canh', md.includes('`GET /quang-cao`'));
+  k('I2 hợp đồng ghi cửa GET /quang-cao (bảng chữ) — chi tiết v16 do thu_HOPDONG_KH canh', md.includes('| `GET /quang-cao` | không |'));
 
   sv.close();
   console.log(`\n${dat} đạt · ${hong} hỏng`);
