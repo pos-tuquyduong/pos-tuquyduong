@@ -689,6 +689,61 @@ async function main() {
   });
 
   // ═════════════════════════════════════════════════════════════════════════
+  muc('[Q14] Màn Bán hàng (chip voucher dưới ô mã) + tờ bill quầy / hoá đơn App tách dòng voucher, phí giao gốc + giảm phí giao (chủ quán Q14 12.11)');
+  await chay('Q14', async () => {
+    const { pathToFileURL } = require('url');
+    const nap = async (...p) => { try { return await import(pathToFileURL(path.join(MAY_CHU, '..', 'client', 'src', ...p)).href); } catch { return {}; } };
+    const T = await nap('pages', 'BanHang', 'tinh.js');
+    const HD = await nap('utils', 'hoaDon.js');
+    const gio = [{ product_id: sp[0].id, sx_product_type: sp[0].sx_product_type, sx_product_id: sp[0].sx_product_id, quantity: 1, note: '' }];
+    const kh = { phone: '0900000000', name: 'K' };
+    const coV = T.thanTinhThu ? T.thanTinhThu(gio, kh, 'KM', null, ['VA', 'VB']) : {}, khongV = T.thanTinhThu ? T.thanTinhThu(gio, kh, 'KM') : {};
+    k('Q14a tinh.js thanTinhThu gửi vouchers khi có; KHÔNG có khoá vouchers khi không chọn (thân cũ y nguyên — K5)', JSON.stringify(coV.vouchers) === '["VA","VB"]'
+      && !('vouchers' in khongV) && khongV.discount_code === 'KM');
+    k('Q14a khoaTinh đổi khi chọn / bỏ voucher (hỏi lại máy chủ); không voucher → khoá y cũ', !!T.khoaTinh && T.khoaTinh(gio, kh, 'KM', null, ['VA']) !== T.khoaTinh(gio, kh, 'KM')
+      && T.khoaTinh(gio, kh, 'KM', null, []) === T.khoaTinh(gio, kh, 'KM'));
+    const ph = T.thanPhien ? T.thanPhien({ gio, khach: kh, ma: '', cach: 'tien_mat', dungTK: false, dungMe: false, vouchers: ['VA'] }) : {};
+    k('Q14a thanPhien mang vouchers trong don (phiên thu dùng ĐÚNG voucher đã báo giá)', JSON.stringify(ph.don?.vouchers) === '["VA"]');
+    const bo = T.boVoucherLoi ? T.boVoucherLoi(['VA', 'VB', 'VC'], [{ ma: 'VB', code: 'VOUCHER_PHAN_TRAM_HAI', error: 'Voucher VB: Mỗi đơn chỉ dùng một voucher giảm %' }]) : {};
+    k('Q14b voucher máy chủ báo lỗi → bỏ khỏi danh sách chọn + giữ lý do theo mã (chip viền đỏ); voucher khác giữ nguyên', JSON.stringify(bo.chon) === '["VA","VC"]'
+      && bo.loi?.VB === 'Voucher VB: Mỗi đơn chỉ dùng một voucher giảm %', JSON.stringify(bo));
+    const bh = (() => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'BanHang', 'BanHangMoi.jsx'), 'utf8'); } catch { return ''; } })();
+    const iO = bh.indexOf('Mã khuyến mãi'), iC = bh.indexOf('bh-chip-voucher');
+    k('Q14c Bán hàng: ví voucher của khách (/loyalty/vouchers), chip "🎟 mo_ta" NGAY DƯỚI ô mã khuyến mãi, đủ N (voucher_toi_da) thì mờ, lỗi viền đỏ + lý do;'
+      + ' giỏ có dòng "Voucher <MÃ>" + "Giảm phí giao"', iO > 0 && iC > iO && /\/loyalty\/vouchers\//.test(bh) && /🎟/.test(bh) && /mo_ta/.test(bh)
+      && /voucher_toi_da/.test(bh) && /voucher_loi/.test(bh) && /Voucher \$\{/.test(bh) && /Giảm phí giao/.test(bh) && !/\bfetch\(/.test(bh));
+    // Tờ bill quầy (CÙNG hàm dựng hoá đơn App): đơn mã chung 2.000 + voucher 10.000 + voucher ship 10.000 trên phí giao 25.000 (số tính tay ở I2).
+    const a = await khach();
+    const v1 = await phat(a.sdt, 'tien', 10000), v2 = await phat(a.sdt, 'ship_tien', 10000);
+    const mc = await maChung('fixed', 2000, { luot: 5 });
+    const r = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [v1, v2], discount_code: mc, giao: await baoPhi(25000) }, 53000);
+    const hd = r.order ? await goi('GET', `/pos/hoa-don/${r.order.id}`) : {};
+    const to = HD.dungHoaDon && hd.hoa_don ? HD.dungHoaDon(hd.hoa_don, {}, { lien: 'khach' }) : { tien: [] };
+    const dt = to.tien.map((x) => `${x.khoa}|${x.ten}|${x.tien}`);
+    const iMa = dt.findIndex((x) => x.startsWith('giam_ma|')), iV = dt.indexOf(`voucher|Voucher ${v1}|−10.000đ`);
+    k('Q14d bill quầy: "Giảm mã" 2.000 rồi NGAY DƯỚI "Voucher <MÃ> −10.000"; "Phí giao" gốc 25.000 + "Giảm phí giao −10.000"; tổng 53.000',
+      r.status === 200 && iMa >= 0 && dt[iMa].endsWith('|−2.000đ') && iV === iMa + 1 && dt.includes('phi_giao|Phí giao Ahamove|+25.000đ')
+      && dt.includes('giam_ship|Giảm phí giao|−10.000đ') && dt.indexOf('giam_ship|Giảm phí giao|−10.000đ') === dt.indexOf('phi_giao|Phí giao Ahamove|+25.000đ') + 1
+      && dt[dt.length - 1].endsWith('|53.000đ'), `${moTa(r)} ${JSON.stringify(dt)}`);
+    const k0 = await khach();
+    const r0 = await ban({ customer_phone: k0.sdt, items: [mon(0)], discount_code: mc, giao: await baoPhi(25000) }, 73000);
+    const hd0 = r0.order ? await goi('GET', `/pos/hoa-don/${r0.order.id}`) : {};
+    const dt0 = HD.dungHoaDon && hd0.hoa_don ? HD.dungHoaDon(hd0.hoa_don, {}, { lien: 'khach' }).tien.map((x) => x.khoa) : [];
+    k('Q14d K5: đơn KHÔNG voucher → bố cục tờ y cũ (không dòng voucher / giảm phí giao)', r0.status === 200 && JSON.stringify(dt0) === '["gia_goc","giam_ma","phi_giao","tong"]',
+      JSON.stringify(dt0));
+    // Hoá đơn App (dongHoaDon.js — CÙNG hàm): đơn App dùng voucher có dòng loai "voucher".
+    await datCaiDat('gio_hd_lich', ''); await datCaiDat('gio_hd_ngung_truoc_phut', 0);
+    const b = await khach(200000);
+    const vb = await phat(b.sdt, 'tien', 7000);
+    const gioA = { mon: [{ ma: `${sp[0].sx_product_type}_${sp[0].sx_product_id}`, so_luong: 1 }], cach_nhan: 'tai_quan', vouchers: [vb] };
+    const dA = await goiTk(b.tk, 'POST', '/kh/don', { ...gioA, khoa_gui: 'khoa-q14-' + ngauNhien(), cach_tra: 'vi', pin: '1357', tong_da_xem: 43000 });
+    const xem = dA.ma_don ? await goiTk(b.tk, 'GET', `/kh/don/${dA.ma_don}`) : {};
+    const hdA = xem.don?.hoa_don || [];
+    k('Q14e hoá đơn App (/kh/don/:ma hoa_don[]) có dòng loai "voucher" trai "Voucher <MÃ>" phai "−7.000đ" (cùng hàm tờ quầy)', dA.status === 200
+      && hdA.some((x) => x.loai === 'voucher' && x.trai === `Voucher ${vb}` && x.phai === '−7.000đ'), `${moTa(dA)} ${JSON.stringify(hdA.filter((x) => x.loai !== 'mon')).slice(0, 300)}`);
+  });
+
+  // ═════════════════════════════════════════════════════════════════════════
   muc('[K5] Không đổi: đơn không voucher, mã chung trên đơn chỉ món, đơn lấy từ gói + voucher');
   await chay('K5', async () => {
     const a = await khach();
