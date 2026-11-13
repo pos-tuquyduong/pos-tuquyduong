@@ -584,10 +584,17 @@ async function phanA(P) {
   // mỗi loại ưu đãi một cột "đã dùng" + một hạn, đúng như đường dùng nó (soát vòng 2)
   const rUd = await ban({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
   const udTruoc = (await hd(rUd.order.id)).h?.ma_nhan_diem;
-  const rClaim = await goi('POST', '/signup-codes/claim', { code: rUd.order.signup_code, phone: sdtMoi() });
+  // VOUCHER-2 Q11(a) (chủ quán Q2 11.11 + Q9 12.11): nhận mã bill = phát voucher theo MẪU (Cài đặt → Voucher) cho tài khoản tạo SAU lúc in bill.
+  const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
+  await datCaiDat('signup_mau_voucher_id', Number((await db.run(`INSERT INTO pos_mau_voucher (ten, kieu, gia_tri, tran, don_toi_thieu, ap_dung, han_ngay,
+    chinh_chu, bat, tao_luc) VALUES ('Khách mới HD1', 'phan_tram', 10, 0, 0, 'tat_ca', 30, 0, 1, ?)`, [getNow()])).lastInsertRowid));
+  const sClaim = sdtMoi();
+  await db.run('INSERT INTO pos_customers (phone, name, created_at) VALUES (?, ?, ?)', [sClaim, 'Khách ' + sClaim, getNow()]);
+  const rClaim = await goi('POST', '/signup-codes/claim', { code: rUd.order.signup_code, phone: sClaim });
   const udSau = (await hd(rUd.order.id)).h?.ma_nhan_diem;
   k('A28d mã đã CLAIM ưu đãi khách mới (claimed_at) → uu_dai = false (bill không còn ô ưu đãi, QR trần); trước khi claim = true; claim thật qua /signup-codes/claim',
-    rClaim.status === 200 && udTruoc?.uu_dai === true && udSau?.uu_dai === false, `${moTa(rClaim)} ${JSON.stringify([udTruoc, udSau])}`);
+    rClaim.status === 200 && rClaim.data?.voucher_code !== rUd.order.signup_code   // Q11(b): voucher là mã MỚI, không phải mã bill
+      && udTruoc?.uu_dai === true && udSau?.uu_dai === false, `${moTa(rClaim)} ${rClaim.data?.voucher_code} ${JSON.stringify([udTruoc, udSau])}`);
   const rNd = await ban({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
   const rNhan = await goi('POST', '/signup-codes/nhan-diem', { code: rNd.order.signup_code, phone: sdtMoi() });
   const ndSau = (await hd(rNd.order.id)).h?.ma_nhan_diem;
