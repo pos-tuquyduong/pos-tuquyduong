@@ -16,5 +16,5 @@ VÒNG SỬA 1 (soát nêu PUT không kiểm id trùng / id sai kiểu): ca A13, 
   python3 viec/QC-APP-1/dot_bien.py BV-ID-TRUNG-BO → ✗ A13 hai dòng cùng id → 400 … — HTTP 200 (BẮT)
   python3 viec/QC-APP-1/dot_bien.py VS-ID-KIEU-LONG → ✗ A14 id không phải số nguyên dương … → BẮT (trong lần chạy đầy đủ 105/105)
 
-SỐ CA thu_QCAPP1.js: 127
-SỐ CA thu_HOPDONG_KH.js: 93
+SỐ CA cong_cu/thu_QCAPP1.js: 127
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 93
