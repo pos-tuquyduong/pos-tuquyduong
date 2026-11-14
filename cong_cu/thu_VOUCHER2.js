@@ -11,7 +11,8 @@
  *  giao dịch kế tiếp mở (hai quầy chồng nhau TẤT ĐỊNH). Số tiền tính TAY (K3), có bộ số đi qua phân số lẻ.
  *  Món: M0 = 50.000 · M1 = 33.333 (nhóm 92) · M2 = 20.000. Gói 300.000 · thẻ 100.000 · gói nạp 100.000.
  *  [Q2] mã bill → MỘT voucher theo mẫu (Cài đặt) cho khách có tài khoản tạo SAU lúc in bill (chủ quán Q2 11.11, Q9 12.11);
- *  Q18a–f: hồ sơ tạo trong 30 phút TRƯỚC bill của chính SĐT, chưa có đơn trước → vẫn là khách mới (Q21 14.11).
+ *  Q18a–g: hồ sơ tạo trong 30 phút TRƯỚC bill của chính SĐT, chưa có đơn trước (đơn đã huỷ không tính — Q23) → vẫn là khách mới (Q21 14.11).
+ *  Q22a–d: tiền tính điểm lưu lúc bán theo luật Q7 (gói / thẻ / nạp đủ giá, giảm chỉ trên món thường) — chủ quán 14.11.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -208,6 +209,7 @@ async function main() {
   app.use('/api/kh', require(R('kh/loi.js')).loiTangKh);
   const { kyTokenKhach } = require(path.join(MAY_CHU, 'middleware', 'khachAuth.js'));
   const { tienDaTraTheoDong, soTienHoanGoi } = require(path.join(MAY_CHU, 'utils', 'tienDaTra.js'));
+  const { tienHangDiem } = require(path.join(MAY_CHU, 'utils', 'diemThat.js'));
   const batBien = require(path.join(GOC, 'cong_cu', 'gia_lap', 'bat_bien.js'));
   let vc = {};
   try { vc = require(path.join(MAY_CHU, 'utils', 'voucherCode.js')); } catch { /* gốc lỗi nạp — A/B đỏ */ }
@@ -593,6 +595,32 @@ async function main() {
     if (o) await db.run('UPDATE pos_orders SET giam_mon_thuong = 1 WHERE id = ?', [o.id]);
   });
 
+  // Q22 (chủ quán 14.11): tiền tính điểm lưu lúc bán (tien_hang_diem) theo luật Q7 — dòng gói / thẻ / nạp đủ giá, giảm chỉ chia trên món thường.
+  // Số tính tay: gói 300.000 + món 50.000, mã 10 % món → khách trả 345.000. Gói TẮT điểm → 50.000 − 5.000 = 45.000 (luật cũ: 49.285);
+  // món TẮT điểm → 300.000 (luật cũ: 295.714). Cả hai bật → 345.000; không gói → 45.000 (y trước — K5).
+  await chay('Q22', async () => {
+    const m10 = await maChung('percent', 10);
+    const thd = async (body, tien) => { const r = await ban(body, tien); return { r, t: r.order ? Number((await donDb(r.order.id)).tien_hang_diem) : null }; };
+    const goiMon = async () => thd({ customer_phone: (await khach()).sdt, items: [mon(0)], package_buy: { package_id: goiId }, discount_code: m10 }, 345000);
+    try {
+      await db.run('UPDATE pos_packages SET tich_diem = 0 WHERE id = ?', [goiId]);
+      const a = await goiMon();
+      k('Q22a gói TẮT điểm + món 50.000 + mã 10 % → tien_hang_diem 45.000 (không phải 49.285)', a.r.status === 200 && a.t === 45000, `${moTa(a.r)} · ${a.t}`);
+      await db.run('UPDATE pos_packages SET tich_diem = 1 WHERE id = ?', [goiId]);
+      await db.run('UPDATE pos_products SET tich_diem = 0 WHERE id = ?', [sp[0].id]);
+      const b = await goiMon();
+      k('Q22b gói BẬT + món TẮT điểm, mã 10 % món → tien_hang_diem 300.000 (không phải 295.714)', b.r.status === 200 && b.t === 300000, `${moTa(b.r)} · ${b.t}`);
+    } finally {
+      await db.run('UPDATE pos_packages SET tich_diem = 1 WHERE id = ?', [goiId]);
+      await db.run('UPDATE pos_products SET tich_diem = 1 WHERE id = ?', [sp[0].id]);
+    }
+    const c = await goiMon();
+    const d = await thd({ customer_phone: (await khach()).sdt, items: [mon(0)], discount_code: m10 }, 45000);
+    k('Q22c K5: gói + món đều bật → 345.000; chỉ món + mã 10 % → 45.000 (y trước)', c.t === 345000 && d.t === 45000, `${c.t} / ${d.t}`);
+    const dong = [{ product_id: -goiId, unit_price: 300000, quantity: 1, tich_diem: 0 }, { product_id: sp[0].id, unit_price: 50000, quantity: 1, tich_diem: 1 }];
+    k('Q22d hàm KHÔNG truyền cờ (đơn cũ, mặc định) → chia cũ 49.285', tienHangDiem(dong, 345000) === 49285, String(tienHangDiem(dong, 345000)));
+  });
+
   // ═════════════════════════════════════════════════════════════════════════
   muc('[G] Huỷ / xoá / duyệt hoàn → trả MỌI voucher + lượt mã chung; phiên QR không tiêu; hai đơn cùng voucher → một đơn');
   await chay('G', async () => {
@@ -972,6 +1000,16 @@ async function main() {
       await hoSoTruoc(s, b, 29 * 60);
       const r = await nhan(b.code, s);
       k('Q18f hồ sơ 29 phút, có đơn SAU đơn in bill (không có đơn trước) → vẫn nhận 200', r.status === 200 && !!(await grantBill(b)), moTa(r));
+    });
+    await chay('Q18g', async () => {   // Q23 (chủ quán 14.11): đơn trước ĐÃ HUỶ (quầy bấm nhầm rồi bấm lại) không tính là "đã có đơn"
+      const s = sdtQ2();
+      const truoc = await ban({ items: [mon(2)], customer_phone: s }, 20000);
+      const huy = truoc.order ? await goi('PUT', `/pos/orders/${truoc.order.id}/cancel`, { reason: 'thử Q23 bấm nhầm' }) : {};
+      const b = await billCua(s);
+      await hoSoTruoc(s, b, 29 * 60);
+      const r = await nhan(b.code, s);
+      k('Q18g hồ sơ 29 phút, đơn TRƯỚC bill đã HUỶ (không còn đơn nào khác) → vẫn nhận 200, 1 grant', huy.status === 200 && r.status === 200 && !!(await grantBill(b)),
+        `${moTa(huy)} / ${moTa(r)}`);
     });
 
     await chay('Q2k', async () => {   // MÀN THẬT: Customers.jsx + utils/api.js thật → /registrations + /signup-codes/claim của máy chủ thử (lỗi soát (1))
