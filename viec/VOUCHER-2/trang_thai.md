@@ -274,4 +274,9 @@ bốn commit đó KHÔNG có ở đây: nhánh trên GitHub và trong máy đề
   - **(c)** Bốn lỗi không còn: cho phép mình làm lại từ `3c9af63` — sửa E9 theo Q15 (cần chữ "Q15 đồng ý"), chạy `/ra-soat` mới, sửa lỗi lần soát đó nêu
     (coi là vòng sửa 1), rồi Q16–Q19 theo câu trả lời 13.11.
 
-### Dừng (14.11) — chờ chủ quán trả lời Q20.
+### Stop hook 14.11 — npm test đỏ
+- `thu_BH2.js` G1 `fatal: bad revision 'cbbb809..HEAD'` — kho nông (lần 3). `git fetch -q --unshallow origin viec/VOUCHER-2` (chỉ tải lịch sử) → hết đỏ.
+- Còn đúng MỘT mục đỏ: phép E9 `/claim … TRƯỚC khi phát voucher` — chính là Q15 đang chờ chữ duyệt. Không tự sửa bộ kiểm (CLAUDE.md §6, K8).
+- `npm test`: **PASS 113 · FAIL 1 · CẢNH BÁO 1** (FAIL = E9 / Q15; cảnh báo "route GET có lệnh ghi" có từ trước).
+
+### Dừng (14.11) — chờ chủ quán trả lời Q20 (kèm Q15).
