@@ -930,6 +930,8 @@ async function main() {
         await m.doi(() => man.bao().length > truoc, 6000);
         return { nut: !!nut, o: !!o('Mã in trên bill'), bao: man.bao().slice(truoc), ve: m.chu(m.cay()).slice(0, 160) };
       };
+      const t0 = Date.now(), thu = await goi('POST', '/pos/registrations', { phone: sdtQ2(), name: 'Thử', requested_product: 'Nước ép', requested_cycles: 1 });
+      noiLai(); console.log('DÒ registrations', moTa(thu), Date.now() - t0, 'ms');
       const b = await bill(), s = sdtQ2();
       const a = await luuKhach(s, ' ' + b.code.toLowerCase() + ' ');
       const g = await grantBill(b);
