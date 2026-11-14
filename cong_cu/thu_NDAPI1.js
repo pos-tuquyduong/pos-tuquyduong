@@ -133,9 +133,9 @@ async function main() {
       cu.length > 100 && j === cu.length && iNd >= 0 && iCors > iNd && moi.length - cu.length <= 4, `cũ ${cu.length} khớp ${j} · nd ${iNd} · cors ${iCors} · thêm ${moi.length - cu.length}`);
   }
 
-  let A, B;
-  await doan('mở máy chủ', async () => { [A, B] = await Promise.all([moMay('A'), moMay('B')]); });
-  if (!A || !B) { k('máy chủ không lên — dừng', false); return; }
+  let A, B, C;
+  await doan('mở máy chủ', async () => { [A, B, C] = await Promise.all([moMay('A'), moMay('B'), moMay('C')]); });
+  if (!A || !B || !C) { k('máy chủ không lên — dừng', false); return; }
   const ND = '/api/nd';
 
   // ═══ B · bảng ═══
@@ -213,6 +213,13 @@ async function main() {
     const dem = (await A.q("SELECT khoa, sai, khoa_den FROM nd_lan_sai WHERE khoa IN ('ip:10.1.1.5', 'cap:admin|10.1.1.5') ORDER BY khoa").catch(() => []));
     k('G4e khoá còn 30 s → đúng mật khẩu vẫn 429; khoá đã hết → lượt sai mới 401, bộ đếm cặp + IP về 1, hết khoá', e1.status === 429 && e2.status === 401
       && dem.length === 2 && dem.every((d) => Number(d.sai) === 1 && d.khoa_den === null), `${moTa(e1)} / ${moTa(e2)} / ${JSON.stringify(dem)}`);
+    // G4f (K5): cặp đang khoá → lượt bị từ chối KHÔNG cộng bộ đếm IP (không so mật khẩu thì không phải "lần sai") — người khác cùng mạng vẫn vào
+    for (let i = 0; i < 5; i++) { await thu('qly_nd', 'sai' + i, '10.1.1.6'); await thu('admin', 'admin123', '10.1.1.6'); }
+    const f = [];
+    for (let i = 0; i < 6; i++) f.push((await thu('qly_nd', 'matkhau1', '10.1.1.6')).status);
+    const f7 = await thu('admin', 'admin123', '10.1.1.6');
+    k('G4f cặp bị khoá bấm lại 6 lần (đều 429) → bộ đếm IP không tăng: người khác cùng IP vẫn 200', JSON.stringify(f) === '[429,429,429,429,429,429]' && f7.status === 200,
+      `${JSON.stringify(f)} · ${moTa(f7)}`);
     // G5: vé hết hạn / aud khác — khoá vé nd lấy từ hàm khoaVe của tinh.js (cùng JWT_SECRET)
     let khoaVe = null;
     try { khoaVe = require(path.join(SV, 'nd', 'tinh.js')).khoaVe(process.env.JWT_SECRET); } catch { /* chưa có */ }
@@ -341,6 +348,9 @@ async function main() {
     await datQuyen('manager', { nd_xem: true, nd_sua: true });
     await luuNhap('k5.cua.A', 'của chủ quán');
     await luuNhap('k5.cua.B', 'của quản lý', 0, veQly);
+    const gc501 = await capNhat(0, veChu, 'g'.repeat(501));
+    k('E2c ghi_chu 501 ký tự → 400 DU_LIEU_KHONG_HOP_LE (chưa ghi bản nào)', gc501.status === 400 && gc501.j.code === 'DU_LIEU_KHONG_HOP_LE'
+      && Number((await A.q('SELECT COUNT(*) AS n FROM nd_ban'))[0].n) === 0, moTa(gc501));
     const sai = await capNhat(1);
     const truoc = await A.chup();
     const sai2 = await capNhat(5);
@@ -455,6 +465,25 @@ async function main() {
     k('I3 tệp dinh_dang lạ / ảnh base64 là HTML / hai bản đang chạy / mã ảnh lệch băm / bản đang chạy KHÔNG phải số lớn nhất → 400, kho trống vẫn trống',
       [i3a, i3b, i3c, i3d, i3e].every((r) => r.status === 400) && i3b.j.code === 'ANH_KHONG_HOP_LE' && tep.ban.length >= 2 && tr0 === await B.chup(),
       [i3a, i3b, i3c, i3d, i3e].map(moTa).join(' | '));
+    const lon = WEBP(512001);
+    const i3f = await nhapB({ ...tep, ban: tep.ban.map((b, i) => (i ? b : { ...b, gia_tri: { x: 'ệ'.repeat(349526) } })) });
+    const i3g = await nhapB({ ...tep, anh: [...tep.anh, { ma: crypto.createHash('sha256').update(lon).digest('hex'), loai: 'image/webp', kich_thuoc: lon.length,
+      luc: '2026-11-14T10:00:00', du_lieu_base64: lon.toString('base64') }] });
+    k('I3f tệp có bản > 1.048.576 byte → 413 QUA_LON; I3g ảnh 512.001 byte (đúng băm, đúng WebP) → 413; kho trống vẫn trống', i3f.status === 413 && i3f.j.code === 'QUA_LON'
+      && i3g.status === 413 && i3g.j.code === 'QUA_LON' && tr0 === await B.chup(), `${moTa(i3f)} / ${moTa(i3g)}`);
+    // C — kho trống thứ ba: tệp KHÔNG có bản (chỉ nháp) vẫn nhập được (K5); kho chỉ có nháp / chỉ có ảnh → 409 (từng vế của "kho trống")
+    const veC = await C.veNd('admin', 'admin123');
+    const nhapC = (body) => C.goi('POST', ND + '/nhap-toan-bo', { ve: veC, body });
+    const c1 = await nhapC({ dinh_dang: 1, ban: [], nhap: [{ khoa: 'chi.nhap', gia_tri: 'x', nguoi: 'a', luc: '2026-11-14T10:00:00', ban_goc: 0 }], anh: [], nhat_ky: [] });
+    const c2 = await nhapC(tep);
+    await C.q('DELETE FROM nd_nhap');
+    const m = multipart('a.png', 'image/png', PNG());
+    await C.goi('POST', ND + '/anh', { ve: veC, body: m.body, headers: { 'Content-Type': m.type } });
+    const chiAnh = Number((await C.q('SELECT (SELECT COUNT(*) FROM nd_anh) * 10 + (SELECT COUNT(*) FROM nd_nhap) + (SELECT COUNT(*) FROM nd_ban) * 100 AS n'))[0].n);
+    const c3 = await nhapC(tep);
+    k('I4 (K5) tệp không có bản nào, chỉ nháp → nhập vào kho trống 200', c1.status === 200 && c1.j.so_luong_ban === 0, moTa(c1));
+    k('I2b kho CHỈ có nháp → 409 KHO_DA_CO_DU_LIEU; kho CHỈ có ảnh → 409', c2.status === 409 && c2.j.code === 'KHO_DA_CO_DU_LIEU' && chiAnh === 10
+      && c3.status === 409 && c3.j.code === 'KHO_DA_CO_DU_LIEU', `${moTa(c2)} / ${chiAnh} / ${moTa(c3)}`);
     const i1 = await nhapB(tep);
     k('I1c nhập xong trả so_luong_ban = số bản trong tệp (không dùng tên so_ban — so_ban là SỐ của một bản ở mọi cửa)', i1.j.so_luong_ban === tep.ban.length
       && i1.j.so_ban === undefined, JSON.stringify(i1.j));
@@ -548,6 +577,25 @@ async function main() {
   });
 
   // ═══ L · hợp đồng riêng ═══
+  // ═══ D7 · 1 MB kiểm lại LÚC CẬP NHẬT (nháp lưu khi bản đang chạy nhỏ, rồi quay lại bản lớn) ═══
+  muc('[D7] Giới hạn 1 MB ở cap-nhat');
+  await doan('D7', async () => {
+    const soNay = async () => (await A.goi('GET', ND + '/ban-dang-chay')).j.so_ban;
+    const nho = await soNay();
+    await luuNhap('lon.a', 'ệ'.repeat(233000), nho);   // ~700 KB
+    const banLon = (await capNhat(nho)).j.so_ban;
+    await A.goi('POST', ND + '/quay-lai', { ve: veChu, body: { so: 1, ban_goc: banLon } });
+    const nhoLai = await soNay();
+    const pb = await luuNhap('lon.b', 'ệ'.repeat(133000), nhoLai);   // ~400 KB: bản nhỏ + nháp vẫn < 1 MB
+    await A.goi('POST', ND + '/quay-lai', { ve: veChu, body: { so: banLon, ban_goc: nhoLai } });
+    const lonLai = await soNay();
+    const truoc = await A.chup();
+    const d7 = await capNhat(lonLai);
+    k('D7 bản đang chạy ~700 KB + nháp ~400 KB lưu lúc bản nhỏ → cap-nhat 413 QUA_LON, không đổi gì', !!banLon && pb.status === 200 && d7.status === 413
+      && d7.j.code === 'QUA_LON' && truoc === await A.chup(), `${moTa(pb)} / ${moTa(d7)} · ${nho}→${banLon}→${nhoLai}→${lonLai}`);
+    await A.goi('DELETE', ND + '/nhap/lon.b', { ve: veChu });
+  });
+
   muc('[L] Hợp đồng HOP_DONG_API_ND.md v1');
   await doan('L', async () => {
     const hd = doc(path.join(GOC, 'HOP_DONG_API_ND.md'));
