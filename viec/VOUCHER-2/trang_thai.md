@@ -577,3 +577,86 @@ BÀI HỌC:
 |---|---|
 | diemThat.js làm tròn / thẻ hạng là dòng đủ giá | VS-V2-Q22-LAM-TRON · VS-V2-Q22-CHI-GOI |
 | signup-codes.js status NULL vẫn tính | VS-V2-Q23-NULL-LOT |
+
+## Soát bảo mật
+Lần 1 (14.11, HEAD 415511f2, diff `171109f..HEAD` — phần của việc này sau khi gộp main; agent độc lập, chỉ đọc). Lỗi trước lọc: **0** · sau lọc: **0** (bước 2 không
+tìm được lỗ hổng nào → không cần bước 3 lọc). Báo cáo NGUYÊN VĂN:
+```
+# Soát bảo mật VOUCHER-2 (`git diff 171109f HEAD`): không tìm thấy lỗ hổng đạt ngưỡng báo cáo
+
+Mình không thấy lỗ hổng nào đạt mức HIGH hoặc MEDIUM với độ tin cậy từ 8/10 trở lên. Có một chỗ tính tiền dưới ngưỡng (ghi ở cuối để phiên chính tự quyết).
+
+## Những gì đã kiểm (file:dòng đọc trong lượt này)
+
+1. **Máy chủ tự tra voucher, không tin số máy khách gửi** — `server/routes/orders.js`
+   - `kiemVoucherDon` (khoảng 1427–1471) tự tra `pos_voucher_grants JOIN pos_discount_codes` theo mã.
+   - Loại, trị giá, trần, tối thiểu, phạm vi món đều lấy từ CSDL. Thân yêu cầu chỉ được nhận mảng chuỗi mã, có kiểm dạng (≤ 20 mã, ≤ 32 ký tự).
+   - Tiền giảm tính ở `tinhUuDai` / `tinhVoucher` (`server/utils/uuDai.js`):
+     - mỗi khoản bị chặn ≤ tiền món thường còn lại;
+     - voucher ship bị chặn ≤ phí giao;
+     - `total = Math.max(0, …)`.
+
+2. **Chỉ chính chủ** — `xetVoucherConDung` (`server/utils/voucherCode.js` khoảng 120–134) so `g.customer_phone` với `phone` của đơn.
+   - Với App KH, `phone` lấy từ token: `donApp.thanDon` dùng `khach.phone`; `kh/index.js` gọi `datDon` / `baoGiaKhach` với `req.khach`.
+   - Voucher chính chủ gửi qua ô mã cũ (`discount_code`) cũng rẽ sang nhánh voucher. Mã chung (`maChungGui`) bị đặt về null nên không lọt qua đường mã khuyến mãi.
+   - Ở quầy, SĐT do nhân viên nhập. Đó là mô hình tin cậy sẵn có, không phải lỗ mới.
+
+3. **Dùng hai lần / hai đơn đua nhau** — trong giao dịch của `taoDon` (khoảng 1179–1191):
+   - `UPDATE pos_discount_codes … used_count < usage_limit`, rồi `UPDATE pos_voucher_grants … status = 'available'`, cả hai đều kiểm `changes === 1`, sai thì rollback.
+   - Mã trùng trong một đơn bị gộp bằng `Set` sau khi đổi IN HOA.
+   - Phần voucher đang bị phiên chuyển khoản giữ được đọc lại trong giao dịch ghi (`voucherDangGiu(tx, …)`).
+   - Lúc tạo phiên (`giuCho.js` taoPhien khoảng 71–81) cũng kiểm lại trong giao dịch.
+
+4. **Trả voucher khi huỷ** — `traLuotMa` (`server/utils/tienDaTra.js`): trả lượt theo `used_order_id`, sau đó xoá `used_order_id`.
+   - Gọi lại lần hai thì không còn dòng nào khớp, nên không trả hai lần.
+   - Voucher đã được dùng lại ở đơn khác (`used_order_id` mới) thì không bị trả nhầm.
+
+5. **/api/kh**
+   - `GET /voucher` (`kh/index.js:230`) đọc theo `req.khach.phone`.
+   - `nhan-ma-bill` (`kh/index.js:285–296`): SĐT lấy từ token, có giới hạn số lần thử `giuLuotNhanMa` theo SĐT + IP (đã có từ trước).
+   - Phần mới `kiemKhachLanDau` (luật 30 phút, Q18/Q23) chỉ siết thêm điều kiện nhận mã, không mở đường mới.
+
+6. **/signup-codes/claim**: vẫn `authenticateServiceOrUser`. Chiếm mã bằng `claimed_at IS NULL` + kiểm `changes`. `phatVoucher` chạy trong cùng giao dịch.
+
+7. **Mẫu voucher** (`server/routes/rewards.js`)
+   - `POST` / `PUT /mau` cần `manage_promotions`.
+   - `GET /mau` và `POST /mau/mo-ta` chỉ cần đăng nhập. Cả hai chỉ đọc, không chứa dữ liệu khách hay giá vốn.
+   - `kiemMau` kiểm số nguyên, phần trăm ≤ 100, `ap_dung_ids` là số nguyên.
+   - Câu SQL dùng danh sách cột cố định `COT_MAU` và tham số `?`, không bị chèn lệnh SQL.
+
+8. **Chèn lệnh SQL**: các truy vấn mới (danh sách `IN (?, …)` của nhóm món, mã voucher, `voucherDangGiu`) đều dùng tham số.
+
+9. **GET /loyalty/vouchers/:phone**: quyền `authenticateServiceOrUser` có từ trước, không đổi. Có trả thêm vài cột luật của mã (`chinh_chu`, `min_order`…), không nhạy cảm.
+
+10. **Cài đặt** (`settings.js`): `voucher_toi_da` (1–10) và `signup_mau_voucher_id` có kiểm dạng, cần `manage_settings`.
+
+11. **Máy khách**: không có `dangerouslySetInnerHTML` / `innerHTML` mới. Tờ in `hoaDon.js` chỉ thêm mã voucher do máy chủ sinh (bảng chữ A–Z, 2–9).
+
+## Ghi chú dưới ngưỡng (tin cậy 5/10, không phải lỗ phân quyền)
+
+**Voucher giới hạn món có thể giảm quá giá món** — `server/utils/uuDai.js`, hàm `tinhVoucher`, dòng `coSo`:
+- Với voucher có `dong` (nhóm / món chọn), `coSo = min(con, Σ giá các dòng đó)`. Phần voucher trước đã giảm trên CÙNG các dòng đó không bị trừ ra.
+- Ví dụ: hai voucher tiền "Giảm 50.000đ cho món X", món X giá 40.000đ, giỏ có thêm 100.000đ món khác. Mỗi voucher giảm 40.000đ, tổng 80.000đ, tràn sang món không được áp.
+- Tổng giảm vẫn ≤ tiền món thường.
+- Hôm nay chỉ mẫu khách mới (`signup-codes.js:410`) có thể sinh voucher giới hạn món. Mỗi SĐT một cái, nhưng nếu mẫu để "chia sẻ được" thì gom được từ nhiều khách.
+- Hướng sửa: tính phần còn lại theo từng dòng (trừ dần trên các dòng đã giảm), hoặc chặn tổng voucher có `dong` trên cùng tập dòng.
+- Đây là lỗi tính tiền (CHECKLIST mục P4/H.1), nên để chat soát logic tiền xem, không phải lỗ bảo mật.
+
+**Kết luận: Không tìm thấy lỗ hổng đạt ngưỡng báo cáo.**
+```
+SOÁT BẢO MẬT: ĐẠT
+
+## Câu hỏi (14.11, lần 4) — mình DỪNG trước cổng / báo cáo; mọi phần khác đã xong và xanh
+Việc này là gì: người soát bảo mật ghi một chỗ TÍNH TIỀN (không phải lỗ bảo mật). Mình đã đọc code thật và thấy đúng. Đã hết 3 vòng sửa, và đây là chuyện
+tiền → luật (LUAT §6.5) bảo dừng hỏi bạn, không tự sửa.
+- **Q24 — hai voucher "theo món" cùng giảm một món.** Đã đọc: `server/utils/uuDai.js:73` — voucher áp cho nhóm món / món chọn có trần = tổng giá GỐC các
+  món đó, KHÔNG trừ phần voucher theo món trước đã giảm trên chính các món ấy. Ví dụ tính tay: món X 40.000 + món khác 100.000, hai voucher tiền "Giảm
+  50.000đ cho món X" (Cài đặt N ≥ 2) → mỗi cái giảm 40.000, tổng giảm 80.000 trong khi món X chỉ 40.000 (40.000 tràn sang món không được áp). Tổng giảm
+  vẫn không quá tiền món thường của đơn (không âm tiền). Hôm nay chỉ mẫu khách mới đặt được "theo món"; mỗi SĐT nhận một cái, nhưng mẫu "chia sẻ được"
+  thì gom được mã của nhiều khách.
+  **Đề xuất (bạn chỉ cần "đồng ý"):** mỗi voucher theo món chỉ giảm trên phần CÒN LẠI của chính các món đó sau các voucher theo món đã áp trước (trong
+  đơn trên: voucher thứ hai giảm 0 → báo rõ cho quầy "Voucher <MÃ> không còn món để giảm" và không lưu đơn, như các lỗi voucher khác). Voucher cả đơn
+  giữ y như hiện nay. ~10 dòng trong `uuDai.js` (trong Phạm vi), bài đỏ trước với bộ số trên + đột biến, chạy lại soát độc lập phần này.
+  Bạn đồng ý thì phiên sau mình làm Q24, rồi cổng `chay` → báo cáo 7 mục.
+
+### Dừng (14.11, lần 4) — chờ chủ quán trả lời Q24. Chưa chạy: `cong.js chay`, báo cáo 7 mục.
