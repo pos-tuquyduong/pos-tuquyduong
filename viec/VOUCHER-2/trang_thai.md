@@ -247,3 +247,31 @@ phép / hạ ngưỡng — phải hỏi bạn, nên mình dừng ở đây. Mọ
 - Chưa chạy: `/ra-soat`, `/soat-bao-mat`, `cong.js chay`, báo cáo 7 mục — để sau khi chủ quán trả lời Q15 (bộ kiểm phải xanh trước).
 
 ### Dừng (13.11) — chờ chủ quán trả lời Q15.
+
+## Phiên 14.11 — lệnh "VOUCHER-2 tiep" (vòng sửa 1 + Q16–Q19)
+### Bước 1 — đối chiếu bản chụp
+- Nhánh `viec/VOUCHER-2`, cây sạch. HEAD `3c9af63` · FETCH_HEAD `3c9af63` — bằng nhau, không kéo (hook mở phiên đã kéo `e94708f → 3c9af63`).
+- `git log --oneline -3`:
+  ```
+  3c9af63 VOUCHER-2: trang thai - ket qua kiem 13.11, dung cho Q15
+  0513665 VOUCHER-2: bang chung do phien 13.11 (Q2, Q11, Q12, Q14), trang thai, cau hoi Q15 (phep E9 bo kiem)
+  70498ac VOUCHER-2: dot bien Q2 + Q14 (17 moi)
+  ```
+- Kho có đúng một nhánh (`viec/VOUCHER-2` = `origin/viec/VOUCHER-2`), không commit nào ngoài `3c9af63`.
+
+## Câu hỏi (14.11) — mình DỪNG, chưa sửa gì
+Việc này là gì: lệnh bảo mình "đẩy 4 commit đang giữ" rồi làm "vòng sửa 1 (4 lỗi soát nêu)" + Q16–Q19. Nhưng máy này là máy MỚI (máy mây cũ bị thu hồi),
+bốn commit đó KHÔNG có ở đây: nhánh trên GitHub và trong máy đều dừng ở `3c9af63` (13.11 — lúc còn chờ Q15). Vì vậy mình không có:
+(1) bốn lỗi người soát nêu (lần soát chạy sau `3c9af63`, kết quả nằm trong bốn commit đó);
+(2) chữ chủ quán đồng ý Q15 (sửa một dòng phép E9 của bộ kiểm — luật kho cấm máy tự sửa bộ kiểm khi chưa có chữ duyệt; phiếu và
+`QUYET_DINH_CHU_QUAN.md` chưa ghi Q15);
+(3) câu hỏi Q16–Q19 gốc (đề xuất kèm số dòng) mà câu trả lời 13.11 nhắc tới.
+Đoán lại bốn lỗi bằng một lần soát mới sẽ ra bộ lỗi khác, và sửa lại từ đầu dễ chồng / lệch với bốn commit nếu chúng còn ở đâu đó — việc tiền, nên mình không đoán.
+- **Q20 — Bạn chọn một (đề xuất: a):**
+  - **(a)** Nếu phiên máy cũ (13.11) còn mở trong app: bảo phiên đó chạy `git push -u origin viec/VOUCHER-2` (đẩy bốn commit lên GitHub), rồi mở lại lệnh
+    "VOUCHER-2 tiep" — mình kéo về và làm đúng vòng sửa 1 + Q16–Q19.
+  - **(b)** Nếu bốn commit đã mất: dán cho mình (qua phiếu) bốn lỗi soát + ghi Q15 "đồng ý" vào phiếu; mình làm lại Q15, vòng sửa 1, Q16–Q19 từ `3c9af63`.
+  - **(c)** Bốn lỗi không còn: cho phép mình làm lại từ `3c9af63` — sửa E9 theo Q15 (cần chữ "Q15 đồng ý"), chạy `/ra-soat` mới, sửa lỗi lần soát đó nêu
+    (coi là vòng sửa 1), rồi Q16–Q19 theo câu trả lời 13.11.
+
+### Dừng (14.11) — chờ chủ quán trả lời Q20.
