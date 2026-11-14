@@ -141,6 +141,7 @@ def ban_sao(thay, ca_kho=False):
   else:
     shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
     shutil.copytree(os.path.join(GOC, 'client', 'src'), os.path.join(tmp, 'client', 'src'))
+    shutil.copytree(os.path.join(GOC, 'cong_cu', 'gia_lap'), os.path.join(tmp, 'cong_cu', 'gia_lap'))   # Đối soát (doiSoat.js) nạp bat_bien.js tương đối
   os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
   for f, goc, moi, n in thay:
     p = os.path.join(tmp, f)
