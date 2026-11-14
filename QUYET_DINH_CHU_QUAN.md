@@ -170,7 +170,7 @@
   két không chi tiền mặt), Đối soát ghi riêng.
 - 05–06.11 · Tiền chuyển khoản về muộn (QR đã hết hạn / phiên đã đóng): ở quầy nhân viên xác nhận tay, ghi lý do; đơn App thì máy tự cộng vào ví
   khách và báo rõ cho cả quầy lẫn khách; phiên App hỏng vì đơn (vd hết hàng) mà tiền vẫn về cũng tự cộng ví, báo rõ hai bên. Cùng một khoản báo về
-  qua HAI cổng → KHÔNG tự cộng, vào nhóm CẦN XEM (CK-NOIDUNG-1).
+  qua HAI cổng → KHÔNG tự cộng, vào nhóm CẦN XEM (CK-NOIDUNG-1). (đổi 14.11 cho đơn App CHỈ thẻ / CHỈ nạp: tiền về muộn vẫn đủ quyền lợi — xem đợt 12–14.11 b)
 - 06.11 · Đổi cổng báo tiền SePay → **Tingee** (rẻ hơn; TINGEE-1). Khách chuyển vào số tài khoản ẢO (VA) `VQRQANJMG7944` của MB Bank hộ kinh doanh
   (MB tự thêm mã VA vào ĐẦU nội dung, vd "Qanjmg7944 TQDNOV06 HD0016"); Tingee chỉ báo khoản vào VA. Khoá Tingee chỉ ở biến môi trường Render, khoá
   API chỉ quyền "Ngân hàng & Thanh toán". Đã gỡ Webhook SePay; khi `CONG_QR` chưa là `tingee` thì quầy xác nhận tay. Bật Tingee ngoài giờ bán, thử
@@ -274,6 +274,29 @@
 - 12.11 · VOUCHER-2 Q7: đơn từ VOUCHER-2 trở đi — gói / thẻ / nạp tính đã trả đủ giá, phần giảm của mã / voucher chỉ chia trên món (đền và hoàn
   tính theo đó); đơn cũ giữ cách cũ. Q9: mã in trên bill cho khách mới — chỉ SĐT có hồ sơ khách tạo SAU lúc in bill (khách quầy đã có SĐT từ
   trước thì không nhận); quầy nhập mã ở form "Thêm khách mới". Q10: voucher ship (tiền hay %) không tính là "voucher giảm %".
+
+## Đợt quyết định 12–14.11.2026 b (chat bàn 36, ghi ở bàn 37)
+- 12.11 · VOUCHER-2 Q8 + Q12: đơn CŨ giữ cách tính cũ (bài thử cũ giữ ca cho đơn cũ, thêm ca theo luật mới). Q14: màn Bán hàng có hàng chip voucher
+  của khách ngay dưới ô mã (theo demo của chat); bill có dòng "Voucher" / "Giảm phí giao"; tem ly không đổi; số voucher tối đa mỗi đơn N mặc định 3,
+  đổi trong Cài đặt.
+- 13.11 · VOUCHER-2 Q16: tạo QR chuyển khoản thì voucher được giữ cho đơn đó; huỷ / hết hạn thì nhả lại. Q17: MỘT cách xét "voucher còn dùng được"
+  cho cả chip ở quầy lẫn lúc chốt đơn. Q19: Đối soát ngày thêm hai dòng "Tiền voucher đã giảm" và "Giảm phí giao".
+- 13–14.11 · VOUCHER-2 Q18 + Q21 + Q23 — khách mới không bị chặn oan: vẫn nhận mã in trên bill khi đủ CẢ BA: (1) đơn in bill là đơn của chính SĐT đó;
+  (2) SĐT chưa có đơn nào trước đơn đó (không tính đơn đã huỷ); (3) hồ sơ khách tạo trong vòng 30 phút trước lúc in bill. Thiếu một điều → như Q9.
+  Q22 (14.11): điểm của đơn mới tính đúng theo Q7 (gói / thẻ / nạp đủ giá, phần giảm chỉ chia trên món); đơn cũ không đổi.
+- 13.11 · Đăng nhập sai (ND-API-1 Q-A, DANG-NHAP-2 — trước khai trương): tối đa 5 lần / 15 phút theo CẶP (tên đăng nhập + IP) và 20 lần / 15 phút
+  theo IP; KHÔNG khoá tên đăng nhập trên mọi máy (người lạ gõ sai không khoá được nhân viên); câu báo chung, không lộ tên có tồn tại hay không.
+  14.11: lấy IP THẬT của khách sau Cloudflare (Render luôn có Cloudflare đứng trước) — sửa MỘT chỗ ở cửa vào máy chủ, sửa luôn giới hạn lượt của App.
+- 13.11 · Khoá sao lưu nội dung App (ND-API-1): không dán vào chat nào, cất thẳng vào GitHub Secret (chủ quán đã tạo + thử 14.11).
+- 14.11 · **Thẻ hạng KHÔNG trả bằng số dư tài khoản** — cả tiền nạp, thưởng nạp, ví mẹ — ở quầy và trên App ("tránh gian lận vì nạp tiền được
+  cộng tiền thưởng"). Đơn có thẻ thì CẢ ĐƠN không trừ số dư (muốn trả đồ uống bằng số dư thì tách đơn); thẻ chỉ trả tiền mặt (quầy) hoặc chuyển
+  khoản. Đơn thẻ đã trả bằng số dư trước đó giữ nguyên. Máy chủ chặn (KH-NAP-1 — cùng luật "chỉ tiền thật" với nạp tiền 10.11).
+- 14.11 · **Mua trên App chỉ thẻ hạng hoặc chỉ nạp tiền: tiền về muộn vẫn ĐỦ quyền lợi như tiền về đúng hạn** (QR đã hết hạn / đơn đã huỷ mà khách
+  vẫn chuyển ĐÚNG số): nạp → cộng đủ cả thưởng nạp; thẻ → vẫn lên hạng — máy tự làm (KH-NAP-1). Không làm được (gói đã tắt, khách đã có hạng cao
+  hơn, tiền lệch số) → tiền vào tài khoản như cũ, báo rõ quầy + khách. Đơn có đồ uống giữ như cũ. Thay luật KH-THE-1 09.11 (thẻ về muộn chỉ vào
+  tài khoản, khách mua lại).
+- 14.11 · VOUCHER-2 Q24: hai voucher "giảm theo món" cùng một món — voucher sau chỉ giảm trên phần CÒN LẠI của món đó; voucher không còn gì để giảm
+  thì máy báo rõ, không lưu đơn (bỏ bớt voucher rồi lưu). Voucher giảm cả đơn giữ như cũ.
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
