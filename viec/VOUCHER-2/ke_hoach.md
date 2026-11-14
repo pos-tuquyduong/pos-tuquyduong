@@ -293,3 +293,25 @@ hoàn theo 300.000; **F7b** đơn cũ cờ 0 → y số cũ. Đột biến `BV-V
   Thêm khách; bước 026 tự tạo mẫu đúng ưu đãi khách mới đang chạy (kiểu `order`), kiểu `item` để chủ quán chọn mẫu.
 - **Q10 CÓ** — voucher ship (số tiền hay %) KHÔNG tính là "voucher giảm %" của Q4; chỉ giảm phí giao, kẹp ≤ phí giao, vẫn tính vào N. Ca **E6**:
   1 voucher % món + 1 voucher ship % → 200 (không `VOUCHER_PHAN_TRAM_HAI`). Đột biến `VS-V2-SHIP-LA-PHAN-TRAM` (đếm ship % vào Q4 — E6 đỏ).
+
+## 13. Phiên 14.11 — Q15, vòng sửa 1 (4 lỗi soát 13.11), Q16–Q19 (chủ quán 13–14.11) — mục này THẮNG mục 2–12 chỗ trái ý
+Mỗi phần: phương án chọn (ít dòng nhất đạt nghiệm thu) · phương án B đã loại · ca thử · đường song song (K4) · luồng hợp lệ không bị chặn (K5).
+- **Q15** — `kiem_tra_truoc_khi_giao.js` E9: lệnh phát = `INSERT INTO pos_discount_codes` HOẶC `phatVoucher(tx,` (1 dòng). B: bỏ hẳn phép — loại (nới).
+  Đột biến `VS-V2-E9-PHAT-TRUOC` chạy bộ kiểm trên bản chép cả kho.
+- **Lỗi (1) ca giao diện xanh oan** — A: khung chạy MÀN THẬT trong `thu_VOUCHER2.js` (esbuild sẵn có gói .jsx + `utils/api.js` thật → máy chủ thử; bộ chạy hook
+  tối giản; ~150 dòng). B: tách logic ra .js thuần rồi thử hàm — loại: không bắt được lỗi ở CHỖ GỌI (đúng kiểu người soát phá: phiên thu bỏ voucher). B2: jsdom /
+  thư viện dựng — loại (phiếu: không thư viện mới). Ca: Q14c (4), Q2k (2), Q2m, A4 (2) — mỗi ca một đột biến phá hành vi như người soát.
+- **Lỗi (2)** chú thích `diemKhach.js` + `orders.js` P20b (K4: grep "mã in bill" toàn server).
+- **Lỗi (3)** mục [Q2] mỗi ca một `chay`; Q2n đòi voucher mã riêng (gốc: mã bill bị chặn đổi tên sẵn); gốc thật của Q2j / A4 là e3ef76a.
+- **Lỗi (4)** `nhan-ma-bill`: `scope` theo mẫu (`ship` · `item` · `order`) + `kieu`, `ap_dung`. Ca Q2o, đột biến `VS-V2-SCOPE-CUNG`; hợp đồng v15 (chưa gộp main
+  — không tăng số).
+- **Q16 giữ voucher khi chờ chuyển khoản** — A (chọn): khuôn `wallets.dangGiu` — phiên `cho` còn hạn, cách `payos` / `ck_tay`, GIỮ mọi voucher trong thân
+  phiên (`vouchers[]` + ô mã); tự nhả khi huỷ / hết hạn / chốt (không hẹn giờ, Render ngủ). Đọc lại TRONG giao dịch tạo phiên (voucher vừa bị tiêu / phiên khác
+  vừa giữ → không tạo phiên — khách không chuyển tiền oan) và TRONG giao dịch tiêu voucher của taoDon (phiên chen sau lúc kiểm). Chốt từ phiên: hạn voucher xét
+  theo ngày tạo phiên (`taoLuc`), không tính phần chính phiên giữ. B: cột / bảng giữ chỗ riêng + nhả tay khi huỷ / hết hạn — loại (thêm bước nâng cấp, cần hẹn
+  giờ để nhả khi hết hạn). Phiên tiền mặt / tài khoản chốt ngay → không giữ (K5: quầy không tự chặn mình). Ca Q16a–e (đua hai chiều), đột biến 9.
+- **Q17 một hàm "còn dùng được"** — `voucherCode.xetVoucherConDung` (bật · P20b · chính chủ · đã dùng · hạn của MÃ · đang giữ) gọi từ `kiemVoucherDon` VÀ
+  `diemKhach.layVoucherKhach`; ví theo đúng luật lúc bán (trước: `used_count` + `g.expires_at` riêng). Trường trả ra của ví giữ y cũ. Ca Q17a (4 kiểu lệch), Q17b (K5).
+- **Q19 Đối soát** — `doiSoat.tongHop` thêm `voucher { da_giam, giam_phi_giao }` (so_tien_giam của voucher món trên đơn completed; giam_ship), màn
+  `components/DoiSoat.jsx` hai dòng. Số tính tay: 13.800 + 5.000 = 18.800 · 8.000. Đột biến 3.
+- **Q18** — CHƯA làm: cần một mốc để phân biệt "hồ sơ tạo cho chính đơn" với "hồ sơ có từ trước" (đơn không tự tạo hồ sơ — xem câu hỏi Q21 ở trang_thai).
