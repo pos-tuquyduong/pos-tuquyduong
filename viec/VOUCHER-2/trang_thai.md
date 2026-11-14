@@ -471,3 +471,94 @@ Bạn trả lời Q22 + Q23 thì phiên sau mình làm hai chỗ đó (bài đ�
 
 - Neo hai đột biến Q18 cũ (`BV-V2-Q18-DON-TRUOC`, `VS-V2-Q18-DON-KHAC`) đổi theo câu SQL mới — vẫn BẮT Q18d / Q18f (K4 "đổi câu → grep neo đột biến").
 - Người gác chặn: `[B-CHUONGTRINH]` vòng `for` khi `git add` → tách lệnh; `[B-PHANTICH]` heredoc python rồi chạy script cùng lệnh → sửa bằng Edit, chạy riêng.
+
+### /ra-soat (14.11 lần 4 — phần Q22 + Q23 + mọi chỗ đổi từ 306cbe4e; agent độc lập) — báo cáo NGUYÊN VĂN
+```
+Phần sửa lần này chạy đúng: điểm của đơn có gói hoặc thẻ đi kèm mã giảm giờ được tính theo đúng luật Q7, và đơn trước đã huỷ không còn làm khách mất voucher khách mới nữa. Mình chạy thử lại đột biến BV-V2-Q23-HUY thì bài vẫn bắt được, và tự tính tay các bộ số thì ra khớp. Tuy vậy kết quả là KHÔNG ĐẠT, nhưng chỉ ở mức nhẹ: bài thử Q22 còn hở hai chỗ (không có bộ số lẻ phải làm tròn, không có ca thẻ hạng hay nạp tiền), cùng một dòng chú thích đầu file signup-codes.js chưa ghi Q23. Chỉ cần thêm ca thử và sửa chú thích, không phải sửa code tính tiền.
+
+KHÔNG ĐẠT  (nhẹ: chỉ thiếu ca thử và một dòng chú thích; code tính điểm đúng khi mình tự tính tay)
+
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_VOUCHER2.js:598-622 (ca Q22a–d) — nhánh MỚI của tienHangDiem (server/utils/diemThat.js:36-37) chưa bao giờ phải làm tròn số lẻ.
+   Q22a: 50.000×45.000/50.000 = 45.000 chẵn. Q22b: phần món bật = 0. Q22c: chẵn. Q22d chỉ chạy nhánh cũ (49.285).
+   → Đột biến đổi Math.floor thành Math.ceil hoặc Math.round ở dòng 37 sẽ sống sót.
+   Trái luật KHUON_LOI "Bổ sung 11.11 · K3": tiền / điểm qua chia rồi làm tròn phải có bộ số đi qua phân số lẻ, so với số tính tay.
+   Bộ số đề xuất (mình đã tính tay và chạy node): thẻ 100.000 bật + M1 33.333 ×3 (2 bật, 1 tắt) + mã 10.000 → tienHang 189.999,
+   tien_hang_diem = 100.000 + floor(66.666×89.999/99.999) = 100.000 + floor(59.999,4) = 159.999. Hàm hiện trả đúng 159.999.
+   — khuôn K3.
+2. cùng chỗ (Q22a–d) — phiếu Q22 (phieu.md:183) hứa "dòng gói / thẻ / nạp tính đủ giá", nhưng mọi ca chỉ dùng gói (product_id = −goiId).
+   Cột tien_hang_diem chỉ được đọc trong khối Q22 (grep thấy 4 lần trong thu_VOUCHER2.js, đều ở Q22), còn bat_bien.js:161-162 chỉ đọc lại số đã lưu.
+   → Đột biến thu hẹp vị từ ở diemThat.js:31 về "chỉ gói" (product_id < 0 && > ID_THE_TU) sống sót.
+   Cần một ca thẻ hạng + món + mã (gộp được với bộ số ở mục 1).
+   — khuôn K4 (tài liệu hứa theo đối tượng thì phép phải phủ đủ đối tượng) / K3.
+3. server/routes/signup-codes.js:9-10 — chú thích đầu file vẫn ghi "chưa có đơn trước (Q18)" mà không có "đơn đã huỷ không tính — Q23".
+   Các chỗ :108, :120 và hợp đồng :80, :397 đã sửa, riêng câu cùng nghĩa này sót.
+   — khuôn K4 (sửa một câu tài liệu thì grep cả file).
+4. (giao nhận) Commit 3d455b5f (dot_bien.py, chỉ đổi khoảng trắng) chưa đẩy: `git log origin/viec/VOUCHER-2..HEAD` không rỗng.
+   Có thể do việc đang làm dở; cần đẩy trước khi báo xong.
+   — khuôn K7.
+
+NGHI NGỜ:
+- diemThat.js:26 + :35 ghi "cùng luật Q7 với tienDaTraTheoDong" / "như tienDaTraTheoDong". Luật chia thì cùng, nhưng cách làm tròn khác:
+  tienHangDiem làm tròn tổng một lần, tienDaTra.js:30 làm tròn từng dòng. Ví dụ ở mục 1: 159.999 so với tổng da_tra các dòng bật 159.998, lệch 1đ.
+  Hiện vô hại: truDiemHoan làm tròn LÊN qua diemTruKhiHoan (diemThat.js:64-69), nên hoàn hết vẫn trừ đủ điểm. Câu chú thích nên nói rõ chỗ khác này.
+- signup-codes.js:120 `status != 'cancelled'`: đơn có status NULL cũng bị bỏ qua, vì trong SQL so sánh với NULL ra NULL.
+  database.js:216 cho phép NULL (chỉ có mặc định 'completed'). Nếu dữ liệu cũ hay kho phục hồi có đơn status NULL thì đơn đó bị coi là "không có",
+  tức là nới chứ không siết. Không có đường ghi nào sinh NULL (orders.js:1062 là INSERT duy nhất, luôn ghi 'completed').
+  Viết `status IS NOT 'cancelled'` thì kín hơn.
+- Đơn 'refunded' (refunds.js:166) và đơn dở dang vẫn tính là "đã có đơn". Đây là hướng an toàn (siết), đúng chữ Q23 "đơn đã huỷ".
+  Đơn bị XOÁ (orders.js:1989 DELETE) tự nhiên không tính, như trước. Không cần hỏi, chỉ ghi lại để biết.
+- Dòng gói nạp không có tich_diem (orders.js:568-579), nên batDiem = bật và phần nạp được tính đủ vào tien_hang_diem.
+  Đơn nạp đã chặn điểm ở orders.js:1003 (diemTao = null), không phải lỗi mới; nhưng sau này đọc lại tien_hang_diem của đơn nạp sẽ thấy số cao.
+
+NGHIỆM THU:    12/12 mục có bằng chứng · mục thiếu: không
+  - A–I, K5: các khối muc('[A]'…'[K5]') có ở thu_VOUCHER2.js:301, 373, 398, 500, 512, 549, 625, 696, 739, 1320.
+    Riêng G (vế đua phiên): Q16f có ở thu_VOUCHER2.js:1244-1251; BV-V2-GIU-PHIEN-KHAC có ở dot_bien.py:81.
+  - Q22: Q22a/b đỏ trên gốc (bang_chung_do.txt:251-253), có 4 đột biến (dot_bien.py:91-95).
+    Bằng chứng có, nhưng chất lượng chưa đủ — xem LỖI 1–2.
+  - Q23: ca Q18g ở thu_VOUCHER2.js:1004-1013. Mình chạy lại `python3 viec/VOUCHER-2/dot_bien.py BV-V2-Q23-HUY` trong lượt này:
+    ĐỐI CHỨNG 137 · 0, BẮT Q18g ("HTTP 400 · KHACH_DA_CO_TAI_KHOAN"). Q18d (đơn trước chưa huỷ vẫn bị chặn) được khoá bằng VS-V2-Q23-BO-CA-DON-THAT.
+
+Kết quả từng mục soát:
+  1. K3: Q22a, Q22b, Q18g đỏ trên gốc, đỏ đúng câu kết luận (bang_chung_do.txt:251-253). Ca so số đã lưu trong cơ sở dữ liệu, không dò marker.
+     Hở hai chỗ như LỖI 1–2.
+  2. K4: tienHangDiem chỉ có MỘT chỗ gọi (orders.js:994).
+     - Cờ `true` khớp giam_mon_thuong = 1 viết cứng trong INSERT duy nhất (orders.js:1062; grep "INSERT INTO pos_orders" ra 1 chỗ).
+     - Vị từ "đủ giá" ở diemThat.js:31 giống tienDaTra.js:19.
+     - Các nơi đọc tien_hang_diem (tienTinhDiem diemThat.js:45-50, tienHoanTinhDiem :79-95, bat_bien.js:161-175) chỉ đọc số đã lưu, không chia theo dòng, nên không cần đổi.
+     - laDonDauCuaKhach chỉ một chỗ (signup-codes.js:118, gọi ở :128).
+     - Chỗ tài liệu sót: LỖI 3.
+  3. K5:
+     - Đơn không có dòng gói / thẻ / nạp → nhánh cũ nguyên (diemThat.js:34).
+     - Gói + món không có mã: tienHang = tong nên kết quả bằng bat như cũ. Tương tự với giá hạng / flash, vì các giá đó đã nằm trong tong (orders.js:608, :832, trước :994).
+     - Chỉ gói hoặc gói + lấy ngay (tongMon = 0) → batDu, như cũ (node: 300.000).
+     - Q22c khoá trường hợp gói + món đều bật.
+     - Q23 chỉ nới cho hồ sơ tạo trong 30 phút trước bill; lần nhận thứ hai bị chặn ở SDT_DA_NHAN (signup-codes.js:370), đơn bill bị huỷ bị chặn ở kiemDonCuaMa (:376).
+     - Không thấy luồng hợp lệ nào bị chặn oan.
+  4. K1: các câu trong trang_thai.md lần 4 mình đều kiểm lại được, trừ câu "cùng luật Q7" (xem NGHI NGỜ):
+     - "lời gọi duy nhất" — grep.
+     - "mọi đơn mới ghi = 1" — orders.js:1062.
+     - "tienHoanTinhDiem không cùng khuôn" — diemThat.js:79-95.
+     - "v15 chưa gộp main" — 171109f có PHIEN_BAN 14.
+  5. Đường tiền: tienHang = total − phiKhachTra, đều do máy chủ tính. Giá dòng do máy chủ tra (orders.js:474, 515, 568). Không có trường nào lấy theo số máy khách gửi.
+  6. P1: `git diff 306cbe4e HEAD -- client/` rỗng.
+  8. Đơn giản:
+     - orders.js:994 `true` và orders.js:1062 `1` là hai chữ viết cứng cho cùng một sự thật. Một hằng có tên (vd GIAM_MON_THUONG = 1) dùng ở cả hai chỗ thì không thể lệch nhau. Nhỏ.
+     - Nhánh mặc định false (diemThat.js:29, :34) không có chỗ gọi nào trên production. Nhánh này giữ theo lệnh chủ quán, nên không tính là thừa.
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy lại toàn bộ thu_VOUCHER2 trên gốc và HEAD, cũng không chạy 7 đột biến còn lại, vì bộ đầy đủ đang chạy nền. Mình chỉ chạy lại BV-V2-Q23-HUY (bắt được).
+- Chưa dựng thật hai đột biến làm tròn và "chỉ gói" để thấy chúng sống. Kết luận sống sót dựa vào đọc code: Q22 chỉ có số chẵn, và chỉ khối Q22 đọc tien_hang_diem.
+- Chưa chạy npm test / --day-du / cong.js chay.
+- Không kiểm được dữ liệu production: có đơn status NULL hay không.
+
+BÀI HỌC:
+- KHOÁ: đột biến nới làm tròn (floor → ceil) cho mọi hàm chia tiền / điểm mới, phải BẮT được — buộc bài thử có bộ số lẻ.
+  Đây là luật K3 11.11 đã ghi bằng lời mà không có máy canh.
+- KHOÁ: phép chia theo loại dòng (product_id < 0) phải có đột biến "thu hẹp về một loại" cho từng loại phiếu kể (gói / thẻ / nạp).
+- NGUYÊN TẮC (K1): viết "cùng luật với hàm X" thì phải nói rõ cả cách làm tròn có giống X không (tổng một lần hay từng dòng).
+- NGUYÊN TẮC (K4): thêm điều kiện "trạng thái != X" vào SQL thì xét cột cho phép NULL (dùng IS NOT), và liệt kê đủ các trạng thái còn lại (refunded, xoá hẳn).
+```
+(Mục 4 — commit 3d455b5f: đã đẩy ngay sau đó, `git log origin/viec/VOUCHER-2..HEAD` rỗng.)
+
+### Vòng sửa 3 (lỗi soát lần 4 — đều nhẹ, không đổi cách tính tiền / điểm)

@@ -619,6 +619,16 @@ async function main() {
     k('Q22c K5: gói + món đều bật → 345.000; chỉ món + mã 10 % → 45.000 (y trước)', c.t === 345000 && d.t === 45000, `${c.t} / ${d.t}`);
     const dong = [{ product_id: -goiId, unit_price: 300000, quantity: 1, tich_diem: 0 }, { product_id: sp[0].id, unit_price: 50000, quantity: 1, tich_diem: 1 }];
     k('Q22d hàm KHÔNG truyền cờ (đơn cũ, mặc định) → chia cũ 49.285', tienHangDiem(dong, 345000) === 49285, String(tienHangDiem(dong, 345000)));
+    // Q22e (soát lần 4): THẺ HẠNG (không chỉ gói) + bộ số qua phân số lẻ. Thẻ 100.000 bật + M1 33.333 × 2 bật + M2 20.000 TẮT, mã chung 10.000:
+    // khách trả 176.666 · phần món 76.666 · tien_hang_diem = 100.000 + ⌊66.666 × 76.666 / 86.666⌋ = 100.000 + ⌊58.973,71⌋ = 158.973 (tính tay).
+    const m10k = await maChung('fixed', 10000);
+    try {
+      await db.run('UPDATE pos_products SET tich_diem = 0 WHERE id = ?', [sp[2].id]);
+      const e = await thd({ customer_phone: (await khach()).sdt, items: [mon(1, 2), mon(2)], membership_buy: { tier_id: hangId, so_thang: 1 }, discount_code: m10k }, 176666);
+      k('Q22e thẻ hạng + món lẻ (một món tắt điểm) + mã 10.000 → tien_hang_diem 158.973 (làm tròn xuống)', e.r.status === 200 && e.t === 158973, `${moTa(e.r)} · ${e.t}`);
+    } finally {
+      await db.run('UPDATE pos_products SET tich_diem = 1 WHERE id = ?', [sp[2].id]);
+    }
   });
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -1010,6 +1020,16 @@ async function main() {
       const r = await nhan(b.code, s);
       k('Q18g hồ sơ 29 phút, đơn TRƯỚC bill đã HUỶ (không còn đơn nào khác) → vẫn nhận 200, 1 grant', huy.status === 200 && r.status === 200 && !!(await grantBill(b)),
         `${moTa(huy)} / ${moTa(r)}`);
+    });
+    await chay('Q18h', async () => {   // soát lần 4: đơn trước có status NULL (dữ liệu cũ / phục hồi) vẫn là "đã có đơn" — chỉ đơn ĐÃ HUỶ mới bỏ qua
+      const s = sdtQ2();
+      const truoc = await ban({ items: [mon(2)], customer_phone: s }, 20000);
+      if (truoc.order) await db.run('UPDATE pos_orders SET status = NULL WHERE id = ?', [truoc.order.id]);
+      const b = await billCua(s);
+      await hoSoTruoc(s, b, 29 * 60);
+      const r = await nhan(b.code, s);
+      k('Q18h đơn TRƯỚC bill có status NULL → 400 KHACH_DA_CO_TAI_KHOAN, không grant', !!truoc.order && r.status === 400 && r.code === 'KHACH_DA_CO_TAI_KHOAN'
+        && !(await grantBill(b)), moTa(r));
     });
 
     await chay('Q2k', async () => {   // MÀN THẬT: Customers.jsx + utils/api.js thật → /registrations + /signup-codes/claim của máy chủ thử (lỗi soát (1))
