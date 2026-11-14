@@ -109,3 +109,33 @@ BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 1 (đề xuất) · BỎ 2 — chi ti�
 Thử tay 2 thao tác cho chủ quán: (1) mở màn đăng nhập, gõ SAI mật khẩu 6 lần liền với một tên → lần 6 phải hiện "Gõ sai quá nhiều lần — thử lại sau … phút", ô tên/mật khẩu không bị xoá; (2) trên điện thoại khác (mạng 4G) đăng nhập đúng cùng tên đó → vào bình thường.
 
 HEAD ĐÃ KIỂM: fbbdcfec
+
+## VÒNG 2 (chủ quán 14.11) — IP thật sau Cloudflare
+### Bước 1 vòng 2 — đối chiếu bản chụp (14.11.2026)
+- Nhánh `viec/DANG-NHAP-2`, cây sạch; `git fetch origin viec/DANG-NHAP-2` → HEAD `5398661` · FETCH_HEAD `5398661` (bằng nhau, không kéo). Kho nông → `git fetch --unshallow`.
+- `git log --oneline -3` lúc mở:
+  ```
+  5398661 PHIEU: DANG-NHAP-2 vong 2 — lay IP that sau Cloudflare (sua MOT cho o cua vao), Pham vi +2 — chu quan 14.11
+  cac85b4 GOP-DANG-NHAP-2 gop main 1a71424 (chat 14.11, truoc vong 2 IP that sau Cloudflare)
+  1a71424 Merge pull request #93 from pos-tuquyduong/viec/ND-API-1
+  ```
+### Đã làm (vòng 2)
+- Bài thử ĐỎ trước: `cong_cu/thu_DANGNHAP2.js` thêm ca J0–J16 (server/index.js THẬT chạy trong tiến trình con, kho thử tạm) — trên gốc `cac85b4`: 54 đạt · 10 hỏng (J1 J4 J5 J6 J7 J8 J13 J14 J15 J16); sau vá 64 đạt · 0 hỏng. Chi tiết `bang_chung_do.txt`.
+- Vá: `server/utils/ipKhach.js` (mới, `ipKhach(req)`: `True-Client-IP` rồi `CF-Connecting-IP`, chỉ nhận MỘT địa chỉ IPv4/IPv6 hợp lệ, không thì `req.ip` như cũ) + MỘT middleware ở `server/index.js` ngay sau `app.set('trust proxy', 1)`, trước `app.use` đầu tiên (ghi đè `req.ip` của yêu cầu).
+  Không sửa từng đường: auth.js, /api/kh (giuLuotMenu…), man-khach, /api/nd/dang-nhap tự đúng. Ca J13 chứng minh /api/kh/menu đếm theo IP thật mà không sửa một dòng nào ở đó.
+- Đột biến vòng 2 (8, đủ BẮT, đối chứng xanh): BV-IP-THAT-MIDDLEWARE · VS-IP-THAT-SAU-DUONG · VS-IP-TIN-XFF · VS-IP-CAT-DANH-SACH · VS-IP-BO-KIEM-HOP-LE · VS-IP-DAO-UU-TIEN · BV-IP-CF-CONNECTING · BV-IP-BO-IPV6.
+  Bảng chỗ vá → đột biến: middleware ghi đè req.ip → BV-IP-THAT-MIDDLEWARE; vị trí middleware → VS-IP-THAT-SAU-DUONG; không tin XFF → VS-IP-TIN-XFF; một địa chỉ hợp lệ → VS-IP-CAT-DANH-SACH, VS-IP-BO-KIEM-HOP-LE; thứ tự ưu tiên → VS-IP-DAO-UU-TIEN; CF-Connecting-IP → BV-IP-CF-CONNECTING; IPv6 → BV-IP-BO-IPV6.
+- Commit: 50a7e26 (bài đỏ) · 0063991 (cấu hình khoá khách cho tiến trình con) · c006611 (vá + đột biến + bằng chứng).
+
+## Câu hỏi
+**Bài `cong_cu/thu_NDAPI1.js` (NGOÀI Phạm vi) đỏ khi thêm middleware vào `server/index.js` — mình dừng ở đây chờ chủ quán.**
+`npm test` → PASS 115 · FAIL 1: `✗ A2 index.js: gắn /api/nd TRƯỚC cors chung; so với gốc chỉ THÊM dòng … — cũ 245 khớp 245 · nd 64 · cors 69 · thêm 10`
+(`cong_cu/thu_NDAPI1.js:132-133`: so `server/index.js` với gốc ND-API-1 `bbf5eaf`, cho thêm TỐI ĐA 4 dòng — đúng 4 dòng ND-API-1 + QC-APP-1 đã thêm, nên MỌI dòng thêm vào `index.js` đều làm bài này đỏ.)
+Phiếu vòng 2 bắt buộc sửa `server/index.js` (≥ 5 dòng: import + chú thích + middleware) nên không có cách vá mà bài này vẫn xanh. Mình KHÔNG nới phép (K8): ngưỡng 4 là cách bài canh "ND-API-1 không đụng index.js ngoài chỗ gắn", mình không tự quyết nới.
+Mình ĐỀ XUẤT (chủ quán chỉ cần xác nhận): cho thêm `cong_cu/thu_NDAPI1.js` vào Phạm vi, đổi đúng hằng `<= 4` ở dòng 133 thành `<= 10` (đúng bằng số dòng đã thêm: 4 cũ + 6 của middleware vòng 2), giữ nguyên mọi phép khác của A2 (dòng cũ còn nguyên, đúng thứ tự, /api/nd trước cors); thêm dòng `SỐ CA` nếu cổng đòi. Sau đó mình chạy tiếp: soát độc lập → soát bảo mật → cổng → báo cáo 7 mục.
+Chưa làm: `/ra-soat`, `/soat-bao-mat`, cổng `cong.js chay`, báo cáo 7 mục (chờ trả lời này, vì cổng sẽ đỏ vì A2).
+Ghi thêm: `thu_BH2.js` G1 đỏ oan trên kho nông — đã xử lý bằng `--unshallow`.
+
+## Phát hiện (vòng 2 — KHÔNG làm, theo phiếu)
+- Đổi mật khẩu (`PUT /auth/password`) và đặt PIN chủ quán (`pinChuQuan.js datPinChuQuan`) chưa giới hạn số lần sai — việc sau.
+- `ipKhach` tin `True-Client-IP` / `CF-Connecting-IP` vô điều kiện: nếu ai đó gọi thẳng Render (bỏ qua Cloudflare) thì tự gửi header giả IP được. Phiếu chốt cách này; muốn kín hẳn thì Render chỉ nhận từ dải IP Cloudflare (hạ tầng, ngoài kho).
