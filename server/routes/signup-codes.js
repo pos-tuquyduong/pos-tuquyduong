@@ -6,7 +6,8 @@
  * phát ra 1 voucher THẬT (phatVoucher) theo mẫu voucher chủ quán chọn trong Cài đặt → Voucher.
  *
  * ĐỔI THIẾT KẾ (VOUCHER-2, chủ quán Q2 11.11 + Q9 12.11 — thay luật 09.08 "mã voucher = mã in bill"): mã in bill KHÔNG còn gõ
- * thẳng ở ô mã. Chỉ SĐT có tài khoản tạo SAU lúc in bill (đăng ký lần đầu) mới nhận được; nhận → phatVoucher sinh MỘT voucher RIÊNG
+ * thẳng ở ô mã. Chỉ SĐT có tài khoản tạo SAU lúc in bill (đăng ký lần đầu) — hoặc trong 30 phút TRƯỚC bill của chính SĐT, chưa có đơn trước
+ * (Q18, kiemKhachLanDau) — mới nhận được; nhận → phatVoucher sinh MỘT voucher RIÊNG
  * theo mẫu chủ quán chọn (signup_mau_voucher_id) vào ví tài khoản (grant nguon 'khach_moi', nguon_id = dòng mã bill).
  * Voucher khách mới đã claim TRƯỚC VOUCHER-2 (mã = mã bill, không grant) vẫn dùng ở ô mã như cũ.
  *
@@ -105,12 +106,26 @@ async function getSignupConfig() {
 }
 
 // VOUCHER-2 (Q2, Q9 chủ quán 12.11): chỉ khách "đăng ký LẦN ĐẦU" — hồ sơ khách (pos_customers) của SĐT tạo SAU lúc in bill (cùng giây vẫn được).
+// Q18 (Q21 chủ quán 14.11): hồ sơ tạo TRƯỚC bill vẫn là khách mới khi đủ CẢ BA — (1) bill là đơn của chính SĐT đó; (2) SĐT chưa có đơn nào
+// trước đơn in bill; (3) hồ sơ tạo trong vòng PHUT_HO_SO_TRUOC_BILL phút trước lúc in (tính cả đúng mốc). Quầy tạo hồ sơ (Thêm khách / ghi địa
+// chỉ) TRƯỚC khi lưu đơn, nên khách mới thật luôn có hồ sơ sớm hơn bill vài phút.
 // So chuỗi giờ VN sau khi đổi dấu cách → 'T' (dữ liệu cũ ghi 'YYYY-MM-DD HH:mm:ss'). → lỗi { status, code, error } | null.
-async function kiemKhachLanDau(phone, issuedAt) {
+const PHUT_HO_SO_TRUOC_BILL = 30;
+function mocHoSoTruocBill(issuedAt) {
+  const ms = new Date(String(issuedAt).replace(' ', 'T') + 'Z').getTime();
+  return Number.isFinite(ms) ? new Date(ms - PHUT_HO_SO_TRUOC_BILL * 60000).toISOString().slice(0, 19) : '9999-12-31T23:59:59';
+}
+async function laDonDauCuaKhach(phone, dong) {
+  if (!dong.order_customer_phone || normalizePhone(dong.order_customer_phone) !== phone) return false;
+  return !(await queryOne('SELECT id FROM pos_orders WHERE customer_phone = ? AND id < ? LIMIT 1', [phone, dong.order_id]));
+}
+async function kiemKhachLanDau(phone, dong) {
+  const issuedAt = dong.issued_at;
   const kh = await queryOne(
-    "SELECT REPLACE(created_at, ' ', 'T') >= REPLACE(?, ' ', 'T') AS sau_bill FROM pos_customers WHERE phone = ?", [issuedAt, phone]);
+    "SELECT REPLACE(created_at, ' ', 'T') >= REPLACE(?, ' ', 'T') AS sau_bill, REPLACE(created_at, ' ', 'T') >= ? AS trong_moc FROM pos_customers WHERE phone = ?",
+    [issuedAt, mocHoSoTruocBill(issuedAt), phone]);
   if (!kh) return { status: 400, code: 'CAN_TAO_TAI_KHOAN', error: 'Tạo tài khoản trước rồi nhập mã.' };
-  if (!Number(kh.sau_bill)) {
+  if (!Number(kh.sau_bill) && !(Number(kh.trong_moc) && await laDonDauCuaKhach(phone, dong))) {
     return { status: 400, code: 'KHACH_DA_CO_TAI_KHOAN', error: 'Số điện thoại này đã có tài khoản — ưu đãi chỉ dành cho khách đăng ký lần đầu.' };
   }
   return null;
@@ -363,9 +378,9 @@ async function nhanMaUuDai(req, res) {
     }
     if (billSdtKhac(signupRow, phone)) return res.status(400).json(LOI_BILL_SDT_KHAC);
 
-    // VOUCHER-2 (Q2, Q9 chủ quán 11–12.11): chỉ khách đăng ký LẦN ĐẦU (tài khoản tạo SAU lúc in bill); voucher theo MẪU ở Cài đặt → Voucher.
+    // VOUCHER-2 (Q2, Q9 chủ quán 11–12.11): chỉ khách đăng ký LẦN ĐẦU (kiemKhachLanDau — luật Q9 + Q18); voucher theo MẪU ở Cài đặt → Voucher.
     // Báo TRƯỚC khi chiếm mã — mã bill chưa bị chiếm, khách tạo tài khoản rồi nhập lại được.
-    const loiKhach = await kiemKhachLanDau(phone, signupRow.issued_at);
+    const loiKhach = await kiemKhachLanDau(phone, signupRow);
     if (loiKhach) return res.status(loiKhach.status).json({ success: false, error: loiKhach.error, code: loiKhach.code });
     const mau = config.mauId ? await queryOne('SELECT * FROM pos_mau_voucher WHERE id = ? AND bat = 1', [config.mauId]) : null;
     if (!mau) {

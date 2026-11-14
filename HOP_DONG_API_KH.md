@@ -76,11 +76,12 @@ Không xoá / đổi tên trường cũ — App v13 bỏ qua trường lạ là 
 - **Tương thích:** App cũ gửi mã voucher ở `ma_giam` vẫn chạy như trước (dòng `ma_giam`); voucher sai luật mới (vd chỉ chính chủ) → `ma_giam_loi` với các
   `code` trên. `ma_giam_loi.code` có thêm `MA_KHONG_AP_MON_THUONG` (giỏ chỉ có thẻ hạng: mã không áp).
 - **Mã in bill → voucher cho khách đăng ký LẦN ĐẦU** (`POST /nhan-ma-bill`, chủ quán Q2 11.11 + Q9 12.11): chỉ nhận được khi tài khoản của SĐT được tạo SAU
-  lúc in bill. Nhận → máy chủ phát MỘT voucher RIÊNG theo mẫu chủ quán chọn vào ví (`GET /voucher`, `nguon: "khach_moi"`); `data.voucher_code` giữ tên,
+  lúc in bill, hoặc (Q18, chủ quán 14.11) tạo trong vòng **30 phút TRƯỚC** lúc in mà bill là đơn của chính SĐT đó và SĐT chưa có đơn nào trước đơn in bill
+  (hồ sơ quầy tạo khi bán cho khách mới). Nhận → máy chủ phát MỘT voucher RIÊNG theo mẫu chủ quán chọn vào ví (`GET /voucher`, `nguon: "khach_moi"`); `data.voucher_code` giữ tên,
   nay là mã MỚI trong ví (không còn là mã in bill — mã bill không gõ ở ô mã được nữa), thêm `data.mo_ta` (câu khách thấy), `data.kieu` (`tien` · `phan_tram` ·
   `ship_tien` · `ship_phan_tram` — như `GET /voucher`) và `data.ap_dung` (`tat_ca` · `nhom` · `mon`); `data.scope` theo mẫu thật: `ship` (voucher giảm phí
   giao) · `item` (nhóm món / món chọn) · `order` (cả đơn) — trước v15 luôn là `order`. Lỗi mới: `CAN_TAO_TAI_KHOAN`
-  400 (SĐT chưa có tài khoản) · `KHACH_DA_CO_TAI_KHOAN` 400 (tài khoản có trước bill) · `UU_DAI_CHUA_CO_MAU` 400 (quán chưa chọn mẫu); `MA_TRUNG` không
+  400 (SĐT chưa có tài khoản) · `KHACH_DA_CO_TAI_KHOAN` 400 (tài khoản có trước bill, ngoài trường hợp 30 phút trên) · `UU_DAI_CHUA_CO_MAU` 400 (quán chưa chọn mẫu); `MA_TRUNG` không
   còn trả. Voucher khách mới nhận trước bản này (mã = mã bill) vẫn ở `ma_khach_moi` như cũ.
 - **Hoá đơn** (`hoa_don[]` của `GET /don/:ma`): đơn dùng voucher có thêm dòng `loai: "voucher"` (trai = "Voucher <MÃ>", phai = "−x") ngay dưới `giam_ma`
   (`giam_ma` nay chỉ còn phần mã chung / quà); đơn giao có voucher ship: `phi_giao` in phí GỐC + dòng `loai: "giam_ship"` (trai = "Giảm phí giao").
@@ -392,5 +393,6 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   bill, phát voucher MỚI theo mẫu (`data.voucher_code` = mã mới, thêm `data.mo_ta`, `data.kieu`, `data.ap_dung`; `data.scope` theo mẫu `ship` · `item` · `order`;
   lỗi `CAN_TAO_TAI_KHOAN`, `KHACH_DA_CO_TAI_KHOAN`, `UU_DAI_CHUA_CO_MAU`);
   `hoa_don[]` thêm dòng `voucher`, `giam_ship`; (14.11, chủ quán Q16 / Q17) đơn chờ chuyển khoản giữ voucher (`VOUCHER_DANG_GIU`), `GET /voucher` lọc bằng
-  ĐÚNG phép lúc bán, thêm mã `MA_DON_GOC_KHONG_HOP_LE` vào danh sách. Không xoá / đổi tên trường cũ — App v13 gửi
+  ĐÚNG phép lúc bán, thêm mã `MA_DON_GOC_KHONG_HOP_LE` vào danh sách; (14.11, chủ quán Q18 / Q21) `nhan-ma-bill` nhận cả hồ sơ tạo trong 30 phút trước
+  bill của chính SĐT chưa có đơn trước. Không xoá / đổi tên trường cũ — App v13 gửi
   `ma_giam` (kể cả mã voucher) chạy như trước; giỏ không `vouchers` băm khoá gửi y như cũ.
