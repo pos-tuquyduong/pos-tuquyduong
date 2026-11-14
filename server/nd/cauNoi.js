@@ -1,5 +1,6 @@
 /**
- * ND-API-1 — cầu nối DUY NHẤT từ "nhà riêng" nd sang POS (nghiệm thu A). Bê nd sang máy chủ App thì chỉ viết lại tệp này.
+ * ND-API-1 — cầu nối DUY NHẤT từ "nhà riêng" nd sang BẢNG / quyền / vé POS (nghiệm thu A). Bê nd sang máy chủ App: viết lại tệp này, cấp lại
+ * hai mô-đun hạ tầng các tệp nd dùng thẳng (../database: query / run / beginTransaction; ../utils/helpers: getNow), và xoá chỗ backup.js gọi xuat().
  * Chỉ ĐỌC: pos_users (đăng nhập + đọc lại MỖI lần gọi — khoá tài khoản là hết ngay) và pos_permissions (quyền — thu quyền là hết ngay).
  * Chuyển tiếp của POS (Q-H): xác thực vé POS và kiểm PIN chủ quán cho thẻ Cài đặt khoá sao lưu — không câu SQL nào vào bảng PIN.
  * Bộ kiểm (cong_cu/thu_NDAPI1.js A1) khoá: tệp nào khác trong server/nd/ có chữ "pos" + "_" là đỏ.

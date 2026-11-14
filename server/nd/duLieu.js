@@ -105,8 +105,15 @@ async function docAnh(ma) {
 
 /** Tệp Xuất toàn bộ (dinh_dang 1): mọi bản + nháp + ảnh (base64) + nhật ký. Không xuất khoá sao lưu, bộ đếm đăng nhập sai. */
 async function xuat() {
-  const ban = [];
-  for (const { so_ban: s } of await query('SELECT so_ban FROM nd_ban ORDER BY so_ban')) ban.push(await motBan(Number(s)));
+  // Đọc từng bản (Q-C) — không cùng một ảnh chụp: cập nhật chen giữa có thể để danh sách thiếu bản đang chạy mới. Đọc lại (≤ 3 lần) tới khi
+  // đúng bất biến mà Nhập toàn bộ đòi (tinh.banChayDung) — tệp sao lưu đêm không hỏng âm thầm (soát vòng 2)
+  let ban = [];
+  for (let lan = 0; lan < 3; lan++) {
+    ban = [];
+    for (const { so_ban: s } of await query('SELECT so_ban FROM nd_ban ORDER BY so_ban')) ban.push(await motBan(Number(s)));
+    if (T.banChayDung(ban)) break;
+  }
+  if (!T.banChayDung(ban)) throw new Error('xuất: bản đang chạy đổi liên tục — thử lại');
   const anh = [];
   for (const { ma } of await query('SELECT ma FROM nd_anh ORDER BY ma')) {
     const r = await queryOne('SELECT ma, loai, kich_thuoc, du_lieu, luc FROM nd_anh WHERE ma = ?', [ma]);
@@ -159,10 +166,12 @@ async function giuLuot(khoa) {
     WHERE khoa_den IS NULL OR khoa_den <= ?`, [khoa, T.GIOI_HAN.sai_toi_da, now, `+${T.GIOI_HAN.khoa_phut} minutes`, now]);
   return r.changes === 1;
 }
+const dangKhoa = async (cacKhoa) => !!(await queryOne(`SELECT 1 AS co FROM nd_lan_sai WHERE khoa IN (${cacKhoa.map(() => '?').join(', ')}) AND khoa_den > ?`,
+  [...cacKhoa, getNow()]));
 const datLaiLuot = (cacKhoa) => run(`DELETE FROM nd_lan_sai WHERE khoa IN (${cacKhoa.map(() => '?').join(', ')})`, cacKhoa);
 const gioSau = async (gio) => (await queryOne(`SELECT ${GIO} AS t`, [getNow(), `+${gio} hours`])).t;
 
 const ghiXuat = async (nguoi) => ghiNhatKy({ run }, nguoi, 'xuat', await soBanDangChay(), null);
 
 module.exports = { ghiXuat, banDangChay, soBanDangChay, dsNhap, luuNhap, xoaNhap, capNhat, quayLai, dsBan, motBan, luuAnh, docAnh, xuat, nhapToanBo,
-  dsKhoa, taoKhoa, thuHoiKhoa, khoaConHieuLuc, giuLuot, datLaiLuot, gioSau };
+  dsKhoa, taoKhoa, thuHoiKhoa, khoaConHieuLuc, giuLuot, dangKhoa, datLaiLuot, gioSau };

@@ -52,7 +52,9 @@ DOC_TU_CODE: ND-API-1 (server/nd/duong.js, xacThuc.js, tinh.js, duLieu.js, cauNo
 - **Đăng nhập sai:** không có tên / sai mật khẩu / tài khoản khoá → cùng 401 `SAI_DANG_NHAP` (không lộ tên có tồn tại). Sai 5 lần liền theo CẶP
   (tên + IP) hoặc theo IP → 429 `QUA_NHIEU_LAN` trong 15 phút (kể cả gõ đúng). Không khoá một tên trên mọi máy. Đăng nhập đúng đặt lại bộ đếm của
   cặp đó và IP đó.
-- **Nhật ký** (`nhat_ky`, `viec`): `luu` · `bo_nhap` · `cap_nhat` · `quay_lai` · `xuat` · `nhap`.
+- **Nhật ký** (`nhat_ky`, `viec`): `luu` · `bo_nhap` · `cap_nhat` · `quay_lai` · `xuat` · `nhap`. `so_ban`: luu = `ban_goc` của nháp · cap_nhat /
+  quay_lai = số bản MỚI · xuat / nhap = bản đang chạy lúc đó · bo_nhap = null. `so_khoa` = số khoá việc đó đụng tới: luu / bo_nhap 1 · cap_nhat số nháp
+  gộp vào · quay_lai số khoá của bản đem về · nhap số nháp trong tệp · xuat null.
 - **Sao lưu ở POS:** sao lưu Excel của POS có trang `Nội dung App (JSON)` = tệp Xuất (cắt ô ≤ 30.000 ký tự); khôi phục Excel BỎ QUA trang đó — dựng lại
   nội dung App bằng /admin › Nhập toàn bộ vào kho trống.
 

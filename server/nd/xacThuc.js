@@ -17,6 +17,9 @@ const guiLoi = (res, code, chu) => res.status(T.LOI[code][0]).json({ error: chu 
 
 async function dangNhap(ten, matKhau, ip) {
   const lo = ['ip:' + ip, `cap:${ten}|${ip}`];
+  // xem MỌI khoá đang khoá TRƯỚC khi cộng khoá nào: lượt bị từ chối không so mật khẩu → không phải "lần sai" (soát vòng 2: cặp khoá bấm lại
+  // không được đẩy bộ đếm IP lên khoá cả mạng quán)
+  if (await D.dangKhoa(lo)) return { loi: 'QUA_NHIEU_LAN' };
   for (const k of lo) if (!(await D.giuLuot(k))) return { loi: 'QUA_NHIEU_LAN' };
   const u = await cauNoi.timNguoiDung(ten);
   const bamThat = String(u?.password || '');

@@ -64,6 +64,14 @@ function tomTat(cacKhoa) {
   return s.length > 200 ? s.slice(0, 199) + '…' : s;
 }
 
+/** Bất biến của danh sách bản (cùng đường ghi thường duLieu.doiBan: bản mới = bản đang chạy + 1): không bản nào, hoặc đúng MỘT bản đang chạy
+ *  và đó là bản số LỚN NHẤT — không thì lần cập nhật sau đụng khoá chính, kho kẹt vĩnh viễn (soát vòng 1). Dùng cho nhập và xuất. */
+function banChayDung(ban) {
+  if (!ban.length) return true;
+  const chay = ban.filter((b) => b.dang_chay === 1);
+  return chay.length === 1 && chay[0].so_ban === Math.max(...ban.map((b) => b.so_ban));
+}
+
 /** Kiểm TRỌN tệp Nhập toàn bộ TRƯỚC khi ghi (tất cả hoặc không). Trả { loi: [code, lời] } hoặc { du_lieu } (ảnh kèm buf, loai theo byte). */
 function kiemTepNhap(t) {
   const sai = (code, chu) => ({ loi: [code, chu] });
@@ -71,7 +79,6 @@ function kiemTepNhap(t) {
   const { ban = [], nhap = [], anh = [], nhat_ky = [] } = t;
   if (![ban, nhap, anh, nhat_ky].every(Array.isArray)) return sai('DU_LIEU_KHONG_HOP_LE', 'Tệp thiếu danh sách ban / nhap / anh / nhat_ky');
   const soBan = new Set();
-  let dangChay = 0;
   for (const b of ban) {
     if (!laObject(b) || !Number.isInteger(b.so_ban) || b.so_ban < 1 || soBan.has(b.so_ban) || !laObject(b.gia_tri) || typeof b.luc !== 'string'
       || ![0, 1].includes(b.dang_chay) || !(b.tu_ban == null || Number.isInteger(b.tu_ban)) || ![b.ghi_chu, b.tom_tat, b.nguoi].every(chuHoacTrong)) {
@@ -79,13 +86,8 @@ function kiemTepNhap(t) {
     }
     if (soByte(b.gia_tri) > GIOI_HAN.ban_toi_da_byte) return sai('QUA_LON', `Bản ${b.so_ban} quá 1 MB`);
     soBan.add(b.so_ban);
-    dangChay += b.dang_chay;
   }
-  // cùng bất biến với đường ghi thường (duLieu.doiBan: bản mới = bản đang chạy + 1): bản đang chạy phải là số LỚN NHẤT, không thì lần cập nhật
-  // sau đụng khoá chính và kho kẹt vĩnh viễn (soát vòng 1)
-  if (ban.length && (dangChay !== 1 || !ban.find((b) => b.dang_chay === 1 && b.so_ban === Math.max(...soBan)))) {
-    return sai('DU_LIEU_KHONG_HOP_LE', 'Tệp phải có đúng một bản đang chạy, và đó là bản số lớn nhất');
-  }
+  if (!banChayDung(ban)) return sai('DU_LIEU_KHONG_HOP_LE', 'Tệp phải có đúng một bản đang chạy, và đó là bản số lớn nhất');
   const khoa = new Set();
   for (const n of nhap) {
     if (!laObject(n) || !khoaHopLe(n.khoa) || khoa.has(n.khoa) || !giaTriHopLe(n.gia_tri) || !laSoKhongAm(n.ban_goc) || typeof n.luc !== 'string' || !chuHoacTrong(n.nguoi)) {
@@ -113,4 +115,4 @@ function kiemTepNhap(t) {
   return { du_lieu: { ban, nhap, anh: anhRa, nhat_ky } };
 }
 
-module.exports = { GIOI_HAN, QUYEN, VIEC, LOI, khoaHopLe, giaTriHopLe, laSoKhongAm, soByte, bam, khoaVe, loaiAnh, tomTat, kiemTepNhap };
+module.exports = { GIOI_HAN, QUYEN, VIEC, LOI, khoaHopLe, giaTriHopLe, laSoKhongAm, soByte, bam, khoaVe, loaiAnh, tomTat, banChayDung, kiemTepNhap };
