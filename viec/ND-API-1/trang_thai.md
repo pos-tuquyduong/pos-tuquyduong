@@ -316,3 +316,10 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài 
   luật, đã làm theo hướng dẫn (tách lệnh, commit rồi chạy, dùng Edit); không phải lỗi mã.
 - **BỎ:** đột biến tự viết sai cú pháp (BV-ND-DON-THU) / bài sập khi đột biến (VS-SAO-LUU-BO-ANH, VS-GHI-CHU-499, VS-XUAT-KHONG-DOC-LAI) — cổng
   LẠC của dot_bien.py đã bắt đúng, sửa ngay; luật sẵn có làm việc.
+
+## Cổng
+`node tu_chay/cong.js chay . bbf5eaf^ HEAD viec/ND-API-1` (14.11, cây sạch ở HEAD 60778e6b):
+- CẢNH BÁO A16: `cong_cu/thu_NDAPI1.js` chạy trên gốc in 64 ca ≠ 89 ca ở head — bài dừng sớm trên gốc (bảng nd_* chưa có → các đoạn sập), đúng như ghi ở bang_chung_do.txt.
+- ✓ CỔNG CHẠY ĐẠT
+
+HEAD ĐÃ KIỂM: 60778e6b
