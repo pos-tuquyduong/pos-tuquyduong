@@ -1,6 +1,6 @@
 VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
 
-SỐ CA cong_cu/thu_VOUCHER2.js: 131
+SỐ CA cong_cu/thu_VOUCHER2.js: 132
 SỐ CA cong_cu/thu_P20.js: 178
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_KHAPI2.js: 101
@@ -239,3 +239,10 @@ Trên code vá (77b26e78): VOUCHER-2: 131 đạt · 0 hỏng
    VS-V2-Q18-DON-KHAC → Q18f · BV-V2-Q18-BILL-SDT → Q18e)
 npm test -- --day-du (HEAD 77b26e78): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
 Đột biến đầy đủ python3 viec/VOUCHER-2/dot_bien.py (HEAD 77b26e78, có ĐỐI CHỨNG): ĐỘT BIẾN VOUCHER-2: 89/89 bị bắt (82 cũ + 7 Q18).
+
+── Vòng sửa 2 (lỗi soát 14.11 lần 3 (1)) · thu_VOUCHER2.js commit 409293bc — ca Q16f đua phiên ↔ phiên. Gốc 43b76314 (python3 cong_cu/ban_sao_goc.py 43b76314 <nháp>/goc_q16):
+   node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q16/server → VOUCHER-2: 101 đạt · 26 hỏng (bản gốc không kèm client/src — ca màn thật sập; chỉ đọc Q16f)
+  ✗ Q16f đua hai PHIÊN chuyển khoản cùng voucher … đúng 1 phiên chờ — HTTP 200 / HTTP 200 · phiên chờ 2
+Trên code HEAD (e16ac6e3): VOUCHER-2: 132 đạt · 0 hỏng
+Đột biến: python3 viec/VOUCHER-2/dot_bien.py BV-V2-GIU-PHIEN-KHAC BV-V2-GIU-PHIEN-TX → ĐỐI CHỨNG xanh; 2/2 BẮT (BV-V2-GIU-PHIEN-KHAC → Q16f)
+npm test -- --day-du (HEAD e16ac6e3): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).

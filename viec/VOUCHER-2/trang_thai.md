@@ -374,3 +374,73 @@ liệu không có gì nối "hồ sơ này tạo cho đơn kia".
 |---|---|
 | signup-codes.js kiemKhachLanDau ngoại lệ 30 phút (Q18) | BV-V2-Q18-MOC · VS-V2-Q18-KHONG-TRAN · VS-V2-Q18-MOC-NGAT · VS-V2-Q18-MOC-PHUT |
 | signup-codes.js laDonDauCuaKhach | BV-V2-Q18-DON-TRUOC · VS-V2-Q18-DON-KHAC · BV-V2-Q18-BILL-SDT |
+
+### /ra-soat (14.11 lần 3 — một lần cho vòng sửa 1 + Q15–Q19 + Q18; agent độc lập, base 171109f) — báo cáo NGUYÊN VĂN
+```
+KHÔNG ĐẠT
+
+Tóm tắt dễ hiểu: mình đọc phần máy chủ của nhánh (đường tiền, voucher, giữ chỗ, mã bill, đối soát) và chạy bộ kiểm `--day-du` (PASS 118 · FAIL 0 · CẢNH BÁO 1, bản dựng dist khớp src). Có 2 lỗi chặn: (1) đua HAI PHIÊN QR cùng một voucher không có bài thử. Mình đã phá thử dòng chặn đó trên bản chép và bài vẫn 131 đạt · 0 hỏng. (2) Điểm tích lũy của đơn trộn gói/thẻ + món có giảm vẫn chia theo luật cũ, lệch với luật Q7. File đó nằm ngoài Phạm vi, nên phải hỏi chủ quán.
+
+LỖI TÌM ĐƯỢC:
+- server/utils/giuCho.js:79-80 (giuKhac — phiên khác đang giữ, đọc lại TRONG giao dịch tạo phiên) — không bài nào phủ vế này. Mình chép server/ + client/src + cong_cu/gia_lap vào thư mục nháp, đổi dòng 80 thành `if (false && giuKhac.length)` rồi chạy `node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/server`. Kết quả **131 đạt · 0 hỏng**, tức đột biến SỐNG. Q16a tạo phiên thứ hai TUẦN TỰ nên bị phép ngoài giao dịch (xetVoucherConDung, voucherCode.js:~118) bắt trước. Q16d chỉ đua theo hai hướng "phiên ↔ đơn quầy". BV-V2-GIU-PHIEN-TX (dot_bien.py:116) tắt cả khối nên chỉ bị "đua ngược" (daTieu) bắt. Hậu quả nếu dòng này hỏng: hai khách cùng chuyển khoản cho một voucher chia sẻ; người chốt sau lỗi VOUCHER_DA_DUNG trong khi tiền đã về. Cần ca: mocTruocTx = phienCk(A,[v]) chen vào lúc phienCk(B,[v]) mở giao dịch → B phải 400 VOUCHER_DANG_GIU, và một đột biến riêng cho dòng 80. — K3
+- server/utils/diemThat.js:27-32 (tienHangDiem) — hàm này vẫn chia (total − phí giao) theo tỉ lệ giá MỌI dòng. Trong khi đó đơn có cờ giam_mon_thuong = 1 (orders.js:1060) đã đổi sang luật Q7: dòng gói / thẻ / nạp trả đủ giá, giảm chỉ nằm trên món thường (tienDaTra.js:19-30). Mình tính thử bằng `node -e`: gói 300.000 (tắt điểm) + món 50.000, mã 10% món, total 345.000 → tienHangDiem ra **49.285**, số đúng theo Q7 là 45.000 (cộng điểm dư). Chiều ngược lại (gói bật, món tắt) ra 295.714 thay vì 300.000 (thiếu điểm). orders.js:994 lưu số này vào tien_hang_diem, và mọi lối cộng / trừ điểm đọc nó. Chú thích diemThat.js:23-25 ghi "Cùng quy tắc chia theo dòng của tienDaTraTheoDong" nay đã sai (K1). diemThat.js không có trong Phạm vi → phải là Câu hỏi, không tự sửa. Việc này đụng điểm nên không thuộc diện "lỗi nhẹ" của LUAT §6.5. — K4 (đổi luật chia theo PHẦN mà chưa rà hết các hàm chia)
+- server/routes/orders.js:1165-1169 — câu `UPDATE pos_voucher_grants … WHERE UPPER(code)=UPPER(finalDiscountCode)` nay là code chết. orders.js:640-644 đã tách mọi mã có grant sang voucher, nên finalDiscountCode không bao giờ còn là mã voucher. Chú thích "P26c (D4): voucher đổi điểm của mã này chuyển 'used'" cũng không còn đúng. — K1 / Đơn giản (LUAT §3 "không để code chết")
+- server/utils/doiSoat.js:134-136 — chú thích ghi "Cùng nguồn với Báo cáo mã giảm (reports.js by_voucher / total_ship_discount)", nhưng hai bên định nghĩa khác nhau. Đối soát `da_giam` GỒM voucher gõ ở ô mã và BỎ voucher ship. reports.js:332-338 `by_voucher` thì BỎ voucher ô mã (`<> discount_code`) và GỒM voucher ship. Tổng hai màn sẽ không bằng nhau, trong khi nghiệm thu I ghi "Đối soát voucher khớp". — K1 / K4
+
+NGHI NGỜ:
+- signup-codes.js:118-121 laDonDauCuaKhach đếm MỌI đơn trước bill, kể cả đơn đã huỷ (trang_thai.md: "quyết định nhỏ… chặt hơn"). Luồng quầy hay gặp: bấm nhầm, huỷ đơn đầu rồi bấm lại cho đúng khách mới. Đơn bấm lại sẽ bị KHACH_DA_CO_TAI_KHOAN, còn mã bill của đơn huỷ thì đã DON_DA_HUY → khách mới mất ưu đãi. Đây là K5 chặn oan khả dĩ. Chủ quán chưa quyết điểm này (CLAUDE.md §9: không tự quyết thay) → nên hỏi.
+- giuCho.js:76-77: trong giao dịch tạo phiên chỉ xét `g.status`, không xét `used_count/usage_limit` của mã. Ca G4c cho thấy hai cột có thể lệch, khi đó phiên giữ một voucher đã hết lượt và lúc chốt mới lỗi. Mức nhẹ.
+- orders.js:784 + giuCho.js:122: phiên chốt muộn kiểu ép (`? = 1 AND trang_thai IN ('cho','huy')`) vẫn xét hạn theo ngày tạo phiên. Nếu voucher đã nhả và bị đơn khác dùng thì tiền đã về mà đơn 400. Khuôn này có từ trước (mã chung cũng vậy), nhưng chưa có ca nào cho voucher.
+- Ba giới hạn số voucher lệch nhau: orders.js:635 (≤ 20), donApp.js:104 (≤ 10), settings.js:167 (1–10). MauVoucher.jsx:66 lưu voucher_toi_da qua PUT /settings (cần manage_settings), còn mẫu chỉ cần manage_promotions → người quản lý khuyến mãi lưu mẫu được nhưng lưu N thì bị 403.
+- Tiền voucher mới chưa có bất biến đối soát theo từng đơn, kiểu Σ so_tien_giam (không ship) + mã + flash + hạng = discount, Σ ship = giam_ship. Q19 mới cộng tổng ngày. LUAT §5 đòi "quy tắc đối soát" cho tính năng tiền mới.
+
+NGHIỆM THU: 14/16 mục có bằng chứng · mục thiếu: G ("hai đơn cùng lúc dùng một voucher → một đơn": hai ĐƠN có G4/G4b/G4c, hai PHIÊN thì không có ca, đột biến sống như trên) · Q16 (vế "voucher đang giữ không dùng được ở phiên khác" khi đua — cùng lỗ). Thêm một mục có bằng chứng nhưng định nghĩa lệch: I (Đối soát và Báo cáo dùng hai định nghĩa voucher khác nhau). Mục có bằng chứng (bang_chung_do.txt + thu_VOUCHER2.js): A (A1–A4, A4/Q2m màn thật) · B (B1–B3) · C (C1–C9) · D (D1–D2) · E (E1–E6) · F (F1–F7b) · H (H1–H5) · K5 (K1–K3, K5, C8b, Q16b) · Q14 (Q14a–e, chạy màn thật) · Q15 (E9 đỏ → xanh, VS-V2-E9-PHAT-TRUOC) · Q17 (Q17a–b) · Q18 (Q18a–f, gốc 128·3 → 131·0) · Q19 (máy chủ + màn, số tính tay 18.800 / 8.000) · vòng sửa 1 (Q2 chạy hết trên gốc 84·28, Q2o scope theo mẫu, chú thích diemKhach.js:66-71 đã sửa).
+Đã kiểm thêm: P1 — `node kiem_tra_truoc_khi_giao.js --day-du` ra "✓ dist đã commit KHỚP với src hiện tại", PASS 118 · FAIL 0 · CẢNH BÁO 1. Đường tiền (P3/P4): không thấy trường tiền nào lấy từ client. Giá, phí giao (baoPhiGiao), voucher (tra pos_voucher_grants JOIN pos_discount_codes), N, chính chủ (khách lấy từ phone của đơn / token App) đều do máy chủ tra. Câu tiêu voucher orders.js:1180-1189 có điều kiện chặn đua ngay trong câu ghi và kiểm `changes`. traLuotMa (tienDaTra.js:65-73) trả mọi grant + lượt mã, không trả hai lần mã trùng ô mã. Nạp + voucher bị chặn ở orders.js:240.
+
+CHƯA SOÁT ĐƯỢC: chưa chạy cả bộ đột biến `dot_bien.py` (đang có tiến trình nền) và `node tu_chay/cong.js chay`. Chưa chạy `bash ban_mau_pos/chay_thu.sh`. Chưa đọc hết thu_VOUCHER2.js (1.298 dòng — mới đọc khung, G4, Q16, Q17), MauVoucher.jsx, ban_mau_pos.html, các bài cũ sửa (P20, KH1, P26c, GOI1…) từng ca, và toàn bộ HOP_DONG_API_KH.md. Chưa kiểm tem cốc / phiếu pha chế có thật không đổi. Chưa đo đua thật trên Turso (bài dùng libsql file + móc mocTruocTx). Chưa soát bảo mật riêng (/soat-bao-mat). Ghi chú: trong bộ kiểm, thu_VOUCHER2 chạy xong trong 7,3 s, khác hẳn mức 2–4 phút khi chạy riêng — chưa rõ vì sao.
+
+BÀI HỌC:
+- KHOÁ: mỗi phép "đọc lại trong giao dịch" phải có MỘT ca đua tất định chen đúng vào giao dịch đó, kèm đột biến chỉ xoá đúng vế ấy (không tắt cả khối). Kiểu phép trước đây là "phiên ↔ phiên", còn bài mới phủ "phiên ↔ đơn". Có thể thành phép tĩnh cho dot_bien.py: mỗi `return … loi(` trong khối Q16 có một tên đột biến riêng.
+- NGUYÊN TẮC (bổ sung K4 vào KHUON_LOI.md): đổi luật chia tiền theo dòng (tienDaTraTheoDong) → grep mọi hàm khác chia theo dòng (`tienHangDiem`, `tienHoanTinhDiem`, chú thích "cùng quy tắc chia"), kể cả file ngoài Phạm vi. Ngoài Phạm vi thì ghi Câu hỏi, không im lặng.
+- NGUYÊN TẮC: chú thích "cùng nguồn với X" giữa hai màn số tiền phải có một ca so BẰNG hai số đó.
+- BỎ: nhánh grant theo finalDiscountCode (orders.js:1165-1169) đã chết sau khi tách voucher khỏi ô mã.
+```
+
+### Vòng sửa 2 (lỗi lần soát trên) — đã làm
+- (1) giuCho.js vế `giuKhac` — code đúng, thiếu bài: ca **Q16f** (phiên A chen vào lúc phiên B mở giao dịch tạo phiên → B 400 `VOUCHER_DANG_GIU`, đúng 1 phiên chờ).
+  Gốc 43b76314: ✗ Q16f (HTTP 200 / HTTP 200 · phiên chờ 2). HEAD: thu_VOUCHER2 **132 · 0**. Đột biến mới `BV-V2-GIU-PHIEN-KHAC` (chỉ xoá đúng vế đó) → BẮT ở Q16f.
+- (3) orders.js nhánh grant theo `finalDiscountCode`: đã kiểm — đúng là luôn 0 dòng (mọi mã có dòng ví tách sang danh sách voucher, orders.js ~640). KHÔNG xoá: câu
+  này là neo đột biến `BV-D4-bo-voucher-used` của `viec/P26c/dot_bien.py` (file việc khác — xoá thì đột biến đó HỎNG). Sửa chú thích cho đúng (khoá phòng thủ, 0 dòng).
+- (4) doiSoat.js chú thích "cùng nguồn" → ghi đúng: cùng cột nguồn, KHÁC cách chia với Báo cáo mã giảm (Báo cáo: voucher ô mã nằm ở by_code, ship gộp; Đối
+  soát: gồm voucher ô mã, ship tách dòng riêng). Hai màn không so từng dòng; tổng mỗi màn tự khớp với đơn (Q19 số tính tay).
+- (2) diemThat.js — ngoài Phạm vi, đụng ĐIỂM → câu hỏi Q22 dưới. Đã tự kiểm lại (K1): `diemThat.js:27-32` chia theo tỉ lệ giá MỌI dòng; lời gọi duy nhất
+  `orders.js:994`. Tính tay gói 300.000 (tắt điểm) + món 50.000, mã 10 % món, total 345.000 → floor(50.000 × 345.000 / 350.000) = 49.285 (đúng Q7: 45.000).
+- `npm test -- --day-du` (HEAD e16ac6e3): **PASS 118 · FAIL 0 · CẢNH BÁO 1**.
+
+| Chỗ vá | Đột biến |
+|---|---|
+| giuCho.js vế phiên khác đang giữ (trong giao dịch) | BV-V2-GIU-PHIEN-KHAC |
+
+## Câu hỏi (14.11, lần 3) — mình DỪNG trước soát bảo mật; mọi phần trong Phạm vi đã xong và xanh
+Việc này là gì: người soát độc lập tìm ra một chỗ ĐIỂM tích luỹ tính lệch với luật Q7 bạn đã duyệt, nằm ở file ngoài Phạm vi; và một chỗ chặn khách mới có thể
+oan ở Q18. Luật kho: đụng điểm / ngoài Phạm vi / chỗ bạn chưa chốt → hỏi, không tự sửa.
+- **Q22 — điểm của đơn trộn (gói / thẻ / nạp + món có mã giảm). Đề xuất: đồng ý thêm `server/utils/diemThat.js` vào Phạm vi.**
+  Hiện tại: từ VOUCHER-2, tiền "đã trả" của đơn trộn theo Q7 (gói trả đủ giá, mã chỉ giảm món), nhưng phần "tiền tính điểm" lưu lúc bán vẫn chia kiểu cũ
+  (chia đều giảm cho mọi dòng). Ví dụ tính tay: gói 300.000 (không tích điểm) + món 50.000, mã 10 % món → khách trả 345.000; điểm đang tính trên **49.285**
+  thay vì **45.000** (dư điểm); chiều ngược lại (gói tích điểm, món không) tính 295.714 thay vì 300.000 (thiếu điểm). Đơn không mã / không gói: y hệt trước.
+  Sửa đề xuất: `tienHangDiem` thêm một tham số MẶC ĐỊNH (đơn có cờ mới) — dòng gói / thẻ / nạp tính đủ giá, phần giảm chỉ chia trên món thường; `orders.js:994`
+  truyền cờ; đơn cũ không đổi (số đã lưu). Bài thử đỏ trước với đúng hai bộ số tính tay trên + đột biến; ~10 dòng code.
+- **Q23 — Q18 điều (2) "SĐT chưa có đơn nào trước đơn in bill": có tính đơn ĐÃ HUỶ không? Đề xuất: KHÔNG tính đơn đã huỷ.**
+  Lý do: quầy bấm nhầm → huỷ đơn đầu → bấm lại đơn đúng cho khách mới; nếu tính cả đơn huỷ thì khách mới bị báo "đã có tài khoản" oan (mã của đơn huỷ cũng
+  không dùng được). Đơn huỷ không có tiền nên không ai lợi được. Hiện mình đang làm theo đúng chữ (tính cả đơn huỷ — chặt hơn). Đồng ý thì thêm ca thử
+  "đơn trước đã huỷ → vẫn nhận" + đột biến (~1 dòng code).
+Bạn trả lời Q22 + Q23 thì phiên sau mình làm hai chỗ đó (bài đỏ trước), rồi `/soat-bao-mat` → cổng → báo cáo 7 mục.
+
+## Phát hiện (14.11, lần 3 — từ lần soát, không sửa trong lượt này)
+- Giới hạn số voucher gửi lệch nhau: `orders.js` nhận ≤ 20 mã, `donApp.js` ≤ 10, Cài đặt N 1–10 — đều chặn trước khi tính nên không lố tiền (N thật vẫn chặn
+  `VUOT_SO_VOUCHER`); chỉ khác lời báo. Nên gom một hằng sau.
+- `MauVoucher.jsx` lưu N qua `PUT /settings` (quyền manage_settings) còn mẫu chỉ cần manage_promotions → quản lý khuyến mãi lưu được mẫu nhưng lưu N bị 403.
+- Phiên chuyển khoản tạo trong giao dịch chỉ xét `status` của dòng ví, không xét `used_count` của mã (G4c: hai cột có thể lệch — câu tiêu lúc chốt vẫn chặn).
+- Chưa có bất biến đối soát TỪNG ĐƠN cho voucher (Σ so_tien_giam không ship + mã + flash + hạng = discount; Σ ship = giam_ship) — Q19 mới có tổng ngày.
+
+### Dừng (14.11, lần 3) — chờ chủ quán trả lời Q22 + Q23. Chưa chạy: `/soat-bao-mat`, `cong.js chay`, báo cáo 7 mục.
