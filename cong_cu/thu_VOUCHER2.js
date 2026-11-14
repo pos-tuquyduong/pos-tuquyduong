@@ -1204,7 +1204,7 @@ async function main() {
     m.tim((n) => n.type === 'input' && n.props.type === 'date')[0]?.props.onChange(man.ev({ target: { value: NGAY } }));
     await m.yen(10);
     m.tim((n) => n.type === 'button' && m.chu(n) === 'Đối soát')[0]?.props.onClick();
-    await m.doi(() => m.chu(m.cay()).includes('Tiền voucher đã giảm'), 8000);
+    await m.doi(() => m.chu(m.cay()).includes(`Kỳ: ${NGAY}`) && m.chu(m.cay()).includes('Tiền voucher đã giảm'), 8000);
     const chu = m.chu(m.cay());
     k('Q19 màn Đối soát (thật): ngày đó hiện "Tiền voucher đã giảm: 18.800đ" và "Giảm phí giao: 8.000đ"', chu.includes('Tiền voucher đã giảm: 18.800đ')
       && chu.includes('Giảm phí giao: 8.000đ'), chu.slice(0, 300));
