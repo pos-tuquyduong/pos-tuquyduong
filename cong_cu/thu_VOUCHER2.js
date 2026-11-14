@@ -1119,6 +1119,14 @@ async function main() {
       const r = await ban({ customer_phone: b.sdt, items: [mon(0)], vouchers: [v2] }, 40000);
       k('Q16c K5: voucher hết hạn KHÔNG giữ (đơn quầy thường) → vẫn 400 VOUCHER_HET_HAN', r.status === 400 && r.code === 'VOUCHER_HET_HAN', moTa(r));
     });
+    await chay('Q16e', async () => {   // App cũ / quầy cũ gửi voucher ở ô mã (discount_code) — phiên cũng phải giữ
+      const a = await khach(), v = await phat(a.sdt, 'tien', 10000);
+      const p = await goi('POST', '/pos/thanh-toan/phien', { don: { customer_phone: a.sdt, customer_name: 'K', items: [mon(0)], discount_code: v }, cach: 'ck_tay' });
+      const r = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [v] }, 40000);
+      if (p.phien) await goi('POST', `/pos/thanh-toan/phien/${p.phien.id}/huy`, {});
+      k('Q16e phiên giữ voucher gửi ở Ô MÃ cũ → đơn khác dùng voucher đó (danh sách) → 400 VOUCHER_DANG_GIU', p.status === 200 && p.phien?.tong === 40000
+        && r.status === 400 && r.code === 'VOUCHER_DANG_GIU', `${moTa(p)} ${p.phien?.tong} / ${moTa(r)}`);
+    });
     await chay('Q16d', async () => {   // đua: phiên chen vào giữa lúc đơn quầy đã kiểm xong và lúc mở giao dịch
       const a = await khach(), v = await phat(a.sdt, 'tien', 10000);
       let p = null;
@@ -1168,6 +1176,38 @@ async function main() {
       && tat.find((x) => x.code === vt)?.status === 'available', JSON.stringify(tat.map((x) => [x.code, x.status])));
     const rv = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vt] }, 40000);
     k('Q17b K5: voucher bình thường bán được (40.000)', rv.status === 200 && (await tongDon(rv)) === 40000, moTa(rv));
+  });
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[Q19] Đối soát ngày: dòng "Tiền voucher đã giảm" + "Giảm phí giao" khớp đơn (số tính tay; chủ quán 13.11)');
+  await chay('Q19', async () => {
+    const NGAY = '2026-03-03';   // ngày riêng của mục này — không đơn nào khác của bài
+    const a = await khach();
+    const vt = await phat(a.sdt, 'tien', 10000), vp = await phat(a.sdt, 'phan_tram', 10), vt5 = await phat(a.sdt, 'tien', 5000), vs = await phat(a.sdt, 'ship_tien', 8000);
+    const vh = await phat(a.sdt, 'tien', 10000);
+    const mc = await maChung('fixed', 2000, { luot: 5 });
+    // Đơn A: 50.000 − mã chung 2.000 = 48.000 − voucher 10.000 = 38.000 − 10 % (3.800) = 34.200 → voucher A = 13.800 (mã chung KHÔNG tính là voucher).
+    const dA = await ban({ customer_phone: a.sdt, items: [mon(0)], discount_code: mc, vouchers: [vt, vp] }, 34200);
+    // Đơn B (giao): 50.000 − voucher 5.000 + phí giao 25.000 − giảm phí giao 8.000 = 62.000 → voucher B = 5.000, giảm phí giao 8.000.
+    const dB = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vt5, vs], giao: await baoPhi(25000) }, 62000);
+    // Đơn C: voucher 10.000 rồi HUỶ → voucher trả về, không tính.
+    const dC = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vh] }, 40000);
+    if (dC.order) await goi('PUT', `/pos/orders/${dC.order.id}/cancel`, { reason: 'thử Q19' });
+    for (const d of [dA, dB, dC]) if (d.order) await db.run('UPDATE pos_orders SET created_at = ? WHERE id = ?', [NGAY + 'T10:00:00', d.order.id]);
+    const ds = await goi('GET', `/pos/reports/doi-soat?kieu=ngay&ngay=${NGAY}`);
+    const v = ds.tien?.voucher || {};
+    k('Q19 máy chủ: Đối soát ngày → tiền voucher đã giảm 18.800 (13.800 + 5.000; đơn huỷ không tính, mã chung không tính) · giảm phí giao 8.000',
+      [dA, dB, dC].every((d) => d.status === 200) && v.da_giam === 18800 && v.giam_phi_giao === 8000, `${[dA, dB, dC].map(moTa).join(' / ')} · ${JSON.stringify(v)}`);
+    const DS = await man.nap(path.join(MAY_CHU, '..', 'client', 'src'), ['components', 'DoiSoat.jsx'], theCua.chu);
+    const m = man.dung(DS, {}, ['DoiSoat']);
+    await m.doi(() => m.chu(m.cay()).includes('Kỳ:'), 8000);   // lần chạy đầu (hôm nay) xong rồi mới đổi ngày — không bị nó đè
+    m.tim((n) => n.type === 'input' && n.props.type === 'date')[0]?.props.onChange(man.ev({ target: { value: NGAY } }));
+    await m.yen(10);
+    m.tim((n) => n.type === 'button' && m.chu(n) === 'Đối soát')[0]?.props.onClick();
+    await m.doi(() => m.chu(m.cay()).includes('Tiền voucher đã giảm'), 8000);
+    const chu = m.chu(m.cay());
+    k('Q19 màn Đối soát (thật): ngày đó hiện "Tiền voucher đã giảm: 18.800đ" và "Giảm phí giao: 8.000đ"', chu.includes('Tiền voucher đã giảm: 18.800đ')
+      && chu.includes('Giảm phí giao: 8.000đ'), chu.slice(0, 300));
   });
 
   // ═════════════════════════════════════════════════════════════════════════
