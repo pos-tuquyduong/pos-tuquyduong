@@ -77,3 +77,35 @@ câu "vô hiệu" chỉ sau khi đúng mật khẩu); băm giả cost 10; trần
 Ghi chú thấp (không báo lỗi): IPv6 /64 xoay địa chỉ tự do — vốn có của thiết kế "theo IP"; nếu trước POS còn thêm một tầng proxy thì xô 20 lần/IP dùng chung cả quán
 (đã ghi ở Phát hiện (a) để chủ quán kiểm trên production).
 SOÁT BẢO MẬT: ĐẠT
+
+## Cổng chạy
+✓ CỔNG CHẠY ĐẠT   (`node tu_chay/cong.js chay . c7ee1bb^ HEAD viec/DANG-NHAP-2`, cây sạch, HEAD fbbdcfec; lần đầu đỏ A16 vì dòng `SỐ CA` thiếu đường dẫn
+`cong_cu/` và số ca gốc 45 ≠ 47 — đã sửa bằng commit b4bf3887 + fbbdcfec rồi chạy lại.)
+Kiểm khác: `npm test` → PASS 114 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn); `dot_bien.py` → 23 đột biến · 23 BẮT. Không sửa `client/src/` nên không build `dist`, không cần `--day-du` cho phần client.
+
+## Bài học
+- **KHOÁ 1 (đã làm, trong Phạm vi):** bài thử phải in ĐỦ SỐ CA kể cả khi thứ nó thử chưa tồn tại (F2/F3 đỏ khi thiếu module) — cổng A16 so số ca gốc với head;
+  `thu_DANGNHAP2.js` có sẵn. Đột biến 23/23 bắt.
+- **NGUYÊN TẮC 1 (đề xuất, ngoài Phạm vi — chat soát duyệt):** K5 — khoá theo IP thì phải xác nhận số tầng proxy thật trước (`req.ip` sai = khoá chung cả quán); K4 — thêm giới hạn cho
+  đăng nhập thì rà các đường "xác minh mật khẩu" khác (`PUT /auth/password`, `datPinChuQuan` ở `pinChuQuan.js:41`) — đề xuất mở việc riêng.
+- **BỎ 2:** (1) `thu_BH2.js` G1 đỏ oan trên kho nông — một lần, môi trường máy mây (cách xử lý đã ghi ở Bước 1); (2) vài lệnh bị người gác chặn vì cú pháp (`cd … &&` chung lệnh khác, biến trong đường dẫn) — viết lại đơn giản là xong.
+
+## Đếm nghiệm thu (phiếu A–I)
+A: ca A1–A8 · B: B1–B2 · C: C1–C6 (C5/C6 là luồng hợp lệ K5) · D: D1–D3 · E: E1–E9 · F: F0–F4 · G: G1–G5 (phép tĩnh, client không đổi) · H: H1–H4 · I: bài chạy thật + nối bộ kiểm (I1) + đột biến 23/23. 9/9 có bằng chứng.
+
+## Báo cáo 7 mục
+```
+VIỆC:        DANG-NHAP-2 — Đăng nhập POS: giới hạn gõ sai + câu báo chung
+ĐÃ SỬA:      server/utils/gioiHanDangNhap.js (mới, ~60 dòng — bộ đếm trong bộ nhớ, 5 lần/15 phút theo cặp tên+IP, 20 lần/IP, có trần + dọn) ·
+             server/routes/auth.js:20-60 (giữ lượt trước bcrypt, bcrypt.compare async + băm giả, câu chung 401, "vô hiệu" chỉ khi đúng mật khẩu) ·
+             kiem_tra_truoc_khi_giao.js (nối bài) · cong_cu/thu_DANGNHAP2.js (47 ca)
+BÀI THỬ:     chạy trên bản chưa vá (c7ee1bb) → ĐỎ 25/47 ca (A1b, A2, B1, C2, D1, E3, E5…); sau khi vá → XANH 47/47; đột biến 23/23 BẮT; npm test PASS 114 · FAIL 0
+ĐÃ RÀ K4:    grep "bcrypt.compare" trong server/ → 5 chỗ: auth.js login (đã vá), auth.js PUT /password và pinChuQuan.js:41 (cùng dạng, cần token, NGOÀI Phạm vi → Phát hiện), PIN chủ quán / PIN khách (đã có khoá)
+CHƯA KIỂM:   số tầng proxy thật của Render (req.ip có phải IP khách không) · hành vi trên Render sau khi máy ngủ/dậy (đếm về 0) · hash mật khẩu cũ trong Turso có cost 10 không ·
+             thử tay trên điện thoại · ngay-sát mốc đúng 15:00 (đồng hồ thật; bài dùng đồng hồ lệch) · bài chạy router trong cùng tiến trình, không phải tiến trình con
+GIT:         git log --oneline -2 (xem cuối sổ này)
+BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 1 (đề xuất) · BỎ 2 — chi tiết ở ## Bài học
+```
+Thử tay 2 thao tác cho chủ quán: (1) mở màn đăng nhập, gõ SAI mật khẩu 6 lần liền với một tên → lần 6 phải hiện "Gõ sai quá nhiều lần — thử lại sau … phút", ô tên/mật khẩu không bị xoá; (2) trên điện thoại khác (mạng 4G) đăng nhập đúng cùng tên đó → vào bình thường.
+
+HEAD ĐÃ KIỂM: fbbdcfec
