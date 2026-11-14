@@ -238,3 +238,4 @@ Trên code vá (77b26e78): VOUCHER-2: 131 đạt · 0 hỏng
   (BV-V2-Q18-MOC → Q18a · VS-V2-Q18-KHONG-TRAN → Q18c · VS-V2-Q18-MOC-NGAT → Q18b · VS-V2-Q18-MOC-PHUT → Q18c · BV-V2-Q18-DON-TRUOC → Q18d ·
    VS-V2-Q18-DON-KHAC → Q18f · BV-V2-Q18-BILL-SDT → Q18e)
 npm test -- --day-du (HEAD 77b26e78): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+Đột biến đầy đủ python3 viec/VOUCHER-2/dot_bien.py (HEAD 77b26e78, có ĐỐI CHỨNG): ĐỘT BIẾN VOUCHER-2: 89/89 bị bắt (82 cũ + 7 Q18).
