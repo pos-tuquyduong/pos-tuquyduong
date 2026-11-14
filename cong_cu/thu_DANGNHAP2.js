@@ -356,9 +356,9 @@ require.cache[p] = { id: p, filename: p, loaded: true, exports: { laMayThu: () =
       ca('J6 chỉ có CF-Connecting-IP (không True-Client-IP): vẫn lấy IP thật → lần 6 từ cùng IP đó là 429 dù XFF khác',
         kD.every((r) => r.status === 401) && d6.status === 429, [kD.map((r) => r.status), d6.status]);
       const kE = await nam(() => ({ 'X-Forwarded-For': cf, 'True-Client-IP': '203.0.113.40', 'CF-Connecting-IP': '203.0.113.41' }), 'nv_uu');
-      const e6a = await saiCon({ 'X-Forwarded-For': cf, 'True-Client-IP': '203.0.113.40', 'CF-Connecting-IP': '203.0.113.99' }, 'nv_uu');
-      const e6b = await saiCon({ 'X-Forwarded-For': cf, 'True-Client-IP': '203.0.113.42', 'CF-Connecting-IP': '203.0.113.41' }, 'nv_uu');
-      ca('J7 có cả hai: True-Client-IP được ưu tiên (đổi CF-Connecting-IP vẫn 429; đổi True-Client-IP thì là người khác → 401)',
+      const e6a = await saiCon({ 'X-Forwarded-For': cf, 'True-Client-IP': '203.0.113.99', 'CF-Connecting-IP': '203.0.113.41' }, 'nv_uu');
+      const e6b = await saiCon({ 'X-Forwarded-For': cf, 'True-Client-IP': '203.0.113.40', 'CF-Connecting-IP': '203.0.113.42' }, 'nv_uu');
+      ca('J7 có cả hai: CF-Connecting-IP được ưu tiên (Cloudflare LUÔN ghi đè; True-Client-IP khách tự gửi được nếu chưa bật Managed Transform): đổi True-Client-IP vẫn 429 (không lách được); đổi CF-Connecting-IP thì là người khác → 401',
         kE.every((r) => r.status === 401) && e6a.status === 429 && e6b.status === 401, [e6a.status, e6b.status]);
       // IPv6 hợp lệ
       const kF = await nam(() => ({ 'X-Forwarded-For': cf, 'True-Client-IP': '2001:db8::7' }), 'nv_v6');
@@ -405,8 +405,10 @@ require.cache[p] = { id: p, filename: p, loaded: true, exports: { laMayThu: () =
     ca('J15 server/utils/ipKhach.js có hàm ipKhach(req)', !!hamIp && typeof (hamIp.ipKhach || hamIp) === 'function');
     const lay = hamIp && (hamIp.ipKhach || hamIp);
     const gia = (h, ip) => ({ headers: h, ip });
-    ca('J16 ipKhach: True-Client-IP > CF-Connecting-IP > req.ip; rác → req.ip',
-      !!lay && lay(gia({ 'true-client-ip': '1.1.1.1', 'cf-connecting-ip': '2.2.2.2' }, '9.9.9.9')) === '1.1.1.1'
+    ca('J16 ipKhach: CF-Connecting-IP > True-Client-IP > req.ip; rác → bỏ qua / req.ip',
+      !!lay && lay(gia({ 'true-client-ip': '1.1.1.1', 'cf-connecting-ip': '2.2.2.2' }, '9.9.9.9')) === '2.2.2.2'
+      && lay(gia({ 'true-client-ip': '1.1.1.1' }, '9.9.9.9')) === '1.1.1.1'
+      && lay(gia({ 'cf-connecting-ip': 'abc', 'true-client-ip': '1.1.1.1' }, '9.9.9.9')) === '1.1.1.1'
       && lay(gia({ 'cf-connecting-ip': '2.2.2.2' }, '9.9.9.9')) === '2.2.2.2'
       && lay(gia({ 'true-client-ip': 'abc', 'cf-connecting-ip': '2.2.2.2' }, '9.9.9.9')) === '2.2.2.2'
       && lay(gia({ 'true-client-ip': '1.1.1.1, 2.2.2.2' }, '9.9.9.9')) === '9.9.9.9'
