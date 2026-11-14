@@ -432,7 +432,7 @@ async function main() {
     const veB = await B.veNd('admin', 'admin123');
     const nhapB = (body) => B.goi('POST', ND + '/nhap-toan-bo', { ve: veB, body });
     const xa = await A.goi('GET', ND + '/xuat', { ve: veChu });
-    tep = xa.j;
+    tep = { ...xa.j, ban: Array.isArray(xa.j.ban) ? xa.j.ban : [], anh: Array.isArray(xa.j.anh) ? xa.j.anh : [] };   // tệp thiếu → các ca đỏ, không sập
     k('C1b xuất: tệp JSON tải về (Content-Disposition), dinh_dang 1, đủ ban / nhap / anh (base64) / nhat_ky', xa.status === 200 && /attachment/.test(xa.h['content-disposition'] || '')
       && tep.dinh_dang === 1 && (tep.ban || []).length === 4 && (tep.nhap || []).length >= 1 && (tep.anh || []).length >= 5 && (tep.nhat_ky || []).length >= 5
       && typeof tep.anh?.[0]?.du_lieu_base64 === 'string', `${moTa(xa)} · ${Object.keys(tep)}`);
@@ -447,9 +447,10 @@ async function main() {
     const xb = (await B.goi('GET', ND + '/xuat', { ve: veB })).j;
     const s = (x) => JSON.stringify(x);
     const nkB = (xb.nhat_ky || []).slice(0, (tep.nhat_ky || []).length);
-    const anhB = await B.goi('GET', ND + '/anh/' + tep.anh[0].ma);
+    const anh0 = tep.anh[0] || { ma: 'khong-co', du_lieu_base64: '' };
+    const anhB = await B.goi('GET', ND + '/anh/' + anh0.ma);
     k('I1 xuất → nhập vào kho TRỐNG → giống hệt: từng bản (mọi cột), từng ảnh (byte), nháp, nhật ký (phần đầu)', i1.status === 200 && s(xb.ban) === s(tep.ban)
-      && s(xb.anh) === s(tep.anh) && s(xb.nhap) === s(tep.nhap) && s(nkB) === s(tep.nhat_ky) && anhB.b.equals(Buffer.from(tep.anh[0].du_lieu_base64, 'base64')),
+      && s(xb.anh) === s(tep.anh) && s(xb.nhap) === s(tep.nhap) && s(nkB) === s(tep.nhat_ky) && tep.anh.length > 0 && anhB.b.equals(Buffer.from(anh0.du_lieu_base64, 'base64')),
       `${moTa(i1)} · bản ${s(xb.ban) === s(tep.ban)} ảnh ${s(xb.anh) === s(tep.anh)} nháp ${s(xb.nhap) === s(tep.nhap)} nk ${s(nkB) === s(tep.nhat_ky)}`);
     const bd = await B.goi('GET', ND + '/ban-dang-chay');
     k('I1b kho B sau nhập: bản đang chạy = bản 4 của A', bd.j.so_ban === 4, moTa(bd));

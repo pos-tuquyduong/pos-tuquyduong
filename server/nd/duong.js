@@ -19,7 +19,7 @@ router.use((req, res, next) => { console.log(`${getNow()} | ${req.method} /api/n
 
 const thanThuong = express.json({ limit: T.GIOI_HAN.ban_toi_da_byte + 512 * 1024 });   // một bản 1 MB + vỏ
 const thanLon = express.json({ limit: T.GIOI_HAN.nhap_toan_bo_toi_da_byte });
-// multer coi tệp ĐÚNG bằng fileSize là vượt → nhận tới giới hạn + 1 rồi tự so (ảnh đúng 512.000 byte phải qua)
+// multer coi tệp ĐÚNG bằng fileSize là vượt (đo: 512.000 với fileSize 512.000 → 413) → đặt giới hạn + 1: ≤ 512.000 qua, 512.001 → 413
 const nhanAnh = multer({ storage: multer.memoryStorage(), limits: { fileSize: T.GIOI_HAN.anh_toi_da_byte + 1, files: 1, fields: 5 } }).single('anh');
 const lam = (fn) => (req, res, next) => fn(req, res).catch(next);
 const tra = (res, kq) => (kq.loi ? guiLoi(res, kq.loi) : res.json({ success: true, ...kq }));
@@ -42,7 +42,7 @@ router.get('/anh/:ma', lam(async (req, res) => {
   return res.send(a.buf);
 }));
 
-router.post('/dang-nhap', thanThuong, lam(async (req, res) => {
+router.post('/dang-nhap', express.json({ limit: '10kb' }), lam(async (req, res) => {
   const { ten_dang_nhap: ten, mat_khau: mk } = req.body || {};
   if (typeof ten !== 'string' || typeof mk !== 'string' || !ten || ten.length > 100 || mk.length > 200) return guiLoi(res, 'DU_LIEU_KHONG_HOP_LE');
   return tra(res, await dangNhap(ten, mk, req.ip));
@@ -88,7 +88,6 @@ router.post('/quay-lai', canQuyen('nd_cap_nhat'), thanThuong, lam(async (req, re
 
 // ── ảnh: multipart, trường `anh`; loại theo byte đầu tệp ──
 router.post('/anh', canQuyen('nd_sua'), nhanAnh, lam(async (req, res) => {
-  if (req.file && req.file.size > T.GIOI_HAN.anh_toi_da_byte) return guiLoi(res, 'QUA_LON');
   const loai = req.file ? T.loaiAnh(req.file.buffer) : null;
   if (!loai) return guiLoi(res, 'ANH_KHONG_HOP_LE');
   return tra(res, await D.luuAnh(req.file.buffer, loai));

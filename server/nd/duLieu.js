@@ -38,9 +38,9 @@ const dsNhap = async (q = { query }) => (await q.query('SELECT * FROM nd_nhap OR
 
 /** Lưu nháp MỘT khoá (ghi đè nháp cũ của khoá đó). Bản đang chạy + mọi nháp (đã thay khoá này) > 1 MB → QUA_LON, không ghi. */
 const luuNhap = (nguoi, khoa, giaTri, banGoc) => trongGd(async (tx) => {
-  const gop = (await banDangChay(tx)).gia_tri;
-  for (const n of await dsNhap(tx)) gop[n.khoa] = n.gia_tri;
-  gop[khoa] = giaTri;
+  // dựng bằng fromEntries + trải (định nghĩa thuộc tính riêng), KHÔNG gán gop[khoa] = … — khoá "__proto__" hợp lệ theo mẫu khoá mà phép gán
+  // sẽ đổi nguyên mẫu thay vì thêm khoá (lệch số byte với lúc cập nhật)
+  const gop = { ...(await banDangChay(tx)).gia_tri, ...Object.fromEntries([...(await dsNhap(tx)).map((n) => [n.khoa, n.gia_tri]), [khoa, giaTri]]) };
   if (T.soByte(gop) > T.GIOI_HAN.ban_toi_da_byte) return { loi: 'QUA_LON' };
   const luc = getNow();
   await tx.run(`INSERT INTO nd_nhap (khoa, gia_tri, nguoi, luc, ban_goc) VALUES (?, ?, ?, ?, ?)
