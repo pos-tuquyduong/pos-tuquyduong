@@ -1,6 +1,6 @@
 VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
 
-SỐ CA cong_cu/thu_VOUCHER2.js: 105
+SỐ CA cong_cu/thu_VOUCHER2.js: 125
 SỐ CA cong_cu/thu_P20.js: 178
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_KHAPI2.js: 101
@@ -208,3 +208,21 @@ Trên code vá (a3da65ae + bài 62dfa97c): VOUCHER-2: 112 đạt · 0 hỏng
 Đột biến (vòng sửa 1): python3 viec/VOUCHER-2/dot_bien.py BV-V2-CHIP-AN … VS-V2-CHIP-KHONG-MO → ĐỐI CHỨNG xanh 112 · 0; 12/12 BẮT
   (BV-V2-CHIP-AN · BV-V2-VI-VOUCHER · BV-V2-PHIEN-BO-VOUCHER · VS-V2-LOI-KHONG-DO · BV-V2-MAU-KHONG-LUU · VS-V2-MAU-XEM-TU-DUNG · BV-V2-MAU-TOI-DA ·
    BV-V2-CHON-MAU-KM · VS-V2-SCOPE-CUNG · VS-V2-026-GIAM-MON · BV-V2-THEM-KHACH-MA · VS-V2-CHIP-KHONG-MO)
+
+── Q16 / Q17 / Q19 (chủ quán 13.11) · thu_VOUCHER2.js (bài f6ced4fe → ed878058, viết TRƯỚC khi vá) — gốc 43b76314 (server/ + client/src trước Q16–Q19):
+   node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q16/server   → VOUCHER-2: 115 đạt · 10 hỏng
+  ✗ Q16a phiên ck_tay đang chờ giữ voucher … — HTTP 200 / HTTP 200 / HTTP 400 · Số tiền thanh toán … không khớp
+  ✗ Q16a CHÍNH phiên giữ chốt … — HTTP 400 · VOUCHER_DA_DUNG
+  ✗ Q16c voucher HẾT HẠN trong lúc phiên đang giữ … — HTTP 400 · VOUCHER_HET_HAN
+  ✗ Q16e phiên giữ voucher gửi ở Ô MÃ cũ … — HTTP 200 40000 / HTTP 200
+  ✗ Q16d đua — phiên chen trước giao dịch đơn quầy … — HTTP 200 / HTTP 200 / HTTP 400 · VOUCHER_DA_DUNG
+  ✗ Q16d đua ngược — đơn quầy chen trước giao dịch tạo phiên … — HTTP 200 / HTTP 200
+  ✗ Q17a dữ liệu lệch … — [{"ten":"grant used, lượt 0","coQuay":true,"coApp":true,…}]
+  ✗ Q17b K5 … ?all=1 … status suy từ CÙNG phép — grant used hiện "available"
+  ✗ Q19 máy chủ: Đối soát ngày → tiền voucher đã giảm 18.800 … · giảm phí giao 8.000 — {}
+  ✗ Q19 màn Đối soát (thật) …
+  Xanh trên gốc (đúng — ca "không chặn oan" / hành vi giữ): Q16b (huỷ / hết hạn → dùng được), Q16c K5 (voucher hết hạn không giữ → vẫn HET_HAN), Q17b K5 bán được.
+Trên code vá (02591feb Q16+Q17, 290cf504 Q19): VOUCHER-2: 125 đạt · 0 hỏng
+Đột biến đầy đủ python3 viec/VOUCHER-2/dot_bien.py: lần 1 78/82 (3 HỎNG = neo chính chủ / P20b còn trỏ orders.js sau khi Q17 dời phép sang voucherCode.js;
+  1 LẠC = mẫu GIU-O-MA trỏ Q16a) → sửa neo / mẫu (3a6aac1e) → chạy lại 4 cái: 4/4 BẮT. Đối chứng xanh: thu_VOUCHER2 125 · 0, thu_KHTHE1 73 · 0, bộ kiểm E9 ✓.
+npm test -- --day-du (HEAD 3a6aac1e): PASS 118 · FAIL 0 · CẢNH BÁO 1 (cảnh báo "route GET có lệnh ghi" có từ trước).
