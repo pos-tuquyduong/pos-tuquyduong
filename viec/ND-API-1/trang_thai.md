@@ -190,6 +190,35 @@ BV-XUAT-THROW; ca I1d (nhật ký nhap / xuat) + BV-NHATKY-NHAP, BV-NHATKY-XUAT;
 G6 (tên đăng nhập 100 → 401, 101 → 400) + VS-TEN-DN-101. Nghi ngờ: thêm dấu `// GET-ghi:` ở GET /xuat; chú thích quaPin của khoaSaoLuu.js sửa cho
 đúng (thu hồi kiểm PIN trước khi tìm khoá — chấp nhận, chỉ chủ quán gọi). Lần soát cuối: không gọi agent soát nữa — chat soát thay.
 Bài sau vòng 4: 89 đạt · 0 hỏng. Đột biến lần 5: 58 BẮT + 2 LẠC (bài E / X sập thay vì đỏ khi đột biến) → sửa bài (`0df488a7`), 3/3 BẮT.
+Đột biến lần 6 (HEAD 0df488a7, trọn bộ): `ĐỐI CHỨNG XANH · 89 đạt · 0 hỏng` · `TỔNG 60 đột biến · BẮT 60 · SỐNG 0 · HỎNG 0 · LẠC 0`.
+
+SOÁT LẦN CUỐI: chat soát thay
+
+## Soát bảo mật
+`/soat-bao-mat` (14.11, trên HEAD 0df488a7 — từ cha của bbf5eaf). Bước 2 (agent tìm lỗ hổng, chỉ đọc): **0 lỗ hổng** trước lọc → không cần bước 3
+(lọc báo nhầm); **0 sau lọc**. Báo cáo của agent (chép nguyên văn phần kết luận):
+
+> Mình không tìm thấy lỗ hổng nào trên nhánh `viec/ND-API-1` (từ cha của bbf5eaf tới HEAD 0df488a7) đủ chắc để báo, tức là trên 80% có thể khai thác
+> được. Mình chỉ đọc code, không chạy thử gì.
+> - Vé riêng: ký bằng khoá dẫn từ khoá POS (`server/nd/tinh.js`, `xacThuc.js`) + audience 'nd'; POS kiểm bằng `JWT_SECRET` gốc → không dùng lẫn;
+>   jsonwebtoken từ chối 'none'.
+> - Kiểm quyền mỗi lần gọi: `canQuyen` đọc lại `pos_users` (is_active) + `pos_permissions`; kiểm quyền TRƯỚC khi đọc thân; bước 027 chỉ gieo owner.
+> - Khoá sao lưu: `ndk_` + 32 byte ngẫu nhiên, chỉ giữ SHA-256; chỉ cửa có `choKhoa` (GET /xuat) nhận; cửa khác 403, khoá thu hồi 401; tạo / thu hồi
+>   cần vé POS + chủ quán + PIN; danh sách không trả băm.
+> - Đăng nhập: đếm theo cặp tên+IP và IP, giữ lượt trước bcrypt, đang khoá thì từ chối không so; mọi kiểu sai một câu, tên không có so với băm giả.
+>   (Đăng nhập đúng tài khoản của mình đặt lại bộ đếm IP — bộ đếm cặp vẫn chặn từng tài khoản bị dò; thuộc loại "giới hạn số lần", loại trừ.)
+> - CORS: router nd gắn trước cors '*', tự 404 / tự xử lý lỗi, không next() ra ngoài; vé qua Bearer, không cookie → không CSRF.
+> - Ảnh: loại theo byte đầu, chỉ PNG / JPEG / WebP, nosniff, mã đúng 64 hex.
+> - SQL: mọi câu có tham số; ghép chuỗi chỉ hằng hoặc dấu `?`.
+> - Sao lưu: export-all chỉ owner; trang nội dung App không gồm băm khoá / bộ đếm; xuất từng bảng nd_* bị 400; khôi phục bỏ qua nd_*.
+> - Nhập toàn bộ: cần nd_xuat_nhap; đếm trong cùng giao dịch, có dữ liệu → 409; kiểm trọn tệp trước khi ghi.
+> - Lưu phân quyền: chỉ sửa đường nút Lưu phía quầy — chức năng đúng thiết kế, không phải leo quyền mới.
+> - Lộ bí mật: không; log chỉ phương thức + đường; lỗi chỉ `{error, code}`.
+> - Giao diện: không `dangerouslySetInnerHTML`; thẻ App khách hàng chỉ chủ quán, máy chủ chặn bằng `chiChuQuan`.
+>
+> **Lỗ hổng:** không có (không mục nào đạt Confidence từ 7/10 trở lên).
+
+SOÁT BẢO MẬT: ĐẠT
 
 ## Câu hỏi
 (không có — kế hoạch đã duyệt, thư App đã có trong kho)
@@ -224,3 +253,66 @@ Bài sau vòng 4: 89 đạt · 0 hỏng. Đột biến lần 5: 58 BẮT + 2 L�
   `manage_permissions` mặc định chỉ chủ quán (database.js seed manager 0, staff 0). Ngoài phạm vi việc này — đề xuất việc sau: chặn sửa vai trò
   của chính mình / chỉ chủ quán sửa quyền.
 - `server/routes/users.js`: hai chú thích ghi đường `/api/pos/permissions…` (sai) — đã sửa chú thích cùng dòng vá (K1 TU-CHAY-6).
+
+## Nghiệm thu — đếm từng mục (bài `cong_cu/thu_NDAPI1.js`, 89 ca, 60 đột biến)
+- A nhà riêng → A1, A1b (đối chứng quét `pos_`), A2 (index.js chỉ thêm dòng, gắn trước cors), A3 (không khoá ngoại); VS-POS-TRONG-ND.
+- B bảng 027 → B1 (6 bảng đủ cột), B2 (kho trống → bản 0), B3 (chỉ mục một bản đang chạy), B4 (giữ đủ bản), I1d (nhật ký nhap / xuat).
+- C cửa → C1, C1b, C2 (+ no-store), C2a, C3, C3b, C4, C4b, C5 (mọi lỗi `{error, code}`), C6 (JSON hỏng); L1 (13 cửa so hợp đồng, cả cột quyền).
+- D giới hạn → D1 (80 / 81), D2, D3 (1.048.576 byte UTF-8), D4 (512.000 / 512.001), D5 (HTML đuôi .webp → 400), D6 (trùng mã), D7 (1 MB lúc
+  cập nhật), I3f / I3g / I3h (1 MB, 512 KB, bản + nháp khi nhập).
+- E cập nhật an toàn → E1, E2, E2b, E2c / E2d (ghi chú 500 hai phía, cả quay-lai), E3 (hai người cập nhật), E4, E4b, E5 (hai người quay lại).
+- F quyền → F1 (nhóm + nhãn thư App), F2 / F2b (gieo, chạy lại không đè), F3a / F3b / F3c (thu quyền hết ngay; nút Lưu đúng đường), F4 (khoá tài
+  khoản), F5 (10 cửa × 4 quyền), K5b (chủ quán không dòng quyền vẫn đủ).
+- G đăng nhập → G1, G2 / G2c (vé không dùng lẫn), G3 (một câu chung), G4a (lần 5 → 401, lần 6 → 429), G4b (không khoá tên toàn cục — Q-A), G4c
+  (theo IP), G4d (theo cặp), G4e (hết 15 phút), G4f (cặp khoá không đẩy bộ đếm IP), G5 (hết hạn, aud), G6 (trần tên).
+- H CORS → H1a, H1b (evil / đuôi giả / http / null, cả 404), H2 (/api/kh, /api/pos vẫn `*`).
+- I xuất / nhập → C1b, I1 (giống hệt từng bản, từng ảnh), I1b, I1c, I1d, I2 / I2b (kho có bản / chỉ nháp / chỉ ảnh → 409), I3–I3j (tệp hỏng),
+  I4 (K5 tệp không bản), X1 / X2 (xuất đọc lại khi bị chen giữa — kho giả).
+- J khoá sao lưu → J1 (chỉ băm, hiện một lần), J1b, J2 (chỉ GET /xuat), J3 (thu hồi / bịa → 401), J4 (PIN, chỉ chủ quán, vé nd ở cửa POS → 401).
+- K sao lưu + dọn thử → K1 (trang Nội dung App (JSON) = tệp Xuất, ô ≤ 32.767), K1b, K2 (khôi phục bỏ qua nd, kể cả trang mang nhãn nd_ban), K4
+  (lỗi nội dung App không làm sập sao lưu), K5f (tệp cũ), K3 (BANG_KHONG_DON); `thu_KHSDT1.js`, `thu_SAOLUU2.js` xanh trong `npm test`.
+- L hợp đồng → L1, L2 (giới hạn = hằng tinh.js = số viết tay), L3 (mã lỗi), L4 (quyền, riêng /api/kh).
+- M bộ kiểm → M1 (nối kiem_tra_truoc_khi_giao.js), bang_chung_do.txt (gốc bbf5eaf ĐỎ), dot_bien.py 60/60 BẮT; S1 / S2 (giao diện, dò chuỗi).
+- K5 không đổi → H2, K5d (đăng nhập POS 200), K5f, K5a (nháp hai người), G4b, G4f, I4; diff không đụng routes/kh, Sales, orders, tiền.
+
+## Báo cáo
+```
+VIỆC:        ND-API-1 — Kho nội dung App KH cho /admin: nhà riêng server/nd/, /api/nd/*, bảng nd_*, quyền nhóm "App khách hàng — nội dung", hợp đồng riêng v1
+ĐÃ SỬA:      server/nd/{tinh,cauNoi,duLieu,xacThuc,duong,khoaSaoLuu}.js (mới — 13 cửa /api/nd + khoá sao lưu dưới /api/pos/nd-khoa-sao-luu);
+             server/nang_cap/027_noi_dung.js (6 bảng nd_* + chỉ mục một bản đang chạy + gieo 4 quyền); server/index.js (+3 dòng gắn đường, nd TRƯỚC cors '*');
+             server/routes/users.js (4 quyền có nhom); server/routes/backup.js (trang "Nội dung App (JSON)", khôi phục lọc nd, bọc lỗi nd);
+             server/utils/donThu.js (nd_* không bao giờ dọn); client/src/utils/api.js (ndKhoaApi + SỬA đường nút Lưu Phân quyền — hỏng sẵn, 404);
+             client/src/pages/Settings.jsx (tiêu đề nhóm quyền, thẻ 📱 App khách hàng chỉ chủ quán); client/src/pages/CaiDat/AppKhachHang.jsx (mới);
+             client/dist (build); HOP_DONG_API_ND.md v1; kiem_tra_truoc_khi_giao.js (+1 dòng chayBaiThat)
+BÀI THỬ:     cong_cu/thu_NDAPI1.js trên gốc bbf5eaf → ĐỎ "7 đạt · 57 hỏng" (không có /api/nd, bảng, quyền; F3a lộ nút Lưu Phân quyền 404);
+             sau khi vá → XANH 89 đạt · 0 hỏng (chạy nhiều lần, ca đua E3 / E5 không thất thường); npm test PASS 114 · FAIL 0 · CẢNH BÁO 1 (cũ:
+             route GET có ghi packages / products / sync); --day-du PASS 118 · FAIL 0 (dist khớp src); dot_bien.py 60/60 BẮT, có đối chứng
+ĐÃ RÀ K4:    đường ghi nd_ban: 3 chỗ (cap-nhat, quay-lai qua doiBan; nhap-toan-bo) — cùng bất biến banChayDung + 1 MB; cửa cần quyền 10/10 có canQuyen;
+             lối xuất 2 (GET /xuat, export-all) → một hàm xuat(); lối vào nd_* từ khôi phục Excel: preview + restore cùng BANG_KHOI_PHUC; giới hạn 1 MB
+             ở PUT / cap-nhat / quay-lai / nhập, 512 KB ở POST anh / nhập, ghi chú ở cap-nhat / quay-lai — mỗi cửa một ca
+CHƯA KIỂM:   Turso thật (dòng ảnh 500 KB / bản 1 MB, giao dịch nhập 50 MB, giao dịch đua qua mạng — E3 chỉ chạy kho file); số tầng proxy Render
+             (trust proxy 1 → req.ip cho bộ đếm IP); tên miền thật của /admin (www?); giao diện trên điện thoại (thẻ App khách hàng, tiêu đề nhóm
+             quyền — S1 / S2 chỉ dò chuỗi); RAM export-all khi nội dung App lớn; khe chen giữa của xuất chỉ thử bằng kho giả (X1 / X2), chưa trên kho thật
+GIT:         (xem dòng HEAD ĐÃ KIỂM cuối file)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+## Bài học
+- **KHOÁ (đã làm, trong Phạm vi):** mỗi giới hạn / bất biến của cửa ghi thường (1 MB, 512 KB, ghi chú 500, "bản đang chạy = số lớn nhất", từng
+  vế "kho trống") có MỘT ca ở TỪNG cửa vào + cả hai phía ngưỡng + đột biến xoá đúng dòng (`thu_NDAPI1.js` D7, E2c / E2d, I2b, I3e–I3j, I4).
+  Ba vòng soát đều bắt lỗ cùng một khuôn (K4: cửa nhập / quay lại / sao lưu là đường song song của cửa ghi thường).
+- **KHOÁ (đề xuất, ngoài Phạm vi `tu_chay/skill_lam_viec.md` — khung đóng băng tới khai trương):** bước 1.3 tự `git fetch --unshallow` khi
+  `is-shallow-repository` = true kể cả lúc hai SHA bằng nhau — hai phiên liền (13.11, 14.11) `thu_BH2.js` G1 đỏ `bad revision` vì kho nông.
+  Ca đỏ: phiên mở từ bản chụp nông, HEAD = FETCH_HEAD → npm test đỏ G1.
+- **NGUYÊN TẮC (đề xuất `KHUON_LOI.md` K3, ngoài Phạm vi):** Đã gây: multer coi tệp ĐÚNG bằng `fileSize` là vượt → ảnh đúng 512.000 byte bị 413;
+  dòng tự so cỡ thêm vào là code chết (đột biến BV-ANH-512 SỐNG). Chặn: đo hành vi thư viện ở NGƯỠNG (ca ngay trên / ngay dưới) trước khi viết
+  phép chặn của mình; phép chặn nào đột biến xoá mà vẫn xanh là thừa — xoá.
+- **NGUYÊN TẮC (đề xuất `KHUON_LOI.md` K3):** Đã gây: nút "Lưu" Phân quyền 404 từ lâu (`api.js` gọi `/permissions/:role`, route ở `/users/permissions`)
+  mà không bài nào thấy — bài cũ gọi máy chủ bằng đường tự viết. Chặn: bài thử gọi máy chủ bằng ĐÚNG đường màn hình dùng (đọc từ `api.js`), như F3b.
+- **NGUYÊN TẮC (đề xuất `KHUON_LOI.md` K4):** Đã gây: gắn phần mới vào đường chung (nội dung App vào sao lưu Excel) mà không bọc lỗi → lỗi phần phụ
+  làm hỏng bản sao lưu dữ liệu tiền; thêm `throw` ở vòng sửa mà không rà chỗ gọi. Chặn: phần mới trên đường chung bọc lỗi + ca "phần mới hỏng →
+  phần cũ vẫn chạy" (K4 của bài); mỗi `throw` mới → grep mọi chỗ gọi hàm.
+- **BỎ:** người gác chặn 5 lần B-PHANTICH (lệnh ghép / `$'…'` / heredoc) + 2 lần B-BIMAT-CHU (lệnh nhắc chữ bí mật của bài thử) — người gác đúng
+  luật, đã làm theo hướng dẫn (tách lệnh, commit rồi chạy, dùng Edit); không phải lỗi mã.
+- **BỎ:** đột biến tự viết sai cú pháp (BV-ND-DON-THU) / bài sập khi đột biến (VS-SAO-LUU-BO-ANH, VS-GHI-CHU-499, VS-XUAT-KHONG-DOC-LAI) — cổng
+  LẠC của dot_bien.py đã bắt đúng, sửa ngay; luật sẵn có làm việc.
