@@ -44,6 +44,29 @@ Người ngoài không dò được mật khẩu và không đoán được tên
 - client/dist/**
 - cong_cu/thu_DANGNHAP2.js
 - kiem_tra_truoc_khi_giao.js
+- server/utils/ipKhach.js
+- server/index.js
+
+<!-- Chủ quán 14.11 — VÒNG 2 (chat mở lại sau soát cuối 06eb608): LẤY ĐÚNG IP THẬT CỦA KHÁCH.
+     Vì sao: chủ quán mở pos-tuquyduong.io.vn/cdn-cgi/trace → trả fl=… colo=HKG = có Cloudflare đứng trước. Render luôn đặt Cloudflare trước mọi dịch vụ
+     (tài liệu Render + hỗ trợ Render): với app.set('trust proxy', 1), req.ip là IP MÁY CLOUDFLARE, không phải IP khách → nhiều người (cả quán, cả khách
+     App) dùng chung một "IP" → giới hạn theo IP / theo cặp của việc này thành khoá chung. Lỗi CÓ TỪ TRƯỚC ở /api/kh (giuLuotMenu, xinMaGui, giuLuotNhanMa,
+     capMaQuay, man-khach ghep) và ở /api/nd/dang-nhap (ND-API-1 đã gộp). X-Forwarded-For trên Render KHÔNG bị lọc (proxy chỉ nối thêm) → không dùng
+     phần đầu XFF (khách giả được).
+     Chat đã gộp main (có ND-API-1) vào nhánh — commit "GOP-DANG-NHAP-2 gop main …". Phạm vi thêm 2 file. SỬA MỘT CHỖ Ở CỬA VÀO (chủ quán chọn
+     cách đơn giản nhất — không sửa từng đường):
+     V1 — MỘT hàm `server/utils/ipKhach.js` → ipKhach(req): header `true-client-ip`, không có thì `cf-connecting-ip` (Cloudflare tự ghi đè, khách không giả
+        được khi đi qua Cloudflare) nếu là IPv4 / IPv6 hợp lệ (một địa chỉ, không danh sách); không có / không hợp lệ → IP Express tính như cũ (Replit, bài
+        thử chạy máy). Không đổi trust proxy.
+     V2 — `server/index.js`: MỘT middleware gắn ngay sau `app.set('trust proxy', 1)`, TRƯỚC mọi app.use khác: ghi đè req.ip của yêu cầu đó bằng
+        ipKhach(req) (Object.defineProperty trên chính req). Mọi chỗ đang dùng req.ip (auth.js, /api/kh — giuLuotMenu, xinMaGui, giuLuotNhanMa,
+        capMaQuay — man-khach, /api/nd/dang-nhap) và mọi đường viết sau này TỰ ĐÚNG, KHÔNG sửa từng file. Phép tĩnh: middleware đứng trước app.use đầu tiên.
+     V3 — bài thử (đỏ trước), qua máy chủ / app thật có middleware: cùng X-Forwarded-For nhưng True-Client-IP khác → đếm RIÊNG (mỗi người đủ 5 lần sai);
+        cùng True-Client-IP mà X-Forwarded-For đổi liên tục → đếm CHUNG (không lách được); không có header Cloudflare → như cũ (bài cũ dùng XFF vẫn xanh);
+        header rác ("abc", "1.2.3.4, 5.6.7.8") → bỏ qua; MỘT ca ở /api/kh (vd giuLuotMenu) chứng minh đường cũ không sửa vẫn đếm theo IP thật.
+        Bài cũ của /api/kh và /api/nd (thu_KH…, thu_NDAPI1, thu_QCAPP1) vẫn xanh; đột biến có bắt (bỏ middleware, đặt middleware sau đường, tin XFF).
+     Rồi: /ra-soat → /soat-bao-mat → cổng (gốc = commit gộp) → báo cáo 7 mục. Đẩy nhánh sau mỗi bước lớn. Chỉ sửa bằng Edit / Write.
+     Ghi Phát hiện (KHÔNG làm): đổi mật khẩu (PUT /auth/password) và đặt PIN chủ quán chưa giới hạn sai — việc sau. -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_DANGNHAP2.js` ĐỎ trên gốc: sai bao nhiêu lần cũng không bị chặn; tài khoản bị khoá + sai mật khẩu lộ câu riêng.
