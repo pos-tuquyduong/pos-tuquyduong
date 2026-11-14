@@ -203,6 +203,10 @@ async function main() {
     const d7 = await thu('admin', 'admin123', '10.1.1.4');
     k('G4d cặp (tên + IP): sai 5 lần xen đăng nhập đúng của người khác (đặt lại bộ đếm IP) → tên đó ở IP đó 429; người khác cùng IP vẫn 200',
       JSON.stringify(d) === '[401,200,401,200,401,200,401,200,401,200]' && d6.status === 429 && d7.status === 200, `${JSON.stringify(d)} · ${moTa(d6)} · ${moTa(d7)}`);
+    const t100 = await thu('n'.repeat(100), 'x', '10.1.2.1');
+    const t101 = await thu('n'.repeat(101), 'x', '10.1.2.2');
+    k('G6 tên đăng nhập 100 ký tự → 401 SAI_DANG_NHAP (vào phép so); 101 → 400 DU_LIEU_KHONG_HOP_LE', t100.status === 401 && t100.j.code === 'SAI_DANG_NHAP'
+      && t101.status === 400 && t101.j.code === 'DU_LIEU_KHONG_HOP_LE', `${moTa(t100)} / ${moTa(t101)}`);
     // G4e: hết 15 phút thì mở khoá — dời khoa_den trong kho (ca ngay trên: còn 30 s → vẫn 429; ngay dưới: đã qua → 401, đếm lại từ 1)
     for (let i = 0; i < 5; i++) await thu('admin', 'sai' + i, '10.1.1.5');
     const doiKhoa = (giay) => A.q(`UPDATE nd_lan_sai SET khoa_den = strftime('%Y-%m-%dT%H:%M:%S', khoa_den, '-15 minutes', '${giay} seconds') WHERE khoa IN ('ip:10.1.1.5', 'cap:admin|10.1.1.5')`);
@@ -373,8 +377,9 @@ async function main() {
     // C2 ?co=
     const c2a = await A.goi('GET', ND + '/ban-dang-chay?co=1');
     const c2b = await A.goi('GET', ND + '/ban-dang-chay?co=0');
-    k('C2 ?co= trùng bản đang chạy → { khong_doi: true }; lệch → đủ bản', c2a.j.khong_doi === true && c2a.j.gia_tri === undefined && c2b.j.so_ban === 1
-      && c2b.j.gia_tri?.['k5.cua.A'] === 'của chủ quán', `${JSON.stringify(c2a.j).slice(0, 80)} / ${c2b.j.so_ban}`);
+    k('C2 ?co= trùng bản đang chạy → { khong_doi: true }; lệch → đủ bản; cả hai Cache-Control: no-store', c2a.j.khong_doi === true && c2a.j.gia_tri === undefined
+      && c2b.j.so_ban === 1 && c2b.j.gia_tri?.['k5.cua.A'] === 'của chủ quán' && [c2a, c2b].every((r) => r.h['cache-control'] === 'no-store'),
+      `${JSON.stringify(c2a.j).slice(0, 80)} / ${c2b.j.so_ban} / ${c2a.h['cache-control']}`);
     // E3: hai người cập nhật cùng lúc
     await luuNhap('e3.x', 1, 1);
     const hai = await Promise.all([capNhat(1), capNhat(1)]);
@@ -388,8 +393,11 @@ async function main() {
     const t4 = await A.chup();
     const q1 = await A.goi('POST', ND + '/quay-lai', { ve: veChu, body: { so: 1, ban_goc: 1 } });
     const giuNguyen = t4 === await A.chup();
-    const q2 = await A.goi('POST', ND + '/quay-lai', { ve: veChu, body: { so: 1, ban_goc: 2 } });
+    const q501 = await A.goi('POST', ND + '/quay-lai', { ve: veChu, body: { so: 1, ban_goc: 2, ghi_chu: 'q'.repeat(501) } });
+    const q2 = await A.goi('POST', ND + '/quay-lai', { ve: veChu, body: { so: 1, ban_goc: 2, ghi_chu: 'q'.repeat(500) } });
     const b3r = (await A.goi('GET', ND + '/phien-ban/3', { ve: veChu })).j.ban;
+    k('E2d ghi_chu ở quay-lai: 501 ký tự → 400 DU_LIEU_KHONG_HOP_LE; đúng 500 → 200, lưu nguyên', q501.status === 400 && q501.j.code === 'DU_LIEU_KHONG_HOP_LE'
+      && q2.status === 200 && b3r?.ghi_chu === 'q'.repeat(500), `${moTa(q501)} / ${moTa(q2)}`);
     const b1r = (await A.goi('GET', ND + '/phien-ban/1', { ve: veChu })).j.ban;
     k('E4 quay-lai ban_goc cũ → 409 không đổi gì; đúng → bản MỚI 3, tu_ban = 1, gia_tri giống bản 1', q1.status === 409 && q1.j.code === 'CO_BAN_MOI_HON' && giuNguyen
       && q2.status === 200 && q2.j.so_ban === 3 && Number(b3r?.tu_ban) === 1 && !!b1r && JSON.stringify(b3r?.gia_tri) === JSON.stringify(b1r?.gia_tri),
@@ -427,6 +435,9 @@ async function main() {
     const sau = Number((await A.q('SELECT COUNT(*) AS n FROM nd_khoa_sao_luu').catch(() => [{ n: -1 }]))[0].n);
     k('J4 không PIN / PIN sai → 400 không tạo; quản lý → 403; vé nd ở cửa POS → 401', j4a.status === 400 && j4b.status === 400 && j4c.status === 403 && j4d.status === 401
       && truoc === 0 && sau === 0, `${[j4a, j4b, j4c, j4d].map(moTa).join(' | ')} · ${truoc}→${sau}`);
+    const j61 = await A.goi('POST', KS, { ve: A.vePos, body: { ten: 't'.repeat(61), pin: '1234' } });
+    k('J1b tên khoá 61 ký tự → 400 DU_LIEU_KHONG_HOP_LE (không tạo)', j61.status === 400 && j61.j.code === 'DU_LIEU_KHONG_HOP_LE'
+      && Number((await A.q('SELECT COUNT(*) AS n FROM nd_khoa_sao_luu'))[0].n) === 0, moTa(j61));
     const j1 = await A.goi('POST', KS, { ve: A.vePos, body: { ten: 'Sao lưu đêm GitHub', pin: '1234' } });
     khoa = j1.j.khoa || '';
     const ds = await A.goi('GET', KS, { ve: A.vePos });
@@ -465,6 +476,15 @@ async function main() {
     k('I3 tệp dinh_dang lạ / ảnh base64 là HTML / hai bản đang chạy / mã ảnh lệch băm / bản đang chạy KHÔNG phải số lớn nhất → 400, kho trống vẫn trống',
       [i3a, i3b, i3c, i3d, i3e].every((r) => r.status === 400) && i3b.j.code === 'ANH_KHONG_HOP_LE' && tep.ban.length >= 2 && tr0 === await B.chup(),
       [i3a, i3b, i3c, i3d, i3e].map(moTa).join(' | '));
+    const dangChay = tep.ban.find((b) => b.dang_chay === 1) || { gia_tri: {} };
+    const i3h = await nhapB({ ...tep, nhap: [...(tep.nhap || []), { khoa: 'nhap.lon', gia_tri: 'ệ'.repeat(Math.ceil((1048577 - Buffer.byteLength(JSON.stringify(dangChay.gia_tri))) / 3)),
+      nguoi: 'a', luc: '2026-11-14T10:00:00', ban_goc: 4 }] });
+    const i3i = await nhapB({ ...tep, nhap: [{ khoa: 'a b', gia_tri: 1, nguoi: 'a', luc: '2026-11-14T10:00:00', ban_goc: 4 }] });
+    const i3j = await Promise.all([{ ...tep, anh: [...tep.anh, tep.anh[0]] }, { ...tep, ban: [...tep.ban, { ...tep.ban[0], dang_chay: 0 }] },
+      { ...tep, nhat_ky: [{ nguoi: 'a', luc: '2026-11-14T10:00:00', viec: 'xoa', so_ban: null, so_khoa: null }] }].map((t) => nhapB(t)));
+    k('I3h nháp trong tệp: bản đang chạy + mọi nháp > 1.048.576 byte → 413 QUA_LON; I3i khoá nháp sai mẫu → 400; I3j ảnh trùng / số bản trùng / việc nhật ký lạ → 400; kho vẫn trống',
+      i3h.status === 413 && i3h.j.code === 'QUA_LON' && i3i.status === 400 && i3j.every((r) => r.status === 400) && tr0 === await B.chup(),
+      `${moTa(i3h)} / ${moTa(i3i)} / ${i3j.map(moTa).join(' | ')}`);
     const lon = WEBP(512001);
     const i3f = await nhapB({ ...tep, ban: tep.ban.map((b, i) => (i ? b : { ...b, gia_tri: { x: 'ệ'.repeat(349526) } })) });
     const i3g = await nhapB({ ...tep, anh: [...tep.anh, { ma: crypto.createHash('sha256').update(lon).digest('hex'), loai: 'image/webp', kich_thuoc: lon.length,
@@ -495,6 +515,10 @@ async function main() {
     k('I1 xuất → nhập vào kho TRỐNG → giống hệt: từng bản (mọi cột), từng ảnh (byte), nháp, nhật ký (phần đầu)', i1.status === 200 && s(xb.ban) === s(tep.ban)
       && s(xb.anh) === s(tep.anh) && s(xb.nhap) === s(tep.nhap) && s(nkB) === s(tep.nhat_ky) && tep.anh.length > 0 && anhB.b.equals(Buffer.from(anh0.du_lieu_base64, 'base64')),
       `${moTa(i1)} · bản ${s(xb.ban) === s(tep.ban)} ảnh ${s(xb.anh) === s(tep.anh)} nháp ${s(xb.nhap) === s(tep.nhap)} nk ${s(nkB) === s(tep.nhat_ky)}`);
+    const nkNhap = (await B.q("SELECT so_ban, so_khoa FROM nd_nhat_ky WHERE viec = 'nhap'"));
+    const nkXuat = Number((await A.q("SELECT COUNT(*) AS n FROM nd_nhat_ky WHERE viec = 'xuat'"))[0].n);
+    k('I1d nhật ký: nhập ghi đúng MỘT dòng nhap (so_ban 4, so_khoa = số nháp trong tệp); mỗi lần GET /xuat ghi một dòng xuat (A: ≥ 2)', nkNhap.length === 1
+      && Number(nkNhap[0].so_ban) === 4 && Number(nkNhap[0].so_khoa) === (tep.nhap || []).length && nkXuat >= 2, `${JSON.stringify(nkNhap)} / xuat ${nkXuat}`);
     const bd = await B.goi('GET', ND + '/ban-dang-chay');
     k('I1b kho B sau nhập: bản đang chạy = bản 4 của A', bd.j.so_ban === 4, moTa(bd));
     const t2 = await B.chup();
@@ -537,6 +561,16 @@ async function main() {
     XLSX.utils.book_append_sheet(wbCu, wb.Sheets['Cài đặt'], 'Cài đặt');
     const cu = await gui('restore', XLSX.write(wbCu, { type: 'buffer', bookType: 'xlsx' }));
     k('K5f khôi phục tệp sao lưu CŨ (không có trang nội dung App) → như trước', cu.status === 200 && tt(cu, 'Cài đặt') === 'restored', moTa(cu));
+    // K4: nội dung App hỏng (bản có gia_tri không phải JSON) → export-all VẪN trả file đủ trang POS, trang nội dung App ghi lỗi (lỗi phần phụ không kéo sập)
+    await A.q("INSERT INTO nd_ban (so_ban, gia_tri, luc, dang_chay) VALUES (999, 'không phải JSON', '2026-11-14T10:00:00', 0)");
+    const exH = await A.goi('GET', '/api/pos/backup/export-all', { ve: A.vePos });
+    await A.q('DELETE FROM nd_ban WHERE so_ban = 999');
+    let wbH = { SheetNames: [], Sheets: {} };
+    try { wbH = XLSX.read(exH.b, { type: 'buffer' }); } catch { /* không phải xlsx */ }
+    const dongH = wbH.Sheets['Nội dung App (JSON)'] ? XLSX.utils.sheet_to_json(wbH.Sheets['Nội dung App (JSON)']) : [];
+    k('K4 nội dung App đọc lỗi → export-all vẫn 200, đủ trang POS (Khách hàng, Cài đặt, _Metadata cuối), trang nội dung App ghi dòng lỗi', exH.status === 200
+      && wbH.SheetNames.includes('Khách hàng') && wbH.SheetNames.includes('Cài đặt') && wbH.SheetNames[wbH.SheetNames.length - 1] === '_Metadata'
+      && dongH.length === 1 && /Chưa xuất được nội dung App/.test(String(dongH[0].loi || '')), `${exH.status} · ${wbH.SheetNames.slice(-3).join(',')} · ${JSON.stringify(dongH[0] || {}).slice(0, 120)}`);
     const mot = await A.goi('GET', '/api/pos/backup/export/nd_anh', { ve: A.vePos });
     k('K1b xuất một bảng nd_* bằng export/:table → 400 (nội dung App sao lưu trong bản toàn bộ)', mot.status === 400, moTa(mot));
     let dt = {};
@@ -610,7 +644,8 @@ async function main() {
       && cuaCode.length === 13 && JSON.stringify(cuaCode) === JSON.stringify(cuaHd), `code ${cuaCode.join(',')} · hđ ${cuaHd.join(',')}`);
     let gh = {};
     try { gh = require(path.join(SV, 'nd', 'tinh.js')).GIOI_HAN || {}; } catch { /* chưa có */ }
-    const TAY = { khoa_toi_da: 80, ban_toi_da_byte: 1048576, anh_toi_da_byte: 512000, nhap_toan_bo_toi_da_byte: 52428800, sai_toi_da: 5, khoa_phut: 15, ve_gio: 12 };
+    const TAY = { khoa_toi_da: 80, ban_toi_da_byte: 1048576, anh_toi_da_byte: 512000, nhap_toan_bo_toi_da_byte: 52428800, sai_toi_da: 5, khoa_phut: 15, ve_gio: 12,
+      ghi_chu_toi_da: 500 };
     k('L2 giới hạn trong hợp đồng = hằng của server/nd/tinh.js = số viết tay', JSON.stringify(may.gioi_han) === JSON.stringify(TAY) && JSON.stringify(gh) === JSON.stringify(TAY),
       `${JSON.stringify(may.gioi_han)} / ${JSON.stringify(gh)}`);
     const maCode = new Set([...Object.values(nguonNd).join('\n').matchAll(/\b([A-Z][A-Z_]{5,})\b/g)].map((m) => m[1]).filter((m) => (may.ma_loi || {})[m] !== undefined || /^(CHUA|KHONG|CO_|KHOA_|QUA_|ANH_|SAI_|GIA_|DU_|KHO_|LOI_)/.test(m)));
@@ -620,6 +655,39 @@ async function main() {
       && thieu.length === 0 && maCode.size >= 12, `thiếu: ${thieu.join(', ')}`);
     k('L4 quyền trong hợp đồng = 4 quyền nd; hợp đồng riêng, không dùng số phiên bản /api/kh', JSON.stringify((may.quyen || []).map((x) => x.ma)) === JSON.stringify(QUYEN)
       && !/HOP_DONG_MAY_DOC\b/.test(hd));
+  });
+
+  // ═══ X · xuat() đọc lại khi cập nhật chen giữa — kho GIẢ tất định (require.cache), chạy trong tiến trình bài thử ═══
+  muc('[X] Xuất: đọc lại khi bản đang chạy đổi giữa chừng');
+  await doan('X', async () => {
+    const duongDb = path.join(SV, 'database.js');
+    const duongDl = path.join(SV, 'nd', 'duLieu.js');
+    const taoKhoGia = (luot) => {   // luot[i] = danh sách bản ở lần đọc thứ i (lần cuối lặp lại)
+      let lan = -1;
+      const hienTai = () => luot[Math.min(lan, luot.length - 1)];
+      return {
+        query: async (sql) => {
+          if (/SELECT so_ban FROM nd_ban ORDER BY so_ban/.test(sql)) { lan++; return hienTai().map((b) => ({ so_ban: b.so_ban })); }
+          return [];
+        },
+        queryOne: async (sql, a) => {
+          if (/SELECT \* FROM nd_ban WHERE so_ban = \?/.test(sql)) {
+            const b = hienTai().find((x) => x.so_ban === a[0]);
+            return b ? { so_ban: b.so_ban, gia_tri: '{}', luc: '2026-11-14T10:00:00', dang_chay: b.dang_chay } : null;
+          }
+          return null;
+        },
+        run: async () => ({ changes: 0 }), beginTransaction: async () => { throw new Error('không dùng'); }, laLoiBan: () => false,
+      };
+    };
+    const napVoi = (kho) => { delete require.cache[duongDl]; require.cache[duongDb] = { id: duongDb, filename: duongDb, loaded: true, exports: kho }; return require(duongDl); };
+    // lần 1: thấy bản 1 nhưng lúc đọc dòng thì nó đã tắt (cập nhật chen giữa tạo bản 2) → lần 2 thấy đủ
+    const x1 = await napVoi(taoKhoGia([[{ so_ban: 1, dang_chay: 0 }], [{ so_ban: 1, dang_chay: 0 }, { so_ban: 2, dang_chay: 1 }]])).xuat();
+    k('X1 lần đọc đầu thiếu bản đang chạy → xuat() đọc lại, tệp có bản 2 đang chạy (đúng bất biến Nhập toàn bộ)', x1.ban.map((b) => `${b.so_ban}:${b.dang_chay}`).join() === '1:0,2:1');
+    let x2 = 'không ném';
+    try { await napVoi(taoKhoGia([[{ so_ban: 1, dang_chay: 0 }]])).xuat(); } catch (e) { x2 = e.message; }
+    k('X2 bản đang chạy lệch mãi → xuat() NÉM lỗi, không trả tệp hỏng', /xuất/.test(x2), x2);
+    delete require.cache[duongDl]; delete require.cache[duongDb];
   });
 
   // ═══ M · nối bộ kiểm + giao diện ═══
