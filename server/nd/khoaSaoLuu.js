@@ -11,7 +11,8 @@ const { laLoiBan } = require('../database');
 const router = express.Router();
 const chiChuQuan = (req, res, next) => (req.user.role === 'owner' ? next()
   : res.status(403).json({ error: 'Chỉ chủ quán tạo / thu hồi khoá sao lưu', code: 'CHI_CHU_QUAN' }));
-/** PIN chủ quán — gọi SAU khi kiểm dữ liệu (gõ sai tên không tốn lượt PIN). Sai → gửi lỗi, trả false. */
+/** PIN chủ quán — tạo khoá: gọi SAU khi kiểm tên (gõ sai tên không tốn lượt PIN); thu hồi: gọi trước khi tìm khoá (id sai vẫn tốn một lượt —
+ *  chỉ chủ quán gọi được, chấp nhận). Sai → gửi lỗi, trả false. */
 async function quaPin(req, res) {
   const p = await cauNoi.kiemPinChuQuan(req.body?.pin);
   if (!p.loi) return true;

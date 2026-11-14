@@ -12,6 +12,7 @@ const GIOI_HAN = {
   sai_toi_da: 5,                          // đăng nhập sai liền → khoá (Q-A: theo cặp tên + IP và theo IP)
   khoa_phut: 15,
   ve_gio: 12,                             // hạn vé /api/nd
+  ghi_chu_toi_da: 500,                    // ký tự ghi chú của cap-nhat / quay-lai
 };
 const QUYEN = ['nd_xem', 'nd_sua', 'nd_cap_nhat', 'nd_xuat_nhap'];
 const VIEC = ['luu', 'bo_nhap', 'cap_nhat', 'quay_lai', 'xuat', 'nhap'];
@@ -94,6 +95,11 @@ function kiemTepNhap(t) {
       return sai('DU_LIEU_KHONG_HOP_LE', 'Nháp trong tệp không hợp lệ');
     }
     khoa.add(n.khoa);
+  }
+  // cùng giới hạn với luuNhap (PUT /nhap): bản đang chạy + mọi nháp ≤ 1 MB — không thì sau khi nhập mọi lần Lưu / Cập nhật đều 413 (soát vòng 3)
+  const dang = ban.find((b) => b.dang_chay === 1);
+  if (soByte({ ...(dang ? dang.gia_tri : {}), ...Object.fromEntries(nhap.map((n) => [n.khoa, n.gia_tri])) }) > GIOI_HAN.ban_toi_da_byte) {
+    return sai('QUA_LON', 'Bản đang chạy cộng các nháp trong tệp quá 1 MB');
   }
   const ma = new Set();
   const anhRa = [];

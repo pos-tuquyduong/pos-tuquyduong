@@ -24,7 +24,7 @@ const nhanAnh = multer({ storage: multer.memoryStorage(), limits: { fileSize: T.
 const lam = (fn) => (req, res, next) => fn(req, res).catch(next);
 const tra = (res, kq) => (kq.loi ? guiLoi(res, kq.loi) : res.json({ success: true, ...kq }));
 const soDuong = (x) => (/^\d{1,9}$/.test(String(x)) ? Number(x) : NaN);
-const ghiChuHopLe = (g) => g == null || (typeof g === 'string' && g.length <= 500);
+const ghiChuHopLe = (g) => g == null || (typeof g === 'string' && g.length <= T.GIOI_HAN.ghi_chu_toi_da);
 
 // ── công khai: App đọc mỗi lần mở ──
 router.get('/ban-dang-chay', lam(async (req, res) => {
@@ -96,6 +96,7 @@ router.post('/anh', canQuyen('nd_sua'), nhanAnh, lam(async (req, res) => {
 // ── xuất / nhập toàn bộ ──
 router.get('/xuat', canQuyen('nd_xuat_nhap', true), lam(async (req, res) => {
   const tep = await D.xuat();
+  // GET-ghi: nhật ký "xuat" (ai tải bản sao nội dung App, lúc nào) — nghiệm thu B; không đổi nội dung kho
   await D.ghiXuat(req.ndNguoi);
   res.set('Content-Disposition', `attachment; filename="noi-dung-app-${tep.xuat_luc.slice(0, 10)}.json"`);
   return res.json(tep);

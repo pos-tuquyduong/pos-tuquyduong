@@ -264,8 +264,15 @@ router.get('/export-all', authenticate, async (req, res) => {
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
     }
     if (co.some((x) => x.nd)) {   // ND-API-1: một trang = tệp Xuất nội dung App, mỗi ô ≤ 30.000 ký tự (chiaPhan của dọn thử)
-      const phan = chiaPhan(JSON.stringify(await xuatNoiDungApp()));
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(phan.map((du_lieu, i) => ({ phan: i + 1, du_lieu }))), TRANG_ND);
+      // lỗi của nội dung App KHÔNG được làm hỏng bản sao lưu dữ liệu POS (soát vòng 3): trang ghi dòng lỗi, phần POS vẫn xuất
+      let dong;
+      try {
+        dong = chiaPhan(JSON.stringify(await xuatNoiDungApp())).map((du_lieu, i) => ({ phan: i + 1, du_lieu }));
+      } catch (err) {
+        console.error('[export-all] nội dung App LỖI:', err.message);
+        dong = [{ phan: 0, du_lieu: '', loi: 'Chưa xuất được nội dung App — tải bản sao ở /admin › Xuất toàn bộ, hoặc thử lại sau' }];
+      }
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dong), TRANG_ND);
     }
 
     themTrangMeta(wb, BACKUP_TABLES.map(t => t.name).join(', '));

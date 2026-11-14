@@ -30,13 +30,13 @@ DOC_TU_CODE: ND-API-1 (server/nd/duong.js, xacThuc.js, tinh.js, duLieu.js, cauNo
 | `GET /nhap` | `nd_xem` | — | `so_ban` (bản đang chạy), `nhap[] { khoa, gia_tri, nguoi, luc, ban_goc }` |
 | `PUT /nhap` | `nd_sua` | `{ khoa, gia_tri, ban_goc }` — MỘT khoá / lần, ghi đè nháp của khoá đó | `khoa, luc` |
 | `DELETE /nhap/:khoa` | `nd_sua` | — | `khoa` (không có nháp đó → 404) |
-| `POST /cap-nhat` | `nd_cap_nhat` | `{ ban_goc, ghi_chu? }` | `so_ban, tu_ban (null), so_khoa` — bản mới = bản đang chạy + mọi nháp; xoá nháp |
+| `POST /cap-nhat` | `nd_cap_nhat` | `{ ban_goc, ghi_chu? }` (`ghi_chu` ≤ 500 ký tự) | `so_ban, tu_ban (null), so_khoa` — bản mới = bản đang chạy + mọi nháp; xoá nháp |
 | `GET /phien-ban` | `nd_xem` | — | `data[] { so_ban, ghi_chu, tom_tat, nguoi, luc, tu_ban, dang_chay }` (mới trước, KHÔNG kèm `gia_tri`) |
 | `GET /phien-ban/:so` | `nd_xem` | — | `ban { so_ban, gia_tri, ghi_chu, tom_tat, nguoi, luc, tu_ban, dang_chay }` |
-| `POST /quay-lai` | `nd_cap_nhat` | `{ so, ban_goc, ghi_chu? }` | `so_ban, tu_ban` — tạo bản MỚI cùng nội dung bản `so`, không xoá gì, nháp giữ nguyên |
+| `POST /quay-lai` | `nd_cap_nhat` | `{ so, ban_goc, ghi_chu? }` (`ghi_chu` ≤ 500 ký tự) | `so_ban, tu_ban` — tạo bản MỚI cùng nội dung bản `so`, không xoá gì, nháp giữ nguyên |
 | `POST /anh` | `nd_sua` | multipart, MỘT tệp ở trường `anh` | `ma, url, loai, kich_thuoc, moi` — `url` = `/api/nd/anh/<ma>`; trùng mã → ảnh cũ, `moi: false` |
 | `GET /xuat` | `nd_xuat_nhap` hoặc khoá sao lưu | — | tệp JSON (tải về): `{ dinh_dang: 1, xuat_luc, ban[], nhap[], anh[] { ma, loai, kich_thuoc, luc, du_lieu_base64 }, nhat_ky[] { nguoi, luc, viec, so_ban, so_khoa } }` |
-| `POST /nhap-toan-bo` | `nd_xuat_nhap` | nguyên tệp của `GET /xuat` (JSON, ≤ 50 MB) | `so_luong_ban, so_nhap, so_anh, so_nhat_ky` (số LƯỢNG đã nhập) — CHỈ khi kho trống (không bản, không nháp, không ảnh); tệp phải có đúng một bản đang chạy và đó là bản số lớn nhất |
+| `POST /nhap-toan-bo` | `nd_xuat_nhap` | nguyên tệp của `GET /xuat` (JSON, ≤ 50 MB) | `so_luong_ban, so_nhap, so_anh, so_nhat_ky` (số LƯỢNG đã nhập) — CHỈ khi kho trống (không bản, không nháp, không ảnh); tệp phải có đúng một bản đang chạy và đó là bản số lớn nhất; bản đang chạy + mọi nháp trong tệp ≤ 1 MB (như `PUT /nhap`) |
 
 ## Quy tắc
 - **Khoá** `[a-zA-Z0-9._-]`, 1–80 ký tự. **Giá trị**: chuỗi / số / đúng-sai / mảng / object (không `null`).
@@ -89,7 +89,7 @@ DOC_TU_CODE: ND-API-1 (server/nd/duong.js, xacThuc.js, tinh.js, duLieu.js, cauNo
     "KHOA_KHONG_HOP_LE": 400, "GIA_TRI_KHONG_HOP_LE": 400, "DU_LIEU_KHONG_HOP_LE": 400, "KHONG_CO_NHAP": 400, "ANH_KHONG_HOP_LE": 400,
     "QUA_LON": 413, "QUA_NHIEU_LAN": 429, "LOI_MAY_CHU": 500
   },
-  "gioi_han": { "khoa_toi_da": 80, "ban_toi_da_byte": 1048576, "anh_toi_da_byte": 512000, "nhap_toan_bo_toi_da_byte": 52428800, "sai_toi_da": 5, "khoa_phut": 15, "ve_gio": 12 }
+  "gioi_han": { "khoa_toi_da": 80, "ban_toi_da_byte": 1048576, "anh_toi_da_byte": 512000, "nhap_toan_bo_toi_da_byte": 52428800, "sai_toi_da": 5, "khoa_phut": 15, "ve_gio": 12, "ghi_chu_toi_da": 500 }
 }
 ```
 
