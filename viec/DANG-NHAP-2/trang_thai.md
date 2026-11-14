@@ -54,3 +54,16 @@ BV-TRAN-MUC, VS-XOA-O-GO, VS-429-PHIEN-CHET, VS-429-DA-VE-LOGIN, BV-NOI-BO-KIEM.
 - `POST /login` còn `catch` trả `err.message` thô ở 500 (lộ lỗi nội bộ, trái LUAT_XAY_APP §4) — thuộc vùng đang sửa nhưng chưa chạm ở việc này; xem mục Câu hỏi/đề xuất ở báo cáo.
 - Đường đổi mật khẩu / đặt lại mật khẩu (trong `auth.js` và trang Nhân viên) KHÔNG nằm trong phiếu — chưa kiểm xem có cần cùng giới hạn.
 - `thu_BH2.js` G1 đỏ oan trên kho nông (`git lỗi: cbbb809`) — máy mây mở dạng nông thì phải `--unshallow` trước khi chạy `npm test`.
+
+## Soát độc lập (/ra-soat, vòng 1) — NGUYÊN VĂN TÓM TẮT
+ĐẠT (có ghi chú nhẹ, không lỗi chặn). Agent chạy lại bài 47 đạt · 0 hỏng và đột biến BV-GIU-LUOT (bắt ở A1b); 22 đột biến còn lại chỉ đọc kết luận.
+NGHIỆM THU: 9/9 mục (A–I) có bằng chứng · mục thiếu: không.
+NGHI NGỜ nhẹ (đã ghi thành Phát hiện, không sửa):
+- (a) `req.ip` đúng khi chỉ MỘT tầng proxy trước POS (`server/index.js:57`, chú thích 54-56 ghi chưa kiểm số tầng của Render). Nếu có thêm tầng (vd Cloudflare)
+  thì mọi người chung vài IP và ngưỡng IP 20/15 phút thành khoá chung cả quán → CHỦ QUÁN/CHAT kiểm trên production trước khai trương.
+- (b) Kẻ dò từ rất nhiều IP có thể làm đầy 5000 mục và đẩy mục cũ (kể cả mục khoá của chính nó) ra ngoài — rủi ro thấp, nằm trong "chấp nhận" của phiếu F.
+- (c) Tài khoản khoá + đúng mật khẩu → 401 "vô hiệu" nhưng lượt vẫn tính (không gọi `dangNhapDung`) — chủ ý, ảnh hưởng nhỏ.
+- Đường song song ngoài Phạm vi cùng dạng "dò mật khẩu không giới hạn" (cần token): `PUT /password` (`server/routes/auth.js` ~157) và `datPinChuQuan` (`server/utils/pinChuQuan.js:41`).
+- Ca A1c / A3 phụ thuộc đồng hồ thật nhẹ (cần < 1 phút / < 30 giây từ lần thử đầu — thực tế vài giây).
+CHƯA SOÁT ĐƯỢC: hành vi trên Render thật (số tầng proxy, độ trễ bcrypt); hash cũ trong Turso (cost ≠ 10 làm thời gian băm giả lệch nhẹ).
+BÀI HỌC (agent đề xuất): K5 xác nhận số tầng proxy trước khi khoá theo IP · K4 rà các đường "xác minh mật khẩu" khác khi thêm giới hạn cho login.
