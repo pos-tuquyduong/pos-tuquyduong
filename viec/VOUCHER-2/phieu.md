@@ -188,6 +188,14 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
         trong việc này; chat ghi vào sổ việc sau.
      Rồi: /ra-soat lần 4 (chỉ phần Q22 + Q23 + mọi chỗ đổi từ lần 3) → /soat-bao-mat → cổng → báo cáo 7 mục. Đẩy nhánh sau mỗi bước lớn. -->
 
+<!-- Chủ quán 14.11 — Q24 (trạng thái 5e4a716):
+     Q24 ĐỒNG Ý đề xuất — mỗi voucher "theo món" (nhóm món / món chọn) chỉ giảm trên phần CÒN LẠI của chính các món đó: sau Flash / hạng / mã và sau
+        các voucher đã áp trước trên cùng món (voucher tiền lẫn voucher %). Còn 0 → báo rõ "Voucher <MÃ> không còn món để giảm", KHÔNG lưu đơn (như
+        các lỗi voucher khác; App nhận đúng cách báo lỗi voucher đang có). Voucher giảm cả đơn giữ như hiện nay. Bài đỏ trước với bộ số tính tay (món X
+        40.000 + món khác 100.000, hai voucher "Giảm 50.000đ cho món X" → bị chặn; bỏ voucher thứ hai → giảm đúng 40.000) + đột biến.
+     Rồi: đột biến đầy đủ → cổng `chay` → báo cáo 7 mục. KHÔNG gọi /ra-soat nữa (đã hết 3 vòng — chat soát phần Q24 lúc gộp). Đẩy nhánh sau mỗi
+        bước lớn. -->
+
 ## Bài thử đỏ
 Có — `cong_cu/thu_VOUCHER2.js` ĐỎ trên code gốc: đơn 2 voucher tiền + 1 voucher % → tổng đúng thứ tự; voucher thứ N+1 → từ chối; mã chung + voucher
 cùng đơn; voucher % giờ flash → từ chối, voucher tiền vẫn qua; voucher ship chỉ trừ phí giao; đơn có thẻ hạng / nạp / gói → mã chỉ tính phần món
