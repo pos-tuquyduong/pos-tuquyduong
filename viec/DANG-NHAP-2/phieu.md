@@ -44,6 +44,7 @@ Người ngoài không dò được mật khẩu và không đoán được tên
 - client/dist/**
 - cong_cu/thu_DANGNHAP2.js
 - kiem_tra_truoc_khi_giao.js
+- cong_cu/thu_NDAPI1.js
 - server/utils/ipKhach.js
 - server/index.js
 
@@ -67,6 +68,12 @@ Người ngoài không dò được mật khẩu và không đoán được tên
         Bài cũ của /api/kh và /api/nd (thu_KH…, thu_NDAPI1, thu_QCAPP1) vẫn xanh; đột biến có bắt (bỏ middleware, đặt middleware sau đường, tin XFF).
      Rồi: /ra-soat → /soat-bao-mat → cổng (gốc = commit gộp) → báo cáo 7 mục. Đẩy nhánh sau mỗi bước lớn. Chỉ sửa bằng Edit / Write.
      Ghi Phát hiện (KHÔNG làm): đổi mật khẩu (PUT /auth/password) và đặt PIN chủ quán chưa giới hạn sai — việc sau. -->
+
+<!-- Chủ quán 14.11 — câu hỏi A2 (trạng thái 5a72334):
+     ĐỒNG Ý — thêm cong_cu/thu_NDAPI1.js: CHỈ đổi hằng `<= 4` (dòng ~133, phép A2) thành `<= 10` (4 dòng ND-API-1 + QC-APP-1 + 6 dòng middleware vòng 2),
+        ghi chú cạnh hằng vì sao 10; giữ nguyên mọi phép khác của A2 (dòng cũ còn nguyên, đúng thứ tự, /api/nd trước cors). Không đổi gì khác trong file.
+     Phát hiện "gọi thẳng Render bỏ qua Cloudflare": Render đặt Cloudflare trước MỌI dịch vụ (kể cả *.onrender.com) — chấp nhận, ghi Phát hiện là đủ.
+     Rồi: /ra-soat → /soat-bao-mat → cổng → báo cáo 7 mục. Đẩy nhánh sau mỗi bước lớn. -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_DANGNHAP2.js` ĐỎ trên gốc: sai bao nhiêu lần cũng không bị chặn; tài khoản bị khoá + sai mật khẩu lộ câu riêng.
