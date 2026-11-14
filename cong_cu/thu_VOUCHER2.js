@@ -926,10 +926,10 @@ async function main() {
           o(ph)?.props.onChange(man.ev({ target: { value: v } }));
           await m.yen(10);
         }
-        const truoc = man.bao().length;
+        const truoc = man.bao().length, coO = !!o('Mã in trên bill');   // ô mã có trên form TRƯỚC khi lưu (lưu xong form đóng)
         form()?.props.onSubmit(man.ev());
         await m.doi(() => man.bao().length > truoc, 6000);
-        return { nut: !!nut, o: !!o('Mã in trên bill'), bao: man.bao().slice(truoc), ve: m.chu(m.cay()).slice(0, 160) };
+        return { nut: !!nut, o: coO, bao: man.bao().slice(truoc) };
       };
       const b = await bill(), s = sdtQ2();
       const a = await luuKhach(s, ' ' + b.code.toLowerCase() + ' ');
