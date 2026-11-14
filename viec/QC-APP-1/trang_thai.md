@@ -96,3 +96,7 @@ Sự cố: (a) soát độc lập tìm id trùng / sai kiểu ở PUT cả danh 
 GIT (git log --oneline -2): f545fa4a QC-APP-1: dòng SỐ CA đúng dạng · 35eed91d QC-APP-1: trang_thai.md, bằng chứng vòng sửa 1
 
 HEAD ĐÃ KIỂM: f545fa4a
+
+
+## Gộp (chat soát cuối 13.11, bàn 36): ĐẠT. Hợp đồng /api/kh giữ v16 (v15 dành VOUCHER-2 — gộp sau, chat chèn v15 trước v16, PHIEN_BAN giữ 16). Hai tab lưu cùng lúc → tab sau thắng: chấp nhận như các thẻ Cài đặt khác.
+HEAD ĐÃ KIỂM: 74ffb29
