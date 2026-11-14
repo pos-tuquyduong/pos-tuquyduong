@@ -323,3 +323,7 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài 
 - ✓ CỔNG CHẠY ĐẠT
 
 HEAD ĐÃ KIỂM: 60778e6b
+
+
+## Gộp (chat soát cuối 14.11, bàn 36): ĐẠT. Chủ quán biết: nút Lưu Phân quyền chạy lại → xem ô tick trước khi Lưu; KHÔNG tick "Quản lý phân quyền" cho Quản lý (vai trò có quyền đó tự sửa được quyền mình — việc sau). Trần Nhập toàn bộ 50 MB giữ; tên miền /admin hỏi App.
+HEAD ĐÃ KIỂM: 7637f12
