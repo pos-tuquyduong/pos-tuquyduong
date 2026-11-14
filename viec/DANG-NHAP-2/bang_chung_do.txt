@@ -30,4 +30,18 @@ chép BẢN MỚI cong_cu/thu_DANGNHAP2.js vào đó rồi `node cong_cu/thu_DAN
   ✗ I1 bộ kiểm chạy bài này
   22 đạt · 25 hỏng
 
-SỐ CA cong_cu/thu_DANGNHAP2.js: 47
+═══ VÒNG 2 (14.11.2026) — IP thật sau Cloudflare: cong_cu/thu_DANGNHAP2.js (thêm ca J0–J16) trên gốc cac85b4 (commit gộp main, chưa có ipKhach) ═══
+Cách chạy: git archive cac85b4 server client/src cong_cu kiem_tra_truoc_khi_giao.js vào thư mục nháp, node_modules nối symlink, chép BẢN MỚI bài thử vào, node cong_cu/thu_DANGNHAP2.js.
+  ✗ J1 hai khách sau CÙNG máy Cloudflare (XFF giống nhau, True-Client-IP khác): mỗi người đủ 5 lần sai (401)  — [[401,401,401,401,401],[429,429,429,429,429]]
+  ✗ J4 người thứ ba (IP thật khác, cùng máy Cloudflare) vẫn đăng nhập đúng vào được (200)  — [429,"QUA_NHIEU_LAN"]
+  ✗ J5 cùng True-Client-IP, XFF đổi mỗi lần: vẫn đếm CHUNG → lần 6 là 429  — [[401,401,401,401,401],401]
+  ✗ J6 chỉ có CF-Connecting-IP: vẫn lấy IP thật → lần 6 là 429 dù XFF khác  — [[401,401,401,401,401],401]
+  ✗ J7 có cả hai header: True-Client-IP được ưu tiên  — [429,429]
+  ✗ J8 IPv6 hợp lệ cũng được nhận làm IP thật  — [[401,401,401,401,401],401]
+  ✗ J13 /api/kh/menu (giuLuotMenu — đường cũ không sửa) đếm theo IP thật: người khác sau cùng máy Cloudflare vẫn 200  — [429,429,[200]]
+  ✗ J14 server/index.js: middleware ghi đè req.ip đứng SAU trust proxy, TRƯỚC app.use đầu tiên
+  ✗ J15 server/utils/ipKhach.js có hàm ipKhach(req)
+  ✗ J16 ipKhach: True-Client-IP > CF-Connecting-IP > req.ip; rác → req.ip
+  54 đạt · 10 hỏng        (sau vá: 64 đạt · 0 hỏng)
+
+SỐ CA cong_cu/thu_DANGNHAP2.js: 64

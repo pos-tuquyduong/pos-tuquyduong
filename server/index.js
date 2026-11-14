@@ -14,6 +14,7 @@ const cors = require('cors');
 const path = require('path');
 
 const { initDatabase } = require('./database');
+const { ipKhach } = require('./utils/ipKhach');
 const { getNow } = require('./utils/helpers');
 
 // Import routes
@@ -55,6 +56,11 @@ const PORT = process.env.PORT || 3000;
 // KH-API-1 (Q5): sau proxy của Render, req.ip phải là IP khách (giới hạn xin / nhận mã theo IP) — tin ĐÚNG một tầng proxy.
 // Số tầng proxy của Render máy chưa kiểm: lên production thì xem cột ip của pos_kh_lan_thu (nhận mã bill từ 2 mạng khác nhau).
 app.set('trust proxy', 1);
+// DANG-NHAP-2 vòng 2: sau Cloudflare, req.ip là IP máy Cloudflare — MỘT chỗ ở cửa vào ghi đè bằng IP thật (header Cloudflare); mọi đường dùng req.ip tự đúng.
+app.use((req, res, next) => {
+  Object.defineProperty(req, 'ip', { value: ipKhach(req), configurable: true, enumerable: true, writable: true });
+  next();
+});
 // ND-API-1: kho nội dung App KH — gắn TRƯỚC cors chung (origin '*'): router nd tự làm CORS chỉ hai tên miền App, thân, 404, lỗi
 app.use('/api/nd', require('./nd/duong'));
 

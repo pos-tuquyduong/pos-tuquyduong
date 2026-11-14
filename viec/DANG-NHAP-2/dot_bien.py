@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 AU, GH = 'server/routes/auth.js', 'server/utils/gioiHanDangNhap.js'
+IX, IP = 'server/index.js', 'server/utils/ipKhach.js'
 LG, AP, KT = 'client/src/pages/Login.jsx', 'client/src/utils/api.js', 'kiem_tra_truoc_khi_giao.js'
 BAI = 'thu_DANGNHAP2.js'
 LUOT = 'const luot = giuLuot(req.ip, username);'
@@ -43,6 +44,16 @@ DOT_BIEN = [
   ('VS-TEN-HOA-THUONG', [(GH, '.trim().toLowerCase()', '.trim()', 1)], r'✗ A6 '),
   ('BV-DON-QUA-HAN', [(GH, '  don(cap, now);\n  don(theoIp, now);\n', '', 1)], r'✗ (A4|F2) '),
   ('BV-TRAN-MUC', [(GH, '  if (map.size >= TRAN_MUC) map.delete(map.keys().next().value);\n', '', 1)], r'✗ F1 '),
+  # ── vòng 2: IP thật sau Cloudflare (ipKhach.js + MỘT middleware ở index.js) ──
+  ('BV-IP-THAT-MIDDLEWARE', [(IX, "Object.defineProperty(req, 'ip', { value: ipKhach(req), configurable: true, enumerable: true, writable: true });", 'void ipKhach;', 1)], r'✗ J1 '),
+  ('VS-IP-THAT-SAU-DUONG', [(IX, "app.use((req, res, next) => {\n  " + "Object.defineProperty(req, 'ip', { value: ipKhach(req), configurable: true, enumerable: true, writable: true });" + "\n  next();\n});\n", '', 1),
+                            (IX, "app.use('/api/nd', require('./nd/duong'));", "app.use('/api/nd', require('./nd/duong'));\napp.use((req, res, next) => {\n  " + "Object.defineProperty(req, 'ip', { value: ipKhach(req), configurable: true, enumerable: true, writable: true });" + "\n  next();\n});", 1)], r'✗ J14 '),
+  ('VS-IP-TIN-XFF', [(IP, "['true-client-ip', 'cf-connecting-ip']", "['x-forwarded-for', 'true-client-ip', 'cf-connecting-ip']", 1)], r'✗ J1 '),
+  ('VS-IP-CAT-DANH-SACH', [(IP, "typeof v === 'string' && net.isIP(v.trim()) !== 0) return v.trim();", "typeof v === 'string' && net.isIP(v.split(',')[0].trim()) !== 0) return v.split(',')[0].trim();", 1)], r'✗ (J11|J16) '),
+  ('VS-IP-BO-KIEM-HOP-LE', [(IP, "typeof v === 'string' && net.isIP(v.trim()) !== 0) return v.trim();", "typeof v === 'string' && v.trim() !== '') return v.trim();", 1)], r'✗ (J10|J16) '),
+  ('VS-IP-DAO-UU-TIEN', [(IP, "['true-client-ip', 'cf-connecting-ip']", "['cf-connecting-ip', 'true-client-ip']", 1)], r'✗ J7 '),
+  ('BV-IP-CF-CONNECTING', [(IP, "['true-client-ip', 'cf-connecting-ip']", "['true-client-ip']", 1)], r'✗ J6 '),
+  ('BV-IP-BO-IPV6', [(IP, "net.isIP(v.trim()) !== 0", "net.isIPv4(v.trim())", 1)], r'✗ J8 '),
   # ── giao diện + nối bộ kiểm ──
   ('VS-XOA-O-GO', [(LG, 'setError(err.message || ', "setPassword(''); setError(err.message || ", 1)], r'✗ G2 '),
   ('VS-429-PHIEN-CHET', [(AP, "  'USER_INACTIVE'\n];", "  'USER_INACTIVE',\n  'QUA_NHIEU_LAN'\n];", 1)], r'✗ G3 '),
