@@ -8,8 +8,10 @@ const jwt = require('jsonwebtoken');
 const { query, queryOne, run } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
+const { giuLuot, dangNhapDung } = require('../utils/gioiHanDangNhap');
 
 const router = express.Router();
+const BAM_GIA = bcrypt.hashSync('khong-ai-co-mat-khau-nay', 10);   // DANG-NHAP-2: tên không tồn tại vẫn chạy một lần bcrypt
 
 /**
  * POST /api/pos/auth/login
@@ -25,31 +27,36 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Tìm user
+    // DANG-NHAP-2: giữ lượt TRƯỚC khi so mật khẩu; quá giới hạn → 429 (kể cả khi gõ đúng)
+    const luot = giuLuot(req.ip, username);
+    if (luot.chan) {
+      return res.status(429).json({
+        error: `Gõ sai quá nhiều lần — thử lại sau ${luot.phut} phút`,
+        code: 'QUA_NHIEU_LAN'
+      });
+    }
+
+    // Tìm user. Không có user vẫn so với băm giả: thời gian phản hồi không lộ tên có thật.
     const user = await queryOne(
       'SELECT * FROM pos_users WHERE username = ?',
-      [username]
+      [String(username)]
     );
+    const validPassword = await bcrypt.compare(String(password), user ? String(user.password) : BAM_GIA);
 
-    if (!user) {
-      return res.status(401).json({ 
-        error: 'Tên đăng nhập hoặc mật khẩu không đúng' 
+    if (!user || !validPassword) {
+      return res.status(401).json({
+        error: 'Tên đăng nhập hoặc mật khẩu không đúng'
       });
     }
 
+    // Chỉ người biết ĐÚNG mật khẩu mới được biết tài khoản bị khoá
     if (!user.is_active) {
-      return res.status(401).json({ 
-        error: 'Tài khoản đã bị vô hiệu hóa' 
+      return res.status(401).json({
+        error: 'Tài khoản đã bị vô hiệu hóa'
       });
     }
 
-    // Kiểm tra password
-    const validPassword = bcrypt.compareSync(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ 
-        error: 'Tên đăng nhập hoặc mật khẩu không đúng' 
-      });
-    }
+    dangNhapDung(req.ip, username);
 
     // Cập nhật last_login
     await run(
