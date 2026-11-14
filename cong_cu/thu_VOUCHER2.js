@@ -1203,6 +1203,16 @@ async function main() {
         d?.status === 200 && p2.status === 400 && p2.code === 'VOUCHER_DA_DUNG' && !(await mot("SELECT id FROM pos_phien_thanh_toan WHERE than LIKE ? AND trang_thai = 'cho'", [`%${v2}%`])),
       `${d && moTa(d)} / ${moTa(p2)}`);
     });
+    await chay('Q16f', async () => {   // soát 14.11 lần 3: đua PHIÊN ↔ PHIÊN — phiên A chen vào lúc phiên B đã qua phép ngoài giao dịch, mở giao dịch tạo phiên
+      const a = await khach(), b = await khach(), v = await phat(a.sdt, 'tien', 10000);   // voucher chia sẻ được — B cũng gửi được
+      let pA = null;
+      co.mocTruocTx = async () => { pA = await phienCk(a.sdt, [v]); imLang(); };
+      const pB = await phienCk(b.sdt, [v]);
+      co.mocTruocTx = null;
+      const nCho = await so("SELECT COUNT(*) AS n FROM pos_phien_thanh_toan WHERE than LIKE ? AND trang_thai = 'cho'", [`%${v}%`]);
+      k('Q16f đua hai PHIÊN chuyển khoản cùng voucher: phiên chen trước 200, phiên kia 400 VOUCHER_DANG_GIU (phép TRONG giao dịch tạo phiên); đúng 1 phiên chờ',
+        pA?.status === 200 && pB.status === 400 && pB.code === 'VOUCHER_DANG_GIU' && nCho === 1, `${pA && moTa(pA)} / ${moTa(pB)} · phiên chờ ${nCho}`);
+    });
   }
 
   // ═════════════════════════════════════════════════════════════════════════

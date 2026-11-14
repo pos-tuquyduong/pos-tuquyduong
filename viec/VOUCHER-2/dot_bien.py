@@ -76,7 +76,9 @@ DOT_BIEN = [
   ('VS-V2-KHACH-CU-SO-NHAM', [(S, "REPLACE(created_at, ' ', 'T') >= REPLACE(?, ' ', 'T')", "REPLACE(created_at, ' ', 'T') > REPLACE(?, ' ', 'T')", 1)], r'✗ Q2a2 ', 'V2'),
   ('VS-V2-KHACH-CU-CHUOI-THO', [(S, "REPLACE(created_at, ' ', 'T') >= REPLACE(?, ' ', 'T')", "created_at >= ?", 1)], r'✗ Q2a3 ', 'V2'),
   # ── signup-codes.js kiemKhachLanDau Q18 (Q21 14.11): hồ sơ ≤ 30 phút trước bill của chính SĐT, chưa có đơn trước ──
-  ('BV-V2-Q18-MOC', [(S, 'if (!Number(kh.sau_bill) && !(Number(kh.trong_moc) && await laDonDauCuaKhach(phone, dong))) {', 'if (!Number(kh.sau_bill)) {', 1)], r'✗ Q18a ', 'V2'),
+  # ── giuCho.js taoPhien: vế "phiên khác vừa giữ" đọc lại trong giao dịch (soát 14.11 lần 3 — đột biến này từng SỐNG khi chưa có Q16f) ──
+  ('BV-V2-GIU-PHIEN-KHAC', [('server/utils/giuCho.js', 'if (giuKhac.length) return { huy: true', 'if (false) return { huy: true', 1)], r'✗ Q16f ', 'V2'),
+  ('BV-V2-Q18-MOC',[(S, 'if (!Number(kh.sau_bill) && !(Number(kh.trong_moc) && await laDonDauCuaKhach(phone, dong))) {', 'if (!Number(kh.sau_bill)) {', 1)], r'✗ Q18a ', 'V2'),
   ('VS-V2-Q18-KHONG-TRAN', [(S, '!(Number(kh.trong_moc) && await laDonDauCuaKhach', '!(await laDonDauCuaKhach', 1)], r'✗ Q18c ', 'V2'),
   ('VS-V2-Q18-MOC-NGAT', [(S, "REPLACE(created_at, ' ', 'T') >= ? AS trong_moc", "REPLACE(created_at, ' ', 'T') > ? AS trong_moc", 1)], r'✗ Q18b ', 'V2'),
   ('VS-V2-Q18-MOC-PHUT', [(S, 'ms - PHUT_HO_SO_TRUOC_BILL * 60000', 'ms - (PHUT_HO_SO_TRUOC_BILL + 1) * 60000', 1)], r'✗ Q18c ', 'V2'),
