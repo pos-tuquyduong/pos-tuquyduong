@@ -1067,6 +1067,108 @@ async function main() {
   });
 
   // ═════════════════════════════════════════════════════════════════════════
+  muc('[Q16] Phiên chờ chuyển khoản GIỮ voucher: đơn / phiên khác không dùng được; huỷ / hết hạn → nhả; voucher hết hạn lúc đang giữ vẫn chốt được (chủ quán 13.11)');
+  {
+    const phienCk = (sdt, vs, cach = 'ck_tay') => goi('POST', '/pos/thanh-toan/phien', { don: { customer_phone: sdt, customer_name: 'K', items: [mon(0)], vouchers: vs }, cach });
+    const tay = (id) => goi('POST', `/pos/thanh-toan/phien/${id}/xac-nhan-tay`, { ly_do: 'Khách đã chuyển khoản — thử Q16' });
+    const trongVi = async (kh, ma) => ({ quay: ((await goi('GET', `/pos/loyalty/vouchers/${kh.sdt}`)).data || []).some((v) => v.code === ma),
+      app: ((await goiTk(kh.tk, 'GET', '/kh/voucher')).data || []).some((v) => v.code === ma) });
+    await chay('Q16a', async () => {
+      const a = await khach(), v = await phat(a.sdt, 'tien', 10000);
+      const p = await phienCk(a.sdt, [v]);
+      const tr = await soDon();
+      const r = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [v] }, 40000);
+      const rOMa = await ban({ customer_phone: a.sdt, items: [mon(0)], discount_code: v }, 40000);
+      const p2 = await phienCk(a.sdt, [v], 'tien_mat');
+      const t = await tinhThu({ customer_phone: a.sdt, items: [mon(0)], vouchers: [v] });
+      const vi = await trongVi(a, v);
+      k('Q16a phiên ck_tay đang chờ giữ voucher: đơn quầy (danh sách + ô mã cũ) và phiên khác → 400 VOUCHER_DANG_GIU, không đơn; tinh-thu báo mềm;'
+        + ' ví quầy / App không hiện', p.status === 200 && [r, rOMa, p2].every((x) => x.status === 400 && x.code === 'VOUCHER_DANG_GIU') && (await soDon()) === tr
+        && (t.voucher_loi || []).some((x) => x.code === 'VOUCHER_DANG_GIU') && !vi.quay && !vi.app && (await grant(v))?.status === 'available',
+      `${moTa(p)} / ${moTa(r)} / ${moTa(rOMa)} / ${moTa(p2)} · ${JSON.stringify(t.voucher_loi)} · ${JSON.stringify(vi)}`);
+      const c = p.phien ? await tay(p.phien.id) : {};
+      k('Q16a CHÍNH phiên giữ chốt (xác nhận tay) → đơn 40.000, voucher used đúng đơn', c.status === 200 && (await grant(v))?.status === 'used'
+        && Number((await grant(v))?.used_order_id) === Number(c.order?.id), moTa(c));
+    });
+    await chay('Q16b', async () => {
+      const a = await khach(), v = await phat(a.sdt, 'tien', 10000);
+      const p = await phienCk(a.sdt, [v]);
+      if (p.phien) await goi('POST', `/pos/thanh-toan/phien/${p.phien.id}/huy`, {});
+      const r = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [v] }, 40000);
+      const b = await khach(), v2 = await phat(b.sdt, 'tien', 10000);
+      const p2 = await phienCk(b.sdt, [v2]);
+      if (p2.phien) await db.run("UPDATE pos_phien_thanh_toan SET het_han = '2026-01-01T00:00:00' WHERE id = ?", [p2.phien.id]);
+      const vi2 = await trongVi(b, v2);
+      const r2 = await ban({ customer_phone: b.sdt, items: [mon(0)], vouchers: [v2] }, 40000);
+      k('Q16b phiên huỷ → nhả (đơn khác dùng được); phiên hết hạn → nhả (ví hiện lại, đơn dùng được)', p.status === 200 && r.status === 200 && p2.status === 200
+        && vi2.quay && vi2.app && r2.status === 200 && (await grant(v2))?.status === 'used', `${moTa(r)} / ${moTa(r2)} · ${JSON.stringify(vi2)}`);
+    });
+    await chay('Q16c', async () => {
+      const a = await khach(), v = await phat(a.sdt, 'tien', 10000);
+      const p = await phienCk(a.sdt, [v]);
+      const homQua = addDaysToDateString(getToday(), -1);
+      await db.run('UPDATE pos_discount_codes SET valid_to = ? WHERE UPPER(code) = UPPER(?)', [homQua, v]);
+      await db.run('UPDATE pos_voucher_grants SET expires_at = ? WHERE UPPER(code) = UPPER(?)', [homQua, v]);
+      const c = p.phien ? await tay(p.phien.id) : {};
+      k('Q16c voucher HẾT HẠN trong lúc phiên đang giữ → tiền về (xác nhận tay) vẫn chốt: đơn 40.000, voucher used', p.status === 200 && c.status === 200
+        && Math.round((await mot('SELECT total FROM pos_orders WHERE id = ?', [c.order?.id]))?.total) === 40000 && (await grant(v))?.status === 'used', moTa(c));
+      const b = await khach(), v2 = await phat(b.sdt, 'tien', 10000);
+      await db.run('UPDATE pos_discount_codes SET valid_to = ? WHERE UPPER(code) = UPPER(?)', [homQua, v2]);
+      const r = await ban({ customer_phone: b.sdt, items: [mon(0)], vouchers: [v2] }, 40000);
+      k('Q16c K5: voucher hết hạn KHÔNG giữ (đơn quầy thường) → vẫn 400 VOUCHER_HET_HAN', r.status === 400 && r.code === 'VOUCHER_HET_HAN', moTa(r));
+    });
+    await chay('Q16d', async () => {   // đua: phiên chen vào giữa lúc đơn quầy đã kiểm xong và lúc mở giao dịch
+      const a = await khach(), v = await phat(a.sdt, 'tien', 10000);
+      let p = null;
+      co.mocTruocTx = async () => { p = await phienCk(a.sdt, [v]); imLang(); };
+      const r = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [v] }, 40000);
+      co.mocTruocTx = null;
+      const c = p?.phien ? await tay(p.phien.id) : {};
+      k('Q16d đua — phiên chen trước giao dịch đơn quầy: đơn quầy 400 VOUCHER_DANG_GIU (phép trong giao dịch); phiên chốt được', p?.status === 200
+        && r.status === 400 && r.code === 'VOUCHER_DANG_GIU' && c.status === 200 && (await grant(v))?.status === 'used', `${p && moTa(p)} / ${moTa(r)} / ${moTa(c)}`);
+      const b = await khach(), v2 = await phat(b.sdt, 'tien', 10000);
+      let d = null;
+      co.mocTruocTx = async () => { d = await ban({ customer_phone: b.sdt, items: [mon(0)], vouchers: [v2] }, 40000); imLang(); };
+      const p2 = await phienCk(b.sdt, [v2]);
+      co.mocTruocTx = null;
+      k('Q16d đua ngược — đơn quầy chen trước giao dịch tạo phiên: đơn 200, phiên 400 VOUCHER_DA_DUNG (không giữ voucher đã tiêu → không thu tiền oan)',
+        d?.status === 200 && p2.status === 400 && p2.code === 'VOUCHER_DA_DUNG' && !(await mot("SELECT id FROM pos_phien_thanh_toan WHERE than LIKE ? AND trang_thai = 'cho'", [`%${v2}%`])),
+      `${d && moTa(d)} / ${moTa(p2)}`);
+    });
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  muc('[Q17] MỘT hàm "voucher còn dùng được" cho ví (quầy + App) và lúc bán — dữ liệu lệch không còn cảnh chip hiện mà máy chủ từ chối (chủ quán 13.11)');
+  await chay('Q17', async () => {
+    const a = await khach();
+    const vi = async (all) => ((await goi('GET', `/pos/loyalty/vouchers/${a.sdt}${all ? '?all=1' : ''}`)).data || []);
+    const viApp = async () => ((await goiTk(a.tk, 'GET', '/kh/voucher')).data || []);
+    const ca = [];
+    const lech = async (ten, sua, ma) => {
+      const v = await phat(a.sdt, 'tien', 10000);
+      await sua(v);
+      const coQuay = (await vi()).some((x) => x.code === v), coApp = (await viApp()).some((x) => x.code === v);
+      const r = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [v] }, 40000);
+      ca.push({ ten, coQuay, coApp, ban: r.status, code: r.code, dung: !coQuay && !coApp && r.status === 400 && r.code === ma });
+    };
+    const mai = addDaysToDateString(getToday(), 1), homQua = addDaysToDateString(getToday(), -1);
+    await lech('grant used, lượt 0', (v) => db.run("UPDATE pos_voucher_grants SET status = 'used' WHERE code = ?", [v]), 'VOUCHER_DA_DUNG');
+    await lech('mã hết hạn, ví còn hạn', (v) => db.run('UPDATE pos_discount_codes SET valid_to = ? WHERE code = ?', [homQua, v]), 'VOUCHER_HET_HAN');
+    await lech('mã chưa tới ngày', (v) => db.run('UPDATE pos_discount_codes SET valid_from = ? WHERE code = ?', [mai, v]), 'VOUCHER_HET_HAN');
+    await lech('hết lượt dùng', (v) => db.run('UPDATE pos_discount_codes SET used_count = 1, usage_limit = 1 WHERE code = ?', [v]), 'VOUCHER_DA_DUNG');
+    k('Q17a dữ liệu lệch (grant used / mã hết hạn / chưa tới ngày / hết lượt) → ví quầy + App KHÔNG hiện và lúc bán từ chối đúng mã — cùng một phép',
+      ca.every((x) => x.dung), JSON.stringify(ca));
+    const vt = await phat(a.sdt, 'tien', 10000);
+    const coVt = (await vi()).some((x) => x.code === vt) && (await viApp()).some((x) => x.code === vt);
+    const tat = await vi(true);
+    k('Q17b K5: voucher bình thường → ví quầy + App hiện; ?all=1 vẫn trả mọi voucher kèm status suy từ CÙNG phép (used / expired)', coVt
+      && tat.filter((x) => x.status === 'used').length >= 2 && tat.filter((x) => x.status === 'expired').length >= 2
+      && tat.find((x) => x.code === vt)?.status === 'available', JSON.stringify(tat.map((x) => [x.code, x.status])));
+    const rv = await ban({ customer_phone: a.sdt, items: [mon(0)], vouchers: [vt] }, 40000);
+    k('Q17b K5: voucher bình thường bán được (40.000)', rv.status === 200 && (await tongDon(rv)) === 40000, moTa(rv));
+  });
+
+  // ═════════════════════════════════════════════════════════════════════════
   muc('[K5] Không đổi: đơn không voucher, mã chung trên đơn chỉ món, đơn lấy từ gói + voucher');
   await chay('K5', async () => {
     const a = await khach();
