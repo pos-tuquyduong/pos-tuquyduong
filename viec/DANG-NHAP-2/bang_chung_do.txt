@@ -51,3 +51,6 @@ Bài đổi J7 + J16 (đảo thứ tự: CF-Connecting-IP > True-Client-IP). Ch�
   62 đạt · 2 hỏng        (sau vá f90085f: 64 đạt · 0 hỏng)
 
 SỐ CA cong_cu/thu_DANGNHAP2.js: 64
+
+thu_NDAPI1.js: chỉ đổi hằng A2 `<= 4` → `<= 10` (chủ quán duyệt 14.11, phiếu "Chủ quán 14.11 — câu hỏi A2"). Trên gốc cac85b4 bản mới XANH (gốc chỉ thêm 4 dòng) — bài đổi để chịu middleware vòng 2, không phải bài đỏ.
+SỐ CA cong_cu/thu_NDAPI1.js: 89
