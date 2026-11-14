@@ -919,19 +919,18 @@ async function main() {
         const m = man.dung(KH, {}, ['Customers']);
         const nut = m.tim((n) => n.type === 'button' && m.chu(n).includes('Thêm khách'))[0];
         nut?.props.onClick();
-        await m.doi(() => m.tim((n) => n.type === 'form').length > 0);
+        const form = () => m.tim((n) => n.type === 'form' && m.chu(n).includes('Mã trên bill (nếu có)'))[0];   // màn còn form Tìm — chọn đúng form Thêm khách
+        await m.doi(() => !!form());
         const o = (ph) => m.tim((n) => n.type === 'input' && String(n.props.placeholder || '').startsWith(ph))[0];
         for (const [ph, v] of [['0901234567', sdt], ['Nguyễn Thị A', 'Khách ' + sdt], ['Mã in trên bill', ma]]) {   // như gõ thật: mỗi ô một nhịp vẽ lại
           o(ph)?.props.onChange(man.ev({ target: { value: v } }));
           await m.yen(10);
         }
         const truoc = man.bao().length;
-        m.tim((n) => n.type === 'form')[0]?.props.onSubmit(man.ev());
+        form()?.props.onSubmit(man.ev());
         await m.doi(() => man.bao().length > truoc, 6000);
         return { nut: !!nut, o: !!o('Mã in trên bill'), bao: man.bao().slice(truoc), ve: m.chu(m.cay()).slice(0, 160) };
       };
-      const t0 = Date.now(), thu = await goi('POST', '/pos/registrations', { phone: sdtQ2(), name: 'Thử', requested_product: 'Nước ép', requested_cycles: 1 });
-      noiLai(); console.log('DÒ registrations', moTa(thu), Date.now() - t0, 'ms');
       const b = await bill(), s = sdtQ2();
       const a = await luuKhach(s, ' ' + b.code.toLowerCase() + ' ');
       const g = await grantBill(b);
