@@ -117,7 +117,7 @@ function mocHoSoTruocBill(issuedAt) {
 }
 async function laDonDauCuaKhach(phone, dong) {
   if (!dong.order_customer_phone || normalizePhone(dong.order_customer_phone) !== phone) return false;
-  return !(await queryOne('SELECT id FROM pos_orders WHERE customer_phone = ? AND id < ? LIMIT 1', [phone, dong.order_id]));
+  return !(await queryOne("SELECT id FROM pos_orders WHERE customer_phone = ? AND id < ? AND status != 'cancelled' LIMIT 1", [phone, dong.order_id]));   // Q23: đơn đã huỷ không tính
 }
 async function kiemKhachLanDau(phone, dong) {
   const issuedAt = dong.issued_at;

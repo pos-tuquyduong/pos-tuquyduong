@@ -20,15 +20,21 @@ const ID_THE_TU = -1000000;
 const batDiem = (d) => d.tich_diem == null || Number(d.tich_diem) !== 0;
 
 /**
- * DIEM-MON-1 — lúc bán: phần tiền hàng `tienHang` (total − phí giao) thuộc các dòng BẬT điểm. Cùng quy tắc chia theo dòng của
- * utils/tienDaTra.js tienDaTraTheoDong: giá dòng = (giá flash || giá hạng || giá) × số lượng; khoản giảm cấp đơn (mã cả đơn, mã 1 món) chia theo
- * tỷ lệ; làm tròn xuống. Không dòng nào có giá (đơn chỉ lấy từ gói) → 0. Lưu vào pos_orders.tien_hang_diem — đổi công tắc sau không đổi đơn cũ.
+ * DIEM-MON-1 — lúc bán: phần tiền hàng `tienHang` (total − phí giao) thuộc các dòng BẬT điểm. Giá dòng = (giá flash || giá hạng || giá) × số
+ * lượng; khoản giảm cấp đơn (mã cả đơn, mã 1 món) chia theo tỷ lệ; làm tròn xuống. Không dòng nào có giá (đơn chỉ lấy từ gói) → 0. Lưu vào
+ * pos_orders.tien_hang_diem — đổi công tắc sau không đổi đơn cũ.
+ * VOUCHER-2 (Q22, chủ quán 14.11): `giamMonThuong` = cờ giam_mon_thuong của đơn (cùng luật Q7 với utils/tienDaTra.js tienDaTraTheoDong) — dòng gói /
+ * thẻ / nạp (product_id < 0) tính ĐỦ giá, phần còn lại của tienHang chia trên món thường. Mặc định false = cách chia cũ (đơn trước VOUCHER-2).
  */
-const tienHangDiem = (dongDon, tienHang) => {
+const tienHangDiem = (dongDon, tienHang, giamMonThuong = false) => {
   const gia = dongDon.map((d) => Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0) * Number(d.quantity));
-  const tong = gia.reduce((a, b) => a + b, 0);
-  const bat = gia.reduce((t, g, i) => t + (batDiem(dongDon[i]) ? g : 0), 0);
-  return tong > 0 ? Math.floor((bat * tienHang) / tong) : 0;   // bat ≤ tong → kết quả ≤ tienHang
+  const du = dongDon.map((d) => giamMonThuong && Number(d.product_id) < 0);   // dòng không nhận giảm → đủ giá
+  const cong = (lay) => gia.reduce((t, g, i) => t + (lay(i) ? g : 0), 0);
+  const tong = cong(() => true), bat = cong((i) => batDiem(dongDon[i]));
+  if (!du.some(Boolean)) return tong > 0 ? Math.floor((bat * tienHang) / tong) : 0;   // bat ≤ tong → kết quả ≤ tienHang (y cách cũ)
+  const tongDu = cong((i) => du[i]), batDu = cong((i) => du[i] && batDiem(dongDon[i]));
+  const tongMon = tong - tongDu, traMon = Math.max(0, Math.min(tong, tienHang) - tongDu);   // như tienDaTraTheoDong
+  return Math.min(Math.max(0, tienHang), batDu + (tongMon > 0 ? Math.floor(((bat - batDu) * traMon) / tongMon) : 0));
 };
 
 /**

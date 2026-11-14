@@ -991,7 +991,7 @@ async function taoDon(req, res, phien = null) {
     // Đọc cấu hình + tính điểm + tính hạn TRƯỚC khi mở tx. Trong tx chỉ còn 1 INSERT đã kiểm sẵn
     // → một lỗi điểm KHÔNG BAO GIỜ rollback được một ca bán thật.
     let diemTao = null;
-    const tienHangDiemDon = tienHangDiem(orderItems, total - phiKhachTra);   // DIEM-MON-1: lưu vào đơn — mọi lối cộng / trừ điểm đọc số này
+    const tienHangDiemDon = tienHangDiem(orderItems, total - phiKhachTra, true);   // DIEM-MON-1: lưu vào đơn — mọi lối cộng / trừ điểm đọc số này; Q22: đơn mới giam_mon_thuong = 1
     try {
       // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
       // P22-23: chỉ đơn THU ĐỦ lúc tạo (`finalPaymentStatus` máy chủ tự quyết theo nợ, ở trên) — đơn còn nợ cộng ở pay-debt khi thu đủ.
