@@ -82,15 +82,27 @@ function khungManHinh(cong) {
     'logoCache': 'module.exports = { getLogo: async () => null };',
     'thongBaoKho': 'const b = (k) => (...a) => { globalThis.__V2_BAO.push([k, a.map((x) => (x && x.message) || String(x)).join(" · ")]); };'
       + ' module.exports = { baoXong: b("xong"), baoLoi: b("loi"), baoLoiTu: b("loi"), lyDoLoi: (e) => (e && e.message) || "", dangKy: () => () => {}, laySnapshot: () => [], bo: () => {} };' };
-  const GOI_RONG = 'module.exports = new Proxy({}, { get: (_, k) => k === "__esModule" ? undefined : String(k).startsWith("use")'
-    + ' ? () => (k === "useSearchParams" ? [new URLSearchParams(), () => {}] : () => {}) : Object.defineProperty(function () { return null; }, "name", { value: "Goi_" + String(k) }) });';
+  // Vỏ gói ngoài: đúng các tên file nhập (đọc từ câu import của file nhập) — esbuild chép thuộc tính của module CommonJS, không đọc được Proxy.
+  const tenNhap = (file, goi) => {
+    let s = ''; try { s = fs.readFileSync(file, 'utf8'); } catch { /* — */ }
+    const e = goi.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+    const ds = new Set();
+    for (const m of s.matchAll(new RegExp(`import\\s+([\\s\\S]*?)\\s+from\\s+['"]${e}['"]`, 'g'))) {
+      const nhom = m[1].match(/\{([^}]*)\}/);
+      if (nhom) nhom[1].split(',').map((x) => x.trim().split(/\s+as\s+/)[0]).filter(Boolean).forEach((x) => ds.add(x));
+    }
+    return [...ds];
+  };
+  const GOI_RONG = (ten) => 'const vo = (k) => Object.defineProperty(function () { return null; }, "name", { value: "Goi_" + k });'
+    + ' const ham = (k) => k.startsWith("use") ? () => (k === "useSearchParams" ? [new URLSearchParams(), () => {}] : () => {}) : vo(k);'
+    + ` module.exports = { __esModule: true, default: vo("default"), ${ten.map((t) => `${JSON.stringify(t)}: ham(${JSON.stringify(t)})`).join(', ')} };`;
   const vo = { name: 'v2', setup(b) {
     b.onResolve({ filter: /\.css$/ }, () => ({ path: 'css', namespace: 'v2' }));
     b.onResolve({ filter: /^react(\/jsx-runtime|\/jsx-dev-runtime)?$/ }, () => ({ path: 'react', namespace: 'v2' }));
     b.onResolve({ filter: /(AuthContext|ManKhach\/MaGhep|logoCache|thongBaoKho(\.js)?)$/ }, (a) => ({ path: Object.keys(VO).find((x) => a.path.includes(x)), namespace: 'v2' }));
-    b.onResolve({ filter: /^[^./]/ }, () => ({ path: 'goi', namespace: 'v2' }));
+    b.onResolve({ filter: /^[^./]/ }, (a) => ({ path: 'goi:' + tenNhap(a.importer, a.path).join(','), namespace: 'v2' }));
     b.onLoad({ filter: /.*/, namespace: 'v2' }, (a) => ({ loader: 'js', contents: a.path === 'css' ? '' : a.path === 'react' ? 'module.exports = globalThis.__V2_REACT;'
-      : a.path === 'goi' ? GOI_RONG : VO[a.path] }));
+      : a.path.startsWith('goi:') ? GOI_RONG(a.path.slice(4).split(',').filter(Boolean)) : VO[a.path] }));
   } };
   const fetchGoc = globalThis.fetch;
   globalThis.fetch = (u, o) => fetchGoc(typeof u === 'string' && u.startsWith('/') ? `http://127.0.0.1:${cong}${u}` : u, o);
@@ -102,7 +114,8 @@ function khungManHinh(cong) {
   const nap = async (src, rel, tk) => {
     token = tk;
     const kq = await esbuild.build({ entryPoints: [path.join(src, ...rel)], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic',
-      keepNames: true, logLevel: 'silent', define: { 'import.meta.env': '{}' }, plugins: [vo] });
+      keepNames: true, logLevel: 'silent', define: { 'import.meta.env': '{}' }, plugins: [vo] })
+      .catch((e) => { throw new Error('gói ' + rel.join('/') + ': ' + (e.errors || []).map((x) => `${x.text} @${x.location?.file}:${x.location?.line}`).join(' | ')); });
     const m = { exports: {} };
     new Function('module', 'exports', 'require', kq.outputFiles[0].text)(m, m.exports, require);
     return m.exports.default;
