@@ -20,7 +20,7 @@ S, DC, ST = 'server/routes/signup-codes.js', 'server/routes/discount-codes.js', 
 CH, TJ = 'client/src/utils/hoaDon.js', 'client/src/pages/BanHang/tinh.js'
 CV, KJ = 'client/src/pages/BanHang/ChipVoucher.jsx', 'client/src/pages/Customers.jsx'
 DT = 'server/utils/diemThat.js'
-BM, MV, N26 ='client/src/pages/BanHang/BanHangMoi.jsx', 'client/src/pages/CaiDat/MauVoucher.jsx', 'server/nang_cap/026_voucher.js'
+BM, MV, N26 = 'client/src/pages/BanHang/BanHangMoi.jsx', 'client/src/pages/CaiDat/MauVoucher.jsx', 'server/nang_cap/026_voucher.js'
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
 DOT_BIEN = [
