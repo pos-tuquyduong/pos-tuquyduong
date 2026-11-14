@@ -928,14 +928,14 @@ async function main() {
         const truoc = man.bao().length;
         m.tim((n) => n.type === 'form')[0]?.props.onSubmit(man.ev());
         await m.doi(() => man.bao().length > truoc, 6000);
-        return { o: !!o('Mã in trên bill'), bao: man.bao().slice(truoc) };
+        return { nut: !!nut, o: !!o('Mã in trên bill'), bao: man.bao().slice(truoc), ve: m.chu(m.cay()).slice(0, 160) };
       };
       const b = await bill(), s = sdtQ2();
       const a = await luuKhach(s, ' ' + b.code.toLowerCase() + ' ');
       const g = await grantBill(b);
       k('Q2k Thêm khách (màn thật) có ô "Mã trên bill" → lưu khách (hồ sơ tạo SAU bill) rồi nhận mã: 1 grant khach_moi đúng SĐT, báo xong nêu mã voucher mới',
         a.o && !!(await mot('SELECT id FROM pos_customers WHERE phone = ?', [s])) && !!g && g.customer_phone === s
-        && a.bao.some(([kq, c]) => kq === 'xong' && c.includes(g.code)), JSON.stringify(a.bao));
+        && a.bao.some(([kq, c]) => kq === 'xong' && c.includes(g.code)), JSON.stringify(a));
       const s2k = sdtQ2();
       const a2 = await luuKhach(s2k, 'KHONGCO1');
       k('Q2k mã trên bill sai → khách VẪN được lưu, báo lỗi nêu lý do máy chủ (không phát gì)', !!(await mot('SELECT id FROM pos_customers WHERE phone = ?', [s2k]))
