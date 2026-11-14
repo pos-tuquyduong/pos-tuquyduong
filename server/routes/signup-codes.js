@@ -23,7 +23,7 @@ const { authenticate, checkPermission, authenticateServiceOrUser } = require('..
 const { loiMayChu } = require('./kh/loi');
 const { tienTinhDiem, truDiemHoan } = require('../utils/diemThat'); // DIEM-THAT-1: điểm gốc mã bill theo tiền khách trả thật; NAP-1: trừ phần đã trả vào tài khoản
 const { docDuLieuNhanDiem, tinhDiemNhanMa } = require('../utils/nhanDiem'); // HD-1: cùng hàm với hoá đơn
-const { phatVoucher, moTaVoucher, laPhanTram } = require('../utils/voucherCode'); // VOUCHER-2 (Q2): mã bill → voucher theo mẫu
+const { phatVoucher, moTaVoucher, laPhanTram, laShip } = require('../utils/voucherCode'); // VOUCHER-2 (Q2): mã bill → voucher theo mẫu
 
 const router = express.Router();
 
@@ -405,7 +405,10 @@ async function nhanMaUuDai(req, res) {
         voucher_code: phat.code,   // VOUCHER-2: mã MỚI trong ví tài khoản (không còn là mã in bill)
         discount_type: laPhanTram(mau.kieu) ? 'percent' : 'fixed',
         discount_value: Number(mau.gia_tri),
-        scope: 'order',
+        // Loại theo MẪU thật (vòng sửa 1, lỗi soát (4) — từng viết cứng 'order'): ship → 'ship'; nhóm / món chọn → 'item'; tất cả → 'order'.
+        scope: laShip(mau.kieu) ? 'ship' : (mau.ap_dung || 'tat_ca') !== 'tat_ca' ? 'item' : 'order',
+        kieu: mau.kieu,
+        ap_dung: laShip(mau.kieu) ? 'tat_ca' : mau.ap_dung || 'tat_ca',
         valid_to: phat.het_han,
         mo_ta: moTaVoucher({ ...mau, het_han: phat.het_han }),
       },
