@@ -203,6 +203,16 @@ async function main() {
     const d7 = await thu('admin', 'admin123', '10.1.1.4');
     k('G4d cặp (tên + IP): sai 5 lần xen đăng nhập đúng của người khác (đặt lại bộ đếm IP) → tên đó ở IP đó 429; người khác cùng IP vẫn 200',
       JSON.stringify(d) === '[401,200,401,200,401,200,401,200,401,200]' && d6.status === 429 && d7.status === 200, `${JSON.stringify(d)} · ${moTa(d6)} · ${moTa(d7)}`);
+    // G4e: hết 15 phút thì mở khoá — dời khoa_den trong kho (ca ngay trên: còn 30 s → vẫn 429; ngay dưới: đã qua → 401, đếm lại từ 1)
+    for (let i = 0; i < 5; i++) await thu('admin', 'sai' + i, '10.1.1.5');
+    const doiKhoa = (giay) => A.q(`UPDATE nd_lan_sai SET khoa_den = strftime('%Y-%m-%dT%H:%M:%S', khoa_den, '-15 minutes', '${giay} seconds') WHERE khoa IN ('ip:10.1.1.5', 'cap:admin|10.1.1.5')`);
+    await doiKhoa('+30');
+    const e1 = await thu('admin', 'admin123', '10.1.1.5');
+    await doiKhoa('-60');
+    const e2 = await thu('admin', 'sai_nua', '10.1.1.5');
+    const dem = (await A.q("SELECT khoa, sai, khoa_den FROM nd_lan_sai WHERE khoa IN ('ip:10.1.1.5', 'cap:admin|10.1.1.5') ORDER BY khoa").catch(() => []));
+    k('G4e khoá còn 30 s → đúng mật khẩu vẫn 429; khoá đã hết → lượt sai mới 401, bộ đếm cặp + IP về 1, hết khoá', e1.status === 429 && e2.status === 401
+      && dem.length === 2 && dem.every((d) => Number(d.sai) === 1 && d.khoa_den === null), `${moTa(e1)} / ${moTa(e2)} / ${JSON.stringify(dem)}`);
     // G5: vé hết hạn / aud khác — khoá vé nd lấy từ hàm khoaVe của tinh.js (cùng JWT_SECRET)
     let khoaVe = null;
     try { khoaVe = require(path.join(SV, 'nd', 'tinh.js')).khoaVe(process.env.JWT_SECRET); } catch { /* chưa có */ }
@@ -441,9 +451,13 @@ async function main() {
     const i3b = await nhapB({ ...tep, anh: tep.anh.map((a, i) => (i ? a : { ...a, du_lieu_base64: Buffer.from('<html>' + 'x'.repeat(40) + '</html>').toString('base64') })) });
     const i3c = await nhapB({ ...tep, ban: tep.ban.map((b) => ({ ...b, dang_chay: 1 })) });
     const i3d = await nhapB({ ...tep, anh: tep.anh.map((a, i) => (i ? a : { ...a, ma: 'a'.repeat(64) })) });
-    k('I3 tệp dinh_dang lạ / ảnh base64 là HTML / hai bản đang chạy / mã ảnh lệch băm → 400, kho trống vẫn trống', [i3a, i3b, i3c, i3d].every((r) => r.status === 400)
-      && i3b.j.code === 'ANH_KHONG_HOP_LE' && tr0 === await B.chup(), [i3a, i3b, i3c, i3d].map(moTa).join(' | '));
+    const i3e = await nhapB({ ...tep, ban: tep.ban.map((b) => ({ ...b, dang_chay: b.so_ban === 1 ? 1 : 0 })) });
+    k('I3 tệp dinh_dang lạ / ảnh base64 là HTML / hai bản đang chạy / mã ảnh lệch băm / bản đang chạy KHÔNG phải số lớn nhất → 400, kho trống vẫn trống',
+      [i3a, i3b, i3c, i3d, i3e].every((r) => r.status === 400) && i3b.j.code === 'ANH_KHONG_HOP_LE' && tep.ban.length >= 2 && tr0 === await B.chup(),
+      [i3a, i3b, i3c, i3d, i3e].map(moTa).join(' | '));
     const i1 = await nhapB(tep);
+    k('I1c nhập xong trả so_luong_ban = số bản trong tệp (không dùng tên so_ban — so_ban là SỐ của một bản ở mọi cửa)', i1.j.so_luong_ban === tep.ban.length
+      && i1.j.so_ban === undefined, JSON.stringify(i1.j));
     const xb = (await B.goi('GET', ND + '/xuat', { ve: veB })).j;
     const s = (x) => JSON.stringify(x);
     const nkB = (xb.nhat_ky || []).slice(0, (tep.nhat_ky || []).length);
@@ -541,8 +555,9 @@ async function main() {
     let may = {};
     try { may = JSON.parse(khoi); } catch { /* chưa có */ }
     const duong = doc(path.join(SV, 'nd', 'duong.js'));
-    const cuaCode = [...duong.matchAll(/router\.(get|post|put|delete)\('([^']+)'/g)].map((m) => `${m[1].toUpperCase()} ${m[2]}`).sort();
-    const cuaHd = (may.cua || []).map((c) => `${c.phuong_thuc} ${c.duong}`).sort();
+    const cuaCode = [...duong.matchAll(/router\.(get|post|put|delete)\('([^']+)'(?:, canQuyen\('(\w+)'(, true)?\))?/g)]
+      .map((m) => `${m[1].toUpperCase()} ${m[2]} ${m[3] || '-'}${m[4] ? ' +khoa' : ''}`).sort();
+    const cuaHd = (may.cua || []).map((c) => `${c.phuong_thuc} ${c.duong} ${c.quyen || '-'}${c.khoa_sao_luu ? ' +khoa' : ''}`).sort();
     k('L1 PHIEN_BAN: 1; khối máy đọc liệt kê ĐÚNG tập cửa của router nd (so bằng, hai chiều; 13 cửa)', /^PHIEN_BAN: 1$/m.test(hd) && may.phien_ban === 1
       && cuaCode.length === 13 && JSON.stringify(cuaCode) === JSON.stringify(cuaHd), `code ${cuaCode.join(',')} · hđ ${cuaHd.join(',')}`);
     let gh = {};
