@@ -24,8 +24,9 @@ BM, MV, N26 = 'client/src/pages/BanHang/BanHangMoi.jsx', 'client/src/pages/CaiDa
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
 DOT_BIEN = [
   # ── orders.js kiemVoucherDon: từng vế kiểm voucher ──
-  ('BV-V2-CHINH-CHU', [(O, 'Number(v.chinh_chu) && v.chu !== phone ?', 'false ?', 1)], r'✗ C4a ', 'V2'),
-  ('VS-V2-CHINH-CHU-MOI-MA', [(O, 'Number(v.chinh_chu) && v.chu !== phone ?', 'v.chu !== phone ?', 1)], r'✗ C4c ', 'V2'),
+  # Q17 (14.11): phép chính chủ / P20b dời từ kiemVoucherDon sang voucherCode.xetVoucherConDung — neo theo chỗ mới
+  ('BV-V2-CHINH-CHU', [(V, 'if (Number(v.chinh_chu) && v.chu !== phone) return', 'if (false) return', 1)], r'✗ C4a ', 'V2'),
+  ('VS-V2-CHINH-CHU-MOI-MA', [(V, 'if (Number(v.chinh_chu) && v.chu !== phone) return', 'if (v.chu !== phone) return', 1)], r'✗ C4c ', 'V2'),
   ('VS-V2-N-NOI', [(O, 'ds.length >= toiDa ?', 'ds.length > toiDa ?', 1)], r'✗ C2 ', 'V2'),
   ('BV-V2-SHIP-CAN-GIAO', [(O, 'ship && !coGiao ?', 'false ?', 1)], r'✗ E2 ', 'V2'),
   ('VS-V2-SHIP-GO-TAY', [(O, 'coGiao: !!baoPhiGiao && finalShippingFee > 0', 'coGiao: finalShippingFee > 0', 1)], r'✗ E2b ', 'V2'),
@@ -76,7 +77,7 @@ DOT_BIEN = [
   ('VS-V2-KHACH-CU-CHUOI-THO', [(S, "REPLACE(created_at, ' ', 'T') >= REPLACE(?, ' ', 'T')", "created_at >= ?", 1)], r'✗ Q2a3 ', 'V2'),
   ('BV-V2-MAU-TAT', [(S, "WHERE id = ? AND bat = 1'", "WHERE id = ?'", 1)], r'✗ Q2h ', 'V2'),
   ('BV-V2-RESET-GRANT', [(S, "WHERE g.nguon = 'khach_moi' AND g.nguon_id = ? ORDER BY g.id DESC LIMIT 1`", "WHERE 0 AND g.nguon_id = ? ORDER BY g.id DESC LIMIT 1`", 1)], r'✗ Q2e ', 'V2'),
-  ('BV-V2-P20B-VOUCHER', [(O, '      : loiGoc ? ["MA_DON_GOC_KHONG_HOP_LE", loiGoc.error]\n', '', 1)], r'✗ Q2i ', 'V2'),
+  ('BV-V2-P20B-VOUCHER', [(V, "  if (loiGoc) return ['MA_DON_GOC_KHONG_HOP_LE', loiGoc.error];\n", '', 1)], r'✗ Q2i ', 'V2'),
   ('VS-V2-P20B-O-MA-MEM', [(O, '      if (l.code === "MA_DON_GOC_KHONG_HOP_LE") return res.status(400)', '      if (false) return res.status(400)', 1)], r'✗ Q2i ', 'V2'),
   ('BV-V2-VALIDATE-P20B', [(DC, 'const maBill = await maBillCuaVoucher(discountCode.code);',
                             "const maBill = await queryOne('SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL', [discountCode.code]);", 1)], r'✗ Q2i ', 'V2'),
@@ -109,7 +110,7 @@ DOT_BIEN = [
   ('VS-V2-HAN-HOM-NAY', [(O, 'homNay: phien?.taoLuc ? String(phien.taoLuc).slice(0, 10) : getToday(),', 'homNay: getToday(),', 1)], r'✗ Q16c voucher HẾT HẠN', 'V2'),
   ('VS-V2-GIU-KHONG-NHA-HUY', [(V, "WHERE trang_thai = 'cho' AND het_han > ?", "WHERE trang_thai IN ('cho', 'huy') AND het_han > ?", 1)], r'✗ Q16b ', 'V2'),
   ('VS-V2-GIU-KHONG-NHA-HAN', [(V, "WHERE trang_thai = 'cho' AND het_han > ?", "WHERE trang_thai = 'cho' AND ? IS NOT NULL", 1)], r'✗ Q16b ', 'V2'),
-  ('BV-V2-GIU-O-MA', [(V, "(Array.isArray(t.vouchers) ? t.vouchers : []), t.discount_code]", "(Array.isArray(t.vouchers) ? t.vouchers : [])]", 1)], r'✗ Q16a phiên ck_tay', 'V2'),
+  ('BV-V2-GIU-O-MA', [(V, "(Array.isArray(t.vouchers) ? t.vouchers : []), t.discount_code]", "(Array.isArray(t.vouchers) ? t.vouchers : [])]", 1)], r'✗ Q16e ', 'V2'),
   ('BV-V2-GIU-O-MA-MEM', [(O, 'if (l.code === "VOUCHER_DANG_GIU" && !phien?.tinhThu) return', 'if (false) return', 1)], r'✗ Q16a phiên ck_tay', 'V2'),
   ('BV-V2-XET-GIU', [(V, "if ((await voucherDangGiu(require('../database'), [v.code], boPhienId)).length) {", 'if (false) {', 1)], r'✗ Q16a phiên ck_tay', 'V2'),
   # ── Q17 (13.11): MỘT phép "còn dùng được" cho ví + lúc bán ──
