@@ -174,3 +174,15 @@ Dòng tổng: VOUCHER-2: 81 đạt · 18 hỏng   (thoát 1; lần chạy trư�
   ✗ Q14e hoá đơn App … không có dòng loai "voucher"
 Ca xanh trên gốc trong hai mục mới: Q14d K5 (đơn không voucher → bố cục tờ y cũ) — đúng ý, hành vi cũ phải giữ.
 Trên code vá: VOUCHER-2: 105 đạt · 0 hỏng
+
+════ Phiên 14.11 (sau trả lời Q15 + Q20 b) ════
+── Q15 · phép E9 kiem_tra_truoc_khi_giao.js (commit 317b20ac) — chạy npm test:
+Trước sửa phép (HEAD f7425021):
+  ✗ /claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL rồi if (!X || X.changes !== 1) { rollback; return } TRƯỚC khi phát voucher  → hai người claim cùng lúc cùng qua phép kiểm ngoài giao dịch
+  ĐẾM (không đoán):  PASS 113  ·  FAIL 1  ·  CẢNH BÁO 1
+Sau sửa phép (317b20ac):
+  ✓ /claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL rồi if (!X || X.changes !== 1) { rollback; return } TRƯỚC khi phát voucher
+  ĐẾM (không đoán):  PASS 114  ·  FAIL 0  ·  CẢNH BÁO 1
+Đột biến python3 viec/VOUCHER-2/dot_bien.py VS-V2-E9-PHAT-TRUOC (phatVoucher TRƯỚC câu chặn, bộ kiểm chạy trên bản chép cả kho):
+  ĐỐI CHỨNG kiem_tra_truoc_khi_giao.js (bản sao chưa đột biến): xanh — ✓ /claim: chiếm mã bằng UPDATE
+  BẮT   VS-V2-E9-PHAT-TRUOC              ✗ /claim: chiếm mã bằng UPDATE ... TRƯỚC khi phát voucher
