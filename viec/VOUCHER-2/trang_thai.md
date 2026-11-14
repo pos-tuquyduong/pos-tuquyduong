@@ -280,3 +280,75 @@ bốn commit đó KHÔNG có ở đây: nhánh trên GitHub và trong máy đề
 - `npm test`: **PASS 113 · FAIL 1 · CẢNH BÁO 1** (FAIL = E9 / Q15; cảnh báo "route GET có lệnh ghi" có từ trước).
 
 ### Dừng (14.11) — chờ chủ quán trả lời Q20 (kèm Q15).
+
+## Phiên 14.11 (lần 2) — Q20 (b): Q15 + vòng sửa 1 + Q16–Q19
+### Bước 1 — đối chiếu bản chụp
+- Nhánh `viec/VOUCHER-2`, cây sạch. HEAD `4c5c2455` · FETCH_HEAD `4c5c2455` — bằng nhau, không kéo (hook mở phiên đã kéo `f7425021 → 4c5c2455`).
+- `git log --oneline -3`:
+  ```
+  4c5c2455 PHIEU: VOUCHER-2 tra loi Q15 + Q20(b): 4 loi soat, Q16-Q19 — chu quan 14.11
+  f7425021 VOUCHER-2: trang thai - npm test sau unshallow, chi con E9 (Q15 cho duyet)
+  f8d79690 VOUCHER-2: trang thai phien 14.11 - 4 commit dang giu khong co tren may moi, cau hoi Q20, dung
+  ```
+### Đã làm (kế hoạch: `ke_hoach.md` mục 13; bằng chứng: `bang_chung_do.txt` phiên 14.11)
+- **Q15** — E9 nhận `phatVoucher(tx,` (một dòng + sửa chú thích cùng chỗ). `npm test`: 113 · 1 → 114 · 0. Đột biến `VS-V2-E9-PHAT-TRUOC` BẮT
+  (bài `KIEM` mới trong `dot_bien.py`: chạy bộ kiểm trên bản chép cả kho, đối chứng = phép E9 xanh).
+- **Vòng sửa 1 — 4 lỗi soát 13.11:**
+  (1) `thu_VOUCHER2.js` có KHUNG CHẠY MÀN THẬT (esbuild sẵn có gói .jsx + `utils/api.js` thật → máy chủ thử; bộ chạy hook tối giản). Q14c (Bán hàng: chip dưới ô mã,
+  chọn / mờ đủ N, viền đỏ lý do máy chủ, THU TIỀN qua phiên ghi đúng voucher), Q2k (Thêm khách → /registrations + /claim thật), Q2m, A4 (Mẫu voucher: xem
+  trước câu máy chủ, lưu, tối đa N). Phá như người soát → đỏ: 10 đột biến màn (chip ẩn, ví rỗng, phiên bỏ voucher, lỗi không đỏ, mẫu không lưu / xem tự dựng /
+  tối đa / chọn mẫu KM, ô mã không gọi máy chủ, chip không mờ).
+  (2) chú thích `server/utils/diemKhach.js` (layMaKhachMoi = dữ liệu cũ) + `orders.js` P20b — grep "mã in bill" toàn `server/`.
+  (3) mục [Q2] mỗi ca một `chay` → trên gốc d919c83e chạy HẾT, từng ca đỏ riêng (84 · 28); Q2n đòi voucher mã riêng (gốc: voucher = mã bill nên chặn đổi tên
+  cũ đã xanh oan); Q2j đỏ trên gốc thật e3ef76a (d919c83e đã có bước 026 phần Q9) + đột biến `VS-V2-026-GIAM-MON`.
+  (4) `/api/kh/nhan-ma-bill`: `scope` theo mẫu (`ship` · `item` · `order`) + `kieu`, `ap_dung` (`signup-codes.js`); ca Q2o; hợp đồng v15.
+- **Q16** — phiên chờ chuyển khoản (`payos` · `ck_tay`) GIỮ voucher của thân phiên (`voucherCode.voucherDangGiu`, khuôn `wallets.dangGiu`: hết hạn / huỷ /
+  chốt → tự nhả). Đọc lại trong giao dịch tạo phiên (`giuCho.taoPhien`) và trong giao dịch tiêu voucher (`orders.js`); chốt từ phiên xét hạn theo ngày tạo
+  phiên. Ô mã cũ bị giữ → 400 rõ. Ca Q16a–e (đua cả hai chiều).
+- **Q17** — MỘT hàm `voucherCode.xetVoucherConDung` cho `kiemVoucherDon` và ví (`diemKhach.layVoucherKhach`, quầy + App); trường trả ra giữ y cũ. Ca Q17a–b.
+- **Q19** — `doiSoat.tongHop` → `voucher { da_giam, giam_phi_giao }`; `components/DoiSoat.jsx` hai dòng; số tính tay 18.800 · 8.000; dist dựng lại.
+- Hợp đồng `/api/kh` v15 (chưa gộp main — không tăng số): `nhan-ma-bill` kiểu / scope; giữ voucher; ví = luật lúc bán; mã `VOUCHER_DANG_GIU` +
+  `MA_DON_GOC_KHONG_HOP_LE` (mã này App nhận được từ trước mà danh sách thiếu — K4). `thu_HOPDONG_KH` 90 · 0.
+- Bài: `thu_VOUCHER2` **125 · 0** (105 → 125). Đột biến **82/82 BẮT** (đối chứng xanh). `npm test -- --day-du`: **PASS 118 · FAIL 0 · CẢNH BÁO 1** (có từ trước).
+
+Bảng chỗ vá → đột biến (thêm phiên 14.11; tên = nguyên chuỗi đầu trong `dot_bien.py`):
+
+| Chỗ vá | Đột biến |
+|---|---|
+| kiem_tra_truoc_khi_giao.js E9 (Q15) | VS-V2-E9-PHAT-TRUOC |
+| BanHangMoi.jsx chip / ví / phiên thu / lỗi | BV-V2-CHIP-AN · BV-V2-VI-VOUCHER · BV-V2-PHIEN-BO-VOUCHER · VS-V2-LOI-KHONG-DO |
+| MauVoucher.jsx lưu / xem trước / tối đa / mẫu KM | BV-V2-MAU-KHONG-LUU · VS-V2-MAU-XEM-TU-DUNG · BV-V2-MAU-TOI-DA · BV-V2-CHON-MAU-KM |
+| signup-codes.js scope theo mẫu | VS-V2-SCOPE-CUNG |
+| 026_voucher.js mẫu KM (Q9) | VS-V2-026-GIAM-MON |
+| orders.js giữ trong giao dịch / phiên chính nó / hạn theo phiên / ô mã cứng | BV-V2-GIU-TRONG-TX · VS-V2-GIU-CA-CHINH-NO · VS-V2-HAN-HOM-NAY · BV-V2-GIU-O-MA-MEM |
+| giuCho.js giữ trong giao dịch tạo phiên | BV-V2-GIU-PHIEN-TX |
+| voucherCode.js voucherDangGiu / xetVoucherConDung | VS-V2-GIU-KHONG-NHA-HUY · VS-V2-GIU-KHONG-NHA-HAN · BV-V2-GIU-O-MA · BV-V2-XET-GIU · VS-V2-XET-HAN-GRANT · BV-V2-CHINH-CHU · VS-V2-CHINH-CHU-MOI-MA · BV-V2-P20B-VOUCHER |
+| diemKhach.js ví dùng hàm chung | BV-V2-VI-RIENG |
+| doiSoat.js / DoiSoat.jsx | BV-V2-DS-VOUCHER · VS-V2-DS-TINH-SHIP · BV-V2-DS-MAN |
+
+### Sự cố phiên 14.11 (lần 2)
+- Người gác chặn: `[B-BIMAT-CHU]` ×3 (chạy bài / bộ kiểm có cụm bí mật chưa commit → commit trước); `[B-PHANTICH]` ×4 (lệnh ghép `node --check … && git …`,
+  `$'…'`); `[B-MANOI]` (`node --check server/utils/doiSoat.js` — file được bảo vệ → chạy bài thay); `[B-CHUONGTRINH]` `until`; `[B-DUONGDAN]` gọi esbuild bằng đường dẫn.
+- Bài đỏ bất ngờ (khung, không phải code): Q2k bấm nhầm form Tìm; Q16c dựng sai tình huống (voucher phát hôm nay mà phiên "hôm qua"); Q19 màn chờ nhầm kỳ.
+- 3 đột biến HỎNG vì Q17 dời phép sang `voucherCode.js` (neo cũ ở orders.js) — sửa neo (K4 "dời code → grep neo đột biến").
+
+## Câu hỏi (14.11, lần 2) — mình DỪNG trước soát; mọi phần khác đã xong và xanh
+Việc này là gì: Q18 cần một mốc để phân biệt "hồ sơ khách tạo NGAY TRONG chính đơn in bill" với "hồ sơ có từ trước" — mốc đó là quyết định của bạn.
+Đã đọc code: đơn KHÔNG tự tạo hồ sơ khách (`grep "INSERT INTO pos_customers" server/` → chỉ `utils/khachMoi.js` taoKhach + `routes/sync.js`). Hồ sơ của
+khách mới ở quầy được tạo TRƯỚC khi lưu đơn — qua Thêm khách, hoặc khi ghi địa chỉ / ghi chú (`customers-v2.js` chacCoKhach, tên "Khách hàng"). Vì vậy giờ
+tạo hồ sơ luôn SỚM hơn giờ in bill (`signup-codes.js` kiemKhachLanDau so `created_at ≥ issued_at`) → khách mới bị báo `KHACH_DA_CO_TAI_KHOAN` oan. Trong dữ
+liệu không có gì nối "hồ sơ này tạo cho đơn kia".
+- **Q21 (Q18) — Đề xuất (bạn chỉ cần "đồng ý" hoặc sửa số):** vẫn là khách mới khi ĐỦ ba điều:
+  (1) đơn in bill là đơn của chính SĐT đó;
+  (2) SĐT chưa có đơn nào trước đơn in bill;
+  (3) hồ sơ tạo trong vòng **30 phút trước** giờ in bill (hằng số có tên trong `signup-codes.js`).
+  Hồ sơ cũ hơn 30 phút, hoặc SĐT đã có đơn khác → vẫn `KHACH_DA_CO_TAI_KHOAN` như Q9. Hồ sơ tạo SAU bill → nhận được như cũ.
+  Bạn đồng ý thì phiên sau mình làm Q18 (bài đỏ trước + đột biến), rồi `/ra-soat` mới → `/soat-bao-mat` → cổng → báo cáo 7 mục.
+- Chưa chạy (đợi Q18 xong để soát một lần cho đủ): `/ra-soat`, `/soat-bao-mat`, `cong.js chay`, báo cáo 7 mục.
+
+## Phát hiện (14.11)
+- `CLAUDE.md` §3 / §9 vẫn ghi "119 phép" của bản mẫu (nay 156) — máy không sửa CLAUDE.md.
+- `layMaKhachMoi` (ví "mã khách mới" DỮ LIỆU CŨ, `ma_khach_moi` của `/kh/voucher`) chưa lọc đơn gốc huỷ (P20b) — App có thể hiện mã cũ mà ô mã từ chối. Chỉ dữ liệu
+  trước VOUCHER-2; không sửa trong lượt này (LUAT §6.6 — ghi Phát hiện).
+
+### Dừng (14.11, lần 2) — chờ chủ quán trả lời Q21 (Q18).
