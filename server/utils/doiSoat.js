@@ -121,7 +121,7 @@ async function tienTheoSo(tu, den, cach) {
 }
 
 async function tongHop(tu, den) {
-  const [tm, ck, nap, chi, diem, huy] = await Promise.all([
+  const [tm, ck, nap, chi, diem, huy, vc] = await Promise.all([
     tienTheoSo(tu, den, 'cash'), tienTheoSo(tu, den, 'transfer'),
     chiDoc(`SELECT COALESCE(SUM(amount), 0) AS n FROM pos_balance_transactions WHERE type = 'topup' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
     chiDoc(`SELECT COALESCE(SUM(COALESCE(balance_amount, 0) + COALESCE(parent_balance_amount, 0)), 0) AS n FROM pos_orders WHERE status = 'completed' AND DATE(created_at) BETWEEN ? AND ?`, [tu, den]),
@@ -131,9 +131,17 @@ async function tongHop(tu, den) {
     chiDoc(`SELECT (SELECT COALESCE(SUM(t.amount), 0) FROM pos_balance_transactions t JOIN pos_orders o ON o.id = t.order_id
         WHERE t.type = 'refund' AND o.status = 'cancelled' AND o.huy_ly_do_ma IS NOT NULL AND DATE(t.created_at) BETWEEN ? AND ?) AS tk,
       (SELECT COALESCE(SUM(so_tien), 0) FROM pos_hoan_tien_mat WHERE DATE(luc) BETWEEN ? AND ?) AS tm`, [tu, den, tu, den]),
+    // VOUCHER-2 Q19 (chủ quán 13.11): "Tiền voucher đã giảm" = số ghi lúc tiêu (pos_voucher_grants.so_tien_giam) của voucher giảm MÓN trên đơn còn
+    // completed trong kỳ (đơn huỷ / hoàn đã trả voucher về; mã khuyến mãi chung không phải voucher); "Giảm phí giao" = cột giam_ship (voucher ship — quán
+    // bù) của cùng các đơn đó. Voucher ship không cộng vào dòng đầu (khỏi đếm hai lần). Cùng nguồn với Báo cáo mã giảm (reports.js by_voucher / total_ship_discount).
+    chiDoc(`SELECT (SELECT COALESCE(SUM(COALESCE(g.so_tien_giam, 0)), 0) FROM pos_voucher_grants g JOIN pos_orders o ON o.id = g.used_order_id
+        LEFT JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code)
+        WHERE o.status = 'completed' AND COALESCE(d.giam_ship, 0) = 0 AND DATE(o.created_at) BETWEEN ? AND ?) AS vc,
+      (SELECT COALESCE(SUM(COALESCE(giam_ship, 0)), 0) FROM pos_orders WHERE status = 'completed' AND DATE(created_at) BETWEEN ? AND ?) AS ship`, [tu, den, tu, den]),
   ]);
   return { tien_mat: tm, chuyen_khoan: ck, vi: { nap: so(nap[0].n), chi: so(chi[0].n) }, diem: { cong: so(diem[0].cong), tru: so(diem[0].tru) },
-    huy_don: { hoan_tai_khoan: so(huy[0].tk), hoan_tien_mat: so(huy[0].tm) }, giao: await doiSoatGiao(chiDoc, tu, den) };
+    huy_don: { hoan_tai_khoan: so(huy[0].tk), hoan_tien_mat: so(huy[0].tm) }, voucher: { da_giam: so(vc[0].vc), giam_phi_giao: so(vc[0].ship) },
+    giao: await doiSoatGiao(chiDoc, tu, den) };
 }
 
 // ─── NAP-1 — sổ sách tiền nạp (Báo cáo): nạp KHÔNG là doanh thu; thưởng nạp là khoản giảm khi khách tiêu ───
