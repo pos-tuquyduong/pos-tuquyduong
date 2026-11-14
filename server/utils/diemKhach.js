@@ -69,9 +69,10 @@ async function layVoucherKhach(phone, tatCa) {
 }
 
 /**
- * KH-API-1 (E3) — mã giảm khách mới phát qua /signup-codes/claim cho SĐT này, CÒN dùng được. /claim không ghi pos_voucher_grants;
- * cột gắn SĐT là pos_signup_codes.claimed_phone, mã voucher = đúng mã in bill (thiết kế 09.08.2026 — claim trước đó phát mã khác,
- * không nối được). Chỉ đọc.
+ * KH-API-1 (E3) — mã giảm khách mới của DỮ LIỆU CŨ (nhận trước VOUCHER-2) cho SĐT này, CÒN dùng được: hồi đó /claim không ghi
+ * pos_voucher_grants, mã voucher = đúng mã in bill, cột gắn SĐT là pos_signup_codes.claimed_phone. Từ VOUCHER-2 (Q2) /claim phát một mã
+ * RIÊNG qua phatVoucher (dòng pos_voucher_grants nguon 'khach_moi', hiện ở layVoucherKhach) — mã riêng khác mã in bill nên không lọt vào đây.
+ * Chỉ đọc.
  */
 async function layMaKhachMoi(phone) {
   return query(

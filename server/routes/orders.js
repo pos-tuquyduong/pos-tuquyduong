@@ -651,7 +651,8 @@ async function taoDon(req, res, phien = null) {
       );
 
       if (codeRecord) {
-        // P20b: voucher sinh từ mã in bill (cùng `code` với dòng pos_signup_codes ĐÃ claim) chỉ dùng được khi đơn gốc còn
+        // P20b: voucher sinh từ mã in bill (dữ liệu cũ: cùng `code` với dòng pos_signup_codes ĐÃ claim; từ VOUCHER-2: mã riêng nối
+        // mã bill qua grant khach_moi — cả hai tra trong maBillCuaVoucher) chỉ dùng được khi đơn gốc còn
         // completed + paid — cùng hàm kiểm với /claim, /nhan-diem. `claimed_at IS NOT NULL`: mã tay / voucher đổi điểm có thể
         // trùng chữ với mã bill chưa claim (mỗi nguồn chỉ kiểm trùng trong bảng mình) — không được chặn nhầm. Trả về TRƯỚC
         // giao dịch → không tạo đơn, used_count không tăng.
