@@ -67,3 +67,13 @@ NGHI NGỜ nhẹ (đã ghi thành Phát hiện, không sửa):
 - Ca A1c / A3 phụ thuộc đồng hồ thật nhẹ (cần < 1 phút / < 30 giây từ lần thử đầu — thực tế vài giây).
 CHƯA SOÁT ĐƯỢC: hành vi trên Render thật (số tầng proxy, độ trễ bcrypt); hash cũ trong Turso (cost ≠ 10 làm thời gian băm giả lệch nhẹ).
 BÀI HỌC (agent đề xuất): K5 xác nhận số tầng proxy trước khi khoá theo IP · K4 rà các đường "xác minh mật khẩu" khác khi thêm giới hạn cho login.
+
+## Soát bảo mật
+Lần 1 (subagent độc lập, chỉ đọc) — 0 lỗi trước lọc · 0 lỗi sau lọc (không có lỗi nào để chạy bước lọc). Báo cáo tóm tắt:
+Không có lỗ hổng mức cao / vừa do diff gây ra. Đã kiểm: lách bộ đếm bằng biến thể tên (hoa / thường / khoảng trắng / unicode / mảng / object — cùng một khoá, không ném lỗi);
+đồng thời (`giuLuot` đồng bộ, ghi lượt trước `await` đầu tiên → tối đa 5 lần so bcrypt cho một cặp); gõ đúng khi đang khoá vẫn 429; `dangNhapDung` chỉ chạy sau khi đúng mật khẩu
+VÀ tài khoản còn hoạt động, chỉ xoá đếm của chính cặp đó và trả đúng một lượt IP (không dùng tài khoản thường để xoá đếm của `admin`); dò tên (tên lạ / sai mật khẩu / khoá + sai → cùng 401 cùng thân,
+câu "vô hiệu" chỉ sau khi đúng mật khẩu); băm giả cost 10; trần Map (một IP chỉ tạo tối đa 20 mục mỗi cửa sổ → làm đầy 5000 mục cần hàng nghìn IP); thân lỗi không lộ gì ngoài số phút.
+Ghi chú thấp (không báo lỗi): IPv6 /64 xoay địa chỉ tự do — vốn có của thiết kế "theo IP"; nếu trước POS còn thêm một tầng proxy thì xô 20 lần/IP dùng chung cả quán
+(đã ghi ở Phát hiện (a) để chủ quán kiểm trên production).
+SOÁT BẢO MẬT: ĐẠT
