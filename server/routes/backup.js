@@ -107,6 +107,7 @@ const BACKUP_TABLES = [
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
+  { name: 'pos_quang_cao', label: 'Quảng cáo trên App', key: 'id' },   // QC-APP-1 (bước 028): cấu hình dải quảng cáo — khôi phục được như chương trình
   { name: 'pos_hoan_tien_mat', label: 'Hoàn tiền mặt khách lẻ', key: 'id' },   // HUY-1 (bước 025): tiền mặt ra két khi huỷ đơn khách lẻ
   { name: 'pos_promotion_usage', label: 'Lịch sử dùng khuyến mãi', key: 'id' },
   { name: 'pos_invoice_logs', label: 'Nhật ký hoá đơn', key: 'id' },
