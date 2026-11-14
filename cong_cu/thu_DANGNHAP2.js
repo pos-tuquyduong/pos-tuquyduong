@@ -308,7 +308,7 @@ require.cache[p] = { id: p, filename: p, loaded: true, exports: { laMayThu: () =
   cauHinhTurso: () => ({ laMayThu: true, cauHinh: { url: 'file:' + ${JSON.stringify(path.join(THU_MUC, 'kho_con.db'))} } }), diaChiSX: () => '', FILE_THU: '' } };\n`);
     const congCon = await new Promise((ok) => { const t = require('net').createServer().listen(0, '127.0.0.1', () => { const p = t.address().port; t.close(() => ok(p)); }); });
     const con = spawn(process.execPath, ['-r', preload, path.join(MAY_CHU, 'index.js')], {
-      cwd: GOC, env: { ...process.env, PORT: String(congCon), REPL_ID: '', REPLIT: '' }, stdio: ['ignore', 'pipe', 'pipe'] });
+      cwd: GOC, env: { ...process.env, PORT: String(congCon), REPL_ID: '', REPLIT: '', KH_JWT_SECRET: 'khach_thu_dangnhap2_' + Date.now() }, stdio: ['ignore', 'pipe', 'pipe'] });
     let nhatKyCon = '';
     con.stdout.on('data', (d) => { nhatKyCon += d; });
     con.stderr.on('data', (d) => { nhatKyCon += d; });
