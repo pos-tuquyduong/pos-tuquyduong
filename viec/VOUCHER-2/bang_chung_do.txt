@@ -1,6 +1,6 @@
 VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
 
-SỐ CA cong_cu/thu_VOUCHER2.js: 132
+SỐ CA cong_cu/thu_VOUCHER2.js: 137
 SỐ CA cong_cu/thu_P20.js: 178
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_KHAPI2.js: 101
@@ -246,3 +246,15 @@ npm test -- --day-du (HEAD 77b26e78): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có t
 Trên code HEAD (e16ac6e3): VOUCHER-2: 132 đạt · 0 hỏng
 Đột biến: python3 viec/VOUCHER-2/dot_bien.py BV-V2-GIU-PHIEN-KHAC BV-V2-GIU-PHIEN-TX → ĐỐI CHỨNG xanh; 2/2 BẮT (BV-V2-GIU-PHIEN-KHAC → Q16f)
 npm test -- --day-du (HEAD e16ac6e3): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+
+── Q22 + Q23 (chủ quán 14.11) · thu_VOUCHER2.js commit fb1e7a49 (Q22a–d, Q18g viết TRƯỚC khi vá; server/ = 9f20388c, chưa vá):
+   node cong_cu/thu_VOUCHER2.js   → VOUCHER-2: 134 đạt · 3 hỏng
+  ✗ Q22a gói TẮT điểm + món 50.000 + mã 10 % → tien_hang_diem 45.000 (không phải 49.285)  — HTTP 200 · 49285
+  ✗ Q22b gói BẬT + món TẮT điểm, mã 10 % món → tien_hang_diem 300.000 (không phải 295.714)  — HTTP 200 · 295714
+  ✗ Q18g hồ sơ 29 phút, đơn TRƯỚC bill đã HUỶ (không còn đơn nào khác) → vẫn nhận 200, 1 grant  — HTTP 200 / HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  Xanh trên gốc (đúng — hành vi giữ): Q22c (K5: gói + món đều bật 345.000; chỉ món 45.000), Q22d (hàm không truyền cờ = cách chia cũ 49.285) — khoá bằng
+  đột biến VS-V2-Q22-MAC-DINH; Q18d (đơn trước CHƯA huỷ vẫn chặn) khoá bằng VS-V2-Q23-BO-CA-DON-THAT.
+Trên code vá (8216fad6): VOUCHER-2: 137 đạt · 0 hỏng
+Đột biến: python3 viec/VOUCHER-2/dot_bien.py BV-V2-Q18-DON-TRUOC VS-V2-Q18-DON-KHAC BV-V2-Q23-HUY VS-V2-Q23-BO-CA-DON-THAT BV-V2-Q22-CO VS-V2-Q22-MAC-DINH
+  VS-V2-Q22-BO-DU-BAT VS-V2-Q22-CHIA-CA-DON → ĐỐI CHỨNG xanh 137 · 0; 8/8 BẮT (BV-V2-Q23-HUY → Q18g · VS-V2-Q23-BO-CA-DON-THAT → Q18d · BV-V2-Q22-CO → Q22a ·
+  VS-V2-Q22-MAC-DINH → Q22d · VS-V2-Q22-BO-DU-BAT → Q22b · VS-V2-Q22-CHIA-CA-DON → Q22a; hai neo Q18 cũ đổi theo câu SQL mới vẫn BẮT Q18d / Q18f)

@@ -444,3 +444,30 @@ Bạn trả lời Q22 + Q23 thì phiên sau mình làm hai chỗ đó (bài đ�
 - Chưa có bất biến đối soát TỪNG ĐƠN cho voucher (Σ so_tien_giam không ship + mã + flash + hạng = discount; Σ ship = giam_ship) — Q19 mới có tổng ngày.
 
 ### Dừng (14.11, lần 3) — chờ chủ quán trả lời Q22 + Q23. Chưa chạy: `/soat-bao-mat`, `cong.js chay`, báo cáo 7 mục.
+
+## Phiên 14.11 (lần 4) — lệnh "VOUCHER-2 tiep": Q22 + Q23 → soát lần 4 → soát bảo mật → cổng → báo cáo
+### Bước 1 — đối chiếu bản chụp
+- Hook mở phiên báo "máy và origin lệch nhau". Nhánh `viec/VOUCHER-2`, cây sạch. HEAD `e94708f` · FETCH_HEAD `9f20388`; kho nông → `git fetch -q --unshallow`
+  → so lại: HEAD là tổ tiên (phiên nạp bản chụp cũ) → `git pull --no-rebase --ff-only origin viec/VOUCHER-2` → HEAD `9f20388c`.
+- `git log --oneline -3`:
+  ```
+  9f20388c PHIEU: VOUCHER-2 Pham vi them diemThat.js, tra loi Q22 + Q23 — chu quan 14.11
+  306cbe4e VOUCHER-2: ra-soat 14.11 lan 3 (KHONG DAT) nguyen van, vong sua 2, SO CA 132, cau hoi Q22 (diemThat ngoai pham vi) + Q23, dung
+  e16ac6e3 VOUCHER-2: vong sua 2 - chu thich dung (orders.js nhanh voucher o ma, doiSoat.js khac cach chia voi bao cao)
+  ```
+### Q22 + Q23 — đã làm (bài đỏ trước: commit fb1e7a49; vá: 8216fad6)
+- **Q22** `server/utils/diemThat.js` `tienHangDiem(dongDon, tienHang, giamMonThuong = false)`: có cờ → dòng gói / thẻ / nạp (product_id < 0) tính đủ giá, phần còn lại
+  chia trên món thường (cùng luật Q7 với `tienDaTraTheoDong`); không có dòng nào như vậy hoặc không cờ → NGUYÊN công thức cũ. `orders.js` (lời gọi duy nhất) truyền
+  `true` (mọi đơn mới ghi `giam_mon_thuong = 1`). Đơn cũ không đổi (số đã lưu trong `tien_hang_diem`). Chú thích "cùng quy tắc chia" sai (K1) sửa cùng chỗ.
+  K4: `tienHoanTinhDiem` không chia theo giá dòng (đọc số tiền thật đã trả vào ví) → không cùng khuôn, không đổi.
+- **Q23** `signup-codes.js` `laDonDauCuaKhach`: `AND status != 'cancelled'`. Chú thích + hợp đồng v15 (chưa gộp main — không tăng số) ghi cùng.
+- Bài `thu_VOUCHER2`: gốc 134 · 3 (Q22a, Q22b, Q18g đỏ) → vá **137 · 0**. Ca Q22c / Q22d / Q18d là ca giữ hành vi (xanh trên gốc, khoá bằng đột biến).
+
+| Chỗ vá | Đột biến |
+|---|---|
+| orders.js truyền cờ Q22 | BV-V2-Q22-CO |
+| diemThat.js tienHangDiem mặc định / dòng đủ giá / chia trên món | VS-V2-Q22-MAC-DINH · VS-V2-Q22-BO-DU-BAT · VS-V2-Q22-CHIA-CA-DON |
+| signup-codes.js laDonDauCuaKhach bỏ đơn huỷ (Q23) | BV-V2-Q23-HUY · VS-V2-Q23-BO-CA-DON-THAT |
+
+- Neo hai đột biến Q18 cũ (`BV-V2-Q18-DON-TRUOC`, `VS-V2-Q18-DON-KHAC`) đổi theo câu SQL mới — vẫn BẮT Q18d / Q18f (K4 "đổi câu → grep neo đột biến").
+- Người gác chặn: `[B-CHUONGTRINH]` vòng `for` khi `git add` → tách lệnh; `[B-PHANTICH]` heredoc python rồi chạy script cùng lệnh → sửa bằng Edit, chạy riêng.
