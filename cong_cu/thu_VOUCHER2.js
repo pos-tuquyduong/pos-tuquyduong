@@ -854,11 +854,10 @@ async function main() {
         && dv7.mo_ta === 'Giảm 15.000đ · HSD ' + addDaysToDateString(getToday(), 10).split('-').reverse().join('/'), `${moTa(r7)} ${JSON.stringify(dv7)}`);
     });
 
-    let v8 = null;
     await chay('Q2i', async () => {
       const b8 = await bill(), s8 = sdtQ2();
       await taoTk(s8);
-      v8 = (await nhan(b8.code, s8)).data?.voucher_code;
+      const v8 = (await nhan(b8.code, s8)).data?.voucher_code;
       await goi('PUT', `/pos/orders/${b8.order_id}/cancel`, { reason: 'thử Q2i' });
       const tr8 = await soDon();
       const r8 = await ban({ customer_phone: s8, items: [mon(0)], vouchers: [v8] }, 35000);
@@ -868,11 +867,15 @@ async function main() {
         !!v8 && [r8, r8b, r8c].every((r) => r.status === 400 && r.code === 'MA_DON_GOC_KHONG_HOP_LE') && (await soDon()) === tr8 && (await grant(v8))?.status === 'available',
         `${v8} · ${moTa(r8)} / ${moTa(r8b)} / ${moTa(r8c)}`);
     });
-    await chay('Q2n', async () => {
-      const d8 = v8 ? await mot('SELECT id, code FROM pos_discount_codes WHERE code = ?', [v8]) : null;
-      const r8d = d8 ? await goi('PUT', `/pos/discount-codes/${d8.id}`, { code: 'DOITEN' + soQ2 }) : {};
-      k('Q2n voucher khách mới (nối mã bill qua ví) KHÔNG đổi tên được → 400 MA_BILL_KHONG_DOI_TEN, mã giữ nguyên', !!d8 && r8d.status === 400 && r8d.code === 'MA_BILL_KHONG_DOI_TEN'
-        && (await mot('SELECT code FROM pos_discount_codes WHERE id = ?', [d8.id])).code === v8, `${v8} · ${moTa(r8d)}`);
+    await chay('Q2n', async () => {   // ca riêng: voucher MÃ RIÊNG (≠ mã bill, nối qua ví) — trên gốc voucher = mã bill nên chặn đổi tên cũ không chứng minh gì
+      const b9 = await bill(), s9 = sdtQ2();
+      await taoTk(s9);
+      const v9 = (await nhan(b9.code, s9)).data?.voucher_code;
+      const d9 = v9 ? await mot('SELECT id, code FROM pos_discount_codes WHERE code = ?', [v9]) : null;
+      const r9 = d9 ? await goi('PUT', `/pos/discount-codes/${d9.id}`, { code: 'DOITEN' + soQ2 }) : {};
+      k('Q2n voucher khách mới (mã riêng ≠ mã bill, nối mã bill qua ví) KHÔNG đổi tên được → 400 MA_BILL_KHONG_DOI_TEN, mã giữ nguyên', !!d9 && v9 !== b9.code
+        && !!(await grantBill(b9)) && r9.status === 400 && r9.code === 'MA_BILL_KHONG_DOI_TEN' && (await mot('SELECT code FROM pos_discount_codes WHERE id = ?', [d9.id])).code === v9,
+      `${v9} / bill ${b9.code} · ${moTa(r9)}`);
     });
 
     let b026 = null;
@@ -1007,23 +1010,23 @@ async function main() {
       k('Q14c Bán hàng (màn thật): chọn khách → ví voucher máy chủ hiện thành chip "🎟 <mo_ta>" NGAY DƯỚI ô mã khuyến mãi (trước khối thu), đủ 4 chip, đếm 0/2',
         iO >= 0 && iC > iO && (iT < 0 || iC < iT) && [vt, vp, vt2, vs].every((ma) => !!chip(ma))
         && vi.every((v) => !!nut((n) => m.chu(n) === '🎟 ' + v.mo_ta)[0]) && m.chu(m.cay()).includes('0/2 voucher'), `ô mã ${iO} · chip ${iC} · thu ${iT}`);
-      chip(vt).props.onClick(); chip(vp).props.onClick();
+      chip(vt)?.props.onClick(); chip(vp)?.props.onClick();   // `?.`: trên gốc không có chip — từng ca dưới vẫn chạy và đỏ riêng
       await m.doi(() => m.chu(m.cay()).includes(`Voucher ${vp}`));
       const chu1 = m.chu(m.cay());
       k('Q14c chọn 2 chip → máy chủ tính: dòng "Voucher <MÃ> −10.000đ" rồi "Voucher <MÃ> −4.000đ" (50.000 − 10.000 = 40.000 − 10 %); đủ N = 2 → chip thứ ba MỜ',
-        chu1.includes(`Voucher ${vt}−10.000đ`) && chu1.includes(`Voucher ${vp}−4.000đ`) && chip(vt2).props.disabled === true && chip(vt).props.disabled === false
+        chu1.includes(`Voucher ${vt}−10.000đ`) && chu1.includes(`Voucher ${vp}−4.000đ`) && chip(vt2)?.props.disabled === true && chip(vt)?.props.disabled === false
         && chu1.includes('2/2 voucher'), chu1.slice(0, 400));
-      chip(vp).props.onClick();
+      chip(vp)?.props.onClick();
       await m.doi(() => !m.chu(m.cay()).includes(`Voucher ${vp}`));
-      chip(vs).props.onClick();
+      chip(vs)?.props.onClick();
       await m.doi(() => !!chip(vs)?.props.style);
       const cs = chip(vs);
       k('Q14c voucher máy chủ từ chối (ship ở đơn tại quầy) → bỏ chọn + viền đỏ + đúng lý do máy chủ dưới chip; voucher khác giữ',
         !!cs && /bh-do/.test(JSON.stringify(cs.props.style)) && m.chu(cs).includes('chỉ dùng cho đơn giao') && !/bh-chon/.test(cs.props.className)
-        && /bh-chon/.test(chip(vt).props.className), m.chu(cs));
+        && /bh-chon/.test(chip(vt)?.props.className), m.chu(cs));
       await m.doi(() => m.chu(m.cay()).includes(`Voucher ${vt}−10.000đ`) && !!conTen('ThuTien')?.props.coSo);
       const truoc = await soDon();
-      conTen('ThuTien').props.onThu({ cach: 'tien_mat', khachDua: 50000 });
+      conTen('ThuTien')?.props.onThu({ cach: 'tien_mat', khachDua: 50000 });
       const coDon = await m.doi(() => !!conTen('ManKetThuc'), 6000);
       const don = await mot('SELECT * FROM pos_orders WHERE customer_phone = ? ORDER BY id DESC LIMIT 1', [c.sdt]);
       const gv = await grant(vt);
