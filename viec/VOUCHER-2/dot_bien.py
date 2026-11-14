@@ -89,16 +89,26 @@ DOT_BIEN = [
   ('BV-V2-TINH-GUI-VOUCHER', [(TJ, "    ...(vouchers.length ? { vouchers } : {}),   // VOUCHER-2", "    // VOUCHER-2", 1)], r'✗ Q14a ', 'V2'),
   ('BV-V2-BO-LOI', [(TJ, "return { chon: chon.filter((m) => !(m in loi)), loi };", "return { chon, loi };", 1)], r'✗ Q14b ', 'V2'),
   ('VS-V2-CHIP-KHONG-MO', [(CV, "disabled={!dangChon && chon.length >= toiDa}", "disabled={false}", 1)], r'✗ Q14c ', 'V2'),
+  # ── Q15 (14.11): phép E9 bộ kiểm nhận phatVoucher(tx, …) — phát TRƯỚC câu chặn phải đỏ (chạy bộ kiểm trên bản chép CẢ kho) ──
+  ('VS-V2-E9-PHAT-TRUOC', [(S, "      phat = await phatVoucher(tx, mau, phone, 'khach_moi', { nguon_id: signupRow.id, ghi_chu: `Ưu đãi khách mới — mã bill ${signupRow.code}` });\n      await tx.commit();",
+                            "      await tx.commit();", 1),
+                           (S, "      if (!chiem || chiem.changes !== 1) {\n        await tx.rollback();",
+                            "      phat = await phatVoucher(tx, mau, phone, 'khach_moi', { nguon_id: signupRow.id });\n      if (!chiem || chiem.changes !== 1) {\n        await tx.rollback();", 1)],
+   r'✗ /claim: chiếm mã bằng UPDATE', 'KIEM'),
 ]
 
-BAI = {'V2': 'thu_VOUCHER2.js', 'KHTHE1': 'thu_KHTHE1.js', 'P26c': 'thu_P26c.js', 'UUDAI1': 'thu_UUDAI1.js'}
+BAI = {'V2': 'thu_VOUCHER2.js', 'KHTHE1': 'thu_KHTHE1.js', 'P26c': 'thu_P26c.js', 'UUDAI1': 'thu_UUDAI1.js', 'KIEM': 'kiem_tra_truoc_khi_giao.js'}
+E9_XANH = '✓ /claim: chiếm mã bằng UPDATE'   # đối chứng bài KIEM: bản chép không đột biến phải có phép E9 XANH (cả bộ không xanh được ngoài git)
 
 
-def ban_sao(thay):
-  """Chép server/ + client/src/ ra thư mục tạm, áp các thay thế. Trả (thư mục, lỗi|None)."""
+def ban_sao(thay, ca_kho=False):
+  """Chép server/ + client/src/ (bài KIEM: CẢ kho trừ .git / node_modules) ra thư mục tạm, áp các thay thế. Trả (thư mục, lỗi|None)."""
   tmp = tempfile.mkdtemp(prefix='dotbien_voucher2_')
-  shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
-  shutil.copytree(os.path.join(GOC, 'client', 'src'), os.path.join(tmp, 'client', 'src'))
+  if ca_kho:
+    shutil.copytree(GOC, tmp, dirs_exist_ok=True, ignore=shutil.ignore_patterns('node_modules', '.git'))
+  else:
+    shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
+    shutil.copytree(os.path.join(GOC, 'client', 'src'), os.path.join(tmp, 'client', 'src'))
   os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
   for f, goc, moi, n in thay:
     p = os.path.join(tmp, f)
@@ -112,18 +122,27 @@ def ban_sao(thay):
 
 
 def lenh(tmp, bai):
+  if bai == 'KIEM':
+    return ['node', os.path.join(tmp, BAI[bai])]
   return ['node', os.path.join(GOC, 'cong_cu', BAI[bai]), '--may-chu', os.path.join(tmp, 'server')]
 
 
+def chay_bai(tmp, bai):
+  r = subprocess.run(lenh(tmp, bai), cwd=tmp if bai == 'KIEM' else GOC, capture_output=True, text=True, timeout=900 if bai == 'KIEM' else 400)
+  return r, re.sub(r'\x1b\[\d+m', '', (r.stdout or '') + (r.stderr or ''))
+
+
+TONG = r'\d+ đạt · \d+ hỏng|PASS \d+\s+·\s+FAIL \d+'
+
+
 def chay(ten, thay, mau, bai):
-  tmp, loi = ban_sao(thay)
+  tmp, loi = ban_sao(thay, bai == 'KIEM')
   try:
     if loi:
       return ten, 'HỎNG', loi
-    r = subprocess.run(lenh(tmp, bai), cwd=GOC, capture_output=True, text=True, timeout=400)
-    ra = re.sub(r'\x1b\[\d+m', '', (r.stdout or '') + (r.stderr or ''))
+    r, ra = chay_bai(tmp, bai)
     hong = [l.strip() for l in ra.splitlines() if '✗' in l]
-    if not re.search(r'\d+ đạt · \d+ hỏng', ra):
+    if not re.search(TONG, ra):
       return ten, 'LẠC', 'bài sập (không in dòng tổng): ' + (ra.strip().splitlines()[-1][:160] if ra.strip() else '')
     if r.returncode == 0:
       return ten, 'SỐNG', 'bài xanh trọn'
@@ -136,10 +155,11 @@ def chay(ten, thay, mau, bai):
 
 
 def doi_chung(bai):
-  tmp, _ = ban_sao([])
+  tmp, _ = ban_sao([], bai == 'KIEM')
   try:
-    r = subprocess.run(lenh(tmp, bai), cwd=GOC, capture_output=True, text=True, timeout=400)
-    ra = re.sub(r'\x1b\[\d+m', '', (r.stdout or '') + (r.stderr or ''))
+    r, ra = chay_bai(tmp, bai)
+    if bai == 'KIEM':
+      return E9_XANH in ra and re.search(TONG, ra) is not None, (E9_XANH if E9_XANH in ra else 'phép E9 không xanh: ' + ra[-200:])
     m = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
     return r.returncode == 0 and m is not None and m.group(2) == '0', (m.group(0) if m else ra[-200:])
   finally:
