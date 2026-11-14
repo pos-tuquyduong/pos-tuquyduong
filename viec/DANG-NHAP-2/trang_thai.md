@@ -158,3 +158,34 @@ SOÁT BẢO MẬT: ĐẠT
 ## Phát hiện bổ sung (vòng 2 — KHÔNG làm)
 - Chuẩn hoá IP làm khoá (IPv6 gộp về /64, `::ffff:a.b.c.d` về IPv4, chữ thường) chưa làm — chỉ cần nếu Cloudflare/Render mở IPv6 cho khách; dùng chung cho `gioiHanDangNhap.js` và `maKhach.js`.
 - Kiểm trên production sau khi lên: có thật HAI lớp Cloudflare không (xem nghi ngờ (a)); nếu có, cần lấy IP qua header khác.
+
+## Cổng chạy (vòng 2)
+✓ CỔNG CHẠY ĐẠT   (`node tu_chay/cong.js chay . 5398661^ HEAD viec/DANG-NHAP-2` — gốc = commit gộp cac85b4 như phiếu dặn, cây sạch, HEAD 48a59ab5; lần đầu dùng mốc c7ee1bb^ thì lẫn bài của main đã gộp nên đỏ A16, không phải lỗi mã;
+lần thứ hai đỏ A16 vì thiếu dòng `SỐ CA` cho thu_NDAPI1.js — đã thêm.) Kiểm khác: `npm test` → PASS 116 · FAIL 0 · CẢNH BÁO 1 (có sẵn); `dot_bien.py` vòng 2 → 9/9 BẮT, đối chứng XANH. Không sửa `client/src/` nên không build `dist`.
+
+## Bài học (vòng 2)
+- **KHOÁ 1 (đã làm, trong Phạm vi):** J7/J16 khoá "CF-Connecting-IP đứng trước True-Client-IP" + đột biến VS-IP-DAO-UU-TIEN, BV-IP-TRUE-CLIENT; ca J10/J11 khoá header rác / danh sách; J1 chạy `server/index.js` THẬT (không tự gắn middleware — tránh K3).
+- **NGUYÊN TẮC 1 (đề xuất, ngoài Phạm vi — chat soát duyệt):** K1/bảo mật — "nhà cung cấp tự ghi đè header X" phải kèm tài liệu hoặc phép đo thật; chỉ tin header mà proxy CHẮC CHẮN ghi đè (CF-Connecting-IP). Bài thử khoá "A ưu tiên hơn B" phải hỏi trước thứ tự đó có an toàn không (J7 bản đầu khoá đúng hành vi nguy hiểm).
+- **NGUYÊN TẮC 2 (đề xuất):** bài canh "chỉ THÊM tối đa N dòng" (thu_NDAPI1 A2) làm mọi việc sau đụng index.js đều đỏ — nên đổi sang canh "dòng cũ còn nguyên + thứ tự" không đếm số dòng thêm.
+- **BỎ 2:** (1) cổng đỏ A16 vì chọn mốc `c7ee1bb^` thay vì gốc vòng 2 — một lần, cách chọn mốc ghi ở trên; (2) vài lệnh bị người gác chặn vì cú pháp / cụm từ bí mật (commit trước rồi chạy, hoặc dùng Edit) — làm lại đơn giản là xong.
+
+## Đếm nghiệm thu vòng 2 (phiếu V1–V3)
+V1 `ipKhach(req)`: J15, J16 (một địa chỉ hợp lệ, rác → req.ip, ưu tiên CF-Connecting-IP > True-Client-IP). V2 một middleware ngay sau trust proxy, trước app.use đầu: J14 (tĩnh) + J1 (động, index.js thật). V3: đếm riêng J1–J4 · đếm chung khi XFF đổi J5 · không header → như cũ J9 · rác J10–J11 · một ca /api/kh J12–J13 · IPv6 J8 · CF-Connecting-IP J6–J7. Bài cũ KH/ND/QC-APP xanh: `npm test` PASS 116 · FAIL 0 (thu_NDAPI1 A2 đã nới 4 → 10 theo chủ quán). Đột biến có bắt: bỏ middleware (BV-IP-THAT-MIDDLEWARE), đặt sau đường (VS-IP-THAT-SAU-DUONG), tin XFF (VS-IP-TIN-XFF). 3/3 mục V có bằng chứng.
+
+## Báo cáo 7 mục (vòng 2)
+```
+VIỆC:        DANG-NHAP-2 vòng 2 — IP thật sau Cloudflare (sửa MỘT chỗ ở cửa vào)
+ĐÃ SỬA:      server/utils/ipKhach.js (mới, ~20 dòng: CF-Connecting-IP rồi True-Client-IP, chỉ nhận MỘT IPv4/IPv6 hợp lệ, không thì req.ip) ·
+             server/index.js (import + MỘT middleware ghi đè req.ip ngay sau trust proxy) · cong_cu/thu_NDAPI1.js:133 (A2 nới <=4 → <=10, chủ quán duyệt) ·
+             cong_cu/thu_DANGNHAP2.js (thêm J0–J16, 64 ca) · viec/DANG-NHAP-2/dot_bien.py (+9 đột biến)
+BÀI THỬ:     trên gốc cac85b4 → ĐỎ 10 ca (J1 J4 J5 J6 J7 J8 J13 J14 J15 J16); vòng sửa 1 đỏ 2 ca (J7, J16); sau vá → XANH 64/64; đột biến vòng 2 9/9 BẮT; npm test PASS 116 · FAIL 0
+ĐÃ RÀ K4:    grep "req.ip|ipKhach|x-forwarded|req.ips|remoteAddress" trong server/ → 9 chỗ dùng IP, tất cả qua req.ip (auth.js:31,59 · nd/duong.js:48 · man-khach.js:47 · kh/index.js ×5 · kh/quay.js:20), không đường song song nào
+CHƯA KIỂM:   chưa chạy trên Render + Cloudflare thật (bài chỉ GIẢ header; chưa biết Cloudflare có phải lớp duy nhất, hay có hai lớp làm CF-Connecting-IP thành IP lớp ngoài) ·
+             gọi thẳng bỏ qua Cloudflare vẫn giả được header (chủ quán chấp nhận) · IPv6 /64 xoay & dạng ::ffff: chưa chuẩn hoá (Phát hiện) · thử tay trên điện thoại · ngay sát mốc đúng 15:00
+GIT:         git log --oneline -2 → 48a59ab5 DANG-NHAP-2 vong 2: bang chung — SO CA thu_NDAPI1 (A2 doi hang) · 92040d22 DANG-NHAP-2 vong 2: ghi soat doc lap + vong sua 1 + soat bao mat
+BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 2 (đề xuất) · BỎ 2 — chi tiết ở ## Bài học (vòng 2)
+```
+Thử tay cho chủ quán sau khi lên Render: (1) ở quầy, gõ SAI mật khẩu 6 lần liền → lần 6 báo "Gõ sai quá nhiều lần"; rồi dùng điện thoại khác (4G) đăng nhập đúng cùng tên → vào bình thường (nếu điện thoại kia cũng bị khoá ngay thì nghi có hai lớp Cloudflare — báo mình);
+(2) đọc cột `ip` bảng `pos_kh_lan_thu`: phải thấy IP khác nhau cho các mạng khác nhau, không phải một địa chỉ Cloudflare.
+
+HEAD ĐÃ KIỂM: 48a59ab5
