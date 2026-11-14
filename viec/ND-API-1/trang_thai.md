@@ -78,6 +78,7 @@ BV-PIN-KHOA, VS-NHAP-DE, VS-SAO-LUU-BO-ANH, BV-TRANG-ND, VS-ND-THO-EXCEL, BV-LOC
 Lần chạy 1 (14.11): 31/34 BẮT — BV-ANH-512 SỐNG (dòng tự so cỡ ảnh trong duong.js là THỪA: multer đã chặn 512.001 → đã xoá dòng, đột biến đổi
 sang giới hạn multer + thêm VS-ANH-MULTER-BANG); VS-SAO-LUU-BO-ANH LẠC (đoạn I của bài SẬP khi tệp không có ảnh → bài sửa cho chịu được, ca đỏ);
 BV-ND-DON-THU LẠC (đột biến viết sai cú pháp — `];` dính vào dòng chú thích). Sửa xong 4/4 BẮT.
+Lần chạy 2 (14.11, HEAD c68166ad): `ĐỐI CHỨNG XANH · 73 đạt · 0 hỏng` · `TỔNG 35 đột biến · BẮT 35 · SỐNG 0 · HỎNG 0 · LẠC 0`.
 
 ## Câu hỏi
 (không có — kế hoạch đã duyệt, thư App đã có trong kho)
