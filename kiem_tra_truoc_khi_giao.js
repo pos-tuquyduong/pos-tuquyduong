@@ -446,11 +446,11 @@ chac('orders.js chặn sản phẩm chưa có giá',
     const m = k.match(/const\s+(\w+)\s*=\s*await\s+tx\.run\(\s*['`]UPDATE pos_signup_codes SET claimed_at[^'`]*\bAND\s+claimed_at\s+IS\s+NULL\s*['`]/);
     // POS-P20-v3: siết. Chỉ đòi chữ `X.changes` có mặt thì `if (X && X.changes > 5)`
     // vẫn xanh (agent soát 26.09 chứng minh). Nay đòi ĐÚNG dạng chặn, và nó phải
-    // nằm giữa lệnh UPDATE chiếm mã và lệnh INSERT voucher.
+    // nằm giữa lệnh UPDATE chiếm mã và lệnh phát voucher (INSERT, hoặc phatVoucher(tx, …) trong CÙNG giao dịch).
     const sauUpdate = m ? m.index + m[0].length : -1;
     const chan = m ? k.slice(sauUpdate).search(new RegExp(
       `if\\s*\\(\\s*!\\s*${m[1]}\\s*\\|\\|\\s*${m[1]}\\.changes\\s*!==\\s*1\\s*\\)\\s*\\{\\s*await\\s+tx\\.rollback\\(\\s*\\)\\s*;\\s*return\\b`)) : -1;
-    const chenVoucher = m ? k.slice(sauUpdate).indexOf('INSERT INTO pos_discount_codes') : -1;
+    const chenVoucher = m ? k.slice(sauUpdate).search(/INSERT INTO pos_discount_codes|phatVoucher\(\s*tx\s*,/) : -1;   // VOUCHER-2 Q15
     chac('/claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL rồi if (!X || X.changes !== 1) { rollback; return } TRƯỚC khi phát voucher',
       !!m && chan >= 0 && chenVoucher >= 0 && chan < chenVoucher,
       'hai người claim cùng lúc cùng qua phép kiểm ngoài giao dịch');
