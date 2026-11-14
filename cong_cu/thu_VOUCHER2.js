@@ -1109,7 +1109,7 @@ async function main() {
       // Tình huống thật: phiên tạo HÔM QUA 23:58 (voucher còn hạn tới hết hôm qua), tiền về hôm nay → giữ thì vẫn dùng được.
       const homQua = addDaysToDateString(getToday(), -1);
       if (p.phien) await db.run('UPDATE pos_phien_thanh_toan SET tao_luc = ? WHERE id = ?', [homQua + 'T23:58:00', p.phien.id]);
-      await db.run('UPDATE pos_discount_codes SET valid_to = ? WHERE UPPER(code) = UPPER(?)', [homQua, v]);
+      await db.run('UPDATE pos_discount_codes SET valid_from = ?, valid_to = ? WHERE UPPER(code) = UPPER(?)', [addDaysToDateString(getToday(), -5), homQua, v]);   // phát 5 ngày trước
       await db.run('UPDATE pos_voucher_grants SET expires_at = ? WHERE UPPER(code) = UPPER(?)', [homQua, v]);
       const c = p.phien ? await tay(p.phien.id) : {};
       k('Q16c voucher HẾT HẠN trong lúc phiên đang giữ → tiền về (xác nhận tay) vẫn chốt: đơn 40.000, voucher used', p.status === 200 && c.status === 200
