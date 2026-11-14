@@ -130,7 +130,7 @@ async function main() {
     const iNd = moi.findIndex((d) => /app\.use\('\/api\/nd'/.test(d));
     const iCors = moi.findIndex((d) => /^app\.use\(cors\(/.test(d));
     k('A2 index.js: gắn /api/nd TRƯỚC cors chung; so với gốc chỉ THÊM dòng (mọi dòng cũ còn nguyên, đúng thứ tự)',
-      cu.length > 100 && j === cu.length && iNd >= 0 && iCors > iNd && moi.length - cu.length <= 4, `cũ ${cu.length} khớp ${j} · nd ${iNd} · cors ${iCors} · thêm ${moi.length - cu.length}`);
+      cu.length > 100 && j === cu.length && iNd >= 0 && iCors > iNd && moi.length - cu.length <= 10 /* 10 = 4 dòng ND-API-1 + QC-APP-1 + 6 dòng middleware IP thật (DANG-NHAP-2 vòng 2) */, `cũ ${cu.length} khớp ${j} · nd ${iNd} · cors ${iCors} · thêm ${moi.length - cu.length}`);
   }
 
   let A, B, C;
