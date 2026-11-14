@@ -36,7 +36,7 @@ DOC_TU_CODE: ND-API-1 (server/nd/duong.js, xacThuc.js, tinh.js, duLieu.js, cauNo
 | `POST /quay-lai` | `nd_cap_nhat` | `{ so, ban_goc, ghi_chu? }` | `so_ban, tu_ban` — tạo bản MỚI cùng nội dung bản `so`, không xoá gì, nháp giữ nguyên |
 | `POST /anh` | `nd_sua` | multipart, MỘT tệp ở trường `anh` | `ma, url, loai, kich_thuoc, moi` — `url` = `/api/nd/anh/<ma>`; trùng mã → ảnh cũ, `moi: false` |
 | `GET /xuat` | `nd_xuat_nhap` hoặc khoá sao lưu | — | tệp JSON (tải về): `{ dinh_dang: 1, xuat_luc, ban[], nhap[], anh[] { ma, loai, kich_thuoc, luc, du_lieu_base64 }, nhat_ky[] { nguoi, luc, viec, so_ban, so_khoa } }` |
-| `POST /nhap-toan-bo` | `nd_xuat_nhap` | nguyên tệp của `GET /xuat` (JSON, ≤ 50 MB) | `so_ban, so_nhap, so_anh, so_nhat_ky` — CHỈ khi kho trống (không bản, không nháp, không ảnh) |
+| `POST /nhap-toan-bo` | `nd_xuat_nhap` | nguyên tệp của `GET /xuat` (JSON, ≤ 50 MB) | `so_luong_ban, so_nhap, so_anh, so_nhat_ky` (số LƯỢNG đã nhập) — CHỈ khi kho trống (không bản, không nháp, không ảnh); tệp phải có đúng một bản đang chạy và đó là bản số lớn nhất |
 
 ## Quy tắc
 - **Khoá** `[a-zA-Z0-9._-]`, 1–80 ký tự. **Giá trị**: chuỗi / số / đúng-sai / mảng / object (không `null`).

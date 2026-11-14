@@ -81,7 +81,11 @@ function kiemTepNhap(t) {
     soBan.add(b.so_ban);
     dangChay += b.dang_chay;
   }
-  if (ban.length && dangChay !== 1) return sai('DU_LIEU_KHONG_HOP_LE', 'Tệp phải có đúng một bản đang chạy');
+  // cùng bất biến với đường ghi thường (duLieu.doiBan: bản mới = bản đang chạy + 1): bản đang chạy phải là số LỚN NHẤT, không thì lần cập nhật
+  // sau đụng khoá chính và kho kẹt vĩnh viễn (soát vòng 1)
+  if (ban.length && (dangChay !== 1 || !ban.find((b) => b.dang_chay === 1 && b.so_ban === Math.max(...soBan)))) {
+    return sai('DU_LIEU_KHONG_HOP_LE', 'Tệp phải có đúng một bản đang chạy, và đó là bản số lớn nhất');
+  }
   const khoa = new Set();
   for (const n of nhap) {
     if (!laObject(n) || !khoaHopLe(n.khoa) || khoa.has(n.khoa) || !giaTriHopLe(n.gia_tri) || !laSoKhongAm(n.ban_goc) || typeof n.luc !== 'string' || !chuHoacTrong(n.nguoi)) {

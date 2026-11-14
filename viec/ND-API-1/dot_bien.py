@@ -66,6 +66,9 @@ DOT_BIEN = [
                     "  return res.json({ success: true, ...(await D.taoKhoa", 1)], r'✗ J4 '),
   # ── xuất / nhập (I) ──
   ('VS-NHAP-DE', [(DL, "  if (Number(dem.n) > 0) return { loi: 'KHO_DA_CO_DU_LIEU' };\n", '', 1)], r'✗ I2 '),
+  ('BV-BAN-CHAY-LON-NHAT', [(TI, " || !ban.find((b) => b.dang_chay === 1 && b.so_ban === Math.max(...soBan))", '', 1)], r'✗ I3 '),
+  ('VS-TEN-SO-BAN', [(DL, 'return { so_luong_ban: du.ban.length,', 'return { so_ban: du.ban.length,', 1)], r'✗ I1c '),
+  ('BV-HET-KHOA', [(DL, '    WHERE khoa_den IS NULL OR khoa_den <= ?`, [khoa,', '    WHERE khoa_den IS NULL AND ? IS NOT NULL`, [khoa,', 1)], r'✗ G4e '),
   ('VS-SAO-LUU-BO-ANH', [(DL, 'ban, nhap: await dsNhap(), anh, nhat_ky: nhatKy };', 'ban, nhap: await dsNhap(), anh: [], nhat_ky: nhatKy };', 1)], r'✗ (C1b|I1) '),
   # ── sao lưu Excel + dọn thử (K) ──
   ('BV-TRANG-ND', [(BK, '    if (co.some((x) => x.nd)) {', '    if (false) {', 1)], r'✗ K1 '),

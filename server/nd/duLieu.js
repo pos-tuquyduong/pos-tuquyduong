@@ -137,7 +137,7 @@ const nhapToanBo = (nguoi, du) => trongGd(async (tx) => {
   }
   const dang = du.ban.find((b) => b.dang_chay === 1);
   await ghiNhatKy(tx, nguoi, 'nhap', dang ? dang.so_ban : 0, du.nhap.length);
-  return { so_ban: du.ban.length, so_nhap: du.nhap.length, so_anh: du.anh.length, so_nhat_ky: du.nhat_ky.length };
+  return { so_luong_ban: du.ban.length, so_nhap: du.nhap.length, so_anh: du.anh.length, so_nhat_ky: du.nhat_ky.length };
 });
 
 // ── Khoá sao lưu chỉ đọc (nghiệm thu J): máy chủ chỉ giữ BĂM SHA-256 của khoá ──
