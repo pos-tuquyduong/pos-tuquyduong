@@ -117,6 +117,10 @@ DOT_BIEN = [
                        "const loi = (v.used_count || 0) > 0 ? ['VOUCHER_DA_DUNG'] : (v.expires_at && v.expires_at < getNow().slice(0, 10)) ? ['VOUCHER_HET_HAN'] : null;", 1)],
    r'✗ Q17a ', 'V2'),
   ('VS-V2-XET-HAN-GRANT', [(V, "if ((v.valid_from && ngay < v.valid_from) || (v.valid_to && ngay > v.valid_to))", "if (v.expires_at && ngay > v.expires_at)", 1)], r'✗ Q17a ', 'V2'),
+  # ── Q19 (13.11): Đối soát ngày — tiền voucher đã giảm + giảm phí giao ──
+  ('BV-V2-DS-VOUCHER', [('server/utils/doiSoat.js', 'voucher: { da_giam: so(vc[0].vc), giam_phi_giao: so(vc[0].ship) },', '', 1)], r'✗ Q19 máy chủ', 'V2'),
+  ('VS-V2-DS-TINH-SHIP', [('server/utils/doiSoat.js', "WHERE o.status = 'completed' AND COALESCE(d.giam_ship, 0) = 0 AND", "WHERE o.status = 'completed' AND", 1)], r'✗ Q19 máy chủ', 'V2'),
+  ('BV-V2-DS-MAN', [('client/src/components/DoiSoat.jsx', '{t?.voucher && (', '{false && (', 1)], r'✗ Q19 màn', 'V2'),
   # ── Q15 (14.11): phép E9 bộ kiểm nhận phatVoucher(tx, …) — phát TRƯỚC câu chặn phải đỏ (chạy bộ kiểm trên bản chép CẢ kho) ──
   ('VS-V2-E9-PHAT-TRUOC', [(S, "      phat = await phatVoucher(tx, mau, phone, 'khach_moi', { nguon_id: signupRow.id, ghi_chu: `Ưu đãi khách mới — mã bill ${signupRow.code}` });\n      await tx.commit();",
                             "      await tx.commit();", 1),
