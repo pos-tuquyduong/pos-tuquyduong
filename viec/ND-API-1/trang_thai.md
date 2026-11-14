@@ -78,13 +78,21 @@
 | (soát 2) `nd/duLieu.js` kho trống = bản + nháp + ảnh | VS-KHO-TRONG-CHI-BAN (I2b) |
 | (soát 2) `nd/duLieu.js` doiBan chặn > 1 MB | BV-DOIBAN-1MB (D7) |
 | (soát 2) `nd/duong.js` ghi chú ≤ 500 | VS-GHI-CHU-5000 (E2c) |
+| (soát 3) `nd/duong.js` ghi chú: ngưỡng 500 qua + cửa quay-lai | VS-GHI-CHU-499, BV-GHI-CHU-QUAY-LAI (E2d) |
+| (soát 3) `nd/tinh.js` nhập: bản chạy + nháp ≤ 1 MB, khoá nháp, ảnh / số bản trùng, việc nhật ký | BV-NHAP-NHAP-1MB, BV-NHAP-NHAP-KHOA, BV-NHAP-ANH-TRUNG, BV-NHAP-SOBAN-TRUNG, BV-NHATKY-VIEC (I3h) |
+| (soát 3) nhật ký nhap / xuat | BV-NHATKY-NHAP, BV-NHATKY-XUAT (I1d) |
+| (soát 3) `routes/backup.js` bọc lỗi nội dung App | BV-BOC-LOI-ND (K4) |
+| (soát 3) `nd/duLieu.js` xuất đọc lại / ném | VS-XUAT-KHONG-DOC-LAI (X1), BV-XUAT-THROW (X2) |
+| (soát 3) no-store, trần tên khoá 60, tên đăng nhập 100 | BV-NO-STORE (C2), VS-TEN-KHOA-61 (J1b), VS-TEN-DN-101 (G6) |
 
 Tên đột biến: VS-CORS-SAO, VS-GAN-SAU-CORS, BV-404-TRONG-ND, BV-BAN-GOC, BV-BAN-GOC-QUAY-LAI, BV-CHI-MUC-MOT, VS-QUYEN-VE, BV-IS-ACTIVE,
 VS-GIEO-MANAGER, BV-NHOM-QUYEN, BV-DUONG-LUU-QUYEN, VS-KHOA-CHUNG, BV-AUD, VS-LOI-RIENG-KHOA, VS-NGUONG-6, BV-DEM-IP, BV-DEM-CAP, VS-KHOA-TEN-TOAN-CUC,
 VS-KHOA-81, VS-DEM-KY-TU, BV-LUU-QUA-LON, BV-ANH-512, VS-ANH-MULTER-BANG, VS-ANH-THEO-TEN, VS-POS-TRONG-ND, VS-KHOA-SAO-LUU-MOI-CUA, BV-THU-HOI,
 BV-PIN-KHOA, VS-NHAP-DE, VS-SAO-LUU-BO-ANH, BV-TRANG-ND, VS-ND-THO-EXCEL, BV-LOC-ND-KHOI-PHUC, BV-ND-DON-THU, BV-THE-CHI-CHU-QUAN,
 BV-BAN-CHAY-LON-NHAT, VS-TEN-SO-BAN, BV-HET-KHOA, VS-BAN-RONG-CHAN, BV-NHAP-BAN-1MB, BV-NHAP-ANH-512, VS-KHO-TRONG-CHI-BAN, BV-DOIBAN-1MB,
-VS-GHI-CHU-5000, BV-KIEM-KHOA-TRUOC.
+VS-GHI-CHU-5000, BV-KIEM-KHOA-TRUOC, VS-GHI-CHU-499, BV-GHI-CHU-QUAY-LAI, BV-NHAP-NHAP-1MB, BV-NHAP-NHAP-KHOA, BV-NHAP-ANH-TRUNG,
+BV-NHAP-SOBAN-TRUNG, BV-NHATKY-VIEC, BV-NHATKY-NHAP, BV-NHATKY-XUAT, BV-BOC-LOI-ND, VS-XUAT-KHONG-DOC-LAI, BV-XUAT-THROW, BV-NO-STORE, VS-TEN-KHOA-61,
+VS-TEN-DN-101.
 
 Lần chạy 1 (14.11): 31/34 BẮT — BV-ANH-512 SỐNG (dòng tự so cỡ ảnh trong duong.js là THỪA: multer đã chặn 512.001 → đã xoá dòng, đột biến đổi
 sang giới hạn multer + thêm VS-ANH-MULTER-BANG); VS-SAO-LUU-BO-ANH LẠC (đoạn I của bài SẬP khi tệp không có ảnh → bài sửa cho chịu được, ca đỏ);
@@ -148,6 +156,40 @@ ca**: khe chen giữa không dựng được tất định (K3), chỉ phép tí
 BV-DOIBAN-1MB, BV-NHAP-BAN-1MB, BV-NHAP-ANH-512, VS-BAN-RONG-CHAN, VS-KHO-TRONG-CHI-BAN, VS-GHI-CHU-5000; lỗi 4 → sửa câu Phát hiện; lỗi 5 →
 sửa chú thích cauNoi.js; lỗi 6 → hợp đồng ghi rõ nghĩa `so_ban` / `so_khoa` của từng việc (không đổi hành vi). Nghi ngờ → `## Phát hiện`.
 Lần chạy đột biến 4 (HEAD f760a35b): `ĐỐI CHỨNG XANH · 81 đạt · 0 hỏng` · `TỔNG 45 đột biến · BẮT 45 · SỐNG 0 · HỎNG 0 · LẠC 0`.
+
+## Soát độc lập — vòng 3 (14.11, agent general-purpose mới, phần kết luận chép nguyên văn)
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ. Không lỗi nào đụng tiền, điểm hay ví, không lộ thông tin, không ra ngoài Phạm vi. Theo LUAT §6.5, máy làm vòng sửa 4
+mà không cần hỏi chủ quán)
+Cách sửa vòng 2: lỗi 1 đúng (BV-KIEM-KHOA-TRUOC BẮT ở G4f); lỗi 3 a–f có ca; lỗi 4–6 đúng; lỗi 2 (xuất đọc lại) có mã nhưng không ca nào khoá.
+LỖI TÌM ĐƯỢC:
+A. server/nd/tinh.js (kiemTepNhap) + duLieu.js (nhapToanBo) — Nhập toàn bộ không kiểm cỡ nháp: tệp bản 900 KB + nháp 3.000.000 ký tự được NHẬN;
+   sau đó mọi PUT /nhap và cap-nhat 413 tới khi xoá tay nháp lớn. — K4 — NHẸ.
+B. server/nd/duong.js:27 (ghiChuHopLe, 500 viết cứng) — chỉ ca phía trên (501); quay-lai không ca; 500 không nằm trong T.GIOI_HAN; hợp đồng không
+   ghi trần ghi_chu. — K3 + K4 — NHẸ.
+C. server/routes/backup.js:265-266 + duLieu.js:116 — xuat() ném lỗi (throw mới vòng 2, hoặc Turso không đọc nổi dòng ảnh) → cả export-all 500:
+   mất luôn bản sao lưu dữ liệu tiền. Đề xuất bọc try/catch, ghi dòng lỗi, phần POS vẫn xuất. — K5 / K4 — NHẸ (nên sửa trước tiên).
+D. K3 — đột biến SỐNG: xuất đọc lại 3 → 1 lần và bỏ throw (dựng được tất định bằng kho giả qua require.cache); dòng nhật ký nhap / xuat không ca;
+   bỏ kiểm khoá nháp khi nhập; ảnh trùng / số bản trùng / việc nhật ký lạ (400 → 500); no-store của ban-dang-chay; trần tên khoá 60 / tên đăng nhập
+   100. — NHẸ. (4 con SỐNG không tính: tương đương / mốc đúng giây / thời gian bcrypt / co rỗng.)
+NGHI NGỜ: trust proxy 1 chưa đo; GET /xuat ghi nhật ký không có dấu `// GET-ghi:`; thu-hồi kiểm PIN trước khi biết id (lệch chú thích); cổng
+`tu_chay/cong.js chay` đang đỏ A20 (chưa có dòng SOÁT BẢO MẬT — đúng thứ tự); xuat() đọc trong một giao dịch sẽ gọn hơn.
+NGHIỆM THU: 14/14 mục có ca xanh, còn lỗ ở D, E, I, B, L, K như trên.
+CHƯA SOÁT ĐƯỢC: Turso thật; tầng proxy Render; giao diện điện thoại; RAM export-all; cách ghép các ô Excel thành tệp JSON khi cần.
+BÀI HỌC: KHOÁ — giới hạn của cửa ghi thường phải có ca ở MỌI cửa vào (nhập toàn bộ, quay-lai) và ở cả hai phía ngưỡng; KHOÁ — ca "đọc lại khi bị
+chen giữa" dựng được tất định bằng kho giả, đừng vội ghi CHƯA KIỂM; NGUYÊN TẮC — phần mới gắn vào đường chung (sao lưu) phải bọc lỗi; NGUYÊN TẮC —
+mỗi `throw` thêm ở vòng sửa phải rà ai gọi hàm đó.
+```
+**Vòng sửa 4 (máy, LUAT §6.5 — chỉ đúng các lỗi lần soát 3 nêu):** A → `tinh.kiemTepNhap` kiểm bản đang chạy + mọi nháp ≤ 1 MB (cùng luật
+`luuNhap`) + ca I3h (ĐỎ trên HEAD 6148a153: tệp lọt) / I3i (khoá nháp sai mẫu) / I3j (ảnh trùng, số bản trùng, việc nhật ký lạ → 400) + BV-NHAP-NHAP-1MB,
+BV-NHAP-NHAP-KHOA, BV-NHAP-ANH-TRUNG, BV-NHAP-SOBAN-TRUNG, BV-NHATKY-VIEC; B → hằng `GIOI_HAN.ghi_chu_toi_da: 500` (tinh.js), hợp đồng ghi trần
+(bảng cửa + khối máy đọc, L2 đỏ trước vá), ca E2d (quay-lai 501 → 400, đúng 500 → 200) + VS-GHI-CHU-499, BV-GHI-CHU-QUAY-LAI (VS-GHI-CHU-5000 đổi sang
+hằng); C → `backup.js` export-all bọc lỗi nội dung App: trang "Nội dung App (JSON)" ghi một dòng `loi`, phần POS vẫn xuất + ca K4 (ĐỎ trước vá: 500)
++ BV-BOC-LOI-ND; D → ca X1 / X2 (kho giả qua require.cache: lần đọc đầu thiếu bản đang chạy → đọc lại; lệch mãi → ném) + VS-XUAT-KHONG-DOC-LAI,
+BV-XUAT-THROW; ca I1d (nhật ký nhap / xuat) + BV-NHATKY-NHAP, BV-NHATKY-XUAT; C2 thêm no-store + BV-NO-STORE; J1b (tên khoá 61 → 400) + VS-TEN-KHOA-61;
+G6 (tên đăng nhập 100 → 401, 101 → 400) + VS-TEN-DN-101. Nghi ngờ: thêm dấu `// GET-ghi:` ở GET /xuat; chú thích quaPin của khoaSaoLuu.js sửa cho
+đúng (thu hồi kiểm PIN trước khi tìm khoá — chấp nhận, chỉ chủ quán gọi). Lần soát cuối: không gọi agent soát nữa — chat soát thay.
+Bài sau vòng 4: 89 đạt · 0 hỏng. Đột biến lần 5: 58 BẮT + 2 LẠC (bài E / X sập thay vì đỏ khi đột biến) → sửa bài (`0df488a7`), 3/3 BẮT.
 
 ## Câu hỏi
 (không có — kế hoạch đã duyệt, thư App đã có trong kho)
