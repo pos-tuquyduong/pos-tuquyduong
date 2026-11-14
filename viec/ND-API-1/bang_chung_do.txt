@@ -1,10 +1,11 @@
 ND-API-1 — bằng chứng ĐỎ: bài HIỆN TẠI cong_cu/thu_NDAPI1.js chạy trên server/ + client/src/ của GỐC bbf5eaf (PHIEU: ND-API-1)
-Lệnh: python3 viec/ND-API-1/dot_bien.py --goc bbf5eaf   (14.11.2026, soát vòng 1 — sau commit 9af8b11d)
-Trên code đã vá (HEAD): 75 đạt · 0 hỏng. Gốc dừng sớm vài đoạn (bảng nd_* chưa có → "sập" trong từng đoạn) nên in ít ca hơn (60).
+Lệnh: python3 viec/ND-API-1/dot_bien.py --goc bbf5eaf   (14.11.2026, soát vòng 2 — sau commit f760a35b)
+Trên code đã vá (HEAD): 81 đạt · 0 hỏng. Gốc dừng sớm vài đoạn (bảng nd_* chưa có → "sập" trong từng đoạn) nên in ít ca hơn (60).
 Đáng chú ý: F3a trên gốc in "lưu HTTP 404 · Không tìm thấy nhân viên /api/pos/permissions/manager" — nút Lưu Phân quyền hỏng sẵn (Phát hiện).
-Soát vòng 1: ca I3 (tệp có bản đang chạy không phải số lớn nhất) ĐỎ trên HEAD trước vá 9af8b11d (tệp lọt vào kho B, kéo I1 / I1b / I1c đỏ).
+Soát vòng 1: ca I3 (tệp có bản đang chạy không phải số lớn nhất) ĐỎ trên HEAD a203b41c trước vá 9af8b11d.
+Soát vòng 2: ca G4f (cặp khoá bấm lại đẩy bộ đếm IP) ĐỎ trên HEAD 5efab5be trước vá f760a35b: "[429,429,429,429,429,429] · HTTP 429 · QUA_NHIEU_LAN".
 
-SỐ CA cong_cu/thu_NDAPI1.js: 75
+SỐ CA cong_cu/thu_NDAPI1.js: 81
 
   ✗ A1 server/nd/: tệp nào ngoài cauNoi.js có chữ pos_ → đỏ (không tệp nào)  — tệp:  · vi phạm: 
   ✗ A2 index.js: gắn /api/nd TRƯỚC cors chung; so với gốc chỉ THÊM dòng (mọi dòng cũ còn nguyên, đúng thứ tự)  — cũ 245 khớp 245 · nd -1 · cors 61 · thêm 0
@@ -25,7 +26,7 @@ SỐ CA cong_cu/thu_NDAPI1.js: 75
   ✗ F2 bước 027 gieo: owner 1111, manager 0000, staff 0000  —   
   ✗ F3a quản lý chưa có quyền → 403 KHONG_DU_QUYEN; F3b nút Lưu của màn Phân quyền (đường trong api.js) bật nd_sua → cùng vé PUT nhap 200  — HTTP 404 · API endpoint not found / lưu HTTP 404 · Không tìm thấy nhân viên /api/pos/permissions/manager / HTTP 404
   ✗ F3c tắt nd_sua → CÙNG vé lần gọi kế tiếp 403 (thu quyền là hết ngay)  — HTTP 404
-  ✗ F2b chạy lại bước 027 → quyền chủ quán đã bật (manager nd_xem = 1) KHÔNG bị đè  — lỗi Cannot find module '/tmp/dotbien_ndapi1_goc_wje51qqr/server/nang_cap/027_noi_dung.js'
+  ✗ F2b chạy lại bước 027 → quyền chủ quán đã bật (manager nd_xem = 1) KHÔNG bị đè  — lỗi Cannot find module '/tmp/dotbien_ndapi1_goc_zl095za0/server/nang_cap/027_noi_dung.js'
   ✗ F4 khoá tài khoản → cùng vé 401 CHUA_DANG_NHAP; mở lại → 200  — HTTP 404 · API endpoint not found / HTTP 404 · API endpoint not found
   ✗ F5 mỗi cửa cần quyền: thiếu đúng quyền đó → 403, đủ → không 403 (10 cửa × 4 quyền)  — nd_xem: GET /nhap → 404 · nd_xem: GET /phien-ban → 404 · nd_xem: GET /phien-ban/1 → 404 · nd_sua: PUT /nhap → 404 · nd_sua: DELETE /nhap/khong.co → 404 · nd_sua: POST /anh → 404 · nd_cap_nhat: POST /cap-nhat → 404 · nd_cap_nhat: POST /quay-lai → 404 · nd_xuat_nhap: GET /xuat → 404 · nd_xuat_nhap: PO
   ✗ K5b chủ quán (không còn dòng quyền nd nào) vẫn đủ quyền  — HTTP 404 · API endpoint not found
@@ -36,16 +37,15 @@ SỐ CA cong_cu/thu_NDAPI1.js: 75
   ✗ D4 ảnh WebP đúng 512.000 byte qua (K5); 512.001 → 413 QUA_LON  — HTTP 404 / HTTP 404
   ✗ D5 tên .webp, loại image/webp mà byte là HTML → 400 ANH_KHONG_HOP_LE; PNG / JPEG / WebP thật → 200, loại theo BYTE (PNG khai .webp → image/png)  — HTTP 404 / 404 undefined,404 undefined,404 undefined / undefined
   ✗ D — sập  — LibsqlError: SQLITE_ERROR: no such table: nd_anh     at mapSqliteError (/home/user/pos-tuquyduong/node_modules/@libsql/client/lib-cjs/sqlite3.js:334:16)
+  ✗ E2c ghi_chu 501 ký tự → 400 DU_LIEU_KHONG_HOP_LE (chưa ghi bản nào)  — HTTP 404
   ✗ E1 ban_goc ≠ bản đang chạy → 409 CO_BAN_MOI_HON, không đổi gì (chụp 4 bảng trước / sau)  — HTTP 404 / HTTP 404
   ✗ E — sập  — LibsqlError: SQLITE_ERROR: no such table: nd_nhat_ky     at mapSqliteError (/home/user/pos-tuquyduong/node_modules/@libsql/client/lib-cjs/sqlite3.js:334:16)
   ✗ J4 không PIN / PIN sai → 400 không tạo; quản lý → 403; vé nd ở cửa POS → 401  — HTTP 404 | HTTP 404 | HTTP 404 | HTTP 404 · API endpoint not found · -1→-1
   ✗ J — sập  — LibsqlError: SQLITE_ERROR: no such table: nd_khoa_sao_luu     at mapSqliteError (/home/user/pos-tuquyduong/node_modules/@libsql/client/lib-cjs/sqlite3.js:334:16)
   ✗ C1b xuất: tệp JSON tải về (Content-Disposition), dinh_dang 1, đủ ban / nhap / anh (base64) / nhat_ky  — HTTP 404 · API endpoint not found · error,ban,anh
   ✗ I3 tệp dinh_dang lạ / ảnh base64 là HTML / hai bản đang chạy / mã ảnh lệch băm / bản đang chạy KHÔNG phải số lớn nhất → 400, kho trống vẫn trống  — HTTP 404 | HTTP 404 | HTTP 404 | HTTP 404 | HTTP 404
-  ✗ I1c nhập xong trả so_luong_ban = số bản trong tệp (không dùng tên so_ban — so_ban là SỐ của một bản ở mọi cửa)  — {}
-  ✗ I1 xuất → nhập vào kho TRỐNG → giống hệt: từng bản (mọi cột), từng ảnh (byte), nháp, nhật ký (phần đầu)  — HTTP 404 · bản false ảnh false nháp true nk false
-  ✗ I1b kho B sau nhập: bản đang chạy = bản 4 của A  — HTTP 404 · API endpoint not found
-  ✗ I2 nhập vào kho đã có dữ liệu → 409 KHO_DA_CO_DU_LIEU, không xoá / đổi gì  — HTTP 404
+  ✗ I3f tệp có bản > 1.048.576 byte → 413 QUA_LON; I3g ảnh 512.001 byte (đúng băm, đúng WebP) → 413; kho trống vẫn trống  — HTTP 404 / HTTP 404
+  ✗ I — sập  — LibsqlError: SQLITE_ERROR: no such table: nd_nhap     at mapSqliteError (/home/user/pos-tuquyduong/node_modules/@libsql/client/lib-cjs/sqlite3.js:334:16)
   ✗ K1 export-all có trang "Nội dung App (JSON)" = tệp Xuất (bản, ảnh, nháp giống hệt); ô dài nhất ≤ 32.767; không trang thô nào của bảng nd_*  — HTTP 200 · 0 dòng · dài 1035 · nhãn 0
   ✗ K3 donThu.js: 6 bảng nd_* đăng ký "không bao giờ dọn" (BANG_KHONG_DON), không nằm trong danh sách xoá  — ["pos_stock_pending","pos_phien_thanh_toan","pos_don_app","pos_nhat_ky_pin","kho_nha_cung_cap","pos_ngay_sinh_sua","pos_so_hoa_don"]
   ✗ H1a Origin tuquyduong.com / app-kh.pages.dev → ACAO đúng origin đó (GET + OPTIONS hỏi trước có PUT)  — *, *, *, *
@@ -53,6 +53,7 @@ SỐ CA cong_cu/thu_NDAPI1.js: 75
   ✗ C4 đường lạ /api/nd/khong-co → 404 KHONG_TIM_THAY JSON (không rơi xuống trang quầy), vẫn có ACAO cho origin hợp lệ  — HTTP 404 · API endpoint not found *
   ✗ C4b sai phương thức (POST ban-dang-chay) → 404 KHONG_TIM_THAY  — HTTP 404
   ✗ C5 mọi phản hồi lỗi /api/nd đều có { error, code } chữ  — GET /api/nd/ban-dang-chay 404 {"error":"API endpoint not found"} | GET /api/nd/ban-dang-chay?co=0 404 {"error":"API endpoint not found"} | POST /api/nd/dang-nhap 404 {}
+  ✗ D7 bản đang chạy ~700 KB + nháp ~400 KB lưu lúc bản nhỏ → cap-nhat 413 QUA_LON, không đổi gì  — HTTP 404 / HTTP 404 · undefined→undefined→undefined→undefined
   ✗ L1 PHIEN_BAN: 1; khối máy đọc liệt kê ĐÚNG tập cửa của router nd (so bằng, hai chiều; 13 cửa)  — code  · hđ DELETE /nhap/:khoa nd_sua,GET /anh/:ma -,GET /ban-dang-chay -,GET /nhap nd_xem,GET /phien-ban nd_xem,GET /phien-ban/:so nd_xem,GET /xuat nd_xuat_nhap +khoa,POST /anh nd_sua,POST /cap-nhat nd_cap_nhat,POST /dang-nhap -,POST /nhap-toan-bo nd_xuat_nhap,POST /quay-lai nd_cap_nhat,PUT /nhap nd
   ✗ L2 giới hạn trong hợp đồng = hằng của server/nd/tinh.js = số viết tay  — {"khoa_toi_da":80,"ban_toi_da_byte":1048576,"anh_toi_da_byte":512000,"nhap_toan_bo_toi_da_byte":52428800,"sai_toi_da":5,"khoa_phut":15,"ve_gio":12} / {}
   ✗ L3 mã lỗi: đủ 8 mã tối thiểu đúng status; mọi mã trong server/nd/ có trong hợp đồng  — thiếu: 

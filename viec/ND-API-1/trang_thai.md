@@ -72,12 +72,19 @@
 | (soát 1) `nd/tinh.js` tệp nhập: bản đang chạy = số lớn nhất | BV-BAN-CHAY-LON-NHAT (I3) |
 | (soát 1) `nd/duLieu.js` nhập trả `so_luong_ban` | VS-TEN-SO-BAN (I1c) |
 | (soát 1) `nd/duLieu.js` hết 15 phút thì mở khoá (ca hồi quy G4e) | BV-HET-KHOA (G4e) |
+| (soát 2) `nd/xacThuc.js` xem khoá trước khi đếm | BV-KIEM-KHOA-TRUOC (G4f) |
+| (soát 2) `nd/tinh.js` tệp không bản hợp lệ | VS-BAN-RONG-CHAN (I4) |
+| (soát 2) `nd/tinh.js` nhập: bản ≤ 1 MB, ảnh ≤ 512.000 | BV-NHAP-BAN-1MB, BV-NHAP-ANH-512 (I3f) |
+| (soát 2) `nd/duLieu.js` kho trống = bản + nháp + ảnh | VS-KHO-TRONG-CHI-BAN (I2b) |
+| (soát 2) `nd/duLieu.js` doiBan chặn > 1 MB | BV-DOIBAN-1MB (D7) |
+| (soát 2) `nd/duong.js` ghi chú ≤ 500 | VS-GHI-CHU-5000 (E2c) |
 
 Tên đột biến: VS-CORS-SAO, VS-GAN-SAU-CORS, BV-404-TRONG-ND, BV-BAN-GOC, BV-BAN-GOC-QUAY-LAI, BV-CHI-MUC-MOT, VS-QUYEN-VE, BV-IS-ACTIVE,
 VS-GIEO-MANAGER, BV-NHOM-QUYEN, BV-DUONG-LUU-QUYEN, VS-KHOA-CHUNG, BV-AUD, VS-LOI-RIENG-KHOA, VS-NGUONG-6, BV-DEM-IP, BV-DEM-CAP, VS-KHOA-TEN-TOAN-CUC,
 VS-KHOA-81, VS-DEM-KY-TU, BV-LUU-QUA-LON, BV-ANH-512, VS-ANH-MULTER-BANG, VS-ANH-THEO-TEN, VS-POS-TRONG-ND, VS-KHOA-SAO-LUU-MOI-CUA, BV-THU-HOI,
 BV-PIN-KHOA, VS-NHAP-DE, VS-SAO-LUU-BO-ANH, BV-TRANG-ND, VS-ND-THO-EXCEL, BV-LOC-ND-KHOI-PHUC, BV-ND-DON-THU, BV-THE-CHI-CHU-QUAN,
-BV-BAN-CHAY-LON-NHAT, VS-TEN-SO-BAN, BV-HET-KHOA.
+BV-BAN-CHAY-LON-NHAT, VS-TEN-SO-BAN, BV-HET-KHOA, VS-BAN-RONG-CHAN, BV-NHAP-BAN-1MB, BV-NHAP-ANH-512, VS-KHO-TRONG-CHI-BAN, BV-DOIBAN-1MB,
+VS-GHI-CHU-5000, BV-KIEM-KHOA-TRUOC.
 
 Lần chạy 1 (14.11): 31/34 BẮT — BV-ANH-512 SỐNG (dòng tự so cỡ ảnh trong duong.js là THỪA: multer đã chặn 512.001 → đã xoá dòng, đột biến đổi
 sang giới hạn multer + thêm VS-ANH-MULTER-BANG); VS-SAO-LUU-BO-ANH LẠC (đoạn I của bài SẬP khi tệp không có ảnh → bài sửa cho chịu được, ca đỏ);
@@ -112,6 +119,36 @@ lỗi 2 → ca G4e (dời `khoa_den` trong kho: còn 30 s → 429; đã qua → 
 lỗi 3 → `so_luong_ban` (hợp đồng v1 chưa phát hành cho App nên sửa thẳng v1) + ca I1c + VS-TEN-SO-BAN; lỗi 4 → đã commit `689d636f`;
 nghi ngờ L1 → L1 so cả cột `quyen` + `khoa_sao_luu`. Các nghi ngờ khác → `## Phát hiện` (không sửa: ngoài Phạm vi hoặc theo đúng chữ phiếu).
 
+## Soát độc lập — vòng 2 (14.11, agent general-purpose mới, phần kết luận chép nguyên văn)
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ, không có lỗi NẶNG: không đụng tiền, điểm, ví, không lộ thông tin, không ra ngoài Phạm vi)
+LỖI TÌM ĐƯỢC:
+1. server/nd/xacThuc.js:19-20 — giữ lượt `ip:` TRƯỚC `cap:`: cặp đang khoá vẫn cộng bộ đếm IP rồi mới 429 → nhân viên bị khoá cặp bấm lại 5 lần
+   khoá luôn cả IP 15 phút (cả mạng quán). — K5 — NHẸ.
+2. server/nd/duLieu.js:107-117 — xuat() đọc danh sách bản rồi từng bản, không một ảnh chụp: cap-nhat chen giữa → tệp xuất 0 bản đang chạy → chính
+   kiemTepNhap từ chối khi nhập (sao lưu đêm hỏng âm thầm). — K4 — NHẸ.
+3. K3 — đột biến SỐNG: a. bỏ doiBan chặn > 1 MB; b. bỏ tinh.js chặn bản > 1 MB khi nhập; c. bỏ chặn ảnh > 512 KB khi nhập; d. bỏ vế `ban.length &&`
+   (tệp không bản — không có ca K5); e. kho trống chỉ đếm nd_ban (kho chỉ có nháp / ảnh bị nhập đè); f. ghi_chu ≤ 500 chưa có ca. — NHẸ.
+4. K1 — trang_thai.md Phát hiện "(soát 1) khoiPhuc.js:74 … không chạm": SAI — chuanHoaGio.js:50 quét MỌI bảng sqlite_master. — NHẸ.
+5. K1 — server/nd/cauNoi.js:2 "Bê nd … chỉ viết lại tệp này": các tệp nd còn require thẳng ../database, ../utils/helpers. — NHẸ.
+6. duLieu.js:89 / :77 / :139 — `so_khoa` trong nhật ký mang 3 nghĩa. — NHẸ.
+NGHI NGỜ: tệp Xuất không trần vs Nhập 50 MB (+ RAM export-all); nhapToanBo một giao dịch 50 MB trên Turso; nút Lưu Phân quyền chạy lại → người có
+manage_permissions tự cấp quyền (users.js, có từ trước); trust proxy 1 chưa đo.
+NGHIỆM THU: 14/14 mục có ca xanh; lỗ ở D (1 MB / 512 KB ở cap-nhat / quay-lai / nhập), I (vế kho trống, tệp không bản), K5 (chặn oan theo IP).
+ĐÃ KIỂM LẠI VÒNG SỬA 1: cả 4 lỗi sửa đúng (I3e + BV-BAN-CHAY-LON-NHAT, G4e + BV-HET-KHOA, so_luong_ban + VS-TEN-SO-BAN, cây sạch).
+CHƯA SOÁT ĐƯỢC: Turso thật; tầng proxy Render; giao diện điện thoại; khe hở thời gian lỗi 2 chưa dựng ca chắc chắn.
+BÀI HỌC: KHOÁ — giới hạn hứa ở NHIỀU cửa → một ca cho TỪNG cửa + đột biến xoá đúng dòng; KHOÁ — "kho trống" nhiều vế → ca từng vế + ca K5 tệp
+không bản; NGUYÊN TẮC — bộ đếm "lần sai" chỉ cộng khi thật sự so mật khẩu, kiểm mọi khoá đang khoá TRƯỚC khi cộng; NGUYÊN TẮC — tệp sao lưu
+đọc trong một ảnh chụp nhất quán; NGUYÊN TẮC — "hàm X không chạm bảng Y" phải đọc thân X.
+```
+**Vòng sửa 2 (máy):** lỗi 1 → `xacThuc.dangNhap` xem mọi khoá đang khoá TRƯỚC khi cộng (`duLieu.dangKhoa`) + ca G4f (ĐỎ trên HEAD 5efab5be) +
+BV-KIEM-KHOA-TRUOC; lỗi 2 → `xuat()` đọc lại ≤ 3 lần tới khi đúng bất biến (hàm chung `tinh.banChayDung`, dùng cả cho nhập) — **CHƯA KIỂM bằng
+ca**: khe chen giữa không dựng được tất định (K3), chỉ phép tính `banChayDung` có ca qua I3 / I4; lỗi 3 → ca D7 (1 MB lúc cap-nhat), I3f / I3g
+(1 MB / 512.001 byte khi nhập), I4 (K5 tệp không bản, máy kho trống thứ ba C), I2b (kho chỉ nháp / chỉ ảnh → 409), E2c (ghi chú 501) + đột biến
+BV-DOIBAN-1MB, BV-NHAP-BAN-1MB, BV-NHAP-ANH-512, VS-BAN-RONG-CHAN, VS-KHO-TRONG-CHI-BAN, VS-GHI-CHU-5000; lỗi 4 → sửa câu Phát hiện; lỗi 5 →
+sửa chú thích cauNoi.js; lỗi 6 → hợp đồng ghi rõ nghĩa `so_ban` / `so_khoa` của từng việc (không đổi hành vi). Nghi ngờ → `## Phát hiện`.
+Lần chạy đột biến 4 (HEAD f760a35b): `ĐỐI CHỨNG XANH · 81 đạt · 0 hỏng` · `TỔNG 45 đột biến · BẮT 45 · SỐNG 0 · HỎNG 0 · LẠC 0`.
+
 ## Câu hỏi
 (không có — kế hoạch đã duyệt, thư App đã có trong kho)
 
@@ -127,11 +164,21 @@ nghi ngờ L1 → L1 so cả cột `quyen` + `khoa_sao_luu`. Các nghi ngờ kh�
 - (soát 1) CORS đúng chữ phiếu H: chỉ `https://tuquyduong.com` + `https://app-kh.pages.dev`. Nếu /admin chạy ở `www.tuquyduong.com` hay bản xem
   trước `*.app-kh.pages.dev` thì bị chặn — báo App xác nhận tên miền thật (thêm tên miền = một dòng `TEN_MIEN_APP` + hợp đồng, việc sau).
 - (soát 1) Đếm sai là "5 lần LIỀN" (khuôn PIN chủ quán): lần sai cũ không tự hết, chỉ đặt lại khi đăng nhập đúng hoặc sau 15 phút khoá.
-- (soát 1) `server/utils/khoiPhuc.js:74` (ngoài Phạm vi): file sao lưu CŨ đổi giờ trên mọi bảng trong kế hoạch — nd_* đã bị lọc khỏi kế hoạch
-  (BANG_KHOI_PHUC) nên không chạm; ghi lại để biết.
+- (soát 1, câu SỬA ở soát 2 — câu cũ "nd_* đã bị lọc nên không chạm" là SAI, K1) `server/utils/khoiPhuc.js:74` gọi `chuanHoaGio`, mà
+  `server/utils/chuanHoaGio.js` quét MỌI bảng trong sqlite_master (không chỉ bảng trong kế hoạch): khôi phục file sao lưu CŨ (trước GIO-VN-1) thì
+  ô TEXT nào của nd_* trùng nguyên mẫu `YYYY-MM-DDTHH:MM:SS(.mmm)Z` bị cộng 7 giờ. Tác động rất nhỏ (nd ghi giờ không hậu tố Z; chỉ `luc` của tệp
+  Nhập toàn bộ từ máy khác nếu tệp ấy mang đuôi Z); cả hai tệp ngoài Phạm vi — đề xuất việc sau: chuanHoaGio bỏ qua nd_*.
 - (soát 1) Khôi phục Excel báo trang nội dung App là `BANG_LA` "Không nhận diện được bảng" (mã chung của khoiPhuc.js, ngoài Phạm vi) — đề xuất mã riêng
   ở việc sau để chủ quán khỏi tưởng mất dữ liệu.
 - (soát 1) `nd_lan_sai` không có lịch dọn (dòng nhỏ, tăng theo số cặp tên + IP gõ sai) — đề xuất dọn dòng hết khoá > 1 ngày ở việc sau.
 - (soát 1, cũ, ngoài Phạm vi) `server/routes/backup.js` `GET /export-all` chặn bằng `role !== 'owner'` trong thân (đọc lại: chỉ chủ quán tải được) —
   người soát ghi "chỉ authenticate"; thực tế có kiểm owner trong thân hàm.
+- (soát 2) Tệp Xuất không có trần, tệp Nhập trần 50 MB (Q-G): khoảng 75 ảnh 500 KB (base64 ~51 MB) là tệp Xuất vượt trần Nhập → chuyển máy chủ
+  (KH-TACH-1) gãy; export-all Excel cũng giữ cả tệp trong RAM (Render free 512 MB). Chưa đo. Đề xuất: khi gần 40 MB thì /admin báo, hoặc nâng trần
+  ở việc sau — chủ quán quyết số.
+- (soát 2) `nhapToanBo` ghi tới 50 MB trong MỘT giao dịch ghi — chưa biết Turso có giới hạn thời lượng giao dịch không (CHƯA KIỂM, như Q-C).
+- (soát 2, có từ trước, nay đi được từ giao diện vì nút Lưu chạy lại) `PUT /api/pos/users/permissions/:role` (users.js): người có
+  `manage_permissions` sửa được quyền MỌI vai trò, kể cả vai trò của mình (tự cấp nd_xuat_nhap…); không giao dịch; trả `err.message`.
+  `manage_permissions` mặc định chỉ chủ quán (database.js seed manager 0, staff 0). Ngoài phạm vi việc này — đề xuất việc sau: chặn sửa vai trò
+  của chính mình / chỉ chủ quán sửa quyền.
 - `server/routes/users.js`: hai chú thích ghi đường `/api/pos/permissions…` (sai) — đã sửa chú thích cùng dòng vá (K1 TU-CHAY-6).
