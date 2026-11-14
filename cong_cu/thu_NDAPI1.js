@@ -401,7 +401,7 @@ async function main() {
     const b1r = (await A.goi('GET', ND + '/phien-ban/1', { ve: veChu })).j.ban;
     k('E4 quay-lai ban_goc cũ → 409 không đổi gì; đúng → bản MỚI 3, tu_ban = 1, gia_tri giống bản 1', q1.status === 409 && q1.j.code === 'CO_BAN_MOI_HON' && giuNguyen
       && q2.status === 200 && q2.j.so_ban === 3 && Number(b3r?.tu_ban) === 1 && !!b1r && JSON.stringify(b3r?.gia_tri) === JSON.stringify(b1r?.gia_tri),
-      `${moTa(q1)} / ${moTa(q2)} / ${JSON.stringify(b3r).slice(0, 80)}`);
+      `${moTa(q1)} / ${moTa(q2)} / ${String(JSON.stringify(b3r)).slice(0, 80)}`);
     const q404 = await A.goi('POST', ND + '/quay-lai', { ve: veChu, body: { so: 77, ban_goc: 3 } });
     k('E4b quay lại bản không có → 404 KHONG_TIM_THAY', q404.status === 404 && q404.j.code === 'KHONG_TIM_THAY', moTa(q404));
     const e5 = await Promise.all([1, 2].map((so) => A.goi('POST', ND + '/quay-lai', { ve: veChu, body: { so, ban_goc: 3 } })));
@@ -682,7 +682,8 @@ async function main() {
     };
     const napVoi = (kho) => { delete require.cache[duongDl]; require.cache[duongDb] = { id: duongDb, filename: duongDb, loaded: true, exports: kho }; return require(duongDl); };
     // lần 1: thấy bản 1 nhưng lúc đọc dòng thì nó đã tắt (cập nhật chen giữa tạo bản 2) → lần 2 thấy đủ
-    const x1 = await napVoi(taoKhoGia([[{ so_ban: 1, dang_chay: 0 }], [{ so_ban: 1, dang_chay: 0 }, { so_ban: 2, dang_chay: 1 }]])).xuat();
+    let x1 = { ban: [] };
+    try { x1 = await napVoi(taoKhoGia([[{ so_ban: 1, dang_chay: 0 }], [{ so_ban: 1, dang_chay: 0 }, { so_ban: 2, dang_chay: 1 }]])).xuat(); } catch { /* đỏ ở X1 */ }
     k('X1 lần đọc đầu thiếu bản đang chạy → xuat() đọc lại, tệp có bản 2 đang chạy (đúng bất biến Nhập toàn bộ)', x1.ban.map((b) => `${b.so_ban}:${b.dang_chay}`).join() === '1:0,2:1');
     let x2 = 'không ném';
     try { await napVoi(taoKhoGia([[{ so_ban: 1, dang_chay: 0 }]])).xuat(); } catch (e) { x2 = e.message; }
