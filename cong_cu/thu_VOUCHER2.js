@@ -87,7 +87,7 @@ function khungManHinh(cong) {
     let s = ''; try { s = fs.readFileSync(file, 'utf8'); } catch { /* — */ }
     const e = goi.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
     const ds = new Set();
-    for (const m of s.matchAll(new RegExp(`import\\s+([\\s\\S]*?)\\s+from\\s+['"]${e}['"]`, 'g'))) {
+    for (const m of s.matchAll(new RegExp(`import\\s+([^;]*?)\\s+from\\s+['"]${e}['"]`, 'g'))) {   // [^;]: không vắt qua câu import trước
       const nhom = m[1].match(/\{([^}]*)\}/);
       if (nhom) nhom[1].split(',').map((x) => x.trim().split(/\s+as\s+/)[0]).filter(Boolean).forEach((x) => ds.add(x));
     }
@@ -97,7 +97,7 @@ function khungManHinh(cong) {
     + ' const ham = (k) => k.startsWith("use") ? () => (k === "useSearchParams" ? [new URLSearchParams(), () => {}] : () => {}) : vo(k);'
     + ` module.exports = { __esModule: true, default: vo("default"), ${ten.map((t) => `${JSON.stringify(t)}: ham(${JSON.stringify(t)})`).join(', ')} };`;
   const vo = { name: 'v2', setup(b) {
-    b.onResolve({ filter: /\.css$/ }, () => ({ path: 'css', namespace: 'v2' }));
+    b.onResolve({ filter: /\.(css|png|jpe?g|svg|gif|webp)$/ }, () => ({ path: 'css', namespace: 'v2' }));   // tài nguyên tĩnh: rỗng
     b.onResolve({ filter: /^react(\/jsx-runtime|\/jsx-dev-runtime)?$/ }, () => ({ path: 'react', namespace: 'v2' }));
     b.onResolve({ filter: /(AuthContext|ManKhach\/MaGhep|logoCache|thongBaoKho(\.js)?)$/ }, (a) => ({ path: Object.keys(VO).find((x) => a.path.includes(x)), namespace: 'v2' }));
     b.onResolve({ filter: /^[^./]/ }, (a) => ({ path: 'goi:' + tenNhap(a.importer, a.path).join(','), namespace: 'v2' }));
