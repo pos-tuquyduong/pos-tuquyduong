@@ -170,6 +170,14 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
      Thứ tự: Q15 → vòng sửa 1 (4 lỗi) → Q16–Q19 → /ra-soat MỚI → sửa nếu có → /soat-bao-mat → cổng → báo cáo 7 mục. Cần file ngoài Phạm vi → câu hỏi,
      DỪNG. Chỉ sửa bằng Edit / Write. ĐẨY nhánh sau MỖI bước lớn (máy mây có thể bị thu hồi giữa chừng — commit chưa đẩy là mất). -->
 
+<!-- Chủ quán 14.11 — Q21 (trạng thái 500d6f9):
+     Q21 ĐỒNG Ý — Q18: vẫn là khách mới khi đủ CẢ BA: (1) đơn in bill là đơn của chính SĐT đó; (2) SĐT chưa có đơn nào trước đơn in bill; (3) hồ sơ khách
+        tạo trong vòng 30 phút TRƯỚC lúc in bill (30 là hằng có tên, ghi trong hợp đồng / chú thích). Thiếu một điều → KHACH_DA_CO_TAI_KHOAN như Q9.
+        Bài thử: ca 29 phút nhận được, ca 31 phút / ca có đơn trước / ca đơn của SĐT khác bị từ chối; số tính tay.
+     Đồng ý 3 điều máy tự quyết: chỉ phiên chờ chuyển khoản (QR, xác nhận tay) giữ voucher; ô mã cũ gõ voucher đang giữ → báo rõ "đang giữ"; hợp đồng
+        /api/kh ghi bổ sung MA_DON_GOC_KHONG_HOP_LE cùng VOUCHER_DANG_GIU.
+     Rồi: /ra-soat (một lần cho cả vòng sửa 1 + Q15–Q19) → sửa nếu có → /soat-bao-mat → cổng → báo cáo 7 mục. Đẩy nhánh sau mỗi bước lớn. -->
+
 ## Bài thử đỏ
 Có — `cong_cu/thu_VOUCHER2.js` ĐỎ trên code gốc: đơn 2 voucher tiền + 1 voucher % → tổng đúng thứ tự; voucher thứ N+1 → từ chối; mã chung + voucher
 cùng đơn; voucher % giờ flash → từ chối, voucher tiền vẫn qua; voucher ship chỉ trừ phí giao; đơn có thẻ hạng / nạp / gói → mã chỉ tính phần món
