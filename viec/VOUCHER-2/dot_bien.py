@@ -19,6 +19,7 @@ L, R = 'server/routes/loyalty.js', 'server/routes/rewards.js'
 S, DC, ST = 'server/routes/signup-codes.js', 'server/routes/discount-codes.js', 'server/routes/settings.js'
 CH, TJ = 'client/src/utils/hoaDon.js', 'client/src/pages/BanHang/tinh.js'
 CV, KJ = 'client/src/pages/BanHang/ChipVoucher.jsx', 'client/src/pages/Customers.jsx'
+BM, MV, N26 = 'client/src/pages/BanHang/BanHangMoi.jsx', 'client/src/pages/CaiDat/MauVoucher.jsx', 'server/nang_cap/026_voucher.js'
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
 DOT_BIEN = [
@@ -89,6 +90,18 @@ DOT_BIEN = [
   ('BV-V2-TINH-GUI-VOUCHER', [(TJ, "    ...(vouchers.length ? { vouchers } : {}),   // VOUCHER-2", "    // VOUCHER-2", 1)], r'✗ Q14a ', 'V2'),
   ('BV-V2-BO-LOI', [(TJ, "return { chon: chon.filter((m) => !(m in loi)), loi };", "return { chon, loi };", 1)], r'✗ Q14b ', 'V2'),
   ('VS-V2-CHIP-KHONG-MO', [(CV, "disabled={!dangChon && chon.length >= toiDa}", "disabled={false}", 1)], r'✗ Q14c ', 'V2'),
+  # ── vòng sửa 1 (14.11), lỗi soát (1): phá MÀN THẬT như người soát đã phá (chip không hiện, ô mã không gọi máy chủ, phiên thu bỏ voucher, màn mẫu) ──
+  ('BV-V2-CHIP-AN', [(BM, '{!laNap && <ChipVoucher vi={viVoucher}', '{false && <ChipVoucher vi={viVoucher}', 1)], r'✗ Q14c Bán hàng', 'V2'),
+  ('BV-V2-VI-VOUCHER', [(BM, 'setViVoucher(r.data || [])', 'setViVoucher([])', 1)], r'✗ Q14c Bán hàng', 'V2'),
+  ('BV-V2-PHIEN-BO-VOUCHER', [(BM, 'vouchers: laNap ? [] : vcChon });', 'vouchers: [] });', 1)], r'✗ Q14c thu tiền', 'V2'),
+  ('VS-V2-LOI-KHONG-DO', [(BM, 'setVcLoi((l) => ({ ...l, ...b.loi }));', '', 1)], r'✗ Q14c voucher máy chủ từ chối', 'V2'),
+  ('BV-V2-MAU-KHONG-LUU', [(MV, ": await api.post('/rewards/mau', thanGui(form));", ': {};', 1)], r'✗ A4 màn Mẫu voucher \(thật\): Thêm mẫu', 'V2'),
+  ('VS-V2-MAU-XEM-TU-DUNG', [(MV, "setXem((await api.post('/rewards/mau/mo-ta', thanGui(form))).mo_ta);", 'setXem(form.ten);', 1)], r'✗ A4 màn Mẫu voucher \(thật\): Thêm mẫu', 'V2'),
+  ('BV-V2-MAU-TOI-DA', [(MV, "await api.put('/settings', { settings: { voucher_toi_da: toiDa } });", '', 1)], r'✗ A4 màn Mẫu voucher \(thật\): "Tối đa', 'V2'),
+  ('BV-V2-CHON-MAU-KM', [(MV, "await api.put('/settings', { settings: { signup_mau_voucher_id: v } });", '', 1)], r'✗ Q2m ', 'V2'),
+  # ── vòng sửa 1, lỗi soát (4): loại voucher trả App theo mẫu; Q2j bước 026 (gốc thật e3ef76a) ──
+  ('VS-V2-SCOPE-CUNG', [(S, "scope: laShip(mau.kieu) ? 'ship' : (mau.ap_dung || 'tat_ca') !== 'tat_ca' ? 'item' : 'order',", "scope: 'order',", 1)], r'✗ Q2o ', 'V2'),
+  ('VS-V2-026-GIAM-MON', [(N26, "cfg.signup_scope === 'item' || ", '', 1)], r'✗ Q2j ', 'V2'),
   # ── Q15 (14.11): phép E9 bộ kiểm nhận phatVoucher(tx, …) — phát TRƯỚC câu chặn phải đỏ (chạy bộ kiểm trên bản chép CẢ kho) ──
   ('VS-V2-E9-PHAT-TRUOC', [(S, "      phat = await phatVoucher(tx, mau, phone, 'khach_moi', { nguon_id: signupRow.id, ghi_chu: `Ưu đãi khách mới — mã bill ${signupRow.code}` });\n      await tx.commit();",
                             "      await tx.commit();", 1),
