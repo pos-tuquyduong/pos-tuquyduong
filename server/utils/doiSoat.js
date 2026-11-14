@@ -133,7 +133,9 @@ async function tongHop(tu, den) {
       (SELECT COALESCE(SUM(so_tien), 0) FROM pos_hoan_tien_mat WHERE DATE(luc) BETWEEN ? AND ?) AS tm`, [tu, den, tu, den]),
     // VOUCHER-2 Q19 (chủ quán 13.11): "Tiền voucher đã giảm" = số ghi lúc tiêu (pos_voucher_grants.so_tien_giam) của voucher giảm MÓN trên đơn còn
     // completed trong kỳ (đơn huỷ / hoàn đã trả voucher về; mã khuyến mãi chung không phải voucher); "Giảm phí giao" = cột giam_ship (voucher ship — quán
-    // bù) của cùng các đơn đó. Voucher ship không cộng vào dòng đầu (khỏi đếm hai lần). Cùng nguồn với Báo cáo mã giảm (reports.js by_voucher / total_ship_discount).
+    // bù) của cùng các đơn đó. Voucher ship không cộng vào dòng đầu (khỏi đếm hai lần). Cùng cột nguồn (so_tien_giam,
+    // giam_ship) với Báo cáo mã giảm nhưng KHÁC cách chia: reports.js by_voucher bỏ voucher gõ ở ô mã (nằm trong by_code) và GỒM voucher ship; ở đây
+    // GỒM voucher ô mã và tách ship ra dòng riêng — hai màn không so từng dòng với nhau.
     chiDoc(`SELECT (SELECT COALESCE(SUM(COALESCE(g.so_tien_giam, 0)), 0) FROM pos_voucher_grants g JOIN pos_orders o ON o.id = g.used_order_id
         LEFT JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code)
         WHERE o.status = 'completed' AND COALESCE(d.giam_ship, 0) = 0 AND DATE(o.created_at) BETWEEN ? AND ?) AS vc,

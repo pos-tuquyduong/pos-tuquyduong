@@ -1163,6 +1163,8 @@ async function taoDon(req, res, phien = null) {
           [now, discountCodeId],
         );
         // P26c (D4): voucher đổi điểm của mã này chuyển 'used', gắn đơn (huỷ / xoá / duyệt hoàn trả về — traLuotMa).
+        // Từ VOUCHER-2 mọi mã có dòng ví đã tách sang danh sách voucher (tiêu ở câu dưới), nên tới đây không còn mã voucher — câu này giữ làm khoá
+        // phòng thủ (và neo đột biến BV-D4-bo-voucher-used của viec/P26c), luôn được 0 dòng.
         await tx.run(
           "UPDATE pos_voucher_grants SET status = 'used', used_order_id = ?, used_at = ? WHERE UPPER(code) = UPPER(?) AND status = 'available'",
           [orderId, now, finalDiscountCode],
