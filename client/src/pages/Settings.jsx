@@ -14,6 +14,7 @@ import CaiDatManKhach from './CaiDat/ManKhach';   // MANKHACH-1
 import CaiDatChuongTrinh from './CaiDat/ChuongTrinh';   // CT-1a
 import CaiDatGiaoHang from './CaiDat/GiaoHang';   // GIAO-1
 import CongQr from './CaiDat/CongQr';   // TINGEE-1: cổng QR đang chạy (tên + đã cài)
+import QuangCao from './CaiDat/QuangCao';   // QC-APP-1: thẻ Quảng cáo trên App (dải + banner theo ngày / khung giờ)
 import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (hạng, thứ bậc, gói, PIN chủ quán)
 import GoiNap from './CaiDat/GoiNap';   // NAP-1: thẻ Gói nạp tiền (quyền quản lý sản phẩm)
 import TichDiem from './CaiDat/TichDiem';   // DIEM-MON-1: công tắc tích điểm theo món / gói / hạng
@@ -37,7 +38,7 @@ export default function Settings() {
     products: 'manage_settings', packages: 'manage_users', goiNap: 'manage_products', users: 'manage_users',
     permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
     rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
-    tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings', chuongTrinh: 'manage_promotions', giaoHang: 'manage_settings',
+    tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings', chuongTrinh: 'manage_promotions', giaoHang: 'manage_settings', quangCao: 'manage_settings',
   };
   const firstVisibleTab = Object.keys(TAB_PERMISSION).find(t => hasPermission(TAB_PERMISSION[t])) || 'products';
 
@@ -231,7 +232,7 @@ export default function Settings() {
     { ma: 'khach', ten: 'Khách hàng', the: [
       ['loyalty', 'manage_settings'], ['signup', 'manage_settings'],
       ['tiers', 'manage_promotions'], ['flash', 'manage_settings'],
-      ['rewards', 'manage_promotions'], ['chuongTrinh', 'manage_promotions'],
+      ['rewards', 'manage_promotions'], ['chuongTrinh', 'manage_promotions'], ['quangCao', 'manage_settings'],
     ]},
     { ma: 'hethong', ten: 'Hệ thống', the: [
       ['users', 'manage_users'], ['permissions', 'manage_permissions'],
@@ -1026,6 +1027,11 @@ export default function Settings() {
           {theTrongNhom.includes('chuongTrinh') && hasPermission('manage_promotions') && (
           <button className={`btn ${tab === 'chuongTrinh' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('chuongTrinh')}>
             🎓 Chương trình
+          </button>
+          )}
+          {theTrongNhom.includes('quangCao') && hasPermission('manage_settings') && (
+          <button className={`btn ${tab === 'quangCao' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('quangCao')}>
+            📣 Quảng cáo trên App
           </button>
           )}
         </div>
@@ -2076,6 +2082,8 @@ export default function Settings() {
             <GoiNap />
           ) : tab === 'giaoHang' ? (
             <CaiDatGiaoHang />
+          ) : tab === 'quangCao' ? (
+            <QuangCao />
           ) : null}
         </div>
       </div>
