@@ -77,7 +77,7 @@ Không xoá / đổi tên trường cũ — App v13 bỏ qua trường lạ là 
   `code` trên. `ma_giam_loi.code` có thêm `MA_KHONG_AP_MON_THUONG` (giỏ chỉ có thẻ hạng: mã không áp).
 - **Mã in bill → voucher cho khách đăng ký LẦN ĐẦU** (`POST /nhan-ma-bill`, chủ quán Q2 11.11 + Q9 12.11): chỉ nhận được khi tài khoản của SĐT được tạo SAU
   lúc in bill, hoặc (Q18, chủ quán 14.11) tạo trong vòng **30 phút TRƯỚC** lúc in mà bill là đơn của chính SĐT đó và SĐT chưa có đơn nào trước đơn in bill
-  (hồ sơ quầy tạo khi bán cho khách mới). Nhận → máy chủ phát MỘT voucher RIÊNG theo mẫu chủ quán chọn vào ví (`GET /voucher`, `nguon: "khach_moi"`); `data.voucher_code` giữ tên,
+  (đơn đã huỷ không tính — Q23; hồ sơ quầy tạo khi bán cho khách mới). Nhận → máy chủ phát MỘT voucher RIÊNG theo mẫu chủ quán chọn vào ví (`GET /voucher`, `nguon: "khach_moi"`); `data.voucher_code` giữ tên,
   nay là mã MỚI trong ví (không còn là mã in bill — mã bill không gõ ở ô mã được nữa), thêm `data.mo_ta` (câu khách thấy), `data.kieu` (`tien` · `phan_tram` ·
   `ship_tien` · `ship_phan_tram` — như `GET /voucher`) và `data.ap_dung` (`tat_ca` · `nhom` · `mon`); `data.scope` theo mẫu thật: `ship` (voucher giảm phí
   giao) · `item` (nhóm món / món chọn) · `order` (cả đơn) — trước v15 luôn là `order`. Lỗi mới: `CAN_TAO_TAI_KHOAN`
@@ -394,5 +394,5 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   lỗi `CAN_TAO_TAI_KHOAN`, `KHACH_DA_CO_TAI_KHOAN`, `UU_DAI_CHUA_CO_MAU`);
   `hoa_don[]` thêm dòng `voucher`, `giam_ship`; (14.11, chủ quán Q16 / Q17) đơn chờ chuyển khoản giữ voucher (`VOUCHER_DANG_GIU`), `GET /voucher` lọc bằng
   ĐÚNG phép lúc bán, thêm mã `MA_DON_GOC_KHONG_HOP_LE` vào danh sách; (14.11, chủ quán Q18 / Q21) `nhan-ma-bill` nhận cả hồ sơ tạo trong 30 phút trước
-  bill của chính SĐT chưa có đơn trước. Không xoá / đổi tên trường cũ — App v13 gửi
+  bill của chính SĐT chưa có đơn trước (đơn đã huỷ không tính — Q23). Không xoá / đổi tên trường cũ — App v13 gửi
   `ma_giam` (kể cả mã voucher) chạy như trước; giỏ không `vouchers` băm khoá gửi y như cũ.

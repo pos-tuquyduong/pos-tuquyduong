@@ -107,7 +107,7 @@ async function getSignupConfig() {
 
 // VOUCHER-2 (Q2, Q9 chủ quán 12.11): chỉ khách "đăng ký LẦN ĐẦU" — hồ sơ khách (pos_customers) của SĐT tạo SAU lúc in bill (cùng giây vẫn được).
 // Q18 (Q21 chủ quán 14.11): hồ sơ tạo TRƯỚC bill vẫn là khách mới khi đủ CẢ BA — (1) bill là đơn của chính SĐT đó; (2) SĐT chưa có đơn nào
-// trước đơn in bill; (3) hồ sơ tạo trong vòng PHUT_HO_SO_TRUOC_BILL phút trước lúc in (tính cả đúng mốc). Quầy tạo hồ sơ (Thêm khách / ghi địa
+// trước đơn in bill (đơn đã huỷ không tính — Q23 chủ quán 14.11); (3) hồ sơ tạo trong vòng PHUT_HO_SO_TRUOC_BILL phút trước lúc in (tính cả đúng mốc). Quầy tạo hồ sơ (Thêm khách / ghi địa
 // chỉ) TRƯỚC khi lưu đơn, nên khách mới thật luôn có hồ sơ sớm hơn bill vài phút.
 // So chuỗi giờ VN sau khi đổi dấu cách → 'T' (dữ liệu cũ ghi 'YYYY-MM-DD HH:mm:ss'). → lỗi { status, code, error } | null.
 const PHUT_HO_SO_TRUOC_BILL = 30;
