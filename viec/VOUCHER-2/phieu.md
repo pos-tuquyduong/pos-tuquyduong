@@ -145,6 +145,31 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
         (3) Form "Thêm khách mới": ô "Mã trên bill (nếu có)" theo Q9.
         Cần file ngoài Phạm vi → câu hỏi, DỪNG. -->
 
+<!-- Chủ quán 13–14.11 — Q15 + Q20 (trạng thái f742502). Bốn commit của phiên 13.11 MẤT (máy mây cũ bị thu hồi) → chọn Q20 (b): mọi thứ ghi ở ĐÂY.
+     Q15 ĐỒNG Ý (13.11) — sửa ĐÚNG một chỗ trong phép E9 (khối /claim, kiem_tra_truoc_khi_giao.js): lệnh phát voucher được nhận là
+        `INSERT INTO pos_discount_codes` HOẶC `phatVoucher(tx` (truyền CHÍNH giao dịch tx — gọi ngoài giao dịch vẫn đỏ). Vẫn đòi câu chặn
+        `if (!X || X.changes !== 1) { await tx.rollback(); return` đứng giữa UPDATE chiếm mã và lệnh phát. Không nới phép khác. Thêm MỘT đột biến: gọi
+        phatVoucher TRƯỚC câu chặn → E9 phải đỏ. bang_chung_do: E9 đỏ trên code trước sửa phép, xanh sau.
+     Q20 (b) — BỐN LỖI soát độc lập 13.11 (KHÔNG ĐẠT; chép từ báo cáo phiên cũ chủ quán gửi chat) = vòng sửa 1, mỗi lỗi bài ĐỎ trước rồi mới sửa:
+        (1) Ba ca giao diện báo xanh oan — chỉ dò chữ trong file: chip voucher ở Bán hàng (Q14c), ô mã bill ở Thêm khách (Q2k), màn Mẫu voucher (A4).
+            Người soát phá thật trên bản chép (chip không hiện, ô mã không gọi máy chủ, phiên thu bỏ voucher) mà bài vẫn 105 đạt. Viết lại thành ca
+            HÀNH VI (dựng thành phần / gọi hàm thật, khuôn bài giao diện có sẵn của kho) — phá như người soát thì phải đỏ; đột biến neo theo hành vi,
+            không neo chuỗi bài dò.
+        (2) Chú thích sai ở server/utils/diemKhach.js ~dòng 72–74: còn ghi "mã voucher = mã in bill" — sau Q2 voucher là mã RIÊNG do phatVoucher sinh.
+        (3) Bằng chứng đỏ mục Q2 chưa đủ: trên code gốc mục Q2 SẬP giữa chừng nên 6 ca sau chưa từng chạy trên gốc; Q2j gần như chắc xanh trên gốc nếu
+            chạy tới. Sửa bài cho mục Q2 chạy HẾT trên gốc (lỗi từng ca, không sập cả mục), ghi đỏ từng ca; Q2j phải đỏ được trên gốc.
+        (4) Lỗi nhẹ: /api/kh nhan-ma-bill trả App kiểu voucher viết cứng `scope: 'order'` → mẫu giảm ship / theo nhóm món báo sai loại. Lấy theo MẪU thật.
+     Q16 — giữ chỗ voucher khi tạo phiên QR (thanh toán chuyển khoản): phiên giữ voucher cho đơn đó; phiên huỷ / hết hạn → nhả; voucher hết hạn trong lúc
+        ĐANG giữ vẫn dùng được khi tiền về; voucher đang giữ không dùng được ở đơn khác (báo rõ). Khuôn giữ chỗ có sẵn ở server/utils/giuCho.js.
+     Q17 — MỘT hàm duy nhất xét "voucher còn dùng được" cho cả ví voucher của khách (chip) lẫn lúc bán / chốt đơn; bài thử: dữ liệu lệch không còn cảnh
+        chip hiện mà máy chủ từ chối.
+     Q18 — khách mới bị chặn oan: hồ sơ khách tạo ngay trong CHÍNH đơn in bill (quầy ghi SĐT / địa chỉ giao cho đơn đó) VÀ SĐT chưa có đơn nào trước
+        đơn đó → vẫn là khách mới, nhận được mã. Hồ sơ có từ trước / đã có đơn khác → vẫn KHACH_DA_CO_TAI_KHOAN như Q9.
+     Q19 — Đối soát ngày thêm hai dòng: "Tiền voucher đã giảm" (tổng số tiền mọi voucher đã giảm trong ngày) và "Giảm phí giao"; số khớp với đơn
+        (bài thử có số tính tay).
+     Thứ tự: Q15 → vòng sửa 1 (4 lỗi) → Q16–Q19 → /ra-soat MỚI → sửa nếu có → /soat-bao-mat → cổng → báo cáo 7 mục. Cần file ngoài Phạm vi → câu hỏi,
+     DỪNG. Chỉ sửa bằng Edit / Write. ĐẨY nhánh sau MỖI bước lớn (máy mây có thể bị thu hồi giữa chừng — commit chưa đẩy là mất). -->
+
 ## Bài thử đỏ
 Có — `cong_cu/thu_VOUCHER2.js` ĐỎ trên code gốc: đơn 2 voucher tiền + 1 voucher % → tổng đúng thứ tự; voucher thứ N+1 → từ chối; mã chung + voucher
 cùng đơn; voucher % giờ flash → từ chối, voucher tiền vẫn qua; voucher ship chỉ trừ phí giao; đơn có thẻ hạng / nạp / gói → mã chỉ tính phần món
