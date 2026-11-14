@@ -25,6 +25,8 @@ const batDiem = (d) => d.tich_diem == null || Number(d.tich_diem) !== 0;
  * pos_orders.tien_hang_diem — đổi công tắc sau không đổi đơn cũ.
  * VOUCHER-2 (Q22, chủ quán 14.11): `giamMonThuong` = cờ giam_mon_thuong của đơn (cùng luật Q7 với utils/tienDaTra.js tienDaTraTheoDong) — dòng gói /
  * thẻ / nạp (product_id < 0) tính ĐỦ giá, phần còn lại của tienHang chia trên món thường. Mặc định false = cách chia cũ (đơn trước VOUCHER-2).
+ * Làm tròn KHÁC tienDaTraTheoDong: ở đây làm tròn xuống MỘT lần trên tổng các món bật (bên kia từng dòng) → có thể hơn tổng da_tra các dòng bật ≤ 1đ
+ * mỗi dòng; trừ điểm khi hoàn làm tròn LÊN (diemTruKhiHoan) nên hoàn hết vẫn trừ đủ.
  */
 const tienHangDiem = (dongDon, tienHang, giamMonThuong = false) => {
   const gia = dongDon.map((d) => Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0) * Number(d.quantity));
@@ -33,7 +35,7 @@ const tienHangDiem = (dongDon, tienHang, giamMonThuong = false) => {
   const tong = cong(() => true), bat = cong((i) => batDiem(dongDon[i]));
   if (!du.some(Boolean)) return tong > 0 ? Math.floor((bat * tienHang) / tong) : 0;   // bat ≤ tong → kết quả ≤ tienHang (y cách cũ)
   const tongDu = cong((i) => du[i]), batDu = cong((i) => du[i] && batDiem(dongDon[i]));
-  const tongMon = tong - tongDu, traMon = Math.max(0, Math.min(tong, tienHang) - tongDu);   // như tienDaTraTheoDong
+  const tongMon = tong - tongDu, traMon = Math.max(0, Math.min(tong, tienHang) - tongDu);   // cùng phần món như tienDaTraTheoDong
   return Math.min(Math.max(0, tienHang), batDu + (tongMon > 0 ? Math.floor(((bat - batDu) * traMon) / tongMon) : 0));
 };
 

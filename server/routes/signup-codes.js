@@ -7,7 +7,7 @@
  *
  * ĐỔI THIẾT KẾ (VOUCHER-2, chủ quán Q2 11.11 + Q9 12.11 — thay luật 09.08 "mã voucher = mã in bill"): mã in bill KHÔNG còn gõ
  * thẳng ở ô mã. Chỉ SĐT có tài khoản tạo SAU lúc in bill (đăng ký lần đầu) — hoặc trong 30 phút TRƯỚC bill của chính SĐT, chưa có đơn trước
- * (Q18, kiemKhachLanDau) — mới nhận được; nhận → phatVoucher sinh MỘT voucher RIÊNG
+ * (đơn đã huỷ không tính — Q23; Q18, kiemKhachLanDau) — mới nhận được; nhận → phatVoucher sinh MỘT voucher RIÊNG
  * theo mẫu chủ quán chọn (signup_mau_voucher_id) vào ví tài khoản (grant nguon 'khach_moi', nguon_id = dòng mã bill).
  * Voucher khách mới đã claim TRƯỚC VOUCHER-2 (mã = mã bill, không grant) vẫn dùng ở ô mã như cũ.
  *
@@ -117,7 +117,7 @@ function mocHoSoTruocBill(issuedAt) {
 }
 async function laDonDauCuaKhach(phone, dong) {
   if (!dong.order_customer_phone || normalizePhone(dong.order_customer_phone) !== phone) return false;
-  return !(await queryOne("SELECT id FROM pos_orders WHERE customer_phone = ? AND id < ? AND status != 'cancelled' LIMIT 1", [phone, dong.order_id]));   // Q23: đơn đã huỷ không tính
+  return !(await queryOne("SELECT id FROM pos_orders WHERE customer_phone = ? AND id < ? AND status IS NOT 'cancelled' LIMIT 1", [phone, dong.order_id]));   // Q23: đơn đã huỷ không tính (status NULL vẫn tính)
 }
 async function kiemKhachLanDau(phone, dong) {
   const issuedAt = dong.issued_at;
