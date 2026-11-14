@@ -1,0 +1,31 @@
+DANG-NHAP-2 — bằng chứng ĐỎ trên code GỐC, 14.11.2026
+Cách chạy: bản sao code gốc c7ee1bb (git archive c7ee1bb server client/src cong_cu kiem_tra_truoc_khi_giao.js, node_modules nối symlink) trong thư mục nháp,
+chép BẢN MỚI cong_cu/thu_DANGNHAP2.js vào đó rồi `node cong_cu/thu_DANGNHAP2.js` (dòng ✗ + dòng tổng). Bài đổi lần cuối ở 8de5d03e (chưa đổi sau đó).
+
+═══ cong_cu/thu_DANGNHAP2.js (bài mới) trên gốc ═══
+  ✗ A1b lần sai thứ 6 → 429 QUA_NHIEU_LAN  — [401,{"error":"Tên đăng nhập hoặc mật khẩu không đúng"}]
+  ✗ A1c câu 429 báo số phút còn lại (vừa khoá: 15)  — "Tên đăng nhập hoặc mật khẩu không đúng"
+  ✗ A2 lần thứ 6 GÕ ĐÚNG mật khẩu vẫn 429, không có vé  — [200,null]
+  ✗ A3 còn 30 giây (ngay dưới 15 phút) → vẫn 429, báo 1 phút (làm tròn LÊN)  — [200,null]
+  ✗ A5b đăng nhập đúng xoá đếm: sau đó lại được sai đủ 5 lần (401) rồi lần 6 mới 429  — [[401,401,401,401,401],401]
+  ✗ A6 "Admin " / "admin" / " ADMIN" là MỘT cặp: lần 6 → 429  — "401 "
+  ✗ A8 gõ thêm giá trị giả ở đầu X-Forwarded-For không đổi được IP (lấy giá trị proxy thêm): lần 6 → 429  — "401 "
+  ✗ B1 (admin, IP1) đang khoá  — "200 "
+  ✗ C2 lần thứ 21 từ IP đó (tên mới) → 429 QUA_NHIEU_LAN  — "401 "
+  ✗ C3 cùng IP đang bị chặn: tên có thật gõ đúng cũng 429  — "200 "
+  ✗ D1 20 yêu cầu sai song song cùng một cặp → đúng 5 lần 401, còn lại 15 lần 429  — {"n401":20,"n429":0}
+  ✗ D2 chỉ 5 lần được so bcrypt (phần còn lại chặn TRƯỚC khi so)  — 0
+  ✗ D3 tên không tồn tại cũng vậy: 5 lần 401, 15 lần 429, 5 lần so  — 20 lần 401, 0 lần so
+  ✗ E3 tài khoản BỊ KHOÁ mà SAI mật khẩu → CÙNG câu, cùng 401, không code (không lộ tên có thật)  — {"status":401,"j":{"error":"Tài khoản đã bị vô hiệu hóa"}}
+  ✗ E4 ba trường hợp trả về GIỐNG HỆT nhau (cả thân JSON)  — [..., {"error":"Tài khoản đã bị vô hiệu hóa"}]
+  ✗ E5 tên không tồn tại vẫn chạy ĐÚNG MỘT lần bcrypt (băm giả — thời gian phản hồi tương đương)  — 0
+  ✗ E5b tài khoản khoá + sai mật khẩu cũng chạy MỘT lần bcrypt  — 0
+  ✗ E7 mọi lần sai tính lượt, KỂ CẢ tên không tồn tại: lần 6 → 429  — [[401,401,401,401,401],401]
+  ✗ E8 tài khoản khoá sai mật khẩu cũng tính lượt: lần 6 → 429  — "401 "
+  ✗ F0 có server/utils/gioiHanDangNhap.js
+  ✗ F1 module xuất giuLuot / soMuc / TRAN_MUC  — null
+  ✗ F4 không bảng mới, không đụng database
+  ✗ I1 bộ kiểm chạy bài này
+  22 đạt · 23 hỏng
+
+SỐ CA thu_DANGNHAP2.js: 47
