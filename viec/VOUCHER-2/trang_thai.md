@@ -659,4 +659,6 @@ tiền → luật (LUAT §6.5) bảo dừng hỏi bạn, không tự sửa.
   giữ y như hiện nay. ~10 dòng trong `uuDai.js` (trong Phạm vi), bài đỏ trước với bộ số trên + đột biến, chạy lại soát độc lập phần này.
   Bạn đồng ý thì phiên sau mình làm Q24, rồi cổng `chay` → báo cáo 7 mục.
 
+Đột biến đầy đủ sau vòng sửa 3 (HEAD 415511f2, có ĐỐI CHỨNG): **ĐỘT BIẾN VOUCHER-2: 99/99 bị bắt**.
+
 ### Dừng (14.11, lần 4) — chờ chủ quán trả lời Q24. Chưa chạy: `cong.js chay`, báo cáo 7 mục.
