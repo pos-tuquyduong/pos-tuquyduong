@@ -55,6 +55,8 @@ const PORT = process.env.PORT || 3000;
 // KH-API-1 (Q5): sau proxy của Render, req.ip phải là IP khách (giới hạn xin / nhận mã theo IP) — tin ĐÚNG một tầng proxy.
 // Số tầng proxy của Render máy chưa kiểm: lên production thì xem cột ip của pos_kh_lan_thu (nhận mã bill từ 2 mạng khác nhau).
 app.set('trust proxy', 1);
+// ND-API-1: kho nội dung App KH — gắn TRƯỚC cors chung (origin '*'): router nd tự làm CORS chỉ hai tên miền App, thân, 404, lỗi
+app.use('/api/nd', require('./nd/duong'));
 
 // Middleware
 // KH-NHANH-POS-1: trình duyệt nhớ kết quả hỏi trước (preflight) 2 giờ — không có thì Chrome chỉ nhớ 5 giây, mỗi lần App KH đổi tab mất thêm ~250 ms.
@@ -131,6 +133,7 @@ app.use('/api/pos/goi-nap', require('./routes/goi-nap'));   // NAP-1: gói nạp
 app.use('/api/pos/quang-cao', require('./routes/quang-cao'));   // QC-APP-1: Cài đặt "Quảng cáo trên App" (manage_settings + PIN chủ quán)
 app.use('/api/pos/kh', require('./routes/kh/quay'));   // KH-API-1: nhân viên cấp mã đăng nhập App cho khách
 app.use('/api/pos/don-thu', require('./routes/don-thu'));   // KH-SDT-1: dọn dữ liệu thử trước khai trương (chỉ chủ quán)
+app.use('/api/pos/nd-khoa-sao-luu', require('./nd/khoaSaoLuu'));   // ND-API-1: khoá sao lưu chỉ đọc nội dung App (chủ quán + PIN)
 // KH-API-1: cổng App KH — MỌI route xác thực bằng token khách chỉ ở đây (LUAT_XAY_APP §3)
 app.use('/api/kh', require('./routes/kh'));
 app.use('/api/kh', require('./routes/kh/loi').loiTangKh);   // KH-API-1 (G): JSON hỏng / thân quá lớn của /api/kh → { error, code }

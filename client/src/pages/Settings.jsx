@@ -18,6 +18,7 @@ import QuangCao from './CaiDat/QuangCao';   // QC-APP-1: thẻ Quảng cáo trê
 import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (hạng, thứ bậc, gói, PIN chủ quán)
 import GoiNap from './CaiDat/GoiNap';   // NAP-1: thẻ Gói nạp tiền (quyền quản lý sản phẩm)
 import TichDiem from './CaiDat/TichDiem';   // DIEM-MON-1: công tắc tích điểm theo món / gói / hạng
+import AppKhachHang from './CaiDat/AppKhachHang';   // ND-API-1: khoá sao lưu chỉ đọc nội dung App (chỉ chủ quán)
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
 
@@ -28,7 +29,7 @@ const LOAI_MA_CHUNG = [['uudai_chung_hang_percent', 'Mã giảm %'], ['uudai_chu
 export default function Settings() {
   // Đặt tên tránh trùng với state `permissions` cục bộ (dữ liệu tick-chọn phân quyền,
   // khác hẳn permissions của CHÍNH người đang đăng nhập lấy từ AuthContext).
-  const { hasPermission } = useAuth();
+  const { hasPermission, isAdmin } = useAuth();
 
   // Đúng thứ tự các nút tab hiện trên màn hình — dùng để tự chọn tab đầu tiên người dùng
   // THẬT SỰ có quyền, tránh trường hợp mặc định 'products' bị ẩn nút nhưng nội dung tab đó
@@ -236,6 +237,7 @@ export default function Settings() {
     { ma: 'hethong', ten: 'Hệ thống', the: [
       ['users', 'manage_users'], ['permissions', 'manage_permissions'],
       ['backup', 'export_data'],
+      ['appKh', 'chi_chu_quan'],   // ND-API-1: không vai trò nào có quyền tên này → hasPermission chỉ đúng với chủ quán
     ]},
   ];
 
@@ -685,6 +687,11 @@ export default function Settings() {
     finally { setSaving(false); }
   };
   // Permissions functions
+  // ND-API-1: quyền có `nhom` (users.js) → tiêu đề nhóm trước quyền đầu của nhóm, chiếm trọn hàng lưới
+  function tieuDeNhom(p, i, vai) {
+    if (!p.nhom || p.nhom === allPerms[i - 1]?.nhom) return null;
+    return <div key={`${vai}-nhom-${p.nhom}`} style={{ gridColumn: '1 / -1', fontWeight: 600, marginTop: '0.5rem' }}>📱 {p.nhom}</div>;
+  }
   const togglePermission = (role, perm) => {
     setPermissions({
       ...permissions,
@@ -985,6 +992,11 @@ export default function Settings() {
           {theTrongNhom.includes('backup') && hasPermission('export_data') && (
           <button className={`btn ${tab === 'backup' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('backup')}>
             <Database size={16} /> Sao lưu
+          </button>
+          )}
+          {theTrongNhom.includes('appKh') && isAdmin && (
+          <button className={`btn ${tab === 'appKh' ? 'btn-primary' : 'btn-outline'}`} onClick={() => doiThe('appKh')}>
+            📱 App khách hàng
           </button>
           )}
           {theTrongNhom.includes('loyalty') && hasPermission('manage_settings') && (
@@ -1385,7 +1397,7 @@ export default function Settings() {
                   📋 Phân quyền cho Manager
                 </div>
                 <div className="grid grid-2 gap-1">
-                  {allPerms.map(p => (
+                  {allPerms.map((p, i) => [tieuDeNhom(p, i, 'manager'), (
                     <label key={`manager-${p.key}`} className="flex flex-center gap-1" style={{ 
                       padding: '0.5rem 0.75rem', 
                       cursor: 'pointer',
@@ -1397,12 +1409,12 @@ export default function Settings() {
                       <input 
                         type="checkbox" 
                         checked={permissions.manager?.[p.key] || false} 
-                        onChange={() => togglePermission('manager', p.key)} 
+                        onChange={() => togglePermission('manager', p.key)}
                         style={{ width: '16px', height: '16px' }}
                       />
                       <span style={{ flex: 1 }}>{p.label}</span>
                     </label>
-                  ))}
+                  )])}
                 </div>
               </div>
 
@@ -1424,7 +1436,7 @@ export default function Settings() {
                   👤 Phân quyền cho Staff
                 </div>
                 <div className="grid grid-2 gap-1">
-                  {allPerms.map(p => (
+                  {allPerms.map((p, i) => [tieuDeNhom(p, i, 'staff'), (
                     <label key={`staff-${p.key}`} className="flex flex-center gap-1" style={{ 
                       padding: '0.5rem 0.75rem', 
                       cursor: 'pointer',
@@ -1436,12 +1448,12 @@ export default function Settings() {
                       <input 
                         type="checkbox" 
                         checked={permissions.staff?.[p.key] || false} 
-                        onChange={() => togglePermission('staff', p.key)} 
+                        onChange={() => togglePermission('staff', p.key)}
                         style={{ width: '16px', height: '16px' }}
                       />
                       <span style={{ flex: 1 }}>{p.label}</span>
                     </label>
-                  ))}
+                  )])}
                 </div>
               </div>
             </>
@@ -2064,6 +2076,8 @@ export default function Settings() {
             <CaiDatManKhach />
           ) : tab === 'chuongTrinh' ? (
             <CaiDatChuongTrinh />
+          ) : tab === 'appKh' ? (
+            <AppKhachHang />
           ) : tab === 'goiNap' ? (
             <GoiNap />
           ) : tab === 'giaoHang' ? (

@@ -514,7 +514,15 @@ export const usersApi = {
   delete: (id) => api.delete(`/users/${id}`),
   resetPassword: (id, new_password) => api.put(`/users/${id}/password`, { new_password }),
   permissions: () => api.get('/users/permissions'),
-  updatePermissions: (role, permissions) => api.put(`/permissions/${role}`, { permissions })
+  // ND-API-1: route ở users.js là PUT /permissions/:role DƯỚI /users — đường cũ `/permissions/${role}` rơi vào PUT /users/:id → 404, nút Lưu không lưu được
+  updatePermissions: (role, permissions) => api.put(`/users/permissions/${role}`, { permissions })
+};
+
+// ND-API-1: khoá sao lưu CHỈ ĐỌC nội dung App (thẻ Cài đặt "📱 App khách hàng", chỉ chủ quán + PIN chủ quán). Khoá chỉ hiện một lần lúc tạo.
+export const ndKhoaApi = {
+  ds: () => api.get('/nd-khoa-sao-luu'),
+  tao: (ten, pin) => api.post('/nd-khoa-sao-luu', { ten, pin }),
+  thuHoi: (id, pin) => api.post(`/nd-khoa-sao-luu/${id}/thu-hoi`, { pin })
 };
 
 // HANG-1 · Hạng thẻ: cài đặt hạng + gói, PIN chủ quán, cấp / thu hồi hạng chỉ cấp (chủ quán + PIN), nhật ký hạng của khách
