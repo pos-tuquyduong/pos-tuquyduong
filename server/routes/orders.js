@@ -12,7 +12,7 @@
 const express = require("express");
 const { query, queryOne, run, beginTransaction } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
-const { generateVoucherCode } = require("../utils/voucherCode");   // VOUCHER-2: kiểm voucher của đơn ở kiemVoucherDon (dưới taoDon)
+const { generateVoucherCode, xetVoucherConDung, voucherDangGiu } = require("../utils/voucherCode");   // VOUCHER-2: kiểm voucher của đơn ở kiemVoucherDon (dưới taoDon)
 const { findEligibleItemForGroup } = require("../utils/itemScopeDiscount");
 const {
   generateOrderCode,
@@ -778,11 +778,15 @@ async function taoDon(req, res, phien = null) {
     // VOUCHER-2: kiểm từng voucher (chính chủ, đã dùng, hạn, N, ship, món thường, tối thiểu, flash, một voucher %, nhóm món). POST / chốt phiên → 400
     // từng mã, đơn không lưu; tinh-thu / báo giá App → MỀM (voucher hỏng bỏ ra, voucher_loi báo từng mã — cùng khuôn ma_loi).
     const finalShippingFee = baoPhiGiao ? baoPhiGiao.phi : Math.max(0, Number(shipping_fee) || 0);   // GIAO-1: đơn giao bỏ qua số màn hình gửi
-    const kv = await kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong, phone, flashApplied, coGiao: !!baoPhiGiao && finalShippingFee > 0 });
+    // Q16: chốt từ phiên → xét hạn voucher theo NGÀY TẠO PHIÊN (giá phiên đã tính có voucher; hết hạn trong lúc giữ vẫn dùng được) + không tính phần
+    // chính phiên này đang giữ. Đơn quầy / tạo phiên / tinh-thu: hôm nay, mọi phiên đang giữ đều chặn.
+    const kv = await kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong, phone, flashApplied, coGiao: !!baoPhiGiao && finalShippingFee > 0,
+      homNay: phien?.taoLuc ? String(phien.taoLuc).slice(0, 10) : getToday(), boPhienId: phien?.id || null });
     const dsVoucher = kv.ds;
     if (voucherOMa && !dsVoucher.some((v) => v.code.toUpperCase() === voucherOMa)) {   // ô mã cũ: MỀM ở mọi đường, báo ở ma_loi như mọi mã gõ vào (P26c D3)
       const l = kv.loi.find((x) => x.ma === voucherOMa);
       if (l.code === "MA_DON_GOC_KHONG_HOP_LE") return res.status(400).json({ error: l.error, code: l.code });   // P20b: ô mã cứng như trước VOUCHER-2
+      if (l.code === "VOUCHER_DANG_GIU" && !phien?.tinhThu) return res.status(400).json({ error: l.error, code: l.code, ma: l.ma });   // Q16: báo rõ, không thu đủ giá
       maLoi = { error: l.error, code: l.code };
       kv.loi = kv.loi.filter((x) => x !== l);
       voucherOMa = null;
@@ -1165,6 +1169,13 @@ async function taoDon(req, res, phien = null) {
         );
       }
 
+      // Q16: phiên chờ chuyển khoản tạo SAU lúc kiểm (chen giữa kiểm và giao dịch này) → đọc lại phần đang giữ TRONG giao dịch ghi, trước câu tiêu.
+      const dangGiu = await voucherDangGiu(tx, dsVoucher.map((v) => v.code), phien?.id);
+      if (dangGiu.length) {
+        await tx.rollback();
+        return res.status(400).json({ error: `Voucher ${dangGiu[0]}: đang được giữ cho một thanh toán chuyển khoản chưa xong — đợi tiền về hoặc huỷ phiên đó`,
+          code: "VOUCHER_DANG_GIU", ma: dangGiu[0] });
+      }
       // VOUCHER-2 (G): tiêu từng voucher TRONG giao dịch — điều kiện chặn đua viết ngay trong câu ghi, kiểm `changes`: hai đơn cùng voucher → một đơn.
       for (const [i, v] of dsVoucher.entries()) {
         const a = await tx.run(`UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ?
@@ -1417,19 +1428,17 @@ router.post("/", authenticate, (req, res) => taoDon(req, res));
  * → % lúc Flash (F2) → một voucher % (Q4; voucher ship không tính — Q10) → nhóm / món chọn có trong giỏ (Q3). Chỉ đọc; tiêu ở giao dịch taoDon.
  */
 const LOI_KHONG_MON_THUONG = "Mã / voucher chỉ áp cho món thường — không áp lên thẻ hạng, gói trả trước, nạp tiền";
-async function kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong, phone, flashApplied, coGiao }) {
+async function kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong, phone, flashApplied, coGiao, homNay, boPhienId }) {
   const ds = [], loi = [];
   if (!maVoucher.length) return { ds, loi };
   const toiDa = Number((await queryOne("SELECT value FROM pos_settings WHERE key = 'voucher_toi_da'"))?.value) || 3;
-  const homNay = getToday();
   const mon = orderItems.map((it, i) => (khongGiam(it) ? -1 : i)).filter((i) => i >= 0);
   let soPhanTram = 0;
   for (const ma of maVoucher) {
     const v = await queryOne(`SELECT d.*, g.id AS grant_id, g.customer_phone AS chu, g.status AS trang_thai FROM pos_voucher_grants g
       JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code) WHERE UPPER(g.code) = ? ORDER BY g.id LIMIT 1`, [ma]);
-    // P20b (Q2): voucher khách mới chỉ dùng được khi đơn gốc của mã bill còn completed + paid — cùng kiemDonCuaMa với /claim.
-    const maBill = v ? await maBillCuaVoucher(v.code) : null;
-    const loiGoc = maBill ? (await kiemDonCuaMa(maBill)).loi : null;
+    // Q17: có / bật · đơn gốc P20b · chính chủ · đã dùng · hạn · đang bị phiên khác giữ (Q16) — MỘT hàm với ví voucher (diemKhach.layVoucherKhach).
+    const conDung = await xetVoucherConDung(v, { phone, homNay, boPhienId });
     const ship = !!Number(v?.giam_ship), phanTram = v?.discount_type === "percent";
     let dong = null;
     if (v && v.ap_dung && v.ap_dung !== "tat_ca") {
@@ -1443,18 +1452,14 @@ async function kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong,
       }
       dong = mon.filter((i) => khop(orderItems[i]) && orderItems[i].total_price > 0);
     }
-    const sai = !v || !Number(v.is_active) ? ["VOUCHER_KHONG_TON_TAI", "Không có voucher này hoặc voucher đã tắt"]
-      : loiGoc ? ["MA_DON_GOC_KHONG_HOP_LE", loiGoc.error]
-      : Number(v.chinh_chu) && v.chu !== phone ? ["VOUCHER_CHINH_CHU", "Voucher này chỉ dùng cho chủ tài khoản"]
-        : v.trang_thai !== "available" || (Number(v.usage_limit) > 0 && Number(v.used_count) >= Number(v.usage_limit)) ? ["VOUCHER_DA_DUNG", "Voucher đã được dùng"]
-          : (v.valid_from && homNay < v.valid_from) || (v.valid_to && homNay > v.valid_to) ? ["VOUCHER_HET_HAN", "Voucher đã hết hạn"]
-            : ds.length >= toiDa ? ["VUOT_SO_VOUCHER", `Mỗi đơn dùng tối đa ${toiDa} voucher`]
-              : ship && !coGiao ? ["VOUCHER_SHIP_CAN_GIAO", "Voucher giao hàng chỉ dùng cho đơn giao"]
-                : !ship && tienMonThuong <= 0 ? ["MA_KHONG_AP_MON_THUONG", LOI_KHONG_MON_THUONG]
-                  : Number(v.min_order) > tienMonThuong ? ["VOUCHER_CHUA_DU_DON", `Đơn chưa đủ tối thiểu ${Math.round(Number(v.min_order)).toLocaleString("vi-VN")}đ (tính trên món thường)`]
-                    : !ship && phanTram && flashApplied ? ["VOUCHER_PHAN_TRAM_FLASH", "Đang flash sale — chỉ dùng được voucher giảm tiền, không dùng voucher %"]
-                      : !ship && phanTram && soPhanTram >= 1 ? ["VOUCHER_PHAN_TRAM_HAI", "Mỗi đơn chỉ dùng một voucher giảm %"]
-                        : dong && !dong.length ? ["VOUCHER_KHONG_CO_MON", "Đơn chưa có món được áp voucher này"] : null;
+    const sai = conDung
+      || (ds.length >= toiDa ? ["VUOT_SO_VOUCHER", `Mỗi đơn dùng tối đa ${toiDa} voucher`]
+        : ship && !coGiao ? ["VOUCHER_SHIP_CAN_GIAO", "Voucher giao hàng chỉ dùng cho đơn giao"]
+          : !ship && tienMonThuong <= 0 ? ["MA_KHONG_AP_MON_THUONG", LOI_KHONG_MON_THUONG]
+            : Number(v.min_order) > tienMonThuong ? ["VOUCHER_CHUA_DU_DON", `Đơn chưa đủ tối thiểu ${Math.round(Number(v.min_order)).toLocaleString("vi-VN")}đ (tính trên món thường)`]
+              : !ship && phanTram && flashApplied ? ["VOUCHER_PHAN_TRAM_FLASH", "Đang flash sale — chỉ dùng được voucher giảm tiền, không dùng voucher %"]
+                : !ship && phanTram && soPhanTram >= 1 ? ["VOUCHER_PHAN_TRAM_HAI", "Mỗi đơn chỉ dùng một voucher giảm %"]
+                  : dong && !dong.length ? ["VOUCHER_KHONG_CO_MON", "Đơn chưa có món được áp voucher này"] : null);
     if (sai) { loi.push({ error: `Voucher ${ma}: ${sai[1]}`, code: sai[0], ma }); continue; }
     if (!ship && phanTram) soPhanTram++;
     ds.push({ id: v.id, grant_id: v.grant_id, code: v.code, loai: phanTram ? "percent" : "fixed", gia_tri: Number(v.discount_value) || 0,

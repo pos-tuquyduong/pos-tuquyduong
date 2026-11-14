@@ -82,8 +82,49 @@ async function phatVoucher(tx, mau, sdt, nguon, them = {}) {
   return { code, grant_id: Number(g.lastInsertRowid), het_han: hetHan };
 }
 
+// ═══ Q16 (chủ quán 13.11): phiên CHỜ CHUYỂN KHOẢN (QR payOS / ck_tay) còn hạn GIỮ voucher trong thân phiên (vouchers[] + ô mã) — như phần giữ ví
+// (wallets.dangGiu): huỷ / hết hạn / chốt → tự nhả, không hẹn giờ. Phiên tiền mặt / tài khoản chốt ngay nên không giữ. ═══
+const CACH_GIU_VOUCHER = ['payos', 'ck_tay'];
+/** Mã (IN HOA) trong `codes` đang bị phiên KHÁC giữ. db: tx (trong giao dịch ghi) hoặc database; boPhienId: phiên đang chốt — không tính chính nó. */
+async function voucherDangGiu(db, codes, boPhienId = null) {
+  const can = new Set(codes.map((c) => String(c).trim().toUpperCase()));
+  if (!can.size) return [];
+  const ds = await db.query(`SELECT than FROM pos_phien_thanh_toan WHERE trang_thai = 'cho' AND het_han > ? AND cach IN (${CACH_GIU_VOUCHER.map(() => '?').join(', ')})
+    AND id <> ?`, [getNow(), ...CACH_GIU_VOUCHER, Number(boPhienId) || 0]);
+  const giu = new Set();
+  for (const p of ds) {
+    let t = {}; try { t = JSON.parse(p.than) || {}; } catch { /* thân hỏng: không giữ gì */ }
+    for (const c of [...(Array.isArray(t.vouchers) ? t.vouchers : []), t.discount_code]) {
+      const m = typeof c === 'string' ? c.trim().toUpperCase() : '';
+      if (can.has(m)) giu.add(m);
+    }
+  }
+  return [...giu];
+}
+
+/**
+ * Q17 (chủ quán 13.11) — MỘT phép "voucher còn dùng được" cho ví (quầy chip + App /kh/voucher) và lúc bán (kiemVoucherDon). v: dòng ví JOIN mã
+ * (code, is_active, chinh_chu, trang_thai = g.status, chu = g.customer_phone, usage_limit, used_count, valid_from, valid_to). Trả null | [code, lời].
+ * homNay: ngày xét hạn (phiên đang giữ chốt → ngày tạo phiên: voucher hết hạn trong lúc giữ vẫn dùng được, Q16); boPhienId: phiên đang chốt.
+ */
+async function xetVoucherConDung(v, { phone, homNay, boPhienId = null } = {}) {
+  if (!v || !Number(v.is_active)) return ['VOUCHER_KHONG_TON_TAI', 'Không có voucher này hoặc voucher đã tắt'];
+  const { maBillCuaVoucher, kiemDonCuaMa } = require('../routes/signup-codes');   // nạp muộn: signup-codes nạp file này
+  const maBill = await maBillCuaVoucher(v.code);   // P20b (Q2): voucher khách mới chỉ dùng được khi đơn gốc của mã bill còn completed + paid
+  const loiGoc = maBill ? (await kiemDonCuaMa(maBill)).loi : null;
+  if (loiGoc) return ['MA_DON_GOC_KHONG_HOP_LE', loiGoc.error];
+  if (Number(v.chinh_chu) && v.chu !== phone) return ['VOUCHER_CHINH_CHU', 'Voucher này chỉ dùng cho chủ tài khoản'];
+  if (v.trang_thai !== 'available' || (Number(v.usage_limit) > 0 && Number(v.used_count) >= Number(v.usage_limit))) return ['VOUCHER_DA_DUNG', 'Voucher đã được dùng'];
+  const ngay = homNay || getNow().slice(0, 10);
+  if ((v.valid_from && ngay < v.valid_from) || (v.valid_to && ngay > v.valid_to)) return ['VOUCHER_HET_HAN', 'Voucher đã hết hạn'];
+  if ((await voucherDangGiu(require('../database'), [v.code], boPhienId)).length) {
+    return ['VOUCHER_DANG_GIU', 'Voucher đang được giữ cho một thanh toán chuyển khoản chưa xong — đợi tiền về hoặc huỷ phiên đó'];
+  }
+  return null;
+}
+
 /** Quà đổi điểm (pos_reward_catalog) → mẫu cho phatVoucher: chia sẻ được, không đơn tối thiểu (hành vi /redeem trước VOUCHER-2). */
 const mauTuQua = (q) => ({ ten: q.name, kieu: q.discount_type === 'percent' ? 'phan_tram' : 'tien', gia_tri: q.discount_value, tran: q.max_discount || 0,
   don_toi_thieu: 0, ap_dung: 'tat_ca', han_ngay: parseInt(q.valid_days, 10) || 30, chinh_chu: 0 });
 
-module.exports = { generateVoucherCode, moTaVoucher, kiemMau, phatVoucher, mauTuQua, kieuCuaMa, laPhanTram, laShip, KIEU };
+module.exports = { generateVoucherCode, moTaVoucher, kiemMau, phatVoucher, mauTuQua, kieuCuaMa, laPhanTram, laShip, KIEU, voucherDangGiu, xetVoucherConDung, CACH_GIU_VOUCHER };

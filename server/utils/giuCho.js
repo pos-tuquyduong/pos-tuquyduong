@@ -15,6 +15,7 @@ const { taoDon } = require('../routes/orders');
 const { ghiNhatKy, tien } = require('./nhatKyDon');
 const { kiemPin } = require('./pinKhach');
 const { congQr } = require('./congQr');   // SEPAY-1: cổng QR của phiên cach 'payos' (= QR tự xác nhận)
+const { voucherDangGiu, CACH_GIU_VOUCHER } = require('./voucherCode');   // Q16: phiên chờ chuyển khoản giữ voucher
 
 const HAN_PHUT = 10;
 const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay, Tingee dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
@@ -67,6 +68,17 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
     const conLai = tong - giu - giuMe;
     if (cach === 'tai_khoan' && conLai > 0) return { huy: true, ...loi(400, 'SO_DU_KHONG_DU', 'Tài khoản không đủ trả cả đơn') };
     if (cach !== 'tai_khoan' && conLai === 0) return { huy: true, ...loi(400, 'CACH_KHONG_KHOP', 'Tài khoản đã trả đủ — chọn trả đủ bằng tài khoản') };
+    // Q16: phiên chờ chuyển khoản GIỮ voucher của thân phiên — đọc lại TRONG giao dịch ghi (đơn / phiên khác chen sau lúc tính): voucher vừa bị tiêu
+    // hoặc phiên khác vừa giữ → không tạo phiên (khách không chuyển tiền cho một voucher không còn).
+    if (CACH_GIU_VOUCHER.includes(cach)) {
+      const ma = [...new Set([...(Array.isArray(don.vouchers) ? don.vouchers : []), don.discount_code].filter((c) => typeof c === 'string' && c.trim())
+        .map((c) => c.trim().toUpperCase()))];
+      const vc = ma.length ? await tx.query(`SELECT UPPER(code) AS code, status FROM pos_voucher_grants WHERE UPPER(code) IN (${ma.map(() => '?').join(', ')})`, ma) : [];
+      const daTieu = vc.find((g) => g.status !== 'available');
+      if (daTieu) return { huy: true, ...loi(400, 'VOUCHER_DA_DUNG', `Voucher ${daTieu.code}: vừa được dùng ở đơn khác`) };
+      const giuKhac = await voucherDangGiu(tx, vc.map((g) => g.code));
+      if (giuKhac.length) return { huy: true, ...loi(400, 'VOUCHER_DANG_GIU', `Voucher ${giuKhac[0]}: đang được giữ cho một thanh toán chuyển khoản chưa xong`) };
+    }
     const ins = await tx.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, phone_me, giu_vi_me, con_lai, cach, het_han, nguoi_tao, tao_luc)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${GIO}, ?, ?)`, [JSON.stringify(don), tong, phone || null, giu, phoneMe, giuMe, conLai, cach, now, `+${HAN_PHUT} minutes`, nguoi, now]);
     const id = Number(ins.lastInsertRowid);
@@ -108,6 +120,7 @@ async function chotPhien(phien, nguon, them = {}) {
   const r = gomRes();
   await taoDon({ body, user: { username: them.nguoi || phien.nguoi_tao } }, r, {
     id: phien.id,
+    taoLuc: phien.tao_luc,   // Q16: hạn voucher xét theo ngày tạo phiên (giá phiên đã tính có voucher)
     vaoGiaoDich: async (tx, now) => {
       const cong = await tx.run(`UPDATE pos_phien_thanh_toan SET trang_thai = 'da_thu', nguon = ?, ly_do = ?, nguoi_xac_nhan = ?, luc_chot = ?
         WHERE id = ? AND (trang_thai = 'cho' AND het_han > ? OR ? = 1 AND trang_thai IN ('cho', 'huy'))`,
