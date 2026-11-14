@@ -19,7 +19,8 @@ L, R = 'server/routes/loyalty.js', 'server/routes/rewards.js'
 S, DC, ST = 'server/routes/signup-codes.js', 'server/routes/discount-codes.js', 'server/routes/settings.js'
 CH, TJ = 'client/src/utils/hoaDon.js', 'client/src/pages/BanHang/tinh.js'
 CV, KJ = 'client/src/pages/BanHang/ChipVoucher.jsx', 'client/src/pages/Customers.jsx'
-BM, MV, N26 = 'client/src/pages/BanHang/BanHangMoi.jsx', 'client/src/pages/CaiDat/MauVoucher.jsx', 'server/nang_cap/026_voucher.js'
+DT = 'server/utils/diemThat.js'
+BM, MV, N26 ='client/src/pages/BanHang/BanHangMoi.jsx', 'client/src/pages/CaiDat/MauVoucher.jsx', 'server/nang_cap/026_voucher.js'
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗, bài)
 DOT_BIEN = [
@@ -82,8 +83,16 @@ DOT_BIEN = [
   ('VS-V2-Q18-KHONG-TRAN', [(S, '!(Number(kh.trong_moc) && await laDonDauCuaKhach', '!(await laDonDauCuaKhach', 1)], r'✗ Q18c ', 'V2'),
   ('VS-V2-Q18-MOC-NGAT', [(S, "REPLACE(created_at, ' ', 'T') >= ? AS trong_moc", "REPLACE(created_at, ' ', 'T') > ? AS trong_moc", 1)], r'✗ Q18b ', 'V2'),
   ('VS-V2-Q18-MOC-PHUT', [(S, 'ms - PHUT_HO_SO_TRUOC_BILL * 60000', 'ms - (PHUT_HO_SO_TRUOC_BILL + 1) * 60000', 1)], r'✗ Q18c ', 'V2'),
-  ('BV-V2-Q18-DON-TRUOC', [(S, 'customer_phone = ? AND id < ? LIMIT 1', 'customer_phone = ? AND 0 AND id < ? LIMIT 1', 1)], r'✗ Q18d ', 'V2'),
-  ('VS-V2-Q18-DON-KHAC', [(S, 'customer_phone = ? AND id < ? LIMIT 1', 'customer_phone = ? AND id <> ? LIMIT 1', 1)], r'✗ Q18f ', 'V2'),
+  ('BV-V2-Q18-DON-TRUOC', [(S, 'customer_phone = ? AND id < ? AND', 'customer_phone = ? AND 0 AND id < ? AND', 1)], r'✗ Q18d ', 'V2'),
+  ('VS-V2-Q18-DON-KHAC', [(S, 'customer_phone = ? AND id < ? AND', 'customer_phone = ? AND id <> ? AND', 1)], r'✗ Q18f ', 'V2'),
+  # ── Q23 (chủ quán 14.11): đơn trước đã huỷ không tính ──
+  ('BV-V2-Q23-HUY', [(S, " AND status != 'cancelled' LIMIT 1", ' LIMIT 1', 1)], r'✗ Q18g ', 'V2'),
+  ('VS-V2-Q23-BO-CA-DON-THAT', [(S, " AND status != 'cancelled' LIMIT 1", " AND status = 'cancelled' LIMIT 1", 1)], r'✗ Q18d ', 'V2'),
+  # ── Q22 (chủ quán 14.11): diemThat.js tienHangDiem theo luật Q7 ──
+  ('BV-V2-Q22-CO', [(O, 'tienHangDiem(orderItems, total - phiKhachTra, true)', 'tienHangDiem(orderItems, total - phiKhachTra)', 1)], r'✗ Q22a ', 'V2'),
+  ('VS-V2-Q22-MAC-DINH', [(DT, 'giamMonThuong = false) =>', 'giamMonThuong = true) =>', 1)], r'✗ Q22d ', 'V2'),
+  ('VS-V2-Q22-BO-DU-BAT', [(DT, 'return Math.min(Math.max(0, tienHang), batDu + ', 'return Math.min(Math.max(0, tienHang), 0 + ', 1)], r'✗ Q22b ', 'V2'),
+  ('VS-V2-Q22-CHIA-CA-DON', [(DT, 'traMon = Math.max(0, Math.min(tong, tienHang) - tongDu)', 'traMon = tienHang', 1)], r'✗ Q22a ', 'V2'),
   ('BV-V2-Q18-BILL-SDT', [(S, "  if (!dong.order_customer_phone || normalizePhone(dong.order_customer_phone) !== phone) return false;\n", '', 1)], r'✗ Q18e ', 'V2'),
   ('BV-V2-MAU-TAT',[(S, "WHERE id = ? AND bat = 1'", "WHERE id = ?'", 1)], r'✗ Q2h ', 'V2'),
   ('BV-V2-RESET-GRANT', [(S, "WHERE g.nguon = 'khach_moi' AND g.nguon_id = ? ORDER BY g.id DESC LIMIT 1`", "WHERE 0 AND g.nguon_id = ? ORDER BY g.id DESC LIMIT 1`", 1)], r'✗ Q2e ', 'V2'),
