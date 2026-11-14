@@ -15,7 +15,7 @@
  * Két đã đếm (sổ đối soát không dọn — chủ quán chốt 02.11, Q9): két một ngày = để lại lần đếm TRƯỚC + tiền mặt cả KHOẢNG tới ngày đó
  * (doiSoat.js soKet). Két TRƯỚC ngày X được lệch — liệt kê đúng ngày (ket_se_lech); két TỪ ngày X (không chọn ngày: mọi két) không được
  * đổi → đơn có tiền mặt rơi vào khoảng của két đó giữ lại, SĐT có nạp ví tiền mặt rơi vào đó giữ cả số.
- * Không bao giờ dọn: đối soát, payOS, phiên, đơn App, PIN, kho, sản phẩm, cài đặt, nhân viên. Điểm âm sau dọn → từ chối (DIEM_AM).
+ * Không bao giờ dọn: đối soát, payOS, phiên, đơn App, PIN, kho, sản phẩm, cài đặt, nhân viên, nội dung App (nd_*). Điểm âm sau dọn → từ chối (DIEM_AM).
  * Xoá đơn completed có mã giảm → trả lượt mã như xoá đơn (`traLuotMa`). Nhật ký: pos_sync_logs 'don_thu' (tiêu chí, số dòng, băm) và các
  * phần 'don_thu_chup' = { xoa: dòng đã xoá, sua_truoc: dòng trả lượt TRƯỚC khi sửa } chia ≤ PHAN ký tự / ô (sao lưu Excel không nhận ô
  * dài hơn 32767); cột bí mật che bằng '[ẩn]'.
@@ -51,7 +51,9 @@ const DONG_CON_CO_SDT = [['pos_point_transactions', 'customer_phone'], ['pos_bal
 // Bảng có cột SĐT / order_id mà công cụ KHÔNG BAO GIỜ xoá (chỉ dùng để giữ lại) — bài thử dò PRAGMA canh danh sách này.
 const BANG_KHONG_DON = ['pos_stock_pending', 'pos_phien_thanh_toan', 'pos_don_app', 'pos_nhat_ky_pin', 'kho_nha_cung_cap',
   'pos_ngay_sinh_sua',   // CT-1a: sổ sửa ngày sinh chỉ-thêm-dòng (như nhật ký PIN) — dọn dữ liệu thử không xoá
-  'pos_so_hoa_don'];   // CK-NOIDUNG-1: sổ số hoá đơn chỉ-thêm — xoá thì số đã cấp bị cấp lại cho đơn thật (trùng số trên sao kê)
+  'pos_so_hoa_don',   // CK-NOIDUNG-1: sổ số hoá đơn chỉ-thêm — xoá thì số đã cấp bị cấp lại cho đơn thật (trùng số trên sao kê)
+  // ND-API-1: kho nội dung App KH (server/nd/) là nội dung THẬT chủ quán soạn ở /admin — dọn dữ liệu thử không bao giờ xoá
+  'nd_ban', 'nd_nhap', 'nd_anh', 'nd_nhat_ky', 'nd_khoa_sao_luu', 'nd_lan_sai'];
 const THU_TU_XOA = [...BANG_THEO_DON, 'pos_voucher_grants', 'pos_discount_codes', 'pos_kh_ma_dang_nhap', 'pos_kh_lan_thu',
   'pos_registrations', 'pos_wallets', 'pos_customers', 'pos_orders'];
 

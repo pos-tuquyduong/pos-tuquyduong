@@ -1,7 +1,7 @@
 /**
  * KH-API-1 — cổng App KH, gắn MỘT chỗ tại /api/kh (index.js máy chủ). Luật:
  * - Thiếu / sai cấu hình KH_JWT_SECRET → mọi đường 503 (canCauHinhKhach đứng đầu router).
- * - Đăng nhập + đọc chung (hang, gio-vang, gio-hoat-dong; menu: token không bắt buộc — KH-API-3) đứng TRƯỚC xacThucKhach;
+ * - Đăng nhập + đọc chung (hang, gio-vang, gio-hoat-dong, quang-cao; menu: token không bắt buộc — KH-API-3) đứng TRƯỚC xacThucKhach;
  *   còn lại cần token KHÁCH. SĐT LUÔN là req.khach.phone — sdt / phone /
  *   customer_phone trong tham số hay thân yêu cầu bị bỏ qua (F3).
  * - Tiền / điểm / voucher / mã bill đi qua ĐÚNG hàm quầy đang dùng (diemKhach.js, signup-codes.js, products.js).
@@ -25,6 +25,7 @@ const { readFlashState } = require('../../utils/flashState');
 const { tiLeHangMon, giaCacHang } = require('../../utils/giaHang');
 const { docCaiDat, khungHangNgay, traGioHoatDong } = require('../../utils/gioHoatDong');
 const donApp = require('../../utils/donApp');
+const quangCao = require('../quang-cao');   // QC-APP-1: dòng quảng cáo hôm nay (cùng file với Cài đặt quầy)
 const chuongTrinh = require('../chuong-trinh');   // CT-1a: ngày sinh (cùng hàm với quầy) + chương trình công khai
 
 const router = express.Router();
@@ -105,12 +106,15 @@ router.get('/hang', async (req, res) => {
 
 // Giờ vàng = flash sale. MỘT vị từ `bat` = quầy giảm được (orders.js F2: có % VÀ có món); dang_chay = bat VÀ đang trong khung.
 // POS không đếm suất → không có trường suất.
+async function docGioVang() {
+  const f = await readFlashState(query, getNow);
+  const bat = f.enabled && !!f.start && !!f.end && f.start !== f.end && f.percent > 0 && f.product_keys.length > 0;
+  const bayGio = getNow();
+  return { f, bat, khung: bat ? khungHangNgay(bayGio, f.start, f.end) : null };
+}
 router.get('/gio-vang', async (req, res) => {
   try {
-    const f = await readFlashState(query, getNow);
-    const bat = f.enabled && !!f.start && !!f.end && f.start !== f.end && f.percent > 0 && f.product_keys.length > 0;
-    const bayGio = getNow();
-    const khung = bat ? khungHangNgay(bayGio, f.start, f.end) : null;
+    const { f, bat, khung } = await docGioVang();
     res.json({
       success: true, dang_chay: bat && f.is_flash_now,
       bat_dau: khung ? khung.mo : null, ket_thuc: khung ? khung.dong : null, phan_tram: bat ? f.percent : 0, mon: bat ? f.product_keys : [],
@@ -150,6 +154,25 @@ router.get('/chuong-trinh', async (req, res) => {
     res.json({ success: true, data: await chuongTrinh.dsCongKhai() });
   } catch (err) {
     loiMayChu(res, err, 'kh chuong-trinh');
+  }
+});
+
+// QC-APP-1: dải quảng cáo + banner Trang chủ. Không token; chung trần lượt / IP với /menu. Dòng quán gõ lọc theo NGÀY hôm nay (khung giờ App tự so với
+// bay_gio); công tắc "Giờ vàng tự động" bật + Giờ vàng đang chạy (CÙNG vị từ `bat` của /gio-vang) → thêm dòng 'gio_vang' đứng đầu.
+router.get('/quang-cao', async (req, res) => {
+  try {
+    if (!giuLuotMenu(req.ip || '')) return bao(res, 'QUA_NHIEU_LAN');
+    const bayGio = getNow();
+    const data = await quangCao.dsCongKhai(bayGio);
+    const [gv, cai] = await Promise.all([docGioVang(), queryOne('SELECT value FROM pos_settings WHERE key = ?', [quangCao.KHOA_GIO_VANG])]);
+    if (cai?.value === '1' && gv.bat && gv.f.is_flash_now) {
+      const den = gv.khung.dong.slice(11, 16);
+      data.unshift({ id: 'gio_vang', chu_dai: `⏰ Giờ vàng: giảm ${gv.f.percent}% đến ${den}`, tieu_de: '', phu: '', chu_nut: '', dich: 'menu', ma_mon: null,
+        tu_gio: null, den_gio: den, uu_tien: 0 });
+    }
+    res.json({ success: true, bay_gio: bayGio, data });
+  } catch (err) {
+    loiMayChu(res, err, 'kh quang-cao');
   }
 });
 

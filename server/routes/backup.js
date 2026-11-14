@@ -14,6 +14,8 @@ const { getNow, getToday } = require('../utils/helpers');
 const { docTrang, lapKeHoach, thucHien } = require('../utils/khoiPhuc');
 const { loiGhi } = require('./wallets');   // kho bận → 409 KHO_BAN, lỗi khác → 500 không lộ câu nội bộ
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
+const { chiaPhan } = require('../utils/donThu');
+const { xuat: xuatNoiDungApp } = require('../nd/duLieu');   // ND-API-1: chỗ DUY NHẤT POS gọi vào nd — bê nd đi thì xoá ở đây
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -107,6 +109,7 @@ const BACKUP_TABLES = [
 
   // Sự cố và lịch sử — ảnh hưởng tiền nên phải giữ
   { name: 'pos_damage_logs', label: 'Hàng hỏng', key: 'id' },
+  { name: 'pos_quang_cao', label: 'Quảng cáo trên App', key: 'id' },   // QC-APP-1 (bước 028): cấu hình dải quảng cáo — khôi phục được như chương trình
   { name: 'pos_hoan_tien_mat', label: 'Hoàn tiền mặt khách lẻ', key: 'id' },   // HUY-1 (bước 025): tiền mặt ra két khi huỷ đơn khách lẻ
   { name: 'pos_promotion_usage', label: 'Lịch sử dùng khuyến mãi', key: 'id' },
   { name: 'pos_invoice_logs', label: 'Nhật ký hoá đơn', key: 'id' },
@@ -126,8 +129,19 @@ const BACKUP_TABLES = [
   { name: 'kho_dinh_muc', label: 'Kho - Định mức', key: 'id' },
   { name: 'kho_phieu', label: 'Kho - Phiếu', key: 'id' },
   { name: 'kho_lo', label: 'Kho - Lô', key: 'id' },
-  { name: 'kho_phieu_dong', label: 'Kho - Dòng phiếu', key: 'id' }
+  { name: 'kho_phieu_dong', label: 'Kho - Dòng phiếu', key: 'id' },
+
+  // ND-API-1 (Q-B, chủ quán 13.11): kho nội dung App KH (bước 027). `nd: true` — export-all KHÔNG ghi trang thô (ảnh / bản 1 MB vượt ô Excel
+  // 32.767 ký tự) mà ghi MỘT trang TRANG_ND = tệp Xuất của /api/nd cắt nhỏ; khôi phục Excel bỏ qua (BANG_KHOI_PHUC) — dựng lại ở /admin › Nhập toàn bộ.
+  { name: 'nd_ban', label: 'Nội dung App - Bản', key: 'so_ban', nd: true },
+  { name: 'nd_nhap', label: 'Nội dung App - Nháp', key: 'khoa', nd: true },
+  { name: 'nd_anh', label: 'Nội dung App - Ảnh', key: 'ma', nd: true },
+  { name: 'nd_nhat_ky', label: 'Nội dung App - Nhật ký', key: 'id', nd: true },
+  { name: 'nd_khoa_sao_luu', label: 'Nội dung App - Khoá sao lưu', key: 'id', nd: true },   // chỉ băm khoá — không ra file
+  { name: 'nd_lan_sai', label: 'Nội dung App - Lần sai', key: 'khoa', nd: true }
 ];
+const TRANG_ND = 'Nội dung App (JSON)';
+const BANG_KHOI_PHUC = BACKUP_TABLES.filter((t) => !t.nd);   // một chỗ lọc cho xem trước + khôi phục: trang mang nhãn bảng nd_* cũng không vào nd_*
 
 // P26d (Q3, chủ quán mở rộng 18.10 + Q7a 19.10): bảng dính tiền — xuất / sao lưu được, KHÔNG khôi phục bằng file (chặn 400):
 // ví, đơn, chi tiết đơn, sổ ví, yêu cầu hoàn · điểm, gói khách, thẻ, voucher, đền bù (hàng hỏng), lượt mã giảm · mã ưu đãi khách mới
@@ -242,12 +256,24 @@ router.get('/export-all', authenticate, async (req, res) => {
 
     const wb = XLSX.utils.book_new();
 
-    for (const t of await bangDangCo()) {
+    const co = await bangDangCo();
+    for (const t of co.filter((x) => !x.nd)) {
       // Đọc phân trang để không bị treo khi bảng có cột nặng.
       const rows = await readTablePaged(t.name, t.key, t.boCot);
       console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
+    }
+    if (co.some((x) => x.nd)) {   // ND-API-1: một trang = tệp Xuất nội dung App, mỗi ô ≤ 30.000 ký tự (chiaPhan của dọn thử)
+      // lỗi của nội dung App KHÔNG được làm hỏng bản sao lưu dữ liệu POS (soát vòng 3): trang ghi dòng lỗi, phần POS vẫn xuất
+      let dong;
+      try {
+        dong = chiaPhan(JSON.stringify(await xuatNoiDungApp())).map((du_lieu, i) => ({ phan: i + 1, du_lieu }));
+      } catch (err) {
+        console.error('[export-all] nội dung App LỖI:', err.message);
+        dong = [{ phan: 0, du_lieu: '', loi: 'Chưa xuất được nội dung App — tải bản sao ở /admin › Xuất toàn bộ, hoặc thử lại sau' }];
+      }
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dong), TRANG_ND);
     }
 
     themTrangMeta(wb, BACKUP_TABLES.map(t => t.name).join(', '));
@@ -278,6 +304,9 @@ router.get('/export/:table', authenticate, async (req, res) => {
     const tableDef = BACKUP_TABLES.find(t => t.name === req.params.table);
     if (!tableDef) {
       return res.status(400).json({ error: 'Bảng không hợp lệ' });
+    }
+    if (tableDef.nd) {
+      return res.status(400).json({ error: `Nội dung App sao lưu trong bản toàn bộ (trang "${TRANG_ND}")`, code: 'ND_TRONG_BAN_TOAN_BO' });
     }
 
     // Đọc phân trang để tránh treo khi bảng có cột nặng.
@@ -319,7 +348,7 @@ router.post('/preview-restore', authenticate, upload.single('file'), async (req,
     if (chanTrangTien(res, wb)) return;
     // SAOLUU-2 (C): cùng kế hoạch với /restore — cột bỏ qua, trang bỏ qua (mã + lý do), số dòng đọc cùng một cách.
     const preview = [];
-    for (const { dong, viTri, cot, ...m } of await lapKeHoach(wb, BACKUP_TABLES)) {
+    for (const { dong, viTri, cot, ...m } of await lapKeHoach(wb, BANG_KHOI_PHUC)) {
       const dem = m.recognized ? await query(`SELECT COUNT(*) as count FROM ${m.table}`).catch(() => [{ count: 0 }]) : [{ count: 0 }];   // KHO-1: bảng chưa có
       preview.push({ ...m, currentRows: dem[0]?.count || 0 });
     }
@@ -350,7 +379,7 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     // mọi lệnh xoá / chèn. Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).
     if (chanTrangTien(res, wb)) return;
     // SAOLUU-2: kế hoạch (kho_* chỉ khi kho trống, pos_nang_cap không bao giờ, cột ∩ bảng) rồi MỘT giao dịch — dòng hỏng → không đổi gì.
-    const keHoach = await lapKeHoach(wb, BACKUP_TABLES);
+    const keHoach = await lapKeHoach(wb, BANG_KHOI_PHUC);
     // GIO-VN-1: file ghi từ GIO-VN-1 (themTrangMeta) mang backup_date giờ VN `YYYY-MM-DDTHH:mm:ss`; file cũ (toISOString đuôi Z, hoặc xuất một
     // bảng trước đây không có _Metadata) → đổi giờ cũ như bước 012.
     const ngaySao = wb.Sheets._Metadata ? String(docTrang(wb.Sheets._Metadata)[0]?.backup_date ?? '') : '';

@@ -85,6 +85,7 @@ function buildApiError(response, data) {
   );
   err.status = response.status;
   err.code = data && data.code;
+  err.loi_o = data && data.loi_o;   // QC-APP-1: máy chủ chỉ ô nào sai ({ dong, truong }) để màn hiện dưới đúng ô
   return err;
 }
 
@@ -513,7 +514,15 @@ export const usersApi = {
   delete: (id) => api.delete(`/users/${id}`),
   resetPassword: (id, new_password) => api.put(`/users/${id}/password`, { new_password }),
   permissions: () => api.get('/users/permissions'),
-  updatePermissions: (role, permissions) => api.put(`/permissions/${role}`, { permissions })
+  // ND-API-1: route ở users.js là PUT /permissions/:role DƯỚI /users — đường cũ `/permissions/${role}` rơi vào PUT /users/:id → 404, nút Lưu không lưu được
+  updatePermissions: (role, permissions) => api.put(`/users/permissions/${role}`, { permissions })
+};
+
+// ND-API-1: khoá sao lưu CHỈ ĐỌC nội dung App (thẻ Cài đặt "📱 App khách hàng", chỉ chủ quán + PIN chủ quán). Khoá chỉ hiện một lần lúc tạo.
+export const ndKhoaApi = {
+  ds: () => api.get('/nd-khoa-sao-luu'),
+  tao: (ten, pin) => api.post('/nd-khoa-sao-luu', { ten, pin }),
+  thuHoi: (id, pin) => api.post(`/nd-khoa-sao-luu/${id}/thu-hoi`, { pin })
 };
 
 // HANG-1 · Hạng thẻ: cài đặt hạng + gói, PIN chủ quán, cấp / thu hồi hạng chỉ cấp (chủ quán + PIN), nhật ký hạng của khách
@@ -527,6 +536,12 @@ export const hangApi = {
   cap: (sdt, tierId, soThang, pin) => api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin }),
   thuHoi: (sdt, tierId, pin) => api.post('/membership/thu-hoi', { phone: sdt, tier_id: tierId, pin }),
   nhatKy: (sdt) => api.get(`/membership/nhat-ky/${encodeURIComponent(sdt)}`)
+};
+
+// QC-APP-1 · Cài đặt "Quảng cáo trên App" (quyền manage_settings; lưu cần PIN chủ quán): đọc / lưu CẢ danh sách một lần
+export const quangCaoApi = {
+  ds: () => api.get('/quang-cao'),
+  luu: (body) => api.put('/quang-cao', body)
 };
 
 export default api;
