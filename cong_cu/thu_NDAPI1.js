@@ -438,7 +438,7 @@ async function main() {
       && typeof tep.anh?.[0]?.du_lieu_base64 === 'string', `${moTa(xa)} · ${Object.keys(tep)}`);
     const tr0 = await B.chup();
     const i3a = await nhapB({ ...tep, dinh_dang: 2 });
-    const i3b = await nhapB({ ...tep, anh: [...tep.anh, { ...tep.anh[0], du_lieu_base64: Buffer.from('<html>x</html>').toString('base64') }] });
+    const i3b = await nhapB({ ...tep, anh: tep.anh.map((a, i) => (i ? a : { ...a, du_lieu_base64: Buffer.from('<html>' + 'x'.repeat(40) + '</html>').toString('base64') })) });
     const i3c = await nhapB({ ...tep, ban: tep.ban.map((b) => ({ ...b, dang_chay: 1 })) });
     const i3d = await nhapB({ ...tep, anh: tep.anh.map((a, i) => (i ? a : { ...a, ma: 'a'.repeat(64) })) });
     k('I3 tệp dinh_dang lạ / ảnh base64 là HTML / hai bản đang chạy / mã ảnh lệch băm → 400, kho trống vẫn trống', [i3a, i3b, i3c, i3d].every((r) => r.status === 400)
