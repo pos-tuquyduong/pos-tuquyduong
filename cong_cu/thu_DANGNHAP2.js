@@ -259,6 +259,8 @@ async function main() {
       ca('F3 giuLuot trả { chan } khi chưa tới ngưỡng = false', r && r.chan === false, r);
     } else {
       ca('F1 module xuất giuLuot / soMuc / TRAN_MUC', false, m && Object.keys(m));
+      ca('F2 sau 15 phút mọi mục cũ được dọn (chỉ còn mục vừa ghi)', false, 'không có module');
+      ca('F3 giuLuot trả { chan } khi chưa tới ngưỡng = false', false, 'không có module');
     }
     const nguon = fs.existsSync(duong) ? fs.readFileSync(duong, 'utf8') : '';
     ca('F4 không bảng mới, không đụng database', nguon !== '' && !/CREATE TABLE|require\(['"]\.\.\/database/.test(nguon));
