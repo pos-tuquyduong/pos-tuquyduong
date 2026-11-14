@@ -76,6 +76,7 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
 - cong_cu/thu_HOPDONG_KH.js
 - HOP_DONG_API_KH.md
 - kiem_tra_truoc_khi_giao.js
+- server/utils/diemThat.js
 - cong_cu/thu_P20.js
 - cong_cu/gia_lap/kich_ban.js
 - cong_cu/thu_KH1.js
@@ -177,6 +178,15 @@ quầy lẫn App, máy chủ tính đúng một cách duy nhất và không đ�
      Đồng ý 3 điều máy tự quyết: chỉ phiên chờ chuyển khoản (QR, xác nhận tay) giữ voucher; ô mã cũ gõ voucher đang giữ → báo rõ "đang giữ"; hợp đồng
         /api/kh ghi bổ sung MA_DON_GOC_KHONG_HOP_LE cùng VOUCHER_DANG_GIU.
      Rồi: /ra-soat (một lần cho cả vòng sửa 1 + Q15–Q19) → sửa nếu có → /soat-bao-mat → cổng → báo cáo 7 mục. Đẩy nhánh sau mỗi bước lớn. -->
+
+<!-- Chủ quán 14.11 — Q22 + Q23 (trạng thái 306cbe4):
+     Q22 ĐỒNG Ý — thêm server/utils/diemThat.js: tienHangDiem thêm MỘT tham số mặc định (đơn có cờ mới): dòng gói / thẻ / nạp tính đủ giá, phần giảm chỉ chia
+        trên món thường (đúng Q7); orders.js truyền cờ; đơn cũ KHÔNG đổi (số đã lưu). Bài đỏ trước với hai bộ số tính tay (45.000 thay 49.285; 300.000 thay
+        295.714) + đột biến. Không đổi gì khác trong diemThat.js.
+     Q23 ĐỒNG Ý — Q18 điều (2): KHÔNG tính đơn đã huỷ. Thêm ca "đơn trước đã huỷ → vẫn nhận" + đột biến.
+     Bốn Phát hiện lần 3 (giới hạn số voucher lệch, MauVoucher lưu N cần manage_settings, phiên CK chưa xét used_count, bất biến từng đơn) → KHÔNG làm
+        trong việc này; chat ghi vào sổ việc sau.
+     Rồi: /ra-soat lần 4 (chỉ phần Q22 + Q23 + mọi chỗ đổi từ lần 3) → /soat-bao-mat → cổng → báo cáo 7 mục. Đẩy nhánh sau mỗi bước lớn. -->
 
 ## Bài thử đỏ
 Có — `cong_cu/thu_VOUCHER2.js` ĐỎ trên code gốc: đơn 2 voucher tiền + 1 voucher % → tổng đúng thứ tự; voucher thứ N+1 → từ chối; mã chung + voucher
