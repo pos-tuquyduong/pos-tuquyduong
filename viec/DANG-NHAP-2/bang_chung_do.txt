@@ -1,6 +1,6 @@
 DANG-NHAP-2 — bằng chứng ĐỎ trên code GỐC, 14.11.2026
 Cách chạy: bản sao code gốc c7ee1bb (git archive c7ee1bb server client/src cong_cu kiem_tra_truoc_khi_giao.js, node_modules nối symlink) trong thư mục nháp,
-chép BẢN MỚI cong_cu/thu_DANGNHAP2.js vào đó rồi `node cong_cu/thu_DANGNHAP2.js` (dòng ✗ + dòng tổng). Bài đổi lần cuối ở 8de5d03e (chưa đổi sau đó).
+chép BẢN MỚI cong_cu/thu_DANGNHAP2.js vào đó rồi `node cong_cu/thu_DANGNHAP2.js` (dòng ✗ + dòng tổng). Bài đổi lần cuối ở b4bf3887 (thêm F2/F3 đỏ khi thiếu module để số ca gốc = số ca head, cổng A16).
 
 ═══ cong_cu/thu_DANGNHAP2.js (bài mới) trên gốc ═══
   ✗ A1b lần sai thứ 6 → 429 QUA_NHIEU_LAN  — [401,{"error":"Tên đăng nhập hoặc mật khẩu không đúng"}]
@@ -24,8 +24,10 @@ chép BẢN MỚI cong_cu/thu_DANGNHAP2.js vào đó rồi `node cong_cu/thu_DAN
   ✗ E8 tài khoản khoá sai mật khẩu cũng tính lượt: lần 6 → 429  — "401 "
   ✗ F0 có server/utils/gioiHanDangNhap.js
   ✗ F1 module xuất giuLuot / soMuc / TRAN_MUC  — null
+  ✗ F2 sau 15 phút mọi mục cũ được dọn (chỉ còn mục vừa ghi)  — "không có module"
+  ✗ F3 giuLuot trả { chan } khi chưa tới ngưỡng = false  — "không có module"
   ✗ F4 không bảng mới, không đụng database
   ✗ I1 bộ kiểm chạy bài này
-  22 đạt · 23 hỏng
+  22 đạt · 25 hỏng
 
-SỐ CA thu_DANGNHAP2.js: 47
+SỐ CA cong_cu/thu_DANGNHAP2.js: 47
