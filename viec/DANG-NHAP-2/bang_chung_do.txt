@@ -44,4 +44,10 @@ Cách chạy: git archive cac85b4 server client/src cong_cu kiem_tra_truoc_khi_g
   ✗ J16 ipKhach: True-Client-IP > CF-Connecting-IP > req.ip; rác → req.ip
   54 đạt · 10 hỏng        (sau vá: 64 đạt · 0 hỏng)
 
+═══ VÒNG 2 · VÒNG SỬA 1 (soát độc lập bắt: True-Client-IP khách tự gửi được nếu Cloudflare chưa bật Managed Transform) ═══
+Bài đổi J7 + J16 (đảo thứ tự: CF-Connecting-IP > True-Client-IP). Chạy bản mới trên code TRƯỚC vá (c7bca42, ipKhach còn ưu tiên True-Client-IP):
+  ✗ J7 có cả hai: CF-Connecting-IP được ưu tiên … đổi True-Client-IP vẫn 429 (không lách được)
+  ✗ J16 ipKhach: CF-Connecting-IP > True-Client-IP > req.ip; rác → bỏ qua / req.ip
+  62 đạt · 2 hỏng        (sau vá f90085f: 64 đạt · 0 hỏng)
+
 SỐ CA cong_cu/thu_DANGNHAP2.js: 64

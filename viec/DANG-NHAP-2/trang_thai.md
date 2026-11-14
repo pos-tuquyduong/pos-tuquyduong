@@ -139,3 +139,22 @@ Ghi thêm: `thu_BH2.js` G1 đỏ oan trên kho nông — đã xử lý bằng `-
 ## Phát hiện (vòng 2 — KHÔNG làm, theo phiếu)
 - Đổi mật khẩu (`PUT /auth/password`) và đặt PIN chủ quán (`pinChuQuan.js datPinChuQuan`) chưa giới hạn số lần sai — việc sau.
 - `ipKhach` tin `True-Client-IP` / `CF-Connecting-IP` vô điều kiện: nếu ai đó gọi thẳng Render (bỏ qua Cloudflare) thì tự gửi header giả IP được. Phiếu chốt cách này; muốn kín hẳn thì Render chỉ nhận từ dải IP Cloudflare (hạ tầng, ngoài kho).
+
+## Soát độc lập vòng 2 (/ra-soat, 14.11) + vòng sửa 1
+KHÔNG ĐẠT lần đầu — 1 lỗi: `server/utils/ipKhach.js:10` ưu tiên `True-Client-IP` trước `CF-Connecting-IP`. Cloudflare LUÔN ghi đè `CF-Connecting-IP`, còn `True-Client-IP` chỉ do Cloudflare đặt khi bật Managed Transform / Enterprise;
+chưa bật thì khách tự gửi được → đổi giá trị mỗi lần để lách giới hạn đăng nhập / `/api/kh` / `/api/nd` (mở lỗ MỚI so với trước vòng 2). Khuôn K1 (câu "Cloudflare tự ghi đè True-Client-IP" trong phiếu + chú thích code không có căn cứ) + bảo mật.
+Phần còn lại ĐẠT: K4 grep server/ mọi chỗ IP chỉ là `req.ip` (auth.js:31,59 · nd/duong.js:48 · man-khach.js:47 · kh/index.js:70,140,153,164,313 · kh/quay.js:20), không đường song song nào; middleware là `app.use` đầu tiên sau `trust proxy`;
+Express 5 `defineProperty` có tác dụng (J1 chạy thật); K5 không chặn oan (không header → như cũ, J9). Nghiệm thu 7/8 có bằng chứng (agent không chờ được `npm test`; mình đã chạy: PASS 116 · FAIL 0).
+**Vòng sửa 1 (làm đúng quy trình):** bài đỏ trước (J7 + J16 đảo thứ tự, đỏ 2 ca trên c7bca42 — xem bang_chung_do.txt) → `ipKhach.js` ưu tiên `CF-Connecting-IP`, `True-Client-IP` chỉ là dự phòng khi không có header kia (f90085f) → đột biến cập nhật + thêm BV-IP-TRUE-CLIENT.
+Lưu ý với chủ quán: phiếu V1 ghi thứ tự ngược lại; mình đảo vì lý do bảo mật trên (qua Cloudflare thật `CF-Connecting-IP` luôn có nên không mất gì). Đột biến vòng 2: 9 BẮT / 9 (BV-IP-THAT-MIDDLEWARE · VS-IP-THAT-SAU-DUONG · VS-IP-TIN-XFF · VS-IP-CAT-DANH-SACH · VS-IP-BO-KIEM-HOP-LE · VS-IP-DAO-UU-TIEN · BV-IP-CF-CONNECTING · BV-IP-TRUE-CLIENT · BV-IP-BO-IPV6).
+NGHI NGỜ còn lại (không sửa): (a) nếu CÓ HAI lớp Cloudflare (của chủ quán + của Render), lớp trong có thể ghi đè `CF-Connecting-IP` bằng IP lớp ngoài → mọi khách lại dồn một IP: sau khi lên production đọc cột `ip` của `pos_kh_lan_thu` (nhận mã từ 2 mạng khác nhau) để kiểm; (b) A2 của thu_NDAPI1 giờ đúng bằng 10 dòng thêm — thêm dòng nữa vào index.js sẽ đỏ lại (chủ ý).
+
+## Soát bảo mật (vòng 2 — lần 2, trên cả nhánh; tập trung `git diff cac85b4 HEAD`)
+Lần 2 (subagent độc lập, chỉ đọc) — 0 lỗi trước lọc · 0 lỗi sau lọc. Báo cáo tóm tắt: không có lỗ hổng đủ độ tin cậy mới do vòng 2. Đã kiểm: header trùng (Node gộp "a, b" → `net.isIP` = 0 → rơi về `req.ip`), hoa thường tên header, khoảng trắng (trim trước cả kiểm lẫn dùng),
+zone id / `::ffff:` (chỉ lách được ở đường gọi thẳng đã chấp nhận), True-Client-IP chỉ là dự phòng nên qua Cloudflare không tới được; middleware đứng trước mọi router; mọi nơi dùng `req.ip` chỉ làm khoá đếm / nhật ký, không phân quyền, không SQL, không trả ra ngoài.
+Dưới ngưỡng báo (~5/10, ghi Phát hiện): IPv6 xoay trong một /64 có thể thấy "IP mới" mỗi lần nếu cổng vào hỗ trợ IPv6 (khoá theo chuỗi IP đầy đủ); `1.2.3.4` và `::ffff:1.2.3.4` là hai khoá khác nhau (Cloudflare đã chuẩn hoá nên không khai thác được qua nó).
+SOÁT BẢO MẬT: ĐẠT
+
+## Phát hiện bổ sung (vòng 2 — KHÔNG làm)
+- Chuẩn hoá IP làm khoá (IPv6 gộp về /64, `::ffff:a.b.c.d` về IPv4, chữ thường) chưa làm — chỉ cần nếu Cloudflare/Render mở IPv6 cho khách; dùng chung cho `gioiHanDangNhap.js` và `maKhach.js`.
+- Kiểm trên production sau khi lên: có thật HAI lớp Cloudflare không (xem nghi ngờ (a)); nếu có, cần lấy IP qua header khác.
