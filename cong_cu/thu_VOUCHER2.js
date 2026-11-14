@@ -47,6 +47,119 @@ const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
 const imLang = () => { console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
 const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
 
+/**
+ * KHUNG CHẠY MÀN HÌNH THẬT (vòng sửa 1, lỗi soát 13.11 (1): ca giao diện chỉ dò chữ → báo xanh oan). Kho không có jsdom / thư viện dựng thành phần
+ * (phiếu: không thư viện mới) → esbuild (client/node_modules, sẵn có cho vite) gói ĐÚNG file .jsx của client/src (bản sao khi --may-chu) cùng
+ * utils/api.js THẬT; `fetch('/api/pos/…')` đi tới máy chủ thử của bài này. React thay bằng bộ chạy hook tối giản dưới đây: useState / useEffect /
+ * useMemo / useRef / useCallback, dựng lại tới khi yên. Chỉ MỞ các thành phần có tên trong `mo`; thành phần khác giữ nguyên props (bài gọi thẳng
+ * onChon / onLuu / onThu như con thật gọi). Gói ngoài (router, icon, react-dom) và AuthContext / MaGhep / logoCache là vỏ rỗng; thongBaoKho ghi lại lời báo.
+ */
+function khungManHinh(cong) {
+  const esbuild = require(path.join(GOC, 'client', 'node_modules', 'esbuild'));
+  const FRAG = Symbol.for('v2.frag');
+  let hien = null, hen = () => {};
+  const khac = (a, b) => !a || !b || a.length !== b.length || a.some((x, i) => !Object.is(x, b[i]));
+  const slot = (dau) => { const i = hien.i++; if (!(i in hien.s)) hien.s[i] = dau(); return hien.s[i]; };
+  const tao = (type, props, key) => ({ type, props: props || {}, key });
+  const R = {
+    Fragment: FRAG, jsx: tao, jsxs: tao,
+    createElement: (type, cfg, ...con) => tao(type, { ...(cfg || {}), ...(con.length ? { children: con.length === 1 ? con[0] : con } : {}) }, cfg?.key),
+    useState(dau) {
+      const s = slot(() => ({ v: typeof dau === 'function' ? dau() : dau }));
+      s.set = s.set || ((x) => { const v = typeof x === 'function' ? x(s.v) : x; if (!Object.is(v, s.v)) { s.v = v; hen(); } });
+      return [s.v, s.set];
+    },
+    useRef: (dau) => slot(() => ({ current: dau })),
+    useMemo(fn, deps) { const s = slot(() => ({})); if (!('v' in s) || khac(s.deps, deps)) { s.v = fn(); s.deps = deps; } return s.v; },
+    useCallback: (fn, deps) => R.useMemo(() => fn, deps),
+    useEffect(fn, deps) { const s = slot(() => ({})); if (!s.da || khac(s.deps, deps)) { s.da = true; s.deps = deps; s.fn = fn; hien.fx.push(s); } },
+  };
+  R.default = R;
+  globalThis.__V2_REACT = R;
+  globalThis.__V2_BAO = [];
+  const VO = { 'AuthContext': 'module.exports = { useAuth: () => ({ hasPermission: () => true, user: { role: "owner", username: "chu" } }) };',
+    'MaGhep': 'module.exports = { __esModule: true, default: function MaGhepManKhach() { return null; }, useQuayManKhach: () => ({ baoPhien: () => {}, q: null, lamMoi: () => {} }) };',
+    'logoCache': 'module.exports = { getLogo: async () => null };',
+    'thongBaoKho': 'const b = (k) => (...a) => { globalThis.__V2_BAO.push([k, a.map((x) => (x && x.message) || String(x)).join(" · ")]); };'
+      + ' module.exports = { baoXong: b("xong"), baoLoi: b("loi"), baoLoiTu: b("loi"), lyDoLoi: (e) => (e && e.message) || "", dangKy: () => () => {}, laySnapshot: () => [], bo: () => {} };' };
+  const GOI_RONG = 'module.exports = new Proxy({}, { get: (_, k) => k === "__esModule" ? undefined : String(k).startsWith("use")'
+    + ' ? () => (k === "useSearchParams" ? [new URLSearchParams(), () => {}] : () => {}) : Object.defineProperty(function () { return null; }, "name", { value: "Goi_" + String(k) }) });';
+  const vo = { name: 'v2', setup(b) {
+    b.onResolve({ filter: /\.css$/ }, () => ({ path: 'css', namespace: 'v2' }));
+    b.onResolve({ filter: /^react(\/jsx-runtime|\/jsx-dev-runtime)?$/ }, () => ({ path: 'react', namespace: 'v2' }));
+    b.onResolve({ filter: /(AuthContext|ManKhach\/MaGhep|logoCache|thongBaoKho(\.js)?)$/ }, (a) => ({ path: Object.keys(VO).find((x) => a.path.includes(x)), namespace: 'v2' }));
+    b.onResolve({ filter: /^[^./]/ }, () => ({ path: 'goi', namespace: 'v2' }));
+    b.onLoad({ filter: /.*/, namespace: 'v2' }, (a) => ({ loader: 'js', contents: a.path === 'css' ? '' : a.path === 'react' ? 'module.exports = globalThis.__V2_REACT;'
+      : a.path === 'goi' ? GOI_RONG : VO[a.path] }));
+  } };
+  const fetchGoc = globalThis.fetch;
+  globalThis.fetch = (u, o) => fetchGoc(typeof u === 'string' && u.startsWith('/') ? `http://127.0.0.1:${cong}${u}` : u, o);
+  globalThis.window = { innerWidth: 1400, addEventListener() {}, removeEventListener() {}, location: { pathname: '/ban-hang', href: '' }, URL };
+  let token = '';
+  globalThis.localStorage = { getItem: (key) => (key === 'pos_token' ? token : null), setItem() {}, removeItem() {} };
+
+  /** Gói một file .jsx của client/src (dưới thư mục `src`) → export default. tk: token nhân viên mà utils/api.js thật sẽ đọc lúc nạp. */
+  const nap = async (src, rel, tk) => {
+    token = tk;
+    const kq = await esbuild.build({ entryPoints: [path.join(src, ...rel)], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic',
+      keepNames: true, logLevel: 'silent', define: { 'import.meta.env': '{}' }, plugins: [vo] });
+    const m = { exports: {} };
+    new Function('module', 'exports', 'require', kq.outputFiles[0].text)(m, m.exports, require);
+    return m.exports.default;
+  };
+
+  /** Dựng thành phần gốc. Trả { cay(), tim(dk), chu(nut), yen(ms) }. */
+  const dung = (Goc, props, mo) => {
+    const ds = new Map();
+    let cay = null, dangVe = false, lai = false;
+    const veNut = (el, duong, gap) => {
+      if (el == null || typeof el === 'boolean') return [];
+      if (Array.isArray(el)) return el.flatMap((c, i) => veNut(c, `${duong}.${c?.key ?? i}`, gap));
+      if (typeof el !== 'object') return [String(el)];
+      const { type, props: p } = el;
+      if (type === FRAG) return veNut(p.children, duong + '~', gap);
+      if (typeof type === 'function' && mo.includes(type.name)) {
+        const kh = `${duong}/${type.name}`;
+        if (!ds.has(kh)) ds.set(kh, { s: [], fx: [] });
+        const x = ds.get(kh); gap.add(kh);
+        const truoc = hien; hien = x; x.i = 0;
+        let ra; try { ra = type(p); } finally { hien = truoc; }
+        return [{ type, props: p, con: veNut(ra, kh, gap) }];
+      }
+      if (typeof type === 'function') return [{ type, props: p, con: [] }];
+      return [{ type, props: p, con: veNut(p.children, `${duong}>${type}`, gap) }];
+    };
+    const ve = () => {
+      dangVe = true;
+      try {
+        for (let n = 0; n < 60; n++) {
+          lai = false;
+          const gap = new Set();
+          cay = veNut(tao(Goc, props), '', gap)[0];
+          for (const [kh, x] of ds) {
+            const fx = x.fx; x.fx = [];
+            if (!gap.has(kh)) { for (const s of x.s) if (s && s.don) s.don(); ds.delete(kh); continue; }
+            for (const s of fx) { if (s.don) s.don(); const d = s.fn(); s.don = typeof d === 'function' ? d : null; }
+          }
+          if (!lai) break;
+        }
+      } finally { dangVe = false; }
+    };
+    hen = () => { lai = true; if (!dangVe) queueMicrotask(() => { if (lai && !dangVe) ve(); }); };
+    ve();
+    const tat = (n, kq = []) => { if (n && typeof n === 'object') { kq.push(n); n.con.forEach((c) => tat(c, kq)); } return kq; };
+    const chu = (n) => (typeof n === 'string' ? n : n ? n.con.map(chu).join('') : '');
+    return {
+      cay: () => cay, chu, tat: () => tat(cay),
+      tim: (dk) => tat(cay).filter(dk),
+      yen: async (ms = 80) => { await new Promise((ok) => setTimeout(ok, ms)); },
+      doi: async (dk, ms = 4000) => { const het = Date.now() + ms; while (Date.now() < het) { if (dk()) return true; await new Promise((ok) => setTimeout(ok, 25)); } return !!dk(); },
+    };
+  };
+  const ev = (them = {}) => ({ preventDefault() {}, stopPropagation() {}, key: '', ...them, target: { value: '', type: 'text', checked: false, ...(them.target || {}) } });
+  return { nap, dung, ev, bao: () => globalThis.__V2_BAO };
+}
+
 async function main() {
   imLang();
   const express = require(path.join(GOC, 'node_modules', 'express'));
@@ -73,7 +186,9 @@ async function main() {
   const R = (f) => path.join(MAY_CHU, 'routes', f);
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'settings', 'refunds', 'thanh-toan', 'wallets', 'rewards', 'loyalty', 'reports', 'damages', 'signup-codes', 'discount-codes']) app.use('/api/pos/' + r, require(R(r + '.js')));
+  for (const r of ['orders', 'settings', 'refunds', 'thanh-toan', 'wallets', 'rewards', 'loyalty', 'reports', 'damages', 'signup-codes', 'discount-codes',
+    'products', 'flash', 'tiers', 'membership', 'goi-nap', 'registrations']) app.use('/api/pos/' + r, require(R(r + '.js')));
+  app.use('/api/pos/v2/customers', require(R('customers-v2.js')));   // màn Thêm khách (khung màn hình thật) tải danh sách khách
   app.use('/api/pos/hoa-don', require(R('hoaDon.js')));
   app.use('/api/kh', require(R('kh')));
   app.use('/api/kh', require(R('kh/loi.js')).loiTangKh);
@@ -87,6 +202,7 @@ async function main() {
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api`;
   noiLai();
+  const man = khungManHinh(sv.address().port);
 
   const mot = (sql, a = []) => db.queryOne(sql, a);
   const so = async (sql, a = []) => Number(Object.values((await mot(sql, a)) || { x: NaN })[0]);
@@ -196,10 +312,43 @@ async function main() {
     const sai = await Promise.all([{ ...mau, gia_tri: 0 }, { ...mau, kieu: 'phan_tram', gia_tri: 101 }, { ...mau, tran: -1 }, { ...mau, kieu: 'la' },
       { ...mau, han_ngay: 0 }, { ...mau, ten: ' ' }].map((m) => goi('POST', '/pos/rewards/mau', m)));
     const doc = (...p) => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', ...p), 'utf8'); } catch { return ''; } };
-    const mv = doc('pages', 'CaiDat', 'MauVoucher.jsx'), st = doc('pages', 'Settings.jsx');
-    k('A4 Cài đặt: Settings.jsx gắn <MauVoucher />; màn mới gọi máy chủ qua utils/api.js (không fetch trần), xem trước câu từ /rewards/mau/mo-ta, báo lưu BAO-1a',
-      /import MauVoucher from '\.\/CaiDat\/MauVoucher'/.test(st) && /<MauVoucher \/>/.test(st) && /from '\.\.\/\.\.\/utils\/api'/.test(mv) && !/\bfetch\(/.test(mv)
-      && /api\.post\('\/rewards\/mau\/mo-ta'/.test(mv) && /baoXong\(/.test(mv) && /baoLoiTu\(/.test(mv) && /voucher_toi_da/.test(mv));
+    const st = doc('pages', 'Settings.jsx');
+    k('A4 Cài đặt: Settings.jsx nạp và gắn <MauVoucher /> (thẻ Điểm thưởng)', /import MauVoucher from '\.\/CaiDat\/MauVoucher'/.test(st) && /<MauVoucher \/>/.test(st));
+    await chay('A4', async () => {   // MÀN THẬT: MauVoucher.jsx + utils/api.js thật → /rewards/mau của máy chủ thử (vòng sửa 1, lỗi soát (1))
+      const MV = await man.nap(path.join(MAY_CHU, '..', 'client', 'src'), ['pages', 'CaiDat', 'MauVoucher.jsx'], theCua.chu);
+      const m = man.dung(MV, {}, ['MauVoucher']);
+      const nut = (chu) => m.tim((n) => n.type === 'button' && m.chu(n).trim() === chu)[0];
+      const o = (nhan) => { const l = m.tim((n) => n.type === 'label' && m.chu(n).startsWith(nhan))[0]; return l && l.con.find((c) => c && (c.type === 'input' || c.type === 'select')); };
+      await m.doi(() => !!nut('+ Thêm mẫu'));
+      nut('+ Thêm mẫu')?.props.onClick();
+      await m.yen(10);
+      for (const [nhan, v] of [['Tên hiển thị', 'Mẫu màn A4'], ['Số tiền giảm', '20000'], ['Đơn tối thiểu', '50000'], ['Hạn dùng', '30']]) {
+        o(nhan)?.props.onChange(man.ev({ target: { value: v } }));
+        await m.yen(10);
+      }
+      const cau = 'Giảm 20.000đ cho đơn từ 50.000đ · HSD 30 ngày';
+      const thay = await m.doi(() => m.chu(m.cay()).includes('Khách thấy: ' + cau));
+      const truoc = await so('SELECT COUNT(*) AS n FROM pos_mau_voucher');
+      const nb = man.bao().length;
+      nut('Lưu mẫu')?.props.onClick();
+      await m.doi(() => man.bao().length > nb);
+      const moi = await mot("SELECT * FROM pos_mau_voucher WHERE ten = 'Mẫu màn A4'");
+      await m.doi(() => m.chu(m.cay()).includes('Mẫu màn A4'));
+      k('A4 màn Mẫu voucher (thật): Thêm mẫu → xem trước câu MÁY CHỦ dựng → Lưu → máy chủ có mẫu đúng số (tiền 20.000, từ 50.000, 30 ngày), báo xong, danh sách hiện mẫu',
+        thay && (await so('SELECT COUNT(*) AS n FROM pos_mau_voucher')) === truoc + 1 && moi?.kieu === 'tien' && Number(moi.gia_tri) === 20000
+        && Number(moi.don_toi_thieu) === 50000 && Number(moi.han_ngay) === 30 && man.bao().slice(nb).some(([kq]) => kq === 'xong')
+        && m.chu(m.cay()).includes('Mẫu màn A4'), `${thay} · ${JSON.stringify(moi)} · ${JSON.stringify(man.bao().slice(nb))}`);
+      const toiDa = m.tim((n) => n.type === 'input' && n.props.id === 'voucher-toi-da')[0];
+      toiDa?.props.onChange(man.ev({ target: { value: '4' } }));
+      await m.yen(10);
+      const nb2 = man.bao().length;
+      nut('Lưu')?.props.onClick();
+      await m.doi(() => man.bao().length > nb2);
+      const td = (await mot("SELECT value FROM pos_settings WHERE key = 'voucher_toi_da'"))?.value;
+      await datCaiDat('voucher_toi_da', 3);
+      k('A4 màn Mẫu voucher (thật): "Tối đa voucher mỗi đơn" = 4 → Lưu → máy chủ lưu voucher_toi_da 4, báo xong', td === '4'
+        && man.bao().slice(nb2).some(([kq]) => kq === 'xong'), `${td} · ${JSON.stringify(man.bao().slice(nb2))}`);
+    });
     k('A3 giá trị 0 / % > 100 / trần âm / kiểu lạ / hạn 0 / tên rỗng → 400 MAU_KHONG_HOP_LE', sai.every((r) => r.status === 400 && r.code === 'MAU_KHONG_HOP_LE'),
       sai.map(moTa).join(' | '));
   });
@@ -569,13 +718,17 @@ async function main() {
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[Q2] Mã in bill → MỘT voucher theo mẫu, chỉ cho khách có tài khoản tạo SAU lúc in bill (Q2 · Q9)');
-  await chay('Q2', async () => {
+  // Vòng sửa 1 (lỗi soát (3)): MỖI ca một `chay` — trên code gốc một ca hỏng / ném chỉ đỏ ca đó (dòng "✗ <ca>: bài chạy hết mục"), các ca sau vẫn chạy.
+  {
     await datCaiDat('signup_enabled', '1');
-    const tm = await goi('POST', '/pos/rewards/mau', { ten: 'Khách mới V2', kieu: 'tien', gia_tri: 15000, tran: 0, don_toi_thieu: 0, ap_dung: 'tat_ca', han_ngay: 10, chinh_chu: 1 });
-    const cd = await goi('PUT', '/pos/settings', { settings: { signup_mau_voucher_id: String(tm.id) } });
-    const cdSai = await goi('PUT', '/pos/settings', { settings: { signup_mau_voucher_id: 'abc' } });
-    k('Q2l cài mẫu khách mới: id mẫu → 200; chữ lạ → 400 CAI_DAT_KHONG_HOP_LE', cd.status === 200 && cdSai.status === 400 && cdSai.code === 'CAI_DAT_KHONG_HOP_LE',
-      `${moTa(cd)} / ${moTa(cdSai)}`);
+    let tm = {};
+    await chay('Q2l', async () => {
+      tm = await goi('POST', '/pos/rewards/mau', { ten: 'Khách mới V2', kieu: 'tien', gia_tri: 15000, tran: 0, don_toi_thieu: 0, ap_dung: 'tat_ca', han_ngay: 10, chinh_chu: 1 });
+      const cd = await goi('PUT', '/pos/settings', { settings: { signup_mau_voucher_id: String(tm.id) } });
+      const cdSai = await goi('PUT', '/pos/settings', { settings: { signup_mau_voucher_id: 'abc' } });
+      k('Q2l cài mẫu khách mới: id mẫu → 200; chữ lạ → 400 CAI_DAT_KHONG_HOP_LE', tm.status === 200 && cd.status === 200 && cdSai.status === 400
+        && cdSai.code === 'CAI_DAT_KHONG_HOP_LE', `${moTa(tm)} / ${moTa(cd)} / ${moTa(cdSai)}`);
+    });
     const bill = async () => {
       const r = await ban({ items: [mon(2)] }, 20000);
       const s = r.order?.signup_code ? await mot('SELECT * FROM pos_signup_codes WHERE code = ?', [r.order.signup_code]) : null;
@@ -590,89 +743,124 @@ async function main() {
     const grantBill = (s) => mot("SELECT * FROM pos_voucher_grants WHERE nguon = 'khach_moi' AND nguon_id = ?", [s.id]);
     const daNhan = async (s) => !!(await mot('SELECT claimed_at FROM pos_signup_codes WHERE id = ?', [s.id])).claimed_at;
 
-    const b1 = await bill(), s1 = sdtQ2();
-    await taoTk(s1);
-    const r1 = await nhan(b1.code, s1);
-    const g1 = await grantBill(b1), d1 = r1.data ? await mot('SELECT * FROM pos_discount_codes WHERE code = ?', [r1.data.voucher_code]) : null;
-    k('Q2a tài khoản tạo SAU bill → 200, voucher_code MỚI ≠ mã bill, 1 grant khach_moi đúng SĐT + mẫu, hạn = hôm nay + 10, luật mẫu chụp vào mã',
-      r1.status === 200 && !!g1 && r1.data.voucher_code !== b1.code && g1.code === r1.data.voucher_code && g1.customer_phone === s1
-      && Number(g1.mau_id) === Number(tm.id) && g1.expires_at === addDaysToDateString(getToday(), 10) && !!d1 && Number(d1.discount_value) === 15000
-      && d1.discount_type === 'fixed' && Number(d1.chinh_chu) === 1 && Number(d1.usage_limit) === 1 && r1.data.valid_to === g1.expires_at,
-    `${moTa(r1)} ${JSON.stringify(g1)}`);
-    k('Q2d mã bill KHÔNG còn là mã giảm: không có dòng pos_discount_codes cùng chữ; gõ ở ô mã → tinh-thu MA_KHONG_TON_TAI, đơn đủ giá',
-      !(await mot('SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [b1.code]))
-      && (await tinhThu({ items: [mon(0)], discount_code: b1.code })).ma_loi_code === 'MA_KHONG_TON_TAI'
-      && (await tongDon(await ban({ items: [mon(0)], discount_code: b1.code }, 50000))) === 50000);
+    let b1 = null, r1 = {}, g1 = null;
+    await chay('Q2a', async () => {
+      b1 = await bill(); const s1 = sdtQ2();
+      await taoTk(s1);
+      r1 = await nhan(b1.code, s1);
+      g1 = await grantBill(b1); const d1 = r1.data ? await mot('SELECT * FROM pos_discount_codes WHERE code = ?', [r1.data.voucher_code]) : null;
+      k('Q2a tài khoản tạo SAU bill → 200, voucher_code MỚI ≠ mã bill, 1 grant khach_moi đúng SĐT + mẫu, hạn = hôm nay + 10, luật mẫu chụp vào mã',
+        r1.status === 200 && !!g1 && r1.data.voucher_code !== b1.code && g1.code === r1.data.voucher_code && g1.customer_phone === s1
+        && Number(g1.mau_id) === Number(tm.id) && g1.expires_at === addDaysToDateString(getToday(), 10) && !!d1 && Number(d1.discount_value) === 15000
+        && d1.discount_type === 'fixed' && Number(d1.chinh_chu) === 1 && Number(d1.usage_limit) === 1 && r1.data.valid_to === g1.expires_at,
+      `${moTa(r1)} ${JSON.stringify(g1)}`);
+    });
+    await chay('Q2d', async () => {
+      k('Q2d mã bill KHÔNG còn là mã giảm: không có dòng pos_discount_codes cùng chữ; gõ ở ô mã → tinh-thu MA_KHONG_TON_TAI, đơn đủ giá',
+        !(await mot('SELECT id FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [b1.code]))
+        && (await tinhThu({ items: [mon(0)], discount_code: b1.code })).ma_loi_code === 'MA_KHONG_TON_TAI'
+        && (await tongDon(await ban({ items: [mon(0)], discount_code: b1.code }, 50000))) === 50000);
+    });
 
-    const b2 = await bill(), s2 = sdtQ2();
-    await taoTk(s2, b2.issued_at);
-    const r2 = await nhan(b2.code, s2);
-    k('Q2a2 tài khoản tạo CÙNG giây in bill → vẫn nhận (≥, không >)', r2.status === 200 && !!(await grantBill(b2)), moTa(r2));
-    const b2c = await bill(), s2c = sdtQ2();
-    await taoTk(s2c, truGiay(b2c.issued_at, -1).replace('T', ' '));
-    const r2c = await nhan(b2c.code, s2c);
-    k('Q2a3 tài khoản ghi giờ kiểu cũ (dấu cách) 1 giây SAU bill → vẫn nhận (so sau khi chuẩn hoá, không so chuỗi thô)', r2c.status === 200 && !!(await grantBill(b2c)), moTa(r2c));
+    let b2 = null, s2 = '';
+    await chay('Q2a2', async () => {
+      b2 = await bill(); s2 = sdtQ2();
+      await taoTk(s2, b2.issued_at);
+      const r2 = await nhan(b2.code, s2);
+      k('Q2a2 tài khoản tạo CÙNG giây in bill → vẫn nhận (≥, không >)', r2.status === 200 && !!(await grantBill(b2)), moTa(r2));
+    });
+    await chay('Q2a3', async () => {
+      const b2c = await bill(), s2c = sdtQ2();
+      await taoTk(s2c, truGiay(b2c.issued_at, -1).replace('T', ' '));
+      const r2c = await nhan(b2c.code, s2c);
+      k('Q2a3 tài khoản ghi giờ kiểu cũ (dấu cách) 1 giây SAU bill → vẫn nhận (so sau khi chuẩn hoá, không so chuỗi thô)', r2c.status === 200 && !!(await grantBill(b2c)), moTa(r2c));
+    });
 
-    const b3 = await bill(), s3 = sdtQ2(), s3b = sdtQ2();
-    await taoTk(s3, truGiay(b3.issued_at, 1));
-    await taoTk(s3b, '2026-01-01 08:00:00');
-    const r3 = await nhan(b3.code, s3), r3b = await nhan(b3.code, s3b);
-    k('Q2b tài khoản có TRƯỚC bill 1 giây (và dạng giờ cũ có dấu cách) → 400 KHACH_DA_CO_TAI_KHOAN, không grant, mã bill chưa bị chiếm',
-      [r3, r3b].every((r) => r.status === 400 && r.code === 'KHACH_DA_CO_TAI_KHOAN') && !(await grantBill(b3)) && !(await daNhan(b3)), `${moTa(r3)} / ${moTa(r3b)}`);
-    const r4 = await nhan(b3.code, sdtQ2());
-    k('Q2c SĐT chưa có tài khoản → 400 CAN_TAO_TAI_KHOAN, mã chưa bị chiếm', r4.status === 400 && r4.code === 'CAN_TAO_TAI_KHOAN' && !(await daNhan(b3)), moTa(r4));
+    // b3: mã bill KHÔNG ai nhận được ở Q2b / Q2c / Q2h (mỗi ca đòi "mã chưa bị chiếm"); trên gốc một ca lỡ chiếm thì ca sau dùng mã mới (không đỏ lây).
+    const b3Moi = async (b) => (b && !(await daNhan(b)) ? b : bill());
+    let b3 = null;
+    await chay('Q2b', async () => {
+      b3 = await b3Moi(b3); const s3 = sdtQ2(), s3b = sdtQ2();
+      await taoTk(s3, truGiay(b3.issued_at, 1));
+      await taoTk(s3b, '2026-01-01 08:00:00');
+      const r3 = await nhan(b3.code, s3), r3b = await nhan(b3.code, s3b);
+      k('Q2b tài khoản có TRƯỚC bill 1 giây (và dạng giờ cũ có dấu cách) → 400 KHACH_DA_CO_TAI_KHOAN, không grant, mã bill chưa bị chiếm',
+        [r3, r3b].every((r) => r.status === 400 && r.code === 'KHACH_DA_CO_TAI_KHOAN') && !(await grantBill(b3)) && !(await daNhan(b3)), `${moTa(r3)} / ${moTa(r3b)}`);
+    });
+    await chay('Q2c', async () => {
+      b3 = await b3Moi(b3);
+      const r4 = await nhan(b3.code, sdtQ2());
+      k('Q2c SĐT chưa có tài khoản → 400 CAN_TAO_TAI_KHOAN, mã chưa bị chiếm', r4.status === 400 && r4.code === 'CAN_TAO_TAI_KHOAN' && !(await daNhan(b3)), moTa(r4));
+    });
+    await chay('Q2h', async () => {
+      b3 = await b3Moi(b3);
+      await goi('PUT', `/pos/rewards/mau/${tm.id}`, { bat: 0 });
+      const s5 = sdtQ2(); await taoTk(s5);
+      const r5 = await nhan(b3.code, s5);
+      await goi('PUT', `/pos/rewards/mau/${tm.id}`, { bat: 1 });
+      b3 = await b3Moi(b3);
+      await datCaiDat('signup_mau_voucher_id', '');
+      const r5b = await nhan(b3.code, s5);
+      await datCaiDat('signup_mau_voucher_id', String(tm.id));
+      k('Q2h mẫu đang tắt / chưa chọn mẫu → 400 UU_DAI_CHUA_CO_MAU, mã chưa bị chiếm', [r5, r5b].every((r) => r.status === 400 && r.code === 'UU_DAI_CHUA_CO_MAU')
+        && !(await daNhan(b3)), `${moTa(r5)} / ${moTa(r5b)}`);
+    });
 
-    await goi('PUT', `/pos/rewards/mau/${tm.id}`, { bat: 0 });
-    const s5 = sdtQ2(); await taoTk(s5);
-    const r5 = await nhan(b3.code, s5);
-    await goi('PUT', `/pos/rewards/mau/${tm.id}`, { bat: 1 });
-    await datCaiDat('signup_mau_voucher_id', '');
-    const r5b = await nhan(b3.code, s5);
-    await datCaiDat('signup_mau_voucher_id', String(tm.id));
-    k('Q2h mẫu đang tắt / chưa chọn mẫu → 400 UU_DAI_CHUA_CO_MAU, mã chưa bị chiếm', [r5, r5b].every((r) => r.status === 400 && r.code === 'UU_DAI_CHUA_CO_MAU')
-      && !(await daNhan(b3)), `${moTa(r5)} / ${moTa(r5b)}`);
+    await chay('Q2f', async () => {
+      const b6 = await bill(), s6a = sdtQ2(), s6b = sdtQ2();
+      await taoTk(s6a); await taoTk(s6b);
+      let r6b = null;
+      co.mocTruocTx = async () => { r6b = await nhan(b6.code, s6b); };
+      const r6a = await nhan(b6.code, s6a);
+      co.mocTruocTx = null;
+      const n6 = await so("SELECT COUNT(*) AS n FROM pos_voucher_grants WHERE nguon = 'khach_moi' AND nguon_id = ?", [b6.id]);
+      k('Q2f hai SĐT nhận CÙNG mã bill chồng nhau → một 200, một 409 MA_DA_DUNG, đúng 1 grant', r6b?.status === 200 && r6a.status === 409 && r6a.code === 'MA_DA_DUNG'
+        && n6 === 1, `${moTa(r6a)} / ${r6b && moTa(r6b)} · grant ${n6}`);
+    });
 
-    const b6 = await bill(), s6a = sdtQ2(), s6b = sdtQ2();
-    await taoTk(s6a); await taoTk(s6b);
-    let r6b = null;
-    co.mocTruocTx = async () => { r6b = await nhan(b6.code, s6b); };
-    const r6a = await nhan(b6.code, s6a);
-    const n6 = await so("SELECT COUNT(*) AS n FROM pos_voucher_grants WHERE nguon = 'khach_moi' AND nguon_id = ?", [b6.id]);
-    k('Q2f hai SĐT nhận CÙNG mã bill chồng nhau → một 200, một 409 MA_DA_DUNG, đúng 1 grant', r6b?.status === 200 && r6a.status === 409 && r6a.code === 'MA_DA_DUNG'
-      && n6 === 1, `${moTa(r6a)} / ${r6b && moTa(r6b)} · grant ${n6}`);
+    await chay('Q2e', async () => {
+      const rs = await goi('POST', `/pos/signup-codes/${b1.id}/reset`, {});
+      k('Q2e hoàn tác lần nhận → 200, xoá grant + mã voucher mới, mã bill nhận lại được', !!g1 && rs.status === 200 && !(await grantBill(b1))
+        && !(await mot('SELECT id FROM pos_discount_codes WHERE code = ?', [r1.data?.voucher_code])) && !(await daNhan(b1)), moTa(rs));
+    });
+    await chay('Q2e2', async () => {
+      const v2 = (await grantBill(b2))?.code;
+      const dung = await ban({ customer_phone: s2, items: [mon(0)], vouchers: [v2] }, 35000);
+      const rs2 = await goi('POST', `/pos/signup-codes/${b2.id}/reset`, {});
+      k('Q2e2 voucher đã dùng trong đơn → hoàn tác 400, grant + mã còn nguyên', !!v2 && dung.status === 200 && rs2.status === 400 && (await grantBill(b2))?.status === 'used'
+        && !!(await mot('SELECT id FROM pos_discount_codes WHERE code = ?', [v2])), `${v2} · ${moTa(dung)} / ${moTa(rs2)}`);
+    });
 
-    const rs = await goi('POST', `/pos/signup-codes/${b1.id}/reset`, {});
-    k('Q2e hoàn tác lần nhận → 200, xoá grant + mã voucher mới, mã bill nhận lại được', !!g1 && rs.status === 200 && !(await grantBill(b1))
-      && !(await mot('SELECT id FROM pos_discount_codes WHERE code = ?', [r1.data.voucher_code])) && !(await daNhan(b1)), moTa(rs));
-    const v2 = (await grantBill(b2)).code;
-    const dung = await ban({ customer_phone: s2, items: [mon(0)], vouchers: [v2] }, 35000);
-    const rs2 = await goi('POST', `/pos/signup-codes/${b2.id}/reset`, {});
-    k('Q2e2 voucher đã dùng trong đơn → hoàn tác 400, grant + mã còn nguyên', dung.status === 200 && rs2.status === 400 && (await grantBill(b2))?.status === 'used'
-      && !!(await mot('SELECT id FROM pos_discount_codes WHERE code = ?', [v2])), `${moTa(dung)} / ${moTa(rs2)}`);
+    await chay('Q2g', async () => {
+      const b7 = await bill(), s7 = sdtQ2();
+      const tk7 = kyTokenKhach(await taoTk(s7));
+      const r7 = await goiTk(tk7, 'POST', '/kh/nhan-ma-bill', { ma: b7.code });
+      const vi7 = await goiTk(tk7, 'GET', '/kh/voucher');
+      const dv7 = (vi7.data || []).find((x) => x.code === r7.data?.voucher_code);
+      k('Q2g App /kh/nhan-ma-bill (CÙNG hàm) → 200, voucher mới nằm trong ví App, nguon khach_moi, mo_ta từ mẫu', r7.status === 200 && !!dv7 && dv7.nguon === 'khach_moi'
+        && dv7.mo_ta === 'Giảm 15.000đ · HSD ' + addDaysToDateString(getToday(), 10).split('-').reverse().join('/'), `${moTa(r7)} ${JSON.stringify(dv7)}`);
+    });
 
-    const b7 = await bill(), s7 = sdtQ2();
-    const tk7 = kyTokenKhach(await taoTk(s7));
-    const r7 = await goiTk(tk7, 'POST', '/kh/nhan-ma-bill', { ma: b7.code });
-    const vi7 = await goiTk(tk7, 'GET', '/kh/voucher');
-    const dv7 = (vi7.data || []).find((x) => x.code === r7.data?.voucher_code);
-    k('Q2g App /kh/nhan-ma-bill (CÙNG hàm) → 200, voucher mới nằm trong ví App, nguon khach_moi, mo_ta từ mẫu', r7.status === 200 && !!dv7 && dv7.nguon === 'khach_moi'
-      && dv7.mo_ta === 'Giảm 15.000đ · HSD ' + addDaysToDateString(getToday(), 10).split('-').reverse().join('/'), `${moTa(r7)} ${JSON.stringify(dv7)}`);
-
-    const b8 = await bill(), s8 = sdtQ2();
-    await taoTk(s8);
-    const v8 = (await nhan(b8.code, s8)).data?.voucher_code;
-    await goi('PUT', `/pos/orders/${b8.order_id}/cancel`, { reason: 'thử Q2i' });
-    const tr8 = await soDon();
-    const r8 = await ban({ customer_phone: s8, items: [mon(0)], vouchers: [v8] }, 35000);
-    const r8b = await ban({ customer_phone: s8, items: [mon(0)], discount_code: v8 }, 35000);
-    const r8c = await goi('POST', '/pos/discount-codes/validate', { code: v8, order_subtotal: 50000, items: [] });
-    k('Q2i P20b: đơn gốc của mã bill đã huỷ → voucher mới bị chặn 400 MA_DON_GOC_KHONG_HOP_LE (danh sách voucher, ô mã, /validate), không đơn, không tiêu',
-      [r8, r8b, r8c].every((r) => r.status === 400 && r.code === 'MA_DON_GOC_KHONG_HOP_LE') && (await soDon()) === tr8 && (await grant(v8))?.status === 'available',
-      `${moTa(r8)} / ${moTa(r8b)} / ${moTa(r8c)}`);
-    const d8 = await mot('SELECT id, code FROM pos_discount_codes WHERE code = ?', [v8]);
-    const r8d = await goi('PUT', `/pos/discount-codes/${d8.id}`, { code: 'DOITEN' + soQ2 });
-    k('Q2n voucher khách mới (nối mã bill qua ví) KHÔNG đổi tên được → 400 MA_BILL_KHONG_DOI_TEN, mã giữ nguyên', r8d.status === 400 && r8d.code === 'MA_BILL_KHONG_DOI_TEN'
-      && (await mot('SELECT code FROM pos_discount_codes WHERE id = ?', [d8.id])).code === v8, moTa(r8d));
+    let v8 = null;
+    await chay('Q2i', async () => {
+      const b8 = await bill(), s8 = sdtQ2();
+      await taoTk(s8);
+      v8 = (await nhan(b8.code, s8)).data?.voucher_code;
+      await goi('PUT', `/pos/orders/${b8.order_id}/cancel`, { reason: 'thử Q2i' });
+      const tr8 = await soDon();
+      const r8 = await ban({ customer_phone: s8, items: [mon(0)], vouchers: [v8] }, 35000);
+      const r8b = await ban({ customer_phone: s8, items: [mon(0)], discount_code: v8 }, 35000);
+      const r8c = await goi('POST', '/pos/discount-codes/validate', { code: v8, order_subtotal: 50000, items: [] });
+      k('Q2i P20b: đơn gốc của mã bill đã huỷ → voucher mới bị chặn 400 MA_DON_GOC_KHONG_HOP_LE (danh sách voucher, ô mã, /validate), không đơn, không tiêu',
+        !!v8 && [r8, r8b, r8c].every((r) => r.status === 400 && r.code === 'MA_DON_GOC_KHONG_HOP_LE') && (await soDon()) === tr8 && (await grant(v8))?.status === 'available',
+        `${v8} · ${moTa(r8)} / ${moTa(r8b)} / ${moTa(r8c)}`);
+    });
+    await chay('Q2n', async () => {
+      const d8 = v8 ? await mot('SELECT id, code FROM pos_discount_codes WHERE code = ?', [v8]) : null;
+      const r8d = d8 ? await goi('PUT', `/pos/discount-codes/${d8.id}`, { code: 'DOITEN' + soQ2 }) : {};
+      k('Q2n voucher khách mới (nối mã bill qua ví) KHÔNG đổi tên được → 400 MA_BILL_KHONG_DOI_TEN, mã giữ nguyên', !!d8 && r8d.status === 400 && r8d.code === 'MA_BILL_KHONG_DOI_TEN'
+        && (await mot('SELECT code FROM pos_discount_codes WHERE id = ?', [d8.id])).code === v8, `${v8} · ${moTa(r8d)}`);
+    });
 
     let b026 = null;
     try { b026 = require(path.join(MAY_CHU, 'nang_cap', '026_voucher.js')); } catch { /* gốc chưa có bước 026 */ }
@@ -684,21 +872,83 @@ async function main() {
       try { await b026.chay(tx, { themCot: async () => {} }); await tx.commit(); } catch (e) { await tx.rollback(); throw e; }
       return { moi: await mot('SELECT * FROM pos_mau_voucher WHERE id > ?', [truoc]), id: (await mot("SELECT value FROM pos_settings WHERE key = 'signup_mau_voucher_id'"))?.value };
     };
-    const m1 = b026 ? await chay026({ signup_scope: 'order', signup_discount_type: 'percent', signup_discount_value: '10', signup_min_order: '50000', signup_voucher_valid_days: '15' }) : {};
-    const m2 = b026 ? await chay026({ signup_scope: 'item' }) : {};
-    await datCaiDat('signup_mau_voucher_id', String(tm.id));
-    k('Q2j bước 026: ưu đãi giảm cả đơn 10 % từ 50.000, hạn 15 ngày → tạo SẴN mẫu y cấu hình (chia sẻ được) + ghi signup_mau_voucher_id; kiểu giảm 1 món → không tạo',
-      !!m1.moi && m1.moi.kieu === 'phan_tram' && Number(m1.moi.gia_tri) === 10 && Number(m1.moi.don_toi_thieu) === 50000 && Number(m1.moi.han_ngay) === 15
-      && Number(m1.moi.chinh_chu) === 0 && m1.id === String(m1.moi.id) && !m2.moi && !m2.id, JSON.stringify({ m1, m2 }));
+    // Q2j: gốc của bước 026 phần Q9 là e3ef76a (trước VOUCHER-2 — chưa có bước 026); d919c83e đã có bước này (commit 9064187a) nên ca xanh ở đó là ĐÚNG.
+    await chay('Q2j', async () => {
+      const m1 = b026 ? await chay026({ signup_scope: 'order', signup_discount_type: 'percent', signup_discount_value: '10', signup_min_order: '50000', signup_voucher_valid_days: '15' }) : {};
+      const m2 = b026 ? await chay026({ signup_scope: 'item' }) : {};
+      await datCaiDat('signup_mau_voucher_id', String(tm.id));
+      k('Q2j bước 026: ưu đãi giảm cả đơn 10 % từ 50.000, hạn 15 ngày → tạo SẴN mẫu y cấu hình (chia sẻ được) + ghi signup_mau_voucher_id; kiểu giảm 1 món → không tạo',
+        !!m1.moi && m1.moi.kieu === 'phan_tram' && Number(m1.moi.gia_tri) === 10 && Number(m1.moi.don_toi_thieu) === 50000 && Number(m1.moi.han_ngay) === 15
+        && Number(m1.moi.chinh_chu) === 0 && m1.id === String(m1.moi.id) && !m2.moi && !m2.id, JSON.stringify({ m1, m2 }));
+    });
 
-    const kh = (() => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'Customers.jsx'), 'utf8'); } catch { return ''; } })();
-    k('Q2k quầy: form Thêm khách mới có ô "Mã trên bill (nếu có)", lưu khách xong gọi /signup-codes/claim qua utils/api.js', /Mã trên bill \(nếu có\)/.test(kh)
-      && /api\.post\('\/signup-codes\/claim'/.test(kh));
-    const mvQ2 = (() => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'CaiDat', 'MauVoucher.jsx'), 'utf8'); } catch { return ''; } })();
-    k('Q2m Cài đặt → Voucher: chọn "Mẫu cho ưu đãi khách mới" lưu signup_mau_voucher_id qua /settings (utils/api.js, báo lưu BAO-1a)',
-      /Mẫu cho ưu đãi khách mới/.test(mvQ2) && /api\.put\('\/settings', \{ settings: \{ signup_mau_voucher_id: v \} \}\)/.test(mvQ2) && /signup_mau_voucher_id \|\| ''/.test(mvQ2));
+    await chay('Q2o', async () => {   // vòng sửa 1, lỗi soát (4): loại voucher trả App lấy theo MẪU thật, không viết cứng scope 'order'
+      const mauSo = async (m) => (await goi('POST', '/pos/rewards/mau', { ten: 'Q2o', tran: 0, don_toi_thieu: 0, han_ngay: 5, chinh_chu: 1, ...m })).id;
+      const ra = [];
+      for (const m of [{ kieu: 'ship_tien', gia_tri: 9000, ap_dung: 'tat_ca' }, { kieu: 'phan_tram', gia_tri: 20, tran: 15000, ap_dung: 'nhom', ap_dung_ids: [92] },
+        { kieu: 'tien', gia_tri: 15000, ap_dung: 'tat_ca' }]) {
+        const id = await mauSo(m);
+        await datCaiDat('signup_mau_voucher_id', String(id));
+        const b = await bill();
+        const tk = kyTokenKhach(await taoTk(sdtQ2()));
+        ra.push((await goiTk(tk, 'POST', '/kh/nhan-ma-bill', { ma: b.code })).data || {});
+      }
+      await datCaiDat('signup_mau_voucher_id', String(tm.id));
+      const [sh, nh, tc] = ra;
+      k('Q2o nhan-ma-bill trả loại theo MẪU: ship → scope "ship" kieu ship_tien; % nhóm món → scope "item" kieu phan_tram ap_dung nhom; tiền cả đơn → scope "order"',
+        sh.scope === 'ship' && sh.kieu === 'ship_tien' && sh.discount_type === 'fixed' && nh.scope === 'item' && nh.kieu === 'phan_tram' && nh.ap_dung === 'nhom'
+        && nh.discount_type === 'percent' && tc.scope === 'order' && tc.kieu === 'tien' && tc.ap_dung === 'tat_ca', JSON.stringify(ra));
+    });
+
+    await chay('Q2k', async () => {   // MÀN THẬT: Customers.jsx + utils/api.js thật → /registrations + /signup-codes/claim của máy chủ thử (lỗi soát (1))
+      const KH = await man.nap(path.join(MAY_CHU, '..', 'client', 'src'), ['pages', 'Customers.jsx'], theCua.chu);
+      const luuKhach = async (sdt, ma) => {
+        const m = man.dung(KH, {}, ['Customers']);
+        const nut = m.tim((n) => n.type === 'button' && m.chu(n).includes('Thêm khách'))[0];
+        nut?.props.onClick();
+        await m.doi(() => m.tim((n) => n.type === 'form').length > 0);
+        const o = (ph) => m.tim((n) => n.type === 'input' && String(n.props.placeholder || '').startsWith(ph))[0];
+        for (const [ph, v] of [['0901234567', sdt], ['Nguyễn Thị A', 'Khách ' + sdt], ['Mã in trên bill', ma]]) {   // như gõ thật: mỗi ô một nhịp vẽ lại
+          o(ph)?.props.onChange(man.ev({ target: { value: v } }));
+          await m.yen(10);
+        }
+        const truoc = man.bao().length;
+        m.tim((n) => n.type === 'form')[0]?.props.onSubmit(man.ev());
+        await m.doi(() => man.bao().length > truoc, 6000);
+        return { o: !!o('Mã in trên bill'), bao: man.bao().slice(truoc) };
+      };
+      const b = await bill(), s = sdtQ2();
+      const a = await luuKhach(s, ' ' + b.code.toLowerCase() + ' ');
+      const g = await grantBill(b);
+      k('Q2k Thêm khách (màn thật) có ô "Mã trên bill" → lưu khách (hồ sơ tạo SAU bill) rồi nhận mã: 1 grant khach_moi đúng SĐT, báo xong nêu mã voucher mới',
+        a.o && !!(await mot('SELECT id FROM pos_customers WHERE phone = ?', [s])) && !!g && g.customer_phone === s
+        && a.bao.some(([kq, c]) => kq === 'xong' && c.includes(g.code)), JSON.stringify(a.bao));
+      const s2k = sdtQ2();
+      const a2 = await luuKhach(s2k, 'KHONGCO1');
+      k('Q2k mã trên bill sai → khách VẪN được lưu, báo lỗi nêu lý do máy chủ (không phát gì)', !!(await mot('SELECT id FROM pos_customers WHERE phone = ?', [s2k]))
+        && a2.bao.some(([kq]) => kq === 'loi') && !(await mot('SELECT id FROM pos_voucher_grants WHERE customer_phone = ?', [s2k])), JSON.stringify(a2.bao));
+    });
+
+    await chay('Q2m', async () => {   // MÀN THẬT: MauVoucher.jsx — chọn "Mẫu cho ưu đãi khách mới" (lỗi soát (1))
+      const MV = await man.nap(path.join(MAY_CHU, '..', 'client', 'src'), ['pages', 'CaiDat', 'MauVoucher.jsx'], theCua.chu);
+      const m = man.dung(MV, {}, ['MauVoucher']);
+      const chon = () => m.tim((n) => n.type === 'select' && n.props.id === 'mau-khach-moi')[0];
+      await m.doi(() => chon() && String(chon().props.value) === String(tm.id));
+      const daCo = String(chon()?.props.value) === String(tm.id);
+      const moi = (await goi('POST', '/pos/rewards/mau', { ten: 'Q2m', kieu: 'tien', gia_tri: 12000, tran: 0, don_toi_thieu: 0, han_ngay: 7, chinh_chu: 0 })).id;
+      const m2 = man.dung(MV, {}, ['MauVoucher']);
+      const chon2 = () => m2.tim((n) => n.type === 'select' && n.props.id === 'mau-khach-moi')[0];
+      await m2.doi(() => m2.tim((n) => n.type === 'option' && String(n.props.value) === String(moi)).length > 0);
+      const truoc = man.bao().length;
+      chon2()?.props.onChange(man.ev({ target: { value: String(moi) } }));
+      await m2.doi(() => man.bao().length > truoc);
+      const luu = (await mot("SELECT value FROM pos_settings WHERE key = 'signup_mau_voucher_id'"))?.value;
+      await datCaiDat('signup_mau_voucher_id', String(tm.id));
+      k('Q2m Cài đặt → Voucher (màn thật): hiện mẫu đang chọn từ máy chủ; chọn mẫu khác → máy chủ lưu signup_mau_voucher_id, báo xong',
+        daCo && luu === String(moi) && man.bao().slice(truoc).some(([kq, c]) => kq === 'xong' && c.includes('ưu đãi khách mới')), `${daCo} · ${luu} vs ${moi}`);
+    });
     await datCaiDat('signup_enabled', '0');
-  });
+  }
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[Q14] Màn Bán hàng (chip voucher dưới ô mã) + tờ bill quầy / hoá đơn App tách dòng voucher, phí giao gốc + giảm phí giao (chủ quán Q14 12.11)');
@@ -719,13 +969,55 @@ async function main() {
     const bo = T.boVoucherLoi ? T.boVoucherLoi(['VA', 'VB', 'VC'], [{ ma: 'VB', code: 'VOUCHER_PHAN_TRAM_HAI', error: 'Voucher VB: Mỗi đơn chỉ dùng một voucher giảm %' }]) : {};
     k('Q14b voucher máy chủ báo lỗi → bỏ khỏi danh sách chọn + giữ lý do theo mã (chip viền đỏ); voucher khác giữ nguyên', JSON.stringify(bo.chon) === '["VA","VC"]'
       && bo.loi?.VB === 'Voucher VB: Mỗi đơn chỉ dùng một voucher giảm %', JSON.stringify(bo));
-    const docBH = (f) => { try { return fs.readFileSync(path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'BanHang', f), 'utf8'); } catch { return ''; } };
-    const bh = docBH('BanHangMoi.jsx'), cv = docBH('ChipVoucher.jsx');
-    const iO = bh.indexOf('Mã khuyến mãi'), iC = bh.indexOf('<ChipVoucher ');
-    k('Q14c Bán hàng: ví voucher của khách (/loyalty/vouchers), chip "🎟 mo_ta" (ChipVoucher) gắn NGAY DƯỚI ô mã khuyến mãi, đủ N (voucher_toi_da) thì mờ,'
-      + ' lỗi viền đỏ + lý do; giỏ có dòng "Voucher <MÃ>" + "Giảm phí giao"', iO > 0 && iC > iO && iC - iO < 400 && /\/loyalty\/vouchers\//.test(bh)
-      && /bh-chip-voucher/.test(cv) && /🎟 \{v\.mo_ta\}/.test(cv) && /disabled=\{!dangChon && chon\.length >= toiDa\}/.test(cv) && /loiV &&/.test(cv)
-      && /voucher_toi_da/.test(bh) && /voucher_loi/.test(bh) && /Voucher \$\{/.test(bh) && /Giảm phí giao/.test(bh) && !/\bfetch\(/.test(bh + cv));
+    await chay('Q14c', async () => {   // MÀN THẬT: BanHangMoi.jsx + ChipVoucher.jsx + utils/api.js thật → máy chủ thử (vòng sửa 1, lỗi soát (1))
+      const c = await khach();
+      const vt = await phat(c.sdt, 'tien', 10000), vp = await phat(c.sdt, 'phan_tram', 10), vt2 = await phat(c.sdt, 'tien', 5000), vs = await phat(c.sdt, 'ship_tien', 8000);
+      await datCaiDat('voucher_toi_da', 2);
+      const BH = await man.nap(path.join(MAY_CHU, '..', 'client', 'src'), ['pages', 'BanHang', 'BanHangMoi.jsx'], theCua.chu);
+      const m = man.dung(BH, { kieu: 'tudong', onDoiCaiDat() {} }, ['BanHangMoi', 'ChipVoucher']);
+      const nut = (dk) => m.tim((n) => n.type === 'button' && dk(n));
+      const conTen = (ten) => m.tim((n) => typeof n.type === 'function' && n.type.name === ten)[0];
+      const chip = (ma) => nut((n) => /bh-chip-voucher/.test(n.props.className || '') && m.chu(n).includes(ma === vt ? 'Giảm 10.000đ' : ma === vp ? 'Giảm 10%'
+        : ma === vt2 ? 'Giảm 5.000đ' : 'phí giao'))[0];
+      await m.doi(() => nut((n) => n.props.className === 'bh-mon' && m.chu(n).includes(sp[0].name)).length > 0);
+      nut((n) => n.props.className === 'bh-mon' && m.chu(n).includes(sp[0].name))[0]?.props.onClick();
+      await m.doi(() => !!conTen('KhungChonMon'));
+      conTen('KhungChonMon')?.props.onLuu({ note: '', quantity: 1 });
+      await m.doi(() => !!conTen('ThanhKhach'));
+      conTen('ThanhKhach')?.props.onChon({ phone: c.sdt, name: 'Khách ' + c.sdt, balance: 0 });
+      await m.doi(() => !!chip(vt) && !!chip(vs));
+      const ds = m.tat(), iO = ds.findIndex((n) => n.type === 'input' && /Mã khuyến mãi/.test(n.props.placeholder || ''));
+      const iC = ds.findIndex((n) => /bh-chip-voucher/.test(n.props?.className || ''));
+      const iT = ds.findIndex((n) => typeof n.type === 'function' && n.type.name === 'ThuTien');
+      const vi = (await goi('GET', `/pos/loyalty/vouchers/${c.sdt}`)).data || [];
+      k('Q14c Bán hàng (màn thật): chọn khách → ví voucher máy chủ hiện thành chip "🎟 <mo_ta>" NGAY DƯỚI ô mã khuyến mãi (trước khối thu), đủ 4 chip, đếm 0/2',
+        iO >= 0 && iC > iO && (iT < 0 || iC < iT) && [vt, vp, vt2, vs].every((ma) => !!chip(ma))
+        && vi.every((v) => !!nut((n) => m.chu(n) === '🎟 ' + v.mo_ta)[0]) && m.chu(m.cay()).includes('0/2 voucher'), `ô mã ${iO} · chip ${iC} · thu ${iT}`);
+      chip(vt).props.onClick(); chip(vp).props.onClick();
+      await m.doi(() => m.chu(m.cay()).includes(`Voucher ${vp}`));
+      const chu1 = m.chu(m.cay());
+      k('Q14c chọn 2 chip → máy chủ tính: dòng "Voucher <MÃ> −10.000đ" rồi "Voucher <MÃ> −4.000đ" (50.000 − 10.000 = 40.000 − 10 %); đủ N = 2 → chip thứ ba MỜ',
+        chu1.includes(`Voucher ${vt}−10.000đ`) && chu1.includes(`Voucher ${vp}−4.000đ`) && chip(vt2).props.disabled === true && chip(vt).props.disabled === false
+        && chu1.includes('2/2 voucher'), chu1.slice(0, 400));
+      chip(vp).props.onClick();
+      await m.doi(() => !m.chu(m.cay()).includes(`Voucher ${vp}`));
+      chip(vs).props.onClick();
+      await m.doi(() => !!chip(vs)?.props.style);
+      const cs = chip(vs);
+      k('Q14c voucher máy chủ từ chối (ship ở đơn tại quầy) → bỏ chọn + viền đỏ + đúng lý do máy chủ dưới chip; voucher khác giữ',
+        !!cs && /bh-do/.test(JSON.stringify(cs.props.style)) && m.chu(cs).includes('chỉ dùng cho đơn giao') && !/bh-chon/.test(cs.props.className)
+        && /bh-chon/.test(chip(vt).props.className), m.chu(cs));
+      await m.doi(() => m.chu(m.cay()).includes(`Voucher ${vt}−10.000đ`) && !!conTen('ThuTien')?.props.coSo);
+      const truoc = await soDon();
+      conTen('ThuTien').props.onThu({ cach: 'tien_mat', khachDua: 50000 });
+      const coDon = await m.doi(() => !!conTen('ManKetThuc'), 6000);
+      const don = await mot('SELECT * FROM pos_orders WHERE customer_phone = ? ORDER BY id DESC LIMIT 1', [c.sdt]);
+      const gv = await grant(vt);
+      k('Q14c thu tiền từ màn thật (phiên thu) → đơn 40.000 ghi voucher đã chọn (grant used, đúng đơn); voucher bị từ chối / bỏ chọn còn nguyên',
+        coDon && (await soDon()) === truoc + 1 && Math.round(don?.total) === 40000 && gv?.status === 'used' && Number(gv.used_order_id) === Number(don?.id)
+        && (await grant(vp))?.status === 'available' && (await grant(vs))?.status === 'available', `${coDon} · ${JSON.stringify(don && { total: don.total })} · ${m.chu(m.cay()).slice(0, 200)}`);
+      await datCaiDat('voucher_toi_da', 3);
+    });
     // Tờ bill quầy (CÙNG hàm dựng hoá đơn App): đơn mã chung 2.000 + voucher 10.000 + voucher ship 10.000 trên phí giao 25.000 (số tính tay ở I2).
     const a = await khach();
     const v1 = await phat(a.sdt, 'tien', 10000), v2 = await phat(a.sdt, 'ship_tien', 10000);
