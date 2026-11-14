@@ -352,3 +352,25 @@ liệu không có gì nối "hồ sơ này tạo cho đơn kia".
   trước VOUCHER-2; không sửa trong lượt này (LUAT §6.6 — ghi Phát hiện).
 
 ### Dừng (14.11, lần 2) — chờ chủ quán trả lời Q21 (Q18).
+
+## Phiên 14.11 (lần 3) — lệnh "VOUCHER-2 tiep": Q18 theo Q21 → soát → soát bảo mật → cổng → báo cáo
+### Bước 1 — đối chiếu bản chụp
+- Hook mở phiên báo "máy và origin lệch nhau". Nhánh `viec/VOUCHER-2`, cây sạch. HEAD `e94708f` · FETCH_HEAD `57b8f99`; kho nông → `git fetch -q --unshallow`
+  → so lại: HEAD là tổ tiên (phiên nạp bản chụp cũ) → `git pull --no-rebase --ff-only origin viec/VOUCHER-2` → HEAD `57b8f992`.
+- `git log --oneline -3`:
+  ```
+  57b8f992 PHIEU: VOUCHER-2 tra loi Q21 (Q18 moc 30 phut) + dong y 3 dieu tu quyet — chu quan 14.11
+  500d6f9e VOUCHER-2: trang thai phien 14.11 lan 2 - Q15, vong sua 1, Q16/Q17/Q19 xong; cau hoi Q21 (Q18 moc thoi gian), dung truoc soat
+  14a1f991 VOUCHER-2: bang chung Q16/Q17/Q19 (goc 43b76314 115/10, va 125/0, dot bien 82/82), SO CA 125
+  ```
+### Q18 — đã làm
+- `server/routes/signup-codes.js` `kiemKhachLanDau(phone, dong)`: ngoài luật Q9 (hồ sơ tạo SAU bill), nhận thêm khi đủ CẢ BA — (1) `order_customer_phone` của
+  bill = SĐT nhận (`laDonDauCuaKhach`); (2) không có `pos_orders` của SĐT với `id <` đơn in bill; (3) `created_at ≥ lúc in − PHUT_HO_SO_TRUOC_BILL` (30, hằng
+  có tên; tính cả đúng mốc). Lời gọi duy nhất đổi tham số thành dòng mã bill. Hợp đồng `/api/kh` v15 ghi luật 30 phút (chưa gộp main — không tăng số).
+- Bài `thu_VOUCHER2` Q18a–f (viết trước, commit 640952ae): gốc 128 · 3 (Q18a, b, f đỏ) → vá 131 · 0.
+- Quyết định nhỏ theo đúng chữ Q21 (2): "đơn nào trước đơn in bill" đếm MỌI đơn của SĐT kể cả đơn đã huỷ (chặt hơn — an toàn tiền); đơn SAU bill không chặn (Q18f).
+
+| Chỗ vá | Đột biến |
+|---|---|
+| signup-codes.js kiemKhachLanDau ngoại lệ 30 phút (Q18) | BV-V2-Q18-MOC · VS-V2-Q18-KHONG-TRAN · VS-V2-Q18-MOC-NGAT · VS-V2-Q18-MOC-PHUT |
+| signup-codes.js laDonDauCuaKhach | BV-V2-Q18-DON-TRUOC · VS-V2-Q18-DON-KHAC · BV-V2-Q18-BILL-SDT |

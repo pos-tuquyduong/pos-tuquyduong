@@ -1,6 +1,6 @@
 VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
 
-SỐ CA cong_cu/thu_VOUCHER2.js: 125
+SỐ CA cong_cu/thu_VOUCHER2.js: 131
 SỐ CA cong_cu/thu_P20.js: 178
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_KHAPI2.js: 101
@@ -226,3 +226,15 @@ Trên code vá (02591feb Q16+Q17, 290cf504 Q19): VOUCHER-2: 125 đạt · 0 hỏ
 Đột biến đầy đủ python3 viec/VOUCHER-2/dot_bien.py: lần 1 78/82 (3 HỎNG = neo chính chủ / P20b còn trỏ orders.js sau khi Q17 dời phép sang voucherCode.js;
   1 LẠC = mẫu GIU-O-MA trỏ Q16a) → sửa neo / mẫu (3a6aac1e) → chạy lại 4 cái: 4/4 BẮT. Đối chứng xanh: thu_VOUCHER2 125 · 0, thu_KHTHE1 73 · 0, bộ kiểm E9 ✓.
 npm test -- --day-du (HEAD 3a6aac1e): PASS 118 · FAIL 0 · CẢNH BÁO 1 (cảnh báo "route GET có lệnh ghi" có từ trước).
+
+── Q18 (Q21 chủ quán 14.11 — mốc 30 phút) · thu_VOUCHER2.js commit 640952ae (bài Q18a–f viết TRƯỚC khi vá; server/ = 57b8f992, chưa vá):
+   node cong_cu/thu_VOUCHER2.js   → VOUCHER-2: 128 đạt · 3 hỏng
+  ✗ Q18a hồ sơ tạo 29 phút TRƯỚC bill, bill của chính SĐT, chưa có đơn trước → 200 … — HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  ✗ Q18b hồ sơ tạo ĐÚNG 30 phút trước bill → vẫn nhận … — HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  ✗ Q18f hồ sơ 29 phút, có đơn SAU đơn in bill … → vẫn nhận 200 — HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  Xanh trên gốc (đúng — ca TỪ CHỐI giữ luật Q9): Q18c (30:01 · 31:00), Q18d (có đơn trước), Q18e (bill không SĐT / SĐT khác) — khoá bằng đột biến dưới.
+Trên code vá (77b26e78): VOUCHER-2: 131 đạt · 0 hỏng
+Đột biến Q18: python3 viec/VOUCHER-2/dot_bien.py BV-V2-Q18-MOC … BV-V2-Q18-BILL-SDT (+ 3 đột biến Q9 cũ cùng hàm) → ĐỐI CHỨNG xanh 131 · 0; 10/10 BẮT
+  (BV-V2-Q18-MOC → Q18a · VS-V2-Q18-KHONG-TRAN → Q18c · VS-V2-Q18-MOC-NGAT → Q18b · VS-V2-Q18-MOC-PHUT → Q18c · BV-V2-Q18-DON-TRUOC → Q18d ·
+   VS-V2-Q18-DON-KHAC → Q18f · BV-V2-Q18-BILL-SDT → Q18e)
+npm test -- --day-du (HEAD 77b26e78): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
