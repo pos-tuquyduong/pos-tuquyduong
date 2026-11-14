@@ -73,6 +73,21 @@ nhưng tách bạch hẳn, sau này bê sang máy chủ App chỉ bằng Xuất 
 - cong_cu/thu_NDAPI1.js
 - kiem_tra_truoc_khi_giao.js
 
+<!-- Chủ quán 13.11 (Q-A…Q-H kế hoạch 3dbea85 / trạng thái 41143b6) — duyệt kế hoạch, đồng ý đề xuất, sửa Q-A, bổ sung Q-F:
+     Q-A SỬA — giới hạn sai: 5 lần / 15 phút, đếm theo CẶP (tên đăng nhập + IP) VÀ theo IP; KHÔNG khoá theo tên đăng nhập trên mọi máy (người lạ gõ sai
+        tên chủ quán từ xa không được làm chủ quán bị khoá). Đăng nhập POS (routes/auth.js): ĐỒNG Ý tách việc riêng — chat mở việc DANGNHAP-1 (máy Sonnet),
+        gồm giới hạn sai + câu báo chung cho tài khoản bị khoá (Phát hiện của việc này). ND-API-1 KHÔNG đụng auth.js.
+     Q-B ĐỒNG Ý — Excel có trang nội dung App, khôi phục Excel bỏ qua trang đó; dựng lại nội dung App bằng /admin › Nhập toàn bộ. Không làm "tự nhập".
+     Q-C ĐỒNG Ý — mỗi lần đọc một ảnh / một bản; ghi Phát hiện "chưa thử Turso thật"; sau khi gộp chủ quán thử tải ảnh ~500 KB ở /admin.
+     Q-D ĐỒNG Ý — thẻ nhỏ "📱 App khách hàng" trong Cài đặt, chỉ chủ quán thấy; tạo / thu hồi khoá hỏi PIN chủ quán.
+     Q-E ĐỒNG Ý — khoá ký vé nd dẫn từ khoá bí mật đang có (không thêm biến trên Render); vé nd và vé POS không dùng lẫn được (bài thử khoá điều này).
+     Q-F — thư App 11.11 nay có trong viec/ND-API-1/thu_app_11112026.md (chat chép nguyên văn). Giả định của máy KHỚP thư: PUT nhap mỗi lần MỘT khoá
+        { khoa, gia_tri, ban_goc }; 4 quyền nd_xem · nd_sua · nd_cap_nhat · nd_xuat_nhap (nhãn đúng mục 2 của thư). Thư không nói dạng gửi ảnh → dùng
+        multipart trường `anh` (multer đã có) và GHI RÕ trong HOP_DONG_API_ND.md để App làm theo. Thư ghi nd_anh có `duong_dan` — POS lưu ảnh ngay trong bảng
+        (không có đường dẫn tệp), hợp đồng ghi `url` = /api/nd/anh/<ma>. Chỗ nào khác thư → theo thư; khác mà không theo được → câu hỏi, DỪNG.
+     Q-G ĐỒNG Ý — ảnh ≤ 512.000 byte; tệp Nhập toàn bộ ≤ 50 MB.
+     Q-H ĐỒNG Ý — cauNoi.js gọi lại hàm kiểm PIN có sẵn của POS, không tự đọc bảng PIN; bộ kiểm vẫn khoá "chỉ cauNoi.js chạm pos_". -->
+
 ## Bài thử đỏ
 Có — `cong_cu/thu_NDAPI1.js` ĐỎ trên gốc: chưa có /api/nd, bảng nd_*, nhóm quyền, khoá sao lưu.
 
