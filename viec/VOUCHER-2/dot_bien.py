@@ -102,6 +102,21 @@ DOT_BIEN = [
   # ── vòng sửa 1, lỗi soát (4): loại voucher trả App theo mẫu; Q2j bước 026 (gốc thật e3ef76a) ──
   ('VS-V2-SCOPE-CUNG', [(S, "scope: laShip(mau.kieu) ? 'ship' : (mau.ap_dung || 'tat_ca') !== 'tat_ca' ? 'item' : 'order',", "scope: 'order',", 1)], r'✗ Q2o ', 'V2'),
   ('VS-V2-026-GIAM-MON', [(N26, "cfg.signup_scope === 'item' || ", '', 1)], r'✗ Q2j ', 'V2'),
+  # ── Q16 (13.11): phiên chờ chuyển khoản giữ voucher ──
+  ('BV-V2-GIU-TRONG-TX', [(O, 'const dangGiu = await voucherDangGiu(tx, dsVoucher.map((v) => v.code), phien?.id);', 'const dangGiu = [];', 1)], r'✗ Q16d đua — phiên chen', 'V2'),
+  ('BV-V2-GIU-PHIEN-TX', [('server/utils/giuCho.js', '    if (CACH_GIU_VOUCHER.includes(cach)) {', '    if (false) {', 1)], r'✗ Q16d đua ngược', 'V2'),
+  ('VS-V2-GIU-CA-CHINH-NO', [(O, 'boPhienId: phien?.id || null });', 'boPhienId: null });', 1)], r'✗ Q16a CHÍNH', 'V2'),
+  ('VS-V2-HAN-HOM-NAY', [(O, 'homNay: phien?.taoLuc ? String(phien.taoLuc).slice(0, 10) : getToday(),', 'homNay: getToday(),', 1)], r'✗ Q16c voucher HẾT HẠN', 'V2'),
+  ('VS-V2-GIU-KHONG-NHA-HUY', [(V, "WHERE trang_thai = 'cho' AND het_han > ?", "WHERE trang_thai IN ('cho', 'huy') AND het_han > ?", 1)], r'✗ Q16b ', 'V2'),
+  ('VS-V2-GIU-KHONG-NHA-HAN', [(V, "WHERE trang_thai = 'cho' AND het_han > ?", "WHERE trang_thai = 'cho' AND ? IS NOT NULL", 1)], r'✗ Q16b ', 'V2'),
+  ('BV-V2-GIU-O-MA', [(V, "(Array.isArray(t.vouchers) ? t.vouchers : []), t.discount_code]", "(Array.isArray(t.vouchers) ? t.vouchers : [])]", 1)], r'✗ Q16a phiên ck_tay', 'V2'),
+  ('BV-V2-GIU-O-MA-MEM', [(O, 'if (l.code === "VOUCHER_DANG_GIU" && !phien?.tinhThu) return', 'if (false) return', 1)], r'✗ Q16a phiên ck_tay', 'V2'),
+  ('BV-V2-XET-GIU', [(V, "if ((await voucherDangGiu(require('../database'), [v.code], boPhienId)).length) {", 'if (false) {', 1)], r'✗ Q16a phiên ck_tay', 'V2'),
+  # ── Q17 (13.11): MỘT phép "còn dùng được" cho ví + lúc bán ──
+  ('BV-V2-VI-RIENG', [('server/utils/diemKhach.js', 'const loi = await xetVoucherConDung(v, { phone });',
+                       "const loi = (v.used_count || 0) > 0 ? ['VOUCHER_DA_DUNG'] : (v.expires_at && v.expires_at < getNow().slice(0, 10)) ? ['VOUCHER_HET_HAN'] : null;", 1)],
+   r'✗ Q17a ', 'V2'),
+  ('VS-V2-XET-HAN-GRANT', [(V, "if ((v.valid_from && ngay < v.valid_from) || (v.valid_to && ngay > v.valid_to))", "if (v.expires_at && ngay > v.expires_at)", 1)], r'✗ Q17a ', 'V2'),
   # ── Q15 (14.11): phép E9 bộ kiểm nhận phatVoucher(tx, …) — phát TRƯỚC câu chặn phải đỏ (chạy bộ kiểm trên bản chép CẢ kho) ──
   ('VS-V2-E9-PHAT-TRUOC', [(S, "      phat = await phatVoucher(tx, mau, phone, 'khach_moi', { nguon_id: signupRow.id, ghi_chu: `Ưu đãi khách mới — mã bill ${signupRow.code}` });\n      await tx.commit();",
                             "      await tx.commit();", 1),
