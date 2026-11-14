@@ -1,6 +1,6 @@
 VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
 
-SỐ CA cong_cu/thu_VOUCHER2.js: 137
+SỐ CA cong_cu/thu_VOUCHER2.js: 139
 SỐ CA cong_cu/thu_P20.js: 178
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_KHAPI2.js: 101
@@ -258,3 +258,18 @@ Trên code vá (8216fad6): VOUCHER-2: 137 đạt · 0 hỏng
 Đột biến: python3 viec/VOUCHER-2/dot_bien.py BV-V2-Q18-DON-TRUOC VS-V2-Q18-DON-KHAC BV-V2-Q23-HUY VS-V2-Q23-BO-CA-DON-THAT BV-V2-Q22-CO VS-V2-Q22-MAC-DINH
   VS-V2-Q22-BO-DU-BAT VS-V2-Q22-CHIA-CA-DON → ĐỐI CHỨNG xanh 137 · 0; 8/8 BẮT (BV-V2-Q23-HUY → Q18g · VS-V2-Q23-BO-CA-DON-THAT → Q18d · BV-V2-Q22-CO → Q22a ·
   VS-V2-Q22-MAC-DINH → Q22d · VS-V2-Q22-BO-DU-BAT → Q22b · VS-V2-Q22-CHIA-CA-DON → Q22a; hai neo Q18 cũ đổi theo câu SQL mới vẫn BẮT Q18d / Q18f)
+
+── Vòng sửa 3 (soát 14.11 lần 4 — nhẹ) · thu_VOUCHER2.js commit fcfa7dfd thêm Q22e (thẻ hạng + bộ số lẻ) + Q18h (đơn trước status NULL):
+   Gốc trước Q22/Q23 (9f20388c — python3 cong_cu/ban_sao_goc.py 9f20388c <nháp>/goc_q22; bản chép không kèm client/src nên ca màn thật sập — chỉ đọc Q22/Q18):
+   node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q22/server → VOUCHER-2: 116 đạt · 18 hỏng
+  ✗ Q22a … — HTTP 200 · 49285
+  ✗ Q22b … — HTTP 200 · 295714
+  ✗ Q22e thẻ hạng + món lẻ (một món tắt điểm) + mã 10.000 → tien_hang_diem 158.973 (làm tròn xuống)  — HTTP 200 · 157737
+  ✗ Q18g … — HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  ✓ Q18h (gốc không lọc trạng thái → đúng); trên bản vá Q23 lần đầu (8216fad6, `status != 'cancelled'`) — node cong_cu/thu_VOUCHER2.js → 138 đạt · 1 hỏng:
+  ✗ Q18h đơn TRƯỚC bill có status NULL → 400 KHACH_DA_CO_TAI_KHOAN, không grant  — HTTP 200
+Trên code vá (e4ef8730, `status IS NOT 'cancelled'`): VOUCHER-2: 139 đạt · 0 hỏng
+Đột biến: BV-V2-Q23-HUY VS-V2-Q23-BO-CA-DON-THAT VS-V2-Q23-NULL-LOT VS-V2-Q22-LAM-TRON VS-V2-Q22-CHI-GOI VS-V2-Q22-CHIA-CA-DON VS-V2-Q22-BO-DU-BAT → ĐỐI CHỨNG 139 · 0;
+  7/7 BẮT (VS-V2-Q23-NULL-LOT → Q18h · VS-V2-Q22-LAM-TRON → Q22e 158974 · VS-V2-Q22-CHI-GOI → Q22e 157737)
+Đột biến đầy đủ (HEAD 67f80df6, trước vòng sửa 3): ĐỘT BIẾN VOUCHER-2: 96/96 bị bắt.
+npm test -- --day-du (HEAD e4ef8730): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước); dist khớp src.

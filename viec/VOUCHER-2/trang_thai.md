@@ -562,3 +562,18 @@ BÀI HỌC:
 (Mục 4 — commit 3d455b5f: đã đẩy ngay sau đó, `git log origin/viec/VOUCHER-2..HEAD` rỗng.)
 
 ### Vòng sửa 3 (lỗi soát lần 4 — đều nhẹ, không đổi cách tính tiền / điểm)
+- (1)+(2) ca **Q22e**: THẺ HẠNG + M1 × 2 bật + M2 tắt + mã 10.000 → số tính tay 158.973 (qua phân số lẻ 58.973,71). Đỏ trên gốc 9f20388c (157.737).
+  Đột biến `VS-V2-Q22-LAM-TRON` (floor → ceil → 158.974) và `VS-V2-Q22-CHI-GOI` (vị từ chỉ gói → 157.737) đều BẮT. Nạp: đơn nạp + mã / voucher bị chặn
+  (`NAP_CHI_TIEN_MAT_QR`, ca F4) và đơn nạp không cộng điểm → không có bộ số nạp nào chạy tới nhánh này qua đường bán; vị từ chung `product_id < 0` phủ.
+- (3) chú thích đầu `signup-codes.js` ghi Q23.
+- Nghi ngờ status NULL → làm: `status IS NOT 'cancelled'` + ca **Q18h** (đỏ trên bản `!=` 8216fad6) + đột biến `VS-V2-Q23-NULL-LOT` BẮT.
+- Nghi ngờ "cùng luật Q7" → chú thích `diemThat.js` nói rõ làm tròn MỘT lần trên tổng (khác tienDaTraTheoDong từng dòng), vô hại vì trừ điểm làm tròn lên.
+- Không làm (ghi Phát hiện): hằng có tên chung cho `giam_mon_thuong` (orders.js `true` ở lời gọi + `1` trong INSERT) — nhỏ; `tien_hang_diem` đơn nạp tính đủ (đơn nạp 0 điểm).
+- thu_VOUCHER2 **139 · 0**; `npm test -- --day-du`: PASS 118 · FAIL 0 · CẢNH BÁO 1. Đột biến đầy đủ trước vòng 3: 96/96; vòng 3: 7/7.
+- Hết 3 vòng sửa: lần soát cuối chỉ lỗi NHẸ (ca thử + chú thích; code điểm đúng theo tính tay của người soát) → LUAT §6.5: không gọi soát nữa.
+  SOÁT LẦN CUỐI: chat soát thay
+
+| Chỗ vá | Đột biến |
+|---|---|
+| diemThat.js làm tròn / thẻ hạng là dòng đủ giá | VS-V2-Q22-LAM-TRON · VS-V2-Q22-CHI-GOI |
+| signup-codes.js status NULL vẫn tính | VS-V2-Q23-NULL-LOT |
