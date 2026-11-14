@@ -10,7 +10,8 @@
  *  Khuôn thu_UUDAI1.js / thu_KHTHE1.js: database.js thật + libsql thật trên kho TẠM, SX giả. co.mocTruocTx chạy TRỌN một lệnh khác trước khi
  *  giao dịch kế tiếp mở (hai quầy chồng nhau TẤT ĐỊNH). Số tiền tính TAY (K3), có bộ số đi qua phân số lẻ.
  *  Món: M0 = 50.000 · M1 = 33.333 (nhóm 92) · M2 = 20.000. Gói 300.000 · thẻ 100.000 · gói nạp 100.000.
- *  [Q2] mã bill → MỘT voucher theo mẫu (Cài đặt) cho khách có tài khoản tạo SAU lúc in bill (chủ quán Q2 11.11, Q9 12.11).
+ *  [Q2] mã bill → MỘT voucher theo mẫu (Cài đặt) cho khách có tài khoản tạo SAU lúc in bill (chủ quán Q2 11.11, Q9 12.11);
+ *  Q18a–f: hồ sơ tạo trong 30 phút TRƯỚC bill của chính SĐT, chưa có đơn trước → vẫn là khách mới (Q21 14.11).
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -914,6 +915,63 @@ async function main() {
       k('Q2o nhan-ma-bill trả loại theo MẪU: ship → scope "ship" kieu ship_tien; % nhóm món → scope "item" kieu phan_tram ap_dung nhom; tiền cả đơn → scope "order"',
         sh.scope === 'ship' && sh.kieu === 'ship_tien' && sh.discount_type === 'fixed' && nh.scope === 'item' && nh.kieu === 'phan_tram' && nh.ap_dung === 'nhom'
         && nh.discount_type === 'percent' && tc.scope === 'order' && tc.kieu === 'tien' && tc.ap_dung === 'tat_ca', JSON.stringify(ra));
+    });
+
+    // Q18 (Q21 chủ quán 14.11): hồ sơ tạo TRƯỚC bill vẫn là khách mới khi đủ CẢ BA — bill là đơn của chính SĐT · SĐT chưa có đơn nào trước đơn
+    // in bill · hồ sơ tạo trong vòng 30 phút TRƯỚC lúc in (mốc tính tay: 29:00 · 30:00 nhận; 30:01 · 31:00 không). Thiếu một điều → như Q9.
+    const billCua = async (sdt) => {
+      const r = await ban({ items: [mon(2)], customer_phone: sdt }, 20000);
+      const s = r.order?.signup_code ? await mot('SELECT * FROM pos_signup_codes WHERE code = ?', [r.order.signup_code]) : null;
+      if (!s) throw new Error('đơn không có mã bill: ' + moTa(r));
+      return s;
+    };
+    // Hồ sơ ghi lùi `giay` giây so với lúc in bill (đơn có SĐT có thể đã tạo hồ sơ — có thì sửa giờ tạo, chưa có thì thêm).
+    const hoSoTruoc = async (sdt, b, giay) => {
+      const luc = truGiay(b.issued_at, giay);
+      if (await mot('SELECT id FROM pos_customers WHERE phone = ?', [sdt])) await db.run('UPDATE pos_customers SET created_at = ? WHERE phone = ?', [luc, sdt]);
+      else await taoTk(sdt, luc);
+    };
+    const nhanQ18 = async (giay, { donTruoc = false, billKhac = null } = {}) => {
+      const s = sdtQ2();
+      if (donTruoc) await ban({ items: [mon(2)], customer_phone: s }, 20000);
+      const b = billKhac === 'khong_sdt' ? await bill() : await billCua(billKhac || s);
+      await hoSoTruoc(s, b, giay);
+      const r = await nhan(b.code, s);
+      return { r, b, g: await grantBill(b), daNhan: await daNhan(b) };
+    };
+    await chay('Q18a', async () => {
+      const x = await nhanQ18(29 * 60);
+      k('Q18a hồ sơ tạo 29 phút TRƯỚC bill, bill của chính SĐT, chưa có đơn trước → 200, 1 grant khach_moi đúng SĐT', x.r.status === 200 && !!x.g
+        && x.g.customer_phone === x.b.order_customer_phone, moTa(x.r));
+    });
+    await chay('Q18b', async () => {
+      const x = await nhanQ18(30 * 60);
+      k('Q18b hồ sơ tạo ĐÚNG 30 phút trước bill → vẫn nhận (mốc tính cả 30:00)', x.r.status === 200 && !!x.g, moTa(x.r));
+    });
+    await chay('Q18c', async () => {
+      const x1 = await nhanQ18(30 * 60 + 1), x2 = await nhanQ18(31 * 60);
+      k('Q18c hồ sơ tạo 30 phút 1 giây / 31 phút trước bill → 400 KHACH_DA_CO_TAI_KHOAN, không grant, mã chưa bị chiếm',
+        [x1, x2].every((x) => x.r.status === 400 && x.r.code === 'KHACH_DA_CO_TAI_KHOAN' && !x.g && !x.daNhan), `${moTa(x1.r)} / ${moTa(x2.r)}`);
+    });
+    await chay('Q18d', async () => {
+      const x = await nhanQ18(29 * 60, { donTruoc: true });
+      k('Q18d hồ sơ 29 phút nhưng SĐT đã có đơn TRƯỚC đơn in bill → 400 KHACH_DA_CO_TAI_KHOAN, không grant, mã chưa bị chiếm',
+        x.r.status === 400 && x.r.code === 'KHACH_DA_CO_TAI_KHOAN' && !x.g && !x.daNhan, moTa(x.r));
+    });
+    await chay('Q18e', async () => {
+      const x1 = await nhanQ18(29 * 60, { billKhac: 'khong_sdt' });
+      const x2 = await nhanQ18(29 * 60, { billKhac: sdtQ2() });
+      k('Q18e hồ sơ 29 phút nhưng bill KHÔNG phải đơn của SĐT đó: bill không ghi SĐT → 400 KHACH_DA_CO_TAI_KHOAN; bill SĐT khác → 400 BILL_SDT_KHAC; không grant',
+        x1.r.status === 400 && x1.r.code === 'KHACH_DA_CO_TAI_KHOAN' && x2.r.status === 400 && x2.r.code === 'BILL_SDT_KHAC' && !x1.g && !x2.g && !x1.daNhan && !x2.daNhan,
+        `${moTa(x1.r)} / ${moTa(x2.r)}`);
+    });
+    await chay('Q18f', async () => {   // K5: đơn SAU bill (khách mua thêm rồi mới nhận mã) không làm mất quyền — chỉ đơn TRƯỚC mới chặn
+      const s = sdtQ2();
+      const b = await billCua(s);
+      await ban({ items: [mon(2)], customer_phone: s }, 20000);
+      await hoSoTruoc(s, b, 29 * 60);
+      const r = await nhan(b.code, s);
+      k('Q18f hồ sơ 29 phút, có đơn SAU đơn in bill (không có đơn trước) → vẫn nhận 200', r.status === 200 && !!(await grantBill(b)), moTa(r));
     });
 
     await chay('Q2k', async () => {   // MÀN THẬT: Customers.jsx + utils/api.js thật → /registrations + /signup-codes/claim của máy chủ thử (lỗi soát (1))
