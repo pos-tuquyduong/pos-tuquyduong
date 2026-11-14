@@ -186,3 +186,25 @@ Sau sửa phép (317b20ac):
 Đột biến python3 viec/VOUCHER-2/dot_bien.py VS-V2-E9-PHAT-TRUOC (phatVoucher TRƯỚC câu chặn, bộ kiểm chạy trên bản chép cả kho):
   ĐỐI CHỨNG kiem_tra_truoc_khi_giao.js (bản sao chưa đột biến): xanh — ✓ /claim: chiếm mã bằng UPDATE
   BẮT   VS-V2-E9-PHAT-TRUOC              ✗ /claim: chiếm mã bằng UPDATE ... TRƯỚC khi phát voucher
+
+── Vòng sửa 1 (lỗi soát 13.11 (1)(3)(4)) · thu_VOUCHER2.js (commit 62dfa97c) — mục [Q2] mỗi ca một `chay`; Q14c / Q2k / Q2m / A4 chạy MÀN THẬT
+   (esbuild gói .jsx + utils/api.js thật → máy chủ thử); ca mới Q2o (loại voucher trả App theo mẫu). Bản gốc dựng: python3 cong_cu/ban_sao_goc.py <sha> <nháp>/goc_*
+   + client/src của cùng commit (git archive … client/src → tar -x vào bản gốc).
+Gốc d919c83e (server/ + client/src trước vá Q2 / Q14): node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q2/server
+Dòng tổng: VOUCHER-2: 84 đạt · 28 hỏng   (mục [Q2] CHẠY HẾT — mỗi ca đỏ riêng, không còn dòng "Q2: bài chạy hết mục")
+  ✗ Q2l · ✗ Q2a · ✗ Q2d · ✗ Q2a2 · ✗ Q2a3 · ✗ Q2b · ✗ Q2c · ✗ Q2h · ✗ Q2f · ✗ Q2e · ✗ Q2e2 · ✗ Q2g · ✗ Q2i
+  ✗ Q2n voucher khách mới (mã riêng ≠ mã bill …) — 9PVDP5 / bill 9PVDP5 · HTTP 400 · MA_BILL_KHONG_DOI_TEN   (gốc: voucher = mã bill — ca nay đòi mã riêng)
+  ✗ Q2o nhan-ma-bill trả loại theo MẪU … — scope "order" (viết cứng)
+  ✗ Q2k Thêm khách (màn thật) … — {"nut":true,"o":false,"bao":[]}  ·  ✗ Q2k mã trên bill sai … — []
+  ✗ Q2m Cài đặt → Voucher (màn thật) … — false · 4 vs 9
+  ✗ Q14c Bán hàng (màn thật) … — ô mã -1 · chip -1   ·  ✗ Q14c chọn 2 chip …  ·  ✗ Q14c voucher máy chủ từ chối …  ·  ✗ Q14c thu tiền từ màn thật … — {"total":50000}
+  Xanh trên d919c83e: Q2j (bước 026 phần Q9 đã có từ 9064187a — gốc thật của Q2j là e3ef76a, dưới), A4 (MauVoucher.jsx đã có — gốc thật e3ef76a, dưới).
+Gốc e3ef76a (trước mọi code VOUCHER-2): node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_e3/server   → VOUCHER-2: 6 đạt · 104 hỏng
+  ✗ A4 Cài đặt: Settings.jsx nạp và gắn <MauVoucher /> (thẻ Điểm thưởng)
+  ✗ A4: bài chạy hết mục — gói pages/CaiDat/MauVoucher.jsx: Could not resolve … MauVoucher.jsx
+  ✗ Q2j bước 026: ưu đãi giảm cả đơn 10 % … — {"m1":{}…}
+Trước khi vá lỗi (4) (code HEAD f84b2aa0, bài mới): VOUCHER-2: 109 đạt · 3 hỏng — ✗ Q2o (scope "order") + 2 ✗ Q2k của khung (form Tìm — sửa khung, không sửa code)
+Trên code vá (a3da65ae + bài 62dfa97c): VOUCHER-2: 112 đạt · 0 hỏng
+Đột biến (vòng sửa 1): python3 viec/VOUCHER-2/dot_bien.py BV-V2-CHIP-AN … VS-V2-CHIP-KHONG-MO → ĐỐI CHỨNG xanh 112 · 0; 12/12 BẮT
+  (BV-V2-CHIP-AN · BV-V2-VI-VOUCHER · BV-V2-PHIEN-BO-VOUCHER · VS-V2-LOI-KHONG-DO · BV-V2-MAU-KHONG-LUU · VS-V2-MAU-XEM-TU-DUNG · BV-V2-MAU-TOI-DA ·
+   BV-V2-CHON-MAU-KM · VS-V2-SCOPE-CUNG · VS-V2-026-GIAM-MON · BV-V2-THEM-KHACH-MA · VS-V2-CHIP-KHONG-MO)
