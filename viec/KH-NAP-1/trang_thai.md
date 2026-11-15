@@ -109,6 +109,21 @@ báo là khoá chống trùng; KHOÁ cửa phân trang có ca ngưỡng ±1. NGU
 lại" của hàm đó. NGUYÊN TẮC K1: sửa luật trong hợp đồng → liệt kê từng nhánh "không chốt được" theo code thật.
 ```
 
+## Vòng sửa 1 (theo soát vòng 1)
+- Lỗi 1 (tiền — cộng hai lần): tái hiện bằng ca mới "gói bật lại rồi cổng gửi lại ĐÚNG báo cũ" → ĐỎ trên code trước vá (ví 305.000 = 200.000 + đơn nạp 105.000).
+  Vá: `muonChot` thêm vế "báo này chưa từng được ghi" (`pos_payos_su_kien.khoa` — khoá của chính cổng) — thanh-toan.js. Không đụng giuCho.js. Đột biến BV-muon-khoa BẮT.
+  Chọn vế theo khoá thay vì `!p.ly_do` (agent đề xuất): khoá đúng NGUYÊN NHÂN (báo đã xử lý), còn khoản chuyển MỚI (khoá mới) sau khi gỡ nguyên nhân vẫn được chốt.
+- Lỗi 2: `/vi` đơn của chính khách đã xoá → câu chung (`traHo` chỉ khi đơn CÒN và là của người khác) — lichSuVi.js. Ca D4 mới ĐỎ trước vá; VS-vi-don-xoa BẮT.
+- Lỗi 3: hợp đồng v17 tách từng nhánh "không chốt được" (gói tắt / giá đổi / hạng cao hơn → vào ví có lý do; lệch số → vào ví câu chung; hai cổng → không
+  cộng; cổng gửi lại → không ghi gì).
+- Lỗi 4: thêm ca C1 trần chung `/goi-nap` với `/menu` (BV-goi-tran BẮT), D1 21 dòng / 20 dòng (ngưỡng trên + dưới, giờ khác nhau từng dòng — VS-vi-trang,
+  VS-vi-thu-tu BẮT), ca K5 quầy tính thử nạp + mã (200 + MA_KHONG_AP_MON_THUONG) / ghi đơn nạp + mã (400 NAP_CHI_TIEN_MAT_QR).
+- Lỗi 5: sửa chú thích thanh-toan.js (đầu file laPhienApp, xuLyTienVe Q1b), lời 409 PHIEN_APP_KHONG_TAO_LAI, tách chú thích GIU_MA donApp.js.
+- Nghi ngờ "quầy /tinh-thu nạp + mã đổi hành vi": CÓ CHỦ Ý theo điểm 4 khối duyệt 15.11 (luật VOUCHER-2 cho dòng không giảm ở bước tính thử — báo giá App đi
+  CHÍNH lời gọi tinh-thu); màn Bán hàng mới ẩn mã khi giỏ nạp; ghi đơn vẫn 400. Khoá bằng ca K5 quầy (mục G của bài).
+- Thêm: `GET /vi` trần `trang` ≤ 100000 (OFFSET không tràn).
+- Đột biến: 44 · BẮT 44 (sau khi sửa neo BV-nap-giu-ma, BV-muon-cong theo dòng mới). `--day-du` PASS 122 · FAIL 0.
+
 ## Câu hỏi
 1. **(Cấm — giuCho.js ngoài khối chặn nạp / thẻ)** A6 cần sửa MỘT dòng trong `chotPhien` (giuCho.js): `const muon = nguon === 'tay' && them.muon === true`
    → `const muon = them.muon === true` (+ câu chú thích), để webhook tiền về muộn dùng CÙNG chotPhien kiểu muộn mà quầy dùng khi xác nhận tay.
@@ -126,5 +141,8 @@ lại" của hàm đó. NGUYÊN TẮC K1: sửa luật trong hợp đồng → l
   sửa hai chú thích giuCho.js:9, :97; ca D3 giờ VN, B2 cờ payOS bắt buộc, A8 `tra[]` + `GET /don`; dòng G1/G2 trong bảng.
 
 ## Phát hiện
+- `GET /api/kh/don` cùng khuôn `?trang` không trần (kh/index.js, có từ KH-MUA-1) — số trang khổng lồ có thể làm tràn OFFSET → 500. Không sửa (ngoài mục tiêu); `/vi` đã có trần.
+- Tiền về muộn của đơn nạp mà giá gói đổi → lý do khách thấy là "vì giá món đã đổi" (LY_DO_NGAN khớp "không khớp tổng") — chữ "món" chưa sát với gói nạp; tiền vẫn đúng.
+- Ca E2 (doanh thu không tính đơn nạp App) dò bằng câu SQL theo dải product_id, không gọi route báo cáo — dựa vào sqlDonNap đã có bài NAP-1 canh.
 - `cong_cu/thu_BH2.js` ca G1 đỏ trong kho nông (máy mây): `git log cbbb809..HEAD` → `bad revision` vì `cbbb809` không có trong lịch sử nông
   (`git cat-file -t cbbb809` → fatal). Không do việc này. Đã chạy `git fetch -q --unshallow origin viec/KH-NAP-1` (chỉ tải lịch sử, không đổi file) → `cbbb809` có.
