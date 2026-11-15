@@ -486,14 +486,14 @@ const KICH_BAN = [
       l5.status === 200 && h5.status === 200 && h6.status === 200 && await c.vi(kh.customer_phone) === vi + gia && con === 0 && tro === 0,
       `${c.ma(l5)} / ${c.ma(h5)} / ${c.ma(h6)} · ví ${vi} → ${await c.vi(kh.customer_phone)} · gói còn ${con} · ${tro} đơn trỏ`);
   } },
-  { ten: 'mua thẻ hội viên bằng ví rồi huỷ (nhân viên 403, chủ 200)', chay: async (c) => {
+  { ten: 'mua thẻ hội viên (tiền mặt) rồi huỷ (nhân viên 403, chủ 200)', chay: async (c) => {
     const kh = { customer_phone: sdtMoi(), customer_name: 'Khách KB22' };   // khách MỚI: hạng thẻ giảm giá đơn sau (orders.js:529)
     await c.db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
     const hang = await c.db.queryOne('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order, id LIMIT 1');
     if (!hang) throw new Error('không có hạng thẻ nào đang bật');
     const gia = Number(hang.card_price);
-    await c.nap(kh.customer_phone, gia);
-    const d = await c.taoDon('KB22 mua thẻ', { ...kh, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: gia });
+    // KH-NAP-1 (chủ quán 14.11): thẻ không trả bằng số dư → trả tiền mặt; huỷ hoàn tiền mặt vào tài khoản (HUY-1) — vẫn "ví + giá thẻ".
+    const d = await c.taoDon('KB22 mua thẻ', { ...kh, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: gia });
     const co = await c.so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [d.id]);
     const truoc = await c.vi(kh.customer_phone);
     const nvHuy = await c.goi('nv', 'PUT', `/orders/${d.id}/cancel`, { reason: 'giả lập' });   // HUY-1 (B): nhân viên → 403
