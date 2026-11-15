@@ -224,6 +224,24 @@ khi chốt muộn lúc giá gói đổi (bài thử thu_KHNAP1 ca "giá gói đ�
 ```
 SOÁT BẢO MẬT: ĐẠT
 
+Lần 2 (15.11.2026, sau vòng sửa 3 và 4 — thanh-toan.js đổi sau lần 1; subagent độc lập chỉ đọc, diff `13223485..HEAD` + bối cảnh `6ca94f07..HEAD`). Số lỗi trước
+lọc: 0 · sau lọc: 0 (không cần bước lọc). Báo cáo nguyên văn (rút phần kết luận):
+```
+Không tìm thấy lỗ hổng.
+Thay đổi chỉ hai chỗ: một dòng trong suKien của xuLyTienVe (thanh-toan.js:199 — `if (muonChot && (r.changes !== 1 || await congKiaDaBao(tx, t))) throw …`) và
+chú thích congKiaDaBao (:135–137). Không đầu vào mới, không route mới; truy vấn vẫn tham số; kiểm chữ ký payOS / SePay / Tingee giữ nguyên.
+- Câu hỏi nằm trong giao dịch: suKien gọi trong vaoGiaoDich (giuCho.js:131) ngay sau câu UPDATE phiên → da_thu; dòng báo của chính cổng bị loại theo
+  congCuaKhoa(d.khoa) !== t.nguon (thanh-toan.js:141).
+- Ném lỗi thì huỷ sạch: catch (txErr) của taoDon rollback rồi ném tiếp (orders.js:1278–1282); loiGhi 5xx không lộ lời nội bộ; tra(res, kq) 5xx cho cổng; không
+  đơn / ví / dòng báo; phiên không đổi, không bị 'loi' (giuCho.js:145).
+- Cổng gửi lại: kiểm trước giao dịch thấy dòng cổng kia → muonChot sai → vaoVi → congKiaDaBao đầu giao dịch → chua_khop, không cộng (thanh-toan.js:163–167).
+- Hai cổng cùng chốt muộn một phiên: bên sau gặp phiên da_thu → PHIEN_DA_CHOT → chua_khop "hai cổng, không hoàn" (thanh-toan.js:212–219).
+- Không đường vòng: muonChot đòi laApp, t.soTien === p.con_lai (máy chủ tra), chiTheNap(p); báo phải qua chữ ký trước xuLyTienVe.
+Đã soát: tiêm SQL, bỏ qua xác thực / chữ ký webhook, phát lại webhook, cộng ví / chốt đơn hai lần, lộ lỗi, phân quyền theo khách — không phát hiện ≥ 7/10.
+CHƯA KIỂM: chỉ đọc code; cách ly giao dịch Turso / libsql suy theo khoá ghi SQLite; chưa mở thân loiGhi.
+```
+SOÁT BẢO MẬT: ĐẠT
+
 ## Câu hỏi
 1. **(Cấm — giuCho.js ngoài khối chặn nạp / thẻ)** A6 cần sửa MỘT dòng trong `chotPhien` (giuCho.js): `const muon = nguon === 'tay' && them.muon === true`
    → `const muon = them.muon === true` (+ câu chú thích), để webhook tiền về muộn dùng CÙNG chotPhien kiểu muộn mà quầy dùng khi xác nhận tay.

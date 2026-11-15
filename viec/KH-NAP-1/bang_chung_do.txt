@@ -80,3 +80,16 @@ SỐ CA cong_cu/thu_P24.js: 34
 SỐ CA cong_cu/thu_HD1.js: 159
 SỐ CA cong_cu/thu_KHTHE1.js: 73
 SỐ CA cong_cu/thu_HOPDONG_KH.js: 100
+
+── Bài thử do COMMIT GỘP MAIN (ab2a9d58 GOP-KH-NAP-1, chat gộp lúc duyệt kế hoạch — VOUCHER-2, DANG-NHAP-2, ND-API-1, QC-APP-1) mang vào nhánh — KHÔNG do việc
+   này sửa. Cổng `cong.js chay . 6fe3f4f^ HEAD` lấy mốc TRƯỚC commit gộp nên tính các bài này là bài đổi, ĐỎ trên gốc d8f0053 (tính năng chưa có). Số ca đo trên
+   head 15.11 (mỗi bài chạy riêng `node cong_cu/<bài>`), ghi để A16 đối chiếu:
+SỐ CA cong_cu/thu_DANGNHAP2.js: 64
+SỐ CA cong_cu/thu_GOI1.js: 115
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_NDAPI1.js: 89
+SỐ CA cong_cu/thu_P20.js: 178
+SỐ CA cong_cu/thu_P26c.js: 161
+SỐ CA cong_cu/thu_UUDAI1.js: 88
+SỐ CA cong_cu/thu_VOUCHER2.js: 146
