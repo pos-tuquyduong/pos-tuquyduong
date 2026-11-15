@@ -26,6 +26,8 @@ const { tiLeHangMon, giaCacHang } = require('../../utils/giaHang');
 const { docCaiDat, khungHangNgay, traGioHoatDong } = require('../../utils/gioHoatDong');
 const donApp = require('../../utils/donApp');
 const quangCao = require('../quang-cao');   // QC-APP-1: dòng quảng cáo hôm nay (cùng file với Cài đặt quầy)
+const { dsGoiBat } = require('../goi-nap');   // KH-NAP-1: gói nạp đang bật (cùng câu với quầy)
+const { lichSuVi } = require('../../utils/lichSuVi');
 const chuongTrinh = require('../chuong-trinh');   // CT-1a: ngày sinh (cùng hàm với quầy) + chương trình công khai
 
 const router = express.Router();
@@ -157,6 +159,16 @@ router.get('/chuong-trinh', async (req, res) => {
   }
 });
 
+// KH-NAP-1: gói nạp đang bật, thứ tự quầy. Không token; chung trần lượt / IP với /menu. Chỉ đúng 4 trường (không cờ / người sửa / giờ).
+router.get('/goi-nap', async (req, res) => {
+  try {
+    if (!giuLuotMenu(req.ip || '')) return bao(res, 'QUA_NHIEU_LAN');
+    res.json({ success: true, data: (await dsGoiBat()).map((g) => ({ ma: g.id, ten: g.ten, tra: g.khach_tra, vao: g.vao_tk })) });
+  } catch (err) {
+    loiMayChu(res, err, 'kh goi-nap');
+  }
+});
+
 // QC-APP-1: dải quảng cáo + banner Trang chủ. Không token; chung trần lượt / IP với /menu. Dòng quán gõ lọc theo NGÀY hôm nay (khung giờ App tự so với
 // bay_gio); công tắc "Giờ vàng tự động" bật + Giờ vàng đang chạy (CÙNG vị từ `bat` của /gio-vang) → thêm dòng 'gio_vang' đứng đầu.
 router.get('/quang-cao', async (req, res) => {
@@ -256,6 +268,16 @@ router.get('/voucher', async (req, res) => {
     res.json({ success: true, phone, data: await layVoucherKhach(phone, req.query.all === '1'), ma_khach_moi: await layMaKhachMoi(phone) });
   } catch (err) {
     loiMayChu(res, err, 'kh voucher');
+  }
+});
+
+// KH-NAP-1: lịch sử tài khoản của CHÍNH SĐT token (utils/lichSuVi.js) — 20 dòng / trang, mới trước.
+router.get('/vi', async (req, res) => {
+  try {
+    const trang = Math.max(1, parseInt(req.query.trang, 10) || 1);
+    res.json({ success: true, ...(await lichSuVi(req.khach.phone, trang)) });
+  } catch (err) {
+    loiMayChu(res, err, 'kh vi');
   }
 });
 
