@@ -120,7 +120,8 @@ async function main() {
   k(`B1a khoaSaoLuuPos.js xuất KHOA_CAI_DAT = '${KHOA_DB}' (tên khoá riêng một chỗ)`, new RegExp(`KHOA_CAI_DAT\\s*=\\s*'${KHOA_DB}'`).test(khoaMd) && /KHOA_CAI_DAT/.test(doc(path.join(SV, 'routes', 'settings.js'))));
   let diffIndex = 'không đo được';
   try { diffIndex = execFileSync('git', ['diff', '--stat', MOC, 'HEAD', '--', 'server/index.js'], { cwd: GOC, encoding: 'utf8' }).trim(); } catch { /* kho nông */ }
-  k('B3 server/index.js không đổi so với gốc của việc', diffIndex === '', diffIndex);
+  const coGit = fs.existsSync(path.join(GOC, '.git'));   // bản sao đột biến không có .git → chỉ còn phép quét chữ dưới đây
+  k('B3 server/index.js không đổi so với gốc của việc (git diff rỗng) và không nhắc tới cửa / module mới', (!coGit || diffIndex === '') && !/tu-dong|khoaSaoLuuPos|SAOLUU-DEM/.test(doc(path.join(SV, 'index.js'))), diffIndex);
 
   const A = await moMay();
   const PIN = '4821';

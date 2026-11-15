@@ -57,7 +57,7 @@ async function khoaDung(chuoi) {
   const d = await docDong();
   const a = Buffer.from(bam(chuoi), 'hex');
   const b = Buffer.from(/^[0-9a-f]{64}$/.test(d?.ma_bam || '') ? d.ma_bam : bam(''), 'hex');
-  return crypto.timingSafeEqual(a, b) && !!d && typeof chuoi === 'string' && chuoi.startsWith(TIEN_TO);
+  return crypto.timingSafeEqual(a, b) && !!d;
 }
 
 /** Ghi lần lấy gần nhất — chỉ khi dòng vẫn là khoá vừa dùng (khoá mới tạo xen giữa thì không ghi đè). */

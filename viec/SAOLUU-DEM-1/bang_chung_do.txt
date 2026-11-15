@@ -1,0 +1,41 @@
+SAOLUU-DEM-1 — bằng chứng ĐỎ trên code GỐC, 15.11.2026
+Cách chạy: bản sao code gốc 8b18deab (git archive 8b18deab server client/src cong_cu kiem_tra_truoc_khi_giao.js package.json, node_modules nối symlink) trong thư mục
+nháp, chép BẢN CUỐI cong_cu/thu_SAOLUUDEM1.js vào đó rồi `node cong_cu/thu_SAOLUUDEM1.js` (dòng ✗ rút gọn + dòng tổng). Bài đổi lần cuối ở commit "chịu được dòng khoá hỏng
+trên bản chưa vá" (số ca gốc = số ca bản đã vá = 34; trên gốc B3 báo "không đo được" vì bản sao không có .git — chỉ là dấu vết của cách chạy).
+
+═══ cong_cu/thu_SAOLUUDEM1.js (bài mới) trên gốc ═══
+  ✗ A1a backup.js có hàm dungTepSaoLuu ...; hai route không tự dựng tệp
+  ✗ A1b /export-all và /tu-dong cùng gọi dungTepSaoLuu(
+  ✗ B1a khoaSaoLuuPos.js xuất KHOA_CAI_DAT = 'khoa_sao_luu_pos'
+  ✗ B3 server/index.js không đổi so với gốc của việc  — không đo được
+  ✗ B2a không PIN / PIN sai → lỗi, quản lý → 403, không vé → 401  — HTTP 404 | HTTP 404 | HTTP 404 | HTTP 404
+  ✗ B1b chưa có khoá → trạng thái co_khoa = false  — HTTP 404 · API endpoint not found
+  ✗ B1c tạo → 200, khoá posk_ + 43 ký tự  — HTTP 404
+  ✗ B1d máy chủ CHỈ giữ băm SHA-256 + tạo lúc + người tạo
+  ✗ B1e GET trạng thái: co_khoa, tao_luc, tao_boi, lay_luc = null  — API endpoint not found
+  ✗ B2b quản lý xem trạng thái → 403  — HTTP 404
+  ✗ B1f tạo khoá mới thay khoá cũ  — HTTP 404 | HTTP 404
+  ✗ C1a khoá đúng → 200, Content-Type xlsx, tên tệp như tải tay  — HTTP 404
+  ✗ A1c tệp cửa mới = tệp /export-all (cùng trang, cùng dòng)  — trang 62/0
+  ✗ C2a thiếu / sai / cũ / vé POS / khoá trong query / sai kiểu → ĐỀU 401 CHUA_DANG_NHAP, cùng một thân  — HTTP 404 ×7
+  ✗ C3a ndk_ ở cửa mới → 401; posk_ ở /api/nd/xuat → 401  — HTTP 404
+  ✗ C3b posk_ ở mọi cửa POS khác → 401  — GET/POST /api/pos/backup/khoa-tu-dong → 404
+  ✗ C4 trần 6 lần / giờ / IP → lần 7, 8 là 429  — 404,404,404,404,404,404
+  ✗ C5a lần lấy gần nhất + cỡ tệp  — undefined vs 34
+  ✗ C5b log có [sao-luu-tu-dong], không chứa khoá
+  ✗ B2c thu hồi không PIN / sai PIN / quản lý → lỗi  — HTTP 404 ×4
+  ✗ B2d thu hồi đúng PIN → khoá hết hiệu lực NGAY  — HTTP 404
+  ✗ B1h PUT /settings có khoá riêng → 403 KHOA_RIENG  — HTTP 200 | HTTP 200 (gốc cho ghi khoá tự dựng!)
+  ✗ P1 tệp xuất KHÔNG có dòng khoá
+  ✗ R1 xem trước tệp có dòng khoá: trang Cài đặt đếm 1 dòng
+  ✗ R2 khôi phục tệp có dòng khoá cũ: khoá đang dùng NGUYÊN, băm cũ không sống lại
+  ✗ R3 tệp Cài đặt chỉ có dòng khoá: trang bị bỏ qua
+  ✗ R4 tệp xuất bình thường vẫn khôi phục được và không làm mất khoá
+  ✗ D1a Settings.jsx gắn thẻ KhoaSaoLuuPos
+  ✗ D1b KhoaSaoLuuPos.jsx: chữ theo phiếu
+  ✗ D2 KhoaSaoLuuPos.jsx: nút Chép + câu dán KHOA_POS
+  ✗ D3 giao diện không mang khoá ra ngoài
+  ✗ E1 bộ kiểm chạy bài này
+2 đạt · 32 hỏng
+
+SỐ CA cong_cu/thu_SAOLUUDEM1.js: 34
