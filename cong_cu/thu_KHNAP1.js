@@ -257,7 +257,7 @@ async function main() {
     const truocTra = await goi('GET', `/kh/don/${d.j.ma_don}`, undefined, kh.tk);
     const dsTruoc = (await goi('GET', '/kh/don', undefined, kh.tk)).j.data?.find((x) => x.ma === d.j.ma_don);
     k('A5 chưa thu → số dư 0, tien_trinh cho_tra', la(d, 200) && (await soDuToi(kh)) === 0 && d.j.tien_trinh === 'cho_tra', `${moTa(d)} · ${d.j.tien_trinh}`);
-    const [w1, w2] = await Promise.all([webhook(p), webhook(p)]);
+    const [w1, w2] = await Promise.all([webhook(p, { reference: 'REFN-A5-SS' }), webhook(p, { reference: 'REFN-A5-SS' })]);   // CÙNG khoá (bản sao thật)
     await webhook(p, { reference: 'REFN-LAP' }); await webhook(p, { reference: 'REFN-LAP' });
     const v = await vi(kh.sdt);
     k('A5 QR về đủ → /toi.so_du_vi 105.000, ngăn thưởng 5.000; hai báo song song + một báo lặp → MỘT đơn, ví cộng MỘT lần', w1.status === 200 && w2.status === 200
@@ -310,7 +310,7 @@ async function main() {
     const ka = await khach();
     const a = await datNap(ka);
     const pa = await muon(a.p);
-    const [wa, wb] = await Promise.all([webhook(pa), webhook(pa)]);
+    const [wa, wb] = await Promise.all([webhook(pa, { reference: 'REFN-A6-SS' }), webhook(pa, { reference: 'REFN-A6-SS' })]);   // CÙNG khoá (bản sao thật)
     await webhook(pa, { reference: 'REFN-MUON-LAP' }); await webhook(pa, { reference: 'REFN-MUON-LAP' });
     const xa = await goi('GET', `/kh/don/${a.d.j.ma_don}`, undefined, ka.tk);
     const va = await vi(ka.sdt);
