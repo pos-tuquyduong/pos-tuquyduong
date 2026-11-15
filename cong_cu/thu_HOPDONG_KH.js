@@ -204,6 +204,8 @@ async function main() {
   for (const [a, b] of [['signup_enabled', '1'], ['signup_discount_type', 'percent'], ['signup_discount_value', '10'], ['nhandiem_enabled', '1'],
     ['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['flash_enabled', 'false']]) await datCaiDat(a, b);
   await db.run("UPDATE pos_chuong_trinh SET dang_bat = 1 WHERE ma = 'sinh_nhat'");   // v6: GET /chuong-trinh phải có ít nhất một mục để thử đủ trường
+  // v17 (KH-NAP-1): GET /goi-nap phải có ít nhất một gói đang bật để thử đủ trường
+  await db.run("INSERT INTO pos_goi_nap (ten, khach_tra, vao_tk, is_active, thu_tu, created_at, updated_at, updated_by) VALUES ('Nạp mẫu', 100000, 105000, 1, 0, ?, ?, 'thu')", [getNow(), getNow()]);
   // v16: GET /quang-cao phải có ít nhất một dòng để thử đủ trường (data[].x đòi mảng KHÔNG rỗng)
   await db.run("INSERT INTO pos_quang_cao (chu_dai, tieu_de, phu, chu_nut, dich, ma_mon, kieu_ngay, cac_thu, tu_ngay, den_ngay, tu_gio, den_gio, uu_tien, bat, created_at, updated_at) VALUES ('Giảm 10% trà sáng', '', '', '', 'menu', NULL, 'hang_ngay', '', NULL, NULL, NULL, NULL, 1, 1, ?, ?)", [getNow(), getNow()]);
   const sp = await db.queryOne('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 1');
@@ -243,6 +245,9 @@ async function main() {
       VALUES (?, ?, 'Mẫu', 1000, NULL, ?, datetime('now', '+7 hours', '+300 days'))`, [SDT, hang, getNow()]);
     await giaGoi();
     await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 80000)', [SDT]);
+    // v17 (KH-NAP-1): GET /vi phải có ít nhất một dòng sổ ví để thử đủ trường (data[].x đòi mảng KHÔNG rỗng)
+    await db.run(`INSERT INTO pos_balance_transactions (customer_phone, type, amount, thuong, balance_before, balance_after, order_id, payment_method, notes, created_by,
+      created_at) VALUES (?, 'topup', 80000, 0, 0, 80000, NULL, 'cash', NULL, 'thu', ?)`, [SDT, getNow()]);
     maBill = (await don()).signup_code;
     maDiem = (await don()).signup_code;
     // VOUCHER-2 Q11(a) (chủ quán Q2 11.11 + Q9 12.11): nhận mã bill phát voucher theo MẪU (y cấu hình trên: 10 % cả đơn) và chỉ cho tài khoản tạo SAU
