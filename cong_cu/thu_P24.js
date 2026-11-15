@@ -377,10 +377,11 @@ async function main() {
       && await so('SELECT COUNT(*) FROM pos_customer_packages WHERE id = ?', [cp]) === 0 && await diemDon(mua.id) === 0, `${moTa(hMua)} · ví ${viTruoc} → ${await vi(s1)}`);
     await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
     const hang = await mot('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY id LIMIT 1');
-    const s2 = sdtMoi(); await nap(s2, Number(hang.card_price));
-    const the1 = await ban({ customer_phone: s2, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
+    // KH-NAP-1 (chủ quán 14.11): thẻ không trả bằng số dư → đơn mua thẻ trả tiền mặt; huỷ hoàn đủ tiền mặt vào tài khoản (HUY-1) như trước hoàn phần ví.
+    const s2 = sdtMoi();
+    const the1 = await ban({ customer_phone: s2, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
     const hThe = await huy(the1.id);
-    k('I1c huỷ đơn mua thẻ → 200, dòng mua thẻ xoá, ví hoàn đủ, điểm đơn 0', hThe.status === 200 && await vi(s2) === Number(hang.card_price)
+    k('I1c huỷ đơn mua thẻ (tiền mặt) → 200, dòng mua thẻ xoá, tài khoản nhận hoàn đủ, điểm đơn 0', hThe.status === 200 && await vi(s2) === Number(hang.card_price)
       && await so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [the1.id]) === 0 && await diemDon(the1.id) === 0, moTa(hThe));
 
     const s3 = sdtMoi(); await nap(s3, 10000);   // NAP-1: ví 10.000 + tiền mặt 15.000 → 25 điểm
