@@ -75,6 +75,40 @@ VS-goi-tat, VS-goi-truong, VS-vi-loai, VS-vi-me, VS-vi-ghi-chu, VS-vi-nhan-dong,
 - `npm test`: PASS 118 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn). `node kiem_tra_truoc_khi_giao.js --day-du`: PASS 122 · FAIL 0 · CẢNH BÁO 1. Giả lập 33 KB · 18 BB ĐẠT.
 - `(cd client && npm run build)` → `client/dist` mới (index-BJfGU42M.js).
 
+## Soát độc lập — vòng 1 (agent /ra-soat, chép nguyên văn)
+```
+KHÔNG ĐẠT
+
+LỖI TÌM ĐƯỢC:
+1. server/routes/thanh-toan.js:183 + :192–197 cùng server/utils/giuCho.js:113–131 và :144 — cộng tiền hai lần khi cổng gửi lại cùng một báo — K4 + K3.
+   Lần báo đầu: chốt muộn đơn chỉ nạp / chỉ thẻ hỏng (gói tắt, giá đổi, hạng cao hơn) → ghi ly_do, phiên vẫn 'cho' / 'huy', vaoVi cộng tiền (dòng vao_vi khoá K).
+   giuCho.js:144 chốt muộn hỏng CỐ Ý không khoá phiên (luật viết cho xác nhận tay). Chủ quán bật lại gói / trả giá cũ, payOS / SePay gửi lại ĐÚNG báo K (chỉ
+   Tingee kiểm khoá trước, thanh-toan.js:254). muonChot lại đúng (congKiaDaBao chỉ nhìn cổng KHÁC), chotPhien thành công, suKien gặp ON CONFLICT không ghi gì
+   nhưng vaoGiaoDich không kiểm changes (giuCho.js:131) → vẫn tạo đơn nạp / lên hạng. Khách được cả tiền ví lẫn quyền lợi. Đối soát (lưới "vượt") không thấy.
+   Bài thử ca "gói tắt" bật lại gói SAU cả hai báo, hai báo khác reference → không phủ. Gốc không có lỗ này. Vá gọn: vế `&& !p.ly_do` vào muonChot, hoặc
+   suKien trả changes. Kèm ca "gói tắt → vào ví → bật lại → gửi lại cùng reference → ví không đổi, 0 đơn" + đột biến. (Chưa chạy được ca — người gác chặn.)
+2. server/utils/lichSuVi.js:17, :24, :26 — GET /vi dán nhãn sai cho đơn của chính khách đã bị xoá (xoá cứng pos_orders, orders.js:2007) → "Trả hộ đơn…",
+   "Hoàn tiền đơn trả hộ". Không có ca thử. Vá: không còn o → câu chung.
+3. HOP_DONG_API_KH.md:66–67 — hợp đồng hứa sai: "hai cổng cùng báo → vào tài khoản, thong_bao_tien_ve nêu lý do" — thật ra hai cổng → chua_khop, KHÔNG cộng;
+   tiền lệch số → vaoVi với ly_do null → câu báo không có lý do.
+4. cong_cu/thu_KHNAP1.js — ba chỗ bỏ trống: C1 trần chung /menu không có ca (gỡ giuLuotMenu sống); D1 20 dòng / con_nua không có ca ngưỡng (sổ ~11 dòng);
+   D1 "mới trước" các dòng cùng giây — đổi ORDER BY ASC có thể vẫn xanh.
+5. Chú thích cũ: thanh-toan.js:26 "App KHÔNG tạo lại đơn khi tiền về muộn"; :155–158 "KHÔNG tạo đơn" cho mọi phiên App về muộn; lời 409 :92 "tiền về muộn tự
+   cộng vào tài khoản khách"; donApp.js:54 hai chú thích dính một dòng.
+
+NGHI NGỜ: orders.js:242 quầy POST /tinh-thu giỏ nạp + mã / voucher nay 200 + ma_loi trong khi POST /orders 400 — lệch "số tinh-thu = số POST", ngoài phiếu
+(điểm 4 chỉ nói báo giá App), không ca thử quầy. lichSuVi.js:24 dòng purchase cũ order_id NULL → "Quán điều chỉnh số dư". kh/index.js:276 ?trang rất lớn →
+OFFSET tràn → có thể 500. Ca E2 tự viết SQL doanh thu (trọng tài chép công thức). Gốc: mục C sập ngay → A6 chỉ canh bằng đột biến. donApp.js:82 giá gói nạp đổi
+→ lý do có thể "vì giá món đã đổi".
+
+NGHIỆM THU: 23/27 · thiếu: A6 (ca báo lặp sau khi đã vào ví), C1 (trần chung), D1 (ngưỡng trang), E2 (một phần).
+CHƯA SOÁT ĐƯỢC: ca lỗi 1 chưa chạy; 3/39 đột biến; chưa npm test / cong.js chay; chưa đọc từng ca sửa của bài cũ; CHECKLIST mục G; nhịp gửi lại thật của cổng.
+Cấm: orders.js / giuCho.js chỉ đụng đúng chỗ cho phép.
+BÀI HỌC: KHOÁ ca "lần đầu hỏng → vào ví → gỡ nguyên nhân → gửi lại CÙNG khoá → không ghi gì thêm" + đột biến; KHOÁ vaoGiaoDich / suKien kiểm changes khi dòng
+báo là khoá chống trùng; KHOÁ cửa phân trang có ca ngưỡng ±1. NGUYÊN TẮC K4: dùng lại hàm có cờ nới luật cho đường gọi MỚI → rà mọi luật "không khoá / cho thử
+lại" của hàm đó. NGUYÊN TẮC K1: sửa luật trong hợp đồng → liệt kê từng nhánh "không chốt được" theo code thật.
+```
+
 ## Câu hỏi
 1. **(Cấm — giuCho.js ngoài khối chặn nạp / thẻ)** A6 cần sửa MỘT dòng trong `chotPhien` (giuCho.js): `const muon = nguon === 'tay' && them.muon === true`
    → `const muon = them.muon === true` (+ câu chú thích), để webhook tiền về muộn dùng CÙNG chotPhien kiểu muộn mà quầy dùng khi xác nhận tay.
