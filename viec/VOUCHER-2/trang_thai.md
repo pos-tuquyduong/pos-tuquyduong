@@ -702,3 +702,4 @@ tiền → luật (LUAT §6.5) bảo dừng hỏi bạn, không tự sửa.
   `error` / `voucher_loi` của máy chủ (không có câu viết cứng theo mã) → không đổi `client/src/`.
 - Người gác chặn: `[B-PHANTICH]` heredoc python rồi chạy script cùng lệnh → tách hai lệnh.
 - Không gọi soát độc lập (lệnh Q25: "Không gọi soát độc lập nữa"). SOÁT LẦN CUỐI: chat soát thay
+- Đột biến đầy đủ sau Q24 (HEAD d1065d45 trở đi, chỉ thêm hồ sơ; có ĐỐI CHỨNG 146 · 0): **ĐỘT BIẾN VOUCHER-2: 104/104 bị bắt** (99 cũ + 5 Q24).
