@@ -63,8 +63,10 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
   khoản theo ĐÚNG luật đơn chờ đang có (giữ phiên, hết hạn, khách huỷ) — không luật riêng. Báo tiền trùng → một đơn, cộng một lần.
 - **Tiền về muộn ĐỦ quyền lợi** (chủ quán 14.11, thay luật v13 "thẻ về muộn chỉ vào tài khoản"): đơn App CHỈ có dòng nạp hoặc CHỈ có dòng thẻ, tiền QR về
   ĐÚNG số sau khi QR hết hạn hoặc đơn đã huỷ → máy chủ tự chốt đơn y như tiền về đúng hạn (nạp: cộng đủ tiền nạp + thưởng; thẻ: lên hạng, hạn tính
-  từ lúc chốt); `GET /don/:ma` thành `xong`. Không chốt được (gói đã tắt, giá gói đổi, khách đã có hạng cao hơn, tiền lệch số, hai cổng cùng báo…) →
-  như v11: số tiền đã về vào tài khoản, `thong_bao_tien_ve` nêu lý do ("…không tạo được đơn vì gói nạp không còn bán…"). Đơn có đồ uống: không đổi.
+  từ lúc chốt); `GET /don/:ma` thành `xong`. Không chốt được — từng nhánh: gói đã tắt / giá gói đổi / khách đã có hạng cao hơn → số tiền đã về vào tài khoản,
+  `thong_bao_tien_ve` nêu lý do ("…không tạo được đơn vì gói nạp không còn bán…"); tiền về LỆCH số → vào tài khoản như v11 (câu báo chung, không lý do);
+  hai cổng QR cùng báo cho một đơn → KHÔNG tự cộng, quán đối chiếu sao kê rồi cộng tay (v11). Cổng gửi lại đúng báo đã nhận → không ghi gì thêm.
+  Đơn có đồ uống: không đổi.
 - **Xem đơn:** `GET /don`, `GET /don/:ma` dòng nạp có `loai: "nap"`, `ten` = tên dòng hàng quầy ("💳 Nạp 100.000đ → vào tài khoản 105.000đ"), `ghi_chu`
   `null`, giống nhau trước và sau khi trả; `so_mon` đếm 1; `hoa_don[]` của đơn nạp App = đúng tờ đơn nạp in ở quầy cho cùng gói; `tra[]`, `kenh` như mọi
   đơn App. Đơn nạp đã trả không huỷ / hoàn (quầy cũng không — tiền nạp không hoàn); App huỷ được đơn nạp chưa trả.
