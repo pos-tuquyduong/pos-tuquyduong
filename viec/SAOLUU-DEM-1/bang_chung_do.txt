@@ -1,7 +1,7 @@
 SAOLUU-DEM-1 — bằng chứng ĐỎ trên code GỐC, 15.11.2026
 Cách chạy: bản sao code gốc 8b18deab (git archive 8b18deab server client/src cong_cu kiem_tra_truoc_khi_giao.js package.json, node_modules nối symlink) trong thư mục
 nháp, chép BẢN CUỐI cong_cu/thu_SAOLUUDEM1.js vào đó rồi `node cong_cu/thu_SAOLUUDEM1.js` (dòng ✗ rút gọn + dòng tổng). Bài đổi lần cuối ở commit "chịu được dòng khoá hỏng
-trên bản chưa vá" rồi "bộ đột biến VS-/BV- + chặt phép B3" (số ca gốc = số ca bản đã vá = 34; B3 trong bản sao không có .git chỉ quét chữ nên xanh trên gốc — đúng).
+trên bản chưa vá" rồi "bộ đột biến VS-/BV- + chặt phép B3" (vòng sửa 1 thêm R5, I1, G1, S1 + sửa A1c bỏ xuat_luc → lần cuối ở commit "phép so A1c bỏ xuat_luc"; số ca gốc = số ca bản đã vá = 38; B3 trong bản sao không có .git chỉ quét chữ nên xanh trên gốc — đúng).
 
 ═══ cong_cu/thu_SAOLUUDEM1.js (bài mới) trên gốc ═══
   ✗ A1a backup.js có hàm dungTepSaoLuu ...; hai route không tự dựng tệp
@@ -30,11 +30,15 @@ trên bản chưa vá" rồi "bộ đột biến VS-/BV- + chặt phép B3" (s�
   ✗ R2 khôi phục tệp có dòng khoá cũ: khoá đang dùng NGUYÊN, băm cũ không sống lại
   ✗ R3 tệp Cài đặt chỉ có dòng khoá: trang bị bỏ qua
   ✗ R4 tệp xuất bình thường vẫn khôi phục được và không làm mất khoá
+  ✗ R5 tệp Cài đặt thiếu cột value: khoá đang dùng vẫn lấy được tệp
+  ✗ I1 /backup/info và xem trước khôi phục không đếm dòng khoá
+  ✗ G1 ghi lần-lấy-gần-nhất hỏng → vẫn 200 + đủ tệp, log không chứa khoá
+  ✗ S1 so băm timingSafeEqual; ghiLanLay chỉ ghi khi dòng vẫn là khoá vừa dùng
   ✗ D1a Settings.jsx gắn thẻ KhoaSaoLuuPos
   ✗ D1b KhoaSaoLuuPos.jsx: chữ theo phiếu
   ✗ D2 KhoaSaoLuuPos.jsx: nút Chép + câu dán KHOA_POS
   ✗ D3 giao diện không mang khoá ra ngoài
   ✗ E1 bộ kiểm chạy bài này
-3 đạt · 31 hỏng
+3 đạt · 35 hỏng
 
-SỐ CA cong_cu/thu_SAOLUUDEM1.js: 34
+SỐ CA cong_cu/thu_SAOLUUDEM1.js: 38
