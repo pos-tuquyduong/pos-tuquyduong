@@ -25,7 +25,7 @@ const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
 const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
-const { ID_NAP_TU, sqlDonNap, laDonNap, LOI_NAP_KHONG_HOAN } = require("../utils/viKhach"); // NAP-1: đơn nạp — một vị từ
+const { ID_NAP_TU, sqlDonNap, laDonNap, LOI_NAP_KHONG_HOAN, loiTienThat, tenDongNap } = require("../utils/viKhach"); // NAP-1: đơn nạp — một vị từ
 const { tinhUuDai } = require("../utils/uuDai"); // UUDAI-1: giảm hạng + giảm mã — một hàm cho tạo đơn, tinh-thu, phiên payOS
 const { kiemTraMe } = require("../utils/viMe"); // VI-ME-1: đối chiếu mẹ–con trước mọi lối tiền mẹ
 const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từng món — một hàm cho quầy và /api/kh/menu
@@ -236,11 +236,18 @@ async function taoDon(req, res, phien = null) {
       if ((Array.isArray(items) && items.length) || package_buy || membership_buy || customer_package_id || giao) {
         return res.status(400).json({ error: "Nạp tiền làm đơn riêng — không gộp với món, gói hay thẻ", code: "NAP_KHONG_GOP" });
       }
-      if (Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance" || Number(debt_amount) > 0
-        || discount_code || Number(shipping_fee) > 0 || (Array.isArray(vouchers) && vouchers.length)) {
+      // KH-NAP-1 (phiếu điểm 4): mã / voucher ở bước TÍNH THỬ (tinh-thu, báo giá App) → luật VOUCHER-2 sẵn có cho dòng không giảm (MA_KHONG_AP_MON_THUONG,
+      // báo ở ma_loi / voucher_loi); đơn ghi thật / tạo phiên vẫn chặn cứng như NAP-1.
+      if (Number(debt_amount) > 0 || Number(shipping_fee) > 0
+        || (!phien?.tinhThu && (discount_code || (Array.isArray(vouchers) && vouchers.length)))) {
         return res.status(400).json({ error: "Nạp tiền chỉ trả tiền mặt hoặc chuyển khoản — không trừ tài khoản, không mã, không ghi nợ, không phí giao",
           code: "NAP_CHI_TIEN_MAT_QR" });
       }
+    }
+    // KH-NAP-1: đơn có gói nạp / thẻ hạng không trừ số dư (khách, mẹ) dưới mọi dạng — MỘT vị từ với giuCho.taoPhien; đứng TRƯỚC cổng PIN / payOS.
+    const tienThat = loiTienThat({ goi_nap_id, membership_buy });
+    if (tienThat && (Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance")) {
+      return res.status(400).json(tienThat);
     }
     // P3 (Q1a): cờ bật → chuyển khoản chỉ qua QR payOS, trừ tài khoản chỉ qua phiên có PIN (routes/thanh-toan.js). Chốt phiên có `phien`.
     if (!phien && (Number(transfer_amount) > 0 || Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance")) {
@@ -563,12 +570,11 @@ async function taoDon(req, res, phien = null) {
     if (goi_nap_id != null) {
       goiNap = await queryOne("SELECT * FROM pos_goi_nap WHERE id = ? AND is_active = 1", [goi_nap_id]);
       if (!goiNap) return res.status(400).json({ error: "Gói nạp không có hoặc đang tắt", code: "GOI_NAP_KHONG_CO" });
-      const vnd = (n) => Number(n).toLocaleString("vi-VN") + "đ";
       subtotal += goiNap.khach_tra;
       orderItems.push({
         product_id: ID_NAP_TU - goiNap.id,
         product_code: `NAP-${goiNap.id}`,
-        product_name: `💳 Nạp ${vnd(goiNap.khach_tra)} → vào tài khoản ${vnd(goiNap.vao_tk)}`,
+        product_name: tenDongNap(goiNap),   // KH-NAP-1: một chỗ dựng tên (viKhach.js) — thân đơn App chưa trả dùng lại
         unit: "gói",
         quantity: 1,
         unit_price: goiNap.khach_tra,
