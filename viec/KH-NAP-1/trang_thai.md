@@ -124,6 +124,36 @@ lại" của hàm đó. NGUYÊN TẮC K1: sửa luật trong hợp đồng → l
 - Thêm: `GET /vi` trần `trang` ≤ 100000 (OFFSET không tràn).
 - Đột biến: 44 · BẮT 44 (sau khi sửa neo BV-nap-giu-ma, BV-muon-cong theo dòng mới). `--day-du` PASS 122 · FAIL 0.
 
+## Soát độc lập — vòng 2 (agent /ra-soat, chép nguyên văn phần kết luận)
+```
+ĐẠT
+(a) Lỗi vòng 1 đã vá đúng và đủ: lỗi 1 muonChot thêm vế khoá (payOS / SePay gửi lại → vaoVi ON CONFLICT changes 0; Tingee kiểm khoá trước trả '02';
+SePay + payOS cùng giao dịch → congKiaDaBao; hai báo cùng khoá cùng lúc → câu UPDATE phiên chỉ cho một bên; khoá khác = giao dịch mới; phiên giữ ví cũ →
+loiTienThat 400 → vào ví). Lỗi 2–5 đã vá.
+LỖI TÌM ĐƯỢC: không có lỗi chắc chắn. NHẸ: 1. giuCho.js:139 chú thích "chốt muộn hỏng KHÔNG khoá phiên: khách nạp thêm rồi xác nhận lại được" chỉ còn đúng
+cho xác nhận tay quầy — ngoài quyền sửa (Cấm) → Phát hiện. 2. thu_KHNAP1.js:301 tên ca "hai báo song song" nhưng helper webhook tăng reference → hai khoá khác.
+3. Ca lỗi 1 chỉ payOS, chưa SePay. 4. trang_thai chưa ghi kết quả `node tu_chay/cong.js chay`.
+NGHI NGỜ: 1. (TIỀN, khả năng rất thấp) thanh-toan.js:186–187 kiểm khoá NGOÀI giao dịch, vaoGiaoDich (giuCho.js:130) không kiểm changes của suKien → hai bản
+cùng khoá gần như cùng lúc + chủ quán bật lại gói giữa chừng: A chốt hỏng → vào ví, B chốt được → suKien ON CONFLICT → vẫn tạo đơn → cộng hai lần. Đề nghị
+suKien trả changes / vaoGiaoDich dừng khi 0 + đột biến. CHƯA KIỂM (không dựng được ca tất định). 2. quầy /tinh-thu nạp + mã 200 vs POST 400 — có chủ ý, có ca.
+3. "vì giá món đã đổi" cho gói nạp — đã ghi Phát hiện.
+NGHIỆM THU: 27/27 mục có bằng chứng · mục thiếu: không (báo trùng / gửi lại cùng khoá của A5 / A6 chỉ một phần — NHẸ 2, 3).
+Cấm: orders.js chỉ import :28, khối chặn :239–251, tên gói nạp :577; giuCho.js chỉ import :18, khối chặn :46–48, dòng muon :113, hai chú thích.
+CHƯA SOÁT ĐƯỢC: cuộc đua NGHI NGỜ 1; nhịp gửi lại thật của payOS / SePay; --goc; từng ca bài cũ ngoài KHTHE1 / KB22; thử tay giao diện.
+BÀI HỌC: KHOÁ dòng báo chống trùng kiểm changes TRONG giao dịch ghi; KHOÁ helper bài thử tự sinh khoá → ca báo lặp truyền khoá cố định; NGUYÊN TẮC K4 nới cờ
+cho đường gọi mới → grep mọi chú thích / luật "cho thử lại" của hàm.
+```
+
+## Vòng sửa 2 (nghi ngờ tiền của soát vòng 2 + nhẹ 2)
+- Dựng được ca TẤT ĐỊNH cho cuộc đua: bài chạy máy chủ cùng tiến trình → móc `db.beginTransaction` chen một dòng báo cùng khoá đúng lúc giữa phép kiểm khoá
+  (ngoài giao dịch) và giao dịch chốt. Trước vá ĐỎ: đơn nạp 105.000 vẫn tạo.
+- Vá TRONG thanh-toan.js (không đụng giuCho.js — Cấm): `suKien` của chốt muộn kiểm `changes` của dòng báo; 0 → ném → taoDon rollback cả giao dịch (không đơn),
+  cổng nhận 5xx gửi lại → lần sau phép kiểm khoá thấy → nhánh vaoVi (ON CONFLICT, không ghi thêm). Đột biến BV-muon-dua BẮT.
+- Phép kiểm khoá trước (vòng 1) vẫn cần: không có nó thì lần gửi lại đi vào chốt rồi ném → 5xx mãi → ca "gửi lại báo cũ" nay đòi 200 (BV-muon-khoa BẮT).
+- NHẸ 2: hai ca "hai báo song song" (A5, A6) nay dùng CÙNG reference (bản sao thật).
+- NHẸ 3 (SePay gửi lại) không thêm ca: cùng một hàm xuLyTienVe + cùng cột khoá, khác cổng chỉ ở cách dựng khoá — ghi CHƯA KIỂM.
+- Đột biến: 45 · BẮT 45 (đối chứng 64/64). `--day-du` PASS 122 · FAIL 0 · CẢNH BÁO 1.
+
 ## Câu hỏi
 1. **(Cấm — giuCho.js ngoài khối chặn nạp / thẻ)** A6 cần sửa MỘT dòng trong `chotPhien` (giuCho.js): `const muon = nguon === 'tay' && them.muon === true`
    → `const muon = them.muon === true` (+ câu chú thích), để webhook tiền về muộn dùng CÙNG chotPhien kiểu muộn mà quầy dùng khi xác nhận tay.
@@ -141,6 +171,7 @@ lại" của hàm đó. NGUYÊN TẮC K1: sửa luật trong hợp đồng → l
   sửa hai chú thích giuCho.js:9, :97; ca D3 giờ VN, B2 cờ payOS bắt buộc, A8 `tra[]` + `GET /don`; dòng G1/G2 trong bảng.
 
 ## Phát hiện
+- giuCho.js:139 chú thích "Chốt muộn hỏng (ví thiếu, giá đổi) KHÔNG khoá phiên: khách nạp thêm rồi xác nhận lại được" nay chỉ đúng cho xác nhận tay quầy — phiên App gọi chốt muộn từ webhook không xác nhận lại tay được. Ngoài quyền sửa (Cấm) — đề xuất sửa chữ ở việc sau.
 - `GET /api/kh/don` cùng khuôn `?trang` không trần (kh/index.js, có từ KH-MUA-1) — số trang khổng lồ có thể làm tràn OFFSET → 500. Không sửa (ngoài mục tiêu); `/vi` đã có trần.
 - Tiền về muộn của đơn nạp mà giá gói đổi → lý do khách thấy là "vì giá món đã đổi" (LY_DO_NGAN khớp "không khớp tổng") — chữ "món" chưa sát với gói nạp; tiền vẫn đúng.
 - Ca E2 (doanh thu không tính đơn nạp App) dò bằng câu SQL theo dải product_id, không gọi route báo cáo — dựa vào sqlDonNap đã có bài NAP-1 canh.

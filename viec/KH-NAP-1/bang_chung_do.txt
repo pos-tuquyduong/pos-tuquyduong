@@ -38,6 +38,9 @@ Lệnh: bài HIỆN TẠI trên server/ + client/src/ của gốc (git archive, 
   ✗ C1 /goi-nap dùng CHUNG trần lượt / IP với /menu: hết lượt (qua /chuong-trinh) → /goi-nap 429 QUA_NHIEU_LAN  — HTTP 401 (cửa chưa có, sau tầng token)
    Trên code TRƯỚC vòng sửa 1 (HEAD e2bd2855 + bài mới): ✗ A6 gói bật lại rồi cổng gửi lại ĐÚNG báo cũ → không đơn, ví không đổi — 305000 (cộng hai lần);
    ✗ D4 đơn của chính khách đã xoá → "Thanh toán đơn" / "Hoàn tiền đơn" — "Hoàn tiền đơn trả hộ"; 60 đạt · 3 hỏng · tổng 63 ca. Sau vá: 63 đạt · 0 hỏng.
+── VÒNG SỬA 2 (soát vòng 2 nghi ngờ 1 — đua cùng khoá): ca mới "A6 hai bản CÙNG khoá đua nhau" trên code TRƯỚC vá (HEAD c4c720b9):
+  ✗ A6 hai bản CÙNG khoá đua nhau (bản kia ghi dòng báo giữa chừng) → bản này KHÔNG chốt đơn (giao dịch huỷ, cổng gửi lại sau), ví không đổi  — HTTP 200 · 105000
+  KH-NAP-1: 63 đạt · 1 hỏng · tổng 64 ca. Sau vá: 64 đạt · 0 hỏng. Gốc 6ca94f07 chạy lại: thoát 1, 6 đạt · 28 hỏng · tổng 34 ca (mục C sập trên gốc).
 
 ── Bài CŨ sửa vì luật ĐÃ ĐƯỢC CHỦ QUÁN DUYỆT đổi (phiếu G2, chủ quán 14.11) — bài sửa thường (LUAT_XAY_APP §6.8–6.9): bản cũ ĐỎ trên code mới
    (npm test 15.11 trước khi sửa: P2223 D5, P24 sập I1c, HD1 A19–A22, KHTHE1 23 ca, HOPDONG_KH thiếu 2 cửa + 4 mã, giả lập KB22 sập), bản mới ĐỎ trên gốc:
@@ -68,7 +71,7 @@ cong_cu/gia_lap/chay.js (kịch bản KB22 trong cong_cu/gia_lap/kich_ban.js) �
   Giả lập: 33 kịch bản · 18 bất biến · KHÔNG ĐẠT (1 lệch)
 
 ── Số ca trên code ĐÃ VÁ (head) ──
-SỐ CA cong_cu/thu_KHNAP1.js: 63
+SỐ CA cong_cu/thu_KHNAP1.js: 64
 SỐ CA cong_cu/thu_P2223.js: 45
 SỐ CA cong_cu/thu_P24.js: 34
 SỐ CA cong_cu/thu_HD1.js: 159
