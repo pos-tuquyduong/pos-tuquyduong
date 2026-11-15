@@ -1,13 +1,12 @@
 SAOLUU-DEM-1 — bằng chứng ĐỎ trên code GỐC, 15.11.2026
 Cách chạy: bản sao code gốc 8b18deab (git archive 8b18deab server client/src cong_cu kiem_tra_truoc_khi_giao.js package.json, node_modules nối symlink) trong thư mục
 nháp, chép BẢN CUỐI cong_cu/thu_SAOLUUDEM1.js vào đó rồi `node cong_cu/thu_SAOLUUDEM1.js` (dòng ✗ rút gọn + dòng tổng). Bài đổi lần cuối ở commit "chịu được dòng khoá hỏng
-trên bản chưa vá" (số ca gốc = số ca bản đã vá = 34; trên gốc B3 báo "không đo được" vì bản sao không có .git — chỉ là dấu vết của cách chạy).
+trên bản chưa vá" rồi "bộ đột biến VS-/BV- + chặt phép B3" (số ca gốc = số ca bản đã vá = 34; B3 trong bản sao không có .git chỉ quét chữ nên xanh trên gốc — đúng).
 
 ═══ cong_cu/thu_SAOLUUDEM1.js (bài mới) trên gốc ═══
   ✗ A1a backup.js có hàm dungTepSaoLuu ...; hai route không tự dựng tệp
   ✗ A1b /export-all và /tu-dong cùng gọi dungTepSaoLuu(
   ✗ B1a khoaSaoLuuPos.js xuất KHOA_CAI_DAT = 'khoa_sao_luu_pos'
-  ✗ B3 server/index.js không đổi so với gốc của việc  — không đo được
   ✗ B2a không PIN / PIN sai → lỗi, quản lý → 403, không vé → 401  — HTTP 404 | HTTP 404 | HTTP 404 | HTTP 404
   ✗ B1b chưa có khoá → trạng thái co_khoa = false  — HTTP 404 · API endpoint not found
   ✗ B1c tạo → 200, khoá posk_ + 43 ký tự  — HTTP 404
@@ -36,6 +35,6 @@ trên bản chưa vá" (số ca gốc = số ca bản đã vá = 34; trên gốc
   ✗ D2 KhoaSaoLuuPos.jsx: nút Chép + câu dán KHOA_POS
   ✗ D3 giao diện không mang khoá ra ngoài
   ✗ E1 bộ kiểm chạy bài này
-2 đạt · 32 hỏng
+3 đạt · 31 hỏng
 
 SỐ CA cong_cu/thu_SAOLUUDEM1.js: 34
