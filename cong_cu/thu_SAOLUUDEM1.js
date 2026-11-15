@@ -175,7 +175,9 @@ async function main() {
     const may = await tu(khoa2);
     const x = tay.status === 200 ? trangCua(tay.b) : {}, y = may.status === 200 ? trangCua(may.b) : {};
     const ten = Object.keys(x), dongSo = (o) => Object.keys(o).map((s) => `${s}=${o[s].length}`).join(',');
-    const khacNoiDung = ten.filter((s) => s !== '_Metadata' && JSON.stringify(x[s]) !== JSON.stringify(y[s]));
+    // trang "Nội dung App (JSON)" mang xuat_luc = giờ xuất (đổi theo giây giữa hai lần gọi) → ghép các phần, bỏ riêng xuat_luc rồi mới so
+    const boGio = (rows) => { try { const o = JSON.parse(rows.map((r) => r.du_lieu).join('')); delete o.xuat_luc; return JSON.stringify(o); } catch { return JSON.stringify(rows); } };
+    const khacNoiDung = ten.filter((s) => s !== '_Metadata' && (s === 'Nội dung App (JSON)' ? boGio(x[s]) !== boGio(y[s]) : JSON.stringify(x[s]) !== JSON.stringify(y[s])));
     k('C1a khoá đúng → 200, Content-Type xlsx, tên tệp POS-backup-<ngày>.xlsx như tải tay', may.status === 200 && /spreadsheetml\.sheet/.test(may.h['content-type'] || '')
       && /^attachment; filename="POS-backup-\d{4}-\d\d-\d\d\.xlsx"$/.test(may.h['content-disposition'] || '') && may.h['content-disposition'] === tay.h['content-disposition'], moTa(may) + ' ' + (may.h['content-disposition'] || ''));
     k('A1c tệp cửa mới = tệp /export-all: cùng tên trang theo cùng thứ tự, cùng số dòng + nội dung mỗi trang (trừ _Metadata)', ten.length > 20 && ten.join('|') === Object.keys(y).join('|')
