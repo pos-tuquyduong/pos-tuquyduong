@@ -376,6 +376,8 @@ async function main() {
   await chay('D', async () => {
     const kh = await khach(1000000);
     const me = await khach(1000000);
+    const datMe = (con, sdtMe) => db.run('UPDATE pos_customers SET parent_phone = ? WHERE phone = ?', [sdtMe, con]);
+    await datMe(kh.sdt, me.sdt);
     const theQ = { items: [], membership_buy: { tier_id: VANG, so_thang: 1 } };
     const t1 = [await quay({ customer_phone: kh.sdt, ...theQ, payment_method: 'balance', balance_amount: 100000 }),
       await quay({ customer_phone: kh.sdt, ...theQ, payment_method: 'cash', balance_amount: 50000, cash_amount: 50000 }),
@@ -411,10 +413,11 @@ async function main() {
     await webhook(await phienCua(k5.j.ma_don));
     k('K5 thẻ + tiền mặt / CK ở quầy → 200; thẻ App trả QR → 200 + lên hạng', la(k4, 200) && la(k4b, 200) && la(k5, 200) && (await hangToi(kq))?.id === VANG,
       `${moTa(k4)} / ${moTa(k4b)} / ${moTa(k5)}`);
-    const kv = await khach(500000);
+    const kv = await khach(500000), kvq = await khach(10000), conV = await khach();
+    await datMe(conV.sdt, kv.sdt);
     const k1 = await dat1(kv, gio([mon(0)]), { cach_tra: 'vi', pin: '1357' });
-    const k1b = await dat1(kv, gio([mon(1)]), { cach_tra: 'vi_qr', pin: '1357' });
-    const k2 = await quay({ customer_phone: (await khach()).sdt, items: [monQuay(0)], payment_method: 'balance', parent_phone: kv.sdt, parent_balance_amount: 25000 });
+    const k1b = await dat1(kvq, gio([mon(1)]), { cach_tra: 'vi_qr', pin: '1357' });
+    const k2 = await quay({ customer_phone: conV.sdt, items: [monQuay(0)], payment_method: 'balance', parent_phone: kv.sdt, parent_balance_amount: 25000 });
     const k3 = await quay({ customer_phone: kv.sdt, items: [], package_buy: { package_id: GOI_TT, pkg_qty: 1 }, payment_method: 'balance', balance_amount: 300000 });
     k('K5 đồ uống App trả vi / vi_qr → 200; ví mẹ cho đồ uống ở quầy → 200; gói trả trước trả số dư → 200', la(k1, 200) && la(k1b, 200) && la(k2, 200) && la(k3, 200),
       [k1, k1b, k2, k3].map(moTa).join(' / '));
@@ -439,6 +442,7 @@ async function main() {
     k('C1 ten chuỗi không rỗng; tra, vao nguyên đồng; vao ≥ tra', ds.length > 0 && ds.every((x) => typeof x.ten === 'string' && x.ten.length > 0
       && Number.isInteger(x.tra) && Number.isInteger(x.vao) && x.vao >= x.tra), JSON.stringify(ds));
     const kh = await khach(), kb = await khach(), con = await khach();
+    await db.run('UPDATE pos_customers SET parent_phone = ? WHERE phone = ?', [kh.sdt, con.sdt]);
     const v0 = await goi('GET', '/kh/vi');
     k('D1 GET /vi không token → 401', v0.status === 401, moTa(v0));
     // Sổ ví của kh: nạp gói App · nạp tay (ghi chú tay) · trả đơn đồ uống · ví mẹ trả đơn của con · trừ tay · điều chỉnh ± · hoàn (huỷ) · đền · tiền về muộn
