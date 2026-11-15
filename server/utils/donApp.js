@@ -59,7 +59,8 @@ const sinhMa = () => 'A' + [...crypto.randomBytes(8)].map((b) => CHU_MA[b % CHU_
 const bamGio = (b) => crypto.createHash('sha256').update(JSON.stringify([
   Array.isArray(b.mon) ? b.mon.map((m) => (m?.loai === 'the' ? ['the', m.hang_id ?? null, m.so_thang ?? null, m.so_luong ?? 1]   // bỏ trống = 1 (docGio)
     : [m?.ma ?? null, m?.so_luong ?? null, m?.ghi_chu || null])) : null,
-  b.ma_giam || null, b.cach_nhan ?? null, b.cach_tra ?? null])).digest('hex');
+  b.ma_giam || null, b.cach_nhan ?? null, b.cach_tra ?? null,
+  ...(Array.isArray(b.vouchers) && b.vouchers.length ? [b.vouchers] : [])])).digest('hex');   // VOUCHER-2: chỉ thêm KHI CÓ — khoá gửi App cũ không lệch
 
 /** MỘT vị từ tiến trình cho mọi nơi đọc (App, quầy). p: phiên; o: đơn thật (status) | null; quay: tien_trinh_quay. */
 function tienTrinh(p, o, quay) {
@@ -99,6 +100,9 @@ function docGio(b) {
   const sai = thanLoi('YEU_CAU_KHONG_HOP_LE');
   if (b.cach_nhan !== 'tai_quan' || !Array.isArray(b.mon) || !b.mon.length || b.mon.length > GIOI.MON_TOI_DA) return sai;
   if (b.ma_giam != null && typeof b.ma_giam !== 'string') return sai;
+  // VOUCHER-2: vouchers = mảng mã voucher trong ví (≤ 10 mã, mỗi mã ≤ 32 ký tự); số tối đa mỗi đơn do máy chủ kiểm (VUOT_SO_VOUCHER).
+  if (b.vouchers != null && !(Array.isArray(b.vouchers) && b.vouchers.length <= 10
+    && b.vouchers.every((v) => typeof v === 'string' && v.trim() && v.length <= 32))) return sai;
   const dong = [];
   for (const m of b.mon) {
     if (m && m.loai !== undefined) {
@@ -113,7 +117,8 @@ function docGio(b) {
   }
   const the = dong.filter((d) => d.loai === 'the');
   if (the.length > 1) return thanLoi('NHIEU_THE');
-  return { dong, mon: dong.filter((d) => d.loai !== 'the'), the: the[0] || null, maGiam: (b.ma_giam || '').trim() || null };
+  return { dong, mon: dong.filter((d) => d.loai !== 'the'), the: the[0] || null, maGiam: (b.ma_giam || '').trim() || null,
+    vouchers: (b.vouchers || []).map((v) => v.trim()) };
 }
 
 /** Giỏ cần pha chế? (chủ quán 09.11) — MỘT luật cho giờ mở cửa / nhận đơn và cho bước pha ở quầy: chỉ dòng MÓN (đồ uống của /menu) cần pha;
@@ -160,21 +165,22 @@ function chuanLoi({ status, body }, mon = [], ten = []) {
 }
 
 /** Thân đơn của taoDon — báo giá và tạo phiên dùng CHUNG (dòng thẻ → membership_buy của quầy). SĐT luôn từ token. */
-const thanDon = (khach, items, maGiam, the) => ({ customer_phone: khach.phone, customer_name: khach.name, items,
-  ...(maGiam ? { discount_code: maGiam } : {}), ...(the ? { membership_buy: { tier_id: the.hang_id, so_thang: the.so_thang } } : {}) });
+const thanDon = (khach, items, maGiam, the, vouchers = []) => ({ customer_phone: khach.phone, customer_name: khach.name, items,
+  ...(maGiam ? { discount_code: maGiam } : {}), ...(vouchers.length ? { vouchers } : {}),
+  ...(the ? { membership_buy: { tier_id: the.hang_id, so_thang: the.so_thang } } : {}) });
 
-async function chiTinh(khach, items, maGiam, the) {
+async function chiTinh(khach, items, maGiam, the, vouchers) {
   const r = gomRes();
-  const body = thanDon(khach, items, maGiam, the);
+  const body = thanDon(khach, items, maGiam, the, vouchers);
   const kq = await taoDon({ body, user: { username: NGUOI } }, r, { chiTinh: true, tinhThu: true });
   return r.body !== undefined ? { status: r.statusCode, body: r.body } : kq.chiTiet;
 }
 
 /** Báo giá dạng App. Mã làm cả giỏ hỏng (mã % lúc Giờ vàng, MA_KHONG_CO_MON — quầy báo lỗi cả đơn) → tính lại KHÔNG mã + ma_giam_loi (Q10). */
 async function baoGia(khach, gio, d) {
-  let ct = await chiTinh(khach, d.items, gio.maGiam, gio.the), maDung = gio.maGiam, maLoi = null;
+  let ct = await chiTinh(khach, d.items, gio.maGiam, gio.the, gio.vouchers), maDung = gio.maGiam, maLoi = null;
   if (ct.status && gio.maGiam && ct.status < 500) {
-    const khongMa = await chiTinh(khach, d.items, null, gio.the);
+    const khongMa = await chiTinh(khach, d.items, null, gio.the, gio.vouchers);
     if (!khongMa.status) {
       maLoi = { code: ct.body.code === 'MA_KHONG_CO_MON' ? 'MA_KHONG_CO_MON' : 'MA_KHONG_AP_DUNG', error: ct.body.error };
       ct = khongMa; maDung = null;
@@ -184,18 +190,20 @@ async function baoGia(khach, gio, d) {
   if (!maLoi && ct.ma_loi_code) maLoi = { code: ct.ma_loi_code, error: ct.ma_loi };
   if (!maLoi && maDung && !ct.discount_code && ct.cach === 'hang') maLoi = { code: 'MA_KHONG_LOI_HON', error: ct.cau_ghi };   // Q4
   const giam = [['ma_giam', ct.discount_amount], ['hang', ct.tier_discount], ['gio_vang', ct.flash_discount]]
-    .filter(([, n]) => n > 0).map(([loai, so_tien]) => ({ loai, so_tien }));
+    .filter(([, n]) => n > 0).map(([loai, so_tien]) => ({ loai, so_tien }))
+    .concat(ct.vouchers.filter((v) => v.so_tien > 0).map((v) => ({ loai: v.ship ? 'voucher_ship' : 'voucher', so_tien: v.so_tien, ma: v.ma })));   // VOUCHER-2
   // Ghép dòng giỏ ↔ dòng taoDon: dòng thẻ theo dải product_id (taoDon đẩy thẻ SAU món), dòng món theo thứ tự — `j` = chỉ số trong gio.mon / d.ten.
   const monCt = ct.items.filter((x) => !laDongThe(x.product_id)), theCt = ct.items.find((x) => laDongThe(x.product_id));
   let j = 0;
   const ghep = gio.dong.map((g) => (g.loai === 'the' ? { g, it: theCt } : { g, it: monCt[j], j: j++ }));
   return {
-    maDung, ghep,
+    maDung, ghep, vouchersDung: ct.vouchers.map((v) => v.ma),   // VOUCHER-2: tạo phiên chỉ gửi voucher báo giá đã nhận (voucher hỏng đã báo ở voucher_loi)
     bao: {
       dong: ghep.map(({ g, it }) => (g.loai === 'the'
         ? { loai: 'the', hang_id: g.hang_id, so_thang: g.so_thang, ma: null, so_luong: 1, don_gia: it.unit_price, thanh_tien: it.unit_price }
         : { ma: g.ma, so_luong: it.quantity, don_gia: it.unit_price, thanh_tien: it.unit_price * it.quantity })),   // = itemTotal của taoDon; Σ = subtotal
       tam_tinh: ct.subtotal, giam, phi_giao: 0, tong: ct.total, ma_giam_loi: maLoi,
+      voucher_loi: ct.voucher_loi.map(({ ma, code, error }) => ({ ma, code, error })),
     },
   };
 }
@@ -277,7 +285,7 @@ async function datDon(khach, b) {
   let xong = false, phienId = null;
   try {
     // Ghi chú in trên bill / phiếu: KHÔNG mang mã App ngẫu nhiên (chủ quán 05.11) — mã vẫn ở pos_don_app.ma; số hoá đơn APP<4 số> là mã đơn.
-    const don = { ...thanDon(khach, kq.d.items, kq.maDung, kq.gio.the), notes: 'Đơn App · nhận tại quán' };
+    const don = { ...thanDon(khach, kq.d.items, kq.maDung, kq.gio.the, kq.vouchersDung), notes: 'Đơn App · nhận tại quán' };
     const tp = await taoPhien({ cach: tra.cach, don, tru_tai_khoan: tra.vi, pin: b.pin }, NGUOI, { kenh: 'APP' });
     if (tp.status !== 200) return chuanLoi(tp, kq.gio.mon, kq.d.ten);
     phienId = tp.body.phien.id;
@@ -342,7 +350,7 @@ function tomTat(r, ext) {
   const coTien = !!o && o.total != null;
   return {
     kenh: r.ma_app ? 'app' : 'quay',
-    cach_nhan: !o || o.shipping_fee == null ? null : Number(o.shipping_fee) > 0 ? 'giao' : 'tai_quan',
+    cach_nhan: !o || o.shipping_fee == null ? null : Number(o.shipping_fee) > 0 || Number(o.giam_ship) > 0 ? 'giao' : 'tai_quan',   // VOUCHER-2: ship trừ hết vẫn là giao
     tra: coTien ? dungThanhToan(o).filter((x) => x.loai !== 'ghi_no').map((x) => ({ cach: x.loai, so_tien: x.so_tien })) : null,
     so_mon: ext?.n ?? null, mon_dau: ext?.ten ?? null,
     giam: coTien ? tinhGiam(o).tong : null,

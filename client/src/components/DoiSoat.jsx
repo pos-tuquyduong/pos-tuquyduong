@@ -215,6 +215,13 @@ export default function DoiSoat() {
             </div>
           )}
 
+          {t?.voucher && (
+            <div className="card mb-1">   {/* VOUCHER-2 Q19 (chủ quán 13.11): số máy chủ tính — voucher trên đơn còn hoàn tất của kỳ */}
+              <div>Tiền voucher đã giảm: <b>{dong(t.voucher.da_giam)}</b></div>
+              <div>Giảm phí giao: <b>{dong(t.voucher.giam_phi_giao)}</b> (voucher giao hàng — quán bù)</div>
+            </div>
+          )}
+
           {t?.giao?.so_don > 0 && (
             <div className="card mb-1">   {/* GIAO-1 (K): tiền ship Ahamove của kỳ */}
               <b>Giao hàng Ahamove · {t.giao.so_don} đơn</b>

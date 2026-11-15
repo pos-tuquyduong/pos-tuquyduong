@@ -245,6 +245,11 @@ async function main() {
     await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 80000)', [SDT]);
     maBill = (await don()).signup_code;
     maDiem = (await don()).signup_code;
+    // VOUCHER-2 Q11(a) (chủ quán Q2 11.11 + Q9 12.11): nhận mã bill phát voucher theo MẪU (y cấu hình trên: 10 % cả đơn) và chỉ cho tài khoản tạo SAU
+    // lúc in bill — khách mẫu đăng nhập trước khi có bill, nên ghi giờ in của mã bill mẫu = giờ tạo tài khoản (cùng giây vẫn nhận).
+    await datCaiDat('signup_mau_voucher_id', Number((await db.run(`INSERT INTO pos_mau_voucher (ten, kieu, gia_tri, tran, don_toi_thieu, ap_dung, han_ngay,
+      chinh_chu, bat, tao_luc) VALUES ('Khách mới mẫu', 'phan_tram', 10, 0, 0, 'tat_ca', 30, 0, 1, ?)`, [getNow()])).lastInsertRowid));
+    await db.run('UPDATE pos_signup_codes SET issued_at = (SELECT created_at FROM pos_customers WHERE phone = ?) WHERE code = ?', [SDT, maBill]);
   };
 
   muc('[I2] gọi TỪNG cửa: 200 + đủ trường `tra`; token: true thiếu token → 401 KH_TOKEN_SAI');
@@ -254,6 +259,10 @@ async function main() {
     const than = THAN[ten(c)] ? await THAN[ten(c)]() : undefined;
     const r = await goi(c.pt, url, than, c.token ? tk : null);
     if (ten(c) === 'POST /don') maDonApp = r.j.ma_don || null;
+    if (ten(c) === 'POST /nhan-ma-bill') {   // v15 (VOUCHER-2 Q2): data.voucher_code = mã MỚI trong ví (không còn là mã in bill) + data.mo_ta
+      k('nhan-ma-bill v15: data.voucher_code là mã MỚI (≠ mã in bill) + data.mo_ta là chuỗi', !!r.j.data?.voucher_code && r.j.data.voucher_code !== maBill
+        && typeof r.j.data?.mo_ta === 'string', JSON.stringify(r.j.data || null));
+    }
     const thieu = (c.tra || []).filter((d) => !coDuong(r.j, d.split('.')));
     k(`${ten(c)} → 200, đủ ${(c.tra || []).length} trường`, r.status === 200 && r.j.success === true && thieu.length === 0,
       `HTTP ${r.status}${r.j.code ? ' · ' + r.j.code : ''}${thieu.length ? ' · thiếu ' + thieu.join(', ') : ''}`);

@@ -298,6 +298,21 @@
 - 14.11 · VOUCHER-2 Q24: hai voucher "giảm theo món" cùng một món — voucher sau chỉ giảm trên phần CÒN LẠI của món đó; voucher không còn gì để giảm
   thì máy báo rõ, không lưu đơn (bỏ bớt voucher rồi lưu). Voucher giảm cả đơn giữ như cũ.
 
+## Đợt quyết định 15.11.2026 (chat bàn 37)
+- 15.11 · **Sao lưu tự động bằng Google Apps Script chạy TRONG tài khoản Google của quán** (thay "máy chủ đẩy lên Drive": "tài khoản máy" bị Drive của
+  Gmail thường từ chối — lần thử trước của chủ quán). Script "TQD Sao Lưu Tự Động" ĐÃ CHẠY từ 15.11: mỗi đêm ~2–3 giờ sáng lấy nội dung App (khoá ndk_
+  mới; khoá cũ ở GitHub đã thu hồi) → Drive TQD-SAO-LUU / App KH, mỗi app giữ 30 bản gần nhất; lỗi thì Google gửi email. POS thêm vào CÙNG script bằng
+  một khoá riêng (SAOLUU-DEM-1, làm TRƯỚC khai trương) → TQD-SAO-LUU / POS. App KH bỏ KH-SL-1; không tạo kho GitHub sao lưu. Không xoá / đổi tên thư
+  mục TQD-SAO-LUU và dự án "TQD Sao Lưu Tự Động" trên Drive.
+- 15.11 · App SX không dùng cho quán nữa (chủ quán chuyển sang việc cá nhân) — không sao lưu SX, không làm phần SX.
+- 15.11 · DANG-NHAP-2 gộp, chủ quán thử đạt (gõ sai 6 lần bị chặn; máy khác dùng 4G vẫn vào bình thường).
+- 15.11 · VOUCHER-2 gộp (PR #95). Q24: hai voucher "theo món" cùng một món → voucher sau chỉ giảm phần CÒN LẠI của món đó; hết → báo "không còn món để
+  giảm", không lưu đơn. Việc dọn VOUCHER-3 làm SAU khai trương (không lệch tiền).
+- 15.11 · KH-NAP-1 duyệt kế hoạch: đơn App chỉ thẻ / chỉ nạp tiền về muộn → máy tự chốt, đủ quyền lợi (thẻ có hạng, nạp có thưởng), không thêm mục
+  CẦN XEM ở Đối soát; xác nhận tay phiên App muộn vẫn chặn (tránh tạo đơn hai lần cho một khoản).
+- 15.11 · Sao lưu bản 2: chat App KH giữ mã Apps Script; mọi bản sao lưu (dữ liệu, mã nguồn mỗi Chủ nhật, thiết kế) về Drive TQD-SAO-LUU;
+  giữ theo tầng (7 ngày + 4 tuần + 12 tháng; mã nguồn 4 tuần + 6 tháng); lỗi thì Google tự email; chat POS soát phần khoá + phần POS (ĐẠT, 2 chỗ sửa).
+
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
   nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).
@@ -330,4 +345,4 @@
 - 28.10 · Sổ kho không chép đè: khôi phục Excel bỏ qua bảng kho khi kho đang có dữ liệu, chỉ khôi phục kho khi máy trống. Sai số kho sửa
   bằng phiếu kiểm kê có duyệt.
 - 28.10 · Lên gói Turso Developer (quay lại 10 ngày) trước khai trương, cùng lúc nâng Render; sau khai trương thêm sao lưu tự động hằng
-  đêm ra Google Drive.
+  đêm ra Google Drive. (đổi 15.11: Google Apps Script trong tài khoản của quán, POS làm TRƯỚC khai trương — xem đợt 15.11)

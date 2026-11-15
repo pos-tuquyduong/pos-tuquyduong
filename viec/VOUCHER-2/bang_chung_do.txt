@@ -1,0 +1,286 @@
+VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
+
+SỐ CA cong_cu/thu_VOUCHER2.js: 146
+SỐ CA cong_cu/thu_P20.js: 178
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_HD1.js: 158
+SỐ CA cong_cu/thu_GOI1.js: 115
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 94
+SỐ CA cong_cu/thu_UUDAI1.js: 88
+SỐ CA cong_cu/thu_KHTHE1.js: 73
+SỐ CA cong_cu/thu_P26c.js: 161
+
+Bản gốc: python3 cong_cu/ban_sao_goc.py e3ef76a <nháp>/goc_e3ef76a  (e3ef76a = PHIEU trả lời Q7–Q10; server/ y như main)
+Số ca (dòng tổng trên code ĐÃ VÁ, HEAD f737aa65): thu_VOUCHER2 80 đạt · 0 hỏng · thu_UUDAI1 88 · 0 · thu_KHTHE1 73 · 0 · thu_P26c 161 · 0.
+
+── thu_VOUCHER2.js (bài MỚI, commit f737aa65 — I2 đổi: hoá đơn giữ nghĩa cũ giam_ma / phi_giao, chỉ thêm vouchers / giam_ship; chạy lại: vẫn 5 · 75, I2 đỏ) trên gốc: node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_e3ef76a/server
+Dòng tổng: VOUCHER-2: 5 đạt · 75 hỏng   (thoát 1)
+5 ca xanh trên gốc đều là ca "KHÔNG ĐỔI" (K5): K1, K2, K3, H3 (App cũ gửi ma_giam = mã voucher → báo ra y như trước), G5 (voucher ở ô mã cũ huỷ →
+trả đúng MỘT lượt như trước — khoá đột biến VS-V2-TRA-HAI-LAN). Đúng ý — hành vi cũ phải giữ.
+Ca thêm sau lần ghi trước (đều ĐỎ trên gốc): A2 câu voucher tiền có trần · A4 Cài đặt gắn MauVoucher · F6b tối thiểu voucher tính món thường ·
+G4b / G4c mỗi điều kiện của câu tiêu một ca · H3c ô mã cũ MỀM ở POST quầy. E6 đổi thứ tự (ship % gửi trước) — vẫn đỏ trên gốc.
+Ca G2 duyệt hoàn từng XANH OAN trên gốc (voucher chưa từng bị tiêu nên "về available" đúng sẵn) → siết ở 497b75a6: đòi đơn 45.000 + voucher đã
+'used' trước khi duyệt → nay đỏ trên gốc. Gốc chưa có phatVoucher → bài ghi thẳng mã + grant (như /redeem cũ) để TỪNG ca đỏ riêng, không sập cả mục.
+Thêm so với lần ghi đầu (5e983af): H3b ô mã cũ không lách luật chính chủ — đỏ trên gốc (gốc áp mã, không ma_giam_loi).
+
+Các dòng ✗ của lần chạy đầu trên gốc (5e983af, 3 đạt · 70 hỏng — danh sách ca y như trên trừ H3b / G2 siết; cắt 220 ký tự):
+  ✗ A1 chủ quán tạo mẫu → 200 có id; nhân viên → 403  — HTTP 404 / HTTP 404
+  ✗ A1 sửa giá trị 25.000 + tắt → danh sách có mẫu, gia_tri 25000, bat 0, kèm mo_ta
+  ✗ A2 moTaVoucher dựng đúng câu 4 kiểu + áp dụng món chọn  — ["","","","",""]
+  ✗ A2 cửa xem trước (không ghi) trả cùng câu  — HTTP 404 undefined
+  ✗ A3 giá trị 0 / % > 100 / trần âm / kiểu lạ / hạn 0 / tên rỗng → 400 MAU_KHONG_HOP_LE  — HTTP 404 ×6
+  ✗ B1 phatVoucher → 1 mã + 1 grant đúng SĐT, nguon, mau_id, hạn = hôm nay + 31 ngày, dùng 1 lần, đơn tối thiểu chụp vào mã
+  ✗ B2 đổi điểm vẫn trừ 200 điểm + đẻ mã 15.000 dùng 1 lần, hạn 20 ngày, grant nguon doi_diem, chia sẻ được  — HTTP 200 (grant không có nguon)
+  ✗ B3 sửa mẫu sau khi phát → voucher đã phát giữ 7.000 và hạn cũ  — null
+  ✗ C1 2 voucher tiền + 1 voucher % → … tổng 61.500 (tính tay)  — HTTP 400 · Số tiền thanh toán (61.500đ) không khớp tổng đơn hàng thật (83.333đ)
+  ✗ C1 / I1 grant ghi đơn + số giảm từng voucher (10.000, 6.833), lượt mã = 1, đơn cờ giam_mon_thuong = 1
+  ✗ C2 voucher thứ N+1 (4 > 3) → 400 VUOT_SO_VOUCHER  — HTTP 400 · không khớp tổng (50.000đ)
+  ✗ C2 N = 2 (Cài đặt) → 3 voucher (ngay trên) bị chặn
+  ✗ C2 N = 2 → đúng 2 voucher (bằng ngưỡng) → 200, tổng 47.000
+  ✗ C3 mã chung 3.000 + voucher 10.000 cùng đơn → 70.333  — tổng thật 80.333đ
+  ✗ C4a voucher CHỈ CHÍNH CHỦ của B trên đơn khách A → 400 VOUCHER_CHINH_CHU
+  ✗ C4d voucher chính chủ, đơn không SĐT → 400 VOUCHER_CHINH_CHU
+  ✗ C4b cùng voucher trên đơn của chính B → 200 (K5)
+  ✗ C4c voucher CHIA SẺ của B trên đơn A → 200, grant used ghi đơn A
+  ✗ C5 voucher hết hạn → 400 VOUCHER_HET_HAN
+  ✗ C5 voucher đã dùng (dùng lại v1 của C1) → 400 VOUCHER_DA_DUNG
+  ✗ C5 đơn tối thiểu 83.334, món thường 83.333 (ngay dưới) → 400 VOUCHER_CHUA_DU_DON
+  ✗ C5 đơn tối thiểu = 83.333 (bằng) → 200, 78.333
+  ✗ C5 mã voucher không có → 400 VOUCHER_KHONG_TON_TAI  — HTTP 200 · đơn 0→1 (gốc bỏ qua trường vouchers)
+  ✗ C6 voucher 200.000 > tiền món 83.333 → kẹp, tổng 0, giảm ghi đúng 83.333
+  ✗ C7 tinh-thu có voucher hỏng → 200 MỀM: tính voucher tốt (46.000) + voucher_loi
+  ✗ C8 voucher % thứ hai → 400 VOUCHER_PHAN_TRAM_HAI
+  ✗ C8 lời báo đúng câu chủ quán
+  ✗ C8c tinh-thu → voucher_loi có mã % thứ hai, tổng chỉ tính % đầu (45.000)
+  ✗ C8b 1 voucher % + 2 voucher tiền → 200, 36.000 (K5)
+  ✗ C9 voucher % nhóm món → 10 % × 33.333 = 3.333, tổng 80.000
+  ✗ C9 voucher nhóm món, giỏ không có món nhóm → 400 VOUCHER_KHONG_CO_MON
+  ✗ D1 giờ flash + voucher % → 400 VOUCHER_PHAN_TRAM_FLASH
+  ✗ D2 giờ flash + voucher tiền → 200, đúng 63.333  — tổng thật 73.333đ
+  ✗ E1 ship tiền 15.000 trên phí 30.000 → tổng 65.000; shipping_fee 15.000, giam_ship 15.000
+  ✗ E4 chuyến giao ghi phí khách trả 15.000  — null
+  ✗ E1 ship 50 % có trần 10.000 → tổng 70.000
+  ✗ E1 ship 50.000 trên phí 30.000 → kẹp 30.000, tổng 50.000
+  ✗ E2 đơn tại quán + voucher ship → 400 VOUCHER_SHIP_CAN_GIAO  — HTTP 200 · đơn 1→2
+  ✗ E2 lời báo "Voucher giao hàng chỉ dùng cho đơn giao"
+  ✗ E2b phí ship gõ tay (không qua giao) + voucher ship → 400 VOUCHER_SHIP_CAN_GIAO
+  ✗ E3 3 voucher tiền + 1 voucher ship (N = 3) → 400 VUOT_SO_VOUCHER
+  ✗ E6 (Q10) voucher % món + voucher ship % → 200, 65.000
+  ✗ F1 thẻ 100.000 + món 50.000 + mã chung 10 % → 145.000  — tổng thật 135.000đ (gốc giảm cả thẻ)
+  ✗ F2 gói 300.000 + món 50.000 + mã 10 % → 345.000  — tổng thật 315.000đ (gốc giảm cả gói)
+  ✗ F3 chỉ thẻ + voucher → 400 MA_KHONG_AP_MON_THUONG
+  ✗ F3 chỉ thẻ + mã chung → mềm: không giảm (100.000)  — gốc discount_amount 10000
+  ✗ F4 nạp + voucher → 400 NAP_CHI_TIEN_MAT_QR  — HTTP 200 · đơn 2→3
+  ✗ F5 phiên thanh toán: gói + món + mã 10 % → tổng 345.000  — HTTP 200 315000
+  ✗ F6 mã chung tối thiểu 50.000, giỏ thẻ 100.000 + món 33.333 → không áp  — gốc discount_amount 5000
+  ✗ F7 đơn mới gói + món + mã 10 % món → gói đã trả 300.000, món 45.000  — [] (F2 không tạo được đơn)
+  ✗ F7 kết thúc gói chưa lấy lượt nào → hoàn theo 300.000
+  ✗ F7 đền món: 45.001 → 400 VUOT_GIA; 45.000 → 200
+  ✗ F7b cùng đơn đặt cờ đơn CŨ (0) → chia cũ: gói 295.714, món 49.285
+  ✗ G1 huỷ đơn 3 voucher + mã chung → mọi grant available …  — tổng thật 49.000đ
+  ✗ G1b đơn CHỈ voucher (không mã chung) huỷ → voucher về available
+  ✗ G2 xoá đơn → voucher về available
+  ✗ G2 duyệt hoàn → voucher về available
+  ✗ G3 phiên ck_tay tổng 40.000 (đã trừ voucher) → huỷ → voucher vẫn available  — HTTP 200 50000
+  ✗ G3 phiên tiền mặt chốt → đơn 40.000, voucher used  — TIEN_KHACH_DUA_THIEU
+  ✗ G4 hai đơn cùng voucher → đúng một 200, một 400 VOUCHER_DA_DUNG
+  ✗ H1 GET /kh/voucher → dòng có mo_ta (câu từ mẫu) + nguon
+  ✗ H2 báo giá với vouchers[] → tong 72.000, giam[] có 2 dòng loai voucher kèm ma  — giam: []
+  ✗ H2 POST /kh/don với vouchers[] → 200, hai voucher used  — 409 GIA_DA_DOI
+  ✗ H3 App cũ gửi ma_giam = mã voucher → vẫn áp (45.000), dòng giảm loai voucher
+  ✗ H4 khách A gửi voucher chính chủ của B → voucher_loi VOUCHER_CHINH_CHU
+  ✗ H5 vouchers không phải mảng chuỗi → 400 YEU_CAU_KHONG_HOP_LE  — HTTP 200
+  ✗ I2 hoá đơn: dòng voucher từng mã, giảm mã chung 2.000, phí giao 25.000 + giảm phí giao 10.000, tổng 53.000
+  ✗ I3 báo cáo mã có nhóm theo voucher + tổng giảm phí giao quán bù
+  ✗ I4 bất biến I12 / I13 (so BẰNG) … → không dòng lệch  — "quà #1 mã …: dòng điểm null 0 (giá 0) …" (I12 đỏ với grant không từ đổi điểm)
+  ✗ K5 lấy từ gói (dòng 0đ) + món 50.000 + voucher 10.000 → 200, 40.000
+
+── Bài CŨ sửa theo hành vi chủ quán ĐÃ duyệt đổi (LUAT_XAY_APP §6.8 — bài sửa thường, đỏ trên gốc, KHÔNG vào "## Bài thử cũ sửa"):
+node cong_cu/thu_UUDAI1.js --may-chu <nháp>/goc_e3ef76a/server → 75 đạt · 13 hỏng. Hai ca do VOUCHER-2 đổi (luật 10.11, Q6):
+  ✗ G3d mua gói + món, Vàng, mã 10 % dùng chung → mã chỉ trên phần MÓN còn lại (không trên gói): 350.000 − 5.000 − 4.500 = 340.500  — tổng thật (310.500đ)
+  ✗ K4b MUA GÓI 300.000 + món 50.000, Vàng, mã 10 % → mã chỉ trên món … 340.500  — tinh-thu 310500
+  (11 dòng ✗ còn lại E5, S1–S10 đọc client/src — bản sao gốc chỉ có server/, không liên quan VOUCHER-2; trên cây thật đều xanh.)
+node cong_cu/thu_KHTHE1.js --may-chu <nháp>/goc_e3ef76a/server → 70 đạt · 3 hỏng:
+  ✗ B12b giỏ chỉ thẻ + mã 10%: mã KHÔNG áp lên thẻ — tong App = tinh-thu quầy = 250.000, báo MA_KHONG_AP_MON_THUONG ở cả hai  — 225000 / 225000 · null / null
+  (G1, G1b đọc hoá đơn App — bản sao gốc thiếu file ngoài server/; trên cây thật xanh.)
+node cong_cu/thu_P26c.js --may-chu <nháp>/goc_e3ef76a/server →
+  ✖ Bài thử sập: SQLITE_ERROR: no such column: giam_mon_thuong   (ca M1b "đơn CŨ" đặt cờ giam_mon_thuong = 0 — gốc chưa có cột Q7; thoát 1)
+  Các ca mới / đổi của P26c (Q8 + cùng khuôn): M1b (đơn cũ) · M1c (luật mới) · M4a (đơn cũ) · M4c (luật mới) · N4a (đơn cũ) · N4c (luật mới, Q7).
+
+════ Phiên 13.11 (sau trả lời Q11–Q14; gốc của phần Q2 / Q11 = d919c83e — server/ trước vá Q2, bản sao: python3 cong_cu/ban_sao_goc.py d919c83e <nháp>/goc_q2;
+     bài chép vào <nháp>/goc_q2/cong_cu/ vì bài không có --may-chu; client/src chưa đổi chép vào bản gốc cho thu_HD1) ════
+── thu_P20.js (Q11 a+b, commit d919c83e) trên gốc d919c83e (server trước vá Q2): node <nháp>/goc_q2/cong_cu/thu_P20.js (bản chép bài vào cây gốc)
+Dòng tổng: 172 đạt · 6 hỏng
+  ✗ G1 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — Z7FQPY / Z7FQPY
+  ✗ G2 gốc trả ví: voucher là mã MỚI (≠ mã bill) — Q2  — 4AG9WN / 4AG9WN
+  ✗ G3 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — H6XNDC / H6XNDC
+  ✗ G4 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — NESPZQ / NESPZQ
+  ✗ G8 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — JKQA73 / JKQA73
+  ✗ G12 gốc tiền mặt: voucher là mã MỚI (≠ mã bill) — Q2  — RH5ZZK / RH5ZZK
+Trên code vá: 178 đạt · 0 hỏng
+
+── thu_KH1.js (Q11 a+b, commit 7a0bf47e) trên gốc d919c83e: node <nháp>/goc_q2/cong_cu/thu_KH1.js
+Dòng tổng: 156 đạt · 1 hỏng
+  ✗ E3 /voucher liệt kê voucher phát qua /claim cho SĐT này (ví, nguon khach_moi)  — HTTP 200 · 
+Trên code vá: 157 đạt · 0 hỏng
+
+── thu_KHAPI2.js (Q11 a+b, commit 820b4471) trên gốc d919c83e: node <nháp>/goc_q2/cong_cu/thu_KHAPI2.js
+Dòng tổng: 99 đạt · 1 hỏng
+  ✗ G2 cài hạn 48 giờ: mã in 30 giờ trước → App nhận được (200), voucher mã mới  — HTTP 200 ·  · 7GKKNF
+Trên code vá: 101 đạt · 0 hỏng
+
+── thu_HD1.js (Q11 a+b, commit e12b9a4d) trên gốc d919c83e (+ client/src chưa đổi chép vào bản gốc): node <nháp>/goc_q2/cong_cu/thu_HD1.js
+Dòng tổng: 157 đạt · 1 hỏng
+  ✗ A28d mã đã CLAIM ưu đãi khách mới (claimed_at) → uu_dai = false …  — HTTP 200 4GEWS2 (voucher = mã bill)
+Trên code vá: 158 đạt · 0 hỏng
+
+── cong_cu/gia_lap/kich_ban.js (Q11 a+c, commit 55df9a21) — giả lập quầy trên gốc: node cong_cu/gia_lap/chay.js --may-chu <nháp>/goc_q2/server
+Giả lập: 33 kịch bản · 18 bất biến · KHÔNG ĐẠT (1 lệch)
+  ✗ KB13 → HTTP: khách quen nhận ưu đãi khách mới → 400 KHACH_DA_CO_TAI_KHOAN; dùng mã (nhận điểm) → … : HTTP 200 / HTTP 200 / HTTP 200 / HTTP 200
+Trên code vá: 33 kịch bản · 18 bất biến · ĐẠT. Đột biến tay "nhánh refunded của I1 = false" (bat_bien.js, trả lại ngay) → KB13 → I1 lệch: KB13 vẫn phủ nhánh đó.
+
+── thu_GOI1.js (Q12 + cùng khuôn B3p, B3r — commit 38f9a6cd, 02e58f86, 736dc22d) trên gốc e3ef76a (trước luật 10.11 / Q7): node cong_cu/thu_GOI1.js --may-chu <nháp>/goc_e3/server
+✖ Bài thử sập: SQLITE_ERROR: no such column: giam_mon_thuong   (thoát ≠ 0 — B3c đơn cũ ghi cờ Q7 mà gốc chưa có)
+Trước khi sửa bài (bài cũ) trên code VOUCHER-2: ✖ Bài thử sập: không mua được gói 30: HTTP 400 · Số tiền thanh toán (1.215.000đ) không khớp tổng đơn hàng thật (1.350.000đ).
+Trên code vá: 115 đạt · 0 hỏng
+
+── ban_mau_pos/thu/thu_voucher.js (bài MỚI của bản mẫu, Q14, commit 51a7804a) trên bản mẫu GỐC (ban_mau_pos.html của 51a7804a, chưa có voucher):
+   node <nháp>/bm_goc/thu/thu_voucher.js → ReferenceError: latVoucher is not defined (sập, không in dòng tổng — chay_thu.sh tính là HỎNG)
+Trên bản mẫu đã sửa (3a356f56): 24 đạt · 0 hỏng · bash ban_mau_pos/chay_thu.sh: TỔNG 156 đạt · 0 hỏng (trước 132 — không giảm)
+
+── thu_HOPDONG_KH.js (Q11 a+b + ca v15, commit 7dc3903e) trên gốc d919c83e (server + HOP_DONG_API_KH.md của gốc): node <nháp>/goc_q2/cong_cu/thu_HOPDONG_KH.js
+Dòng tổng: 89 đạt · 1 hỏng
+  ✗ nhan-ma-bill v15: data.voucher_code là mã MỚI (≠ mã in bill) + data.mo_ta là chuỗi  — {"voucher_code":"JC95HF",…} (= mã bill, không mo_ta)
+Trước khi sửa bài (bài cũ) trên code vá Q2: 86 đạt · 3 hỏng (I5 signup-codes 3 mã mới ngoài ma_loi; nhan-ma-bill 400 UU_DAI_CHUA_CO_MAU; I3).
+Trên code vá + hợp đồng v15: 90 đạt · 0 hỏng
+
+── thu_VOUCHER2.js (thêm [Q2] 45468afa/aa846b55/a0fe00b6/9c788792 + [Q14] 97497710/a0fe00b6) trên gốc d919c83e (server/ + client/src trước phiên này):
+   node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q2/server
+Dòng tổng: VOUCHER-2: 81 đạt · 18 hỏng   (thoát 1; lần chạy trước khi thêm Q2a3 / Q2n ở 9c788792: 81 · 17)
+  ✗ Q2l cài mẫu khách mới: id mẫu → 200; chữ lạ → 400 CAI_DAT_KHONG_HOP_LE  — HTTP 200 / HTTP 200
+  ✗ Q2a tài khoản tạo SAU bill → 200, voucher_code MỚI ≠ mã bill, 1 grant khach_moi …  — HTTP 200 null
+  ✗ Q2d mã bill KHÔNG còn là mã giảm …
+  ✗ Q2a2 tài khoản tạo CÙNG giây in bill → vẫn nhận (≥, không >)  — HTTP 200
+  ✗ Q2a3 tài khoản ghi giờ kiểu cũ (dấu cách) 1 giây SAU bill → vẫn nhận …  — HTTP 200 (gốc không phát grant)
+  ✗ Q2b tài khoản có TRƯỚC bill 1 giây … → 400 KHACH_DA_CO_TAI_KHOAN …  — HTTP 200 / HTTP 409 · MA_DA_DUNG
+  ✗ Q2c SĐT chưa có tài khoản → 400 CAN_TAO_TAI_KHOAN …  — HTTP 409 · MA_DA_DUNG
+  ✗ Q2h mẫu đang tắt / chưa chọn mẫu → 400 UU_DAI_CHUA_CO_MAU …  — HTTP 409 · MA_DA_DUNG ×2
+  ✗ Q2f hai SĐT nhận CÙNG mã bill chồng nhau → … đúng 1 grant  — HTTP 409 / HTTP 200 · grant 0
+  ✗ Q2e hoàn tác lần nhận → 200, xoá grant + mã voucher mới …  — HTTP 200 (không có grant trước hoàn tác)
+  ✗ Q2: bài chạy hết mục  — Cannot read properties of null (reading 'code')   (Q2e2 / Q2g / Q2i / Q2j / Q2k / Q2m không tới — mục sập trên gốc)
+  ✗ Q14a ×3 (tinh.js thanTinhThu / khoaTinh / thanPhien chưa có vouchers) · ✗ Q14b (boVoucherLoi chưa có) · ✗ Q14c (Bán hàng chưa có chip)
+  ✗ Q14d bill quầy … — ["gia_goc|Giá gốc|50.000đ","giam_ma|Giảm mã / quà|−12.000đ","phi_giao|Phí giao Ahamove|+15.000đ","tong|TỔNG HÓA ĐƠN|53.000đ"]
+  ✗ Q14e hoá đơn App … không có dòng loai "voucher"
+Ca xanh trên gốc trong hai mục mới: Q14d K5 (đơn không voucher → bố cục tờ y cũ) — đúng ý, hành vi cũ phải giữ.
+Trên code vá: VOUCHER-2: 105 đạt · 0 hỏng
+
+════ Phiên 14.11 (sau trả lời Q15 + Q20 b) ════
+── Q15 · phép E9 kiem_tra_truoc_khi_giao.js (commit 317b20ac) — chạy npm test:
+Trước sửa phép (HEAD f7425021):
+  ✗ /claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL rồi if (!X || X.changes !== 1) { rollback; return } TRƯỚC khi phát voucher  → hai người claim cùng lúc cùng qua phép kiểm ngoài giao dịch
+  ĐẾM (không đoán):  PASS 113  ·  FAIL 1  ·  CẢNH BÁO 1
+Sau sửa phép (317b20ac):
+  ✓ /claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL rồi if (!X || X.changes !== 1) { rollback; return } TRƯỚC khi phát voucher
+  ĐẾM (không đoán):  PASS 114  ·  FAIL 0  ·  CẢNH BÁO 1
+Đột biến python3 viec/VOUCHER-2/dot_bien.py VS-V2-E9-PHAT-TRUOC (phatVoucher TRƯỚC câu chặn, bộ kiểm chạy trên bản chép cả kho):
+  ĐỐI CHỨNG kiem_tra_truoc_khi_giao.js (bản sao chưa đột biến): xanh — ✓ /claim: chiếm mã bằng UPDATE
+  BẮT   VS-V2-E9-PHAT-TRUOC              ✗ /claim: chiếm mã bằng UPDATE ... TRƯỚC khi phát voucher
+
+── Vòng sửa 1 (lỗi soát 13.11 (1)(3)(4)) · thu_VOUCHER2.js (commit 62dfa97c) — mục [Q2] mỗi ca một `chay`; Q14c / Q2k / Q2m / A4 chạy MÀN THẬT
+   (esbuild gói .jsx + utils/api.js thật → máy chủ thử); ca mới Q2o (loại voucher trả App theo mẫu). Bản gốc dựng: python3 cong_cu/ban_sao_goc.py <sha> <nháp>/goc_*
+   + client/src của cùng commit (git archive … client/src → tar -x vào bản gốc).
+Gốc d919c83e (server/ + client/src trước vá Q2 / Q14): node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q2/server
+Dòng tổng: VOUCHER-2: 84 đạt · 28 hỏng   (mục [Q2] CHẠY HẾT — mỗi ca đỏ riêng, không còn dòng "Q2: bài chạy hết mục")
+  ✗ Q2l · ✗ Q2a · ✗ Q2d · ✗ Q2a2 · ✗ Q2a3 · ✗ Q2b · ✗ Q2c · ✗ Q2h · ✗ Q2f · ✗ Q2e · ✗ Q2e2 · ✗ Q2g · ✗ Q2i
+  ✗ Q2n voucher khách mới (mã riêng ≠ mã bill …) — 9PVDP5 / bill 9PVDP5 · HTTP 400 · MA_BILL_KHONG_DOI_TEN   (gốc: voucher = mã bill — ca nay đòi mã riêng)
+  ✗ Q2o nhan-ma-bill trả loại theo MẪU … — scope "order" (viết cứng)
+  ✗ Q2k Thêm khách (màn thật) … — {"nut":true,"o":false,"bao":[]}  ·  ✗ Q2k mã trên bill sai … — []
+  ✗ Q2m Cài đặt → Voucher (màn thật) … — false · 4 vs 9
+  ✗ Q14c Bán hàng (màn thật) … — ô mã -1 · chip -1   ·  ✗ Q14c chọn 2 chip …  ·  ✗ Q14c voucher máy chủ từ chối …  ·  ✗ Q14c thu tiền từ màn thật … — {"total":50000}
+  Xanh trên d919c83e: Q2j (bước 026 phần Q9 đã có từ 9064187a — gốc thật của Q2j là e3ef76a, dưới), A4 (MauVoucher.jsx đã có — gốc thật e3ef76a, dưới).
+Gốc e3ef76a (trước mọi code VOUCHER-2): node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_e3/server   → VOUCHER-2: 6 đạt · 104 hỏng
+  ✗ A4 Cài đặt: Settings.jsx nạp và gắn <MauVoucher /> (thẻ Điểm thưởng)
+  ✗ A4: bài chạy hết mục — gói pages/CaiDat/MauVoucher.jsx: Could not resolve … MauVoucher.jsx
+  ✗ Q2j bước 026: ưu đãi giảm cả đơn 10 % … — {"m1":{}…}
+Trước khi vá lỗi (4) (code HEAD f84b2aa0, bài mới): VOUCHER-2: 109 đạt · 3 hỏng — ✗ Q2o (scope "order") + 2 ✗ Q2k của khung (form Tìm — sửa khung, không sửa code)
+Trên code vá (a3da65ae + bài 62dfa97c): VOUCHER-2: 112 đạt · 0 hỏng
+Đột biến (vòng sửa 1): python3 viec/VOUCHER-2/dot_bien.py BV-V2-CHIP-AN … VS-V2-CHIP-KHONG-MO → ĐỐI CHỨNG xanh 112 · 0; 12/12 BẮT
+  (BV-V2-CHIP-AN · BV-V2-VI-VOUCHER · BV-V2-PHIEN-BO-VOUCHER · VS-V2-LOI-KHONG-DO · BV-V2-MAU-KHONG-LUU · VS-V2-MAU-XEM-TU-DUNG · BV-V2-MAU-TOI-DA ·
+   BV-V2-CHON-MAU-KM · VS-V2-SCOPE-CUNG · VS-V2-026-GIAM-MON · BV-V2-THEM-KHACH-MA · VS-V2-CHIP-KHONG-MO)
+
+── Q16 / Q17 / Q19 (chủ quán 13.11) · thu_VOUCHER2.js (bài f6ced4fe → ed878058, viết TRƯỚC khi vá) — gốc 43b76314 (server/ + client/src trước Q16–Q19):
+   node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q16/server   → VOUCHER-2: 115 đạt · 10 hỏng
+  ✗ Q16a phiên ck_tay đang chờ giữ voucher … — HTTP 200 / HTTP 200 / HTTP 400 · Số tiền thanh toán … không khớp
+  ✗ Q16a CHÍNH phiên giữ chốt … — HTTP 400 · VOUCHER_DA_DUNG
+  ✗ Q16c voucher HẾT HẠN trong lúc phiên đang giữ … — HTTP 400 · VOUCHER_HET_HAN
+  ✗ Q16e phiên giữ voucher gửi ở Ô MÃ cũ … — HTTP 200 40000 / HTTP 200
+  ✗ Q16d đua — phiên chen trước giao dịch đơn quầy … — HTTP 200 / HTTP 200 / HTTP 400 · VOUCHER_DA_DUNG
+  ✗ Q16d đua ngược — đơn quầy chen trước giao dịch tạo phiên … — HTTP 200 / HTTP 200
+  ✗ Q17a dữ liệu lệch … — [{"ten":"grant used, lượt 0","coQuay":true,"coApp":true,…}]
+  ✗ Q17b K5 … ?all=1 … status suy từ CÙNG phép — grant used hiện "available"
+  ✗ Q19 máy chủ: Đối soát ngày → tiền voucher đã giảm 18.800 … · giảm phí giao 8.000 — {}
+  ✗ Q19 màn Đối soát (thật) …
+  Xanh trên gốc (đúng — ca "không chặn oan" / hành vi giữ): Q16b (huỷ / hết hạn → dùng được), Q16c K5 (voucher hết hạn không giữ → vẫn HET_HAN), Q17b K5 bán được.
+Trên code vá (02591feb Q16+Q17, 290cf504 Q19): VOUCHER-2: 125 đạt · 0 hỏng
+Đột biến đầy đủ python3 viec/VOUCHER-2/dot_bien.py: lần 1 78/82 (3 HỎNG = neo chính chủ / P20b còn trỏ orders.js sau khi Q17 dời phép sang voucherCode.js;
+  1 LẠC = mẫu GIU-O-MA trỏ Q16a) → sửa neo / mẫu (3a6aac1e) → chạy lại 4 cái: 4/4 BẮT. Đối chứng xanh: thu_VOUCHER2 125 · 0, thu_KHTHE1 73 · 0, bộ kiểm E9 ✓.
+npm test -- --day-du (HEAD 3a6aac1e): PASS 118 · FAIL 0 · CẢNH BÁO 1 (cảnh báo "route GET có lệnh ghi" có từ trước).
+
+── Q18 (Q21 chủ quán 14.11 — mốc 30 phút) · thu_VOUCHER2.js commit 640952ae (bài Q18a–f viết TRƯỚC khi vá; server/ = 57b8f992, chưa vá):
+   node cong_cu/thu_VOUCHER2.js   → VOUCHER-2: 128 đạt · 3 hỏng
+  ✗ Q18a hồ sơ tạo 29 phút TRƯỚC bill, bill của chính SĐT, chưa có đơn trước → 200 … — HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  ✗ Q18b hồ sơ tạo ĐÚNG 30 phút trước bill → vẫn nhận … — HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  ✗ Q18f hồ sơ 29 phút, có đơn SAU đơn in bill … → vẫn nhận 200 — HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  Xanh trên gốc (đúng — ca TỪ CHỐI giữ luật Q9): Q18c (30:01 · 31:00), Q18d (có đơn trước), Q18e (bill không SĐT / SĐT khác) — khoá bằng đột biến dưới.
+Trên code vá (77b26e78): VOUCHER-2: 131 đạt · 0 hỏng
+Đột biến Q18: python3 viec/VOUCHER-2/dot_bien.py BV-V2-Q18-MOC … BV-V2-Q18-BILL-SDT (+ 3 đột biến Q9 cũ cùng hàm) → ĐỐI CHỨNG xanh 131 · 0; 10/10 BẮT
+  (BV-V2-Q18-MOC → Q18a · VS-V2-Q18-KHONG-TRAN → Q18c · VS-V2-Q18-MOC-NGAT → Q18b · VS-V2-Q18-MOC-PHUT → Q18c · BV-V2-Q18-DON-TRUOC → Q18d ·
+   VS-V2-Q18-DON-KHAC → Q18f · BV-V2-Q18-BILL-SDT → Q18e)
+npm test -- --day-du (HEAD 77b26e78): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+Đột biến đầy đủ python3 viec/VOUCHER-2/dot_bien.py (HEAD 77b26e78, có ĐỐI CHỨNG): ĐỘT BIẾN VOUCHER-2: 89/89 bị bắt (82 cũ + 7 Q18).
+
+── Vòng sửa 2 (lỗi soát 14.11 lần 3 (1)) · thu_VOUCHER2.js commit 409293bc — ca Q16f đua phiên ↔ phiên. Gốc 43b76314 (python3 cong_cu/ban_sao_goc.py 43b76314 <nháp>/goc_q16):
+   node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q16/server → VOUCHER-2: 101 đạt · 26 hỏng (bản gốc không kèm client/src — ca màn thật sập; chỉ đọc Q16f)
+  ✗ Q16f đua hai PHIÊN chuyển khoản cùng voucher … đúng 1 phiên chờ — HTTP 200 / HTTP 200 · phiên chờ 2
+Trên code HEAD (e16ac6e3): VOUCHER-2: 132 đạt · 0 hỏng
+Đột biến: python3 viec/VOUCHER-2/dot_bien.py BV-V2-GIU-PHIEN-KHAC BV-V2-GIU-PHIEN-TX → ĐỐI CHỨNG xanh; 2/2 BẮT (BV-V2-GIU-PHIEN-KHAC → Q16f)
+npm test -- --day-du (HEAD e16ac6e3): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+
+── Q22 + Q23 (chủ quán 14.11) · thu_VOUCHER2.js commit fb1e7a49 (Q22a–d, Q18g viết TRƯỚC khi vá; server/ = 9f20388c, chưa vá):
+   node cong_cu/thu_VOUCHER2.js   → VOUCHER-2: 134 đạt · 3 hỏng
+  ✗ Q22a gói TẮT điểm + món 50.000 + mã 10 % → tien_hang_diem 45.000 (không phải 49.285)  — HTTP 200 · 49285
+  ✗ Q22b gói BẬT + món TẮT điểm, mã 10 % món → tien_hang_diem 300.000 (không phải 295.714)  — HTTP 200 · 295714
+  ✗ Q18g hồ sơ 29 phút, đơn TRƯỚC bill đã HUỶ (không còn đơn nào khác) → vẫn nhận 200, 1 grant  — HTTP 200 / HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  Xanh trên gốc (đúng — hành vi giữ): Q22c (K5: gói + món đều bật 345.000; chỉ món 45.000), Q22d (hàm không truyền cờ = cách chia cũ 49.285) — khoá bằng
+  đột biến VS-V2-Q22-MAC-DINH; Q18d (đơn trước CHƯA huỷ vẫn chặn) khoá bằng VS-V2-Q23-BO-CA-DON-THAT.
+Trên code vá (8216fad6): VOUCHER-2: 137 đạt · 0 hỏng
+Đột biến: python3 viec/VOUCHER-2/dot_bien.py BV-V2-Q18-DON-TRUOC VS-V2-Q18-DON-KHAC BV-V2-Q23-HUY VS-V2-Q23-BO-CA-DON-THAT BV-V2-Q22-CO VS-V2-Q22-MAC-DINH
+  VS-V2-Q22-BO-DU-BAT VS-V2-Q22-CHIA-CA-DON → ĐỐI CHỨNG xanh 137 · 0; 8/8 BẮT (BV-V2-Q23-HUY → Q18g · VS-V2-Q23-BO-CA-DON-THAT → Q18d · BV-V2-Q22-CO → Q22a ·
+  VS-V2-Q22-MAC-DINH → Q22d · VS-V2-Q22-BO-DU-BAT → Q22b · VS-V2-Q22-CHIA-CA-DON → Q22a; hai neo Q18 cũ đổi theo câu SQL mới vẫn BẮT Q18d / Q18f)
+
+── Vòng sửa 3 (soát 14.11 lần 4 — nhẹ) · thu_VOUCHER2.js commit fcfa7dfd thêm Q22e (thẻ hạng + bộ số lẻ) + Q18h (đơn trước status NULL):
+   Gốc trước Q22/Q23 (9f20388c — python3 cong_cu/ban_sao_goc.py 9f20388c <nháp>/goc_q22; bản chép không kèm client/src nên ca màn thật sập — chỉ đọc Q22/Q18):
+   node cong_cu/thu_VOUCHER2.js --may-chu <nháp>/goc_q22/server → VOUCHER-2: 116 đạt · 18 hỏng
+  ✗ Q22a … — HTTP 200 · 49285
+  ✗ Q22b … — HTTP 200 · 295714
+  ✗ Q22e thẻ hạng + món lẻ (một món tắt điểm) + mã 10.000 → tien_hang_diem 158.973 (làm tròn xuống)  — HTTP 200 · 157737
+  ✗ Q18g … — HTTP 400 · KHACH_DA_CO_TAI_KHOAN
+  ✓ Q18h (gốc không lọc trạng thái → đúng); trên bản vá Q23 lần đầu (8216fad6, `status != 'cancelled'`) — node cong_cu/thu_VOUCHER2.js → 138 đạt · 1 hỏng:
+  ✗ Q18h đơn TRƯỚC bill có status NULL → 400 KHACH_DA_CO_TAI_KHOAN, không grant  — HTTP 200
+Trên code vá (e4ef8730, `status IS NOT 'cancelled'`): VOUCHER-2: 139 đạt · 0 hỏng
+Đột biến: BV-V2-Q23-HUY VS-V2-Q23-BO-CA-DON-THAT VS-V2-Q23-NULL-LOT VS-V2-Q22-LAM-TRON VS-V2-Q22-CHI-GOI VS-V2-Q22-CHIA-CA-DON VS-V2-Q22-BO-DU-BAT → ĐỐI CHỨNG 139 · 0;
+  7/7 BẮT (VS-V2-Q23-NULL-LOT → Q18h · VS-V2-Q22-LAM-TRON → Q22e 158974 · VS-V2-Q22-CHI-GOI → Q22e 157737)
+Đột biến đầy đủ (HEAD 67f80df6, trước vòng sửa 3): ĐỘT BIẾN VOUCHER-2: 96/96 bị bắt.
+npm test -- --day-du (HEAD e4ef8730): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước); dist khớp src.
+
+── Q24 (chủ quán 14.11 — phiên 15.11, làm lại từ aa51bd4a) · thu_VOUCHER2.js commit d40b9388 thêm mục [Q24] (Q24a–e) TRƯỚC khi vá:
+   Gốc (code aa51bd4a, bài d40b9388) — node cong_cu/thu_VOUCHER2.js → VOUCHER-2: 142 đạt · 4 hỏng
+  ✗ Q24a hai voucher "Giảm 50.000đ cho món X" (X 40.000) → 400 VOUCHER_HET_MON, không đơn, không tiêu voucher  — HTTP 400 · Số tiền thanh toán (100.000đ) không khớp tổng đơn hàng thật (60.000đ). · đơn 72→72
+  ✗ Q24a lời báo đúng câu chủ quán "Voucher <MÃ> không còn món để giảm" (mã = voucher thứ hai)  — Số tiền thanh toán (100.000đ) không khớp tổng đơn hàng thật (60.000đ).
+  ✗ Q24c tinh-thu → MỀM: tổng 100.000 …  — {"success":true,"subtotal":140000,…,"giam_voucher":80000,"total":60000,…
+  ✗ Q24d hai voucher theo món 30.000 + 30.000 trên X 40.000 → 200 …  — HTTP 400 · Số tiền thanh toán (100.000đ) không khớp tổng đơn hàng thật (80.000đ).
+  (Q24b, Q24e xanh trên gốc — ca giữ hành vi: một voucher theo món; voucher cả đơn không đổi. Khoá bằng đột biến VS-V2-Q24-CA-DON-TRU.)
+Trên code vá (e5564bfd): VOUCHER-2: 146 đạt · 0 hỏng. thu_HOPDONG_KH.js: 90 đạt · 0 hỏng. npm test -- --day-du: PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+Đột biến Q24: BV-V2-Q24-CON-DONG BV-V2-Q24-BAO VS-V2-Q24-CA-DON-TRU VS-V2-Q24-NGUONG VS-V2-Q24-TINH-THU-CUNG → ĐỐI CHỨNG 146 · 0; 5/5 BẮT
+  (CON-DONG → Q24a · BAO → Q24a HTTP 200 · CA-DON-TRU → Q24e VOUCHER_HET_MON · NGUONG → Q24d · TINH-THU-CUNG → Q24c)

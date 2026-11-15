@@ -1,0 +1,56 @@
+DANG-NHAP-2 — bằng chứng ĐỎ trên code GỐC, 14.11.2026
+Cách chạy: bản sao code gốc c7ee1bb (git archive c7ee1bb server client/src cong_cu kiem_tra_truoc_khi_giao.js, node_modules nối symlink) trong thư mục nháp,
+chép BẢN MỚI cong_cu/thu_DANGNHAP2.js vào đó rồi `node cong_cu/thu_DANGNHAP2.js` (dòng ✗ + dòng tổng). Bài đổi lần cuối ở b4bf3887 (thêm F2/F3 đỏ khi thiếu module để số ca gốc = số ca head, cổng A16).
+
+═══ cong_cu/thu_DANGNHAP2.js (bài mới) trên gốc ═══
+  ✗ A1b lần sai thứ 6 → 429 QUA_NHIEU_LAN  — [401,{"error":"Tên đăng nhập hoặc mật khẩu không đúng"}]
+  ✗ A1c câu 429 báo số phút còn lại (vừa khoá: 15)  — "Tên đăng nhập hoặc mật khẩu không đúng"
+  ✗ A2 lần thứ 6 GÕ ĐÚNG mật khẩu vẫn 429, không có vé  — [200,null]
+  ✗ A3 còn 30 giây (ngay dưới 15 phút) → vẫn 429, báo 1 phút (làm tròn LÊN)  — [200,null]
+  ✗ A5b đăng nhập đúng xoá đếm: sau đó lại được sai đủ 5 lần (401) rồi lần 6 mới 429  — [[401,401,401,401,401],401]
+  ✗ A6 "Admin " / "admin" / " ADMIN" là MỘT cặp: lần 6 → 429  — "401 "
+  ✗ A8 gõ thêm giá trị giả ở đầu X-Forwarded-For không đổi được IP (lấy giá trị proxy thêm): lần 6 → 429  — "401 "
+  ✗ B1 (admin, IP1) đang khoá  — "200 "
+  ✗ C2 lần thứ 21 từ IP đó (tên mới) → 429 QUA_NHIEU_LAN  — "401 "
+  ✗ C3 cùng IP đang bị chặn: tên có thật gõ đúng cũng 429  — "200 "
+  ✗ D1 20 yêu cầu sai song song cùng một cặp → đúng 5 lần 401, còn lại 15 lần 429  — {"n401":20,"n429":0}
+  ✗ D2 chỉ 5 lần được so bcrypt (phần còn lại chặn TRƯỚC khi so)  — 0
+  ✗ D3 tên không tồn tại cũng vậy: 5 lần 401, 15 lần 429, 5 lần so  — 20 lần 401, 0 lần so
+  ✗ E3 tài khoản BỊ KHOÁ mà SAI mật khẩu → CÙNG câu, cùng 401, không code (không lộ tên có thật)  — {"status":401,"j":{"error":"Tài khoản đã bị vô hiệu hóa"}}
+  ✗ E4 ba trường hợp trả về GIỐNG HỆT nhau (cả thân JSON)  — [..., {"error":"Tài khoản đã bị vô hiệu hóa"}]
+  ✗ E5 tên không tồn tại vẫn chạy ĐÚNG MỘT lần bcrypt (băm giả — thời gian phản hồi tương đương)  — 0
+  ✗ E5b tài khoản khoá + sai mật khẩu cũng chạy MỘT lần bcrypt  — 0
+  ✗ E7 mọi lần sai tính lượt, KỂ CẢ tên không tồn tại: lần 6 → 429  — [[401,401,401,401,401],401]
+  ✗ E8 tài khoản khoá sai mật khẩu cũng tính lượt: lần 6 → 429  — "401 "
+  ✗ F0 có server/utils/gioiHanDangNhap.js
+  ✗ F1 module xuất giuLuot / soMuc / TRAN_MUC  — null
+  ✗ F2 sau 15 phút mọi mục cũ được dọn (chỉ còn mục vừa ghi)  — "không có module"
+  ✗ F3 giuLuot trả { chan } khi chưa tới ngưỡng = false  — "không có module"
+  ✗ F4 không bảng mới, không đụng database
+  ✗ I1 bộ kiểm chạy bài này
+  22 đạt · 25 hỏng
+
+═══ VÒNG 2 (14.11.2026) — IP thật sau Cloudflare: cong_cu/thu_DANGNHAP2.js (thêm ca J0–J16) trên gốc cac85b4 (commit gộp main, chưa có ipKhach) ═══
+Cách chạy: git archive cac85b4 server client/src cong_cu kiem_tra_truoc_khi_giao.js vào thư mục nháp, node_modules nối symlink, chép BẢN MỚI bài thử vào, node cong_cu/thu_DANGNHAP2.js.
+  ✗ J1 hai khách sau CÙNG máy Cloudflare (XFF giống nhau, True-Client-IP khác): mỗi người đủ 5 lần sai (401)  — [[401,401,401,401,401],[429,429,429,429,429]]
+  ✗ J4 người thứ ba (IP thật khác, cùng máy Cloudflare) vẫn đăng nhập đúng vào được (200)  — [429,"QUA_NHIEU_LAN"]
+  ✗ J5 cùng True-Client-IP, XFF đổi mỗi lần: vẫn đếm CHUNG → lần 6 là 429  — [[401,401,401,401,401],401]
+  ✗ J6 chỉ có CF-Connecting-IP: vẫn lấy IP thật → lần 6 là 429 dù XFF khác  — [[401,401,401,401,401],401]
+  ✗ J7 có cả hai header: True-Client-IP được ưu tiên  — [429,429]
+  ✗ J8 IPv6 hợp lệ cũng được nhận làm IP thật  — [[401,401,401,401,401],401]
+  ✗ J13 /api/kh/menu (giuLuotMenu — đường cũ không sửa) đếm theo IP thật: người khác sau cùng máy Cloudflare vẫn 200  — [429,429,[200]]
+  ✗ J14 server/index.js: middleware ghi đè req.ip đứng SAU trust proxy, TRƯỚC app.use đầu tiên
+  ✗ J15 server/utils/ipKhach.js có hàm ipKhach(req)
+  ✗ J16 ipKhach: True-Client-IP > CF-Connecting-IP > req.ip; rác → req.ip
+  54 đạt · 10 hỏng        (sau vá: 64 đạt · 0 hỏng)
+
+═══ VÒNG 2 · VÒNG SỬA 1 (soát độc lập bắt: True-Client-IP khách tự gửi được nếu Cloudflare chưa bật Managed Transform) ═══
+Bài đổi J7 + J16 (đảo thứ tự: CF-Connecting-IP > True-Client-IP). Chạy bản mới trên code TRƯỚC vá (c7bca42, ipKhach còn ưu tiên True-Client-IP):
+  ✗ J7 có cả hai: CF-Connecting-IP được ưu tiên … đổi True-Client-IP vẫn 429 (không lách được)
+  ✗ J16 ipKhach: CF-Connecting-IP > True-Client-IP > req.ip; rác → bỏ qua / req.ip
+  62 đạt · 2 hỏng        (sau vá f90085f: 64 đạt · 0 hỏng)
+
+SỐ CA cong_cu/thu_DANGNHAP2.js: 64
+
+thu_NDAPI1.js: chỉ đổi hằng A2 `<= 4` → `<= 10` (chủ quán duyệt 14.11, phiếu "Chủ quán 14.11 — câu hỏi A2"). Trên gốc cac85b4 bản mới XANH (gốc chỉ thêm 4 dòng) — bài đổi để chịu middleware vòng 2, không phải bài đỏ.
+SỐ CA cong_cu/thu_NDAPI1.js: 89

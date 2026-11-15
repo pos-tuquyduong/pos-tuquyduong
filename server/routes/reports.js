@@ -308,6 +308,7 @@ router.get('/discounts', authenticate, checkPermission('view_reports'), async (r
         COUNT(CASE WHEN discount > 0 THEN 1 END) as total_orders_with_discount,
         SUM(CASE WHEN status = 'completed' THEN discount ELSE 0 END) as total_discount_amount,
         SUM(CASE WHEN status = 'completed' THEN COALESCE(shipping_fee, 0) ELSE 0 END) as total_shipping_fee,
+        SUM(CASE WHEN status = 'completed' THEN COALESCE(giam_ship, 0) ELSE 0 END) as total_ship_discount,
         AVG(CASE WHEN status = 'completed' AND discount > 0 THEN discount END) as avg_discount_per_order
       FROM pos_orders
       WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
@@ -325,6 +326,16 @@ router.get('/discounts', authenticate, checkPermission('view_reports'), async (r
         AND status = 'completed'
       GROUP BY discount_code
       ORDER BY usage_count DESC
+    `, [from, to]);
+
+    // VOUCHER-2: theo voucher (ví khách) — mỗi voucher một đơn; tiền giảm = số ghi lúc tiêu (voucher ship: phần phí giao quán bù).
+    const byVoucher = await query(`
+      SELECT g.code, g.nguon, COUNT(*) as usage_count, SUM(COALESCE(g.so_tien_giam, 0)) as total_discount
+      FROM pos_voucher_grants g JOIN pos_orders o ON o.id = g.used_order_id
+      WHERE DATE(o.created_at) >= ? AND DATE(o.created_at) <= ? AND o.status = 'completed'
+        AND UPPER(g.code) <> UPPER(COALESCE(o.discount_code, ''))   -- voucher ở ô mã đã nằm trong by_code
+      GROUP BY g.code, g.nguon
+      ORDER BY usage_count DESC, g.code
     `, [from, to]);
 
     // Thống kê theo ngày
@@ -345,6 +356,7 @@ router.get('/discounts', authenticate, checkPermission('view_reports'), async (r
       to,
       summary,
       by_code: byCode,
+      by_voucher: byVoucher,
       by_date: byDate
     });
   } catch (err) {

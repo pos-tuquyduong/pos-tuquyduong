@@ -12,7 +12,7 @@
 const express = require("express");
 const { query, queryOne, run, beginTransaction } = require("../database");
 const { authenticate, checkPermission } = require("../middleware/auth");
-const { generateVoucherCode } = require("../utils/voucherCode");
+const { generateVoucherCode, xetVoucherConDung, voucherDangGiu } = require("../utils/voucherCode");   // VOUCHER-2: kiểm voucher của đơn ở kiemVoucherDon (dưới taoDon)
 const { findEligibleItemForGroup } = require("../utils/itemScopeDiscount");
 const {
   generateOrderCode,
@@ -32,7 +32,7 @@ const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từn
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
 const { getMembershipStatus, isTierUsable, goiBanDuoc, hanSauDong } = require("../utils/membershipStatus");
-const { kiemDonCuaMa, docCauHinhNhanDiem } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem; P22-23: hệ số nhân điểm
+const { kiemDonCuaMa, docCauHinhNhanDiem, maBillCuaVoucher } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem; P22-23: hệ số nhân điểm
 
 const router = express.Router();
 
@@ -218,6 +218,8 @@ async function taoDon(req, res, phien = null) {
       goi_nap_id = null, // mã gói nạp — giá + số vào tài khoản do máy chủ tra pos_goi_nap
       // === GIAO-1: đơn giao Ahamove — { ma_bao_phi, ten, sdt, ghi_chu }; phí ship lấy từ báo phí, KHÔNG từ shipping_fee ===
       giao = null,
+      // === VOUCHER-2: danh sách mã voucher (ví voucher của khách) — tối đa N (Cài đặt voucher_toi_da); discount_code = MỘT mã khuyến mãi chung ===
+      vouchers = null,
     } = req.body;
 
     // P3 (H, chủ quán chốt 22.10): một đơn KHÔNG trả kết hợp tiền mặt + chuyển khoản; tài khoản + MỘT cách cho phần còn lại thì được.
@@ -235,7 +237,7 @@ async function taoDon(req, res, phien = null) {
         return res.status(400).json({ error: "Nạp tiền làm đơn riêng — không gộp với món, gói hay thẻ", code: "NAP_KHONG_GOP" });
       }
       if (Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance" || Number(debt_amount) > 0
-        || discount_code || Number(shipping_fee) > 0) {
+        || discount_code || Number(shipping_fee) > 0 || (Array.isArray(vouchers) && vouchers.length)) {
         return res.status(400).json({ error: "Nạp tiền chỉ trả tiền mặt hoặc chuyển khoản — không trừ tài khoản, không mã, không ghi nợ, không phí giao",
           code: "NAP_CHI_TIEN_MAT_QR" });
       }
@@ -624,22 +626,37 @@ async function taoDon(req, res, phien = null) {
     let maTran = 0;     // UUDAI-1: max_discount của mã đã áp
     let maLoi = null;   // UUDAI-1: mã gõ vào mà không áp — tinh-thu báo cho giỏ (lời + code), POST / vẫn bỏ mã như cũ (D3 thu_P26c)
 
+    // VOUCHER-2 (luật 10.11): mã / voucher chỉ tính trên MÓN THƯỜNG — không thẻ hạng, gói trả trước, gói nạp. MỘT vị từ cho mã chung + voucher.
+    const khongGiam = (it) => !!(it.is_package_item || it.is_membership_item || it.is_nap_item);
+    const tienMonThuong = orderItems.reduce((s, it) => s + (khongGiam(it) ? 0 : it.total_price), 0);
+    // VOUCHER-2: mã có dòng ví voucher (pos_voucher_grants) là VOUCHER — kể cả App / quầy cũ gửi ở ô mã (tương thích ngược: đơn vẫn ghi
+    // discount_code như trước, nên hoàn lượt / bất biến I13 / hoá đơn đọc như cũ). Còn lại = mã khuyến mãi chung.
+    if (vouchers != null && !(Array.isArray(vouchers) && vouchers.length <= 20 && vouchers.every((v) => typeof v === "string" && v.trim() && v.length <= 32))) {
+      return res.status(400).json({ error: "Danh sách voucher không hợp lệ", code: "VOUCHER_SAI_DANG" });
+    }
+    const maVoucher = [...new Set((vouchers || []).map((v) => v.trim().toUpperCase()))];
+    let maChungGui = discount_code ? String(discount_code).trim() : null;
+    let voucherOMa = null;   // voucher gửi ở ô mã (đường cũ) — ghi vào discount_code của đơn
+    if (maChungGui && await queryOne("SELECT 1 AS co FROM pos_voucher_grants WHERE UPPER(code) = UPPER(?) LIMIT 1", [maChungGui])) {
+      voucherOMa = maChungGui.toUpperCase();
+      if (!maVoucher.includes(voucherOMa)) maVoucher.unshift(voucherOMa);
+      maChungGui = null;
+    }
+
     // Ưu tiên 1: Mã chiết khấu
-    if (discount_code) {
+    if (maChungGui) {
       const codeRecord = await queryOne(
         "SELECT * FROM pos_discount_codes WHERE UPPER(code) = UPPER(?) AND is_active = 1",
-        [discount_code.trim()],
+        [maChungGui],
       );
 
       if (codeRecord) {
-        // P20b: voucher sinh từ mã in bill (cùng `code` với dòng pos_signup_codes ĐÃ claim) chỉ dùng được khi đơn gốc còn
+        // P20b: voucher sinh từ mã in bill (dữ liệu cũ: cùng `code` với dòng pos_signup_codes ĐÃ claim; từ VOUCHER-2: mã riêng nối
+        // mã bill qua grant khach_moi — cả hai tra trong maBillCuaVoucher) chỉ dùng được khi đơn gốc còn
         // completed + paid — cùng hàm kiểm với /claim, /nhan-diem. `claimed_at IS NOT NULL`: mã tay / voucher đổi điểm có thể
         // trùng chữ với mã bill chưa claim (mỗi nguồn chỉ kiểm trùng trong bảng mình) — không được chặn nhầm. Trả về TRƯỚC
         // giao dịch → không tạo đơn, used_count không tăng.
-        const maBill = await queryOne(
-          "SELECT order_id FROM pos_signup_codes WHERE UPPER(code) = UPPER(?) AND claimed_at IS NOT NULL",
-          [codeRecord.code],
-        );
+        const maBill = await maBillCuaVoucher(codeRecord.code);   // VOUCHER-2: cùng hàm với kiemVoucherDon (voucher mới qua grant khach_moi)
         if (maBill) {
           const kqDon = await kiemDonCuaMa(maBill);
           if (kqDon.loi) return res.status(400).json({ error: kqDon.loi.error, code: "MA_DON_GOC_KHONG_HOP_LE" });
@@ -662,9 +679,13 @@ async function taoDon(req, res, phien = null) {
           codeValid = false;
         // Bước 5: đơn tối thiểu CHỈ áp dụng cho voucher giảm-cả-đơn — voucher giảm-1-món
         // không có khái niệm đơn tối thiểu (đã chốt lúc thiết kế).
-        if (codeRecord.discount_scope !== 'item' && codeRecord.min_order > 0 && subtotal < codeRecord.min_order)
+        if (codeRecord.discount_scope !== 'item' && codeRecord.min_order > 0 && tienMonThuong < codeRecord.min_order)
           codeValid = false;
         if (!codeValid) maLoi = { error: "Mã hết hạn, hết lượt hoặc đơn chưa đủ tối thiểu", code: "MA_KHONG_AP_DUNG" };
+        if (codeValid && tienMonThuong <= 0) {
+          codeValid = false;
+          maLoi = { error: LOI_KHONG_MON_THUONG, code: "MA_KHONG_AP_MON_THUONG" };
+        }
 
         if (codeValid) {
           maTran = Number(codeRecord.max_discount) || 0;
@@ -754,6 +775,24 @@ async function taoDon(req, res, phien = null) {
       });
     }
 
+    // VOUCHER-2: kiểm từng voucher (chính chủ, đã dùng, hạn, N, ship, món thường, tối thiểu, flash, một voucher %, nhóm món). POST / chốt phiên → 400
+    // từng mã, đơn không lưu; tinh-thu / báo giá App → MỀM (voucher hỏng bỏ ra, voucher_loi báo từng mã — cùng khuôn ma_loi).
+    const finalShippingFee = baoPhiGiao ? baoPhiGiao.phi : Math.max(0, Number(shipping_fee) || 0);   // GIAO-1: đơn giao bỏ qua số màn hình gửi
+    // Q16: chốt từ phiên → xét hạn voucher theo NGÀY TẠO PHIÊN (giá phiên đã tính có voucher; hết hạn trong lúc giữ vẫn dùng được) + không tính phần
+    // chính phiên này đang giữ. Đơn quầy / tạo phiên / tinh-thu: hôm nay, mọi phiên đang giữ đều chặn.
+    const kv = await kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong, phone, flashApplied, coGiao: !!baoPhiGiao && finalShippingFee > 0,
+      homNay: phien?.taoLuc ? String(phien.taoLuc).slice(0, 10) : getToday(), boPhienId: phien?.id || null });
+    const dsVoucher = kv.ds;
+    if (voucherOMa && !dsVoucher.some((v) => v.code.toUpperCase() === voucherOMa)) {   // ô mã cũ: MỀM ở mọi đường, báo ở ma_loi như mọi mã gõ vào (P26c D3)
+      const l = kv.loi.find((x) => x.ma === voucherOMa);
+      if (l.code === "MA_DON_GOC_KHONG_HOP_LE") return res.status(400).json({ error: l.error, code: l.code });   // P20b: ô mã cứng như trước VOUCHER-2
+      if (l.code === "VOUCHER_DANG_GIU" && !phien?.tinhThu) return res.status(400).json({ error: l.error, code: l.code, ma: l.ma });   // Q16: báo rõ, không thu đủ giá
+      maLoi = { error: l.error, code: l.code };
+      kv.loi = kv.loi.filter((x) => x !== l);
+      voucherOMa = null;
+    }
+    if (kv.loi.length && !phien?.tinhThu) return res.status(400).json(kv.loi[0]);
+
     // Bước 5: món được chọn để giảm (chỉ có giá trị khi discountCodeScope === 'item') —
     // khai báo ở đây để dùng lại lúc gắn signup_unit_price vào orderItems cho hóa đơn.
     let itemScopeTargetItem = null;
@@ -769,20 +808,36 @@ async function taoDon(req, res, phien = null) {
       }
     }
 
-    // UUDAI-1: "dùng chung với giá hạng" theo LOẠI mã (Cài đặt); quà đổi điểm (có dòng pos_voucher_grants cùng mã) luôn dùng chung.
+    // UUDAI-1: "dùng chung với giá hạng" theo LOẠI mã (Cài đặt). VOUCHER-2: voucher (cả quà đổi điểm) luôn dùng chung — tính ở tinhUuDai sau mã.
     let dungChung = true;
     if (discountCodeId) {
       const khoa = itemScopeTargetItem ? "uudai_chung_hang_item"
         : finalDiscountType === "percent" ? "uudai_chung_hang_percent" : "uudai_chung_hang_fixed";
-      const qua = await queryOne("SELECT 1 AS co FROM pos_voucher_grants WHERE UPPER(code) = UPPER(?) LIMIT 1", [finalDiscountCode]);
-      dungChung = !!qua || (await queryOne("SELECT value FROM pos_settings WHERE key = ?", [khoa]))?.value !== "0";
+      dungChung = (await queryOne("SELECT value FROM pos_settings WHERE key = ?", [khoa]))?.value !== "0";
     }
     const uuDai = tinhUuDai({
-      dong: orderItems.map((it) => ({ unit_price: it.unit_price, quantity: it.quantity, ti_le_hang: tiLeHang.get(it) || 0 })),
+      dong: orderItems.map((it) => ({ unit_price: it.unit_price, quantity: it.quantity, ti_le_hang: tiLeHang.get(it) || 0, khong_giam: khongGiam(it),
+        flash: it.flash_unit_price ?? null })),
       ma: discountCodeId ? { loai: finalDiscountType, gia_tri: Number(finalDiscountValue) || 0, tran: maTran,
         mot_mon: itemScopeTargetItem ? orderItems.indexOf(itemScopeTargetItem) : null } : null,
       dungChung, truTruoc: flashDiscountAmount, tenHang: appliedTierName || "", tenMa: finalDiscountCode || "",
+      vouchers: dsVoucher, phiGiao: finalShippingFee,
     });
+    // Q24 (chủ quán 14.11): voucher theo món mà các món đó đã được voucher theo món trước giảm hết → báo rõ, đơn không lưu (cùng khuôn lỗi voucher
+    // ở trên: ô mã cũ MỀM mọi đường, tinh-thu MỀM). Bỏ ra không đổi số voucher khác (nó giảm 0).
+    for (let i = dsVoucher.length - 1; i >= 0; i--) {
+      const v = dsVoucher[i];
+      if (!v.dong || v.ship || uuDai.giam_voucher[i] > 0) continue;
+      const l = { error: `Voucher ${v.code} không còn món để giảm`, code: "VOUCHER_HET_MON", ma: v.code };
+      if (v.code.toUpperCase() === voucherOMa) { maLoi = { error: l.error, code: l.code }; voucherOMa = null; }
+      else if (!phien?.tinhThu) return res.status(400).json(l);
+      else kv.loi.push(l);
+      dsVoucher.splice(i, 1);
+      uuDai.giam_voucher.splice(i, 1);
+    }
+    const giamVoucher = dsVoucher.reduce((t, v, i) => t + (v.ship ? 0 : uuDai.giam_voucher[i]), 0);
+    const giamShip = uuDai.giam_ship;
+    const phiKhachTra = finalShippingFee - giamShip;   // VOUCHER-2: cột shipping_fee = phần khách trả; phần quán bù = cột giam_ship
     tierDiscountAmount = uuDai.giam_hang;
     tierApplied = tierDiscountAmount > 0;
     // Hóa đơn: giá hạng từng món CHỈ để hiển thị — không đổi unit_price gốc dùng tính subtotal/total.
@@ -808,18 +863,22 @@ async function taoDon(req, res, phien = null) {
       itemScopeTargetItem.signup_unit_price = Math.max(0, (itemScopeTargetItem.tier_unit_price ?? itemScopeTargetItem.unit_price) - finalDiscountAmount);
     }
 
-    // Tính total: subtotal - giảm flash - giảm hạng - chiết khấu + phí ship
-    // POS-CONGDON-v1: phi van chuyen KHONG duoc am. Truoc day khai so am la
-    // giam thang vao tong don — `Math.max(0, total)` chi chan total am, khong
-    // chan total bi giam. Ep ve so, am thi coi nhu 0.
-    const finalShippingFee = baoPhiGiao ? baoPhiGiao.phi : Math.max(0, Number(shipping_fee) || 0);   // GIAO-1: đơn giao bỏ qua số màn hình gửi
+    // Tính total: subtotal - giảm flash - giảm hạng - chiết khấu - voucher + phí ship khách trả
+    // POS-CONGDON-v1: phi van chuyen KHONG duoc am (finalShippingFee ep ve so >= 0 o tren, truoc khi kiem voucher).
     const total = Math.max(
       0,
-      subtotal - flashDiscountAmount - tierDiscountAmount - finalDiscountAmount + finalShippingFee,
+      subtotal - flashDiscountAmount - tierDiscountAmount - finalDiscountAmount - giamVoucher + phiKhachTra,
     );
-    // Cột 'discount'/'discount_amount' = TỔNG giảm (flash + hạng + voucher) để hoá đơn & báo cáo
-    // hiển thị đúng (subtotal − discount + ship = total). 'flash_discount'/'tier_discount' giữ riêng để phân tích.
-    const totalDiscountAmount = finalDiscountAmount + flashDiscountAmount + tierDiscountAmount;
+    // Cột 'discount'/'discount_amount' = TỔNG giảm (flash + hạng + mã + voucher món) để hoá đơn & báo cáo
+    // hiển thị đúng (subtotal − discount + ship = total). 'flash_discount'/'tier_discount' giữ riêng để phân tích; voucher ship ở giam_ship.
+    const totalDiscountAmount = finalDiscountAmount + flashDiscountAmount + tierDiscountAmount + giamVoucher;
+    // Đơn cũ gửi voucher ở ô mã: ghi mã + loại / trị giá của voucher vào discount_code như trước VOUCHER-2 (traLuotMa trả lượt theo cột này).
+    const vOMa = voucherOMa ? dsVoucher.find((v) => v.code.toUpperCase() === voucherOMa) : null;
+    const maGhiDon = finalDiscountCode ? { code: finalDiscountCode, loai: finalDiscountType, gia_tri: finalDiscountValue }
+      : vOMa ? { code: vOMa.code, loai: vOMa.loai, gia_tri: vOMa.gia_tri } : null;
+    // K5: voucher ở ô mã báo ra y như trước VOUCHER-2 — tiền giảm nằm ở discount_amount, không thêm dòng voucher riêng.
+    const giamOMa = vOMa && !vOMa.ship ? uuDai.giam_voucher[dsVoucher.indexOf(vOMa)] : 0;
+    const dongVoucher = dsVoucher.map((v, i) => ({ ma: v.code, so_tien: uuDai.giam_voucher[i], ship: v.ship })).filter((x, i) => !(dsVoucher[i] === vOMa && !x.ship));
 
     // Xử lý thanh toán số dư từ pos_wallets
     let actualBalanceAmount = 0;
@@ -904,9 +963,10 @@ async function taoDon(req, res, phien = null) {
 
     // P3: tạo phiên chỉ cần tổng máy chủ tính (mọi phép kiểm phía trên đã chạy), không ghi gì. UUDAI-1: tinh-thu đọc thêm `chiTiet`.
     if (phien?.chiTinh) {
-      return { total, chiTiet: { subtotal, flash_discount: flashDiscountAmount, tier_discount: tierDiscountAmount, discount_amount: finalDiscountAmount,
-        shipping_fee: finalShippingFee, total, customer_tier: appliedTierName, discount_code: finalDiscountCode, cach: uuDai.cach,
-        cau_ghi: uuDai.cau_ghi, ma_loi: maLoi?.error || null, ma_loi_code: maLoi?.code || null,
+      return { total, chiTiet: { subtotal, flash_discount: flashDiscountAmount, tier_discount: tierDiscountAmount, discount_amount: finalDiscountAmount + giamOMa,
+        shipping_fee: phiKhachTra, giam_ship: giamShip, giam_voucher: giamVoucher - giamOMa, total, customer_tier: appliedTierName, discount_code: maGhiDon?.code || null,
+        cach: uuDai.cach, cau_ghi: uuDai.cau_ghi, ma_loi: maLoi?.error || null, ma_loi_code: maLoi?.code || null,
+        vouchers: dongVoucher, voucher_loi: kv.loi,
         items: orderItems.map((it) => ({ product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price,
           tier_unit_price: it.tier_unit_price ?? null, flash_unit_price: it.flash_unit_price ?? null })) } };
     }
@@ -943,11 +1003,11 @@ async function taoDon(req, res, phien = null) {
     // Đọc cấu hình + tính điểm + tính hạn TRƯỚC khi mở tx. Trong tx chỉ còn 1 INSERT đã kiểm sẵn
     // → một lỗi điểm KHÔNG BAO GIỜ rollback được một ca bán thật.
     let diemTao = null;
-    const tienHangDiemDon = tienHangDiem(orderItems, total - finalShippingFee);   // DIEM-MON-1: lưu vào đơn — mọi lối cộng / trừ điểm đọc số này
+    const tienHangDiemDon = tienHangDiem(orderItems, total - phiKhachTra, true);   // DIEM-MON-1: lưu vào đơn — mọi lối cộng / trừ điểm đọc số này; Q22: đơn mới giam_mon_thuong = 1
     try {
       // F2: đơn có giảm flash → KHÔNG cộng điểm (đơn chỉ mua món thường vẫn cộng bình thường).
       // P22-23: chỉ đơn THU ĐỦ lúc tạo (`finalPaymentStatus` máy chủ tự quyết theo nợ, ở trên) — đơn còn nợ cộng ở pay-debt khi thu đủ.
-      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: finalShippingFee, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount, tien_hang_diem: tienHangDiemDon }), now);
+      if (phone && finalPaymentStatus === 'paid' && !flashApplied) diemTao = await tinhDiemDon(tienTinhDiem({ cash_amount, transfer_amount, shipping_fee: phiKhachTra, total, balance_amount: actualBalanceAmount, parent_balance_amount: actualParentBalanceAmount, tien_hang_diem: tienHangDiemDon }), now);
     } catch (loyPrepErr) {
       console.error('⚠️ LOY-1: lỗi chuẩn bị điểm (bỏ qua, không ảnh hưởng đơn):', loyPrepErr.message);
       diemTao = null;
@@ -1009,22 +1069,22 @@ async function taoDon(req, res, phien = null) {
           parent_phone, parent_balance_amount,
           cash_received, change_amount,
           payment_status, due_date,
-          customer_package_id, tien_hang_diem,
+          customer_package_id, tien_hang_diem, giam_ship, giam_mon_thuong,
           status, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'completed', ?, ?, ?)`,
         [
           orderCode, phone || null, customer_name || "Khách lẻ",
           subtotal, totalDiscountAmount, discount_reason || null, total,
-          finalDiscountType || null, finalDiscountValue || 0, totalDiscountAmount,
+          maGhiDon?.loai || null, maGhiDon?.gia_tri || 0, totalDiscountAmount,
           flashDiscountAmount, tierDiscountAmount, appliedTierName || null,
-          finalDiscountCode || null, finalShippingFee,
+          maGhiDon?.code || null, phiKhachTra,
           payment_method === "debt" ? "debt" : payment_method,
           cash_amount || 0, transfer_amount || 0, actualBalanceAmount,
           finalDebtAmount,
           normalizedParentPhone || null, actualParentBalanceAmount,
           cash_received || 0, change_amount || 0,
           finalPaymentStatus, due_date || null,
-          customer_package_id || null, tienHangDiemDon,
+          customer_package_id || null, tienHangDiemDon, giamShip,
           notes || null, req.user.username, now,
         ],
       );
@@ -1035,7 +1095,8 @@ async function taoDon(req, res, phien = null) {
       }
       for (const id of dongSo) await tx.run("UPDATE pos_balance_transactions SET order_id = ? WHERE id = ?", [orderId, id]);
       if (phien) await phien.sauGhiDon(tx, orderId, orderCode);   // P3: gắn đơn vào phiên (+ nhật ký xác nhận tay) cùng giao dịch
-      if (baoPhiGiao && !(await giaoHang.ghiChuyenDon(tx, { orderId, giao, bp: baoPhiGiao, now }))) {   // GIAO-1: một báo phí — một đơn
+      // VOUCHER-2: chuyến ghi phí KHÁCH TRẢ (sau voucher ship) — chênh lệch đối soát tự gồm phần quán bù.
+      if (baoPhiGiao && !(await giaoHang.ghiChuyenDon(tx, { orderId, giao, bp: { ...baoPhiGiao, phi: phiKhachTra }, now }))) {   // GIAO-1: một báo phí — một đơn
         await tx.rollback();
         return res.status(400).json({ error: "Báo phí này đã dùng cho đơn khác — tính phí lại", code: "BAO_PHI_DA_DUNG" });
       }
@@ -1114,10 +1175,31 @@ async function taoDon(req, res, phien = null) {
           [now, discountCodeId],
         );
         // P26c (D4): voucher đổi điểm của mã này chuyển 'used', gắn đơn (huỷ / xoá / duyệt hoàn trả về — traLuotMa).
+        // Từ VOUCHER-2 mọi mã có dòng ví đã tách sang danh sách voucher (tiêu ở câu dưới), nên tới đây không còn mã voucher — câu này giữ làm khoá
+        // phòng thủ (và neo đột biến BV-D4-bo-voucher-used của viec/P26c), luôn được 0 dòng.
         await tx.run(
           "UPDATE pos_voucher_grants SET status = 'used', used_order_id = ?, used_at = ? WHERE UPPER(code) = UPPER(?) AND status = 'available'",
           [orderId, now, finalDiscountCode],
         );
+      }
+
+      // Q16: phiên chờ chuyển khoản tạo SAU lúc kiểm (chen giữa kiểm và giao dịch này) → đọc lại phần đang giữ TRONG giao dịch ghi, trước câu tiêu.
+      const dangGiu = await voucherDangGiu(tx, dsVoucher.map((v) => v.code), phien?.id);
+      if (dangGiu.length) {
+        await tx.rollback();
+        return res.status(400).json({ error: `Voucher ${dangGiu[0]}: đang được giữ cho một thanh toán chuyển khoản chưa xong — đợi tiền về hoặc huỷ phiên đó`,
+          code: "VOUCHER_DANG_GIU", ma: dangGiu[0] });
+      }
+      // VOUCHER-2 (G): tiêu từng voucher TRONG giao dịch — điều kiện chặn đua viết ngay trong câu ghi, kiểm `changes`: hai đơn cùng voucher → một đơn.
+      for (const [i, v] of dsVoucher.entries()) {
+        const a = await tx.run(`UPDATE pos_discount_codes SET used_count = used_count + 1, updated_at = ?
+          WHERE id = ? AND is_active = 1 AND (COALESCE(usage_limit, 0) <= 0 OR used_count < usage_limit)`, [now, v.id]);
+        const b = a.changes === 1 ? await tx.run(`UPDATE pos_voucher_grants SET status = 'used', used_order_id = ?, used_at = ?, so_tien_giam = ?
+          WHERE id = ? AND status = 'available'`, [orderId, now, uuDai.giam_voucher[i], v.grant_id]) : { changes: 0 };
+        if (b.changes !== 1) {
+          await tx.rollback();
+          return res.status(400).json({ error: `Voucher ${v.code}: vừa được dùng ở đơn khác`, code: "VOUCHER_DA_DUNG", ma: v.code });
+        }
       }
 
       // P26d (chủ quán thêm 18.10): gói / thẻ hội viên khách vừa trả tiền ghi TRONG giao dịch đơn — trước đây ghi sau commit và
@@ -1299,9 +1381,11 @@ async function taoDon(req, res, phien = null) {
         tier_discount: tierApplied ? tierDiscountAmount : 0,
         customer_tier: appliedTierName,
         discount: totalDiscountAmount,
-        discount_amount: finalDiscountAmount,
-        discount_code: finalDiscountCode,
-        shipping_fee: finalShippingFee,
+        discount_amount: finalDiscountAmount + giamOMa,
+        discount_code: maGhiDon?.code || null,
+        shipping_fee: phiKhachTra,
+        giam_ship: giamShip,
+        vouchers: dongVoucher,
         total,
         items: orderItems,
         balance_after: balanceAfter,
@@ -1353,11 +1437,57 @@ async function taoDon(req, res, phien = null) {
 router.post("/", authenticate, (req, res) => taoDon(req, res));
 
 /**
+ * VOUCHER-2 — kiểm danh sách voucher của MỘT đơn → { ds: [{ id, grant_id, code, loai, gia_tri, tran, ship, dong }], loi: [{ ma, code, error }] }.
+ * Thứ tự phép: có / bật → chính chủ (Q1) → đã dùng → hạn → tối đa N → ship cần đơn giao → món thường (luật 10.11) → tối thiểu (tiền món thường)
+ * → % lúc Flash (F2) → một voucher % (Q4; voucher ship không tính — Q10) → nhóm / món chọn có trong giỏ (Q3). Chỉ đọc; tiêu ở giao dịch taoDon.
+ */
+const LOI_KHONG_MON_THUONG = "Mã / voucher chỉ áp cho món thường — không áp lên thẻ hạng, gói trả trước, nạp tiền";
+async function kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong, phone, flashApplied, coGiao, homNay, boPhienId }) {
+  const ds = [], loi = [];
+  if (!maVoucher.length) return { ds, loi };
+  const toiDa = Number((await queryOne("SELECT value FROM pos_settings WHERE key = 'voucher_toi_da'"))?.value) || 3;
+  const mon = orderItems.map((it, i) => (khongGiam(it) ? -1 : i)).filter((i) => i >= 0);
+  let soPhanTram = 0;
+  for (const ma of maVoucher) {
+    const v = await queryOne(`SELECT d.*, g.id AS grant_id, g.customer_phone AS chu, g.status AS trang_thai FROM pos_voucher_grants g
+      JOIN pos_discount_codes d ON UPPER(d.code) = UPPER(g.code) WHERE UPPER(g.code) = ? ORDER BY g.id LIMIT 1`, [ma]);
+    // Q17: có / bật · đơn gốc P20b · chính chủ · đã dùng · hạn · đang bị phiên khác giữ (Q16) — MỘT hàm với ví voucher (diemKhach.layVoucherKhach).
+    const conDung = await xetVoucherConDung(v, { phone, homNay, boPhienId });
+    const ship = !!Number(v?.giam_ship), phanTram = v?.discount_type === "percent";
+    let dong = null;
+    if (v && v.ap_dung && v.ap_dung !== "tat_ca") {
+      let ids = [];
+      try { ids = JSON.parse(v.ap_dung_ids || "[]").map(Number).filter(Number.isInteger); } catch { ids = []; }
+      let khop = (it) => ids.includes(Number(it.product_id));
+      if (v.ap_dung === "nhom") {
+        const tv = ids.length ? await query(`SELECT sx_product_type, sx_product_id FROM pos_product_group_members WHERE group_id IN (${ids.map(() => "?").join(",")})`, ids) : [];
+        const bo = new Set(tv.map((x) => `${x.sx_product_type}_${x.sx_product_id}`));
+        khop = (it) => bo.has(`${it.sx_product_type}_${it.sx_product_id}`);
+      }
+      dong = mon.filter((i) => khop(orderItems[i]) && orderItems[i].total_price > 0);
+    }
+    const sai = conDung
+      || (ds.length >= toiDa ? ["VUOT_SO_VOUCHER", `Mỗi đơn dùng tối đa ${toiDa} voucher`]
+        : ship && !coGiao ? ["VOUCHER_SHIP_CAN_GIAO", "Voucher giao hàng chỉ dùng cho đơn giao"]
+          : !ship && tienMonThuong <= 0 ? ["MA_KHONG_AP_MON_THUONG", LOI_KHONG_MON_THUONG]
+            : Number(v.min_order) > tienMonThuong ? ["VOUCHER_CHUA_DU_DON", `Đơn chưa đủ tối thiểu ${Math.round(Number(v.min_order)).toLocaleString("vi-VN")}đ (tính trên món thường)`]
+              : !ship && phanTram && flashApplied ? ["VOUCHER_PHAN_TRAM_FLASH", "Đang flash sale — chỉ dùng được voucher giảm tiền, không dùng voucher %"]
+                : !ship && phanTram && soPhanTram >= 1 ? ["VOUCHER_PHAN_TRAM_HAI", "Mỗi đơn chỉ dùng một voucher giảm %"]
+                  : dong && !dong.length ? ["VOUCHER_KHONG_CO_MON", "Đơn chưa có món được áp voucher này"] : null);
+    if (sai) { loi.push({ error: `Voucher ${ma}: ${sai[1]}`, code: sai[0], ma }); continue; }
+    if (!ship && phanTram) soPhanTram++;
+    ds.push({ id: v.id, grant_id: v.grant_id, code: v.code, loai: phanTram ? "percent" : "fixed", gia_tri: Number(v.discount_value) || 0,
+      tran: Number(v.max_discount) || 0, ship, dong });
+  }
+  return { ds, loi };
+}
+
+/**
  * UUDAI-1: POST /api/pos/orders/tinh-thu — giỏ hỏi trước số máy chủ sẽ tính (hạng, mã, cách đã chọn, câu ghi giỏ). Đi ĐÚNG taoDon ở chế
  * độ chỉ tính (cùng phép kiểm, cùng tinhUuDai) → số tinh-thu = số POST / ghi. Không ghi gì, không gọi SX; thân chỉ nhận các trường
  * của giỏ (không trường tiền → các nhánh ví / chuyển khoản / nợ không chạy).
  */
-const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "shipping_fee", "customer_package_id", "package_buy", "membership_buy", "giao", "goi_nap_id"];
+const TRUONG_TINH_THU = ["customer_phone", "customer_name", "items", "discount_code", "vouchers", "shipping_fee", "customer_package_id", "package_buy", "membership_buy", "giao", "goi_nap_id"];
 router.post("/tinh-thu", authenticate, async (req, res) => {
   const than = Object.fromEntries(TRUONG_TINH_THU.filter((x) => req.body?.[x] !== undefined).map((x) => [x, req.body[x]]));
   const kq = await taoDon({ body: than, user: req.user }, res, { chiTinh: true, tinhThu: true });

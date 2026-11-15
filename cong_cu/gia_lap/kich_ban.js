@@ -38,7 +38,13 @@ async function dungDuLieu(c) {
     if (r.status === 200) c.soQuay.doi.set(id, (c.soQuay.doi.get(id) || 0) + 1);
     return r;
   };
-  c.claim = (ma, phone = sdtMoi()) => goi('dv', 'POST', '/signup-codes/claim', { code: ma, phone });
+  // VOUCHER-2 Q11(a) (chủ quán Q2 11.11 + Q9 12.11): chỉ tài khoản tạo SAU lúc in bill mới nhận được mã — SĐT chưa là khách thì tạo hồ sơ ĐÚNG
+  // giây in bill (tất định; ≥ được nhận). SĐT đã là khách từ trước (Khách quen) giữ nguyên → KHACH_DA_CO_TAI_KHOAN (KB13).
+  c.claim = async (ma, phone = sdtMoi()) => {
+    await db.run(`INSERT INTO pos_customers (phone, name, created_at) SELECT ?, ?, issued_at FROM pos_signup_codes WHERE code = ?
+      ON CONFLICT(phone) DO NOTHING`, [phone, 'Khách ' + phone, ma]);
+    return goi('dv', 'POST', '/signup-codes/claim', { code: ma, phone });
+  };
   c.nhanDiem = (ma, phone = sdtMoi()) => goi('dv', 'POST', '/signup-codes/nhan-diem', { code: ma, phone });
   c.vi = async (sdt) => Number((await db.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [sdt]))?.balance ?? NaN);
   c.so = async (sql, a = []) => Number(Object.values((await db.queryOne(sql, a)) || { x: NaN })[0]);
@@ -61,6 +67,9 @@ async function dungDuLieu(c) {
     ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [k, v]);
   for (const [k, v] of [['signup_enabled', '1'], ['signup_discount_type', 'percent'], ['signup_discount_value', '10'],
     ['nhandiem_enabled', '1'], ['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['flash_enabled', 'false']]) await dat(k, v);
+  // VOUCHER-2 Q11(a): nhận mã bill phát voucher theo MẪU (Cài đặt → Voucher) — mẫu y cấu hình trên (10 % cả đơn, hạn 30 ngày, chia sẻ được).
+  await dat('signup_mau_voucher_id', String(Number((await db.run(`INSERT INTO pos_mau_voucher (ten, kieu, gia_tri, tran, don_toi_thieu, ap_dung,
+    han_ngay, chinh_chu, bat, tao_luc) VALUES ('Khách mới giả lập', 'phan_tram', 10, 0, 0, 'tat_ca', 30, 0, 1, '2026-01-01T00:00:00')`)).lastInsertRowid)));
   const sp = await db.query("SELECT * FROM pos_products WHERE is_active = 1 AND COALESCE(sx_product_type, '') <> '' ORDER BY id LIMIT 5");
   if (sp.length !== 5) throw new Error(`dữ liệu mẫu: cần 5 món có mã SX, có ${sp.length}`);
   for (const [i, p] of sp.entries()) await db.run('UPDATE pos_products SET price = ? WHERE id = ?', [GIA[i], p.id]);
@@ -216,10 +225,14 @@ const KICH_BAN = [
   { ten: 'dùng mã, hoàn tiền rồi huỷ đơn', chay: async (c) => {
     const d = await c.taoDon('KB13', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(0)], payment_method: 'balance', balance_amount: 25000 });
     const m = await c.claim(d.ma, KH.quen);   // KH-API-1 Q11: bill ghi SĐT khách quen → chỉ SĐT đó nhận được mã
+    // VOUCHER-2 Q11(c) (chủ quán Q2 11.11 + Q9 12.11): khách quen đã có tài khoản từ trước → ưu đãi khách mới báo KHACH_DA_CO_TAI_KHOAN.
+    // "Dùng mã" của kịch bản (phủ nhánh 'refunded' của I1) đi đường nhận điểm của CÙNG mã — khách quen vẫn nhận được.
+    const n = await c.nhanDiem(d.ma, KH.quen);
     const yc = await c.yeuCau(d.id);
     const dy = await c.duyet(yc.refund_id);
-    c.mong('dùng mã → yêu cầu hoàn → duyệt: 200, 200, 200', m.status === 200 && yc.status === 200 && dy.status === 200,
-      `${c.ma(m)} / ${c.ma(yc)} / ${c.ma(dy)}`);
+    c.mong('khách quen nhận ưu đãi khách mới → 400 KHACH_DA_CO_TAI_KHOAN; dùng mã (nhận điểm) → yêu cầu hoàn → duyệt: 200, 200, 200',
+      m.status === 400 && m.code === 'KHACH_DA_CO_TAI_KHOAN' && n.status === 200 && yc.status === 200 && dy.status === 200,
+      `${c.ma(m)} / ${c.ma(n)} / ${c.ma(yc)} / ${c.ma(dy)}`);
     const truoc = await c.vi(KH.quen);
     const h = await c.huy(d.id);
     c.mong('huỷ đơn đã hoàn → 400 DON_KHONG_HUY_DUOC, ví không đổi', h.status === 400 && h.code === 'DON_KHONG_HUY_DUOC'
