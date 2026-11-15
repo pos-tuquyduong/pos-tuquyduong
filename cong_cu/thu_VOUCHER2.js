@@ -1337,6 +1337,40 @@ async function main() {
   });
 
   // ═════════════════════════════════════════════════════════════════════════
+  muc('[Q24] Hai voucher theo món cùng món: voucher sau chỉ giảm phần CÒN LẠI của chính các món đó (chủ quán 14.11)');
+  await chay('Q24', async () => {
+    await datCaiDat('voucher_toi_da', 3);
+    const a = await khach();
+    const theoX = (gia) => phat(a.sdt, 'tien', gia, { ap_dung: 'mon', ids: JSON.stringify([sp[2].id]) });
+    // Số tính tay: món X = M2 20.000 × 2 = 40.000; món khác = M0 50.000 × 2 = 100.000; tiền món 140.000.
+    const gio = [mon(2, 2), mon(0, 2)];
+    const v1 = await theoX(50000), v2 = await theoX(50000);
+    const tr = await soDon();
+    const r = await ban({ customer_phone: a.sdt, items: gio, vouchers: [v1, v2] }, 100000);
+    await la400('Q24a hai voucher "Giảm 50.000đ cho món X" (X 40.000) → 400 VOUCHER_HET_MON, không đơn, không tiêu voucher', r, 'VOUCHER_HET_MON', tr, v1);
+    k('Q24a lời báo đúng câu chủ quán "Voucher <MÃ> không còn món để giảm" (mã = voucher thứ hai)', r.error === `Voucher ${v2} không còn món để giảm` && r.ma === v2, r.error);
+    const g = await grant(v1);
+    k('Q24a voucher thứ nhất vẫn còn (available)', g?.status === 'available', JSON.stringify(g));
+    const c = await tinhThu({ customer_phone: a.sdt, items: gio, vouchers: [v1, v2] });
+    k('Q24c tinh-thu → MỀM: tổng 100.000 (chỉ voucher đầu 40.000), voucher_loi có voucher thứ hai VOUCHER_HET_MON', c.status === 200 && c.total === 100000
+      && c.voucher_loi?.length === 1 && c.voucher_loi[0].ma === v2 && c.voucher_loi[0].code === 'VOUCHER_HET_MON', JSON.stringify(c).slice(0, 300));
+    const b = await ban({ customer_phone: a.sdt, items: gio, vouchers: [v1] }, 100000);
+    const d = b.order ? await donDb(b.order.id) : null;
+    k('Q24b bỏ voucher thứ hai → 200, giảm đúng 40.000 (= món X), tổng 100.000', b.status === 200 && Number(d?.total) === 100000
+      && Number((await grant(v1)).so_tien_giam) === 40000, `${moTa(b)} · ${d?.total}`);
+    // 30.000 + 30.000 trên X 40.000 → voucher sau giảm 10.000 (phần còn lại), tổng giảm 40.000.
+    const w1 = await theoX(30000), w2 = await theoX(30000);
+    const e = await ban({ customer_phone: a.sdt, items: gio, vouchers: [w1, w2] }, 100000);
+    k('Q24d hai voucher theo món 30.000 + 30.000 trên X 40.000 → 200 (không chặn oan): 30.000 + 10.000, tổng 100.000', e.status === 200
+      && (await tongDon(e)) === 100000 && Number((await grant(w1)).so_tien_giam) === 30000 && Number((await grant(w2)).so_tien_giam) === 10000, moTa(e));
+    // Voucher cả đơn giữ y như cũ: cả đơn 50.000 + theo món 50.000 → 50.000 + 40.000, tổng 50.000.
+    const t = await phat(a.sdt, 'tien', 50000), x = await theoX(50000);
+    const f = await ban({ customer_phone: a.sdt, items: gio, vouchers: [t, x] }, 50000);
+    k('Q24e voucher cả đơn 50.000 + theo món X 50.000 → 200, 50.000 + 40.000, tổng 50.000 (voucher cả đơn không đổi)', f.status === 200
+      && (await tongDon(f)) === 50000 && Number((await grant(x)).so_tien_giam) === 40000, moTa(f));
+  });
+
+  // ═════════════════════════════════════════════════════════════════════════
   muc('[K5] Không đổi: đơn không voucher, mã chung trên đơn chỉ món, đơn lấy từ gói + voucher');
   await chay('K5', async () => {
     const a = await khach();
