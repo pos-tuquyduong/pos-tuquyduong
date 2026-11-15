@@ -16,7 +16,7 @@ const inTien = (n) => `${Math.round(n).toLocaleString('vi-VN')}đ`;
  * @param {number} [p.truTruoc]  giảm Flash đã trừ trước
  * VOUCHER-2 (chủ quán 08–12.11): dong[].khong_giam = dòng thẻ hạng / gói / nạp — mã và voucher KHÔNG tính trên dòng đó (luật 10.11);
  *   dong[].flash = giá Flash một đơn vị (nếu có). Voucher (luôn dùng chung với giá hạng, như quà đổi điểm trước đây) tính SAU mã chung:
- *   voucher TIỀN theo thứ tự gửi → MỘT voucher % trên phần còn lại; voucher có `dong` (chỉ số dòng — nhóm / món chọn) tính trên tiền các dòng đó;
+ *   voucher TIỀN theo thứ tự gửi → MỘT voucher % trên phần còn lại; voucher có `dong` (chỉ số dòng — nhóm / món chọn) tính trên tiền CÒN LẠI của các dòng đó sau voucher theo món trước (Q24);
  *   mỗi khoản ≤ phần món còn lại → tổng giảm ≤ tiền món thường. Voucher ship chỉ giảm phí giao, cộng dồn ≤ phiGiao.
  * @param {Array<{loai:'percent'|'fixed', gia_tri:number, tran:number, ship:boolean, dong:number[]|null}>} [p.vouchers]
  * @param {number} [p.phiGiao]
@@ -70,7 +70,10 @@ function tinhUuDai({ dong, ma, dungChung, truTruoc = 0, tenHang = '', tenMa = ''
 /** Phần voucher của tinhUuDai (thứ tự: tiền → % → ship). con = tiền món thường còn lại sau Flash / hạng / mã; giaDong(i) = tiền dòng i sau Flash / hạng. */
 function tinhVoucher(dong, vouchers, con, phiGiao, giaDong) {
   const giam_voucher = vouchers.map(() => 0);
-  const coSo = (v) => (v.dong ? Math.min(con, v.dong.reduce((s, i) => s + (dong[i].khong_giam ? 0 : giaDong(i)), 0)) : con);
+  // Q24 (chủ quán 14.11): conDong[i] = tiền dòng i CÒN LẠI sau các voucher theo món đã áp — voucher theo món sau chỉ giảm trên phần này
+  // (trừ dần theo thứ tự dòng trong v.dong). Voucher cả đơn chỉ trừ `con`, không đụng conDong (giữ như trước Q24).
+  const conDong = dong.map((d, i) => (d.khong_giam ? 0 : giaDong(i)));
+  const coSo = (v) => (v.dong ? Math.min(con, v.dong.reduce((s, i) => s + conDong[i], 0)) : con);
   for (const loai of ['fixed', 'percent']) {
     vouchers.forEach((v, i) => {
       if (v.ship || v.loai !== loai) return;
@@ -79,6 +82,8 @@ function tinhVoucher(dong, vouchers, con, phiGiao, giaDong) {
       g = Math.min(g, coSo(v));
       giam_voucher[i] = g;
       con -= g;
+      let tru = g;
+      for (const j of v.dong || []) { const t = Math.min(tru, conDong[j]); conDong[j] -= t; tru -= t; }
     });
   }
   let phi = Math.max(0, Number(phiGiao) || 0);

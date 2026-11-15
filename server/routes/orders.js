@@ -823,6 +823,18 @@ async function taoDon(req, res, phien = null) {
       dungChung, truTruoc: flashDiscountAmount, tenHang: appliedTierName || "", tenMa: finalDiscountCode || "",
       vouchers: dsVoucher, phiGiao: finalShippingFee,
     });
+    // Q24 (chủ quán 14.11): voucher theo món mà các món đó đã được voucher theo món trước giảm hết → báo rõ, đơn không lưu (cùng khuôn lỗi voucher
+    // ở trên: ô mã cũ MỀM mọi đường, tinh-thu MỀM). Bỏ ra không đổi số voucher khác (nó giảm 0).
+    for (let i = dsVoucher.length - 1; i >= 0; i--) {
+      const v = dsVoucher[i];
+      if (!v.dong || v.ship || uuDai.giam_voucher[i] > 0) continue;
+      const l = { error: `Voucher ${v.code} không còn món để giảm`, code: "VOUCHER_HET_MON", ma: v.code };
+      if (v.code.toUpperCase() === voucherOMa) { maLoi = { error: l.error, code: l.code }; voucherOMa = null; }
+      else if (!phien?.tinhThu) return res.status(400).json(l);
+      else kv.loi.push(l);
+      dsVoucher.splice(i, 1);
+      uuDai.giam_voucher.splice(i, 1);
+    }
     const giamVoucher = dsVoucher.reduce((t, v, i) => t + (v.ship ? 0 : uuDai.giam_voucher[i]), 0);
     const giamShip = uuDai.giam_ship;
     const phiKhachTra = finalShippingFee - giamShip;   // VOUCHER-2: cột shipping_fee = phần khách trả; phần quán bù = cột giam_ship

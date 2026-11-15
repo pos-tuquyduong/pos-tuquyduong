@@ -65,7 +65,8 @@ Không xoá / đổi tên trường cũ — App v13 bỏ qua trường lạ là 
   nhận tại quán, nên báo `VOUCHER_SHIP_CAN_GIAO`. Báo giá: `giam[]` thêm dòng `loai: "voucher"` (voucher món) / `"voucher_ship"` kèm `ma`; voucher không áp
   được → không tính, báo ở `voucher_loi[] { ma, code, error }` (App hiện `error` cạnh mã): `VOUCHER_KHONG_TON_TAI` · `VOUCHER_CHINH_CHU` · `VOUCHER_DA_DUNG` ·
   `VOUCHER_HET_HAN` · `VUOT_SO_VOUCHER` · `VOUCHER_SHIP_CAN_GIAO` · `MA_KHONG_AP_MON_THUONG` · `VOUCHER_CHUA_DU_DON` · `VOUCHER_PHAN_TRAM_FLASH` ·
-  `VOUCHER_PHAN_TRAM_HAI` · `VOUCHER_KHONG_CO_MON` · `VOUCHER_DANG_GIU` (voucher đang được giữ cho một thanh toán chuyển khoản chưa xong — đợi tiền về / huỷ
+  `VOUCHER_PHAN_TRAM_HAI` · `VOUCHER_KHONG_CO_MON` · `VOUCHER_HET_MON` (voucher theo món mà các món đó đã được voucher theo món trước giảm hết — chủ quán
+  Q24 14.11: voucher sau chỉ giảm phần CÒN LẠI của chính các món đó) · `VOUCHER_DANG_GIU` (voucher đang được giữ cho một thanh toán chuyển khoản chưa xong — đợi tiền về / huỷ
   phiên đó) · `MA_DON_GOC_KHONG_HOP_LE` (voucher khách mới mà đơn có mã bill đã huỷ / hoàn). Đặt đơn tạo theo ĐÚNG các voucher báo giá đã nhận. Thiếu `vouchers` →
   băm khoá gửi y như cũ.
 - **Giữ voucher khi chờ chuyển khoản** (chủ quán Q16 13.11): đơn trả QR tạo phiên chờ tiền về → voucher của đơn được GIỮ cho phiên đó (ví `GET /voucher` không
@@ -267,7 +268,7 @@ Mua thẻ (v13): `NHIEU_THE` 400 · `HANG_CHI_CAP` 400 · `GOI_HANG_KHONG_BAN` 4
 Trong `ma_giam_loi.code` của báo giá: `MA_KHONG_TON_TAI` · `MA_KHONG_AP_DUNG` · `MA_KHONG_CO_MON` · `MA_KHONG_LOI_HON` · `MA_KHONG_AP_MON_THUONG` (v15).
 Trong `voucher_loi[].code` của báo giá (v15): `VOUCHER_KHONG_TON_TAI` · `VOUCHER_CHINH_CHU` · `VOUCHER_DA_DUNG` · `VOUCHER_HET_HAN` · `VUOT_SO_VOUCHER` ·
 `VOUCHER_SHIP_CAN_GIAO` · `MA_KHONG_AP_MON_THUONG` · `VOUCHER_CHUA_DU_DON` · `VOUCHER_PHAN_TRAM_FLASH` · `VOUCHER_PHAN_TRAM_HAI` · `VOUCHER_KHONG_CO_MON` ·
-`VOUCHER_DANG_GIU` · `MA_DON_GOC_KHONG_HOP_LE`.
+`VOUCHER_HET_MON` · `VOUCHER_DANG_GIU` · `MA_DON_GOC_KHONG_HOP_LE`.
 `nhan-ma-bill` / `nhan-diem` dùng hàm quầy, thêm các mã: `THIEU_MA` 400 · `MA_KHONG_TON_TAI` 404 · `MA_DA_DUNG` 409 · `UU_DAI_DANG_TAT` 400 ·
 `SDT_DA_NHAN` 400 · `DON_FLASH_KHONG_DIEM` 400 · `CAU_HINH_DIEM_SAI` 400 · `CHUA_CAU_HINH_NHOM` 500 · `MA_KHONG_GAN_DON` 400 · `KHONG_THAY_DON` 404 ·
 `DON_DA_HUY` 400 · `DON_DA_HOAN` 400 · `DON_KHONG_HOP_LE` 400 · `BILL_CHUA_THANH_TOAN` 400 · `BILL_SDT_KHAC` 400 · `NHANDIEM_DANG_TAT` 400 ·
@@ -333,7 +334,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     "MA_KHONG_AP_DUNG", "MA_KHONG_CO_MON", "MA_KHONG_LOI_HON", "NGAY_SINH_SAI", "NGAY_SINH_DA_CO",
     "NHIEU_THE", "HANG_CHI_CAP", "GOI_HANG_KHONG_BAN", "DA_CO_HANG_CAO_HON",
     "VOUCHER_KHONG_TON_TAI", "VOUCHER_CHINH_CHU", "VOUCHER_DA_DUNG", "VOUCHER_HET_HAN", "VUOT_SO_VOUCHER", "VOUCHER_SHIP_CAN_GIAO", "MA_KHONG_AP_MON_THUONG",
-    "VOUCHER_CHUA_DU_DON", "VOUCHER_PHAN_TRAM_FLASH", "VOUCHER_PHAN_TRAM_HAI", "VOUCHER_KHONG_CO_MON", "VOUCHER_DANG_GIU", "MA_DON_GOC_KHONG_HOP_LE",
+    "VOUCHER_CHUA_DU_DON", "VOUCHER_PHAN_TRAM_FLASH", "VOUCHER_PHAN_TRAM_HAI", "VOUCHER_KHONG_CO_MON", "VOUCHER_HET_MON", "VOUCHER_DANG_GIU", "MA_DON_GOC_KHONG_HOP_LE",
     "CAN_TAO_TAI_KHOAN", "KHACH_DA_CO_TAI_KHOAN", "UU_DAI_CHUA_CO_MAU"]
 }
 ```
@@ -394,5 +395,6 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   lỗi `CAN_TAO_TAI_KHOAN`, `KHACH_DA_CO_TAI_KHOAN`, `UU_DAI_CHUA_CO_MAU`);
   `hoa_don[]` thêm dòng `voucher`, `giam_ship`; (14.11, chủ quán Q16 / Q17) đơn chờ chuyển khoản giữ voucher (`VOUCHER_DANG_GIU`), `GET /voucher` lọc bằng
   ĐÚNG phép lúc bán, thêm mã `MA_DON_GOC_KHONG_HOP_LE` vào danh sách; (14.11, chủ quán Q18 / Q21) `nhan-ma-bill` nhận cả hồ sơ tạo trong 30 phút trước
-  bill của chính SĐT chưa có đơn trước (đơn đã huỷ không tính — Q23). Không xoá / đổi tên trường cũ — App v13 gửi
+  bill của chính SĐT chưa có đơn trước (đơn đã huỷ không tính — Q23); (15.11, chủ quán Q24) hai voucher theo món cùng món: voucher sau chỉ giảm
+  phần còn lại của các món đó, hết món → `VOUCHER_HET_MON`. Không xoá / đổi tên trường cũ — App v13 gửi
   `ma_giam` (kể cả mã voucher) chạy như trước; giỏ không `vouchers` băm khoá gửi y như cũ.
