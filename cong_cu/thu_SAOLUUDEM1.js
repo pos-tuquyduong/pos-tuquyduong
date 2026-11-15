@@ -111,8 +111,10 @@ async function main() {
   muc('[A] Một hàm dựng tệp (tĩnh)');
   const bk = doc(path.join(SV, 'routes', 'backup.js'));
   const route = (duong) => { const i = bk.indexOf(`'${duong}'`); return i < 0 ? '' : bk.slice(i).split(/\nrouter\./)[0]; };   // chỉ thân MỘT route (tới `router.` kế tiếp)
-  k('A1a backup.js có hàm dungTepSaoLuu và đúng MỘT chỗ XLSX.write(', /function dungTepSaoLuu\b|dungTepSaoLuu\s*=\s*(async )?(\(|function)/.test(bk) && (bk.match(/XLSX\.write\(/g) || []).length === 1,
-    `XLSX.write: ${(bk.match(/XLSX\.write\(/g) || []).length}`);
+  const dung = bk.split('async function dungTepSaoLuu')[1]?.split(/\nrouter\./)[0] || '';   // thân hàm (tới route kế tiếp)
+  k('A1a backup.js có hàm dungTepSaoLuu (có XLSX.write + bangDangCo); hai route /export-all, /tu-dong KHÔNG tự dựng tệp (không XLSX. / book_new / readTablePaged / bangDangCo)',
+    /XLSX\.write\(/.test(dung) && /bangDangCo\(\)/.test(dung) && ['/export-all', '/tu-dong'].every((d) => route(d) !== '' && !/XLSX\.|book_new|readTablePaged|bangDangCo/.test(route(d))),
+    `thân hàm ${dung.length} ký tự`);
   k("A1b /export-all và /tu-dong cùng gọi dungTepSaoLuu(", /dungTepSaoLuu\(/.test(route('/export-all')) && /dungTepSaoLuu\(/.test(route('/tu-dong')));
   const khoaMd = doc(path.join(SV, 'utils', 'khoaSaoLuuPos.js'));
   k(`B1a khoaSaoLuuPos.js xuất KHOA_CAI_DAT = '${KHOA_DB}' (tên khoá riêng một chỗ)`, new RegExp(`KHOA_CAI_DAT\\s*=\\s*'${KHOA_DB}'`).test(khoaMd) && /KHOA_CAI_DAT/.test(doc(path.join(SV, 'routes', 'settings.js'))));
@@ -135,7 +137,7 @@ async function main() {
   muc('[B] Khoá sao lưu POS: tạo / thay / thu hồi (chỉ chủ quán + PIN)');
   let khoa1 = '', khoa2 = '';
   await doan('B', async () => {
-    const t0 = await taoKhoa(A.vePos, undefined);
+    const t0 = await taoKhoa(A.vePos, null);
     const t1 = await taoKhoa(A.vePos, '0000');
     const t2 = await taoKhoa(veQly, PIN);
     const t3 = await A.goi('POST', QL, { body: { pin: PIN } });
@@ -266,7 +268,7 @@ async function main() {
     const chiKhoa = await gui('/api/pos/backup/restore', tepSheet([dongCd[1]]));
     const sau2 = (await A.q('SELECT value FROM pos_settings WHERE key = ?', [KHOA_DB]))[0];
     const conThuong = (await A.q("SELECT value FROM pos_settings WHERE key = 'thu_khoa_thuong'"))[0]?.value;
-    k('R3 tệp Cài đặt CHỈ có dòng khoá: trang bị bỏ qua (không xoá gì) — khoá nguyên, các khoá khác nguyên', chiKhoa.status === 200 && sau2?.value === nay.value && conThuong === 'tu-tep' && (await tu(khoaNay)).status === 200, moTa(chiKhoa));
+    k('R3 tệp Cài đặt CHỈ có dòng khoá: trang bị bỏ qua (không xoá gì) — khoá nguyên, các khoá khác nguyên', chiKhoa.status === 200 && sau2?.value === nay.value && conThuong === 'tu-tep' && (await tu(khoaNay)).status === 200, moTa(chiKhoa) + ' ' + JSON.stringify([sau2?.value === nay.value, conThuong]) + JSON.stringify(chiKhoa.j).slice(0, 300));
     const kthuong = await gui('/api/pos/backup/restore', tepSheet([{ key: 'thu_khoa_thuong', value: 'lan-hai', updated_at: '2026-11-02T00:00:00' }]));
     k('R4 tệp xuất bình thường (không dòng khoá) vẫn khôi phục được và KHÔNG làm mất khoá (K5)', kthuong.status === 200 && (await dongKhoa())?.value === nay.value
       && (await A.q("SELECT value FROM pos_settings WHERE key = 'thu_khoa_thuong'"))[0]?.value === 'lan-hai' && (await tu(khoaNay)).status === 200, moTa(kthuong));
