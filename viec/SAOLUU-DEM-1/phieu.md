@@ -52,9 +52,19 @@ không mở thêm quyền nào khác. Chủ quán tạo / thu hồi khoá trong 
 - E2 `thu_SAOLUU2.js`, `thu_NDAPI1.js` xanh nguyên (không sửa).
 - K5 Không đổi: tải tay "Sao lưu toàn bộ", xuất từng bảng, xem trước / khôi phục (SAOLUU-2), khoá `ndk_` của nội dung App, đăng nhập POS.
 
+<!-- Chủ quán 15.11 — trả lời câu hỏi B1 (trạng thái 4e8e5b9):
+     ĐỒNG Ý đề xuất — thêm `server/routes/settings.js` vào Phạm vi, chỉ sửa đúng chỗ khoá sao lưu POS:
+       (1) MỘT hằng tên khoá ở `utils/khoaSaoLuuPos.js`, settings.js chỉ import; (2) `GET /` bỏ dòng khoá đó, `GET /:key` → 404;
+       (3) `PUT /` có khoá đó trong thân → 403 `KHOA_RIENG` (chỉ cửa tạo / thu hồi ở backup.js ghi được). Bài thử thêm ca + đột biến gỡ từng vế.
+     Phát hiện "khôi phục bản cũ làm sống lại khoá đã thu hồi" — LÀM LUÔN (cùng việc, ít dòng): `export-all` / `export/pos_settings` KHÔNG xuất dòng khoá;
+       khôi phục (xem trước + khôi phục) BỎ QUA dòng khoá nếu tệp cũ có. Bài thử: tệp xuất không chứa dòng khoá; khôi phục tệp có dòng khoá → khoá đang
+       dùng không đổi, khoá cũ không sống lại.
+     Rồi làm thẳng tới hết (soát độc lập → soát bảo mật → cổng → báo cáo 7 mục). Đẩy nhánh sau mỗi bước lớn. -->
+
 ## Phạm vi
 - viec/SAOLUU-DEM-1/**
 - server/routes/backup.js
+- server/routes/settings.js
 - server/utils/khoaSaoLuuPos.js
 - client/src/pages/CaiDat/KhoaSaoLuuPos.jsx
 - client/src/pages/Settings.jsx
