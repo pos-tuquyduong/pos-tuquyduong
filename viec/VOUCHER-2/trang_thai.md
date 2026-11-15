@@ -662,3 +662,43 @@ tiền → luật (LUAT §6.5) bảo dừng hỏi bạn, không tự sửa.
 Đột biến đầy đủ sau vòng sửa 3 (HEAD 415511f2, có ĐỐI CHỨNG): **ĐỘT BIẾN VOUCHER-2: 99/99 bị bắt**.
 
 ### Dừng (14.11, lần 4) — chờ chủ quán trả lời Q24. Chưa chạy: `cong.js chay`, báo cáo 7 mục.
+
+## Phiên 15.11 — lệnh "VOUCHER-2 tiep" (Q25): Q24 → đột biến → cổng → báo cáo 7 mục
+### Bước 1 — đối chiếu bản chụp
+- Hook mở phiên báo "máy và origin lệch nhau". Nhánh `viec/VOUCHER-2`, cây sạch. HEAD `e94708f` · FETCH_HEAD `aa51bd4`; kho nông → `git fetch -q --unshallow`
+  → so lại: HEAD là tổ tiên → `git pull --no-rebase --ff-only origin viec/VOUCHER-2` → HEAD `aa51bd4a`.
+- `git log --oneline -3`:
+  ```
+  aa51bd4a VOUCHER-2: dot bien day du sau vong sua 3: 99/99
+  5e4a7163 VOUCHER-2: soat bao mat lan 1 nguyen van (0 loi - DAT), cau hoi Q24 (hai voucher theo mon cung giam mot mon), dung
+  415511f2 VOUCHER-2: vong sua 3 bang chung (goc 9f20388c do Q22e/Q18g, 8216fad6 do Q18h, va 139/0, dot bien 7/7), SO CA 139
+  ```
+- Máy này mở từ bản chụp mới, KHÔNG còn 3 commit Q24 của phiên trước → theo Q25 làm lại Q24 từ `aa51bd4a`.
+  Trả lời Q24 (chủ quán đồng ý đề xuất, chat ghi vào phiếu lúc gộp): voucher theo món sau chỉ giảm phần CÒN LẠI của chính các món đó;
+  hết món → "Voucher <MÃ> không còn món để giảm", đơn không lưu; voucher cả đơn giữ y như cũ.
+
+### Q24 — đã làm (bài đỏ trước: d40b9388; vá: e5564bfd)
+- `server/utils/uuDai.js` `tinhVoucher`: thêm `conDong[i]` = tiền dòng i còn lại; voucher có `dong` tính `coSo` trên tổng `conDong` các dòng đó (vẫn ≤ `con`),
+  áp xong trừ dần trên các dòng theo thứ tự trong `v.dong`. Voucher cả đơn chỉ trừ `con` (không đụng `conDong`) — y như cũ.
+- `server/routes/orders.js` (ngay sau `tinhUuDai`): voucher theo món (không ship) giảm 0 → `{ error: "Voucher <MÃ> không còn món để giảm", code: "VOUCHER_HET_MON", ma }`.
+  POST / chốt phiên → 400, đơn không lưu, không tiêu voucher; tinh-thu / báo giá App → MỀM (bỏ voucher đó ra, báo ở `voucher_loi`); voucher gửi ở ô mã cũ →
+  MỀM ở mọi đường như mọi lỗi ô mã (`ma_loi`). Bỏ ra không đổi số voucher khác (nó giảm 0).
+- `HOP_DONG_API_KH.md`: thêm mã `VOUCHER_HET_MON` (mục voucher, mục Mã lỗi, danh sách máy đọc) + nhật ký v15 (v15 chưa gộp main — không tăng số, như Q16–Q23).
+- Bài `thu_VOUCHER2` mục **[Q24]** (bộ số tính tay: món X = M2 20.000 × 2 = 40.000, món khác M0 50.000 × 2 = 100.000):
+  Q24a hai voucher "Giảm 50.000đ cho món X" → 400 VOUCHER_HET_MON + đúng câu + voucher 1 còn · Q24c tinh-thu MỀM tổng 100.000 · Q24b bỏ voucher thứ hai → giảm
+  đúng 40.000, tổng 100.000 · Q24d 30.000 + 30.000 → 30.000 + 10.000 (không chặn oan) · Q24e cả đơn 50.000 + theo món 50.000 → 50.000 + 40.000 (cả đơn không đổi).
+  Gốc **142 · 4** (Q24a ×2, Q24c, Q24d đỏ) → vá **146 · 0**. `thu_HOPDONG_KH` 90 · 0. `npm test -- --day-du`: PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+
+| Chỗ vá | Đột biến |
+|---|---|
+| uuDai.js trừ phần đã giảm trên từng dòng | BV-V2-Q24-CON-DONG |
+| uuDai.js voucher cả đơn KHÔNG trừ dòng | VS-V2-Q24-CA-DON-TRU |
+| orders.js báo "không còn món để giảm" | BV-V2-Q24-BAO · VS-V2-Q24-NGUONG |
+| orders.js tinh-thu MỀM | VS-V2-Q24-TINH-THU-CUNG |
+
+- Đột biến Q24: ĐỐI CHỨNG 146 · 0; **5/5 BẮT**.
+- K4: `tinhVoucher` chỉ một chỗ gọi (`uuDai.js:65`); `tinhUuDai` gọi ở `orders.js` (tạo đơn, tinh-thu, phiên payOS — cùng `taoDon`) và `giaHang.js:18` (chỉ giá hạng,
+  không voucher). Hoá đơn / hoàn / đối soát đọc số đã lưu (`so_tien_giam`, `giam_voucher`), không tính lại phần theo món → không cùng khuôn. Màn quầy hiện nguyên
+  `error` / `voucher_loi` của máy chủ (không có câu viết cứng theo mã) → không đổi `client/src/`.
+- Người gác chặn: `[B-PHANTICH]` heredoc python rồi chạy script cùng lệnh → tách hai lệnh.
+- Không gọi soát độc lập (lệnh Q25: "Không gọi soát độc lập nữa"). SOÁT LẦN CUỐI: chat soát thay
