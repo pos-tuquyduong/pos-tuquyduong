@@ -17,6 +17,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const { pathToFileURL } = require('url');
 
 const GOC = path.join(__dirname, '..');
 const iMC = process.argv.indexOf('--may-chu');
@@ -492,6 +493,23 @@ async function main() {
     const vb = await goi('GET', `/kh/vi?phone=${kh.sdt}`, undefined, kb.tk);
     k('D4 khách B gửi ?phone của A → chỉ thấy ví của B (SĐT từ token)', la(vb, 200) && (vb.j.data || []).length === 1 && vb.j.data[0].so_tien === 77777,
       JSON.stringify(vb.j.data));
+  });
+
+  muc('[F] Màn quầy (B5, E1) — chạy hàm thật của tinh.js; nhánh vẽ dò trên mã nguồn (bản sao --may-chu nếu có)');
+  await chay('F', async () => {
+    const SRC = iMC > 0 ? path.join(MAY_CHU, '..', 'client', 'src') : path.join(GOC, 'client', 'src');
+    const T = await import(pathToFileURL(path.join(SRC, 'pages', 'BanHang', 'tinh.js')).href);
+    const coSoDu = { balance: 50000, parent_balance: 0 };
+    k('B5 lyDoKhongTru: giỏ có thẻ (khách có số dư) → lý do "Thẻ hội viên chỉ trả tiền mặt hoặc chuyển khoản"; bỏ laThe → null (mặc định, lời gọi cũ)',
+      T.lyDoKhongTru({ khach: coSoDu, laNap: false, laThe: true }) === 'Thẻ hội viên chỉ trả tiền mặt hoặc chuyển khoản'
+      && T.lyDoKhongTru({ khach: coSoDu, laNap: false }) === null, String(T.lyDoKhongTru({ khach: coSoDu, laNap: false, laThe: true })));
+    const bh = fs.readFileSync(path.join(SRC, 'pages', 'BanHang', 'BanHangMoi.jsx'), 'utf8');
+    const ttj = fs.readFileSync(path.join(SRC, 'pages', 'BanHang', 'ThuTien.jsx'), 'utf8');
+    k('B5 BanHangMoi: giỏ có thẻ tắt trừ tài khoản (cả mẹ) như giỏ nạp; ThuTien chuyển laThe vào lyDoKhongTru',
+      /const laThe = !!layThe\(gio\)/.test(bh) && /dungTK: dungTK && !chiTienThat, dungMe: dungMe && dungTK && !chiTienThat/.test(bh)
+      && /chiTienThat = laNap \|\| laThe/.test(bh) && /laThe=\{laThe\}/.test(bh) && /lyDoKhongTru\(\{ khach, laNap, laThe \}\)/.test(ttj));
+    const da = fs.readFileSync(path.join(SRC, 'pages', 'DonApp.jsx'), 'utf8');
+    k('E1 DonApp.jsx: đơn nạp hiện nhãn co_nap "đã vào tài khoản, không pha"', /\{d\.co_nap && <div[^\n]*\{d\.co_nap\} — [^\n]*đã vào tài khoản, không pha/.test(da));
   });
 
   noiLai();
