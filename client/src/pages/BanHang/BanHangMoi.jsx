@@ -170,8 +170,10 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const tinh = useMemo(() => tinhGio(gio, { flash, hang }), [gio, flash, hang]);   // chỉ để hiện giá dòng khi chưa có số máy chủ
   const tong = coSo ? Math.round(mayChu.total) : tinh.tong;
   const laNap = !!layGoiNap(gio);                          // NAP-1: giỏ là gói nạp → không trừ tài khoản, không mã
+  const laThe = !!layThe(gio);                             // KH-NAP-1: giỏ có thẻ hạng → không trừ tài khoản (mã / giao vẫn như cũ)
+  const chiTienThat = laNap || laThe;
   const dungTK = cachTra === 'tai_khoan';                  // chỉ khi nhân viên bấm "Trừ tài khoản"
-  const { soDuDung, soDuMeDung, phaiTra } = chiaTra({ tong: coSo ? tong : 0, khach, dungTK: dungTK && !laNap, dungMe: dungMe && dungTK && !laNap });
+  const { soDuDung, soDuMeDung, phaiTra } = chiaTra({ tong: coSo ? tong : 0, khach, dungTK: dungTK && !chiTienThat, dungMe: dungMe && dungTK && !chiTienThat });
   const soLy = gio.reduce((s, m) => s + m.quantity, 0);
   const dongMayChu = coSo && mayChu.items?.length === gio.length ? viTriMayChu(gio).map((v) => mayChu.items[v]) : null;   // giá từng dòng do máy chủ trả, xếp theo dòng giỏ (thẻ nằm cuối bên máy chủ)
 
@@ -446,8 +448,8 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
             {!laNap && <ChipVoucher vi={viVoucher} chon={vcChon} loi={vcLoi} toiDa={toiDaVoucher} onLat={latVoucher} />}
           </div>
           {!laNap && <KhungGiao bat={cheDoGiao} onBat={setCheDoGiao} giao={giao} onGiao={setGiao} khach={khach} />}
-          {!choPhiGiao && <ThuTien key={`${tong}-${soDuDung}-${soDuMeDung}-${khoa}`} coSo={coSo} tong={tong} phaiTra={phaiTra} khach={laNap && khach ? { ...khach, balance: 0, parent_balance: 0 } : khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
-            cachTra={cachTra} onCachTra={doiCachTra} cachConLai={cachConLai} onCachConLai={setCachConLai} laNap={laNap} dungMe={dungMe} onDungMe={setDungMe} dangGui={dangGui} onThu={thu} />}
+          {!choPhiGiao && <ThuTien key={`${tong}-${soDuDung}-${soDuMeDung}-${khoa}`} coSo={coSo} tong={tong} phaiTra={phaiTra} khach={chiTienThat && khach ? { ...khach, balance: 0, parent_balance: 0 } : khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}
+            cachTra={cachTra} onCachTra={doiCachTra} cachConLai={cachConLai} onCachConLai={setCachConLai} laNap={laNap} laThe={laThe} dungMe={dungMe} onDungMe={setDungMe} dangGui={dangGui} onThu={thu} />}
         </>
       )}
     </div>
