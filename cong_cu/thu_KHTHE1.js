@@ -408,6 +408,8 @@ async function main() {
     k('E2 xoá đơn thẻ App → dòng sổ mất, hết hạng', la(r2, 200) && (await soThe(k2.sdt)) === 0 && (await hangToi(k2)) === null, moTa(r2));
     const k3 = await khach(1000000);
     const e3 = await datTra(k3, gio([the(VANG, 1)]));
+    // KH-NAP-1: yêu cầu hoàn chỉ cho đơn trả bằng số dư — đơn thẻ nay trả QR; giữ ý "đơn có thẻ không hoàn qua yêu cầu" bằng dữ liệu CŨ (đơn thẻ trả ví trước v17).
+    await db.run('UPDATE pos_orders SET balance_amount = total, transfer_amount = 0, payment_method = ? WHERE id = ?', ['balance', await oidCua(e3.j.ma_don)]);
     const r3 = await goi('POST', '/pos/refunds', { order_id: await oidCua(e3.j.ma_don), reason: 'thử hoàn' }, tkChu);
     k('E3 xin hoàn đơn thẻ App → 400 DON_CO_GOI như quầy, hạng giữ', la(r3, 400, 'DON_CO_GOI') && (await hangToi(k3))?.id === VANG, moTa(r3));
     const k4 = await khach();
@@ -519,7 +521,7 @@ async function main() {
     const a = await datTra(ka, gio([the(VANG, 1)]));
     const o = await taoTaiQuay(kq, { items: [], membership_buy: { tier_id: VANG, so_thang: 1 }, payment_method: 'cash', cash_amount: 100000 });
     const dA = await diemDon((await phienCua(a.j.ma_don))?.order_id), dQ = await diemDon(o.j.order?.id);
-    k('H1 điểm đơn thẻ App (trả ví 100.000) = điểm đơn thẻ quầy (tiền mặt 100.000)', la(a, 200) && dA === dQ && dQ > 0, `${dA} / ${dQ}`);
+    k('H1 điểm đơn thẻ App (QR 100.000) = điểm đơn thẻ quầy (tiền mặt 100.000)', la(a, 200) && dA === dQ && dQ > 0, `${dA} / ${dQ}`);
   });
 
   muc('[GIỜ] (Q4 chủ quán 09.11) giỏ không cần pha chế bán MỌI giờ; giỏ có đồ uống vẫn theo giờ');
@@ -530,7 +532,7 @@ async function main() {
     k('GIO1 quán đóng: giỏ chỉ thẻ → 200; có đồ uống (một mình / cùng thẻ) → 400 NGOAI_GIO', la(c1, 200) && la(c2, 400, 'NGOAI_GIO') && la(c3, 400, 'NGOAI_GIO'),
       [c1, c2, c3].map(moTa).join(' / '));
     const d = await datTra(kh, gio([the(VANG, 1)]));
-    k('GIO3 quán đóng: đặt giỏ chỉ thẻ trả ví → 200 + có hạng', la(d, 200) && (await hangToi(kh))?.id === VANG, moTa(d));
+    k('GIO3 quán đóng: đặt giỏ chỉ thẻ (QR về đủ) → 200 + có hạng', la(d, 200) && (await hangToi(kh))?.id === VANG, moTa(d));
     await datLich(hhmm(-60), hhmm(30), 60);
     const n1 = await baoGia(kh, gio([the(VANG, 1)])), n2 = await baoGia(kh, gio([mon(0)]));
     k('GIO2 quá giờ nhận đơn: giỏ chỉ thẻ → 200; đồ uống → 400 QUA_GIO_NHAN_DON', la(n1, 200) && la(n2, 400, 'QUA_GIO_NHAN_DON'), `${moTa(n1)} / ${moTa(n2)}`);
@@ -540,7 +542,7 @@ async function main() {
   muc('[K5] Không đổi — giỏ cũ, khoá gửi cũ');
   await chay('K', async () => {
     const kh = await khach(1000000);
-    const d = await datTra(kh, gio([mon(0, 2, 'ít đá'), mon(1, 1)]));
+    const d = await dat1(kh, gio([mon(0, 2, 'ít đá'), mon(1, 1)]), { cach_tra: 'vi', pin: '1357' });   // đồ uống vẫn trả ví (K5)
     const a = await donApp(d.j.ma_don);
     k('K1 giỏ cũ (không thẻ) băm y như code gốc — khoá gửi đang sống trên production không lệch', la(d, 200) && a?.bam === BAM_GOC, `${moTa(d)} · ${a?.bam}`);
     k('K2 đơn đồ uống trả ví → da_tra như cũ (quầy còn pha)', d.j.tien_trinh === 'da_tra', d.j.tien_trinh);
