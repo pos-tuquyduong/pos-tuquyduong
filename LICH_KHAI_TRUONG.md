@@ -17,7 +17,7 @@
 |---|---|---|
 | Opus làn 1 | VOUCHER-2 (gần xong) → KET-NOI-1 → MATKHAU-1 → COMBO-1a → TOPPING-1 → GIOVANG-1 → CT-1b → KENH-1 → MANKHACH-2b → BO-MAN-CU-1 | ~T5 26.11 |
 | Opus làn 2 | HUY-1 ✓ → ND-API-1 ✓ → KH-NAP-1 (+ thẻ chỉ trả tiền thật) → QUA-1 → KH-MUA-2 → GIAO-MA-1 → KHO-3 → KHO-2c | ~T2 23.11 |
-| Sonnet | BAO-1b ✓ → QC-APP-1 ✓ → DANG-NHAP-2 (gần xong) → MANKHACH-2a → QUET-1 → COMBO-1b → KHUNG-KIEM-1 → GIAO-DIEN-2 | ~CN 22.11 |
+| Sonnet | BAO-1b ✓ → QC-APP-1 ✓ → DANG-NHAP-2 ✓ → SAOLUU-DEM-1 (15.11, ~0,5 ngày) → MANKHACH-2a → QUET-1 → COMBO-1b → KHUNG-KIEM-1 → GIAO-DIEN-2 | ~CN 22.11 |
 | Chủ quán | dọn dữ liệu thử · kiểm kê đầu kỳ · tắt SX → chạy thử toàn quán → sửa lỗi (~3–4 ngày) | |
 | **Khai trương** | **thực tế khoảng T6 04.12** (giữ như 12.11) | |
 | Cuối danh sách (nối tiếp, không chờ) | DOI-DIEM-1 → QUET-2 → GIOI-THIEU-1 → QUA-TANG-1 (sau cùng) · CHU-KHACH-1 · NHATKY-CAIDAT-1 · VOUCHER-3 (chat xếp khi VOUCHER-2 gộp) | ~T3 08.12 |
