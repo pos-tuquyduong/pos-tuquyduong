@@ -703,3 +703,66 @@ tiền → luật (LUAT §6.5) bảo dừng hỏi bạn, không tự sửa.
 - Người gác chặn: `[B-PHANTICH]` heredoc python rồi chạy script cùng lệnh → tách hai lệnh.
 - Không gọi soát độc lập (lệnh Q25: "Không gọi soát độc lập nữa"). SOÁT LẦN CUỐI: chat soát thay
 - Đột biến đầy đủ sau Q24 (HEAD d1065d45 trở đi, chỉ thêm hồ sơ; có ĐỐI CHỨNG 146 · 0): **ĐỘT BIẾN VOUCHER-2: 104/104 bị bắt** (99 cũ + 5 Q24).
+
+### Cổng (đứng ở HEAD c4fbd98f, cây sạch)
+- `node tu_chay/cong.js chay . 9f4eab2d^ HEAD viec/VOUCHER-2` (mốc theo chữ bước 4 — commit PHIEU đầu tiên) → ĐỎ 8 lý do: A16 đòi `SỐ CA` cho 7 bài của
+  việc KHÁC (thu_BAO1b, thu_DOISOAT1, thu_GIAO1, thu_HUY1, thu_P24, thu_P26b, thu_gia_lap) — các bài này vào diff vì nhánh đã gộp `main 171109f` (c2fc2013),
+  VOUCHER-2 không đổi chúng; và A11 `thu_gia_lap.js` 179 · 1 khi chạy cùng đợt nặng (dòng ✗ bị cắt ngoài phần in). Chạy riêng 3 lần: 180 · 0 cả ba.
+- Cổng PR thật dùng `merge-base(main, head)` (`tu_chay/cong.js:124`) = `171109f9` (main đã gộp) → chạy đúng mốc đó:
+  `node tu_chay/cong.js chay . 171109f9 HEAD viec/VOUCHER-2` →
+✓ CỔNG CHẠY ĐẠT
+  (kèm 2 CẢNH BÁO A16 không chặn: thu_HD1 gốc 138 ≠ 146… head 158; thu_VOUCHER2 gốc 144 ≠ head 146 — bài cũ sửa / ca mới, đã có bằng chứng đỏ.)
+
+## Phát hiện (15.11)
+- `cong_cu/thu_gia_lap.js` đỏ 1 ca (179 · 1) khi `cong.js chay` chạy nhiều bài cùng lúc; chạy riêng 3/3 sạch (180 · 0). Không biết ca nào (phần in bị `tail`
+  cắt). Bài không thuộc VOUCHER-2 đổi (với mốc main). Nghi ca thời gian dưới tải (K3 "ca tín hiệu / thời gian không chạy chung đợt nặng") — chưa đo, chưa sửa.
+- Mốc cổng ở bước 4 / 11.4 của `/lam-viec` ("commit PHIEU đầu tiên ^") sai với nhánh đã gộp main: kéo cả bài của việc khác vào A16 / A11. Mốc đúng như cổng
+  GitHub là merge-base với main (ở đây `171109f9`).
+
+## BÁO CÁO 7 MỤC (15.11)
+```
+VIỆC:        VOUCHER-2 — Voucher nhiều loại, nhiều voucher một đơn (phiên này: Q24 — hai voucher theo món cùng món)
+ĐÃ SỬA:      server/utils/uuDai.js:73-90 — tinhVoucher giữ conDong (tiền từng dòng còn lại); voucher theo món tính trên phần còn lại của chính các
+               dòng đó, áp xong trừ dần trên dòng; voucher cả đơn không đổi
+             server/routes/orders.js:826-838 — voucher theo món giảm 0 → "Voucher <MÃ> không còn món để giảm" (VOUCHER_HET_MON): POST / chốt phiên
+               400, đơn không lưu, không tiêu voucher; tinh-thu / báo giá App MỀM (voucher_loi); ô mã cũ MỀM (ma_loi)
+             HOP_DONG_API_KH.md:68, 271, 337, 399 — mã VOUCHER_HET_MON + nhật ký v15 (v15 chưa gộp main, không tăng số)
+             cong_cu/thu_VOUCHER2.js:1340-1372 — mục [Q24] Q24a–e; viec/VOUCHER-2/dot_bien.py — 5 đột biến Q24
+             (các phần A–I, Q2–Q23 của việc: xem các phiên trước trong file này)
+BÀI THỬ:     thu_VOUCHER2 trên bản chưa vá (code aa51bd4a, bài d40b9388) → ĐỎ 142 · 4 ở Q24a (×2: tổng thật 60.000 — giảm 80.000 trên món 40.000),
+               Q24c (giam_voucher 80.000), Q24d (tổng 80.000); sau vá (e5564bfd) → XANH 146 · 0
+             Đột biến Q24 5/5 BẮT; đột biến đầy đủ 104/104 (có ĐỐI CHỨNG 146 · 0); thu_HOPDONG_KH 90 · 0;
+             npm test -- --day-du PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước); cổng chay (mốc main 171109f9) ĐẠT
+ĐÃ RÀ K4:    grep "tinhVoucher\|coSo(" server client/src → 1 chỗ gọi (uuDai.js:65); grep "tinhUuDai" server → orders.js (tạo đơn, tinh-thu, phiên
+               payOS — cùng taoDon) + giaHang.js:18 (không voucher); grep "\.dong" orders.js → chỉ chỗ vá. Hoá đơn / hoàn / đối soát đọc số đã lưu
+               (so_tien_giam) — không cùng khuôn. Màn quầy hiện nguyên error / voucher_loi của máy chủ → không đổi client/src (dist không đổi)
+CHƯA KIỂM:   - Không chạy lại /ra-soat cho Q24 (lệnh Q25 "không gọi soát độc lập nữa") — chat soát thay. Không soát bảo mật lại (Q24 chỉ đổi tính
+               tiền, không đổi quyền / đường vào).
+             - Voucher theo món chồng một PHẦN tập món (A trên {X, Y}, B trên {X}): A trừ dần theo thứ tự dòng trong giỏ, nên số B giảm phụ thuộc thứ
+               tự đó. Chưa có ca thử; hôm nay chỉ mẫu khách mới đặt được "theo món" nên khó gặp.
+             - Voucher % theo món nhỏ làm tròn về 0 (vd 1 % trên vài chục đồng) cũng bị báo "không còn món để giảm" — chưa có ca, coi như không gặp.
+             - thu_gia_lap.js đỏ 1 ca dưới tải trong cổng mốc cũ; riêng 3/3 sạch — chưa biết ca nào (Phát hiện 15.11).
+             - Chưa thử tay trên quầy thật / Turso; bài dùng libsql file. Chưa chạy bash ban_mau_pos/chay_thu.sh (bản mẫu không đổi phiên này).
+             - Thử tay cho chủ quán (điện thoại): (1) khách có 2 voucher "Giảm …đ cho món X", giỏ có món X rẻ hơn tổng hai voucher → chọn cả hai →
+               quầy báo "Voucher <MÃ> không còn món để giảm"; (2) bỏ voucher thứ hai → giảm đúng bằng giá món X.
+GIT:         c4fbd98f VOUCHER-2: dot bien day du sau Q24: 104/104
+             a977adac VOUCHER-2: trang thai phien 15.11 (Q24 lam lai tu aa51bd4a, bang cho va -> dot bien)
+BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 1 · BỎ 2 — chi tiết ở ## Bài học (15.11)
+```
+
+### Đếm nghiệm thu (mỗi mục một dòng, bằng chứng)
+- A mẫu voucher — thu_VOUCHER2 [A] :301 · B phát từ mẫu — [B] :373 · C nhiều voucher + N + mã chung — [C] :398 (C1–C9) + [Q24] :1340 (Q24a–e: tổng giảm theo món
+  không vượt món) · D flash — [D] :500 · E ship — [E] :512 · F không áp thẻ / gói / nạp — [F] :549 + Q22e · G huỷ / hoàn / đua — [G] :635 + Q16f · H App KH — [H] :706
+  + thu_HOPDONG_KH 90 · 0 · I lưu đủ mã / báo cáo / đối soát / màn Bán hàng — [I] :749, [Q14] :1087, [Q19] :1308 · K5 không đổi — [K5] :1374 + Q24b/d/e.
+  Tất cả trong lần chạy 146 · 0 ở HEAD. Mục thiếu bằng chứng: không.
+
+## Bài học (15.11)
+- KHOÁ (ngoài Phạm vi — đề xuất, máy không làm): `tu_chay/skill_lam_viec.md` bước 4 / 11.4 lấy mốc cổng = `merge-base` của nhánh với main (như
+  `cong.js:124` ở cổng GitHub), không phải "commit PHIEU đầu tiên ^" — nhánh đã gộp main thì mốc cũ kéo 7 bài của việc khác vào A16 / A11 (đỏ oan, K2).
+  Phép kiểm: `thu_cong.js` thêm ca nhánh có commit gộp main → `tinh` với mốc mặc định không liệt kê file của main. (Bộ khung đóng băng tới khai trương → làm sau.)
+- NGUYÊN TẮC (K3, ví dụ thật): giới hạn "theo phần" (voucher theo món) cần trạng thái phần CÒN LẠI theo từng phần, không chỉ một trần tổng — trần tổng
+  (`con`) vẫn đúng nên mọi ca cũ xanh trong khi tiền tràn sang món khác. Ca thử phải có HAI khoản cùng đè một phần (đề xuất thêm vào KHUON_LOI K3, ngoài Phạm vi).
+- BỎ: 3 commit Q24 của phiên trước mất vì máy mở bản chụp mới (Q25 đã lường trước, làm lại) — một lần.
+- BỎ: người gác chặn `until` trong Monitor và heredoc + chạy script cùng lệnh — làm đúng hướng dẫn, chờ thông báo nền.
+
+HEAD ĐÃ KIỂM: c4fbd98f
