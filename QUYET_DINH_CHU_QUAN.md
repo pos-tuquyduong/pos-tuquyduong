@@ -306,6 +306,12 @@
   mục TQD-SAO-LUU và dự án "TQD Sao Lưu Tự Động" trên Drive.
 - 15.11 · App SX không dùng cho quán nữa (chủ quán chuyển sang việc cá nhân) — không sao lưu SX, không làm phần SX.
 - 15.11 · DANG-NHAP-2 gộp, chủ quán thử đạt (gõ sai 6 lần bị chặn; máy khác dùng 4G vẫn vào bình thường).
+- 15.11 · VOUCHER-2 gộp (PR #95). Q24: hai voucher "theo món" cùng một món → voucher sau chỉ giảm phần CÒN LẠI của món đó; hết → báo "không còn món để
+  giảm", không lưu đơn. Việc dọn VOUCHER-3 làm SAU khai trương (không lệch tiền).
+- 15.11 · KH-NAP-1 duyệt kế hoạch: đơn App chỉ thẻ / chỉ nạp tiền về muộn → máy tự chốt, đủ quyền lợi (thẻ có hạng, nạp có thưởng), không thêm mục
+  CẦN XEM ở Đối soát; xác nhận tay phiên App muộn vẫn chặn (tránh tạo đơn hai lần cho một khoản).
+- 15.11 · Sao lưu bản 2: chat App KH giữ mã Apps Script; mọi bản sao lưu (dữ liệu, mã nguồn mỗi Chủ nhật, thiết kế) về Drive TQD-SAO-LUU;
+  giữ theo tầng (7 ngày + 4 tuần + 12 tháng; mã nguồn 4 tuần + 6 tháng); lỗi thì Google tự email; chat POS soát phần khoá + phần POS (ĐẠT, 2 chỗ sửa).
 
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
