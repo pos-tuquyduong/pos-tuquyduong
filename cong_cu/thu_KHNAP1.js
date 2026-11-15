@@ -348,8 +348,9 @@ async function main() {
     await webhook(pe); await webhook(pe, { reference: 'REFN-E2' });
     await db.run('UPDATE pos_goi_nap SET is_active = 1 WHERE id = ?', [G1]);
     // Soát vòng 1 lỗi 1: cổng gửi lại ĐÚNG báo cũ (cùng reference) sau khi nguyên nhân đã gỡ (gói bật lại) → báo đã ghi KHÔNG bao giờ chốt đơn.
-    await webhook(pe, { reference: 'REFN-E2' });
-    k('A6 gói bật lại rồi cổng gửi lại ĐÚNG báo cũ → không đơn, ví không đổi (báo đã ghi không chốt lần hai)', (await vi(ke.sdt)).so_du === 200000
+    const guiLai = await webhook(pe, { reference: 'REFN-E2' });
+    k('A6 gói bật lại rồi cổng gửi lại ĐÚNG báo cũ → 200 (cổng thôi gửi), không đơn, ví không đổi (báo đã ghi không chốt lần hai)', guiLai.status === 200
+      && (await vi(ke.sdt)).so_du === 200000
       && (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [ke.sdt])) === 0 && (await soThe(ke.sdt)) === 0, String((await vi(ke.sdt)).so_du));
     const dsE = (await goi('GET', '/kh/don', undefined, ke.tk)).j.data?.find((x) => x.ma === e.d.j.ma_don);
     const qEs = ((await goi('GET', '/pos/kh/don-app', undefined, tkChu)).j.data || []).filter((x) => x.tien_trinh === 'vao_vi' && x.ma === e.d.j.ma_don);
