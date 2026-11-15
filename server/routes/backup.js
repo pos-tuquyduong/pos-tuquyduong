@@ -15,6 +15,8 @@ const { docTrang, lapKeHoach, thucHien } = require('../utils/khoiPhuc');
 const { loiGhi } = require('./wallets');   // kho bận → 409 KHO_BAN, lỗi khác → 500 không lộ câu nội bộ
 const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 const { chiaPhan } = require('../utils/donThu');
+const khoaTuDong = require('../utils/khoaSaoLuuPos');   // SAOLUU-DEM-1: khoá sao lưu tự động (một dòng pos_settings)
+const { kiemPinChuQuan } = require('../utils/pinChuQuan');
 const { xuat: xuatNoiDungApp } = require('../nd/duLieu');   // ND-API-1: chỗ DUY NHẤT POS gọi vào nd — bê nd đi thì xoá ở đây
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -40,6 +42,12 @@ async function readTablePaged(tableName, orderKey, boCot = []) {
     offset += BACKUP_PAGE_SIZE;
   }
   return all;
+}
+
+/** Đọc một bảng để xuất. SAOLUU-DEM-1: pos_settings bỏ dòng khoá sao lưu tự động — băm khoá không bao giờ vào tệp (export-all, export/:table, cửa tự động). */
+async function docBang(t) {
+  const rows = await readTablePaged(t.name, t.key, t.boCot);
+  return t.name === 'pos_settings' ? rows.filter((r) => r.key !== khoaTuDong.KHOA_CAI_DAT) : rows;
 }
 
 // Các bảng cần backup (thứ tự quan trọng cho restore - parent trước child)
@@ -180,6 +188,21 @@ function chanTrangTien(res, wb) {
   return true;
 }
 
+/**
+ * SAOLUU-DEM-1 — kế hoạch khôi phục dùng CHUNG cho xem trước + khôi phục: dòng khoá sao lưu tự động trong tệp bị bỏ qua (khoá cũ không sống lại);
+ * trang Cài đặt chỉ còn dòng khoá → bỏ qua cả trang (không xoá gì).
+ */
+async function lapKeHoachBoKhoa(wb) {
+  const keHoach = await lapKeHoach(wb, BANG_KHOI_PHUC);
+  for (const m of keHoach) {
+    if (m.table !== 'pos_settings' || m.status !== 'se_khoi_phuc') continue;
+    m.dong = m.dong.filter((d) => d.key !== khoaTuDong.KHOA_CAI_DAT);
+    m.fileRows = m.dong.length;
+    if (!m.dong.length) { m.status = 'skipped'; m.code = 'TRANG_TRONG'; m.reason = 'Không có dữ liệu'; delete m.dong; }
+  }
+  return keHoach;
+}
+
 /** KHO-1: chỉ các bảng ĐANG CÓ — bước nâng cấp hỏng (thiếu bảng kho_*) không được kéo sập sao lưu, lúc cần sao lưu nhất. */
 async function bangDangCo() {
   const co = new Set((await query("SELECT name FROM sqlite_master WHERE type = 'table'")).map((r) => r.name));
@@ -243,53 +266,107 @@ router.get('/info', authenticate, checkPermission('export_data'), async (req, re
 });
 
 /**
+ * SAOLUU-DEM-1 (A1) — MỘT hàm dựng tệp "Sao lưu toàn bộ": cả tải tay (/export-all) lẫn cửa tự động (/tu-dong) gọi hàm này, không có bản dựng thứ hai.
+ * Trả { buffer, filename }; lỗi thì ném cho nơi gọi.
+ */
+async function dungTepSaoLuu() {
+  const t0 = Date.now();
+  const wb = XLSX.utils.book_new();
+
+  const co = await bangDangCo();
+  for (const t of co.filter((x) => !x.nd)) {
+    // Đọc phân trang để không bị treo khi bảng có cột nặng.
+    const rows = await docBang(t);
+    console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
+  }
+  if (co.some((x) => x.nd)) {   // ND-API-1: một trang = tệp Xuất nội dung App, mỗi ô ≤ 30.000 ký tự (chiaPhan của dọn thử)
+    // lỗi của nội dung App KHÔNG được làm hỏng bản sao lưu dữ liệu POS (soát vòng 3): trang ghi dòng lỗi, phần POS vẫn xuất
+    let dong;
+    try {
+      dong = chiaPhan(JSON.stringify(await xuatNoiDungApp())).map((du_lieu, i) => ({ phan: i + 1, du_lieu }));
+    } catch (err) {
+      console.error('[export-all] nội dung App LỖI:', err.message);
+      dong = [{ phan: 0, du_lieu: '', loi: 'Chưa xuất được nội dung App — tải bản sao ở /admin › Xuất toàn bộ, hoặc thử lại sau' }];
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dong), TRANG_ND);
+  }
+
+  themTrangMeta(wb, BACKUP_TABLES.map(t => t.name).join(', '));
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const filename = `POS-backup-${getToday()}.xlsx`;
+  console.log(`[export-all] xong sau ${Date.now() - t0}ms, gui file ${filename}`);
+  return { buffer, filename };
+}
+
+const guiTepXlsx = (res, { buffer, filename }) => {
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(buffer);
+};
+
+/**
  * GET /api/pos/backup/export-all
  * Xuất tất cả data thành 1 file Excel (nhiều sheet)
  */
 router.get('/export-all', authenticate, async (req, res) => {
   console.log('[export-all] BUILD=paged-v3 bat dau xuat...');
-  const t0 = Date.now();
   try {
     if (req.user.role !== 'owner') {
       return res.status(403).json({ error: 'Chỉ owner mới có quyền backup' });
     }
-
-    const wb = XLSX.utils.book_new();
-
-    const co = await bangDangCo();
-    for (const t of co.filter((x) => !x.nd)) {
-      // Đọc phân trang để không bị treo khi bảng có cột nặng.
-      const rows = await readTablePaged(t.name, t.key, t.boCot);
-      console.log(`[export-all] ${t.name}: ${rows.length} dong (${Date.now() - t0}ms)`);
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, t.label.substring(0, 31));
-    }
-    if (co.some((x) => x.nd)) {   // ND-API-1: một trang = tệp Xuất nội dung App, mỗi ô ≤ 30.000 ký tự (chiaPhan của dọn thử)
-      // lỗi của nội dung App KHÔNG được làm hỏng bản sao lưu dữ liệu POS (soát vòng 3): trang ghi dòng lỗi, phần POS vẫn xuất
-      let dong;
-      try {
-        dong = chiaPhan(JSON.stringify(await xuatNoiDungApp())).map((du_lieu, i) => ({ phan: i + 1, du_lieu }));
-      } catch (err) {
-        console.error('[export-all] nội dung App LỖI:', err.message);
-        dong = [{ phan: 0, du_lieu: '', loi: 'Chưa xuất được nội dung App — tải bản sao ở /admin › Xuất toàn bộ, hoặc thử lại sau' }];
-      }
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dong), TRANG_ND);
-    }
-
-    themTrangMeta(wb, BACKUP_TABLES.map(t => t.name).join(', '));
-
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    const filename = `POS-backup-${getToday()}.xlsx`;
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    console.log(`[export-all] xong sau ${Date.now() - t0}ms, gui file ${filename}`);
-    res.send(buffer);
+    guiTepXlsx(res, await dungTepSaoLuu());
   } catch (err) {
     console.error('[export-all] LOI:', err);
     res.status(500).json({ error: err.message });
   }
 });
+
+/**
+ * GET /api/pos/backup/tu-dong — SAOLUU-DEM-1: Google Apps Script mỗi đêm lấy đúng tệp của /export-all bằng khoá `posk_…` (Authorization: Bearer).
+ * Không vé đăng nhập. Khoá sai / thiếu / thu hồi / vé POS → 401 CHUA_DANG_NHAP (một câu chung). Trần 6 lần / giờ / IP, đúng lẫn sai → 429.
+ * KHÔNG ghi khoá / tiêu đề Authorization ra log ở đâu cả.
+ */
+router.get('/tu-dong', async (req, res) => {
+  try {
+    if (khoaTuDong.chanLuot(req.ip)) return res.status(429).json({ error: 'Gọi quá nhiều lần — thử lại sau ít phút', code: 'QUA_NHIEU_LAN' });
+    const m = /^Bearer (\S+)$/.exec(req.headers.authorization || '');
+    if (!m || !(await khoaTuDong.khoaDung(m[1]))) return res.status(401).json({ error: 'Chưa đăng nhập hoặc phiên đã hết — đăng nhập lại', code: 'CHUA_DANG_NHAP' });
+    const tep = await dungTepSaoLuu();
+    await khoaTuDong.ghiLanLay(m[1], tep.buffer.length);
+    console.log(`[sao-luu-tu-dong] da gui ${tep.filename} (${tep.buffer.length} byte) cho ${req.ip}`);
+    return guiTepXlsx(res, tep);
+  } catch (err) {
+    console.error('[sao-luu-tu-dong] LOI:', err.message);
+    return res.status(500).json({ error: 'Lỗi máy chủ — thử lại sau', code: 'LOI_MAY_CHU' });
+  }
+});
+
+/** Cửa quản lý khoá tự động: CHỈ chủ quán; tạo / thu hồi hỏi PIN chủ quán (cùng hàm kiemPinChuQuan của ND-API-1). */
+const chuQuanLam = (fn) => [authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'owner') return res.status(403).json({ error: 'Chỉ chủ quán quản lý khoá sao lưu tự động', code: 'CHI_CHU_QUAN' });
+    return await fn(req, res);
+  } catch (err) { return loiGhi(res, err); }
+}];
+async function quaPin(req, res) {
+  const p = await kiemPinChuQuan(req.body?.pin);
+  if (!p.loi) return true;
+  res.status(p.loi[0]).json({ error: p.loi[2], code: p.loi[1] });
+  return false;
+}
+router.get('/khoa-tu-dong', ...chuQuanLam(async (req, res) => res.json({ success: true, data: await khoaTuDong.trangThai() })));
+router.post('/khoa-tu-dong', ...chuQuanLam(async (req, res) => {
+  if (!(await quaPin(req, res))) return undefined;
+  return res.json({ success: true, khoa: await khoaTuDong.taoKhoa(req.user.username) });   // khoá hiện ĐÚNG MỘT lần ở đây
+}));
+router.post('/khoa-tu-dong/thu-hoi', ...chuQuanLam(async (req, res) => {
+  if (!(await quaPin(req, res))) return undefined;
+  if (!(await khoaTuDong.thuHoiKhoa())) return res.status(404).json({ error: 'Chưa có khoá để thu hồi', code: 'KHONG_TIM_THAY' });
+  return res.json({ success: true });
+}));
 
 /**
  * GET /api/pos/backup/export/:table
@@ -310,7 +387,7 @@ router.get('/export/:table', authenticate, async (req, res) => {
     }
 
     // Đọc phân trang để tránh treo khi bảng có cột nặng.
-    const rows = await readTablePaged(tableDef.name, tableDef.key, tableDef.boCot);
+    const rows = await docBang(tableDef);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tableDef.label.substring(0, 31));
     themTrangMeta(wb, tableDef.name);
@@ -348,7 +425,7 @@ router.post('/preview-restore', authenticate, upload.single('file'), async (req,
     if (chanTrangTien(res, wb)) return;
     // SAOLUU-2 (C): cùng kế hoạch với /restore — cột bỏ qua, trang bỏ qua (mã + lý do), số dòng đọc cùng một cách.
     const preview = [];
-    for (const { dong, viTri, cot, ...m } of await lapKeHoach(wb, BANG_KHOI_PHUC)) {
+    for (const { dong, viTri, cot, ...m } of await lapKeHoachBoKhoa(wb)) {
       const dem = m.recognized ? await query(`SELECT COUNT(*) as count FROM ${m.table}`).catch(() => [{ count: 0 }]) : [{ count: 0 }];   // KHO-1: bảng chưa có
       preview.push({ ...m, currentRows: dem[0]?.count || 0 });
     }
@@ -379,7 +456,11 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     // mọi lệnh xoá / chèn. Vẫn SAO LƯU được (BACKUP_TABLES giữ đủ).
     if (chanTrangTien(res, wb)) return;
     // SAOLUU-2: kế hoạch (kho_* chỉ khi kho trống, pos_nang_cap không bao giờ, cột ∩ bảng) rồi MỘT giao dịch — dòng hỏng → không đổi gì.
-    const keHoach = await lapKeHoach(wb, BANG_KHOI_PHUC);
+    const keHoach = await lapKeHoachBoKhoa(wb);
+    // SAOLUU-DEM-1: khôi phục xoá rồi chèn lại cả bảng pos_settings — chèn thêm dòng khoá HIỆN TẠI vào kế hoạch để cùng giao dịch giữ nguyên khoá.
+    const trangCaiDat = keHoach.find((m) => m.table === 'pos_settings' && m.status === 'se_khoi_phuc');
+    const dongKhoa = trangCaiDat && await khoaTuDong.dongHienTai();
+    if (dongKhoa) trangCaiDat.dong.push({ ...Object.fromEntries(trangCaiDat.cot.map((c) => [c, dongKhoa[c] ?? null])), __rowNum__: 0 });
     // GIO-VN-1: file ghi từ GIO-VN-1 (themTrangMeta) mang backup_date giờ VN `YYYY-MM-DDTHH:mm:ss`; file cũ (toISOString đuôi Z, hoặc xuất một
     // bảng trước đây không có _Metadata) → đổi giờ cũ như bước 012.
     const ngaySao = wb.Sheets._Metadata ? String(docTrang(wb.Sheets._Metadata)[0]?.backup_date ?? '') : '';

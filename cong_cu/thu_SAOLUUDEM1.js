@@ -110,11 +110,10 @@ async function main() {
   // ═══ A · tĩnh: MỘT hàm dựng tệp ═══
   muc('[A] Một hàm dựng tệp (tĩnh)');
   const bk = doc(path.join(SV, 'routes', 'backup.js'));
-  const route = (duong) => { const i = bk.indexOf(`'${duong}'`); return i < 0 ? '' : bk.slice(i, i + 1800); };
+  const route = (duong) => { const i = bk.indexOf(`'${duong}'`); return i < 0 ? '' : bk.slice(i).split(/\nrouter\./)[0]; };   // chỉ thân MỘT route (tới `router.` kế tiếp)
   k('A1a backup.js có hàm dungTepSaoLuu và đúng MỘT chỗ XLSX.write(', /function dungTepSaoLuu\b|dungTepSaoLuu\s*=\s*(async )?(\(|function)/.test(bk) && (bk.match(/XLSX\.write\(/g) || []).length === 1,
     `XLSX.write: ${(bk.match(/XLSX\.write\(/g) || []).length}`);
-  k("A1b /export-all và /tu-dong cùng gọi dungTepSaoLuu(", /dungTepSaoLuu\(/.test(route('/export-all').split("router.get('/export/")[0])
-    && /dungTepSaoLuu\(/.test(route('/tu-dong').split("router.get('/export/")[0]));
+  k("A1b /export-all và /tu-dong cùng gọi dungTepSaoLuu(", /dungTepSaoLuu\(/.test(route('/export-all')) && /dungTepSaoLuu\(/.test(route('/tu-dong')));
   const khoaMd = doc(path.join(SV, 'utils', 'khoaSaoLuuPos.js'));
   k(`B1a khoaSaoLuuPos.js xuất KHOA_CAI_DAT = '${KHOA_DB}' (tên khoá riêng một chỗ)`, new RegExp(`KHOA_CAI_DAT\\s*=\\s*'${KHOA_DB}'`).test(khoaMd) && /KHOA_CAI_DAT/.test(doc(path.join(SV, 'routes', 'settings.js'))));
   let diffIndex = 'không đo được';
@@ -225,7 +224,7 @@ async function main() {
   muc('[D] Khoá riêng: không lộ ở Cài đặt, không vào tệp xuất, khôi phục không làm sống lại');
   await doan('D', async () => {
     const t = await taoKhoa(); const khoaNay = t.j.khoa;
-    const bam = sha(khoaNay);
+    const bam = sha(khoaNay || 'khong-co-khoa');
     await A.q("INSERT OR REPLACE INTO pos_settings (key, value, updated_at) VALUES ('thu_khoa_thuong', 'v1', '2026-11-15T08:00:00')");
     const gAll = await A.goi('GET', '/api/pos/settings', { ve: A.vePos });
     const gOne = await A.goi('GET', '/api/pos/settings/' + KHOA_DB, { ve: A.vePos });

@@ -21,6 +21,7 @@ const { kiemCaiDat } = require('../utils/gioHoatDong');
 const { congQr, tenCongQr, TEN_CONG } = require('../utils/congQr');   // TINGEE-1
 const { kiemCaiDat: kiemManKhach } = require('../utils/manKhach');   // MANKHACH-1
 const { kiemCaiDat: kiemGiaoHang } = require('../utils/giaoHang');   // GIAO-1
+const { KHOA_CAI_DAT } = require('../utils/khoaSaoLuuPos');   // SAOLUU-DEM-1: tên khoá riêng — một chỗ
 const TIENG_CHUONG = ['ding', 'chuong', 'bip'];   // KH-MUA-1: cùng danh sách client/src/components/DonAppNoi.jsx
 // KHO-IN-1: cài đặt in phiếu kho — in_phieu_<loai>_kho (khổ) / in_phieu_<loai>_ban (số bản). Cùng danh sách client/src/utils/inPhieu.js
 // (KHO_PHIEU_KHO · LOAI_PHIEU_KHO · SO_BAN_TOI_DA). Phiếu kho CHỈ A5 / A4 (chủ quán chốt 01.11); khổ nhiệt là của hoá đơn khách.
@@ -59,7 +60,7 @@ const upload = multer({
 router.get('/', authenticate, async (req, res) => {
   try {
     // Không trả store_logo (base64 nặng) — frontend đọc từ localStorage cache
-    const settings = await query("SELECT key, value, updated_at FROM pos_settings WHERE key != 'store_logo'");
+    const settings = await query("SELECT key, value, updated_at FROM pos_settings WHERE key != 'store_logo' AND key != ?", [KHOA_CAI_DAT]);   // SAOLUU-DEM-1: khoá sao lưu tự động không ra cửa này
     
     // Chuyển array thành object để dễ sử dụng
     const settingsObj = {};
@@ -85,6 +86,7 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:key', authenticate, async (req, res) => {
   try {
     const { key } = req.params;
+    if (key === KHOA_CAI_DAT) return res.status(404).json({ success: false, error: 'Không tìm thấy cài đặt' });   // SAOLUU-DEM-1
     const setting = await queryOne('SELECT key, value, updated_at FROM pos_settings WHERE key = ?', [key]);
 
     if (!setting) {
@@ -119,6 +121,11 @@ router.put('/', authenticate, checkPermission('manage_settings'), async (req, re
     // Kiểm tra quyền (chỉ owner/manager được sửa)
     if (!['owner', 'manager'].includes(req.user.role)) {
       return res.status(403).json({ success: false, error: 'Không có quyền sửa cài đặt' });
+    }
+
+    // SAOLUU-DEM-1: khoá sao lưu tự động CHỈ ghi qua cửa tạo / thu hồi ở backup.js (chủ quán + PIN) — ghi ở đây = tự dựng khoá mở toàn bộ dữ liệu quán
+    if (Object.keys(settings).includes(KHOA_CAI_DAT)) {
+      return res.status(403).json({ success: false, error: 'Khoá này không sửa được ở đây', code: 'KHOA_RIENG' });
     }
 
     // KHO-2a: khoá kho_* (công tắc "Nhân viên xuất kho cần duyệt") chỉ chủ quán đổi (chủ quán chốt 29.10).
