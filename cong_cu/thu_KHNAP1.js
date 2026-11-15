@@ -335,6 +335,10 @@ async function main() {
     const pe = await muon(e.p);
     await webhook(pe); await webhook(pe, { reference: 'REFN-E2' });
     await db.run('UPDATE pos_goi_nap SET is_active = 1 WHERE id = ?', [G1]);
+    // Soát vòng 1 lỗi 1: cổng gửi lại ĐÚNG báo cũ (cùng reference) sau khi nguyên nhân đã gỡ (gói bật lại) → báo đã ghi KHÔNG bao giờ chốt đơn.
+    await webhook(pe, { reference: 'REFN-E2' });
+    k('A6 gói bật lại rồi cổng gửi lại ĐÚNG báo cũ → không đơn, ví không đổi (báo đã ghi không chốt lần hai)', (await vi(ke.sdt)).so_du === 200000
+      && (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [ke.sdt])) === 0 && (await soThe(ke.sdt)) === 0, String((await vi(ke.sdt)).so_du));
     const dsE = (await goi('GET', '/kh/don', undefined, ke.tk)).j.data?.find((x) => x.ma === e.d.j.ma_don);
     const qEs = ((await goi('GET', '/pos/kh/don-app', undefined, tkChu)).j.data || []).filter((x) => x.tien_trinh === 'vao_vi' && x.ma === e.d.j.ma_don);
     const qE = { ly_do: qEs.length === 2 && qEs.every((x) => /GOI_NAP_KHONG_CO/.test(x.ly_do || '')) ? qEs[0].ly_do : JSON.stringify(qEs.map((x) => x.ly_do)) };   // MỌI lần báo
@@ -500,9 +504,43 @@ async function main() {
     k('D4 ví của bạn trả hộ đơn người khác → ma_don null; không tên / SĐT / mã bill người đó; không ghi chú tay; không dòng của khách B', la(traHo, 200)
       && !!ho && ho.ma_don === null && !chuoi.includes(con.sdt) && !chuoi.includes('Khách ' + con.sdt) && !chuoi.includes(String(traHo.j.order?.code))
       && !chuoi.includes('GHI-TAY-BI-MAT') && !chuoi.includes('77777') && !chuoi.includes('CUA-KHACH-B') && la(hoan, 200), JSON.stringify(ho));
+    // Soát vòng 1 lỗi 2: đơn của CHÍNH khách đã bị xoá (xoá cứng pos_orders) → nhãn chung, không "trả hộ".
+    const kx = await khach(100000);
+    const ox = await quay({ customer_phone: kx.sdt, items: [monQuay(0)], payment_method: 'balance', balance_amount: 25000 });
+    const xoaX = await goi('DELETE', `/pos/orders/${ox.j.order?.id}`, undefined, tkChu);
+    const vx = (await goi('GET', '/kh/vi', undefined, kx.tk)).j.data || [];
+    k('D4 đơn của chính khách đã xoá → "Thanh toán đơn" / "Hoàn tiền đơn" (không "trả hộ"), ma_don null', la(ox, 200) && la(xoaX, 200)
+      && vx.some((x) => x.so_tien === -25000 && x.ghi_chu === 'Thanh toán đơn' && x.ma_don === null)
+      && vx.some((x) => x.so_tien === 25000 && x.ghi_chu === 'Hoàn tiền đơn') && !vx.some((x) => /trả hộ/.test(x.ghi_chu)), JSON.stringify(vx));
+    // Soát vòng 1 lỗi 4: ngưỡng trang 20 / 21, mới trước theo giờ (giờ khác nhau từng dòng).
+    const kt = await khach();
+    for (let i = 0; i < 21; i++) {
+      await db.run(`INSERT INTO pos_balance_transactions (customer_phone, type, amount, thuong, balance_before, balance_after, order_id, payment_method, created_by,
+        created_at) VALUES (?, 'adjust', ?, 0, 0, 0, NULL, 'cash', 'thu', ?)`, [kt.sdt, i + 1, `2026-01-01T00:00:${String(i).padStart(2, '0')}`]);
+    }
+    const t1 = await goi('GET', '/kh/vi?trang=1', undefined, kt.tk), t2 = await goi('GET', '/kh/vi?trang=2', undefined, kt.tk);
+    k('D1 21 dòng: trang 1 đúng 20 dòng + con_nua true, mới trước (21 → 2); trang 2 đúng 1 dòng (1) + con_nua false', t1.j.data?.length === 20 && t1.j.con_nua === true
+      && t1.j.data[0].so_tien === 21 && t1.j.data[19].so_tien === 2 && t2.j.data?.length === 1 && t2.j.data[0].so_tien === 1 && t2.j.con_nua === false && t2.j.trang === 2,
+    JSON.stringify([t1.j.data?.length, t1.j.con_nua, t1.j.data?.[0]?.so_tien, t2.j.data?.length, t2.j.con_nua]));
+    await db.run(`DELETE FROM pos_balance_transactions WHERE customer_phone = ? AND amount = 1`, [kt.sdt]);
+    const t20 = await goi('GET', '/kh/vi?trang=1', undefined, kt.tk);
+    k('D1 đúng 20 dòng → trang 1 đủ 20, con_nua false (ngay dưới ngưỡng)', t20.j.data?.length === 20 && t20.j.con_nua === false, JSON.stringify([t20.j.data?.length, t20.j.con_nua]));
     const vb = await goi('GET', `/kh/vi?phone=${kh.sdt}`, undefined, kb.tk);
     k('D4 khách B gửi ?phone của A → chỉ thấy ví của B (SĐT từ token)', la(vb, 200) && (vb.j.data || []).length === 1 && vb.j.data[0].so_tien === 77777,
       JSON.stringify(vb.j.data));
+  });
+
+  muc('[G] Nạp + mã ở quầy (K5 — điểm 4 phiếu) và trần lượt chung /goi-nap với /menu (C1)');
+  await chay('G', async () => {
+    const sq = (await khach()).sdt;
+    const tq = await goi('POST', '/pos/orders/tinh-thu', { customer_phone: sq, items: [], goi_nap_id: G1, discount_code: 'KN1CHUNG' }, tkChu);
+    const pq = await quay({ customer_phone: sq, items: [], goi_nap_id: G1, discount_code: 'KN1CHUNG', payment_method: 'cash', cash_amount: 100000 });
+    k('K5 quầy: tính thử nạp + mã → 200, tổng 100.000, ma_loi_code MA_KHONG_AP_MON_THUONG; ghi đơn nạp + mã → vẫn 400 NAP_CHI_TIEN_MAT_QR (luật NAP-1)',
+      la(tq, 200) && Number(tq.j.total) === 100000 && tq.j.ma_loi_code === 'MA_KHONG_AP_MON_THUONG' && la(pq, 400, 'NAP_CHI_TIEN_MAT_QR'), `${moTa(tq)} · ${tq.j.ma_loi_code} · ${moTa(pq)}`);
+    let het = null;
+    for (let i = 0; i < 320 && !het; i++) { const r = await goi('GET', '/kh/chuong-trinh'); if (r.status === 429) het = r; }
+    const gn = await goi('GET', '/kh/goi-nap');
+    k('C1 /goi-nap dùng CHUNG trần lượt / IP với /menu: hết lượt (qua /chuong-trinh) → /goi-nap 429 QUA_NHIEU_LAN', !!het && la(gn, 429, 'QUA_NHIEU_LAN'), moTa(gn));
   });
 
   muc('[F] Màn quầy (B5, E1) — chạy hàm thật của tinh.js; nhánh vẽ dò trên mã nguồn (bản sao --may-chu nếu có)');
