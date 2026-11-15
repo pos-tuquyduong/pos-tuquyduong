@@ -376,8 +376,8 @@ async function main() {
     const ph = await muon(h.p);
     await db.run(`INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua, ly_do, du_lieu, luc) VALUES (?, ?, ?, 'chua_khop', 'thử cổng kia', '{}', ?)`,
       ['sepay:KN1-' + ngauNhien(), ph.ma_payos, 100000, getNow()]);
-    await webhook(ph);
-    k('A6 cổng kia đã báo tiền cho phiên → KHÔNG tự chốt, không cộng (chua_khop, cần xem)', (await vi(kh.sdt)).so_du === 0
+    const wh = await webhook(ph);
+    k('A6 cổng kia đã báo tiền cho phiên → 200 (ghi nhận), KHÔNG tự chốt, không cộng (chua_khop, cần xem)', wh.status === 200 && (await vi(kh.sdt)).so_du === 0
       && (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [kh.sdt])) === 0, String((await vi(kh.sdt)).so_du));
     const ki = await khach();
     const i = await datNap(ki);
