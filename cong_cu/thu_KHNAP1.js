@@ -221,6 +221,15 @@ async function main() {
     const pm = await phienCua(dm.j.ma_don), thanM = pm ? JSON.parse(pm.than) : {};
     k('A2 đặt đơn nạp kèm mã / voucher → 200, phiên KHÔNG mang mã / voucher (không giữ voucher cho phiên nạp)', la(dm, 200) && !!pm && !thanM.discount_code
       && !(thanM.vouchers || []).length, `${moTa(dm)} · ${pm?.than}`);
+    // Khoá gửi: cùng khoá + cùng giỏ nạp gửi song song → một đơn; cùng khoá đổi gói → KHOA_GUI_DA_DUNG (băm dòng nạp theo ma_goi).
+    const kg = await khach(), khoa = khoaMoi();
+    const thanK = { ...gio([nap(G1)]), khoa_gui: khoa, cach_tra: 'qr', tong_da_xem: 100000 };
+    const ss = await Promise.all([goi('POST', '/kh/don', thanK, kg.tk), goi('POST', '/kh/don', thanK, kg.tk)]);
+    const lai = await goi('POST', '/kh/don', thanK, kg.tk);
+    const doiGoi = await goi('POST', '/kh/don', { ...thanK, mon: [nap(G2)], tong_da_xem: 200000 }, kg.tk);
+    k('A1 khoá gửi: hai POST /don nạp cùng khoá song song → một dòng đơn App; gửi lại → trung; cùng khoá đổi gói → 409 KHOA_GUI_DA_DUNG',
+      ss.some((r) => la(r, 200)) && la(lai, 200) && lai.j.trung === true && la(doiGoi, 409, 'KHOA_GUI_DA_DUNG')
+      && (await so('SELECT COUNT(*) AS n FROM pos_don_app WHERE phone = ?', [kg.sdt])) === 1, `${ss.map(moTa).join(' / ')} · ${moTa(lai)} · ${moTa(doiGoi)}`);
     // A4: quán đóng → giỏ chỉ nạp vẫn đặt được; giỏ đồ uống bị chặn (đối chứng).
     await datLich(hhmm(120), hhmm(180));
     const n4 = await baoGia(kh, gio([nap(G1)])), d4 = await dat1(kh, gio([nap(G1)])), m4 = await baoGia(kh, gio([mon(0)]));
