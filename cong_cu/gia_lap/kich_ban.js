@@ -492,6 +492,7 @@ const KICH_BAN = [
     const hang = await c.db.queryOne('SELECT id, card_price FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order, id LIMIT 1');
     if (!hang) throw new Error('không có hạng thẻ nào đang bật');
     const gia = Number(hang.card_price);
+    await c.nap(kh.customer_phone, gia);   // ví có sẵn (c.vi đọc ví chưa có ra NaN)
     // KH-NAP-1 (chủ quán 14.11): thẻ không trả bằng số dư → trả tiền mặt; huỷ hoàn tiền mặt vào tài khoản (HUY-1) — vẫn "ví + giá thẻ".
     const d = await c.taoDon('KB22 mua thẻ', { ...kh, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: gia });
     const co = await c.so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [d.id]);
