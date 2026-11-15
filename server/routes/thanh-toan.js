@@ -190,7 +190,12 @@ async function xuLyTienVe(res, t) {
     : luc > p.het_han && !muonChot ? 'tiền về sau khi QR hết hạn' : null;
   if (lyDo) return ghi('chua_khop', lyDo);
   const kq = await chotPhien(p, t.nguon, { muon: muonChot, maGd: t.maGd,
-    suKien: (tx) => tx.run(CAU_GHI, thamSo('khop', muonChot ? 'tiền về muộn — máy tự chốt đơn chỉ thẻ / chỉ nạp' : null)) });
+    suKien: async (tx) => {
+      const r = await tx.run(CAU_GHI, thamSo('khop', muonChot ? 'tiền về muộn — máy tự chốt đơn chỉ thẻ / chỉ nạp' : null));
+      // Soát vòng 2: phép kiểm khoá của muonChot nằm NGOÀI giao dịch — bản sao cùng khoá ghi dòng báo xen giữa (vd đã vào ví) thì dòng này không ghi được:
+      // ném → taoDon huỷ cả giao dịch chốt (không đơn), cổng nhận 5xx gửi lại → lần sau thấy khoá, vào nhánh vaoVi (ON CONFLICT, không ghi thêm).
+      if (muonChot && r.changes !== 1) throw new Error('KH-NAP-1: báo cùng khoá đã ghi giữa chừng — không chốt muộn');
+    } });
   if (kq.status === 200) return res.json({ success: true });
   if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);
   if (muonChot) {   // chốt muộn không đánh dấu 'loi' (giuCho.js) → giữ lý do trên phiên cho câu báo khách + quầy; không đổi trạng thái
