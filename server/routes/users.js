@@ -136,7 +136,7 @@ router.put('/:id/password', authenticate, checkPermission('manage_users'), async
 });
 
 /**
- * GET /api/pos/permissions
+ * GET /api/pos/users/permissions
  * Danh sách quyền
  */
 router.get('/permissions', authenticate, checkPermission('manage_permissions'), async (req, res) => {
@@ -169,7 +169,12 @@ router.get('/permissions', authenticate, checkPermission('manage_permissions'), 
       { key: 'manage_promotions', label: 'Quản lý khuyến mãi' },
       { key: 'manage_permissions', label: 'Quản lý phân quyền' },
       { key: 'manage_settings', label: 'Quản lý cài đặt hệ thống (sản phẩm, ưu đãi khách mới, nhóm SP...)' },
-      { key: 'manage_orders', label: 'Xử lý sự cố đơn hàng (hàng hỏng/hoàn trả)' }
+      { key: 'manage_orders', label: 'Xử lý sự cố đơn hàng (hàng hỏng/hoàn trả)' },
+      // ND-API-1: nhóm quyền của /admin App KH (server/nd/, bước 027 gieo: chỉ chủ quán) — nhãn đúng thư App 11.11
+      { key: 'nd_xem', label: 'Xem Chế độ sửa App', nhom: 'App khách hàng — nội dung' },
+      { key: 'nd_sua', label: 'Sửa nội dung App (Lưu nháp)', nhom: 'App khách hàng — nội dung' },
+      { key: 'nd_cap_nhat', label: 'Cập nhật toàn bộ + quay lại phiên bản', nhom: 'App khách hàng — nội dung' },
+      { key: 'nd_xuat_nhap', label: 'Xuất / nhập toàn bộ', nhom: 'App khách hàng — nội dung' }
     ];
 
     res.json({
@@ -182,7 +187,7 @@ router.get('/permissions', authenticate, checkPermission('manage_permissions'), 
 });
 
 /**
- * PUT /api/pos/permissions/:role
+ * PUT /api/pos/users/permissions/:role (ND-API-1: đường thật — /api/pos/permissions/:role rơi vào PUT /:id của nhân viên)
  * Cập nhật quyền cho role
  */
 router.put('/permissions/:role', authenticate, checkPermission('manage_permissions'), async (req, res) => {

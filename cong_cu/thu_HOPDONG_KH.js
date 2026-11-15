@@ -116,6 +116,13 @@ async function main() {
     && /### Ghi chú v14/.test(md) && ['hoan_vao_tai_khoan', 'ly_do_huy'].every((f) => (md.split('### Ghi chú v14')[1] || '').slice(0, 1500).includes('`' + f)),
   thieuV14.map((x) => x.join(' ')).join(', '));
   k('v12: hợp đồng có mục "Ghi chú v12" ghi đủ 6 trường',/### Ghi chú v12/.test(md) && ['kenh', 'cach_nhan', 'tra[]', 'so_mon', 'mon_dau', 'giam'].every((f) => cat(md, '### Ghi chú v12', '### Ghi chú v11').includes('`' + f)));
+  // v16 (QC-APP-1): cửa /quang-cao — khối máy đọc ghi đủ 10 trường + bay_gio, mục chữ "Ghi chú v16" nhắc từng trường, nhật ký có dòng v16
+  const thieuV16 = ['bay_gio', ...['id', 'chu_dai', 'tieu_de', 'phu', 'chu_nut', 'dich', 'ma_mon', 'tu_gio', 'den_gio', 'uu_tien'].map((f) => 'data[].' + f)].filter((f) => !traCua('/quang-cao').includes(f));
+  const ghiV16 = cat(md, '### Ghi chú v16', '### Ghi chú v14');
+  k('v16: khối máy đọc ghi đủ bay_gio + 10 trường của data[] (/quang-cao), token: false; mục "Ghi chú v16" nhắc từng trường + "gio_vang"',
+    thieuV16.length === 0 && HD.cua.find((c) => c.duong === '/quang-cao')?.token === false && ghiV16.length > 0
+    && ['chu_dai', 'tieu_de', 'phu', 'chu_nut', 'dich', 'ma_mon', 'tu_gio', 'den_gio', 'uu_tien', 'gio_vang'].every((f) => ghiV16.includes('`' + f) || ghiV16.includes(f + '`') || ghiV16.includes('"' + f + '"'))
+    && /^- v16 ·/m.test(cat(md, '## Nhật ký')), thieuV16.join(', '));
   const dongGv = bangChu.split('\n').find((l) => l.includes('`GET /gio-vang`')) || '';
   k('cửa /gio-vang ghi rõ "không có suất"', /không có suất/i.test(dongGv), dongGv.slice(0, 80));
 
@@ -197,6 +204,8 @@ async function main() {
   for (const [a, b] of [['signup_enabled', '1'], ['signup_discount_type', 'percent'], ['signup_discount_value', '10'], ['nhandiem_enabled', '1'],
     ['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['flash_enabled', 'false']]) await datCaiDat(a, b);
   await db.run("UPDATE pos_chuong_trinh SET dang_bat = 1 WHERE ma = 'sinh_nhat'");   // v6: GET /chuong-trinh phải có ít nhất một mục để thử đủ trường
+  // v16: GET /quang-cao phải có ít nhất một dòng để thử đủ trường (data[].x đòi mảng KHÔNG rỗng)
+  await db.run("INSERT INTO pos_quang_cao (chu_dai, tieu_de, phu, chu_nut, dich, ma_mon, kieu_ngay, cac_thu, tu_ngay, den_ngay, tu_gio, den_gio, uu_tien, bat, created_at, updated_at) VALUES ('Giảm 10% trà sáng', '', '', '', 'menu', NULL, 'hang_ngay', '', NULL, NULL, NULL, NULL, 1, 1, ?, ?)", [getNow(), getNow()]);
   const sp = await db.queryOne('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_products SET price = 50000 WHERE id = ?', [sp.id]);
   const don = async (sdt) => (await goi('POST', '/pos/orders', { items: [{ product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, quantity: 1 }],

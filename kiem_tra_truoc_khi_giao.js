@@ -514,8 +514,10 @@ chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai n
 chayBaiThat('cong_cu/thu_DIEMMON1.js');   // DIEM-MON-1: tích điểm theo món / gói / hạng — chỉ cộng phần dòng bật, trừ theo dòng (CÁCH 2), I8
 chayBaiThat('cong_cu/thu_KHTHE1.js');   // KH-THE-1: App KH mua thẻ hạng chung giỏ, hạng lên lúc đã thu, giỏ không pha bán mọi giờ, quyền lợi hạng (023)
 chayBaiThat('cong_cu/thu_BAO1a.js');   // BAO-1a: thông báo nổi chung (xanh tự ẩn, đỏ có nút đóng), bánh cóc alert(, nút ghi khoá khi đang xử lý
+chayBaiThat('cong_cu/thu_NDAPI1.js');   // ND-API-1: kho nội dung App KH /api/nd (nhà riêng server/nd/, vé riêng, CORS riêng, 409, xuất / nhập, khoá sao lưu)
 chayBaiThat('cong_cu/thu_HUY1.js');   // HUY-1: huỷ đơn hoàn toàn bộ vào tài khoản (khách lẻ: tiền mặt từ két), lý do có mã, quyền theo ngày, Đối soát, App v14
 chayBaiThat('cong_cu/thu_BAO1b.js');   // BAO-1b: Cài đặt báo rõ mọi thao tác — hết chữ báo đầu trang, lỗi dưới ô, thanh "Có thay đổi chưa lưu", hỏi PIN lúc bấm Lưu
+chayBaiThat('cong_cu/thu_QCAPP1.js');   // QC-APP-1: thẻ Quảng cáo trên App — PIN chủ quán, máy chủ tự kiểm luật, cửa /api/kh/quang-cao lọc theo ngày, Giờ vàng tự động, bảng 028, giao diện
 
 // E12 — P26b (F2): MỌI lệnh ghi pos_wallets trong server/routes/ đi qua ghiVi (wallets.js): đọc số dư TRONG giao dịch
 // ghi, cộng TƯƠNG ĐỐI. Ngoại lệ duy nhất: reconcileWallet (đối soát = ghi tuyệt đối có chủ đích), thân chạy trong
@@ -819,6 +821,7 @@ chayBaiThat('cong_cu/thu_KHTOMTAT1.js');   // KH-TOMTAT-1: tóm tắt cho App KH
 chayBaiThat('cong_cu/thu_KHACHAPP1.js');   // KHACH-APP-1: khách MỘT nguồn pos_customers, một hàm tạo khách, bước chép 020 / 022, màn Đăng ký sửa / xoá
 chayBaiThat('cong_cu/thu_QUAYUI1.js');   // QUAY-UI-1: màn Bán hàng / Lịch sử đơn theo bản mẫu đã chốt
 chayBaiThat('cong_cu/thu_VOUCHER2.js');   // VOUCHER-2: mẫu voucher, nhiều voucher một đơn + mã chung, voucher ship, không áp lên thẻ / gói / nạp, trả voucher khi huỷ
+chayBaiThat('cong_cu/thu_DANGNHAP2.js');   // DANG-NHAP-2: đăng nhập POS giới hạn 5 lần sai / 15 phút theo cặp (tên + IP), 20 lần theo IP, câu báo chung
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;
