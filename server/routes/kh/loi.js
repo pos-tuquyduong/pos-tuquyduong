@@ -31,6 +31,11 @@ const LOI = {
   DA_TRA_GOI_QUAN: [400, 'Đơn đã trả tiền — muốn huỷ hãy gọi quán'],
   DON_KHONG_HOP_LE: [400, 'Đơn không hợp lệ'],
   NHIEU_THE: [400, 'Mỗi đơn chỉ mua một thẻ hạng'],   // KH-THE-1
+  // KH-NAP-1 — cùng mã + lời với quầy (orders.js / viKhach.js loiTienThat)
+  NAP_KHONG_GOP: [400, 'Nạp tiền làm đơn riêng — không gộp với món, gói hay thẻ'],
+  GOI_NAP_KHONG_CO: [400, 'Gói nạp không có hoặc đang tắt'],
+  NAP_CHI_TIEN_MAT_QR: [400, 'Nạp tiền chỉ trả tiền mặt hoặc chuyển khoản — không trừ tài khoản'],
+  THE_KHONG_TRA_VI: [400, 'Thẻ hội viên chỉ trả tiền mặt (ở quầy) hoặc chuyển khoản — không trừ số dư tài khoản'],
 };
 
 /** { status, body } của một lỗi — `them` thêm trường (ma, thu_lai_sau_giay, bao_gia) hoặc thay `error` bằng lời cụ thể hơn. */
