@@ -154,6 +154,27 @@ cho đường gọi mới → grep mọi chú thích / luật "cho thử lại" 
 - NHẸ 3 (SePay gửi lại) không thêm ca: cùng một hàm xuLyTienVe + cùng cột khoá, khác cổng chỉ ở cách dựng khoá — ghi CHƯA KIỂM.
 - Đột biến: 45 · BẮT 45 (đối chứng 64/64). `--day-du` PASS 122 · FAIL 0 · CẢNH BÁO 1.
 
+## Soát bảo mật
+Lần 1 (15.11.2026, `/soat-bao-mat`, subagent độc lập chỉ đọc, diff `6ca94f07..HEAD` — phần gộp main ab2a9d58 không thuộc việc này). Số lỗi trước lọc: 0 ·
+sau lọc: 0 (bước 2 không tìm được gì → không cần bước 3 lọc). Báo cáo nguyên văn:
+```
+Không tìm thấy lỗ hổng.
+- GET /api/kh/vi (kh/index.js:275, lichSuVi.js): sau router.use(xacThucKhach) dòng 192; SĐT từ req.khach.phone; SQL tham số ?; trang ép số nguyên có trần;
+  ma_don chỉ khi đơn của chính SĐT token; ghi_chu câu cố định. Không đọc được dữ liệu khách khác.
+- GET /api/kh/goi-nap (kh/index.js:163): công khai, chỉ 4 trường (ma, ten, tra, vao) của gói đang bật.
+- Dòng nạp trong đơn App (donApp.js docGio, thanDon): danh sách trắng TRUONG_NAP; giá máy chủ tự tra trong taoDon; gộp → NAP_KHONG_GOP; mã giảm bỏ ở datDon;
+  nới mã / voucher chỉ ở bước tính thử (phien?.tinhThu là tham số nội bộ); đơn ghi thật chặn cứng.
+- loiTienThat: gọi ở giuCho.taoPhien và orders.js taoDon trước cổng PIN / payOS; đầu vào là goi_nap_id / membership_buy của thân đơn — không né bằng cách_tra.
+- Webhook tự chốt tiền về muộn (thanh-toan.js:186-204, giuCho.js:112-149): chữ ký kiểm ở cả ba cổng trước xuLyTienVe (221, 235, 255); chỉ chốt khi đúng con_lai,
+  thân chỉ thẻ / chỉ nạp, cổng kia chưa báo; chống phát lại: khoá đã có thì không chốt, trong giao dịch suKien kiểm changes !== 1 rồi ném huỷ cả giao dịch; câu
+  ghi phiên chỉ cho một bên. Cờ muon: grep chotPhien( chỉ hai chỗ đặt (route xác nhận tay có authenticate + checkPermission, webhook đã kiểm chữ ký).
+  Phiên giữ chỗ không giữ ví. Khách chuyển hai lần cùng số cùng cổng: lần sau PHIEN_DA_CHOT → chua_khop, không tự cộng.
+- Giao diện: chỉ hiển thị, không dangerouslySetInnerHTML; máy chủ tự chặn.
+CHƯA KIỂM: chỉ đọc code; không đọc lại payos.kiemChuKy / sepay.kiemBao / tingee.kiemBao (có từ trước, nhánh không đổi); chưa đọc phép so tổng của taoDon
+khi chốt muộn lúc giá gói đổi (bài thử thu_KHNAP1 ca "giá gói đổi" canh hành vi này).
+```
+SOÁT BẢO MẬT: ĐẠT
+
 ## Câu hỏi
 1. **(Cấm — giuCho.js ngoài khối chặn nạp / thẻ)** A6 cần sửa MỘT dòng trong `chotPhien` (giuCho.js): `const muon = nguon === 'tay' && them.muon === true`
    → `const muon = them.muon === true` (+ câu chú thích), để webhook tiền về muộn dùng CÙNG chotPhien kiểu muộn mà quầy dùng khi xác nhận tay.
