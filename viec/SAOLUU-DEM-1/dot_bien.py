@@ -93,7 +93,16 @@ DOT_BIEN = [
   ('VS-UI-LUU-KHOA-TRINH-DUYET', [(UI, 'setKhoaMoi(r.khoa);', "setKhoaMoi(r.khoa); localStorage.setItem('khoa_pos', r.khoa);", 1)], r'✗ D3 '),
   ('VS-UI-FETCH-TRAN', [(UI, 'setTt((await api.get(CUA)).data);', "setTt((await (await fetch('/api/pos' + CUA)).json()).data);", 1)], r'✗ D3 '),
   ('VS-UI-BO-HOI-PIN', [(UI, '<HoiPin mo=', '<div data-mo=', 1)], r'✗ D1b '),
-  ('BV-NOI-BO-KIEM', [(KT, "chayBaiThat('cong_cu/thu_SAOLUUDEM1.js');", '', 1)], r'✗ E1 '),
+  # ── vòng sửa 1 (soát độc lập): lỗi phụ không phá đường chính, cửa đếm dòng, cột thiếu, so băm / điều kiện ghi ──
+  ('BV-GHI-LAN-LAY-KHONG-BOC', [(BK, "try { await khoaTuDong.ghiLanLay(m[1], tep.buffer.length); } catch (e) { console.error('[sao-luu-tu-dong] khong ghi duoc lan lay gan nhat:', e.message); }",
+                                 "await khoaTuDong.ghiLanLay(m[1], tep.buffer.length);", 1)], r'✗ G1 '),
+  ('VS-LOG-LOI-KHOA', [(BK, "khong ghi duoc lan lay gan nhat:', e.message)", "khong ghi duoc lan lay gan nhat:', e.message, m[1])", 1)], r'✗ G1 '),
+  ('BV-DEM-DONG-INFO', [(BK, 'const result = await demDong(t.name);', 'const result = await query(`SELECT COUNT(*) as count FROM ${t.name}`);', 1)], r'✗ I1 '),
+  ('VS-DEM-DONG-XEM-TRUOC', [(BK, 'await demDong(m.table).catch(', 'await query(`SELECT COUNT(*) as count FROM ${m.table}`).catch(', 1)], r'✗ I1 '),
+  ('BV-KHOI-PHUC-THIEU-COT', [(BK, "    if (dongKhoa) for (const c of ['key', 'value', 'updated_at']) if (!trangCaiDat.cot.includes(c)) { trangCaiDat.cot.push(c); for (const d of trangCaiDat.dong) d[c] = null; }\n", '', 1)], r'✗ R5 '),
+  ('VS-SO-BANG', [(KM, 'crypto.timingSafeEqual(a, b)', 'a.equals(b)', 1)], r'✗ S1 '),
+  ('BV-GHI-LAN-LAY-DIEU-KIEN', [(KM, "WHERE key = ? AND json_extract(value, '$.ma_bam') = ?`, [getNow(), coTep, KHOA_CAI_DAT, bam(khoa)]);", "WHERE key = ?`, [getNow(), coTep, KHOA_CAI_DAT]);", 1)], r'✗ S1 '),
+  ('BV-NOI-BO-KIEM',[(KT, "chayBaiThat('cong_cu/thu_SAOLUUDEM1.js');", '', 1)], r'✗ E1 '),
 ]
 
 

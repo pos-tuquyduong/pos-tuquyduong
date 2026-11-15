@@ -50,6 +50,11 @@ async function docBang(t) {
   return t.name === 'pos_settings' ? rows.filter((r) => r.key !== khoaTuDong.KHOA_CAI_DAT) : rows;
 }
 
+/** Đếm dòng một bảng cho /info + xem trước khôi phục — cùng luật lọc với docBang (pos_settings không tính dòng khoá sao lưu tự động). */
+const demDong = (ten) => (ten === 'pos_settings'
+  ? query('SELECT COUNT(*) as count FROM pos_settings WHERE key != ?', [khoaTuDong.KHOA_CAI_DAT])
+  : query(`SELECT COUNT(*) as count FROM ${ten}`));
+
 // Các bảng cần backup (thứ tự quan trọng cho restore - parent trước child)
 const BACKUP_TABLES = [
   { name: 'pos_customers', label: 'Khách hàng', key: 'phone' },
@@ -243,7 +248,7 @@ router.get('/info', authenticate, checkPermission('export_data'), async (req, re
   try {
     const tables = [];
     for (const t of await bangDangCo()) {
-      const result = await query(`SELECT COUNT(*) as count FROM ${t.name}`);
+      const result = await demDong(t.name);
       tables.push({
         name: t.name,
         label: t.label,
@@ -335,7 +340,8 @@ router.get('/tu-dong', async (req, res) => {
     const m = /^Bearer (\S+)$/.exec(req.headers.authorization || '');
     if (!m || !(await khoaTuDong.khoaDung(m[1]))) return res.status(401).json({ error: 'Chưa đăng nhập hoặc phiên đã hết — đăng nhập lại', code: 'CHUA_DANG_NHAP' });
     const tep = await dungTepSaoLuu();
-    await khoaTuDong.ghiLanLay(m[1], tep.buffer.length);
+    // thống kê "lần lấy gần nhất" hỏng KHÔNG được làm mất tệp (lỗi phụ không phá đường chính) — chỉ log, không in khoá
+    try { await khoaTuDong.ghiLanLay(m[1], tep.buffer.length); } catch (e) { console.error('[sao-luu-tu-dong] khong ghi duoc lan lay gan nhat:', e.message); }
     console.log(`[sao-luu-tu-dong] da gui ${tep.filename} (${tep.buffer.length} byte) cho ${req.ip}`);
     return guiTepXlsx(res, tep);
   } catch (err) {
@@ -426,7 +432,7 @@ router.post('/preview-restore', authenticate, upload.single('file'), async (req,
     // SAOLUU-2 (C): cùng kế hoạch với /restore — cột bỏ qua, trang bỏ qua (mã + lý do), số dòng đọc cùng một cách.
     const preview = [];
     for (const { dong, viTri, cot, ...m } of await lapKeHoachBoKhoa(wb)) {
-      const dem = m.recognized ? await query(`SELECT COUNT(*) as count FROM ${m.table}`).catch(() => [{ count: 0 }]) : [{ count: 0 }];   // KHO-1: bảng chưa có
+      const dem = m.recognized ? await demDong(m.table).catch(() => [{ count: 0 }]) : [{ count: 0 }];   // KHO-1: bảng chưa có
       preview.push({ ...m, currentRows: dem[0]?.count || 0 });
     }
 
@@ -460,6 +466,8 @@ router.post('/restore', authenticate, upload.single('file'), async (req, res) =>
     // SAOLUU-DEM-1: khôi phục xoá rồi chèn lại cả bảng pos_settings — chèn thêm dòng khoá HIỆN TẠI vào kế hoạch để cùng giao dịch giữ nguyên khoá.
     const trangCaiDat = keHoach.find((m) => m.table === 'pos_settings' && m.status === 'se_khoi_phuc');
     const dongKhoa = trangCaiDat && await khoaTuDong.dongHienTai();
+    // tệp chỉnh tay có thể thiếu cột key / value / updated_at → thêm đủ cột để dòng khoá chèn lại nguyên vẹn (không thành value rỗng)
+    if (dongKhoa) for (const c of ['key', 'value', 'updated_at']) if (!trangCaiDat.cot.includes(c)) { trangCaiDat.cot.push(c); for (const d of trangCaiDat.dong) d[c] = null; }
     if (dongKhoa) trangCaiDat.dong.push({ ...Object.fromEntries(trangCaiDat.cot.map((c) => [c, dongKhoa[c] ?? null])), __rowNum__: 0 });
     // GIO-VN-1: file ghi từ GIO-VN-1 (themTrangMeta) mang backup_date giờ VN `YYYY-MM-DDTHH:mm:ss`; file cũ (toISOString đuôi Z, hoặc xuất một
     // bảng trước đây không có _Metadata) → đổi giờ cũ như bước 012.

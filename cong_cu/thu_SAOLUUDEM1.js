@@ -118,7 +118,9 @@ async function main() {
   k("A1b /export-all và /tu-dong cùng gọi dungTepSaoLuu(", /dungTepSaoLuu\(/.test(route('/export-all')) && /dungTepSaoLuu\(/.test(route('/tu-dong')));
   const khoaMd = doc(path.join(SV, 'utils', 'khoaSaoLuuPos.js'));
   k(`B1a khoaSaoLuuPos.js xuất KHOA_CAI_DAT = '${KHOA_DB}' (tên khoá riêng một chỗ)`, new RegExp(`KHOA_CAI_DAT\\s*=\\s*'${KHOA_DB}'`).test(khoaMd) && /KHOA_CAI_DAT/.test(doc(path.join(SV, 'routes', 'settings.js'))));
-  let diffIndex = 'không đo được';
+  k('S1 khoaSaoLuuPos.js: so băm bằng crypto.timingSafeEqual (không === / == / Buffer.compare trên băm); ghiLanLay chỉ ghi khi dòng vẫn là khoá vừa dùng (json_extract ma_bam)',
+    /crypto\.timingSafeEqual\(/.test(khoaMd) && !/ma_bam\s*(===|==|!==)|(===|==)\s*[a-z.]*ma_bam|Buffer\.compare/.test(khoaMd) && /json_extract\(value, '\$\.ma_bam'\) = \?/.test(khoaMd));
+  let diffIndex ='không đo được';
   try { diffIndex = execFileSync('git', ['diff', '--stat', MOC, 'HEAD', '--', 'server/index.js'], { cwd: GOC, encoding: 'utf8' }).trim(); } catch { /* kho nông */ }
   const coGit = fs.existsSync(path.join(GOC, '.git'));   // bản sao đột biến không có .git → chỉ còn phép quét chữ dưới đây
   k('B3 server/index.js không đổi so với gốc của việc (git diff rỗng) và không nhắc tới cửa / module mới', (!coGit || diffIndex === '') && !/tu-dong|khoaSaoLuuPos|SAOLUU-DEM/.test(doc(path.join(SV, 'index.js'))), diffIndex);
@@ -276,6 +278,23 @@ async function main() {
     const kthuong = await gui('/api/pos/backup/restore', tepSheet([{ key: 'thu_khoa_thuong', value: 'lan-hai', updated_at: '2026-11-02T00:00:00' }]));
     k('R4 tệp xuất bình thường (không dòng khoá) vẫn khôi phục được và KHÔNG làm mất khoá (K5)', kthuong.status === 200 && await giuKhoa()
       && (await A.q("SELECT value FROM pos_settings WHERE key = 'thu_khoa_thuong'"))[0]?.value === 'lan-hai' && (await tu(khoaNay)).status === 200, moTa(kthuong));
+    // R5: tệp chỉnh tay thiếu cột value / updated_at ở trang Cài đặt — dòng khoá hiện tại vẫn chèn lại ĐỦ cột (không thành value rỗng làm khoá chết âm thầm)
+    const thieuCot = await gui('/api/pos/backup/restore', tepSheet([{ key: 'thu_khoa_thuong' }]));
+    k('R5 tệp Cài đặt thiếu cột value: khôi phục xong khoá đang dùng VẪN lấy được tệp (dòng khoá chèn đủ cột)', thieuCot.status === 200 && await giuKhoa() && (await tu(khoaNay)).status === 200, moTa(thieuCot));
+    // I1: cửa đếm dòng cũng không để lộ dòng khoá (số dòng khớp tệp xuất)
+    const soDong = Number((await A.q('SELECT COUNT(*) AS n FROM pos_settings WHERE key != ?', [KHOA_DB]))[0].n);
+    const soTong = Number((await A.q('SELECT COUNT(*) AS n FROM pos_settings'))[0].n);
+    const inf = await A.goi('GET', '/api/pos/backup/info', { ve: A.vePos });
+    const xt2 = await gui('/api/pos/backup/preview-restore', tepSheet([{ key: 'thu_khoa_thuong', value: 'z', updated_at: '2026-11-03T00:00:00' }]));
+    k('I1 /backup/info và xem trước khôi phục đếm trang Cài đặt KHÔNG tính dòng khoá (khớp tệp xuất)', soTong === soDong + 1 && inf.j.tables?.find((t) => t.name === 'pos_settings')?.count === soDong
+      && (xt2.j.preview || []).find((p) => p.sheet === 'Cài đặt')?.currentRows === soDong, `${soDong}/${soTong} · ${inf.j.tables?.find((t) => t.name === 'pos_settings')?.count} · ${(xt2.j.preview || [])[0]?.currentRows}`);
+    // G1: ghi "lần lấy gần nhất" hỏng (trigger ép lỗi) KHÔNG được làm mất tệp; lỗi không đưa khoá ra log
+    await A.q("CREATE TRIGGER thu_khong_ghi BEFORE UPDATE ON pos_settings WHEN NEW.key = '" + KHOA_DB + "' BEGIN SELECT RAISE(ABORT, 'thu: khong ghi duoc'); END");
+    const hong = await tu(khoaNay);
+    await A.q('DROP TRIGGER thu_khong_ghi');
+    const lg2 = A.log();
+    k('G1 ghi lần-lấy-gần-nhất hỏng → vẫn 200 + đủ tệp (đúng bằng tệp bình thường), log báo lỗi, KHÔNG chứa khoá', hong.status === 200 && hong.b.length > 1000 && Object.keys(trangCua(hong.b)).length > 20
+      && /\[sao-luu-tu-dong\] khong ghi duoc lan lay/.test(lg2) && !lg2.includes(khoaNay) && !lg2.includes(khoaNay.slice(5)), moTa(hong) + ' ' + lg2.split('\n').filter((l) => /khong ghi duoc/.test(l)).slice(-1));
   });
 
   // ═══ E · giao diện + bộ kiểm (tĩnh) ═══
