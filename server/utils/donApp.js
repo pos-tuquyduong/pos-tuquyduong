@@ -50,8 +50,8 @@ const DON_CON = "o.status NOT IN ('cancelled', 'refunded')";   // cùng danh sá
 const THAY_DUOC = "(a.xong = 1 OR p.trang_thai = 'da_thu')";   // đơn App mà App nhìn thấy (a = pos_don_app, p = phiên của nó)
 // Mã lỗi của taoPhien / chotPhien giữ nguyên khi trả App; mã khác → DON_KHONG_HOP_LE (lời báo giữ nguyên) — mọi mã App nhận có trong hợp đồng.
 const GIU_MA = ['CACH_KHONG_KHOP', 'CHUA_CO_PIN', 'PIN_SAI', 'PIN_DANG_KHOA', 'PAYOS_CHUA_CAU_HINH', 'PAYOS_LOI', 'KHO_BAN',
-  'HANG_CHI_CAP', 'GOI_HANG_KHONG_BAN', 'DA_CO_HANG_CAO_HON',
-  'NAP_KHONG_GOP', 'GOI_NAP_KHONG_CO', 'NAP_CHI_TIEN_MAT_QR', 'THE_KHONG_TRA_VI'];   // KH-NAP-1: mã nạp + chỉ trả tiền thật của quầy, lời giữ nguyên   // KH-THE-1: mã chặn thẻ của quầy (orders.js), lời báo giữ nguyên
+  'HANG_CHI_CAP', 'GOI_HANG_KHONG_BAN', 'DA_CO_HANG_CAO_HON',   // KH-THE-1: mã chặn thẻ của quầy (orders.js), lời báo giữ nguyên
+  'NAP_KHONG_GOP', 'GOI_NAP_KHONG_CO', 'NAP_CHI_TIEN_MAT_QR', 'THE_KHONG_TRA_VI'];   // KH-NAP-1: mã nạp + chỉ trả tiền thật của quầy, lời giữ nguyên
 const TRUONG_THE = ['hang_id', 'loai', 'so_luong', 'so_thang'];   // dòng thẻ chỉ nhận đúng các khoá này (không giá, không ghi chú)
 const TRUONG_NAP = ['loai', 'ma_goi', 'so_luong'];   // KH-NAP-1: dòng nạp — cùng khuôn danh sách trắng
 const CHU_MA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
