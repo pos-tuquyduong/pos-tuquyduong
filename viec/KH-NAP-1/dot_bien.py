@@ -56,6 +56,13 @@ DOT_BIEN = [
   ('VS-muon-p-cu', [(TT, '  const moi = laApp ? await docPhien(p.id) : null;', '  if (muonChot) return vaoVi(p);\n  const moi = laApp ? await docPhien(p.id) : null;', 1)], r'✗ A6 gói nạp đã tắt'),
   ('BV-muon-chot-giu', [(G, 'const muon = them.muon === true;', "const muon = nguon === 'tay' && them.muon === true;", 1)], r'✗ A6 nạp về muộn'),
   ('BV-muon-ly-do-khach', [(D, "  const muon = r.p_ly_do ? `Tiền về sau khi đơn đã huỷ / hết hạn, không tạo được đơn ${lyDoNgan(r.p_ly_do)}` :", "  const muon = false ? '' :", 1)], r'✗ A6 gói nạp đã tắt'),
+  # ── vòng sửa 1 (soát độc lập) — đưa ĐÚNG lỗi cũ trở lại ──
+  ('BV-muon-khoa', [(TT, "\n    && !(await queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [t.khoa]));", ';', 1)], r'✗ A6 gói bật lại'),
+  ('VS-vi-don-xoa', [(L, 'const traHo = t.don_phone != null && t.don_phone !== t.customer_phone;', 'const traHo = t.don_phone !== t.customer_phone;', 1)], r'✗ D4 đơn của chính khách đã xoá'),
+  ('BV-goi-tran', [(GN.replace('goi-nap.js', 'kh/index.js'), "    if (!giuLuotMenu(req.ip || '')) return bao(res, 'QUA_NHIEU_LAN');\n    res.json({ success: true, data: (await dsGoiBat())",
+                    "    res.json({ success: true, data: (await dsGoiBat())", 1)], r'✗ C1 /goi-nap dùng CHUNG'),
+  ('VS-vi-trang', [(L, 'LIMIT ? OFFSET ?`, [phone, ...LOAI_TINH_VAO_VI, MOI_TRANG + 1,', 'LIMIT ? OFFSET ?`, [phone, ...LOAI_TINH_VAO_VI, MOI_TRANG,', 1)], r'✗ D1 21 dòng'),
+  ('VS-vi-thu-tu', [(L, 'ORDER BY t.created_at DESC, t.id DESC', 'ORDER BY t.created_at ASC, t.id ASC', 1)], r'✗ D1 '),
   # ── C, D: /goi-nap, /vi ──
   ('VS-goi-tat', [(GN, 'FROM pos_goi_nap WHERE is_active = 1 ORDER BY thu_tu, khach_tra, id`);', 'FROM pos_goi_nap ORDER BY thu_tu, khach_tra, id`);', 1)], r'✗ C1 GET /goi-nap'),
   ('VS-goi-truong', [(GN.replace('goi-nap.js', 'kh/index.js'), 'vao: g.vao_tk }))', 'vao: g.vao_tk, bat: g.is_active }))', 1)], r'✗ C1 GET /goi-nap'),
