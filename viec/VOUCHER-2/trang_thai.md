@@ -766,3 +766,9 @@ BÀI HỌC:     KHOÁ 1 · NGUYÊN TẮC 1 · BỎ 2 — chi tiết ở ## Bài 
 - BỎ: người gác chặn `until` trong Monitor và heredoc + chạy script cùng lệnh — làm đúng hướng dẫn, chờ thông báo nền.
 
 HEAD ĐÃ KIỂM: c4fbd98f
+
+
+Chat 15.11: ghi Q24 vào phiếu + gộp main d0bcb6e (QC-APP-1, ND-API-1, DANG-NHAP-2, sổ v67): hợp đồng v15 trước v16 (PHIEN_BAN 16),
+giữ cả hai dòng ở bộ kiểm + Cài đặt, dựng lại client/dist, SỐ CA thu_HOPDONG_KH 94. Chat chạy trên cây gộp: thu_VOUCHER2 146/0,
+thu_HOPDONG_KH 94/0, QCAPP1 127/0, DANGNHAP2 64/0, HUY1 59/0, bộ kiểm đủ.
+HEAD ĐÃ KIỂM: 32b7c03
