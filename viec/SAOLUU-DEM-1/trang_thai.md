@@ -81,3 +81,38 @@ Sự cố gom được: (a) phải hỏi chủ quán vì `settings.js` ngoài Ph
 - E2 — `thu_SAOLUU2.js` 36/0, `thu_NDAPI1.js` 89/0 không sửa.
 - K5 — tải tay, xuất từng bảng, khôi phục tệp thường, `ndk_`, đăng nhập: A1d, P1, R4, C3a, vé owner dùng xuyên bài.
 - Chú thích chủ quán 15.11: (1) hằng tên khoá một chỗ B1a; (2) settings.js B1g/B1h; (3) xuất P1 + khôi phục R1–R5.
+
+## Cổng chạy
+✓ CỔNG CHẠY ĐẠT   (`node tu_chay/cong.js chay . 2f40a7bf^ HEAD viec/SAOLUU-DEM-1`, đứng ở `c1718bf`, cây sạch)
+
+## Báo cáo 7 mục
+```
+VIỆC:        SAOLUU-DEM-1 — Cửa sao lưu tự động của POS: một khoá chỉ đọc lấy đúng tệp "Sao lưu toàn bộ" cho Google Apps Script mỗi đêm
+ĐÃ SỬA:      server/routes/backup.js — tách dungTepSaoLuu() (một hàm dựng tệp, /export-all + /tu-dong gọi chung); cửa GET /tu-dong (Bearer posk_,
+             401 chung, trần 6/giờ/IP, ghi lần lấy gần nhất bọc try/catch); cửa quản lý GET/POST /khoa-tu-dong + POST /khoa-tu-dong/thu-hoi (chủ quán + PIN);
+             docBang (xuất bỏ dòng khoá, 2 cửa xuất), demDong (/info + xem trước), lapKeHoachBoKhoa (xem trước + khôi phục bỏ dòng khoá, chèn lại dòng khoá
+             hiện tại cùng giao dịch, đủ cột)
+             server/utils/khoaSaoLuuPos.js (MỚI, ~75 dòng) — một dòng pos_settings, chỉ băm SHA-256, timingSafeEqual, trần lượt trong bộ nhớ
+             server/routes/settings.js — GET / bỏ dòng khoá, GET /:key → 404, PUT / → 403 KHOA_RIENG (theo câu trả lời chủ quán 15.11)
+             client/src/pages/CaiDat/KhoaSaoLuuPos.jsx (MỚI) + Settings.jsx (2 dòng: import + {isAdmin && <KhoaSaoLuuPos />}) + client/dist (build lại)
+             cong_cu/thu_SAOLUUDEM1.js (MỚI) + kiem_tra_truoc_khi_giao.js (1 dòng nối bài)
+BÀI THỬ:     chạy trên bản chưa vá (8b18dea) → ĐỎ 3 đạt · 35 hỏng (cửa 404; PUT /settings ghi được khoá tự dựng; tệp xuất / khôi phục không lọc);
+             sau khi vá → XANH 38 đạt · 0 hỏng. Đột biến 55/55 BẮT. npm test 117/0, --day-du 121/0, cổng chạy ĐẠT. thu_SAOLUU2 36/0, thu_NDAPI1 89/0 nguyên.
+ĐÃ RÀ K4:    grep "pos_settings" trong server/ → mọi chỗ đọc theo khoá cố định, trừ settings.js GET / (đã lọc), GET /:key (404), PUT / (403);
+             grep "readTablePaged\|COUNT(\*) as count FROM" trong backup.js → 2 cửa xuất (docBang), 2 chỗ đếm (demDong), 2 cửa nạp kế hoạch
+             (lapKeHoachBoKhoa) — đã xử lý hết; grep "ghiLanLay" → 1 chỗ gọi, bọc try/catch.
+CHƯA KIỂM:   • Giao diện thẻ chưa thử trên trình duyệt / điện thoại — ca D1–D3 chỉ dò chuỗi nguồn; nhánh vẽ (khoá hiện một lần, Đóng là mất, hỏi
+               "Khoá cũ sẽ ngừng dùng") chưa có ca máy.
+             • Chưa thử với Google Apps Script thật (UrlFetchApp giới hạn kích thước phản hồi; tệp lớn lên có thể vượt) và chưa chạy trên Render + Turso.
+             • Race khôi phục vs tạo/thu hồi khoá (vài ms) — cần hook trong khoiPhuc.js, ngoài Phạm vi (xem Phát hiện).
+             • Đường 500 chung của /tu-dong (lỗi dựng tệp) và eviction TRAN_MUC chưa có ca; ca p3 "quản lý bị chặn" có thể xanh nhờ thiếu quyền.
+             • Tệp sao lưu cũ (banCu = true) có dòng khoá chưa có ca (đọc code thì đúng).
+             • Trần 6 lần/giờ đếm trong bộ nhớ: Render khởi động lại là về 0; IP thật tin header Cloudflare (DANG-NHAP-2).
+GIT:         c1718bf SAOLUU-DEM-1: trang_thai — soát độc lập 2 lần, soát bảo mật ĐẠT, bảng đột biến, nghiệm thu
+             5f925dd SAOLUU-DEM-1: bằng chứng đỏ trên gốc sau vòng sửa 1 (SỐ CA 38)
+BÀI HỌC:     KHOÁ 4 · NGUYÊN TẮC 3 (đề xuất, ngoài Phạm vi) · BỎ 2 — chi tiết ở ## Bài học
+```
+
+Chủ quán thử tay (điện thoại): (1) Cài đặt › Sao lưu › cuộn xuống thẻ "Sao lưu tự động lên Google Drive" → bấm "Tạo khoá mới" → gõ PIN → chép khoá, dán vào Apps Script (Thuộc tính tập lệnh, tên KHOA_POS); (2) chạy script một lần rồi mở lại thẻ: dòng "Lần Google lấy gần nhất" phải hiện giờ + cỡ tệp; (3) thử "Thu hồi khoá" rồi chạy script lại — phải báo lỗi 401.
+
+HEAD ĐÃ KIỂM: c1718bf
