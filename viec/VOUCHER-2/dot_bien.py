@@ -89,6 +89,12 @@ DOT_BIEN = [
   ('BV-V2-Q23-HUY', [(S, " AND status IS NOT 'cancelled' LIMIT 1", ' LIMIT 1', 1)], r'✗ Q18g ', 'V2'),
   ('VS-V2-Q23-BO-CA-DON-THAT', [(S, " AND status IS NOT 'cancelled' LIMIT 1", " AND status = 'cancelled' LIMIT 1", 1)], r'✗ Q18d ', 'V2'),
   ('VS-V2-Q23-NULL-LOT', [(S, " AND status IS NOT 'cancelled' LIMIT 1", " AND status != 'cancelled' LIMIT 1", 1)], r'✗ Q18h ', 'V2'),
+  # ── Q24 (chủ quán 14.11): voucher theo món sau chỉ giảm phần còn lại của chính các món đó; hết món → báo ──
+  ('BV-V2-Q24-CON-DONG', [(U, 'for (const j of v.dong || []) { const t = Math.min(tru, conDong[j]); conDong[j] -= t; tru -= t; }', '', 1)], r'✗ Q24a ', 'V2'),
+  ('VS-V2-Q24-CA-DON-TRU', [(U, 'for (const j of v.dong || [])', 'for (const j of v.dong || dong.map((_, k) => k))', 1)], r'✗ Q24e ', 'V2'),
+  ('BV-V2-Q24-BAO', [(O, 'if (!v.dong || v.ship || uuDai.giam_voucher[i] > 0) continue;', 'continue;', 1)], r'✗ Q24a ', 'V2'),
+  ('VS-V2-Q24-NGUONG', [(O, 'uuDai.giam_voucher[i] > 0) continue;', 'uuDai.giam_voucher[i] > 10000) continue;', 1)], r'✗ Q24d ', 'V2'),
+  ('VS-V2-Q24-TINH-THU-CUNG', [(O, '      else if (!phien?.tinhThu) return res.status(400).json(l);', '      else if (true) return res.status(400).json(l);', 1)], r'✗ Q24c ', 'V2'),
   # ── Q22 (chủ quán 14.11): diemThat.js tienHangDiem theo luật Q7 ──
   ('BV-V2-Q22-CO', [(O, 'tienHangDiem(orderItems, total - phiKhachTra, true)', 'tienHangDiem(orderItems, total - phiKhachTra)', 1)], r'✗ Q22a ', 'V2'),
   ('VS-V2-Q22-MAC-DINH', [(DT, 'giamMonThuong = false) =>', 'giamMonThuong = true) =>', 1)], r'✗ Q22d ', 'V2'),
