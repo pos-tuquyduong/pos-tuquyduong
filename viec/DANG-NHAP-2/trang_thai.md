@@ -189,3 +189,7 @@ Thử tay cho chủ quán sau khi lên Render: (1) ở quầy, gõ SAI mật kh�
 (2) đọc cột `ip` bảng `pos_kh_lan_thu`: phải thấy IP khác nhau cho các mạng khác nhau, không phải một địa chỉ Cloudflare.
 
 HEAD ĐÃ KIỂM: 48a59ab5
+
+
+Chat 15.11: gộp main d8f0053 (chỉ sổ v66, không đổi code) — bài thử không đổi.
+HEAD ĐÃ KIỂM: 5b45798
