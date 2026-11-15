@@ -58,6 +58,18 @@ async function main() {
   const db = require(path.join(MAY_CHU, 'database.js'));
   const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   await db.initDatabase();
+  // Soát vòng 2 (nghi ngờ 1): chen một dòng báo CÙNG khoá đúng lúc giữa phép kiểm khoá (ngoài giao dịch) và giao dịch chốt — như bản sao thứ hai của cổng
+  // vừa ghi xong. chenKhoa = { khoa, ma } → ghi một lần ở lần mở giao dịch kế tiếp.
+  let chenKhoa = null;
+  const txGoc = db.beginTransaction;
+  db.beginTransaction = async (...a) => {
+    if (chenKhoa) {
+      const c = chenKhoa; chenKhoa = null;
+      await db.run(`INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua, ly_do, du_lieu, luc) VALUES (?, ?, ?, 'vao_vi', 'bản sao chen (bài thử)', '{}', ?)`,
+        [c.khoa, c.ma, c.so_tien, getNow()]);
+    }
+    return txGoc(...a);
+  };
 
   const gia = express();
   gia.use(express.json());
@@ -378,6 +390,16 @@ async function main() {
     await webhook(await muon(j.p));
     k('A6 quầy xác nhận tay lúc CÒN hạn rồi tiền về muộn → một đơn, ví 105.000 (không cộng thêm)', la(xj, 200) && (await vi(kj.sdt)).so_du === 105000
       && (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [kj.sdt])) === 1, `${moTa(xj)} · ${(await vi(kj.sdt)).so_du}`);
+    // Đua cùng khoá: bản kia ghi dòng báo SAU phép kiểm khoá của bản này → giao dịch chốt phải huỷ (suKien không ghi được) — không đơn.
+    const kr = await khach();
+    const rr = await datNap(kr);
+    const pr = await muon(rr.p);
+    chenKhoa = { khoa: `${pr.ma_payos}:REFN-DUA`, ma: pr.ma_payos, so_tien: 100000 };
+    const wr = await webhook(pr, { reference: 'REFN-DUA' });
+    chenKhoa = null;
+    k('A6 hai bản CÙNG khoá đua nhau (bản kia ghi dòng báo giữa chừng) → bản này KHÔNG chốt đơn (giao dịch huỷ, cổng gửi lại sau), ví không đổi',
+      (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [kr.sdt])) === 0 && (await vi(kr.sdt)).so_du === 0 && wr.status >= 500,
+    `${moTa(wr)} · ${(await vi(kr.sdt)).so_du}`);
     const kk = await khach();
     const kq = await datNap(kk);
     await db.run('UPDATE pos_goi_nap SET khach_tra = 110000 WHERE id = ?', [G1]);
