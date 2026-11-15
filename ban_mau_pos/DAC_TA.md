@@ -7,8 +7,8 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 ## 0 · CÁCH DÙNG BỘ NÀY
 
 - `ban_mau_pos.html` — **mở bằng trình duyệt, bấm thử được**. Đây là **bản vẽ đã chốt với chủ quán**, không phải gợi ý.
-- `thu/` + `chay_thu.sh` — **132 phép thử** chạy trên chính bản mẫu (`bash chay_thu.sh`).
-- Luật làm việc: **đổi thiết kế thì sửa bản mẫu trước**, chạy lại 132 phép, rồi mới sửa mã thật. Bản mẫu và mã thật lệch nhau là mất điểm tựa.
+- `thu/` + `chay_thu.sh` — **156 phép thử** chạy trên chính bản mẫu (`bash chay_thu.sh`).
+- Luật làm việc: **đổi thiết kế thì sửa bản mẫu trước**, chạy lại 156 phép, rồi mới sửa mã thật. Bản mẫu và mã thật lệch nhau là mất điểm tựa.
 - Bản mẫu **chỉ là giao diện**: dữ liệu bên trong là giả, không gọi API. Đừng chép mã của nó vào `client/src` — chép **hành vi**, không chép mã.
 
 ## 1 · NĂM MÀN / KHỐI TRONG BẢN MẪU, ỨNG VỚI VIỆC NÀO
@@ -22,6 +22,7 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 | Màn **Xem trước & In** + **Cài đặt in** + sổ lệnh in | **P16** (in qua trình duyệt) · **P17** (trạm in) | Bill khách · tem cốc · phiếu pha chế |
 | Màn **Lịch sử đơn** + ngăn phải + nhật ký + ⇄ đổi cách trả | **P18** | Tra cứu và việc sau bán |
 | Thẻ 📱 đơn app + chuông | *(khi làm App KH)* | Tự in, chuông nhắc 15 giây tới khi mở thẻ |
+| Ô mã khuyến mãi + hàng chip voucher + dòng giảm trên giỏ / bill | **VOUCHER-2** | Một mã chung + tối đa N voucher của khách (chủ quán Q14 12.11) |
 
 ## 2 · API THẬT ĐÃ CÓ (P19 xong) — bản mẫu mô phỏng đúng những đường này
 
@@ -72,6 +73,19 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 - `[CHẮC]` **Không in mã** khi đã chọn khách, và **không in mã** khi đơn chưa đủ 1 điểm.
 - `[CHẮC]` Quét thẻ: **từ chối mã kiểu cũ** dạng `QR-<số điện thoại>` kèm câu giải thích.
 
+**Mã khuyến mãi + voucher (VOUCHER-2, chủ quán Q14 12.11)** — `thu/thu_voucher.js`
+- `[CHẮC]` Giỏ có món → ô **"🏷 Mã khuyến mãi"** (MỘT mã chung). Chọn khách có voucher → **ngay dưới ô mã** hàng chip **"🎟 <câu>"** — câu do
+  máy chủ dựng từ mẫu voucher, màn hiện nguyên. Bấm chip = chọn, bấm lại = bỏ; kèm đếm **"n/N voucher"** (N ở Cài đặt → Voucher, mặc định 3).
+- `[CHẮC]` Đủ N → chip còn lại **mờ**, bấm không thêm. Máy chủ báo một voucher không dùng được (voucher % thứ hai, voucher giao hàng ở đơn không
+  giao, chưa đủ đơn tối thiểu, …) → **không chọn**, chip **viền đỏ + lý do máy chủ**. Giỏ đổi làm voucher đã chọn hết hợp lệ → tự bỏ chọn + viền đỏ.
+  Đơn gửi đi không bao giờ mang voucher hỏng.
+- `[CHẮC]` Tiền do **máy chủ** tính (bản mẫu giả lập): mã chung → voucher tiền → MỘT voucher % trên phần còn lại; tổng giảm không quá tiền món.
+  Giỏ thêm từng dòng **"Ưu đãi <MÃ> −x"**, **"Voucher <MÃ> −x"** (và **"Giảm phí giao −x"** khi đơn giao có voucher ship); dòng tổng = phải trả.
+- `[CHẮC]` **Bill khách**: các dòng giảm nằm dưới danh sách món, "Voucher <MÃ>" dưới dòng ưu đãi; đơn giao có voucher ship thì thêm
+  **"Phí giao <gốc>"** + **"Giảm phí giao −x"**. **Tem cốc và phiếu pha chế KHÔNG đổi.** Điểm tính trên tiền khách trả.
+- `[CHẮC]` Đổi / bỏ khách hoặc in xong → bỏ hết voucher đã chọn (voucher gắn khách). Bản mẫu không có luồng giao hàng — dòng phí giao chỉ thử ở tờ in.
+- `[CHẮC]` Luật 6 giữ: màn Bán hàng **không tạo khách**. Ô **"Mã trên bill (nếu có)"** (Q9) nằm ở form *Thêm khách mới* của màn Khách hàng — ngoài bản mẫu.
+
 **In (P16)**
 - `[CHẮC]` Ba loại phiếu, mỗi loại chọn được **in ra máy nào · mấy bản · mặc định bật cho luồng nào** (trả tại quầy · mang ra bàn · đơn app).
 - `[CHẮC]` Ô chọn máy **chỉ hiện máy đúng khổ giấy** — tem không gửi nhầm ra máy bill.
@@ -96,7 +110,7 @@ Quy ước: `[CHẮC]` = kiểm được bằng file/lệnh · `[ĐOÁN]` = suy 
 ## 7 · KIỂM BẢN MẪU CÒN NGUYÊN
 
 ```bash
-bash chay_thu.sh          # phải: TỔNG: 132 đạt · 0 hỏng
+bash chay_thu.sh          # phải: TỔNG: 156 đạt · 0 hỏng
 ```
 - `[CHẮC]` Bài nào **không in ra được kết quả** bị tính là **SẬP = hỏng** — bộ chạy không bao giờ im lặng bỏ qua.
 - `[CHẮC]` Sửa bản mẫu xong mà số phép thử **giảm**, hoặc có bài sập, là đã làm hỏng một hành vi đã chốt.

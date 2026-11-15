@@ -267,8 +267,10 @@ async function main() {
     await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active) VALUES ('THE10PT', 'percent', 10, 0, 0, 1)`);
     const b12b = await baoGia(kh2, gio([the(VANG, 3)], { ma_giam: 'THE10PT' }));
     const q12b = await tinhThu(kh2.sdt, { items: [], membership_buy: { tier_id: VANG, so_thang: 3 }, discount_code: 'THE10PT' });
-    k('B12b giỏ chỉ thẻ + mã 10%: áp như quầy (tính trên giá thẻ) — tong App = tinh-thu quầy = 225.000', la(b12b, 200) && la(q12b, 200)
-      && b12b.j.tong === q12b.j.total && b12b.j.tong === 225000, `${moTa(b12b)} · ${b12b.j.tong} / ${q12b.j.total}`);
+    // VOUCHER-2 (luật 10.11, Q6): mã không áp lên thẻ — giỏ chỉ thẻ không giảm, báo MA_KHONG_AP_MON_THUONG (bài cũ: 225.000, mã tính trên giá thẻ).
+    k('B12b giỏ chỉ thẻ + mã 10%: mã KHÔNG áp lên thẻ — tong App = tinh-thu quầy = 250.000, báo MA_KHONG_AP_MON_THUONG ở cả hai', la(b12b, 200) && la(q12b, 200)
+      && b12b.j.tong === q12b.j.total && b12b.j.tong === 250000 && b12b.j.ma_giam_loi?.code === 'MA_KHONG_AP_MON_THUONG' && q12b.j.ma_loi_code === 'MA_KHONG_AP_MON_THUONG',
+      `${moTa(b12b)} · ${b12b.j.tong} / ${q12b.j.total} · ${JSON.stringify(b12b.j.ma_giam_loi)} / ${q12b.j.ma_loi_code}`);
   });
 
   muc('[C] Giá đồ uống trong đơn có thẻ = theo hạng khách ĐANG CÓ (hạng mới áp từ đơn sau)');

@@ -446,11 +446,11 @@ chac('orders.js chặn sản phẩm chưa có giá',
     const m = k.match(/const\s+(\w+)\s*=\s*await\s+tx\.run\(\s*['`]UPDATE pos_signup_codes SET claimed_at[^'`]*\bAND\s+claimed_at\s+IS\s+NULL\s*['`]/);
     // POS-P20-v3: siết. Chỉ đòi chữ `X.changes` có mặt thì `if (X && X.changes > 5)`
     // vẫn xanh (agent soát 26.09 chứng minh). Nay đòi ĐÚNG dạng chặn, và nó phải
-    // nằm giữa lệnh UPDATE chiếm mã và lệnh INSERT voucher.
+    // nằm giữa lệnh UPDATE chiếm mã và lệnh phát voucher (INSERT, hoặc phatVoucher(tx, …) trong CÙNG giao dịch).
     const sauUpdate = m ? m.index + m[0].length : -1;
     const chan = m ? k.slice(sauUpdate).search(new RegExp(
       `if\\s*\\(\\s*!\\s*${m[1]}\\s*\\|\\|\\s*${m[1]}\\.changes\\s*!==\\s*1\\s*\\)\\s*\\{\\s*await\\s+tx\\.rollback\\(\\s*\\)\\s*;\\s*return\\b`)) : -1;
-    const chenVoucher = m ? k.slice(sauUpdate).indexOf('INSERT INTO pos_discount_codes') : -1;
+    const chenVoucher = m ? k.slice(sauUpdate).search(/INSERT INTO pos_discount_codes|phatVoucher\(\s*tx\s*,/) : -1;   // VOUCHER-2 Q15
     chac('/claim: chiếm mã bằng UPDATE ... AND claimed_at IS NULL rồi if (!X || X.changes !== 1) { rollback; return } TRƯỚC khi phát voucher',
       !!m && chan >= 0 && chenVoucher >= 0 && chan < chenVoucher,
       'hai người claim cùng lúc cùng qua phép kiểm ngoài giao dịch');
@@ -820,6 +820,7 @@ chayBaiThat('cong_cu/thu_KHSDT1.js');   // KH-SDT-1: công cụ dọn dữ liệ
 chayBaiThat('cong_cu/thu_KHTOMTAT1.js');   // KH-TOMTAT-1: tóm tắt cho App KH
 chayBaiThat('cong_cu/thu_KHACHAPP1.js');   // KHACH-APP-1: khách MỘT nguồn pos_customers, một hàm tạo khách, bước chép 020 / 022, màn Đăng ký sửa / xoá
 chayBaiThat('cong_cu/thu_QUAYUI1.js');   // QUAY-UI-1: màn Bán hàng / Lịch sử đơn theo bản mẫu đã chốt
+chayBaiThat('cong_cu/thu_VOUCHER2.js');   // VOUCHER-2: mẫu voucher, nhiều voucher một đơn + mã chung, voucher ship, không áp lên thẻ / gói / nạp, trả voucher khi huỷ
 chayBaiThat('cong_cu/thu_DANGNHAP2.js');   // DANG-NHAP-2: đăng nhập POS giới hạn 5 lần sai / 15 phút theo cặp (tên + IP), 20 lần theo IP, câu báo chung
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.

@@ -118,6 +118,12 @@ async function main() {
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [key, value]);
   for (const [a, b] of [['signup_enabled', '1'], ['signup_discount_type', 'percent'], ['signup_discount_value', '10'],
     ['nhandiem_enabled', '1'], ['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['flash_enabled', 'false']]) await datCaiDat(a, b);
+  // VOUCHER-2 Q11(a) (chủ quán Q2 11.11 + Q9 12.11): nhận mã bill phát voucher theo MẪU (y cấu hình trên: 10 % cả đơn) và chỉ cho tài khoản tạo
+  // SAU lúc in bill — taoTk tạo hồ sơ khách ngay trước khi nhận ở các ca nhận HỢP LỆ.
+  const mauKM = await db.run(`INSERT INTO pos_mau_voucher (ten, kieu, gia_tri, tran, don_toi_thieu, ap_dung, han_ngay, chinh_chu, bat, tao_luc)
+    VALUES ('Khách mới KH1', 'phan_tram', 10, 0, 0, 'tat_ca', 30, 0, 1, ?)`, [getNow()]);
+  await datCaiDat('signup_mau_voucher_id', String(Number(mauKM.lastInsertRowid)));
+  const taoTk = (s) => db.run('INSERT INTO pos_customers (phone, name, created_at) VALUES (?, ?, ?) ON CONFLICT(phone) DO NOTHING', [s, 'Khách ' + s, getNow()]);
   const sp = await db.queryOne('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_products SET price = 25000 WHERE id = ?', [sp.id]);
   const mon = (sl = 1) => ({ product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, quantity: sl });
@@ -535,10 +541,12 @@ async function main() {
   const voucherKH = {};
   await chay('E6', async () => {
     const d1 = await donThu(), d2 = await donThu();
+    const A = await dangNhap('Khách mới E6');   // VOUCHER-2 Q11(a): tài khoản tạo SAU lúc in bill (A cũ có trước bill → KHACH_DA_CO_TAI_KHOAN)
     const r = await goi('POST', '/kh/nhan-ma-bill', { ma: d1.ma, phone: B.sdt, sdt: B.sdt, customer_phone: B.sdt }, { tk: A.tk });
     const m = await db.queryOne('SELECT claimed_phone FROM pos_signup_codes WHERE code = ?', [d1.ma]);
     k('E6 A nhận mã bill (thân có SĐT của B) → 200, claimed_phone = A', la(r, 200) && !!m && m.claimed_phone === A.sdt, `${moTa(r)} · ${m && m.claimed_phone}`);
-    Object.assign(voucherKH, await db.queryOne('SELECT * FROM pos_discount_codes WHERE code = ?', [d1.ma]) || {});
+    // VOUCHER-2 Q11(b): voucher là mã MỚI trả về ở data.voucher_code (mã bill không còn là mã giảm).
+    Object.assign(voucherKH, await db.queryOne('SELECT * FROM pos_discount_codes WHERE code = ?', [r.j.data?.voucher_code || '']) || {});
     const lai = await goi('POST', '/kh/nhan-ma-bill', { ma: d1.ma }, { tk: B.tk });
     k('E6 mã đã dùng → 409 MA_DA_DUNG', la(lai, 409, 'MA_DA_DUNG'), moTa(lai));
     const sdt2 = await goi('POST', '/kh/nhan-ma-bill', { ma: d2.ma }, { tk: A.tk });
@@ -553,13 +561,16 @@ async function main() {
     mocTruocTx = null;
     k('E6 đua hai khách cùng mã: người chen 200, người sau 409 MA_DA_DUNG', !!chen && la(chen, 200) && la(sau, 409, 'MA_DA_DUNG'), `${chen ? moTa(chen) : '-'} / ${moTa(sau)}`);
     const v = await goi('GET', '/kh/voucher', undefined, { tk: A.tk });
-    const moi = (v.j.ma_khach_moi || []).map((x) => x.code);
-    k('E3 /voucher liệt kê thêm mã giảm phát qua /claim cho SĐT này (ma_khach_moi)', la(v, 200) && bang(moi, [d1.ma]), `${moTa(v)} · ${moi}`);
+    // VOUCHER-2 Q11(b) (Q2): voucher khách mới nay là dòng ví (data[], nguon khach_moi) như mọi voucher — ma_khach_moi chỉ còn cho dữ liệu cũ.
+    const vcA = r.j.data?.voucher_code;
+    const moi = (v.j.data || []).filter((x) => x.nguon === 'khach_moi').map((x) => x.code);
+    k('E3 /voucher liệt kê voucher phát qua /claim cho SĐT này (ví, nguon khach_moi)', la(v, 200) && !!vcA && bang(moi, [vcA]) && bang(v.j.ma_khach_moi, []),
+      `${moTa(v)} · ${moi}`);
     const vB = await goi('GET', '/kh/voucher', undefined, { tk: B.tk });
-    k('E3 khách khác không thấy mã đó', la(vB, 200) && bang(vB.j.ma_khach_moi, []), vB.tho);
+    k('E3 khách khác không thấy mã đó', la(vB, 200) && bang(vB.j.ma_khach_moi, []) && !(vB.j.data || []).some((x) => x.code === vcA), vB.tho);
     // Q11: bill đã ghi SĐT khách lúc bán → chỉ SĐT đó nhận được mã (App và route cũ); bill không SĐT ai cầm giấy cũng nhận.
-    const P = await dangNhap('Khách của bill'), Q = await dangNhap('Khách lạ');
-    const dP = await donThu(P.sdt);
+    const sP = sdtMoi(); const dP = await donThu(sP);   // VOUCHER-2 Q11(a): in bill TRƯỚC, khách của bill tạo tài khoản SAU
+    const P = await dangNhap('Khách của bill', sP), Q = await dangNhap('Khách lạ');
     const khac = await goi('POST', '/kh/nhan-ma-bill', { ma: dP.ma }, { tk: Q.tk });
     const mP = await db.queryOne('SELECT claimed_at FROM pos_signup_codes WHERE code = ?', [dP.ma]);
     k('Q11 nhận mã của bill ghi SĐT khác → 400 BILL_SDT_KHAC, mã KHÔNG bị nhận', la(khac, 400, 'BILL_SDT_KHAC') && !!mP && mP.claimed_at === null, moTa(khac));
@@ -569,6 +580,7 @@ async function main() {
     const cuKhac = await goi('POST', '/pos/signup-codes/claim', { code: dR.ma, phone: sdtMoi() }, { dichVu: true });
     k('Q11 /claim cũ (X-Service-Key) SĐT khác bill → 400 BILL_SDT_KHAC', la(cuKhac, 400, 'BILL_SDT_KHAC'), moTa(cuKhac));
     await db.run('UPDATE pos_signup_codes SET order_customer_phone = ? WHERE code = ?', ['+84 ' + sR.slice(1), dR.ma]);
+    await taoTk(sR);   // VOUCHER-2 Q11(a)
     const cuDung = await goi('POST', '/pos/signup-codes/claim', { code: dR.ma, phone: sR }, { dichVu: true });
     k('Q11 /claim cũ: bill lưu SĐT dạng "+84 …" (dữ liệu cũ), nhận bằng cùng SĐT 0… → 200', la(cuDung, 200), moTa(cuDung));
     const dRong = await donThu();
@@ -739,17 +751,21 @@ async function main() {
     await db.run('ALTER TABLE pos_kh_ma_tam RENAME TO pos_kh_ma_dang_nhap');
     k('G lỗi máy chủ ở /kh → 500 LOI_MAY_CHU, không lộ lời báo của kho', la(r, 500, 'LOI_MAY_CHU') && !/no such table|pos_kh_ma/i.test(r.tho), r.tho);
     const d = await donThu();
+    // VOUCHER-2 Q11(a): lỗi nội bộ nằm ở giao dịch chiếm mã — tới được đó chỉ với tài khoản tạo SAU lúc in bill (B có từ trước → dừng sớm ở
+    // KHACH_DA_CO_TAI_KHOAN). Bg / sG tạo sau bill; ca nhận điểm (không xét tài khoản) giữ B.
+    const Bg = await dangNhap('Khách G'), sG = sdtMoi();
+    await taoTk(sG);
     mocTruocTx = async () => { throw new Error('LOI_NOI_BO_KH1'); };
-    const kh = await goi('POST', '/kh/nhan-ma-bill', { ma: d.ma }, { tk: B.tk });
+    const kh = await goi('POST', '/kh/nhan-ma-bill', { ma: d.ma }, { tk: Bg.tk });
     mocTruocTx = async () => { throw new Error('LOI_NOI_BO_KH1'); };
-    const cu = await goi('POST', '/pos/signup-codes/claim', { code: d.ma, phone: sdtMoi() }, { dichVu: true });
+    const cu = await goi('POST', '/pos/signup-codes/claim', { code: d.ma, phone: sG }, { dichVu: true });
     mocTruocTx = null;
     k('G /kh/nhan-ma-bill lỗi nội bộ → 500 LOI_MAY_CHU, không lộ lời báo', la(kh, 500, 'LOI_MAY_CHU') && !kh.tho.includes('LOI_NOI_BO_KH1'), kh.tho);
     k('G /claim cũ vẫn trả lời báo như trước (hành vi cũ không đổi)', cu.status === 500 && cu.j.success === false && cu.j.error === 'LOI_NOI_BO_KH1', cu.tho);
     mocTruocTx = async () => { throw new Error('LOI_NOI_BO_KH1'); };
     const khD = await goi('POST', '/kh/nhan-diem', { ma: d.ma }, { tk: B.tk });
     mocTruocTx = async () => { throw Object.assign(new Error('LOI_NOI_BO_KH1'), { code: 'SQLITE_BUSY' }); };
-    const ban = await goi('POST', '/kh/nhan-ma-bill', { ma: d.ma }, { tk: B.tk });
+    const ban = await goi('POST', '/kh/nhan-ma-bill', { ma: d.ma }, { tk: Bg.tk });
     mocTruocTx = null;
     k('G /kh/nhan-diem lỗi nội bộ → 500 LOI_MAY_CHU, không lộ lời báo', la(khD, 500, 'LOI_MAY_CHU') && !khD.tho.includes('LOI_NOI_BO_KH1'), khD.tho);
     k('G /kh/nhan-ma-bill kho bận → 409 KHO_BAN (như mọi route /kh)', la(ban, 409, 'KHO_BAN'), ban.tho);
@@ -800,8 +816,9 @@ async function main() {
   muc('[H] luồng hợp lệ + dịch vụ X-Service-Key cũ chạy như trước');
   await chay('H', async () => {
     const d = await donThu(), s = sdtMoi();
+    await taoTk(s);   // VOUCHER-2 Q11(a)
     const cu = await goi('POST', '/pos/signup-codes/claim', { code: d.ma, phone: s }, { dichVu: true });
-    const vCu = await db.queryOne('SELECT * FROM pos_discount_codes WHERE code = ?', [d.ma]);
+    const vCu = await db.queryOne('SELECT * FROM pos_discount_codes WHERE code = ?', [cu.j.data?.voucher_code || '']);   // Q11(b): mã mới
     const COT = ['discount_type', 'discount_value', 'min_order', 'usage_limit', 'used_count', 'valid_from', 'valid_to', 'is_active', 'discount_scope', 'applicable_group_id'];
     k('H /claim cũ qua X-Service-Key → 200', la(cu, 200), moTa(cu));
     k('H voucher phát qua App = phát qua /claim cũ (từng cột)', !!vCu && !!voucherKH.code && COT.every((c) => voucherKH[c] === vCu[c]),

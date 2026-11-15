@@ -17,8 +17,9 @@ import ManKetThuc from './ManKetThuc';
 import ManPin from './ManPin';
 import ManQr from './ManQr';
 import KhungGiao from './KhungGiao';
+import ChipVoucher from './ChipVoucher';
 import MaGhepManKhach, { useQuayManKhach } from '../ManKhach/MaGhep';
-import { CACH_TRA_MAC_DINH, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, hanhDongPhien, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viTriMayChu, xuLyLoiPin } from './tinh';
+import { CACH_TRA_MAC_DINH, boVoucherLoi, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, hanhDongPhien, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viTriMayChu, xuLyLoiPin } from './tinh';
 import { NutThongTin } from '../../components/ThongTinMon';
 import './banHang.css';
 
@@ -63,6 +64,10 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const [dungMe, setDungMe] = useState(false);
   const [ma, setMa] = useState('');                          // mã giảm giá đã áp (máy chủ quyết dùng hay không)
   const [maGo, setMaGo] = useState('');
+  // VOUCHER-2 (chủ quán Q14): ví voucher của khách đang chọn, mã đã chọn (tối đa N — Cài đặt voucher_toi_da), lý do máy chủ báo theo mã (chip viền đỏ).
+  const [viVoucher, setViVoucher] = useState([]);
+  const [vcChon, setVcChon] = useState([]);
+  const [vcLoi, setVcLoi] = useState({});
   const [mayChu, setMayChu] = useState(null);               // kết quả tinh-thu + khoá giỏ lúc hỏi
   const [loiTinh, setLoiTinh] = useState('');
   const [lanTinhLai, setLanTinhLai] = useState(0);
@@ -108,7 +113,10 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
   const chonKhach = async (c) => {
     if (khach?.phone !== c.phone) setGio((g) => g.filter((m) => !m.the));   // đổi khách: hạng khách mới chưa tra → bán lại thẻ qua kiemTraThe
     const luot = ++luotKhach.current;                      // tra hạng / điểm về muộn của khách trước thì bỏ
-    setKhach(c); setLoi(''); datLaiCach(); setHang(null);
+    setKhach(c); setLoi(''); datLaiCach(); setHang(null); boVoucher();
+    api.get(`/loyalty/vouchers/${encodeURIComponent(c.phone)}`)   // VOUCHER-2: voucher còn dùng được của khách (câu mo_ta máy chủ dựng)
+      .then((r) => { if (luotKhach.current === luot && r.success) setViVoucher(r.data || []); })
+      .catch(() => {});                                    // không tra được ví voucher: chỉ không hiện chip, vẫn bán được
     api.get(`/loyalty/points/${encodeURIComponent(c.phone)}`)
       .then((r) => { if (luotKhach.current === luot && r.success) setKhach((k) => (k && k.phone === c.phone ? { ...k, points: r.points } : k)); })
       .catch(() => {});                                    // không tra được điểm: dải khách chỉ không hiện điểm
@@ -123,26 +131,39 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     } catch { /* không tra được hạng: lưới chỉ không gạch giá; máy chủ vẫn tự tính hạng khi hỏi giá */ }
   };
   const boKhach = () => {
-    luotKhach.current++; setKhach(null); setHang(null); datLaiCach();
+    luotKhach.current++; setKhach(null); setHang(null); datLaiCach(); boVoucher();
     setGio((g) => (layGoiNap(g) ? [] : g.filter((m) => !m.the)));   // NAP-1 / QUAY-UI-1: gói nạp và thẻ cần khách — bỏ khách thì bỏ khỏi giỏ
   };
 
-  // ── Giá do máy chủ tính ── chỉ hỏi lại khi khoá (khách + tổng số lượng từng món + mã) đổi; gõ ghi chú không đổi khoá.
-  const khoa = useMemo(() => khoaTinh(gio, khach, ma, giao), [gio, khach, ma, giao]);
+  const boVoucher = () => { setViVoucher([]); setVcChon([]); setVcLoi({}); };   // voucher gắn khách: đổi / bỏ khách, đơn mới → bỏ hết
+  const toiDaVoucher = Number(caiDatHoaDon.voucher_toi_da) || 3;
+  const latVoucher = (code) => {
+    setVcLoi((l) => { const n = { ...l }; delete n[code]; return n; });
+    setVcChon((c) => (c.includes(code) ? c.filter((x) => x !== code) : c.length >= toiDaVoucher ? c : [...c, code]));
+  };
+
+  // ── Giá do máy chủ tính ── chỉ hỏi lại khi khoá (khách + tổng số lượng từng món + mã + voucher) đổi; gõ ghi chú không đổi khoá.
+  const khoa = useMemo(() => khoaTinh(gio, khach, ma, giao, vcChon), [gio, khach, ma, giao, vcChon]);
   const giaoThan = giao ? { ma_bao_phi: giao.ma_bao_phi, ten: giao.ten, sdt: giao.sdt, ghi_chu: giao.ghi_chu } : null;
   useEffect(() => {
     const luot = ++luotTinh.current;                       // câu trả về muộn của giỏ cũ bị bỏ
     if (!gio.length) { setMayChu(null); setLoiTinh(''); return undefined; }
     const h = setTimeout(async () => {
       try {
-        const r = await ordersApi.tinhThu(thanTinhThu(gio, khach, ma, giaoThan));
-        if (luotTinh.current === luot) { setMayChu({ ...r, khoa }); setLoiTinh(''); }
+        const r = await ordersApi.tinhThu(thanTinhThu(gio, khach, ma, giaoThan, vcChon));
+        if (luotTinh.current !== luot) return;
+        if (r.voucher_loi?.length) {   // VOUCHER-2: voucher máy chủ báo không dùng được → bỏ chọn + viền đỏ; khoá đổi → hỏi lại với phần còn lại
+          const b = boVoucherLoi(vcChon, r.voucher_loi);
+          setVcLoi((l) => ({ ...l, ...b.loi }));
+          if (b.chon.length < vcChon.length) { setVcChon(b.chon); return; }
+        }
+        setMayChu({ ...r, khoa }); setLoiTinh('');
       } catch (e) {
         if (luotTinh.current === luot) { setMayChu(null); setLoiTinh(e.message || 'Không tính được giá'); }
       }
     }, DO_TRE_TINH_MS);
     return () => clearTimeout(h);
-  }, [khoa, lanTinhLai]);   // eslint-disable-line react-hooks/exhaustive-deps -- gio / khach / ma / mã báo phí đã nằm trong `khoa`
+  }, [khoa, lanTinhLai]);   // eslint-disable-line react-hooks/exhaustive-deps -- gio / khach / ma / mã báo phí / voucher đã nằm trong `khoa`
 
   const coSo = coSoMayChu(mayChu, khoa);
   const choPhiGiao = cheDoGiao && !giao && !layGoiNap(gio);                   // GIAO-1: đơn giao chưa gắn phí → khối thu tiền ẩn, không thu
@@ -161,7 +182,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
 
   // ── Giỏ ──
   const batDauDonMoi = () => {
-    setXong(null); setDaIn(false); setGio([]); setKhach(null); setHang(null); datLaiCach(); setMa(''); setMaGo('');
+    setXong(null); setDaIn(false); setGio([]); setKhach(null); setHang(null); datLaiCach(); setMa(''); setMaGo(''); boVoucher();
     setTrang('mon'); setLoi(''); setCheDoGiao(false); setGiao(null);
   };
   const chamMon = (s) => {
@@ -226,7 +247,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
         balanceUsed: anh.soDuDung + anh.soDuMeDung, balanceAfter: kh && anh.soDuDung + anh.soDuMeDung > 0 ? Math.max(0, kh.balance - anh.soDuDung) : undefined,
         paymentMethod: cachDon },
     });
-    setDaIn(false); setGio([]); setQr(null); setHoiPin(null); setMa(''); setMaGo(''); setCheDoGiao(false); setGiao(null); napSanPham();
+    setDaIn(false); setGio([]); setQr(null); setHoiPin(null); setMa(''); setMaGo(''); boVoucher(); setCheDoGiao(false); setGiao(null); napSanPham();
   };
   hoanTatRef.current = hoanTat;
 
@@ -247,7 +268,7 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
     const anh = { khach, soDuDung, soDuMeDung, tong, phaiTra };
     let phien = null;
     try {
-      const than = thanPhien({ gio, khach, ma, cach: cach === 'chuyen_khoan' ? 'payos' : cach, dungTK: soDuDung > 0, dungMe: soDuMeDung > 0, pin, pinMe, giao: giaoThan });
+      const than = thanPhien({ gio, khach, ma, cach: cach === 'chuyen_khoan' ? 'payos' : cach, dungTK: soDuDung > 0, dungMe: soDuMeDung > 0, pin, pinMe, giao: giaoThan, vouchers: laNap ? [] : vcChon });
       phien = (await thanhToanApi.taoPhien(than)).phien;
       if (phien.tong !== tong || phien.con_lai !== phaiTra) {   // giá / số dư đổi giữa lúc hỏi giá và lúc giữ tiền (Flash, quầy khác): không thu theo số cũ
         const p = phien; phien = null;
@@ -409,7 +430,9 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
                 {mayChu.flash_discount > 0 && <div className="bh-tien-dong"><span>Giảm Flash</span><span>−{vnd(mayChu.flash_discount)}</span></div>}
                 {mayChu.tier_discount > 0 && <div className="bh-tien-dong"><span>Giảm hạng{mayChu.customer_tier ? ` ${mayChu.customer_tier}` : ''}</span><span>−{vnd(mayChu.tier_discount)}</span></div>}
                 {mayChu.discount_amount > 0 && <div className="bh-tien-dong"><span>Ưu đãi{mayChu.discount_code ? ` ${mayChu.discount_code}` : ''}</span><span>−{vnd(mayChu.discount_amount)}</span></div>}
-                {mayChu.shipping_fee > 0 && <div className="bh-tien-dong"><span>Phí giao Ahamove</span><span>+{vnd(mayChu.shipping_fee)}</span></div>}
+                {(mayChu.vouchers || []).filter((v) => !v.ship && v.so_tien > 0).map((v) => <div key={v.ma} className="bh-tien-dong"><span>{`Voucher ${v.ma}`}</span><span>−{vnd(v.so_tien)}</span></div>)}
+                {mayChu.shipping_fee + (mayChu.giam_ship || 0) > 0 && <div className="bh-tien-dong"><span>Phí giao Ahamove</span><span>+{vnd(mayChu.shipping_fee + (mayChu.giam_ship || 0))}</span></div>}
+                {mayChu.giam_ship > 0 && <div className="bh-tien-dong"><span>Giảm phí giao</span><span>−{vnd(mayChu.giam_ship)}</span></div>}
                 {mayChu.cau_ghi && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem' }}>{mayChu.cau_ghi}</div>}
                 {mayChu.ma_loi && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem', color: 'var(--bh-do)' }}>Mã không áp: {mayChu.ma_loi}</div>}
               </>
@@ -418,8 +441,9 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
             )}
             {!laNap && <div className="bh-tien-dong">
               <input value={maGo} onChange={(e) => setMaGo(e.target.value)} onBlur={() => setMa(maGo)} onKeyDown={(e) => { if (e.key === 'Enter') setMa(maGo); }}
-                placeholder="Mã giảm giá (nếu có)" maxLength={40} style={{ flex: 1, minHeight: 40, border: '1px solid var(--bh-vien)', borderRadius: 8, padding: '0 0.6rem' }} />
+                placeholder="Mã khuyến mãi (nếu có)" maxLength={40} style={{ flex: 1, minHeight: 40, border: '1px solid var(--bh-vien)', borderRadius: 8, padding: '0 0.6rem' }} />
             </div>}
+            {!laNap && <ChipVoucher vi={viVoucher} chon={vcChon} loi={vcLoi} toiDa={toiDaVoucher} onLat={latVoucher} />}
           </div>
           {!laNap && <KhungGiao bat={cheDoGiao} onBat={setCheDoGiao} giao={giao} onGiao={setGiao} khach={khach} />}
           {!choPhiGiao && <ThuTien key={`${tong}-${soDuDung}-${soDuMeDung}-${khoa}`} coSo={coSo} tong={tong} phaiTra={phaiTra} khach={laNap && khach ? { ...khach, balance: 0, parent_balance: 0 } : khach} soDuDung={soDuDung} soDuMeDung={soDuMeDung}

@@ -135,7 +135,8 @@ async function dungHien(phien, nguoi) {
     });
     hien.tam_tinh = Math.round(ct.subtotal);
     for (const [ten, tien] of [['Giờ vàng', ct.flash_discount], [ct.customer_tier ? `Hạng ${ct.customer_tier}` : 'Hạng thành viên', ct.tier_discount],
-      [ct.discount_code ? `Mã ${ct.discount_code}` : 'Ưu đãi', ct.discount_amount]]) if (tien > 0) hien.giam.push({ ten, tien: Math.round(tien) });
+      [ct.discount_code ? `Mã ${ct.discount_code}` : 'Ưu đãi', ct.discount_amount],
+      ...(ct.vouchers || []).map((v) => [v.ship ? `Giảm phí giao (${v.ma})` : `Voucher ${v.ma}`, v.so_tien])]) if (tien > 0) hien.giam.push({ ten, tien: Math.round(tien) });   // VOUCHER-2: từng voucher
   } catch (e) { console.error('Màn khách: không dựng được danh sách món:', e.message); }
   return hien;
 }

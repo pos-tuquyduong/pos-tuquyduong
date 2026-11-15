@@ -177,8 +177,15 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
   if (hien('gia_goc')) dongTien.push(dong('gia_goc', dinhDangTien(tien.gia_goc)));
   if (tien.giam_hang > 0 && hien('giam_hang')) dongTien.push(dong('giam_hang', '−' + dinhDangTien(tien.giam_hang)));
   if (tien.giam_flash > 0 && hien('giam_flash')) dongTien.push(dong('giam_flash', '−' + dinhDangTien(tien.giam_flash)));
-  if (tien.giam_ma > 0 && hien('giam_ma')) dongTien.push(dong('giam_ma', '−' + dinhDangTien(tien.giam_ma)));
-  if (tien.phi_giao > 0 && hien('phi_giao')) dongTien.push(dong('phi_giao', '+' + dinhDangTien(tien.phi_giao)));
+  // VOUCHER-2 (chủ quán Q14 12.11): máy chủ giữ giam_ma GỒM voucher và phi_giao = phần khách trả (nghĩa cũ); tờ tách mỗi voucher thành dòng
+  // "Voucher <MÃ>" ngay dưới dòng giảm mã, phí giao in giá GỐC + dòng "Giảm phí giao". Đơn không voucher: y bố cục cũ. Nhãn cố định (như Mã GD).
+  const vc = (Array.isArray(tien.vouchers) ? tien.vouchers : []).filter((v) => v.so_tien > 0);
+  const giamShip = Math.max(0, Number(tien.giam_ship) || 0);
+  const giamMa = (tien.giam_ma || 0) - vc.reduce((s, v) => s + v.so_tien, 0);
+  if (giamMa > 0 && hien('giam_ma')) dongTien.push(dong('giam_ma', '−' + dinhDangTien(giamMa)));
+  if (hien('giam_ma')) vc.forEach((v) => dongTien.push({ khoa: 'voucher', ten: `Voucher ${v.ma}`, tien: '−' + dinhDangTien(v.so_tien), dam: false }));
+  if ((tien.phi_giao || 0) + giamShip > 0 && hien('phi_giao')) dongTien.push(dong('phi_giao', '+' + dinhDangTien((tien.phi_giao || 0) + giamShip)));
+  if (giamShip > 0 && hien('phi_giao')) dongTien.push({ khoa: 'giam_ship', ten: 'Giảm phí giao', tien: '−' + dinhDangTien(giamShip), dam: false });
   dongTien.push(dong('tong', dinhDangTien(tien.tong), true));
 
   const tt = [];
