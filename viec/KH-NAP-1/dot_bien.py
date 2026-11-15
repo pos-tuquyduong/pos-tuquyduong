@@ -4,6 +4,7 @@
     python3 viec/KH-NAP-1/dot_bien.py --liet-ke                 (chỉ in danh sách)
     python3 viec/KH-NAP-1/dot_bien.py --goc <sha> [--bai <file>] (bằng chứng ĐỎ: bài HIỆN TẠI trên server/ + client/src/ của commit sha;
                                                                   mặc định bài cong_cu/thu_KHNAP1.js — bài cũ sửa (G2) dùng --bai)
+    python3 viec/KH-NAP-1/dot_bien.py --cay-goc <sha> --bai <file> (bài không có --may-chu: cả cây gốc + cong_cu/ và hợp đồng hiện tại)
 
 Khuôn viec/KH-THE-1/dot_bien.py: chép server/ và client/src/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink), thay chuỗi (mỗi chuỗi
 phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, K3), chạy `node cong_cu/thu_KHNAP1.js --may-chu <bản sao>/server`.
@@ -141,9 +142,32 @@ def chay_goc(sha, bai):
     shutil.rmtree(tmp, ignore_errors=True)
 
 
+def chay_cay_goc(sha, bai):
+  """Bằng chứng ĐỎ cho bài KHÔNG có --may-chu: cả cây của commit `sha` (git archive) + chép đè cong_cu/ và HOP_DONG_API_KH.md HIỆN TẠI, chạy `bai` trong cây đó."""
+  import io, tarfile
+  tmp = tempfile.mkdtemp(prefix='dotbien_khnap1_cay_')
+  try:
+    tar = subprocess.run(['git', 'archive', sha], cwd=GOC, capture_output=True, check=True).stdout
+    tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
+    shutil.rmtree(os.path.join(tmp, 'cong_cu'))
+    shutil.copytree(os.path.join(GOC, 'cong_cu'), os.path.join(tmp, 'cong_cu'))
+    shutil.copy(os.path.join(GOC, 'HOP_DONG_API_KH.md'), os.path.join(tmp, 'HOP_DONG_API_KH.md'))
+    os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+    if os.path.isdir(os.path.join(GOC, 'client', 'node_modules')):
+      os.symlink(os.path.join(GOC, 'client', 'node_modules'), os.path.join(tmp, 'client', 'node_modules'))
+    r = subprocess.run(['node', bai], cwd=tmp, capture_output=True, text=True, timeout=300)
+    ra = re.sub(r'\x1b\[[0-9;]*m', '', ((r.stdout or '') + (r.stderr or '')).strip())
+    print('\n'.join(l for l in ra.splitlines() if '✗' in l or 'đạt ·' in l or 'sập' in l or 'Giả lập:' in l))
+    print(f'CÂY GỐC {sha} · {bai}: thoát {r.returncode}')
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
 if __name__ == '__main__':
   if '--help' in sys.argv or '-h' in sys.argv:
     print(__doc__); sys.exit(0)
+  if '--cay-goc' in sys.argv:
+    chay_cay_goc(sys.argv[sys.argv.index('--cay-goc') + 1], sys.argv[sys.argv.index('--bai') + 1]); sys.exit(0)
   if '--goc' in sys.argv:
     bai = sys.argv[sys.argv.index('--bai') + 1] if '--bai' in sys.argv else BAI
     chay_goc(sys.argv[sys.argv.index('--goc') + 1], bai); sys.exit(0)
