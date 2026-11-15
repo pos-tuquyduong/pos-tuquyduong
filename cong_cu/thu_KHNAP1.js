@@ -417,7 +417,7 @@ async function main() {
     await datMe(conV.sdt, kv.sdt);
     const k1 = await dat1(kv, gio([mon(0)]), { cach_tra: 'vi', pin: '1357' });
     const k1b = await dat1(kvq, gio([mon(1)]), { cach_tra: 'vi_qr', pin: '1357' });
-    const k2 = await quay({ customer_phone: conV.sdt, items: [monQuay(0)], payment_method: 'balance', parent_phone: kv.sdt, parent_balance_amount: 25000 });
+    const k2 = await quay({ customer_phone: conV.sdt, items: [monQuay(0)], payment_method: 'cash', cash_amount: 0, parent_phone: kv.sdt, parent_balance_amount: 25000 });
     const k3 = await quay({ customer_phone: kv.sdt, items: [], package_buy: { package_id: GOI_TT, pkg_qty: 1 }, payment_method: 'balance', balance_amount: 300000 });
     k('K5 đồ uống App trả vi / vi_qr → 200; ví mẹ cho đồ uống ở quầy → 200; gói trả trước trả số dư → 200', la(k1, 200) && la(k1b, 200) && la(k2, 200) && la(k3, 200),
       [k1, k1b, k2, k3].map(moTa).join(' / '));
@@ -449,7 +449,7 @@ async function main() {
     const n = await datNap(kh); await webhook(n.p);
     await goi('POST', '/pos/wallets/topup', { phone: kh.sdt, amount: 50000, notes: 'GHI-TAY-BI-MAT' }, tkChu);
     const tra = await dat1(kh, gio([mon(0)]), { cach_tra: 'vi', pin: '1357' });
-    const traHo = await quay({ customer_phone: con.sdt, items: [monQuay(1)], payment_method: 'balance', parent_phone: kh.sdt, parent_balance_amount: 30000 });
+    const traHo = await quay({ customer_phone: con.sdt, items: [monQuay(1)], payment_method: 'cash', cash_amount: 0, parent_phone: kh.sdt, parent_balance_amount: 30000 });
     await goi('POST', '/pos/wallets/deduct', { phone: kh.sdt, amount: 1000, notes: 'GHI-TAY-BI-MAT' }, tkChu);
     await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: 2000, reason: 'GHI-TAY-BI-MAT' }, tkChu);
     await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: -500, reason: 'GHI-TAY-BI-MAT' }, tkChu);
