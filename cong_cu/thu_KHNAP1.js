@@ -410,9 +410,10 @@ async function main() {
     const wc = await webhook(pc2, { reference: 'REFN-DUA-CONG' });
     chenKhoa = null;
     const wc2 = await webhook(pc2, { reference: 'REFN-DUA-CONG' });
-    k('A6 cổng KIA báo xen giữa lúc chốt muộn → không chốt đơn (5xx); gửi lại → 200, không đơn, không tự cộng (cần xem)',
+    k('A6 cổng KIA báo xen giữa lúc chốt muộn → không chốt đơn (5xx); gửi lại → 200, không đơn, không tự cộng, ghi dòng CẦN XEM (hai cổng)',
       (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [kc2.sdt])) === 0 && (await vi(kc2.sdt)).so_du === 0 && wc.status >= 500
-      && wc2.status === 200, `${moTa(wc)} · ${moTa(wc2)} · ${(await vi(kc2.sdt)).so_du}`);
+      && wc2.status === 200 && (await suKien(pc2)).some((x) => x.ket_qua === 'chua_khop' && /cùng một khoản báo qua hai cổng/.test(x.ly_do || '')),
+    `${moTa(wc)} · ${moTa(wc2)} · ${(await vi(kc2.sdt)).so_du} · ${JSON.stringify(await suKien(pc2))}`);
     const kk = await khach();
     const kq = await datNap(kk);
     await db.run('UPDATE pos_goi_nap SET khach_tra = 110000 WHERE id = ?', [G1]);
