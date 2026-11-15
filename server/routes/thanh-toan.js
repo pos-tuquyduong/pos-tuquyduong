@@ -132,8 +132,9 @@ const CAU_GHI = `INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua
 // "Hai cổng" ở đường vào ví (Q6 B, chủ quán 06.11): một khoản báo qua HAI cổng (payOS, SePay, Tingee) mang hai khoá khác nhau, và hai cổng không giữ cùng
 // thứ tự (gửi lại sau khi Render ngủ) — máy không phân biệt chắc "bản sao" với "khoản thật thứ hai". Nên phiên đã có báo tiền vào từ CỔNG KIA
 // (khop, chua_khop, vao_vi — trừ báo thất bại / không thuộc phiên / tiền vào tài khoản khác) thì KHÔNG tự cộng ví: ghi CẦN XEM, chủ quán đối
-// chiếu sao kê, cộng tay. Ví không bao giờ cộng thừa. Một cổng (cấu hình QUYET_DINH 01.11) không bao giờ chạm vế này. tx: câu đọc ĐẦU giao
-// dịch ghi — hai báo tới cùng lúc thì báo sau thấy dòng của báo trước.
+// chiếu sao kê, cộng tay. Ví không bao giờ cộng thừa. Một cổng (cấu hình QUYET_DINH 01.11) không bao giờ chạm vế này. tx: đọc TRONG giao dịch ghi —
+// ở vaoVi là câu đọc đầu; ở chốt muộn (KH-NAP-1) là sau câu ghi phiên + dòng báo của chính cổng này (dòng đó bị loại theo cổng) — hai báo tới cùng lúc
+// thì báo sau thấy dòng của báo trước. `{ query }` (ngoài giao dịch) chỉ là báo sớm cho vị từ muonChot.
 async function congKiaDaBao(tx, t) {
   const ds = await tx.query(`SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua NOT IN ('that_bai', 'khong_phien')
     AND COALESCE(ly_do, '') NOT LIKE ?`, [t.ma, LY_DO_TK_KHAC + '%']);
