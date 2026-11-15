@@ -336,10 +336,11 @@ async function main() {
     await webhook(pe); await webhook(pe, { reference: 'REFN-E2' });
     await db.run('UPDATE pos_goi_nap SET is_active = 1 WHERE id = ?', [G1]);
     const dsE = (await goi('GET', '/kh/don', undefined, ke.tk)).j.data?.find((x) => x.ma === e.d.j.ma_don);
-    const qE = ((await goi('GET', '/pos/kh/don-app', undefined, tkChu)).j.data || []).find((x) => x.tien_trinh === 'vao_vi' && x.ma === e.d.j.ma_don);
-    k('A6 gói nạp đã tắt rồi tiền về muộn → vào tài khoản ĐÚNG số đã về (100.000, không thưởng), không đơn; khách + quầy thấy lý do',
+    const qEs = ((await goi('GET', '/pos/kh/don-app', undefined, tkChu)).j.data || []).filter((x) => x.tien_trinh === 'vao_vi' && x.ma === e.d.j.ma_don);
+    const qE = { ly_do: qEs.length === 2 && qEs.every((x) => /GOI_NAP_KHONG_CO/.test(x.ly_do || '')) ? qEs[0].ly_do : JSON.stringify(qEs.map((x) => x.ly_do)) };   // MỌI lần báo
+    k('A6 gói nạp đã tắt rồi tiền về muộn → vào tài khoản ĐÚNG số đã về (100.000, không thưởng), không đơn; khách + quầy thấy lý do ở MỌI lần báo',
       (await vi(ke.sdt)).so_du === 200000 && (await vi(ke.sdt)).thuong === 0 && (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [ke.sdt])) === 0
-      && /gói|không còn/.test(dsE?.thong_bao_tien_ve || '') && /GOI_NAP_KHONG_CO/.test(qE?.ly_do || ''), `${(await vi(ke.sdt)).so_du} · ${dsE?.thong_bao_tien_ve} · ${qE?.ly_do}`);
+      && /gói|không còn/.test(dsE?.thong_bao_tien_ve || '') && /GOI_NAP_KHONG_CO/.test(qE.ly_do) && !qE.ly_do.startsWith('['), `${(await vi(ke.sdt)).so_du} · ${dsE?.thong_bao_tien_ve} · ${qE?.ly_do}`);
     const kf = await khach();
     await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, loai, so_thang)
       VALUES (?, ?, 'Kim Cương bán thử', 300000, NULL, ?, '2099-12-31T23:59:59', 'ban', 1)`, [kf.sdt, KCB, getNow()]);
