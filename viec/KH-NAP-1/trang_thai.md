@@ -243,6 +243,7 @@ CHƯA KIỂM: chỉ đọc code; cách ly giao dịch Turso / libsql suy theo kh
 SOÁT BẢO MẬT: ĐẠT
 
 ## Câu hỏi
+(Hai câu dưới ĐÃ được chủ quán trả lời 15.11 trong phiếu — khối "DUYỆT kế hoạch" điểm 1, 2 — giữ lại làm lịch sử. Không còn câu hỏi mở.)
 1. **(Cấm — giuCho.js ngoài khối chặn nạp / thẻ)** A6 cần sửa MỘT dòng trong `chotPhien` (giuCho.js): `const muon = nguon === 'tay' && them.muon === true`
    → `const muon = them.muon === true` (+ câu chú thích), để webhook tiền về muộn dùng CÙNG chotPhien kiểu muộn mà quầy dùng khi xác nhận tay.
    Đây là chỗ ngoài "khối chặn nạp / thẻ" mà mục Cấm cho phép → xin chủ quán duyệt cùng kế hoạch (chi tiết ở `ke_hoach.md` Q-A). Không duyệt thì A6 không
@@ -265,3 +266,66 @@ SOÁT BẢO MẬT: ĐẠT
 - Ca E2 (doanh thu không tính đơn nạp App) dò bằng câu SQL theo dải product_id, không gọi route báo cáo — dựa vào sqlDonNap đã có bài NAP-1 canh.
 - `cong_cu/thu_BH2.js` ca G1 đỏ trong kho nông (máy mây): `git log cbbb809..HEAD` → `bad revision` vì `cbbb809` không có trong lịch sử nông
   (`git cat-file -t cbbb809` → fatal). Không do việc này. Đã chạy `git fetch -q --unshallow origin viec/KH-NAP-1` (chỉ tải lịch sử, không đổi file) → `cbbb809` có.
+
+## Cổng
+`node tu_chay/cong.js chay . 6fe3f4f09c6f4bd7baee6eb7ba35c9013c4bdaad^ HEAD viec/KH-NAP-1` (đứng ở HEAD, cây sạch):
+- Lần 1 (HEAD c8f5c6e0): ✗ CỔNG ĐỎ (CHẠY) — 9 lý do, cùng một loại: `✗ [A16] viec/KH-NAP-1/bang_chung_do.txt thiếu dòng "SỐ CA cong_cu/thu_<bài>.js: <N>"` cho
+  thu_DANGNHAP2, thu_GOI1, thu_KH1, thu_KHAPI2, thu_NDAPI1, thu_P20, thu_P26c, thu_UUDAI1, thu_VOUCHER2 — các bài do commit GỘP MAIN ab2a9d58 mang vào (mốc
+  cổng nằm trước commit gộp). Đã ghi số ca thật đo trên head, có ghi chú nguồn gốc (không đổi bài, không nới cổng).
+- Lần 2 (HEAD 6b1667c3): ✓ CỔNG CHẠY ĐẠT. Ba CẢNH BÁO A16 (gốc dừng sớm: thu_HD1 139 ≠ 159, thu_KHNAP1 34 ≠ 65, thu_VOUCHER2 144 ≠ 146).
+
+## Bài học
+Sự cố của việc: (1) soát vòng 1 bắt lỗ TIỀN "cổng gửi lại cùng báo sau lần chốt muộn hỏng → cộng hai lần" (chốt muộn hỏng không khoá phiên — luật viết cho
+xác nhận tay); (2) soát vòng 2 / 3 bắt hai cuộc đua: phép chặn của `muonChot` đọc NGOÀI giao dịch (vế khoá, vế cổng kia); (3) đột biến VS-muon-p-cu sống tới khi
+siết ca "mọi lần báo"; (4) bài cũ HD1 đỏ trên gốc sai lý do (thiếu số dư thay vì luật thẻ) — K3; (5) cổng A16 đỏ vì mốc cổng trước commit gộp main;
+(6) người gác chặn: B-BIMAT-CHU 6 lần (chạy bài có cụm khoá bí mật trước khi commit; cụm mã lỗi token trong lệnh Python), B-CHUONGTRINH 4 (vòng `for`),
+B-PHANTICH 2 (Python + node một lệnh), GIT-RM `--cached`, GIT-LENH `worktree`, B-DICHCHU (biến `$S` làm đích ghi) — mỗi lần làm theo hướng dẫn, không lách.
+- **KHOÁ (đã làm, trong Phạm vi):** cong_cu/thu_KHNAP1.js — ca TẤT ĐỊNH cho cuộc đua (móc `db.beginTransaction` chen dòng báo cùng khoá / cổng kia đúng lúc giữa
+  phép kiểm ngoài giao dịch và giao dịch chốt), ca "gửi lại cùng khoá → 200, không ghi thêm", ca ngưỡng trang 21 / 20; đột biến BV-muon-khoa, BV-muon-dua,
+  BV-muon-dua-cong, VS-vi-trang, VS-vi-thu-tu đều BẮT. Lý do KHOÁ: lỗi tiền chỉ lộ khi có ca tất định, lời dặn không đủ.
+- **KHOÁ (đề xuất, ngoài Phạm vi):** tu_chay/cong.js — khi mốc `<PHIEU>^` nằm trước một commit `GOP-<MÃ> …` của chat, A16 lấy mốc là commit gộp đó (hoặc bỏ
+  các bài chỉ đổi trong commit gộp). Ca đỏ: nhánh có commit `GOP-X` đổi một bài thử, việc không đụng bài đó → cổng hiện đòi SỐ CA cho bài đó.
+- **NGUYÊN TẮC (đề xuất thêm vào KHUON_LOI.md K4, ngoài Phạm vi):** "Dùng lại một hàm có cờ nới luật (`muon`) cho một đường gọi MỚI do MÁY tự gọi lại (webhook
+  cổng gửi lại) → rà mọi luật 'không khoá / cho thử lại' của hàm (viết cho người bấm tay) và MỌI vế chặn đọc ngoài giao dịch: đọc lại trong giao dịch, vế nào
+  không câu ghi nào đổi được thì ghi rõ bằng grep. Đã gây: KH-NAP-1 soát vòng 1–3 (cộng hai lần khi cổng gửi lại; hai cuộc đua). Dấu hiệu: cờ đặt bởi route
+  tay nay đặt bởi webhook. Chặn: ca chen tất định cho từng vế."
+- **NGUYÊN TẮC (đề xuất K3, ngoài Phạm vi):** "Helper bài thử tự sinh khoá mới mỗi lần gọi (reference tăng) → ca 'báo lặp / song song' phải truyền khoá CỐ ĐỊNH;
+  tên ca nói 'trùng' mà khoá khác là xanh oan (KH-NAP-1 soát vòng 2)." Có thể gộp vào dòng "tên ca nói một đằng, máy kiểm một nẻo" sẵn có của K3.
+- **BỎ:** HD1 trùng tên biến `sv` (một lần, bài sập là thấy ngay); KB22 ví chưa có đọc ra NaN (một lần, helper giả lập).
+- **Dọn:** không thấy lời dặn nào trong KHUON_LOI.md / CLAUDE.md mà phép kiểm của việc này làm thay.
+
+## Báo cáo 7 mục
+```
+VIỆC:        KH-NAP-1 — Khách tự nạp trên App (dòng nạp trong đơn App, GET /goi-nap, GET /vi) + thẻ hạng / nạp chỉ trả tiền thật + hợp đồng /api/kh v17
+ĐÃ SỬA:      server/utils/viKhach.js — loiTienThat (một vị từ nạp / thẻ không trừ số dư) + tenDongNap (một chỗ dựng tên dòng nạp)
+             server/routes/orders.js — khối chặn nạp / thẻ: loiTienThat trước cổng PIN; tính thử nạp + mã / voucher theo luật VOUCHER-2; tên dòng nạp
+             server/utils/giuCho.js — chặn lúc giữ dùng loiTienThat; đúng một dòng `const muon = them.muon === true` + hai chú thích (chủ quán duyệt 15.11)
+             server/utils/donApp.js — dòng nạp (docGio, bamGio, thanDon, chiTinh, baoGia ghép, thân đơn, chiTietDon, dsQuay co_nap), GIU_MA 4 mã, lý do tiền về muộn
+             server/routes/thanh-toan.js — xuLyTienVe: muonChot (đơn App chỉ thẻ / chỉ nạp về muộn đúng số → chốt qua CHÍNH lời gọi chotPhien), chặn báo đã ghi,
+               suKien kiểm khoá + cổng kia TRONG giao dịch, ghi lý do khi không chốt được; chú thích, lời 409
+             server/utils/lichSuVi.js (mới) — GET /vi; server/routes/kh/index.js — GET /goi-nap, GET /vi; server/routes/kh/loi.js — 4 mã; server/routes/goi-nap.js — dsGoiBat
+             client/src/pages/BanHang/{tinh.js, BanHangMoi.jsx, ThuTien.jsx} — giỏ có thẻ tắt "Trừ tài khoản"; client/src/pages/DonApp.jsx — nhãn đơn nạp; client/dist build
+             HOP_DONG_API_KH.md — v17; kiem_tra_truoc_khi_giao.js — nối thu_KHNAP1.js
+BÀI THỬ:     cong_cu/thu_KHNAP1.js (mới, 65 ca) chạy trên gốc 6ca94f07 → ĐỎ (6 đạt · 28 hỏng, sập mục B, C, E); sau khi vá → 65 đạt · 0 hỏng. Bài cũ sửa (G2):
+             thu_P2223 / thu_P24 / thu_HD1 / thu_KHTHE1 / thu_HOPDONG_KH / giả lập KB22 — đỏ trên gốc đúng ca luật mới, xanh sau vá (bang_chung_do.txt).
+             Đột biến 47 · BẮT 47 (đối chứng 65/65). npm test PASS 118 · --day-du PASS 122 · FAIL 0. Cổng: ✓ CỔNG CHẠY ĐẠT.
+ĐÃ RÀ K4:    grep mọi dạng trừ ví (balance_amount, parent_balance_amount, payment_method balance, tru_tai_khoan, tru_tai_khoan_me, cach tai_khoan) trong orders.js /
+             giuCho.js → hai chỗ chặn (taoDon, taoPhien), một vị từ phủ đủ; grep "laDongThe" trong donApp.js → 4 chỗ đọc dòng thẻ, mỗi chỗ thêm nhánh dòng nạp
+             (baoGia ghép, thân đơn, chiTietDon, dsQuay); grep "ghiVi(" + "INSERT INTO pos_balance_transactions" trong server/ → 10 chỗ ghi sổ ví, ánh xạ đủ trong
+             lichSuVi.js (debt_payment loại); xuLyTienVe: mọi vế chặn muonChot đọc ngoài giao dịch (khoá, cổng kia) đọc lại trong giao dịch, vế trạng thái do câu
+             ghi phiên khoá, con_lai / than không câu ghi nào đổi (soát cuối grep).
+CHƯA KIỂM:   - Cuộc đua thật trên Turso (hai giao dịch song song thật) — bài thử chỉ mô phỏng bằng chen dòng một lần; cách ly giao dịch libsql chưa đo.
+             - Cổng payOS / SePay / Tingee thật có gửi lại khi nhận 5xx hay không, có giữ nguyên reference khi gửi lại không.
+             - SePay gửi lại cùng `sepay:<id>` sau chốt muộn hỏng: chưa có ca riêng (cùng hàm, cùng cột khoá với payOS).
+             - Chưa thử tay giao diện trên điện thoại. Thử tay (chủ quán): (1) Bán hàng → thêm thẻ hội viên vào giỏ, chọn khách có số dư → nút "Trừ tài khoản" mờ,
+               dòng "Thẻ hội viên chỉ trả tiền mặt hoặc chuyển khoản"; (2) giỏ đồ uống cùng khách → "Trừ tài khoản" bấm được như cũ; (3) màn Đơn App: đơn nạp từ
+               App hiện dòng "💳 Nạp … — đã vào tài khoản, không pha", không nút Đang làm.
+             - Dữ liệu production: dòng sổ ví cũ (purchase không order_id, nếu có) sẽ hiện "Quán điều chỉnh số dư" — chưa đo trên Turso.
+             - E2 (doanh thu không tính đơn nạp App) kiểm bằng dải product_id, không gọi route báo cáo thật.
+GIT:         6b1667c3 KH-NAP-1: soat bao mat lan 2 DAT; SO CA bai do commit gop main mang vao
+             c8f5c6e0 KH-NAP-1: ho so soat vong 3, vong sua 3-4
+BÀI HỌC:     KHOÁ 2 (1 đã làm trong Phạm vi: ca chen tất định + đột biến; 1 đề xuất: cổng A16 lấy mốc commit GOP) · NGUYÊN TẮC 2 (đề xuất K4 cờ nới luật cho
+             đường máy tự gọi lại + vế đọc ngoài giao dịch; K3 khoá cố định cho ca báo lặp) · BỎ 2 — chi tiết ở ## Bài học
+```
+
+HEAD ĐÃ KIỂM: 6b1667c3
