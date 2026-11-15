@@ -711,7 +711,7 @@ tiền → luật (LUAT §6.5) bảo dừng hỏi bạn, không tự sửa.
 - Cổng PR thật dùng `merge-base(main, head)` (`tu_chay/cong.js:124`) = `171109f9` (main đã gộp) → chạy đúng mốc đó:
   `node tu_chay/cong.js chay . 171109f9 HEAD viec/VOUCHER-2` →
 ✓ CỔNG CHẠY ĐẠT
-  (kèm 2 CẢNH BÁO A16 không chặn: thu_HD1 gốc 138 ≠ 146… head 158; thu_VOUCHER2 gốc 144 ≠ head 146 — bài cũ sửa / ca mới, đã có bằng chứng đỏ.)
+  (kèm 2 CẢNH BÁO A16 không chặn: thu_HD1 gốc 138 ≠ head 158; thu_VOUCHER2 gốc 144 ≠ head 146 — bài cũ sửa / ca mới, đã có bằng chứng đỏ.)
 
 ## Phát hiện (15.11)
 - `cong_cu/thu_gia_lap.js` đỏ 1 ca (179 · 1) khi `cong.js chay` chạy nhiều bài cùng lúc; chạy riêng 3/3 sạch (180 · 0). Không biết ca nào (phần in bị `tail`
