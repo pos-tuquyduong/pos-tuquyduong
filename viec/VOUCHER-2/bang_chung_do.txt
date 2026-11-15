@@ -1,6 +1,6 @@
 VOUCHER-2 — bằng chứng bài thử ĐỎ trên code GỐC (bước 4, 12.11.2026)
 
-SỐ CA cong_cu/thu_VOUCHER2.js: 139
+SỐ CA cong_cu/thu_VOUCHER2.js: 146
 SỐ CA cong_cu/thu_P20.js: 178
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_KHAPI2.js: 101
@@ -273,3 +273,14 @@ Trên code vá (e4ef8730, `status IS NOT 'cancelled'`): VOUCHER-2: 139 đạt ·
   7/7 BẮT (VS-V2-Q23-NULL-LOT → Q18h · VS-V2-Q22-LAM-TRON → Q22e 158974 · VS-V2-Q22-CHI-GOI → Q22e 157737)
 Đột biến đầy đủ (HEAD 67f80df6, trước vòng sửa 3): ĐỘT BIẾN VOUCHER-2: 96/96 bị bắt.
 npm test -- --day-du (HEAD e4ef8730): PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước); dist khớp src.
+
+── Q24 (chủ quán 14.11 — phiên 15.11, làm lại từ aa51bd4a) · thu_VOUCHER2.js commit d40b9388 thêm mục [Q24] (Q24a–e) TRƯỚC khi vá:
+   Gốc (code aa51bd4a, bài d40b9388) — node cong_cu/thu_VOUCHER2.js → VOUCHER-2: 142 đạt · 4 hỏng
+  ✗ Q24a hai voucher "Giảm 50.000đ cho món X" (X 40.000) → 400 VOUCHER_HET_MON, không đơn, không tiêu voucher  — HTTP 400 · Số tiền thanh toán (100.000đ) không khớp tổng đơn hàng thật (60.000đ). · đơn 72→72
+  ✗ Q24a lời báo đúng câu chủ quán "Voucher <MÃ> không còn món để giảm" (mã = voucher thứ hai)  — Số tiền thanh toán (100.000đ) không khớp tổng đơn hàng thật (60.000đ).
+  ✗ Q24c tinh-thu → MỀM: tổng 100.000 …  — {"success":true,"subtotal":140000,…,"giam_voucher":80000,"total":60000,…
+  ✗ Q24d hai voucher theo món 30.000 + 30.000 trên X 40.000 → 200 …  — HTTP 400 · Số tiền thanh toán (100.000đ) không khớp tổng đơn hàng thật (80.000đ).
+  (Q24b, Q24e xanh trên gốc — ca giữ hành vi: một voucher theo món; voucher cả đơn không đổi. Khoá bằng đột biến VS-V2-Q24-CA-DON-TRU.)
+Trên code vá (e5564bfd): VOUCHER-2: 146 đạt · 0 hỏng. thu_HOPDONG_KH.js: 90 đạt · 0 hỏng. npm test -- --day-du: PASS 118 · FAIL 0 · CẢNH BÁO 1 (có từ trước).
+Đột biến Q24: BV-V2-Q24-CON-DONG BV-V2-Q24-BAO VS-V2-Q24-CA-DON-TRU VS-V2-Q24-NGUONG VS-V2-Q24-TINH-THU-CUNG → ĐỐI CHỨNG 146 · 0; 5/5 BẮT
+  (CON-DONG → Q24a · BAO → Q24a HTTP 200 · CA-DON-TRU → Q24e VOUCHER_HET_MON · NGUONG → Q24d · TINH-THU-CUNG → Q24c)
