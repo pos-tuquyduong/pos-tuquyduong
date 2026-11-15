@@ -398,9 +398,21 @@ async function main() {
     chenKhoa = { khoa: `${pr.ma_payos}:REFN-DUA`, ma: pr.ma_payos, so_tien: 100000 };
     const wr = await webhook(pr, { reference: 'REFN-DUA' });
     chenKhoa = null;
-    k('A6 hai bản CÙNG khoá đua nhau (bản kia ghi dòng báo giữa chừng) → bản này KHÔNG chốt đơn (giao dịch huỷ, cổng gửi lại sau), ví không đổi',
-      (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [kr.sdt])) === 0 && (await vi(kr.sdt)).so_du === 0 && wr.status >= 500,
-    `${moTa(wr)} · ${(await vi(kr.sdt)).so_du}`);
+    const wr2 = await webhook(pr, { reference: 'REFN-DUA' });   // cổng gửi lại sau 5xx
+    k('A6 hai bản CÙNG khoá đua nhau (bản kia ghi dòng báo giữa chừng) → bản này KHÔNG chốt đơn (giao dịch huỷ, 5xx); gửi lại → 200, vẫn không đơn, ví không đổi',
+      (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [kr.sdt])) === 0 && (await vi(kr.sdt)).so_du === 0 && wr.status >= 500
+      && wr2.status === 200, `${moTa(wr)} · ${moTa(wr2)} · ${(await vi(kr.sdt)).so_du}`);
+    // Soát vòng 3: cổng KIA (SePay) ghi dòng báo cho cùng phiên giữa phép kiểm "cổng kia" (ngoài giao dịch) và giao dịch chốt → không chốt.
+    const kc2 = await khach();
+    const rc = await datNap(kc2);
+    const pc2 = await muon(rc.p);
+    chenKhoa = { khoa: 'sepay:KN1-DUA-' + ngauNhien().slice(0, 8), ma: pc2.ma_payos, so_tien: 100000 };
+    const wc = await webhook(pc2, { reference: 'REFN-DUA-CONG' });
+    chenKhoa = null;
+    const wc2 = await webhook(pc2, { reference: 'REFN-DUA-CONG' });
+    k('A6 cổng KIA báo xen giữa lúc chốt muộn → không chốt đơn (5xx); gửi lại → 200, không đơn, không tự cộng (cần xem)',
+      (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [kc2.sdt])) === 0 && (await vi(kc2.sdt)).so_du === 0 && wc.status >= 500
+      && wc2.status === 200, `${moTa(wc)} · ${moTa(wc2)} · ${(await vi(kc2.sdt)).so_du}`);
     const kk = await khach();
     const kq = await datNap(kk);
     await db.run('UPDATE pos_goi_nap SET khach_tra = 110000 WHERE id = ?', [G1]);
