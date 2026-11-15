@@ -108,6 +108,24 @@ Không làm đường tiền mới: nạp trên App đi đúng đường nạp c
 - Q-C **Danh sách bài cũ phải sửa ca (G2)** — file + tên ca, trước khi sửa.
 - Q-D **Chỗ đặt `GET /vi`** (file mới `server/utils/lichSuVi.js` hay trong routes/kh/index.js) — chọn chỗ ít đụng file VOUCHER-2 / KET-NOI-1 nhất.
 
+<!-- Chủ quán 15.11 — DUYỆT kế hoạch (ke_hoach.md fccef12). Chat đã gộp main mới (VOUCHER-2 + QC-APP-1 + ND-API-1 + DANG-NHAP-2) vào nhánh trước commit này.
+  1. Q-A ĐỒNG Ý phương án A (một cờ `muonChot` trên lời gọi chotPhien có sẵn). CHO PHÉP sửa đúng MỘT dòng ngoài khối chặn ở giuCho.js chotPhien:
+     `const muon = nguon === 'tay' && them.muon === true;` → `const muon = them.muon === true;` + sửa hai câu chú thích giuCho.js (~dòng 9, ~97).
+     Ngoài dòng đó giuCho.js / orders.js vẫn theo mục Cấm. Xác nhận tay phiên App muộn (`PHIEN_APP_KHONG_TAO_LAI`): GIỮ chặn.
+  2. Đối soát: KHÔNG thêm mục CẦN XEM cho đơn chỉ thẻ / chỉ nạp máy tự chốt khi tiền về muộn (tiền đúng số, đúng phiên — như tiền về đúng hạn).
+  3. Q-B, Q-C, Q-D ĐỒNG Ý như kế hoạch. Thêm cho `GET /vi`: mỗi dòng sổ ví ra ĐÚNG MỘT dòng — các LEFT JOIN không được nhân dòng (vd một đơn có
+     hơn một phiên thanh toán) → thêm ca thử.
+  4. Code mới có VOUCHER-2 (đọc lại orders.js / donApp.js / uuDai.js trước khi viết): đơn nạp App gửi kèm `ma_giam` hoặc `vouchers` → theo ĐÚNG luật
+     VOUCHER-2 đang có cho dòng không giảm (`MA_KHONG_AP_MON_THUONG`: báo giá ở `ma_giam_loi` / `voucher_loi`, đặt đơn bị chặn như lỗi voucher khác),
+     không giữ voucher cho phiên nạp — không viết đường riêng; thêm ca thử. Hợp đồng đang `PHIEN_BAN: 16` (đã có v15 VOUCHER-2 + v16 QC-APP-1)
+     → lên 17, nhật ký v17 đứng SAU v16.
+  5. Ghi rõ trong hợp đồng v17 (App KH xin, thư 14.11 b — POS đã nhận):
+     a. `GET /goi-nap`: `ten` luôn có (chuỗi không rỗng); `tra`, `vao` là số nguyên đồng; `vao ≥ tra` (goi-nap.js đã chặn lúc lưu — ca thử canh).
+     b. `hoa_don[]` của đơn nạp App = đúng tờ đơn nạp in ở quầy cho cùng gói.
+     c. 4 mã mới `THE_KHONG_TRA_VI`, `NAP_KHONG_GOP`, `NAP_CHI_TIEN_MAT_QR`, `GOI_NAP_KHONG_CO` nằm trong khối `ma_loi` máy đọc (thu_HOPDONG_KH canh).
+     d. Đơn nạp đang chờ chuyển khoản theo đúng luật đơn chờ đang có (giữ phiên, hết hạn, khách huỷ) — không luật riêng.
+  6. Làm theo mục 8 kế hoạch tới hết (bắt đầu `git pull --ff-only`), không dừng — trừ chỗ phiếu bảo DỪNG hỏi. -->
+
 ## Phạm vi
 - viec/KH-NAP-1/**
 - server/utils/donApp.js
