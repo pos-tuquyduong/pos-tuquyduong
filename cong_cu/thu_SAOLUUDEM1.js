@@ -283,7 +283,7 @@ async function main() {
     const kg = doc(path.join(GOC_THU, 'client', 'src', 'pages', 'CaiDat', 'KhoaSaoLuuPos.jsx'));
     const ap = doc(path.join(GOC_THU, 'client', 'src', 'utils', 'api.js'));
     k("D1a Settings.jsx import KhoaSaoLuuPos và gắn <KhoaSaoLuuPos /> đúng MỘT chỗ, chỉ chủ quán, trong tab sao lưu", /import KhoaSaoLuuPos from '\.\/CaiDat\/KhoaSaoLuuPos'/.test(st) && (st.match(/<KhoaSaoLuuPos\b/g) || []).length === 1
-      && /isAdmin && <KhoaSaoLuuPos \/>|isAdmin && \(\s*<KhoaSaoLuuPos \/>/.test(st) && st.indexOf('<KhoaSaoLuuPos') > st.indexOf("tab === 'backup' ?") && st.indexOf('<KhoaSaoLuuPos') < st.indexOf("tab === 'loyalty' ?"));
+      && /isAdmin && <KhoaSaoLuuPos \/>|isAdmin && \(\s*<KhoaSaoLuuPos \/>/.test(st) && st.indexOf('<KhoaSaoLuuPos') > st.indexOf(": tab === 'backup' ? (") && st.indexOf(": tab === 'backup' ? (") > 0 && st.indexOf('<KhoaSaoLuuPos') < st.indexOf(": tab === 'loyalty' ? ("));
     k('D1b KhoaSaoLuuPos.jsx: "Sao lưu tự động lên Google Drive", "Lần Google lấy gần nhất", "Chưa lấy lần nào", "Tạo khoá mới", "Thu hồi khoá", "Khoá cũ sẽ ngừng dùng", hỏi PIN bằng HoiPin',
       ['Sao lưu tự động lên Google Drive', 'Lần Google lấy gần nhất', 'Chưa lấy lần nào', 'Tạo khoá mới', 'Thu hồi khoá', 'Khoá cũ sẽ ngừng dùng'].every((s) => kg.includes(s)) && /<HoiPin /.test(kg));
     k('D2 KhoaSaoLuuPos.jsx: nút Chép + câu "Dán vào Apps Script › Cài đặt dự án › Thuộc tính tập lệnh, tên KHOA_POS. Không gửi khoá qua chat / Zalo."; báo theo CAIDAT-BAO-1 (baoXong / baoLoiTu); gọi /backup/khoa-tu-dong',
