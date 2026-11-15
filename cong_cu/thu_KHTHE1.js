@@ -173,7 +173,14 @@ async function main() {
     if (tong === undefined) tong = (await baoGia(kh, than)).j.tong;
     return goi('POST', '/kh/don', { ...than, khoa_gui: khoaMoi(), cach_tra: 'qr', tong_da_xem: tong, ...them }, kh.tk);
   };
-  const datVi = (kh, than, them = {}) => dat1(kh, than, { cach_tra: 'vi', pin: '1357', ...them });
+  // KH-NAP-1 (chủ quán 14.11): thẻ hạng không trả bằng ví → "đặt rồi trả ngay" = QR + tiền về đúng hạn (đơn đã thu — các ca phía sau giữ nguyên ý).
+  // d.j.tien_trinh đọc lại sau khi tiền về (như POST /don trả ví trước đây trả ngay tien_trinh đã thu).
+  const datTra = async (kh, than, them = {}) => {
+    const d = await dat1(kh, than, them);
+    const p = d.status === 200 ? await phienCua(d.j.ma_don) : null;
+    if (p?.trang_thai === 'cho') { await webhook(p); d.j.tien_trinh = (await goi('GET', `/kh/don/${d.j.ma_don}`, undefined, kh.tk)).j.don?.tien_trinh; }
+    return d;
+  };
   let soRef = 0;
   const webhook = (p, them = {}) => {
     const data = { orderCode: p.ma_payos, amount: p.con_lai, description: p.noi_dung || 'x', accountNumber: '12345678', reference: 'REFT' + (++soRef),
@@ -241,23 +248,24 @@ async function main() {
       b4.map(moTa).join(' / '));
     const b13 = await baoGia(kh, gio([the(999999, 1)]));
     k('B13 hạng không có → 400 DON_KHONG_HOP_LE (mã sẵn có)', la(b13, 400, 'DON_KHONG_HOP_LE'), moTa(b13));
-    const b8 = await datVi(kh, g1, { tong_da_xem: 1000 });
+    const b8 = await datTra(kh, g1, { tong_da_xem: 1000 });
     k('B8 tong_da_xem lệch → 409 GIA_DA_DOI kèm bao_gia có dòng thẻ', la(b8, 409, 'GIA_DA_DOI') && b8.j.bao_gia?.dong?.[1]?.loai === 'the', moTa(b8));
-    const b3d = await datVi(kh, gio([the(VANG, 1), the(VANG, 3)]), { tong_da_xem: 0 });
-    const b5d = await datVi(kh, gio([the(KC, 1)]), { tong_da_xem: 0 });
+    const b3d = await datTra(kh, gio([the(VANG, 1), the(VANG, 3)]), { tong_da_xem: 0 });
+    const b5d = await datTra(kh, gio([the(KC, 1)]), { tong_da_xem: 0 });
     k('B3/B5 POST /don: hai thẻ → NHIEU_THE · Kim Cương → HANG_CHI_CAP', la(b3d, 400, 'NHIEU_THE') && la(b5d, 400, 'HANG_CHI_CAP'), `${moTa(b3d)} / ${moTa(b5d)}`);
     k('B11 các 4xx ở trên không để lại đơn / dòng đơn App / phiên / dòng sổ thẻ / tiền ví (đếm bảng)', (await chup(kh.sdt)) === truoc,
       `${truoc} → ${await chup(kh.sdt)}`);
     const khoa = khoaMoi();
     const tong = (await baoGia(kh, gio([the(VANG, 1)]))).j.tong;
-    const d1 = await goi('POST', '/kh/don', { ...gio([the(VANG, 1)]), khoa_gui: khoa, cach_tra: 'vi', pin: '1357', tong_da_xem: tong }, kh.tk);
-    const d2 = await goi('POST', '/kh/don', { ...gio([the(VANG, 1)]), khoa_gui: khoa, cach_tra: 'vi', pin: '1357', tong_da_xem: tong }, kh.tk);
+    const d1 = await goi('POST', '/kh/don', { ...gio([the(VANG, 1)]), khoa_gui: khoa, cach_tra: 'qr', tong_da_xem: tong }, kh.tk);   // KH-NAP-1: thẻ chỉ QR
+    if (d1.status === 200) await webhook(await phienCua(d1.j.ma_don));
+    const d2 = await goi('POST', '/kh/don', { ...gio([the(VANG, 1)]), khoa_gui: khoa, cach_tra: 'qr', tong_da_xem: tong }, kh.tk);
     k('B9 gửi lại cùng khoá → 200 trung: true, cùng mã đơn, một dòng sổ thẻ', la(d1, 200) && la(d2, 200) && d2.j.trung === true && d2.j.ma_don === d1.j.ma_don
       && (await soThe(kh.sdt)) === 1, `${moTa(d1)} · ${moTa(d2)} · ${d2.j.trung}`);
-    const d2b = await goi('POST', '/kh/don', { ...gio([the(VANG, 1, { so_luong: 1 })]), khoa_gui: khoa, cach_tra: 'vi', pin: '1357', tong_da_xem: tong }, kh.tk);
+    const d2b = await goi('POST', '/kh/don', { ...gio([the(VANG, 1, { so_luong: 1 })]), khoa_gui: khoa, cach_tra: 'qr', tong_da_xem: tong }, kh.tk);
     k('B9b gửi lại cùng khoá, dòng thẻ thêm so_luong: 1 (cùng nghĩa với bỏ trống) → vẫn trung: true', la(d2b, 200) && d2b.j.trung === true
       && d2b.j.ma_don === d1.j.ma_don, moTa(d2b));
-    const d3 = await goi('POST', '/kh/don', { ...gio([the(VANG, 3)]), khoa_gui: khoa, cach_tra: 'vi', pin: '1357', tong_da_xem: 250000 }, kh.tk);
+    const d3 = await goi('POST', '/kh/don', { ...gio([the(VANG, 3)]), khoa_gui: khoa, cach_tra: 'qr', tong_da_xem: 250000 }, kh.tk);
     k('B10 cùng khoá, đổi gói thẻ → 409 KHOA_GUI_DA_DUNG', la(d3, 409, 'KHOA_GUI_DA_DUNG'), moTa(d3));
     const kh2 = await khach();
     await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active) VALUES ('THE5K', 'fixed', 5000, 0, 0, 1)`);
@@ -280,7 +288,7 @@ async function main() {
     const b = await baoGia(kh, g);
     k('C1 khách chưa hạng: món giá GỐC (không dòng giảm hạng), tong = 25.000 + 100.000', la(b, 200) && b.j.tong === 125000
       && !(b.j.giam || []).some((x) => x.loai === 'hang'), `${moTa(b)} · ${b.j.tong} · ${JSON.stringify(b.j.giam)}`);
-    const d = await datVi(kh, g);
+    const d = await datTra(kh, g);
     const p = await phienCua(d.j.ma_don);
     const o = p?.order_id ? await db.queryOne('SELECT total, tier_discount FROM pos_orders WHERE id = ?', [p.order_id]) : null;
     k('C1 đơn ghi đúng 125.000, không giảm hạng', la(d, 200) && o?.total === 125000 && !Number(o?.tier_discount), `${moTa(d)} · ${JSON.stringify(o)}`);
@@ -295,10 +303,14 @@ async function main() {
   muc('[D] Hạng lên NGAY trong giao dịch ghi "đã thu" — ví / QR / ví + QR / xác nhận tay; trùng chỉ một dòng sổ');
   await chay('D', async () => {
     const kh = await khach(1000000);
-    const d1 = await datVi(kh, gio([the(VANG, 1)]));
+    // KH-NAP-1 (chủ quán 14.11): ca cũ "D1 trả ví → có hạng ngay" thành ca CHẶN; "đã thu → có hạng ngay, xong" chạy tiếp với QR (datTra).
+    const d1v = await dat1(kh, gio([the(VANG, 1)]), { cach_tra: 'vi', pin: '1357' });
+    k('D1 trả ví → 400 THE_KHONG_TRA_VI, chưa hạng, ví không đổi (KH-NAP-1)', la(d1v, 400, 'THE_KHONG_TRA_VI') && (await hangToi(kh)) === null
+      && (await soDu(kh.sdt)) === 1000000 && (await soThe(kh.sdt)) === 0, moTa(d1v));
+    const d1 = await datTra(kh, gio([the(VANG, 1)]));
     const h1 = await hangToi(kh);
-    k('D1 trả ví: 200, /toi.hang = Vàng ngay sau POST /don, một dòng sổ', la(d1, 200) && h1?.id === VANG && (await soThe(kh.sdt)) === 1, `${moTa(d1)} · ${JSON.stringify(h1)}`);
-    k('Q3 giỏ chỉ thẻ trả ví → tien_trinh "xong" ngay (không chờ quầy pha)', d1.j.tien_trinh === 'xong', d1.j.tien_trinh);
+    k('D1 đã thu (QR về đủ): 200, /toi.hang = Vàng ngay, một dòng sổ', la(d1, 200) && h1?.id === VANG && (await soThe(kh.sdt)) === 1, `${moTa(d1)} · ${JSON.stringify(h1)}`);
+    k('Q3 giỏ chỉ thẻ đã thu → tien_trinh "xong" ngay (không chờ quầy pha)', d1.j.tien_trinh === 'xong', d1.j.tien_trinh);
 
     const kq = await khach();
     const d2 = await dat1(kq, gio([mon(0, 1), the(VANG, 1)]));
@@ -320,11 +332,10 @@ async function main() {
       `${ttMuaTruoc} → ${ttMuaSau}`);
 
     const kv = await khach(30000);
+    // KH-NAP-1 (chủ quán 14.11): ví + QR cho thẻ → CHẶN, không giữ ví.
     const d3 = await dat1(kv, gio([the(VANG, 1)]), { cach_tra: 'vi_qr', pin: '1357' });
-    const p3 = await phienCua(d3.j.ma_don);
-    k('D3 ví + QR: giữ 30.000, chưa có hạng', la(d3, 200) && d3.j.giu_vi === 30000 && d3.j.con_lai === 70000 && (await hangToi(kv)) === null, moTa(d3));
-    await webhook(p3);
-    k('D3 QR phần còn lại về đủ → có hạng, ví còn 0', (await hangToi(kv))?.id === VANG && (await soDu(kv.sdt)) === 0, String(await soDu(kv.sdt)));
+    k('D3 ví + QR cho thẻ → 400 THE_KHONG_TRA_VI, không giữ ví, chưa có hạng (KH-NAP-1)', la(d3, 400, 'THE_KHONG_TRA_VI') && (await hangToi(kv)) === null
+      && (await soDu(kv.sdt)) === 30000 && (await so("SELECT COUNT(*) AS n FROM pos_phien_thanh_toan WHERE phone = ? AND trang_thai = 'cho'", [kv.sdt])) === 0, moTa(d3));
     const dq = await dat1(kv, gio([the(VANG, 1)]));
     const qrOnly = await goi('GET', `/kh/don/${dq.j.ma_don}`, undefined, kv.tk);
     await webhook(await phienCua(dq.j.ma_don));
@@ -340,11 +351,13 @@ async function main() {
 
     const ks = await khach(1000000);
     const khoa = khoaMoi();
-    const than = { ...gio([the(VANG, 1)]), khoa_gui: khoa, cach_tra: 'vi', pin: '1357', tong_da_xem: 100000 };
+    const than = { ...gio([the(VANG, 1)]), khoa_gui: khoa, cach_tra: 'qr', tong_da_xem: 100000 };   // KH-NAP-1: thẻ chỉ QR
     const ss = await Promise.all([goi('POST', '/kh/don', than, ks.tk), goi('POST', '/kh/don', than, ks.tk)]);
     let lai = ss.find((r) => r.status === 200);
     for (let i = 0; i < 5 && ss.some((r) => la(r, 503, 'DANG_XU_LY')) && !lai; i++) lai = (await goi('POST', '/kh/don', than, ks.tk));
-    k('D6 hai POST /don cùng khoá song song (ví) → một đơn, một dòng sổ, ví trừ đúng một lần', (await soThe(ks.sdt)) === 1 && (await soDu(ks.sdt)) === 900000
+    const p6 = lai ? await phienCua(lai.j.ma_don) : null;
+    if (p6) await Promise.all([webhook(p6), webhook(p6)]);
+    k('D6 hai POST /don cùng khoá song song (QR) + hai báo tiền → một đơn, một dòng sổ, ví không đổi', (await soThe(ks.sdt)) === 1 && (await soDu(ks.sdt)) === 1000000
       && (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [ks.sdt])) === 1, ss.map(moTa).join(' / '));
 
     const kh7 = await khach();
@@ -353,8 +366,10 @@ async function main() {
     await lui('pos_phien_thanh_toan', 'het_han', 'id = ?', [p7.id], 700);
     const w7 = await webhook(p7);
     const x7 = await goi('POST', `/pos/thanh-toan/phien/${p7.id}/xac-nhan-tay`, { ly_do: 'Tiền về muộn khách báo lại' }, tkChu);
-    k('D7 (Q2) tiền QR về SAU khi đơn App hết hạn → vào ví 100.000, không đơn, KHÔNG hạng; xác nhận tay → 409 PHIEN_APP_KHONG_TAO_LAI', w7.status === 200
-      && (await soDu(kh7.sdt)) === 100000 && (await hangToi(kh7)) === null && (await soThe(kh7.sdt)) === 0 && la(x7, 409, 'PHIEN_APP_KHONG_TAO_LAI'),
+    // KH-NAP-1 (chủ quán 14.11 — thay Q2 09.11): đơn chỉ thẻ về muộn đúng số → CÓ hạng, không vào ví; xác nhận tay sau đó không tạo đơn thứ hai.
+    k('D7 tiền QR về SAU khi đơn App chỉ thẻ hết hạn → máy tự chốt: CÓ hạng, một dòng sổ, ví 0; xác nhận tay sau đó → 409, không đơn thứ hai', w7.status === 200
+      && (await soDu(kh7.sdt)) === 0 && (await hangToi(kh7))?.id === VANG && (await soThe(kh7.sdt)) === 1 && x7.status === 409
+      && (await so('SELECT COUNT(*) AS n FROM pos_orders WHERE customer_phone = ?', [kh7.sdt])) === 1,
     `${w7.status} · ${await soDu(kh7.sdt)} · ${moTa(x7)}`);
 
     const kh8 = await khach();
@@ -371,7 +386,7 @@ async function main() {
     const kh9 = await khach(1000000);
     const truoc9 = await soThe(kh9.sdt);
     mocNem = true;
-    const d9 = await datVi(kh9, gio([the(VANG, 1)]));
+    const d9 = await datTra(kh9, gio([the(VANG, 1)]));
     mocNem = false;
     k('D9 lỗi máy lúc tạo phiên → 500 LOI_MAY_CHU, chỉ { error, code }, không dòng sổ thẻ', la(d9, 500, 'LOI_MAY_CHU') && bang(Object.keys(d9.j).sort(), ['code', 'error'])
       && (await soThe(kh9.sdt)) === truoc9, `${moTa(d9)} · ${d9.tho.slice(0, 120)}`);
@@ -384,28 +399,29 @@ async function main() {
     const huy = (oid) => goi('PUT', `/pos/orders/${oid}/cancel`, { reason: 'thử huỷ' }, tkChu);
     const oidCua = async (maDon) => (await phienCua(maDon))?.order_id;
     const k1 = await khach(1000000);
-    const e1 = await datVi(k1, gio([mon(0, 1), the(VANG, 1)]));
+    const e1 = await datTra(k1, gio([mon(0, 1), the(VANG, 1)]));
     const r1 = await huy(await oidCua(e1.j.ma_don));
     k('E1 quầy huỷ đơn thẻ App → dòng sổ mất, /toi.hang về null', la(e1, 200) && la(r1, 200) && (await soThe(k1.sdt)) === 0 && (await hangToi(k1)) === null, moTa(r1));
     const k2 = await khach(1000000);
-    const e2 = await datVi(k2, gio([the(VANG, 1)]));
+    const e2 = await datTra(k2, gio([the(VANG, 1)]));
     const r2 = await goi('DELETE', `/pos/orders/${await oidCua(e2.j.ma_don)}`, undefined, tkChu);
     k('E2 xoá đơn thẻ App → dòng sổ mất, hết hạng', la(r2, 200) && (await soThe(k2.sdt)) === 0 && (await hangToi(k2)) === null, moTa(r2));
     const k3 = await khach(1000000);
-    const e3 = await datVi(k3, gio([the(VANG, 1)]));
+    const e3 = await datTra(k3, gio([the(VANG, 1)]));
     const r3 = await goi('POST', '/pos/refunds', { order_id: await oidCua(e3.j.ma_don), reason: 'thử hoàn' }, tkChu);
-    k('E3 xin hoàn đơn thẻ App (trả ví) → 400 DON_CO_GOI như quầy, hạng giữ', la(r3, 400, 'DON_CO_GOI') && (await hangToi(k3))?.id === VANG, moTa(r3));
+    k('E3 xin hoàn đơn thẻ App → 400 DON_CO_GOI như quầy, hạng giữ', la(r3, 400, 'DON_CO_GOI') && (await hangToi(k3))?.id === VANG, moTa(r3));
     const k4 = await khach();
     const e4 = await dat1(k4, gio([the(VANG, 1)]));
     const h4 = await goi('POST', `/kh/don/${e4.j.ma_don}/huy`, {}, k4.tk);
     const p4 = await phienCua(e4.j.ma_don);
     await webhook(p4);
-    k('E4 App huỷ đơn thẻ chưa trả → da_huy; tiền về sau đó vào ví, không bao giờ có dòng sổ', la(h4, 200) && h4.j.tien_trinh === 'da_huy' && (await soThe(k4.sdt)) === 0
-      && (await hangToi(k4)) === null, moTa(h4));
+    // KH-NAP-1 (chủ quán 14.11): tiền về đúng số sau khi khách huỷ đơn chỉ thẻ → máy tự chốt, CÓ hạng (thay "vào ví, không bao giờ có dòng sổ").
+    k('E4 App huỷ đơn thẻ chưa trả → da_huy; tiền về đúng số sau đó → máy tự chốt: một dòng sổ, có hạng, ví 0', la(h4, 200) && h4.j.tien_trinh === 'da_huy'
+      && (await soThe(k4.sdt)) === 1 && (await hangToi(k4))?.id === VANG && (await soDu(k4.sdt)) === 0, moTa(h4));
     const k5 = await khach(1000000);
-    await datVi(k5, gio([the(VANG, 1)]));
+    await datTra(k5, gio([the(VANG, 1)]));
     const han1 = (await hangToi(k5))?.het_han;
-    const e5 = await datVi(k5, gio([the(VANG, 1)]));
+    const e5 = await datTra(k5, gio([the(VANG, 1)]));
     const han2 = (await hangToi(k5))?.het_han;
     await huy(await oidCua(e5.j.ma_don));
     const han3 = (await hangToi(k5))?.het_han;
@@ -477,12 +493,12 @@ async function main() {
     const kv = await khach(1000000);
     await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, loai, so_thang)
       VALUES (?, ?, 'Vàng thử', 0, NULL, ?, '9999-12-31T23:59:59', 'cap', NULL)`, [kv.sdt, VANG, getNow()]);
-    const dv = await datVi(kv, gio([the(VANG, 1)]));
+    const dv = await datTra(kv, gio([the(VANG, 1)]));
     const hdv = (await goi('GET', `/kh/don/${dv.j.ma_don}`, undefined, kv.tk)).j.don?.hoa_don || [];
     const gv = hdv.find((x) => x.loai === 'the')?.ghi_chu;
     k('G1b hạn sau đơn là không thời hạn → hoa_don ghi "Hạn mới: không thời hạn" (không in năm 9999 / số lạ)', la(dv, 200) && gv === 'Hạn mới: không thời hạn', String(gv));
     const kc = await khach(1000000);
-    const dc = await datVi(kc, gio([the(VANG, 1)]));
+    const dc = await datTra(kc, gio([the(VANG, 1)]));
     const quay = (await goi('GET', '/pos/kh/don-app', undefined, tkChu)).j.data || [];
     const q1 = quay.find((x) => x.ma === dq.j.ma_don), q2 = quay.find((x) => x.ma === dc.j.ma_don);
     k('G3 màn Đơn App: đơn có thẻ co_the = tên thẻ, mon[] KHÔNG có dòng thẻ (quầy không pha)', q1?.co_the === '🎟️ Thẻ hội viên Vàng thử · 1 tháng'
@@ -500,7 +516,7 @@ async function main() {
   muc('[H] Điểm — CÙNG hàm cộng điểm của quầy');
   await chay('H', async () => {
     const ka = await khach(1000000), kq = await khach();
-    const a = await datVi(ka, gio([the(VANG, 1)]));
+    const a = await datTra(ka, gio([the(VANG, 1)]));
     const o = await taoTaiQuay(kq, { items: [], membership_buy: { tier_id: VANG, so_thang: 1 }, payment_method: 'cash', cash_amount: 100000 });
     const dA = await diemDon((await phienCua(a.j.ma_don))?.order_id), dQ = await diemDon(o.j.order?.id);
     k('H1 điểm đơn thẻ App (trả ví 100.000) = điểm đơn thẻ quầy (tiền mặt 100.000)', la(a, 200) && dA === dQ && dQ > 0, `${dA} / ${dQ}`);
@@ -513,7 +529,7 @@ async function main() {
     const c1 = await baoGia(kh, gio([the(VANG, 1)])), c2 = await baoGia(kh, gio([mon(0)])), c3 = await baoGia(kh, gio([mon(0), the(VANG, 1)]));
     k('GIO1 quán đóng: giỏ chỉ thẻ → 200; có đồ uống (một mình / cùng thẻ) → 400 NGOAI_GIO', la(c1, 200) && la(c2, 400, 'NGOAI_GIO') && la(c3, 400, 'NGOAI_GIO'),
       [c1, c2, c3].map(moTa).join(' / '));
-    const d = await datVi(kh, gio([the(VANG, 1)]));
+    const d = await datTra(kh, gio([the(VANG, 1)]));
     k('GIO3 quán đóng: đặt giỏ chỉ thẻ trả ví → 200 + có hạng', la(d, 200) && (await hangToi(kh))?.id === VANG, moTa(d));
     await datLich(hhmm(-60), hhmm(30), 60);
     const n1 = await baoGia(kh, gio([the(VANG, 1)])), n2 = await baoGia(kh, gio([mon(0)]));
@@ -524,7 +540,7 @@ async function main() {
   muc('[K5] Không đổi — giỏ cũ, khoá gửi cũ');
   await chay('K', async () => {
     const kh = await khach(1000000);
-    const d = await datVi(kh, gio([mon(0, 2, 'ít đá'), mon(1, 1)]));
+    const d = await datTra(kh, gio([mon(0, 2, 'ít đá'), mon(1, 1)]));
     const a = await donApp(d.j.ma_don);
     k('K1 giỏ cũ (không thẻ) băm y như code gốc — khoá gửi đang sống trên production không lệch', la(d, 200) && a?.bam === BAM_GOC, `${moTa(d)} · ${a?.bam}`);
     k('K2 đơn đồ uống trả ví → da_tra như cũ (quầy còn pha)', d.j.tien_trinh === 'da_tra', d.j.tien_trinh);
@@ -532,7 +548,7 @@ async function main() {
     const kg = await khach(1000000);
     await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, loai, so_thang)
       VALUES (?, ?, 'Kim Cương thử', 0, NULL, ?, ?, 'cap', 1)`, [kg.sdt, KC, truoc(2), truoc(1)]);
-    await datVi(kg, gio([the(VANG, 1)]));
+    await datTra(kg, gio([the(VANG, 1)]));
     const hg = await hangToi(kg);
     const bg = await baoGia(kg, gio([the(VANG, 1)]));
     k('K5a luật giảm hạng: Kim Cương (cấp 1 tháng) đã hết hạn → không chặn mua Vàng; /toi.hang = Vàng', hg?.id === VANG && la(bg, 200), `${JSON.stringify(hg)} · ${moTa(bg)}`);
@@ -540,7 +556,7 @@ async function main() {
     await db.run(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at, loai, so_thang)
       VALUES (?, ?, 'Vàng thử', 100000, NULL, ?, ?, 'ban', 1)`, [kh5.sdt, VANG, truoc(3), truoc(2)]);
     const h0 = await hangToi(kh5);
-    const d5 = await datVi(kh5, gio([the(VANG, 1)]));
+    const d5 = await datTra(kh5, gio([the(VANG, 1)]));
     const h5 = await hangToi(kh5);
     k('K5b Vàng đã hết hạn mua lại Vàng trên App → 200, có hạng, hạn mới tính từ hôm nay (> bây giờ)', h0 === null && la(d5, 200) && h5?.id === VANG
       && h5?.het_han > getNow(), `${JSON.stringify(h0)} · ${moTa(d5)} · ${JSON.stringify(h5)}`);
@@ -549,7 +565,7 @@ async function main() {
   muc('[S] An toàn — khách chỉ thấy / mua cho chính mình');
   await chay('S', async () => {
     const kA = await khach(1000000), kB = await khach(1000000);
-    const s1 = await datVi(kA, gio([the(VANG, 1)], { customer_phone: kB.sdt, sdt: kB.sdt }));
+    const s1 = await datTra(kA, gio([the(VANG, 1)], { customer_phone: kB.sdt, sdt: kB.sdt }));
     k('S1 thân có SĐT khách B → thẻ vẫn ghi cho khách token A', la(s1, 200) && (await soThe(kA.sdt)) === 1 && (await soThe(kB.sdt)) === 0, moTa(s1));
     const s2 = await goi('GET', `/kh/don/${s1.j.ma_don}`, undefined, kB.tk);
     k('S2 khách B đọc đơn thẻ của A → 404', s2.status === 404, moTa(s2));
