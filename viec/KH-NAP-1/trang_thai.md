@@ -154,6 +154,55 @@ cho đường gọi mới → grep mọi chú thích / luật "cho thử lại" 
 - NHẸ 3 (SePay gửi lại) không thêm ca: cùng một hàm xuLyTienVe + cùng cột khoá, khác cổng chỉ ở cách dựng khoá — ghi CHƯA KIỂM.
 - Đột biến: 45 · BẮT 45 (đối chứng 64/64). `--day-du` PASS 122 · FAIL 0 · CẢNH BÁO 1.
 
+## Soát độc lập — vòng 3 (agent /ra-soat, chép nguyên văn phần kết luận)
+```
+ĐẠT (có một nghi ngờ tiền, khả năng rất thấp)
+LỖI TÌM ĐƯỢC: không có lỗi chắc chắn.
+NGHI NGỜ: 1. thanh-toan.js:186 — TIỀN, khả năng rất thấp, K4: bản vá vòng 2 chỉ phủ cùng khoá; vế `!(await congKiaDaBao({ query }, t))` vẫn kiểm NGOÀI giao
+dịch. Cổng C (SePay) và A (payOS) báo cùng khoản gần như cùng lúc: C chốt muộn hỏng (gói tắt) → vào ví; chủ quán bật lại gói; A đã qua phép kiểm trước khi
+dòng của C ghi → chốt được, suKien ghi khoá của A changes 1 → có đơn nạp → cộng hai lần. Vá gọn: `if (muonChot && (r.changes !== 1 || await congKiaDaBao(tx, t)))
+throw …` + ca chen dòng cổng kia + đột biến. 2. thu_KHNAP1.js:394–403 NHẸ K3: ca đua chỉ khoá lần đầu (500), không ca "gửi lại → 200". 3. trang_thai.md NHẸ:
+chưa ghi `node tu_chay/cong.js chay`.
+(a) Vòng sửa 2: lỗi ném huỷ CẢ giao dịch (orders.js:1278–1282 rollback; số hoá đơn, phiên da_thu, đơn / ví / thẻ cùng tx); 500 LOI_MAY_CHU câu trung tính, câu
+"KH-NAP-1: …" chỉ vào console.error; chotPhien không đánh dấu 'loi'. Gửi lại sau đua → khoá thấy → vaoVi ON CONFLICT → 200. Tingee kiểm khoá trước. Không ném
+oan (chốt muộn lần đầu changes 1; bản sau cùng khoá return false trước suKien; chốt đúng hạn giữ hành vi cũ). Ca tất định đo đúng cuộc đua. BV-muon-dua,
+BV-muon-khoa BẮT.
+NGHIỆM THU: 27/27. Cấm: đúng. P1 dist: --day-du PASS 122.
+CHƯA SOÁT ĐƯỢC: 45 đột biến (chỉ 2); cong.js chay; cổng có gửi lại khi 5xx không; mục 1 chưa dựng ca.
+BÀI HỌC: KHOÁ mọi phép kiểm "chặn chốt muộn" ngoài giao dịch phải kiểm lại TRONG suKien, mỗi vế một ca chen + đột biến; NGUYÊN TẮC K4 vá cuộc đua một vế →
+rà mọi vế cùng vị từ đọc ngoài giao dịch; KHOÁ ca đua có bước "gửi lại → 200, không cộng".
+```
+
+## Vòng sửa 3 (nghi ngờ tiền của soát vòng 3 — vòng sửa CUỐI trong giới hạn 3)
+- Ca TẤT ĐỊNH "cổng KIA báo xen giữa lúc chốt muộn" (móc beginTransaction chen dòng khoá `sepay:…`) → ĐỎ trước vá (đơn nạp 105.000 tạo, gửi lại 200).
+- Vá trong thanh-toan.js `suKien`: `if (muonChot && (r.changes !== 1 || await congKiaDaBao(tx, t))) throw …` — mọi vế chặn của muonChot đọc ngoài giao dịch
+  nay đọc lại trong giao dịch (vế trạng thái phiên do câu ghi phiên chotPhien khoá; `con_lai` / `than` không câu ghi nào đổi — soát cuối grep xác nhận).
+- Ca đua cùng khoá thêm bước "gửi lại → 200, không đơn"; ca "cổng kia đã báo" đòi 200. Đột biến BV-muon-dua-cong BẮT; BV-muon-cong nay bắt bởi ca đòi 200.
+
+## Soát cuối vòng sửa 3 (agent độc lập, chép nguyên văn phần kết luận)
+```
+ĐẠT — vòng sửa 3 đóng đúng lỗ đua "cổng kia". 65 đạt · 0 hỏng; BV-muon-dua, BV-muon-dua-cong, BV-muon-khoa BẮT (đối chứng 65/0).
+1. congKiaDaBao(tx, t) đúng giao dịch (database.js:1599–1602; giuCho.js:131 sau câu ghi phiên); không tự đếm dòng 'khop' của chính cổng (congCuaKhoa theo tiền
+tố, khoá payOS / sepay: / tingee:); không ném oan (chốt đúng hạn chặn bởi vế muonChot; một cổng; that_bai / khong_phien / tài khoản khác bị loại).
+2. Sau khi ném: rollback trọn → 500 LOI_MAY_CHU; phiên không 'loi'; gửi lại → muonChot false → vaoVi → congKiaDaBao true → chua_khop + LY_DO_HAI_CONG,
+không cộng, 200. Tingee không bị '02' oan.
+3. Ca thử mới đo đúng; chenKhoa reset.
+4. Vế khác: vaoViDuoc — câu ghi phiên khoá; con_lai — không câu UPDATE nào đổi (grep server/); than — không đổi. Hai khoá khác cùng cổng → câu ghi phiên một bên.
+LỖI: không lỗi tiền / bảo mật. NHẸ: thanh-toan.js:135–136 chú thích congKiaDaBao "tx: câu đọc ĐẦU giao dịch ghi" cũ (K1); bang_chung_do.txt / trang_thai.md
+chưa commit phần vòng sửa 3 (K7).
+NGHI NGỜ: cổng nhận 5xx mà không gửi lại → báo của cổng này không để lại dòng (tiền vẫn có vết qua dòng cổng kia); ca chưa khoá dòng chua_khop + LY_DO_HAI_CONG
+của lần gửi lại.
+CHƯA SOÁT ĐƯỢC: song song thật trên Turso; gửi lại thật của cổng; npm test / --day-du / cong.js.
+BÀI HỌC: NGUYÊN TẮC 1 — mọi vế chặn của một quyết định đọc ngoài giao dịch phải đọc lại trong giao dịch; vế nào không có câu ghi đổi được thì ghi rõ bằng grep.
+```
+
+## Vòng sửa 4 (LUAT_XAY_APP §6.5 — hết 3 vòng, lần soát cuối chỉ còn lỗi NHẸ; chat soát thay)
+- Chú thích `congKiaDaBao` (thanh-toan.js) theo cách gọi mới (trong giao dịch ở vaoVi và ở chốt muộn; `{ query }` ngoài giao dịch chỉ là báo sớm).
+- Ca "cổng KIA báo xen" thêm kiểm lần gửi lại ghi dòng `chua_khop` + "cùng một khoản báo qua hai cổng" (CẦN XEM); đột biến VS-hai-cong-khong-can-xem BẮT.
+- Hồ sơ vòng sửa 3 (bang_chung_do.txt, trang_thai.md) commit cùng lượt này.
+- Đột biến 47 · BẮT 47 (đối chứng 65/65). `--day-du` PASS 122 · FAIL 0 · CẢNH BÁO 1.
+SOÁT LẦN CUỐI: chat soát thay
+
 ## Soát bảo mật
 Lần 1 (15.11.2026, `/soat-bao-mat`, subagent độc lập chỉ đọc, diff `6ca94f07..HEAD` — phần gộp main ab2a9d58 không thuộc việc này). Số lỗi trước lọc: 0 ·
 sau lọc: 0 (bước 2 không tìm được gì → không cần bước 3 lọc). Báo cáo nguyên văn:
