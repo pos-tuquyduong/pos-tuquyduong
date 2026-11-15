@@ -3,7 +3,7 @@
  * - Chỉ dòng làm đổi số dư: danh sách trắng LOAI_TINH_VAO_VI của wallets.js (không lập danh sách thứ hai) — thu nợ (debt_payment) không hiện.
  * - Mỗi dòng sổ ra ĐÚNG MỘT dòng: mã đơn App đọc bằng câu con LIMIT 1 (một đơn có thể có hơn một phiên) — không JOIN nhân dòng.
  * - Không lộ dữ liệu người khác / nội bộ: `ma_don` chỉ khi đơn là của CHÍNH khách (mở được bằng GET /don/:ma); ví của bạn trả hộ / được hoàn đơn
- *   người khác → `ma_don` null, không tên / SĐT người đó. `ghi_chu` là câu cố định dựng theo loại — KHÔNG đưa ghi chú nhân viên gõ tay.
+ *   người khác → `ma_don` null, không tên / SĐT người đó; đơn đã bị xoá (không còn dòng đơn) → câu chung, `ma_don` null. `ghi_chu` là câu cố định dựng theo loại — KHÔNG đưa ghi chú nhân viên gõ tay.
  */
 const { query } = require('../database');
 const { LOAI_TINH_VAO_VI } = require('../routes/wallets');
@@ -14,16 +14,16 @@ const CONG = Object.keys(TEN_CONG);   // vaoVi (thanh-toan.js) ghi created_by = 
 
 /** Một dòng sổ (+ SĐT chủ đơn, mã App) → { loai, ghi_chu } khách thấy. */
 function phanLoai(t) {
-  const cuaMinh = t.don_phone != null && t.don_phone === t.customer_phone;
+  const traHo = t.don_phone != null && t.don_phone !== t.customer_phone;   // đơn còn và là của người khác (ví mẹ); đơn đã xoá → không biết → câu chung
   if (t.type === 'topup') {
     return { loai: 'nap', ghi_chu: t.order_id ? 'Nạp tiền vào tài khoản'
       : CONG.includes(t.created_by) ? 'Tiền chuyển khoản của đơn App chưa tạo được — đã cộng vào tài khoản' : 'Nạp tiền tại quầy' };
   }
   if (t.type === 'purchase') {
     if (!t.order_id) return { loai: 'dieu_chinh', ghi_chu: 'Quán điều chỉnh số dư' };
-    return { loai: 'tra_don', ghi_chu: cuaMinh ? 'Thanh toán đơn' : 'Trả hộ đơn bằng tài khoản của bạn' };
+    return { loai: 'tra_don', ghi_chu: traHo ? 'Trả hộ đơn bằng tài khoản của bạn' : 'Thanh toán đơn' };
   }
-  if (t.type === 'refund') return { loai: 'hoan_don', ghi_chu: cuaMinh || !t.order_id ? 'Hoàn tiền đơn' : 'Hoàn tiền đơn trả hộ' };
+  if (t.type === 'refund') return { loai: 'hoan_don', ghi_chu: traHo ? 'Hoàn tiền đơn trả hộ' : 'Hoàn tiền đơn' };
   if (t.type === 'compensation') return { loai: 'hoan_don', ghi_chu: 'Đền bù đơn' };
   return { loai: 'dieu_chinh', ghi_chu: 'Quán điều chỉnh số dư' };   // adjust (±)
 }
