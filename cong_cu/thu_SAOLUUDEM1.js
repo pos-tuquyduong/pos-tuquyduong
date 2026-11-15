@@ -233,13 +233,13 @@ async function main() {
     const gThuong = await A.goi('GET', '/api/pos/settings/thu_khoa_thuong', { ve: A.vePos });
     k('B1g GET /settings không có dòng khoá, không chứa băm; GET /settings/<khoá> → 404; khoá thường vẫn đọc được (K5)', gAll.status === 200 && !(KHOA_DB in (gAll.j.data || {})) && !gAll.b.toString().includes(bam)
       && gAll.j.data?.thu_khoa_thuong === 'v1' && gOne.status === 404 && !gOne.b.toString().includes(bam) && gThuong.status === 200, [gAll, gOne, gThuong].map(moTa).join(' | '));
-    const truoc = (await dongKhoa()).value;
+    const truoc = (await dongKhoa())?.value;
     const p1 = await A.goi('PUT', '/api/pos/settings', { ve: A.vePos, body: { settings: { [KHOA_DB]: JSON.stringify({ ma_bam: sha('toi-tu-chon') }) } } });
     const p2 = await A.goi('PUT', '/api/pos/settings', { ve: A.vePos, body: { settings: { thu_khoa_moi: 'x', [KHOA_DB]: 'y' } } });
     const p3 = await A.goi('PUT', '/api/pos/settings', { ve: veQly, body: { settings: { [KHOA_DB]: JSON.stringify({ ma_bam: sha('toi-tu-chon') }) } } });
     const p4 = await A.goi('PUT', '/api/pos/settings', { ve: A.vePos, body: { settings: { thu_khoa_thuong: 'v2' } } });
     k('B1h PUT /settings có khoá riêng → 403 KHOA_RIENG, KHÔNG ghi gì (kể cả khoá thường đi kèm; quản lý cũng không); PUT khoá thường vẫn 200 (K5)', [p1, p2].every((r) => r.status === 403 && r.j.code === 'KHOA_RIENG')
-      && p3.status === 403 && (await dongKhoa()).value === truoc && (await A.q("SELECT key FROM pos_settings WHERE key = 'thu_khoa_moi'")).length === 0
+      && p3.status === 403 && (await dongKhoa())?.value === truoc && (await A.q("SELECT key FROM pos_settings WHERE key = 'thu_khoa_moi'")).length === 0
       && p4.status === 200 && (await A.q("SELECT value FROM pos_settings WHERE key = 'thu_khoa_thuong'"))[0].value === 'v2', [p1, p2, p3, p4].map(moTa).join(' | '));
     const tayCl = await A.goi('GET', '/api/pos/backup/export/pos_settings', { ve: A.vePos });
     const tayAll = await A.goi('GET', '/api/pos/backup/export-all', { ve: A.vePos });
@@ -249,7 +249,7 @@ async function main() {
       [tayCl, tayAll, maySl].every((r) => r.status === 200 && !trangCd(r.b).some((d) => d.key === KHOA_DB) && !r.b.includes(Buffer.from(bam)))
       && trangCd(tayCl.b).some((d) => d.key === 'thu_khoa_thuong'), [tayCl, tayAll, maySl].map(moTa).join(' | '));
     // khôi phục
-    const nay = (await A.q('SELECT value, updated_at FROM pos_settings WHERE key = ?', [KHOA_DB]))[0];
+    const nay = (await A.q('SELECT value, updated_at FROM pos_settings WHERE key = ?', [KHOA_DB]))[0] ?? {};   // chưa vá: không có dòng → các ca dưới đỏ, KHÔNG sập
     const cu = JSON.stringify({ ma_bam: sha('khoa-cu-da-thu-hoi'), tao_luc: '2026-01-01T00:00:00', tao_boi: 'admin', lay_luc: null, lay_co: null });
     const dongCd = [{ key: 'thu_khoa_thuong', value: 'tu-tep', updated_at: '2026-11-01T00:00:00' }, { key: KHOA_DB, value: cu, updated_at: '2026-01-01T00:00:00' }];
     const tepSheet = (dong) => { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dong), 'Cài đặt');
@@ -263,12 +263,12 @@ async function main() {
     const sau = (await A.q('SELECT value, updated_at FROM pos_settings WHERE key = ?', [KHOA_DB]))[0];
     const cuaCu = await tu(khoaNay);
     k('R2 khôi phục tệp có dòng khoá cũ: khoá đang dùng NGUYÊN (cùng dòng, vẫn lấy được tệp), băm cũ không sống lại; dòng khác của tệp vẫn khôi phục',
-      kp.status === 200 && sau?.value === nay.value && sau?.updated_at === nay.updated_at && cuaCu.status === 200 && !sau.value.includes(sha('khoa-cu-da-thu-hoi'))
+      kp.status === 200 && sau?.value === nay.value && sau?.updated_at === nay.updated_at && cuaCu.status === 200 && !!sau && !sau.value.includes(sha('khoa-cu-da-thu-hoi'))
       && (await A.q("SELECT value FROM pos_settings WHERE key = 'thu_khoa_thuong'"))[0]?.value === 'tu-tep', moTa(kp) + ' ' + sau?.value);
     const chiKhoa = await gui('/api/pos/backup/restore', tepSheet([dongCd[1]]));
     const sau2 = (await A.q('SELECT value FROM pos_settings WHERE key = ?', [KHOA_DB]))[0];
     const conThuong = (await A.q("SELECT value FROM pos_settings WHERE key = 'thu_khoa_thuong'"))[0]?.value;
-    const bamNay = JSON.parse(nay.value).ma_bam;   // lần lấy gần nhất đổi sau mỗi lần Google lấy — so băm, không so cả dòng
+    const bamNay = JSON.parse(nay.value || '{}').ma_bam;   // lần lấy gần nhất đổi sau mỗi lần Google lấy — so băm, không so cả dòng
     const giuKhoa = async () => JSON.parse((await dongKhoa())?.value || '{}').ma_bam === bamNay;
     k('R3 tệp Cài đặt CHỈ có dòng khoá: trang bị bỏ qua (không xoá gì) — khoá nguyên, các khoá khác nguyên', chiKhoa.status === 200 && await giuKhoa() && conThuong === 'tu-tep' && (await tu(khoaNay)).status === 200, moTa(chiKhoa));
     const kthuong = await gui('/api/pos/backup/restore', tepSheet([{ key: 'thu_khoa_thuong', value: 'lan-hai', updated_at: '2026-11-02T00:00:00' }]));
