@@ -274,7 +274,7 @@ router.get('/voucher', async (req, res) => {
 // KH-NAP-1: lịch sử tài khoản của CHÍNH SĐT token (utils/lichSuVi.js) — 20 dòng / trang, mới trước.
 router.get('/vi', async (req, res) => {
   try {
-    const trang = Math.max(1, parseInt(req.query.trang, 10) || 1);
+    const trang = Math.min(Math.max(1, parseInt(req.query.trang, 10) || 1), 100000);   // trần: số trang khổng lồ không làm tràn OFFSET
     res.json({ success: true, ...(await lichSuVi(req.khach.phone, trang)) });
   } catch (err) {
     loiMayChu(res, err, 'kh vi');
