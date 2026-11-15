@@ -194,7 +194,8 @@ async function xuLyTienVe(res, t) {
       const r = await tx.run(CAU_GHI, thamSo('khop', muonChot ? 'tiền về muộn — máy tự chốt đơn chỉ thẻ / chỉ nạp' : null));
       // Soát vòng 2: phép kiểm khoá của muonChot nằm NGOÀI giao dịch — bản sao cùng khoá ghi dòng báo xen giữa (vd đã vào ví) thì dòng này không ghi được:
       // ném → taoDon huỷ cả giao dịch chốt (không đơn), cổng nhận 5xx gửi lại → lần sau thấy khoá, vào nhánh vaoVi (ON CONFLICT, không ghi thêm).
-      if (muonChot && r.changes !== 1) throw new Error('KH-NAP-1: báo cùng khoá đã ghi giữa chừng — không chốt muộn');
+      // Soát vòng 3: vế "cổng kia đã báo" cũng đọc lại TRONG giao dịch (cổng kia ghi xen giữa → cần xem, không chốt) — mọi vế chặn của muonChot.
+      if (muonChot && (r.changes !== 1 || await congKiaDaBao(tx, t))) throw new Error('KH-NAP-1: báo cùng khoá / cổng kia ghi giữa chừng — không chốt muộn');
     } });
   if (kq.status === 200) return res.json({ success: true });
   if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);
