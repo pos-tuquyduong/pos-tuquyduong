@@ -268,8 +268,9 @@ async function main() {
     const chiKhoa = await gui('/api/pos/backup/restore', tepSheet([dongCd[1]]));
     const sau2 = (await A.q('SELECT value FROM pos_settings WHERE key = ?', [KHOA_DB]))[0];
     const conThuong = (await A.q("SELECT value FROM pos_settings WHERE key = 'thu_khoa_thuong'"))[0]?.value;
-    const bamNay = JSON.parse(nay.value || '{}').ma_bam;   // lần lấy gần nhất đổi sau mỗi lần Google lấy — so băm, không so cả dòng
-    const giuKhoa = async () => JSON.parse((await dongKhoa())?.value || '{}').ma_bam === bamNay;
+    const maBam = (v) => { try { return JSON.parse(v || '{}').ma_bam; } catch { return undefined; } };
+    const bamNay = maBam(nay.value);   // lần lấy gần nhất đổi sau mỗi lần Google lấy — so băm, không so cả dòng
+    const giuKhoa = async () => !!bamNay && maBam((await dongKhoa())?.value) === bamNay;
     k('R3 tệp Cài đặt CHỈ có dòng khoá: trang bị bỏ qua (không xoá gì) — khoá nguyên, các khoá khác nguyên', chiKhoa.status === 200 && await giuKhoa() && conThuong === 'tu-tep' && (await tu(khoaNay)).status === 200, moTa(chiKhoa));
     const kthuong = await gui('/api/pos/backup/restore', tepSheet([{ key: 'thu_khoa_thuong', value: 'lan-hai', updated_at: '2026-11-02T00:00:00' }]));
     k('R4 tệp xuất bình thường (không dòng khoá) vẫn khôi phục được và KHÔNG làm mất khoá (K5)', kthuong.status === 200 && await giuKhoa()
