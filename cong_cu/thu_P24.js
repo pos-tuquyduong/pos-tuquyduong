@@ -383,6 +383,11 @@ async function main() {
     const hThe = await huy(the1.id);
     k('I1c huỷ đơn mua thẻ (tiền mặt) → 200, dòng mua thẻ xoá, tài khoản nhận hoàn đủ, điểm đơn 0', hThe.status === 200 && await vi(s2) === Number(hang.card_price)
       && await so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [the1.id]) === 0 && await diemDon(the1.id) === 0, moTa(hThe));
+    const s2v = sdtMoi(); await nap(s2v, Number(hang.card_price));
+    const theVi = await goi('POST', '/orders', { customer_name: 'Khách P24', customer_phone: s2v, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 },
+      payment_method: 'balance', balance_amount: Number(hang.card_price) });
+    k('I1d (KH-NAP-1) mua thẻ trả bằng ví → 400 THE_KHONG_TRA_VI, ví không đổi', theVi.status === 400 && theVi.code === 'THE_KHONG_TRA_VI'
+      && await vi(s2v) === Number(hang.card_price), moTa(theVi));
 
     const s3 = sdtMoi(); await nap(s3, 10000);   // NAP-1: ví 10.000 + tiền mặt 15.000 → 25 điểm
     const d3 = await ban({ customer_phone: s3, items: [mon(0)], payment_method: 'cash', balance_amount: 10000, cash_amount: 15000 });

@@ -494,6 +494,9 @@ const KICH_BAN = [
     const gia = Number(hang.card_price);
     await c.nap(kh.customer_phone, gia);   // ví có sẵn (c.vi đọc ví chưa có ra NaN)
     // KH-NAP-1 (chủ quán 14.11): thẻ không trả bằng số dư → trả tiền mặt; huỷ hoàn tiền mặt vào tài khoản (HUY-1) — vẫn "ví + giá thẻ".
+    const theVi = await c.goi('chu', 'POST', '/orders', { ...kh, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: gia });
+    c.mong('mua thẻ bằng ví → 400 THE_KHONG_TRA_VI, ví không đổi (KH-NAP-1)', theVi.status === 400 && theVi.code === 'THE_KHONG_TRA_VI'
+      && await c.vi(kh.customer_phone) === gia, c.ma(theVi));
     const d = await c.taoDon('KB22 mua thẻ', { ...kh, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: gia });
     const co = await c.so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [d.id]);
     const truoc = await c.vi(kh.customer_phone);

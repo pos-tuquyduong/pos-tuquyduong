@@ -480,6 +480,8 @@ async function phanA(P) {
   // KH-NAP-1 (chủ quán 14.11): thẻ không trả bằng số dư → đơn mua thẻ nền trả tiền mặt; tài khoản chỉ dùng cho đơn đồ uống A22.
   const sq = sdtMoi(); await nap(sq, 200000);
   const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
+  const muaVi = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
+  k('A19 (KH-NAP-1) mua thẻ trả bằng tài khoản → 400 THE_KHONG_TRA_VI', muaVi.status === 400 && muaVi.code === 'THE_KHONG_TRA_VI', moTa(muaVi));
   const rq = await ban({ customer_phone: sq, items: [mon(0), mon(1)], payment_method: 'cash', balance_amount: 20000, cash_amount: 25500, shipping_fee: 5000 });
   const aq = await hd(rq.order?.id);
   const H = aq.h;
