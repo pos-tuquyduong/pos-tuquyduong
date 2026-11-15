@@ -58,7 +58,8 @@ DOT_BIEN = [
   ('BV-muon-ly-do-khach', [(D, "  const muon = r.p_ly_do ? `Tiền về sau khi đơn đã huỷ / hết hạn, không tạo được đơn ${lyDoNgan(r.p_ly_do)}` :", "  const muon = false ? '' :", 1)], r'✗ A6 gói nạp đã tắt'),
   # ── vòng sửa 1 (soát độc lập) — đưa ĐÚNG lỗi cũ trở lại ──
   ('BV-muon-khoa', [(TT, "\n    && !(await queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [t.khoa]));", ';', 1)], r'✗ A6 gói bật lại'),
-  ('BV-muon-dua', [(TT, "      if (muonChot && r.changes !== 1) throw new Error", "      if (false) throw new Error", 1)], r'✗ A6 hai bản CÙNG khoá đua'),
+  ('BV-muon-dua', [(TT, "      if (muonChot && (r.changes !== 1 || await congKiaDaBao(tx, t))) throw new Error", "      if (muonChot && (await congKiaDaBao(tx, t))) throw new Error", 1)], r'✗ A6 hai bản CÙNG khoá đua'),
+  ('BV-muon-dua-cong', [(TT, "      if (muonChot && (r.changes !== 1 || await congKiaDaBao(tx, t))) throw new Error", "      if (muonChot && r.changes !== 1) throw new Error", 1)], r'✗ A6 cổng KIA báo xen'),
   ('VS-vi-don-xoa', [(L, 'const traHo = t.don_phone != null && t.don_phone !== t.customer_phone;', 'const traHo = t.don_phone !== t.customer_phone;', 1)], r'✗ D4 đơn của chính khách đã xoá'),
   ('BV-goi-tran', [(GN.replace('goi-nap.js', 'kh/index.js'), "    if (!giuLuotMenu(req.ip || '')) return bao(res, 'QUA_NHIEU_LAN');\n    res.json({ success: true, data: (await dsGoiBat())",
                     "    res.json({ success: true, data: (await dsGoiBat())", 1)], r'✗ C1 /goi-nap dùng CHUNG'),
