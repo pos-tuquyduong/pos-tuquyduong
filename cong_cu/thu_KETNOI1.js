@@ -608,9 +608,9 @@ async function main() {
     k('B3d xuLyThuHong: chốt hỏng + hỏi được da_thu → xong (KHÔNG huỷ); cho → nhả được → bao_loi; hỏi hỏng → bao_chua_biet, KHÔNG huỷ',
       w1.viec === 'xong' && w1.phien?.order?.id === 77 && w1.huy === 0 && w2.viec === 'bao_loi' && w2.huy === 1
       && w4.viec === 'bao_chua_biet' && w4.huy === 0, JSON.stringify([w1, w2, w4]));
-    const nh = await Promise.all(['loi', 'huy', 'het_han'].map((t) => chay2({ code: 'HET_HANG', message: 'Không đủ hàng' }, 9, [t, t], false)));
+    const thoiGiu = await Promise.all(['loi', 'huy', 'het_han'].map((t) => chay2({ code: 'HET_HANG', message: 'Không đủ hàng' }, 9, [t, t], false)));
     k('B3d xuLyThuHong (soát vòng 2): chốt hỏng vì ĐƠN (phiên đã thôi giữ: loi / huy / het_han, huỷ sẽ 409) → bao_loi (lời máy chủ), KHÔNG huỷ, KHÔNG câu B5',
-      nh.every((x) => x.viec === 'bao_loi' && x.huy === 0), JSON.stringify(nh));
+      thoiGiu.every((x) => x.viec === 'bao_loi' && x.huy === 0), JSON.stringify(thoiGiu));
     const u1 = await chay2(mk, 9, ['cho', 'da_thu'], false), u2 = await chay2(mk, 9, ['cho', 'cho'], false), u3 = await chay2(mk, 9, ['cho', null], false);
     k('B3d xuLyThuHong (soát vòng 1 — đơn đôi): hỏi thấy cho, huỷ bị 409 (lệnh chốt trước vừa ghi) → hỏi LẠI: da_thu → xong; vẫn cho / hỏi hỏng → bao_chua_biet (không báo "thử lại")',
       u1.viec === 'xong' && u1.hoi === 2 && u2.viec === 'bao_chua_biet' && u3.viec === 'bao_chua_biet', JSON.stringify([u1, u2, u3]));
