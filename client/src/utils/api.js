@@ -68,7 +68,7 @@ async function readBody(response) {
   try {
     text = await response.text();
   } catch {
-    return {};
+    throw loiMatKetNoi();   // KET-NOI-1: thân trả về đứt giữa chừng = mất kết nối (không coi là thành công rỗng)
   }
   if (!text) return {};
   try {
@@ -85,7 +85,7 @@ const MA_GUI_LAI = ['MAT_KET_NOI', 'KHO_MAT_KET_NOI'];      // lỗi mạng: GET
 const MA_GUI_LAI_CO_MA = ['DANG_XU_LY', 'KHO_BAN'];         // thêm cho lời gọi mang mã lượt bấm (máy chủ chưa ghi / trả đúng bản đã ghi)
 const loiMatKetNoi = () => Object.assign(new Error(LOI_MAT_KET_NOI), { status: 0, code: 'MAT_KET_NOI' });
 /** Gửi lại không? thuLai: 'mang' (chỉ lỗi mạng) · 'co_ma' (thêm DANG_XU_LY / KHO_BAN). */
-const nenGuiLai =(err, thuLai) => !!thuLai && (MA_GUI_LAI.includes(err?.code) || (thuLai === 'co_ma' && MA_GUI_LAI_CO_MA.includes(err?.code)));
+const nenGuiLai = (err, thuLai) => !!thuLai && (MA_GUI_LAI.includes(err?.code) || (thuLai === 'co_ma' && MA_GUI_LAI_CO_MA.includes(err?.code)));
 /** MỘT chỗ gọi fetch (request / upload / download): không có trả lời → MAT_KET_NOI, lời tiếng Việt. */
 async function goiFetch(url, options) {
   try {
@@ -419,7 +419,7 @@ export const ordersApi = {
   },
   get: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
-  tinhThu: (data) => api.post('/orders/tinh-thu', data, { thuLai: 'mang' }),   // KET-NOI-1 (chủ quán duyệt #5): chỉ tính, không ghi → tự gửi lại khi rớt mạng   // BH-2: số máy chủ sẽ tính (hạng, mã) — không ghi gì
+  tinhThu: (data) => api.post('/orders/tinh-thu', data, { thuLai: 'mang' }),   // BH-2: số máy chủ sẽ tính (hạng, mã) — không ghi gì → KET-NOI-1 #5: tự gửi lại khi rớt mạng
   cancel: (id, lyDo) => api.put(`/orders/${id}/cancel`, lyDo),   // HUY-1: lyDo = { ly_do_ma, ghi_them } → { hoan: { tai_khoan, tien_mat } }
   lyDoHuy: () => api.get('/orders/ly-do-huy'),
   delete: (id) => api.delete(`/orders/${id}`),
