@@ -19,5 +19,10 @@
 - `[B-CHUONGTRINH]` `xargs` trong lệnh đếm grep — đổi sang công cụ Grep.
 - `[B-PHANTICH]` hai lần: chuỗi grep có `$"` / `$'` (`… true,$"`) — đổi sang công cụ Grep.
 
+## Sự cố khác
+- Stop hook báo bộ kiểm ĐỎ: `thu_BH2.js` G1 `git log cbbb809..HEAD` → `bad revision` — kho NÔNG (phiên mở từ bản chụp). Đã chạy
+  `git fetch -q --unshallow origin viec/KET-NOI-1` (bước 1.3, chỉ tải lịch sử) → `npm test`: PASS 119 · FAIL 0 · CẢNH BÁO 1.
+- Soát kế hoạch vòng 1 bắt một lỗi thật (`laCauDoc` dò chữ trên mọi câu) + 8 ca thiếu + 5 đường song song — đã sửa trong `ke_hoach.md`.
+
 ## Câu hỏi
 (chưa có — các điểm cần chủ quán chọn nằm ở mục "Chủ quán chọn lúc duyệt" của `ke_hoach.md`)
