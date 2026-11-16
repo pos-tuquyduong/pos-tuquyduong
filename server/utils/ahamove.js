@@ -7,7 +7,7 @@
  * Lỗi ném { code, status }: AHAMOVE_CHUA_CAI · AHAMOVE_TU_CHOI (Ahamove trả lời rõ là không) · AHAMOVE_MAT_MANG (không biết Ahamove đã làm chưa).
  */
 const GOC = { thu: 'https://partner-apistg.ahamove.com', that: 'https://partner-api.ahamove.com' };
-const HAN_GOI_MS = 10000;   // mặc định mỗi lần gọi; đường đọc lại của màn Giao hàng truyền hạn ngắn hơn (giaoHang.js HAN_DOC_LAI_MS)
+const HAN_GOI_MS = 10000;   // mặc định mỗi lần gọi (cả lấy token); đọc lại trong GET danh sách truyền `han` riêng (giaoHang.js HAN_DOC_LAI_MS)
 
 const ban = () => (String(process.env.AHAMOVE_MOI_TRUONG || '').trim().toLowerCase() === 'production' ? 'that' : 'thu');
 const gocAhamove = () => process.env.AHAMOVE_BASE_URL || GOC[ban()];

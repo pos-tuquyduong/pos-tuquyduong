@@ -193,11 +193,11 @@ async function main() {
       && s2.status === 401 && s3.status === 503 && s3.j.code === 'BAO_CHUA_CAI' && A.doc === d0, `${s1.status} ${s2.status} ${s3.status} đọc ${A.doc - d0}`);
 
     datTrangThai(v.x, { status: 'ACCEPTED', supplier_name: 'TX Hai A', supplier_id: '0977002201', supplier_plate: '29B2-22201' });
-    A.chamDoc = 8000; K.cham = 300;
+    A.chamDoc = 8000; K.cham = 1500;   // một câu kho bất kỳ trước câu trả lời → > 1 s
     const t0 = Date.now();
     const a1 = await baoVe({ _id: v.x, status: 'COMPLETED' });
     const ms = Date.now() - t0;
-    k('A1a Ahamove giả chậm 8 s + kho chậm 300 ms/câu → cửa trả 200 dưới 1 giây', a1.status === 200 && ms < 1000, `${a1.status} sau ${ms} ms`);
+    k('A1a Ahamove giả chậm 8 s + kho chậm 1,5 s/câu → cửa trả 200 dưới 1 giây (không chờ câu kho nào)', a1.status === 200 && ms < 1000, `${a1.status} sau ${ms} ms`);
     await choNen();
     A.chamDoc = 0; K.cham = 0;
     const c1 = await chuyenCua(v.id);
@@ -259,9 +259,12 @@ async function main() {
     const v4 = await moChuyen();
     await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', goi_luc = ? WHERE order_id = ?", [getNow(), v4.id]);
     datTrangThai(v4.x, { status: 'ACCEPTED', supplier_name: 'TX Hai C', supplier_id: '0977002203' });
+    const n4 = nhatKy.length;
     const a4 = await baoVe({ _id: v4.x, status: 'ACCEPTED' });
     await choNen();
     const tin4 = await tinCua(v4.x), c4a = await chuyenCua(v4.id);
+    k('B3c tin bị bỏ qua (thẻ đang gọi xe) vẫn có log "[GIAO] tin <mã> … bỏ qua: thẻ đang gọi xe"', nhatKy.slice(n4).some((l) => l.startsWith(`[GIAO] tin ${v4.x} `)
+      && l.includes('bỏ qua: thẻ đang gọi xe')), J(nhatKy.slice(n4).filter(dongGiao)));
     // gọi xe xong (thẻ về tim_xe, đọc lúc gọi) — Ahamove KHÔNG gửi lại tin (đã nhận 200): thẻ lên nhờ đọc lại (bấm "Tải lại" sau 5 s)
     await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'tim_xe', doc_luc = ? WHERE order_id = ?", [luiGiay(6), v4.id]);
     const c4 = the(await danhSach(true), v4.id);
@@ -320,6 +323,15 @@ async function main() {
     k('B3a log đọc lại "[GIAO] … <mã> ACCEPTED → doi_tai_xe · <n>ms"', log1.some((l) => new RegExp(`${v.x} ACCEPTED → doi_tai_xe · \\d+ms`).test(l)), J(log1));
     const lo = nhatKy.filter(dongGiao).filter((l) => /0977002\d{3}|0988000222|Ngõ Thử|Chị Nhận/.test(l));
     k('B3b mọi dòng [GIAO] không có SĐT tài xế / SĐT, tên, địa chỉ người nhận', nhatKy.some(dongGiao) && lo.length === 0, J(lo.slice(0, 2)));
+    // B3d: log in ĐIỀU ĐÃ LÀM — thẻ dang_giao, Ahamove trả ACCEPTED cũ → thẻ giữ dang_giao, log "bỏ qua: giữ dang_giao" (không "→ doi_tai_xe")
+    const vg = await moChuyen();
+    await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'dang_giao', doc_luc = ? WHERE order_id = ?", [luiGiay(65), vg.id]);
+    datTrangThai(vg.x, { status: 'ACCEPTED', supplier_name: 'TX Hai H', supplier_id: '0977002208' });
+    const ng = nhatKy.length;
+    const xg = the(await danhSach(), vg.id);
+    const logG = nhatKy.slice(ng).filter((l) => l.includes(vg.x));
+    k('B3d thẻ dang_giao + Ahamove ACCEPTED cũ → thẻ giữ dang_giao; log in đúng "ACCEPTED → bỏ qua: giữ dang_giao"', xg?.trang_thai === 'dang_giao'
+      && logG.some((l) => l.includes(`${vg.x} ACCEPTED → bỏ qua: giữ dang_giao`)) && !logG.some((l) => l.includes('→ doi_tai_xe')), J(logG));
 
     // B4d: trần số chuyến mỗi lần bấm — 9+ chuyến chờ đọc → đọc đúng 8
     while (Number((await qoGoc("SELECT COUNT(*) AS n FROM pos_giao_chuyen WHERE trang_thai IN ('tim_xe', 'doi_tai_xe', 'dang_giao')")).n) < 9) await moChuyen();
@@ -328,24 +340,29 @@ async function main() {
     await danhSach(true);
     k('B4d 9+ chuyến chưa xong, đọc 30 s trước → "Tải lại" đọc đúng 8 chuyến (trần), không hơn', A.doc - d4 === 8, `đọc ${A.doc - d4}`);
 
-    // B2: Ahamove treo 8 s → màn không chờ quá ~4 s (hạn đọc lại riêng, đọc song song); lỗi đọc lại có log (không nuốt im lặng)
-    const v2 = await moChuyen();
+    // B2: Ahamove treo 12 s; HAI chuyến quá 60 s + MỘT dòng "phí huỷ chưa rõ" (cùng GET danh sách) → mỗi lần hỏi trả < 10 s (một hạn 8 s, đọc song
+    //     song cả phí huỷ — gốc: 3 × 10 s lần lượt); lỗi đọc lại chuyến và phí huỷ đều có log (không nuốt im lặng)
+    const v2 = await moChuyen(), v2b = await moChuyen(), vp = await moChuyen();
     await db.run("UPDATE pos_giao_chuyen SET doc_luc = ? WHERE trang_thai IN ('tim_xe', 'doi_tai_xe', 'dang_giao')", [getNow()]);
-    await db.run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE order_id = ?', [luiGiay(65), v2.id]);
-    A.chamDoc = 8000;
+    const cuLai = () => db.run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE order_id IN (?, ?)', [luiGiay(65), v2.id, v2b.id]);
+    await cuLai();
+    const idVp = (await chuyenCua(vp.id)).id;
+    await runGoc("INSERT INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, 'CHO_PHI_HUY', ?, ?)", [vp.x, String(idVp), getNow()]);
+    A.chamDoc = 12000;
     const n2 = nhatKy.length;
     let t0 = Date.now();
     const y1 = the(await danhSach(), v2.id);
     const ms1 = Date.now() - t0;
-    await db.run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE order_id = ?', [luiGiay(65), v2.id]);
+    await cuLai();
     t0 = Date.now();
     const y2 = the(await danhSach(true), v2.id);
     const ms2 = Date.now() - t0;
     A.chamDoc = 0;
     const log2 = nhatKy.slice(n2).filter(dongGiao);
-    k('B2a Ahamove treo 8 s: hẹn 15 s trả < 6 s, "Tải lại" trả < 6 s; thẻ giữ tim_xe', ms1 < 6000 && ms2 < 6000 && y1?.trang_thai === 'tim_xe' && y2?.trang_thai === 'tim_xe',
-      `${ms1} ms · ${ms2} ms`);
-    k('B2b lỗi đọc lại dự phòng có log "[GIAO] … <mã> … lỗi" (không nuốt im lặng)', log2.some((l) => l.includes(v2.x) && /lỗi/.test(l)), J(log2));
+    k('B2a Ahamove treo 12 s, 2 chuyến + 1 phí huỷ chờ đọc: hẹn 15 s trả < 10 s, "Tải lại" trả < 10 s; thẻ giữ tim_xe', ms1 < 10000 && ms2 < 10000
+      && y1?.trang_thai === 'tim_xe' && y2?.trang_thai === 'tim_xe', `${ms1} ms · ${ms2} ms`);
+    k('B2b lỗi đọc lại dự phòng có log "[GIAO] … <mã> … lỗi" cho chuyến VÀ phí huỷ (không nuốt im lặng)', log2.some((l) => l.includes(v2.x) && /lỗi/.test(l))
+      && log2.some((l) => l.startsWith(`[GIAO] phi_huy ${vp.x} lỗi`)), J(log2));
   }
 
   // ═══ Z · không lộ khoá; gắn bài; nút Tải lại ═════════════════════════════

@@ -29,3 +29,16 @@
 | danhSach: "Tải lại" đọc ngay (5 s), trần 8, hẹn 15 s giữ 60 s | BV-doc-lai-ngay · VS-tai-lai-khong-chan-don · VS-tai-lai-ca-hen-gio · VS-tran-tai-lai · BV-cua-doc-lai |
 | logGiao: dòng [GIAO] không SĐT | BV-log-giao · VS-log-sdt-tai-xe |
 | màn Giao hàng / api.js: nút Tải lại gửi cờ | BV-nut-tai-lai · VS-in-tem-truyen-doi-so · BV-api-doc-lai |
+
+## Soát độc lập — vòng 1 (/ra-soat, agent độc lập) — chép nguyên ý báo cáo
+KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+- server/utils/giaoHang.js:472 `await docLaiPhiHuy()` + :219-225 — đọc lại phí huỷ trong CÙNG GET danh sách vẫn hạn 10 s, lần lượt ≤ 3 chuyến; B2a xanh oan vì kho không có dòng CHO_PHI_HUY — K4 + K3. (Dòng CHO_PHI_HUY mà Ahamove không bao giờ báo CANCELLED bị đọc lại mãi — có từ trước → Phát hiện.)
+- giaoHang.js:221 `.catch(() => null)` và :472 `.catch(() => { … })` vẫn nuốt lỗi đọc lại; trang_thai chưa có mục Phát hiện đã hứa — K4.
+- giaoHang.js:28 và ahamove.js:10 chú thích "màn chờ tối đa ~4 s" sai (còn docLaiPhiHuy, lấy token) — K1.
+- giaoHang.js:407-411 logGiao tự suy trạng thái đích bằng trangThaiQuan, không phải điều capNhatTuAhamove làm (vd thẻ dang_giao + ACCEPTED cũ vẫn in "→ doi_tai_xe") — K1/K4.
+- giaoHang.js:421, 427-441 — tin bị bỏ qua (không phải của quán, dang_goi, lặp) không có log; logLoi luôn ghi bước 'xử lý tin' — K4 (nhẹ).
+NGHI NGỜ: B1 chỉ đỏ trên dạng bọc do Ahamove giả tự bọc (giả thuyết); giả thuyết khác: Ahamove thử chậm ≥ 5 s → hạ hạn 4 s có thể làm dự phòng hỏng nhiều hơn (số chưa đo); motChuyen gỡ {order} cũng áp cho traTheoMa; A3 không có đột biến; A1a ngưỡng < 1 s với kho 300 ms/câu còn rộng; đọc song song lúc chưa có token → nhiều lời lấy token cùng lúc.
+NGHIỆM THU: 9/12 · thiếu B2, B3, B5 (B5: chưa ghi trong báo cáo cho chủ quán "Render không có hẹn giờ nền").
+CHƯA SOÁT ĐƯỢC: chạy lại thu_GIAO2 trên gốc (người gác chặn nối node_modules); `--day-du`, cổng `cong.js chay`; tài liệu Ahamove; Turso / Render thật.
+BÀI HỌC: KHOÁ — B2 có ca CHO_PHI_HUY + Ahamove treo; đột biến A3. NGUYÊN TẮC — log chẩn đoán in điều code ĐÃ làm (giá trị hàm trả); hạ hạn / sửa nuốt lỗi một đường thì grep mọi lời gọi ra ngoài trong CÙNG yêu cầu; không hạ thời gian chờ dưới độ trễ chưa đo của sự cố đang sửa.
