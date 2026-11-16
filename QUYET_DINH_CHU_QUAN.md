@@ -313,6 +313,15 @@
 - 15.11 · Sao lưu bản 2: chat App KH giữ mã Apps Script; mọi bản sao lưu (dữ liệu, mã nguồn mỗi Chủ nhật, thiết kế) về Drive TQD-SAO-LUU;
   giữ theo tầng (7 ngày + 4 tuần + 12 tháng; mã nguồn 4 tuần + 6 tháng); lỗi thì Google tự email; chat POS soát phần khoá + phần POS (ĐẠT, 2 chỗ sửa).
 
+## Đợt quyết định 16.11.2026 (chat bàn 38)
+- 16.11 · KH-NAP-1 gộp (PR #96): khách tự nạp trên App bằng QR; thẻ hạng và gói nạp chỉ trả tiền mặt / chuyển khoản (quầy và App); đơn App chỉ thẻ /
+  chỉ nạp tiền về muộn → máy tự chốt, đủ quyền lợi. Hợp đồng /api/kh v17 (thư App 16.11).
+- 16.11 · Chat POS được đọc kết quả cổng GitHub và đẩy bản sửa lên nhánh `viec/*` khi máy ĐÃ DỪNG; tự sửa chỗ đỏ do thủ tục, đỏ do code thì báo chủ quán.
+  Merge vẫn do chủ quán bấm; không bao giờ dùng "bypass rules". Sổ trên main vẫn đi bằng script chủ quán chạy (main chỉ nhận PR).
+- 16.11 · Thử Ahamove ở một chat riêng (Opus) điều khiển Chrome qua Claude in Chrome, theo `claude/LUAT_THU_AHAMOVE.md` (Project): chỉ bản thử
+  (khoá `sk_test_`, POS hiện "bản thử"), không nhập khoá / mật khẩu / OTP, không bấm Go-live, chỉ khách thử, bước có tiền hỏi chủ quán từng lần,
+  không sửa code. Lỗi tìm được → chat POS mở phiếu. Bản thật chỉ mở sau khi chạy đạt tab Kiểm thử của Ahamove.
+
 ## Kho (POS)
 - 26–27.10 · Bỏ app SX: mọi thứ về POS (nhập nguyên liệu → pha chế / sản xuất → thành phẩm → bán). Chỉ nhập DANH MỤC từ SX (nguyên liệu,
   nhóm, món, công thức) — không lấy tồn, khách, gói. Tồn POS bắt đầu từ kiểm kê đầu kỳ. App SX tắt khi POS tự trừ kho (KHO-3).

@@ -57,6 +57,9 @@ DOC_TU_CODE: ND-API-1 (server/nd/duong.js, xacThuc.js, tinh.js, duLieu.js, cauNo
   gộp vào · quay_lai số khoá của bản đem về · nhap số nháp trong tệp · xuat null.
 - **Sao lưu ở POS:** sao lưu Excel của POS có trang `Nội dung App (JSON)` = tệp Xuất (cắt ô ≤ 30.000 ký tự); khôi phục Excel BỎ QUA trang đó — dựng lại
   nội dung App bằng /admin › Nhập toàn bộ vào kho trống.
+- **Trường `nguoi`** (`nhap[]`, bản, `nhat_ky[]`): CHUỖI hoặc `null` — KHÔNG phải object. Tài khoản POS làm việc đó → tên đăng nhập POS (`ten_dang_nhap`);
+  khoá sao lưu (`GET /xuat` bằng khoá) → `"khoa:<tên khoá>"`; dòng cũ / dòng nhập từ tệp không có → `null`. Tên hiển thị chỉ có ở `POST /dang-nhap`
+  (`nguoi { ten_dang_nhap, ten_hien }`). (Ghi rõ 16.11 theo thư App KH-ADMIN-1 — đúng code từ v1, không đổi hành vi.)
 
 ## Khối máy đọc
 ```json HOP_DONG_ND_MAY_DOC
@@ -96,3 +99,4 @@ DOC_TU_CODE: ND-API-1 (server/nd/duong.js, xacThuc.js, tinh.js, duLieu.js, cauNo
 ## Nhật ký
 - v1 (14.11.2026, ND-API-1): bản đầu — đúng tên cửa / bảng / mã lỗi thư App 11.11 (a). Khác thư: ảnh lưu trong bảng (`url`, không `duong_dan`);
   ảnh gửi multipart trường `anh` (thư chưa nói dạng gửi); `GET /nhap` trả `so_ban` của bản đang chạy.
+- v1 · 16.11.2026 (ghi rõ, không đổi code / PHIEN_BAN): mục Quy tắc thêm dạng trường `nguoi`.
