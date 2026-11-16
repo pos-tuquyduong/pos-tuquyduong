@@ -86,6 +86,12 @@ DOT_BIEN = [
   ('BV-MA-GUI-THAN', [(TI, '  if (maGui) than.ma_gui = maGui;', '', 1)], r'✗ B5b'),
   ('BV-BH-MA-GUI', [(BH, ',\n        maGui: maGuiMoi() });', ' });', 1)], r'✗ B1/B3 BanHangMoi'),
   ('BV-BH-CAU-B5', [(BH, 'setLoi(CAU_CHUA_BIET_DON);', "setLoi('Mất kết nối khi chốt');", 1)], r'✗ B5a BanHangMoi'),
+  # ── vòng sửa 4 (soát vòng 3) — đưa ĐÚNG lỗ cũ trở lại ──
+  ('VS-CHO-GUI-KHONG', [(API, 'const CHO_GUI_LAI_MS = [500, 1500];', 'const CHO_GUI_LAI_MS = [0, 0];', 1)], r'✗ B3e'),
+  ('BV-LOG-GIAO-DICH', [(DB, "  baoRot(err, 'ghi', 1, 1, 'khong thu lai (giao dich)');\n", '', 1)], r'✗ A4c'),
+  ('VS-BH-P-NULL', [(BH, '      const p = phien; phien = null;\n      const { viec', '      const p = null; phien = null;\n      const { viec', 1)], r'✗ B5a BanHangMoi'),
+  ('VS-BH-NHANH-B5', [(BH, "else if (viec === 'bao_chua_biet') {", "else if (viec === 'khong_co') {", 1)], r'✗ B5a BanHangMoi'),
+  ('BV-THAN-DUT', [(API, '    throw loiMatKetNoi();   // KET-NOI-1: thân trả về đứt', '    return {};   // KET-NOI-1: thân trả về đứt', 1)], r'✗ C1d'),
   # ── F: đo chậm ──
   ('BV-CHAM-CLOSE', [(DB, "res.on('close', () => {", "res.on('finish', () => {", 1)], r'✗ F1 khách bỏ'),
   ('VS-CHAM-BO-QR', [(DB, " || a[i - 1] === 'qr'", '', 1)], r'✗ F1 dòng \[CHAM\]'),

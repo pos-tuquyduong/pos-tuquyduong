@@ -201,6 +201,47 @@ BÀI HỌC: KHOÁ — hàm giả trong bài thử (huỷ / hỏi) theo ĐÚNG đ
 - Bài thử: 99 ca, gốc 17 đạt · 82 hỏng. Đột biến chạy đủ ở e4337891: 68 · BẮT 68 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 99 đạt · 0 hỏng).
 - `npm test -- --day-du`: PASS 124 · FAIL 0 · CẢNH BÁO 1.
 
+## Soát độc lập — vòng 3 (agent general-purpose mới, 16.11, trên HEAD ef23a453) — chép nguyên ý, đủ số liệu
+```
+KHÔNG ĐẠT (chỉ còn lỗi NHẸ, không lỗi NẶNG)
+Đã chạy: thu_KETNOI1 HEAD 99 đạt · 0 hỏng; cây gốc 1d66c610 17 đạt · 82 hỏng · 99 ca (khớp bằng chứng); --day-du chạy riêng PASS 124 · FAIL 0
+ · CẢNH BÁO 1, "dist đã commit KHỚP với src hiện tại" (lần đầu FAIL 1 thu_gia_lap "data/ không đổi" vì chạy song song bài của người soát;
+ chạy riêng thu_gia_lap 180 đạt · 0 hỏng); 10 đột biến soát thêm (scratchpad/dot_bien_soat3.py): 6 BẮT, 4 SỐNG.
+Lỗi vòng trước đều sửa ĐÚNG: B2 phiên App giuCho.js:150-153 (B2e); huỷ 409 hỏi lại tinh.js:141-151; chốt hỏng vì đơn bao_loi tinh.js:147;
+ [CHAM] 'close' database.js:1563; 52x api.js:96,101; A1d hai chiều thu_KETNOI1.js:235; móc ≥ 500 database.js:1545; Q16 giuCho.js:20, dòng 502
+ gốc giuCho.js:137; bỏ vế order_id an toàn (sauGhiDon cùng giao dịch cổng da_thu orders.js:1032,1103; da_thu chỉ ghi ở giuCho.js:168).
+LỖI TÌM ĐƯỢC:
+ 1. client/src/utils/api.js:84 CHO_GUI_LAI_MS = [500, 1500] không ca canh độ chờ gửi lại — đột biến [0, 0] SỐNG; đường song song lỗi vòng 2
+    (CHO_DOC_MS, chỉ vá máy chủ). K3/K4 — NHẸ
+ 2. server/database.js:1532-1535 nemLoiGhi: lỗi mạng TRONG giao dịch (câu đầu, câu sau, commit) không ca canh dòng [KET-NOI] + đếm rot —
+    xoá baoRot(...) trong nemLoiGhi SỐNG; A4a/A4b chỉ qua query() và run(). K3 (A4) — NHẸ
+ 3. client/src/pages/BanHang/BanHangMoi.jsx:293-303 chỗ gọi xuLyThuHong (đường tiền) chỉ dò chữ (B5a, thu_BH2 S22): `const p = phien` →
+    `const p = null` SỐNG ở thu_KETNOI1 và S22 (mẫu `phienId: p\?\.id` vẫn khớp); `viec === 'bao_chua_biet'` → `'khong_co'` SỐNG ở thu_KETNOI1
+    (chỉ S22 bắt, dò chữ). Ít nhất khoá cụm gán `const p = phien; phien = null;` hoặc dựng màn bằng esbuild như E1a. K3 — NHẸ
+ 4. client/src/utils/api.js:66-73 readBody — đường song song goiFetch (C1 "một chỗ"): 200 mà thân đứt (text() ném) → {} như thành công →
+    BanHangMoi.jsx:276 phien.tong ném TypeError → "Cannot read properties of undefined (reading 'tong')" (chữ kỹ thuật, không B5); phiên
+    đã tạo mồ côi (giữ ví / voucher 10 phút). Không đơn đôi; lệnh chốt hoanTat(undefined) vẫn báo "đừng thu lại". Lỗi cũ, trong mục tiêu C1/E2.
+    Sửa: text() ném → loiMatKetNoi(). K4 — NHẸ
+ 5. viec/KET-NOI-1/bang_chung_do.txt:79-81 "17 ca xanh trên gốc" chỉ kể 16 — sót "F1 yêu cầu 1,8 giây (ngay DƯỚI ngưỡng)" (vòng 2 lỗi 5 đã chỉ
+    đúng chỗ này). Kèm: ke_hoach.md:225 "cause.code UND_ERR_SOCKET" trái :47 và code — "Chỉnh sau duyệt" chưa ghi. K1 — NHẸ
+NGHI NGỜ: HRANA_CLOSED_ERROR bọc lỗi mạng gốc (hrana-client errors.js:38-48 "Stream is closed: FetchError: request to …turso.io… reason: <lý do>")
+ — lý do khác "socket hang up" (vd "read ECONNRESET") thì laLoiMang (database.js:1501-1505) không nhận → lỗi đi nguyên → err.message có thể lộ
+ địa chỉ kho; chỉ khi câu SAU cùng giao dịch chạy tiếp sau câu rớt (nemLoiGhi ném ngay câu đầu → rất hiếm), CHƯA KIỂM Turso. Sau câu B5 nút thu
+ vẫn sáng — chặn đơn đôi nhánh "chốt hỏng + hỏi cũng hỏng" chỉ bằng LỜI DẶN (C16), giữ như gốc + chủ quán chọn #3 → Phát hiện. thu_SAOLUUDEM1 B3
+ nới (Phát hiện 10). node tu_chay/cong.js chay chưa ghi trang_thai.
+NGHIỆM THU: 20/20 có code · 18/20 đủ bằng chứng · thiếu: B3 (độ chờ gửi lại — lỗi 1), A4 (log / đếm đường giao dịch — lỗi 2).
+CHƯA SOÁT ĐƯỢC: Turso thật (hình lỗi, xếp hàng BEGIN IMMEDIATE, HRANA_CLOSED_ERROR); trang 502/52x thật; nhánh catch chayPhien trên màn thật + thử
+ tay điện thoại; crypto.randomUUID (có nhánh dự phòng Kho/chung.js:8 khớp MAU_MA_GUI); tu_chay/cong.js chay (ghi file trong kho); /soat-bao-mat;
+ 68 đột biến không chạy lại đủ lượt này.
+BÀI HỌC: KHOÁ — mỗi hằng chờ / gửi lại có ca hai chiều, cả máy chủ lẫn quầy (sửa một phía thì grep phía kia); KHOÁ — mỗi chỗ đổi dạng lỗi
+ (query / run / giao dịch / commit) có ca canh log + đếm riêng. NGUYÊN TẮC K3 — chỗ gọi hàm thuần trên đường tiền khoá bằng mẫu bao cả phép
+ gán đầu vào hoặc chạy thật. K4 — "một chỗ đổi lỗi mạng" phủ cả fetch() bị từ chối LẪN thân trả về đứt. K1 — hồ sơ ghi "N ca" thì liệt kê đúng
+ N, đếm bằng máy (lặp lần 2).
+```
+
+## Vòng sửa 4 (LUAT §6.5 — soát lần cuối chỉ còn lỗi NHẸ: chat soát thay, không gọi agent soát nữa)
+(điền ở dưới khi xong)
+
 ## Phát hiện (ngoài Phạm vi / chưa làm — chủ quán xem)
 1. Màn Bán hàng CŨ `Sales.jsx` là màn MẶC ĐỊNH (`client/src/pages/BanHang/index.jsx:35`) và gọi `POST /orders` không chống trùng — hở nặng nhất
    (B6). Chủ quán đã chốt để phiếu sau (BO-MAN-CU-1).

@@ -55,7 +55,8 @@ Lệnh (như cổng A11 — cả cây gốc, KHÔNG .git, chép đè bài HIỆN
   (17 ca xanh trên gốc (bản 99 ca) là ca "phải KHÔNG đổi" — K5: A3a SQL sai ném nguyên · A3b SELECT bận đường P26d · B1a ví giữ một lần ·
    B1j cổng QR hỏng 502 · B2a đúng một đơn + hai chốt cùng lúc · B2b phiên huỷ 409 · B2c xác nhận tay lần hai 409 · B2e phiên đơn App lần hai 409 ·
    C1b POST thường gửi 1 lần · B3c GET thường gặp KHO_BAN không gửi lại · B3b PAYOS_LOI không gửi lại · C2d lỗi 500 không phải mạng giữ nguyên ·
-   C2d móc chỉ đổi ≥ 500 · E1b ThuTien đơn 0đ thật · E2b lỗi nghiệp vụ giữ lời — vế đỏ của từng ca là đột biến tương ứng trong dot_bien.py.)
+   C2d móc chỉ đổi ≥ 500 · E1b ThuTien đơn 0đ thật · E2b lỗi nghiệp vụ giữ lời · F1 yêu cầu 1,8 giây (ngay DƯỚI ngưỡng) không [CHAM]
+   (đếm lại bằng máy: 17 ca — soát vòng 3 lỗi 5) — vế đỏ của từng ca là đột biến tương ứng trong dot_bien.py.)
 
 ── cong_cu/thu_BH2.js (bài SỬA thường — hành vi chủ quán duyệt đổi: B2 chốt lần hai, B5 câu báo) — gốc: 97 đạt · 2 hỏng · thoát 1 ──
   ✗ R4 chốt lần hai (bấm đôi) → 200 CÙNG đơn (lap_lai), không đơn thứ hai  — HTTP 409 · PHIEN_DA_CHOT

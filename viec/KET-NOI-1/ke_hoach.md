@@ -336,4 +336,8 @@ Vòng sửa 2 (soát độc lập vòng 2):
 - Dòng [CHAM] nghe sự kiện 'close' (bắn cả khi khách bỏ kết nối — 'finish' thì không); khách bỏ thì dòng tính tới lúc bỏ.
 - Trang lỗi không JSON 520–524 (Cloudflare đứng trước Render) cũng là mất kết nối, cùng 502 / 503 / 504.
 - B2 bỏ vế `order_id` (cùng giao dịch với da_thu — che nhau, không ca riêng); `giuCho.js` dòng 502 có sẵn giữ nguyên chữ (đúng Cấm).
+Vòng sửa 4 (soát vòng 3):
+- `:225` ca A1e/A1f "`cause.code` UND_ERR_SOCKET" → mã `UND_ERR_*` đã bỏ ở soát kế hoạch vòng 1 (`:47`); ca A1f dùng `code ETIMEDOUT` + `cause.code ECONNRESET`,
+  A1e dùng FetchError Premature close (mã lạ) — xem `cong_cu/thu_KETNOI1.js`.
+- `api.js` readBody: thân trả về đứt giữa chừng → MAT_KET_NOI (một chỗ đổi lỗi mạng phủ cả fetch bị từ chối lẫn thân đứt).
 

@@ -297,6 +297,22 @@ async function main() {
     k('A4b demKetNoi(): rot / thu_lai_dat / thu_lai_hong / tu đếm đúng các ca trên', typeof D.demKetNoi === 'function'
       && d1.rot - (d0.rot || 0) === 1 + 2 + 3 + 1 + 2 + 4 + 2 && d1.thu_lai_dat - (d0.thu_lai_dat || 0) === 2 + 4 + 1 && d1.thu_lai_hong - (d0.thu_lai_hong || 0) === 1
       && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$/.test(d1.tu), JSON.stringify(d1));
+    // A4c — lỗi mạng TRONG giao dịch (câu đầu / câu sau / commit — nemLoiGhi) cũng một dòng [KET-NOI] + đếm rot (soát vòng 3).
+    const goiTx = async (lam) => { const tx = await D.beginTransaction(); try { await lam(tx); await tx.commit(); return 'ok'; } catch (e) { await tx.rollback(); return e; } };
+    const d2 = dem();
+    nhatKy.length = 0;
+    imLang();
+    hongTx(1, /INSERT INTO pos_settings/);
+    const e1 = await goiTx((tx) => tx.run("INSERT INTO pos_settings (key, value, updated_at) VALUES ('kn1_a4c1', '1', 'x')"));
+    hongTx(1, /INSERT INTO pos_settings/);
+    const e2 = await goiTx(async (tx) => { await tx.query('SELECT 1 AS x'); await tx.run("INSERT INTO pos_settings (key, value, updated_at) VALUES ('kn1_a4c2', '1', 'x')"); });
+    M.sauCommit = /kn1_a4c3/;
+    const e3 = await goiTx((tx) => tx.run("INSERT INTO pos_settings (key, value, updated_at) VALUES ('kn1_a4c3', '1', 'x')"));
+    noiLai();
+    const dongTx = nhatKy.filter((x) => x.includes('[KET-NOI]'));
+    k('A4c lỗi mạng trong giao dịch (câu đầu, câu sau, commit) → ném KHO_MAT_KET_NOI câu ghi, MỖI lần một dòng [KET-NOI] "giao dich", rot +3',
+      [e1, e2, e3].every((e) => e?.code === 'KHO_MAT_KET_NOI' && e.message === CAU_GHI) && dongTx.length === 3 && dongTx.every((x) => /ghi .*giao dich/.test(x))
+      && dem().rot - (d2.rot || 0) === 3, `${[e1, e2, e3].map((e) => e?.code || e).join(',')} · ${JSON.stringify(dongTx)} · rot +${dem().rot - (d2.rot || 0)}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -453,6 +469,7 @@ async function main() {
     F.goi.push({ u, method: o.method || 'GET', body: o.body });
     if (F.truoc > 0) { F.truoc--; throw new TypeError('Failed to fetch'); }
     const g = F.gia.shift();
+    if (g && g.dut) return new Response(new ReadableStream({ start(c) { c.error(new Error('đứt giữa chừng (bài thử)')); } }), { status: 200 });
     if (g) return new Response(typeof g.than === 'string' ? g.than : JSON.stringify(g.than), { status: g.status, headers: { 'content-type': typeof g.than === 'string' ? 'text/html' : 'application/json' } });
     const r = await fetchThat(`http://127.0.0.1:${cong}${u}`, o);
     if (F.sau > 0) { F.sau--; await r.text(); throw new TypeError('Failed to fetch'); }
@@ -466,8 +483,16 @@ async function main() {
     k('C1a fetch ném TypeError → lỗi code MAT_KET_NOI + lời tiếng Việt (không "Failed to fetch")', r.loi?.code === 'MAT_KET_NOI'
       && r.loi?.message === 'Mất kết nối tới máy chủ — kiểm tra mạng rồi thử lại', `${r.loi?.code} · ${r.loi?.message}`);
     k('C1b POST thường rớt mạng → gửi ĐÚNG 1 lần (không tự gửi lại lệnh ghi)', F.goi.length === 1, String(F.goi.length));
+    const tGui = Date.now();
     r = await goiApi(() => { F.truoc = 2; return api.get('/thanh-toan/phien/1'); });
+    const msGui = Date.now() - tGui;
     k('C1b GET rớt 2 lần → lần 3 có trả lời (3 lần gửi)', F.goi.length === 3 && !r.loi?.code?.startsWith?.('MAT'), `${F.goi.length} · ${r.loi?.code}`);
+    k('B3e quầy CHỜ trước khi gửi lại (500 + 1500 ms): 2 lần gửi lại mất ≥ 1800 ms và < 3000 ms (hai chiều — soát vòng 3)', msGui >= 1800 && msGui < 3000, `${msGui} ms`);
+    r = await goiApi(() => { F.gia = [{ dut: true }]; return api.get('/thanh-toan/phien/1'); });
+    const dutGet = F.goi.length;
+    const r2d = await goiApi(() => { F.gia = [{ dut: true }]; return api.post('/wallets/topup', {}); });
+    k('C1d câu trả 200 mà THÂN đứt giữa chừng → MAT_KET_NOI (không coi là thành công rỗng): GET gửi lại; POST thường báo lời tiếng Việt, gửi 1 lần (soát vòng 3)',
+      dutGet === 2 && r2d.loi?.code === 'MAT_KET_NOI' && F.goi.length === 1, `${dutGet} · ${r2d.loi?.code} ${r2d.loi?.message} · ${F.goi.length}`);
     r = await goiApi(() => { F.truoc = 3; return api.get('/thanh-toan/phien/1'); });
     k('B3b GET rớt 3 lần → ném MAT_KET_NOI sau ĐÚNG 3 lần gửi', r.loi?.code === 'MAT_KET_NOI' && F.goi.length === 3, `${F.goi.length} · ${r.loi?.code}`);
     r = await goiApi(() => { F.gia = [{ status: 502, than: '<html>Bad gateway</html>' }]; return api.get('/thanh-toan/phien/1'); });
@@ -620,8 +645,10 @@ async function main() {
     k('B5b thanPhien có maGui → than.ma_gui; KHÔNG truyền → không có trường (lời gọi cũ)', t1.ma_gui === 'abcd1234' && !('ma_gui' in t0), JSON.stringify(t1).slice(0, 100));
     const bh = fs.readFileSync(path.join(SRC, 'pages', 'BanHang', 'BanHangMoi.jsx'), 'utf8');
     k('B5a BanHangMoi: không còn câu cũ "Mất kết nối khi chốt"; chayPhien giao nhánh lỗi cho xuLyThuHong (hỏi + huỷ thật qua thanhToanApi), dùng CAU_CHUA_BIET_DON',
-      !/Mất kết nối khi chốt/.test(bh) && /setLoi\(CAU_CHUA_BIET_DON\)/.test(bh) && /await xuLyThuHong\(\{ loi: e, phienId: p\?\.id, hoi: async \(id\) => \(await thanhToanApi\.hoiPhien\(id\)\)\.phien,\s*huy: \(id\) => thanhToanApi\.huyPhien\(id\) \}\)/.test(bh)
-      && /if \(viec === 'xong'\) await hoanTat\(daGhi\.order\?\.id/.test(bh), '');
+      // Soát vòng 3: khoá CẢ cụm gán đầu vào (`const p = phien`) và từng nhánh — chỉ khoá lời gọi thì đột biến đầu vào vẫn sống.
+      !/Mất kết nối khi chốt/.test(bh) && new RegExp(['const p = phien; phien = null;', 'const \\{ viec, phien: daGhi \\} = await xuLyThuHong\\(\\{ loi: e, phienId: p\\?\\.id, hoi: async \\(id\\) => \\(await thanhToanApi\\.hoiPhien\\(id\\)\\)\\.phien,',
+        'huy: \\(id\\) => thanhToanApi\\.huyPhien\\(id\\) \\}\\);', "if \\(viec === 'xong'\\) await hoanTat\\(daGhi\\.order\\?\\.id, anh, cach, khachDua\\);",
+        "else if \\(viec === 'bao_chua_biet'\\) \\{ setHoiPin\\(null\\); setLoi\\(CAU_CHUA_BIET_DON\\); \\}", "else if \\(p\\) setLoi\\(e\\.message \\|\\| 'Không thu được tiền'\\);"].join('\\s*(//[^\\n]*\\s*)?')).test(bh), '');
     k('B1/B3 BanHangMoi: mỗi lần chayPhien sinh MỘT mã (maGuiMoi) gửi trong thân; lời tính giá qua loiTinhGia', /maGui: maGuiMoi\(\)/.test(bh) && /setLoiTinh\(loiTinhGia\(e\)\)/.test(bh));
   });
 
