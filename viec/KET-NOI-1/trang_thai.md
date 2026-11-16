@@ -323,3 +323,95 @@ SOÁT BẢO MẬT: ĐẠT
 
 ## Câu hỏi
 (không có)
+
+## Cổng (LUAT §6.3)
+`node tu_chay/cong.js chay . 8d83bf8^ HEAD viec/KET-NOI-1` trên HEAD 76ecb67b, cây sạch:
+```
+· CẢNH BÁO A16: `cong_cu/thu_BH2.js` chạy trên gốc in 99 ca ≠ 100 ca ở head — bài dừng sớm trên gốc thì bỏ qua; không thì xem lại bằng chứng đỏ (dạng "… phép · … chỗ hỏng" không tách được số ca nên không so)
+✓ CỔNG CHẠY ĐẠT
+```
+Cảnh báo A16 đã truy: ca G1 của `thu_BH2.js` chỉ chạy khi có `.git` (`cong_cu/thu_BH2.js:246-259` — đọc `git log cbbb809..HEAD`); cây gốc cổng
+dựng bằng git archive KHÔNG có `.git` → thiếu đúng một ca (99 so 100). Hai ca đỏ trên gốc (R4, S22) là hai ca đã sửa — bằng chứng đúng.
+
+## Nghiệm thu — đếm từng mục (bằng chứng: ca trong `cong_cu/thu_KETNOI1.js` trừ khi ghi khác)
+- A1 đọc tự thử lại tối đa 2 lần, chờ tăng dần, lần 3 ném: A1a, A1b, A1c (×2), A1d (hai chiều ≥ 700 / ≤ 1000 ms); dấu hiệu laLoiMang: A1e–A1h, A3c.
+- A2 chỉ câu ĐỌC thử lại; run / câu ghi qua query không: A2a, A2b, A2b2, A2c, A2d, A2d2, A2e; danh sách query() không phải SELECT: `ke_hoach.md` mục A2.
+- A3 lỗi không phải mạng như cũ, SQLITE_BUSY đường P26d: A3a, A3b, A3c.
+- A4 log [KET-NOI] không SQL / tham số; đếm + health: A4a (×2), A4b, A4c (trong giao dịch), G1, G3, G4.
+- B1 ma_gui: B1a, B1b, B1c, B1c2, B1d, B1e, B1f, B1f2, B1f3, B1g (×2), B1h, B1i, B1j (×2), B1k; không gửi mã như cũ: B1e.
+- B2 chốt lần hai trả đơn đã ghi; đường khác giữ 409: B2a (×3), B2b, B2c, B2d, B2e; `thu_P3.js` F7, `thu_BH2.js` R4.
+- B3 quầy gửi lại cùng mã / cùng phiên, chờ, khoá nút: B3a, B3b (×4), B3c (×2), B3d (×4), B3e; nút khoá: `dangGuiRef` có sẵn (`BanHangMoi.jsx` chayPhien).
+- B4 một đơn / ví một lần / voucher một lần / một số HĐ: B4a (×2), B4b (×3), B1f, B2a (cùng lúc).
+- B5 câu báo một chỗ: B5a (×2), `thu_BH2.js` S22.
+- B6 bảng đường ghi tiền + đề xuất: `ke_hoach.md` mục Q-B / B6 (chủ quán duyệt #1: để phiếu sau).
+- C1 MAT_KET_NOI + lời tiếng Việt; GET thử lại; POST không (trừ phiên có mã, tinh-thu): C1a (×2), C1b (×2), C1c, C1d, C1 (tinhThu).
+- C2 503 KHO_MAT_KET_NOI, không lộ chữ Turso: C2a, C2b, C2c, C2c2, C2d (×2), C2e (×2), C2f, G2; `thu_SAOLUUDEM1.js` F1 / F2 (Cài đặt › Sao lưu).
+- D1 luồng thường không đổi: `npm test -- --day-du` PASS 124 · FAIL 0 (mọi bài cũ xanh) + ca "phải KHÔNG đổi" (17 ca xanh trên gốc).
+- D2 phiên QR: B1b, B1i, B1j; bài cũ `thu_KHNAP1.js`, `thu_SEPAY1.js`, `thu_TINGEE1.js` xanh trong `--day-du`.
+- D3 SQLITE_BUSY / KHO_BAN đường cũ: A3b; `thu_P26b.js`, `thu_P26c.js` xanh.
+- E1 không "Đơn 0đ" khi chưa có số máy chủ: E1a (×2, gồm ThuTien.jsx THẬT gói esbuild), E1b (×2, đơn 0đ thật vẫn hiện).
+- E2 lời lỗi tính giá: E2a, E2b; B1/B3 (BanHangMoi dùng loiTinhGia).
+- F1 dòng [CHAM] > 2 s, không SĐT / tham số: F1 (×6: hằng, cách gắn index.js + /api/nd, 1,8 s, 2,15 s, che SĐT / số / QR, khách bỏ kết nối).
+- F2 số câu kho ba đường: F2 + bảng "F2" ở trên (10 / 23 / 5 / 3).
+- F3 health `ket_noi.cham`: F3, G1.
+→ 20/20 mục có bằng chứng.
+
+## Báo cáo 7 mục
+```
+VIỆC:        KET-NOI-1 — Kết nối bền vững: đọc tự thử lại khi rớt mạng, thu tiền ở quầy bấm lại không ra đơn đôi, lỗi mạng báo dễ hiểu (+ nhóm F đo chậm)
+ĐÃ SỬA:      server/database.js — laLoiMang / laCauDoc; query() đọc lại tối đa 2 lần (200 + 600 ms); run() / giao dịch / commit đổi lỗi mạng thành
+               KHO_MAT_KET_NOI (lời "máy chủ", không mang lỗi gốc); log [KET-NOI]; đếm demKetNoi; traLoiKho; mocLoiKho (≥ 500 → 503);
+               doYeuCau (AsyncLocalStorage, [CHAM] > 2 s, nghe 'close'); bocFetchNgoai
+             server/index.js — bọc fetch, gắn doYeuCau (/api/nd + /api) + mocLoiKho trước route, health ket_noi, bắt lỗi cuối → traLoiKho
+             server/nang_cap/029_ket_noi.js — cột pos_phien_thanh_toan.ma_gui + UNIQUE WHERE NOT NULL (bỏ qua kho thiếu bảng — khuôn 025)
+             server/utils/giuCho.js — taoPhien: ma_gui (dạng mã), phienCuaMa ở đường nhanh + câu đầu giao dịch + khiTrung (đụng UNIQUE);
+               chotPhien: lapLai → đơn đã ghi (chặn phiên đơn App)
+             server/routes/thanh-toan.js — /chot đặt lapLai · server/routes/wallets.js — loiGhi → traLoiKho
+             client/src/utils/api.js — goiFetch + readBody (MAT_KET_NOI), trang proxy 502–504 / 520–524, gửi lại theo thuLai ('mang' GET + tinhThu,
+               'co_ma' tạo / chốt phiên), chờ 500 + 1500 ms
+             client/src/pages/BanHang/tinh.js — thanPhien maGui, nhanhNutThu, loiTinhGia, CAU_CHUA_BIET_DON, xuLyThuHong
+             client/src/pages/BanHang/BanHangMoi.jsx — maGuiMoi mỗi lần thu, nhánh lỗi qua xuLyThuHong, loiTinhGia · ThuTien.jsx — nhanhNutThu
+             client/dist — build lại · kiem_tra_truoc_khi_giao.js — chạy thu_KETNOI1.js
+BÀI THỬ:     cong_cu/thu_KETNOI1.js (MỚI, 102 ca) — gốc 1d66c610: 17 đạt · 85 hỏng (A1–A4, B1–B5, C1–C2, E, F, G đỏ); HEAD: 102 đạt · 0 hỏng.
+             Bài sửa thường (đỏ trên gốc): thu_BH2.js R4 + S22 (gốc 97/2), thu_P3.js F7 (99/1), thu_NDAPI1.js A2 (thêm 10 ≠ 19),
+             thu_SAOLUUDEM1.js F1 (500 + chữ turso.io). Đột biến 73: BẮT 73 (đối chứng 102/0). npm test --day-du: PASS 124 · FAIL 0 · CẢNH BÁO 1.
+             Cổng: ✓ CỔNG CHẠY ĐẠT (cảnh báo A16 BH2 99/100 — ca G1 cần .git).
+ĐÃ RÀ K4:    db.execute trong database.js: 5 lối lúc chạy (query, run, câu đầu giao dịch, câu sau, commit) → xử lý hết (createTables / seed lúc khởi động
+               ngoài việc); lối vào taoPhien 2 (route, donApp — App không mang mã); chotPhien 4 (/chot lapLai; xác nhận tay, webhook, donApp giữ 409);
+               fetch trong api.js 1 chỗ (goiFetch) + readBody; 116 chỗ `{ error: err.message }` ≥ 500 → móc mocLoiKho một chỗ + lời đổi tại gốc;
+               'finish' / 'close' → close; câu B5 1 chỗ (tinh.js) dùng 1 chỗ (BanHangMoi).
+CHƯA KIỂM:   Turso thật (hình lỗi mạng, BEGIN IMMEDIATE xếp hàng hai lần gửi cùng mã — có lớp khiTrung đỡ, mã bận, HRANA_CLOSED_ERROR bọc lỗi
+               mạng — Phát hiện 12); trang 502 / 52x thật của Render / Cloudflare; nhánh lỗi chayPhien chạy trên MÀN thật (chỉ hàm xuLyThuHong +
+               soi nguồn chỗ gọi); crypto.randomUUID trên máy quầy (có dự phòng); thời gian thật Render ↔ Turso (F2 đo trên kho file); thử tay
+               điện thoại; câu đặt lại bộ đếm PIN rớt mạng (Phát hiện 8); SX lệch khi commit rớt sau khi Turso đã ghi (Phát hiện 4).
+GIT:         76ecb67b KET-NOI-1: soat bao mat — 0 lo hong (DAT)
+             0e80b150 KET-NOI-1 vong sua 4: bang chung 102 ca (goc 85 hong), SO CA 102, dot bien 73/73 BAT; SOAT LAN CUOI: chat soat thay
+             (+ commit ghi trang_thai.md này — chỉ viec/KET-NOI-1/)
+BÀI HỌC:     KHOÁ 0 (mới ngoài bài thử của việc) · NGUYÊN TẮC 6 (đề xuất KHUON_LOI.md — ngoài Phạm vi) · BỎ 3 — chi tiết ## Bài học
+```
+
+## Bài học
+Sự cố gom lại: soát độc lập 3 vòng (6 + 6 + 5 lỗi, không lỗi tiền / bảo mật); bài thử tự đỏ do lỗi CỦA BÀI (trùng tên biến 3 lần, sai tên cột,
+dòng ✗ bị gom vào log, móc mạng mất khi P26d thay kết nối); bộ kiểm đỏ sau vá (029 trên kho thiếu bảng; index.js sửa dòng cũ); người gác chặn 9 lần.
+**KHOÁ** (đã làm trong Phạm vi — là bài thử của việc này, có ca đỏ trước):
+- Hàm giả trong bài theo đúng câu ghi máy chủ (huỷ 409 khi không còn 'cho') — B3d; đo chậm có ca khách bỏ kết nối — F1; mỗi hằng chờ có ca hai
+  chiều cả máy chủ (A1d) lẫn quầy (B3e); mỗi chỗ đổi dạng lỗi có ca log + đếm riêng (A4a, A4c).
+- Đề xuất "cổng so SỐ CA với số ca HEAD" (soát vòng 1): BỎ — cổng A16 đã làm đúng việc này.
+**NGUYÊN TẮC** (đề xuất thêm vào `KHUON_LOI.md` — ngoài Phạm vi, chat soát duyệt; `khuon_loi_toi_da` phải gộp nếu vượt):
+1. K3 — Lớp giả / hàm giả trong bài thử theo ĐÚNG điều kiện câu ghi máy chủ, lỗi giả mang ĐÚNG MỘT dấu hiệu đang thử. Đã gây: KET-NOI-1 ca B3d
+   cho huỷ thành công phiên 'huy' (máy chủ thật 409) → xanh oan, che lỗi "chốt hỏng vì đơn báo mất kết nối"; A1e mang cả mã lẫn chữ nên vế
+   FetchError không có ca. Chặn: dựng hàm giả từ câu SQL thật của route; đột biến từng vế.
+2. K3 — Hai lớp phòng thủ cùng việc (đọc đầu giao dịch + bắt đụng khoá) che nhau: đột biến bỏ một lớp vẫn xanh. Đã gây: BV-MA-GUI-TRONG-GD,
+   BV-MA-GUI-TRUNG-KHOA cùng SỐNG. Chặn: mỗi lớp một ca riêng, đo dấu vết lớp kia KHÔNG ra tay (đếm đụng khoá = 0).
+3. K3 — Bài thử gom log máy chủ (console.log thay) thì in ✓ / ✗ bằng hàm gốc. Đã gây: dòng ✗ của ca 1,8 s bị nuốt → đột biến "LẠC" thay vì BẮT.
+4. K4 — Sửa nhánh lỗi chung (xử lý sau khi thu hỏng): liệt kê MỌI trạng thái hỏi về (cho / da_thu / loi / huy / het_han / hỏi hỏng), mỗi trạng
+   thái một ca theo hành vi gốc; "một chỗ đổi lỗi mạng" phủ cả fetch bị từ chối LẪN thân trả về đứt; đo theo 'close' không 'finish'.
+5. K5 — "Đường khác giữ như cũ" phải liệt kê từng LỐI GỌI, mỗi lối một ca; hai lối trùng giá trị phân biệt (nguon 'tai_khoan' của quầy và đơn App)
+   thì không dùng giá trị đó để phân biệt. Đã gây: B2 trả 200 cho phiên đơn App (soát vòng 1).
+6. K1 / K4 — Đổi tên hàm / mã ở vòng sửa thì grep cả `cong_cu/` + `bang_chung_do.txt` + `ke_hoach.md`; hồ sơ ghi "N ca" phải đếm bằng máy
+   (lặp 2 vòng: "16 ca xanh" kể 13, "17" kể 16).
+**BỎ**: trùng tên biến trong bài thử (3 lần) — bài sập ngay khi chạy, bộ kiểm bắt tức thì; 029 hỏng trên kho thiếu bảng — bài cũ KHAPI3 / KHO2a
+bắt ngay, đã theo khuôn 025; P26d thay kết nối làm mất móc bài thử — đặc thù kho file, đã ghi chú trong bài.
+Dọn lời dặn: không có lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` được phép kiểm mới của việc này làm thay hoàn toàn.
+
+HEAD ĐÃ KIỂM: 76ecb67b
