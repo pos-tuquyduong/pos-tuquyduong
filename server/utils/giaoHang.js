@@ -25,6 +25,9 @@ const GOI_TREO_GIAY = 180;           // "đang gọi" quá chừng này (máy g�
 const TIM_XE_TOI_DA_GIAY = 600;      // tìm xe quá 10 phút → thẻ đỏ, cho "Tìm lại"
 const DOC_LAI_GIAY = 60;             // dự phòng tin báo không tới: màn Giao hàng hỏi thì đọc lại chuyến quá 60 s chưa cập nhật
 const DOC_LAI_TOI_DA = 3;            // mỗi lần hỏi đọc lại tối đa 3 chuyến
+const DOC_LAI_TAY_GIAY = 5;          // nút "Tải lại" (GIAO-2 B4): đọc NGAY chuyến chưa đọc trong 5 s — bấm dồn không gọi Ahamove thêm
+const DOC_LAI_TAY_TOI_DA = 8;        // nút "Tải lại": tối đa 8 chuyến mỗi lần bấm
+const HAN_DOC_LAI_MS = 4000;         // hạn mỗi lần đọc lại từ màn (đọc song song): màn chờ Ahamove tối đa ~4 s; gọi xe / huỷ / tin nền giữ 10 s (ahamove.js)
 const LY_DO_TOI_THIEU = 3;
 const SONG = ['dang_goi', 'tim_xe', 'doi_tai_xe', 'dang_giao'];   // còn chuyến (hoặc có thể còn) ở Ahamove
 // Chuyến đã chạy = tài xế đã lấy hàng hoặc đã giao xong (theo DẤU GIỜ, không theo trạng thái — thẻ giao lỗi bị đóng khi hoàn tiền vẫn giữ phí):
@@ -400,22 +403,42 @@ async function capNhatTuAhamove(c, d) {
   [moi, veTim, tx.ten, veTim, tx.sdt, veTim, doiTaiXe ? 1 : 0, tx.bien_so, tx.bien_so, moi, now, moi, now, moi, now, d.phi, d.phi, now, moi, c.id, c.trang_thai, c.ma_ahamove]);
 }
 
-/** Tin báo về: chỉ lấy mã chuyến; trạng thái đọc lại bằng token của quán. Lặp (mã + trạng thái đọc lại + điểm giao + SĐT tài xế — Ahamove đổi
- *  tài xế thì ACCEPTED lần hai là tin MỚI) → không làm gì. */
+/** Một dòng nhật ký đọc lại (GIAO-2 B3): mã chuyến + trạng thái Ahamove → trạng thái thẻ — không SĐT / tên tài xế, không địa chỉ khách. */
+function logGiao(nguon, c, d, t0) {
+  const dich = !d ? 'bỏ qua: Ahamove không có chuyến' : d.ma !== c.ma_ahamove ? `bỏ qua: mã đọc về ${d.ma} lệch`
+    : d.trang_thai === 'CANCELLED' ? 'huỷ' : trangThaiQuan(d) || `bỏ qua: trạng thái lạ (thẻ ${c.trang_thai})`;
+  console.log(`[GIAO] ${nguon} ${c.ma_ahamove} ${d ? d.trang_thai || '?' : '-'} → ${dich} · ${Date.now() - t0}ms`);
+}
+const logLoi = (nguon, ma, buoc, e) => console.error(`[GIAO] ${nguon} ${ma || '?'} lỗi ${buoc}: ${e?.code || e?.name || 'LOI'}${e?.status ? ' HTTP ' + e.status : ''}`);
+
+/** Tin báo về (chạy SAU khi cửa đã trả 200 — GIAO-2): chỉ lấy mã chuyến; trạng thái đọc lại bằng token của quán. Lặp (mã + trạng thái đọc lại +
+ *  điểm giao + SĐT tài xế — Ahamove đổi tài xế thì ACCEPTED lần hai là tin MỚI) → không làm gì. Thẻ đang gọi xe: tin của chuyến CŨ (chuyến mới
+ *  chưa có mã trên thẻ) — goiXe tự đọc chuyến cũ; không ghi sổ chống lặp; trạng thái sau khi gọi xe do đọc lại (danhSach) lo. */
 async function nhanTinBao(b) {
+  const t0 = Date.now();
   const ma = String(b?._id || b?.order_id || '').replace(/-\d+$/, '');
   const c = ma ? await queryOne('SELECT * FROM pos_giao_chuyen WHERE ma_ahamove = ?', [ma]) : null;
-  if (!c) return { status: 200, body: { success: true } };   // không phải chuyến của quán (hoặc chuyến cũ đã thay) — bỏ qua
-  // Thẻ đang gọi xe: chưa áp được — KHÔNG ghi sổ chống lặp, trả 409 (Ahamove có gửi lại tin hay không: CHƯA đối chiếu). Tin sau cùng chuyến được áp;
-  // không có tin sau thì màn Giao hàng đọc lại chuyến quá DOC_LAI_GIAY (danhSach) — trạng thái không mất.
-  if (c.trang_thai === 'dang_goi') return loi(409, 'DANG_GOI_XE', 'Thẻ đang gọi xe — chưa áp tin').loi;
-  let d;
-  try { d = await aha.docChuyen(ma); } catch { return loi(502, 'AHAMOVE_LOI', 'Không đọc lại được chuyến — màn Giao hàng đọc lại sau').loi; }
-  if (!d) return { status: 200, body: { success: true } };
-  const moi = await run('INSERT OR IGNORE INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, ?, ?, ?)', [ma, d.trang_thai, `${d.diem_giao}|${d.tai_xe.sdt || ''}`, getNow()]);
-  if (moi.changes === 1) await capNhatTuAhamove(c, d);
-  return { status: 200, body: { success: true } };
+  if (!c || c.trang_thai === 'dang_goi') return;   // không phải chuyến của quán (hoặc chuyến cũ đã thay) / đang gọi xe — bỏ qua
+  const d = await aha.docChuyen(ma);
+  if (d) {
+    const phu = `${d.diem_giao}|${d.tai_xe.sdt || ''}`;
+    const moi = await run('INSERT OR IGNORE INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, ?, ?, ?)', [ma, d.trang_thai, phu, getNow()]);
+    if (moi.changes !== 1) return;
+    // Cập nhật thẻ hỏng (kho chập chờn) → gỡ dòng chống lặp vừa ghi: tin gửi lại / đọc lại vẫn áp được.
+    await capNhatTuAhamove(c, d).catch(async (e) => {
+      await run('DELETE FROM pos_giao_tin WHERE ma_ahamove = ? AND trang_thai = ? AND phu = ?', [ma, d.trang_thai, phu]);
+      throw e;
+    });
+  }
+  logGiao('tin', c, d, t0);
 }
+/** Cửa tin báo gọi SAU khi đã trả 200: xử lý trong cùng tiến trình, lỗi chỉ ghi log (không sập máy chủ). choTinBao — bài thử chờ phần nền xong. */
+const tinDangXuLy = new Set();
+function nhanTinBaoNen(b) {
+  const p = nhanTinBao(b).catch((e) => logLoi('tin', String(b?._id || b?.order_id || '').slice(0, 40), 'xử lý tin', e)).finally(() => tinDangXuLy.delete(p));
+  tinDangXuLy.add(p);
+}
+const choTinBao = () => Promise.all([...tinDangXuLy]);
 
 // ─── Màn Giao hàng (E, F, I) ───
 /** Giờ gợi ý gọi tài xế = giờ nhận + (món của nó + món các đơn đang pha trước nó) × phút/món − phút tìm xe; không sớm hơn giờ nhận. */
@@ -424,20 +447,28 @@ function gioGoiTaiXe(nhanLuc, soMon, cd) {
 }
 const TEN_TRA = { cash: 'Tiền mặt', transfer: 'Chuyển khoản', balance: 'Tài khoản' };
 
-async function danhSach() {
+/** `docLaiNgay` = nút "Tải lại" (GIAO-2 B4): đọc chuyến chưa đọc trong DOC_LAI_TAY_GIAY; hẹn 15 s của màn: chuyến quá DOC_LAI_GIAY. */
+async function danhSach(docLaiNgay = false) {
   const cd = await docCaiDat(), now = getNow();
+  const moc = lechGiay(now, -(docLaiNgay ? DOC_LAI_TAY_GIAY : DOC_LAI_GIAY));
   const doc = () => query(`SELECT c.*, o.code, o.total, o.payment_method, o.payment_status FROM pos_giao_chuyen c JOIN pos_orders o ON o.id = c.order_id
     WHERE c.trang_thai NOT IN ('xong', 'huy', 'da_dong') ORDER BY COALESCE(c.nhan_luc, c.tao_luc), c.id`);
   let ds = await doc();
-  let doiLai = 0;
-  for (const c of ds.filter((x) => ['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(x.trang_thai) && (!x.doc_luc || x.doc_luc < lechGiay(now, -DOC_LAI_GIAY)))) {
-    if (doiLai >= DOC_LAI_TOI_DA) break;
-    const g = await run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE id = ? AND (doc_luc IS NULL OR doc_luc < ?)', [now, c.id, lechGiay(now, -DOC_LAI_GIAY)]);
-    if (g.changes !== 1) continue;
-    doiLai++;
-    try { await capNhatTuAhamove(c, await aha.docChuyen(c.ma_ahamove)); } catch { /* Ahamove không trả lời: giữ trạng thái cũ, lần sau đọc lại */ }
-  }
-  if (doiLai) ds = await doc();
+  const can = ds.filter((x) => ['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(x.trang_thai) && (!x.doc_luc || x.doc_luc < moc))
+    .slice(0, docLaiNgay ? DOC_LAI_TAY_TOI_DA : DOC_LAI_TOI_DA);
+  // Đọc SONG SONG (màn chờ một hạn HAN_DOC_LAI_MS, không cộng dồn); câu giành doc_luc: hai máy / bấm dồn không đọc trùng.
+  const daDoc = await Promise.all(can.map(async (c) => {
+    const g = await run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE id = ? AND (doc_luc IS NULL OR doc_luc < ?)', [now, c.id, moc]);
+    if (g.changes !== 1) return false;
+    const t0 = Date.now();
+    try {
+      const d = await aha.docChuyen(c.ma_ahamove, HAN_DOC_LAI_MS);
+      await capNhatTuAhamove(c, d);
+      logGiao('doc_lai', c, d, t0);
+    } catch (e) { logLoi('doc_lai', c.ma_ahamove, 'đọc lại', e); }   // giữ trạng thái cũ, lần sau đọc lại
+    return true;
+  }));
+  if (daDoc.some(Boolean)) ds = await doc();
   await docLaiPhiHuy().catch(() => { /* Ahamove không trả lời: lần hỏi sau đọc lại */ });
   const mon = ds.length ? await query(`SELECT order_id, product_name, quantity, notes FROM pos_order_items WHERE order_id IN (${ds.map(() => '?').join(',')}) ORDER BY id`,
     ds.map((c) => c.order_id)) : [];
@@ -507,5 +538,5 @@ async function doiSoatGiao(q, tu, den) {
 
 module.exports = {
   LOAI_XE, MAC_DINH, kiemCaiDat, docCaiDat, goiY, datDiemLay, taoBaoPhi, docBaoPhiDon, ghiChuyenDon, kiemHuyDonGiao, chotHuyGiao, xoaDonGiao,
-  donGiaoDangChay, dongChuyenKhiHoan, laQuanLy, goiXe, dongThe, huyChuyenGiao, nhanTinBao, gioGoiTaiXe, danhSach, nhanDon, inTem, giaoTrenHoaDon, doiSoatGiao,
+  donGiaoDangChay, dongChuyenKhiHoan, laQuanLy, goiXe, dongThe, huyChuyenGiao, nhanTinBaoNen, choTinBao, gioGoiTaiXe, danhSach, nhanDon, inTem, giaoTrenHoaDon, doiSoatGiao,
 };

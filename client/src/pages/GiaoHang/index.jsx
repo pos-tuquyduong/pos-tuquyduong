@@ -49,12 +49,12 @@ export default function GiaoHang() {
   const [dang, setDang] = useState(false);
   const daKeu = useRef(new Set());
 
-  const tai = useCallback(async () => {
-    try { setDs((await giaoHangApi.danhSach()).chuyen || []); setLoi(''); } catch (e) { setLoi('Không tải được danh sách giao: ' + e.message); }
+  const tai = useCallback(async (docLai = false) => {   // docLai: nút "Tải lại" — máy chủ hỏi Ahamove ngay; hẹn 15 s thì không
+    try { setDs((await giaoHangApi.danhSach(docLai)).chuyen || []); setLoi(''); } catch (e) { setLoi('Không tải được danh sách giao: ' + e.message); }
   }, []);
   useEffect(() => {
     tai();
-    const h = setInterval(tai, HOI_MS);
+    const h = setInterval(() => tai(), HOI_MS);
     return () => clearInterval(h);
   }, [tai]);
 
@@ -70,7 +70,7 @@ export default function GiaoHang() {
   // Có tài xế → máy giành được thì in tem túi một lần.
   useEffect(() => {
     for (const c of ds.filter((x) => x.trang_thai === 'doi_tai_xe' && !x.in_tem_luc)) {
-      giaoHangApi.inTem(c.order_id).then((r) => { if (r.duoc) return inTemTui(c, r.lan).then(tai); return null; }).catch((e) => baoLoiTu('tự in tem túi', e));
+      giaoHangApi.inTem(c.order_id).then((r) => { if (r.duoc) return inTemTui(c, r.lan).then(() => tai()); return null; }).catch((e) => baoLoiTu('tự in tem túi', e));
     }
   }, [ds]);   // eslint-disable-line react-hooks/exhaustive-deps -- chỉ khi danh sách đổi
 
@@ -133,7 +133,7 @@ export default function GiaoHang() {
   const daPha = ct && ['dang_pha', 'chuyen_huy'].includes(ct.trang_thai);
   return (
     <div className="gh">
-      <div className="gh-dau"><h2>Giao hàng · Ahamove</h2><button className="gh-nut-phu" onClick={tai}>Tải lại</button></div>
+      <div className="gh-dau"><h2>Giao hàng · Ahamove</h2><button className="gh-nut-phu" onClick={() => tai(true)}>Tải lại</button></div>
       {loi && <div className="gh-loi gh-loi-to">{loi}</div>}
       <div className="gh-tab">
         {COT.map(([k, ten]) => <button key={k} className={`gh-tab-${k}${tab === k ? ' gh-chon' : ''}`} onClick={() => setTab(k)}>{ten} ({ds.filter((c) => c.cot === k).length})</button>)}

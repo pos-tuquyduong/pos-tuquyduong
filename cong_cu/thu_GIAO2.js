@@ -111,7 +111,15 @@ async function main() {
     if (K.nem && /FROM pos_giao_chuyen WHERE ma_ahamove/.test(sql)) throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
     return qoGoc(sql, p);
   };
-  db.run = async (sql, p) => { if (K.cham) await ngu(K.cham); return runGoc(sql, p); };
+  K.demCapNhat = 0;
+  db.run = async (sql, p) => {
+    if (K.cham) await ngu(K.cham);
+    if (/^UPDATE pos_giao_chuyen SET trang_thai = \?, tai_xe_ten/.test(sql)) {
+      K.demCapNhat++;
+      if (K.nemCapNhat) throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
+    }
+    return runGoc(sql, p);
+  };
 
   const svAha = await new Promise((ok) => { const s = dungAhamoveGia(express).listen(0, '127.0.0.1', () => ok(s)); });
   process.env.AHAMOVE_BASE_URL = `http://127.0.0.1:${svAha.address().port}`;
@@ -220,14 +228,31 @@ async function main() {
     // A3: hai tin cùng chuyến cách 49 ms → MỘT bản ghi chống lặp, thẻ cập nhật một lần
     const v3 = await moChuyen();
     datTrangThai(v3.x, { status: 'ACCEPTED', supplier_name: 'TX Hai B', supplier_id: '0977002202' });
+    A.chamDoc = 300;
+    const dem3 = K.demCapNhat;
     const p1 = baoVe({ _id: v3.x, status: 'ACCEPTED' });
     await ngu(49);
     const p2 = baoVe({ _id: v3.x, status: 'ACCEPTED' });
     const [b1, b2] = await Promise.all([p1, p2]);
     await choNen();
+    A.chamDoc = 0;
     const c3 = await chuyenCua(v3.id);
-    k('A3 hai tin cách 49 ms → cả hai 200; MỘT dòng chống lặp; thẻ doi_tai_xe + tài xế', b1.status === 200 && b2.status === 200 && await tinCua(v3.x) === 1
-      && c3?.trang_thai === 'doi_tai_xe' && c3?.tai_xe_ten === 'TX Hai B', `${b1.status} ${b2.status} tin ${await tinCua(v3.x)} ${c3?.trang_thai}`);
+    k('A3 hai tin cách 49 ms (Ahamove chậm 300 ms — cả hai cùng đang xử lý) → cả hai 200; MỘT dòng chống lặp; câu cập nhật thẻ chạy MỘT lần; thẻ doi_tai_xe',
+      b1.status === 200 && b2.status === 200 && await tinCua(v3.x) === 1 && K.demCapNhat - dem3 === 1 && c3?.trang_thai === 'doi_tai_xe' && c3?.tai_xe_ten === 'TX Hai B', `${b1.status} ${b2.status} tin ${await tinCua(v3.x)} cập nhật ${K.demCapNhat - dem3} ${c3?.trang_thai}`);
+
+    // A2d: kho hỏng ĐÚNG lúc cập nhật thẻ (Turso "socket hang up") → sổ chống lặp KHÔNG giữ dòng của tin hỏng; tin gửi lại cùng trạng thái được áp
+    const v5 = await moChuyen();
+    datTrangThai(v5.x, { status: 'ACCEPTED', supplier_name: 'TX Hai G', supplier_id: '0977002207' });
+    K.nemCapNhat = true;
+    await baoVe({ _id: v5.x, status: 'ACCEPTED' });
+    await choNen();
+    K.nemCapNhat = false;
+    const tin5 = await tinCua(v5.x);
+    await baoVe({ _id: v5.x, status: 'ACCEPTED' });
+    await choNen();
+    const c5 = await chuyenCua(v5.id);
+    k('A2d kho hỏng lúc cập nhật thẻ → không để lại dòng chống lặp; tin lặp lại sau → doi_tai_xe + tài xế', tin5 === 0 && c5?.trang_thai === 'doi_tai_xe'
+      && c5?.tai_xe_ten === 'TX Hai G', `tin ${tin5} ${c5?.trang_thai} ${c5?.tai_xe_ten}`);
 
     // A4: thẻ đang gọi xe lúc tin tới → 200 (không 409), không ghi sổ chống lặp; thẻ về tim_xe thì tin sau được áp
     const v4 = await moChuyen();
@@ -236,19 +261,27 @@ async function main() {
     const a4 = await baoVe({ _id: v4.x, status: 'ACCEPTED' });
     await choNen();
     const tin4 = await tinCua(v4.x), c4a = await chuyenCua(v4.id);
-    await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'tim_xe' WHERE order_id = ?", [v4.id]);
-    await baoVe({ _id: v4.x, status: 'ACCEPTED' });
-    await choNen();
-    const c4 = await chuyenCua(v4.id);
-    k('A4 thẻ dang_goi → 200 (không 409), không ghi sổ chống lặp, thẻ không đổi; về tim_xe thì tin sau → doi_tai_xe', a4.status === 200 && tin4 === 0
-      && c4a?.trang_thai === 'dang_goi' && c4?.trang_thai === 'doi_tai_xe' && c4?.tai_xe_ten === 'TX Hai C', `${a4.status} ${a4.j.code || ''} tin ${tin4} ${c4?.trang_thai}`);
+    // gọi xe xong (thẻ về tim_xe, đọc lúc gọi) — Ahamove KHÔNG gửi lại tin (đã nhận 200): thẻ lên nhờ đọc lại (bấm "Tải lại" sau 5 s)
+    await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'tim_xe', doc_luc = ? WHERE order_id = ?", [luiGiay(6), v4.id]);
+    const c4 = the(await danhSach(true), v4.id);
+    k('A4 thẻ dang_goi → 200 (không 409), không ghi sổ chống lặp, thẻ không đổi; gọi xe xong, không tin nào nữa → "Tải lại" đọc ra doi_tai_xe',
+      a4.status === 200 && tin4 === 0 && c4a?.trang_thai === 'dang_goi' && c4?.trang_thai === 'doi_tai_xe' && c4?.tai_xe?.ten === 'TX Hai C',
+      `${a4.status} ${a4.j.code || ''} tin ${tin4} ${c4?.trang_thai}`);
 
     // A5: không phải chuyến của quán / thân rỗng → 200, không đọc Ahamove, không ghi gì
     const d5 = A.doc;
     const tong5 = Number((await qoGoc('SELECT COUNT(*) AS n FROM pos_giao_tin')).n);
     const a5a = await baoVe({ _id: 'KHONG_PHAI_CUA_QUAN', status: 'ACCEPTED' });
     const a5b = await baoVe({});
+    const v6 = await moChuyen();
+    await db.run("UPDATE pos_giao_chuyen SET ma_ahamove = 'G2AHA_MOI' WHERE order_id = ?", [v6.id]);   // chuyến v6.x đã được thay bằng chuyến khác
+    datTrangThai(v6.x, { status: 'ACCEPTED', supplier_name: 'TX Cu', supplier_id: '0977002299' });
+    const d5b = A.doc;
+    const a5c = await baoVe({ _id: v6.x, status: 'ACCEPTED' });
     await choNen();
+    const c6 = await chuyenCua(v6.id);
+    k('A5 chuyến cũ đã thay → 200, không đọc Ahamove, thẻ (chuyến mới) không đổi', a5c.status === 200 && A.doc === d5b && c6?.trang_thai === 'tim_xe' && !c6?.tai_xe_ten,
+      `${a5c.status} đọc ${A.doc - d5b} ${c6?.trang_thai}`);
     k('A5 mã lạ / thân rỗng → 200, Ahamove không bị đọc, không ghi sổ tin', a5a.status === 200 && a5b.status === 200 && A.doc === d5
       && Number((await qoGoc('SELECT COUNT(*) AS n FROM pos_giao_tin')).n) === tong5, `${a5a.status} ${a5b.status} đọc ${A.doc - d5}`);
   }
@@ -322,7 +355,7 @@ async function main() {
     k("Z2 kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_GIAO2.js'", /^chayBaiThat\('cong_cu\/thu_GIAO2\.js'\);/m.test(kt));
     const man = fs.readFileSync(path.join(GOC, 'client', 'src', 'pages', 'GiaoHang', 'index.jsx'), 'utf8');
     const api = fs.readFileSync(path.join(GOC, 'client', 'src', 'utils', 'api.js'), 'utf8');
-    k('Z3 nút "Tải lại" gọi tai(true); hẹn giờ gọi tai() không cờ; api gửi ?doc_lai=1 chỉ khi có cờ', /onClick=\{\(\) => tai\(true\)\}>Tải lại</.test(man)
+    k('Z3 nút "Tải lại" gọi tai(true), không chỗ nào truyền đối số lạ vào tai; hẹn giờ gọi tai() không cờ; api gửi ?doc_lai=1 chỉ khi có cờ', /onClick=\{\(\) => tai\(true\)\}>Tải lại</.test(man) && !/onClick=\{tai\}|\.then\(tai\)/.test(man)
       && /setInterval\(\(\) => tai\(\), HOI_MS\)/.test(man) && /danhSach: \(docLai\) => api\.get\(`\/giao-hang\$\{docLai \? '\?doc_lai=1' : ''\}`\)/.test(api));
   }
 

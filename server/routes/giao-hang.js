@@ -23,7 +23,7 @@ router.get('/cai-dat', authenticate, boc(async (req, res) => {
 router.get('/dia-chi', authenticate, boc(async (req, res) => tra(res, await gh.goiY(req.query.q))));
 router.post('/diem-lay', authenticate, chiQuanLy, boc(async (req, res) => tra(res, await gh.datDiemLay(req.body))));
 router.post('/bao-phi', authenticate, boc(async (req, res) => tra(res, await gh.taoBaoPhi(req.body, req.user.username))));
-router.get('/', authenticate, boc(async (req, res) => res.json({ success: true, chuyen: await gh.danhSach() })));
+router.get('/', authenticate, boc(async (req, res) => res.json({ success: true, chuyen: await gh.danhSach(req.query.doc_lai === '1') })));   // doc_lai=1: nút Tải lại
 router.post('/:id/nhan', authenticate, boc(async (req, res) => tra(res, await gh.nhanDon(Number(req.params.id)))));
 router.post('/:id/goi-xe', authenticate, boc(async (req, res) => tra(res, await gh.goiXe(Number(req.params.id), req.body?.loai_xe ?? null, req.body?.tu ?? null))));
 router.post('/:id/huy-chuyen', authenticate, boc(async (req, res) => tra(res, await gh.huyChuyenGiao(Number(req.params.id), req.body?.ly_do, req.user))));
@@ -36,8 +36,8 @@ webhook.post('/', boc(async (req, res) => {
   if (!khoa) return res.status(503).json({ error: 'Chưa cài khoá tin báo Ahamove', code: 'BAO_CHUA_CAI' });
   const nhan = req.headers.apikey;
   if (typeof nhan !== 'string' || !crypto.timingSafeEqual(bam(nhan), bam(khoa))) return res.status(401).json({ error: 'Sai khoá', code: 'BAO_SAI_KHOA' });
-  const kq = await gh.nhanTinBao(req.body);
-  res.status(kq.status).json(kq.body);
+  res.json({ success: true });   // GIAO-2: trả lời NGAY (Ahamove chờ tối đa 5 s) — đọc lại chuyến + cập nhật thẻ chạy sau, lỗi chỉ ghi log
+  gh.nhanTinBaoNen(req.body);
 }));
 
 module.exports = router;

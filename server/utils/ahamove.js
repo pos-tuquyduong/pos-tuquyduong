@@ -7,7 +7,7 @@
  * Lỗi ném { code, status }: AHAMOVE_CHUA_CAI · AHAMOVE_TU_CHOI (Ahamove trả lời rõ là không) · AHAMOVE_MAT_MANG (không biết Ahamove đã làm chưa).
  */
 const GOC = { thu: 'https://partner-apistg.ahamove.com', that: 'https://partner-api.ahamove.com' };
-const HAN_GOI_MS = 10000;
+const HAN_GOI_MS = 10000;   // mặc định mỗi lần gọi; đường đọc lại của màn Giao hàng truyền hạn ngắn hơn (giaoHang.js HAN_DOC_LAI_MS)
 
 const ban = () => (String(process.env.AHAMOVE_MOI_TRUONG || '').trim().toLowerCase() === 'production' ? 'that' : 'thu');
 const gocAhamove = () => process.env.AHAMOVE_BASE_URL || GOC[ban()];
@@ -18,11 +18,11 @@ const loi = (code, status = 0) => Object.assign(new Error(`Ahamove ${code} (HTTP
 let token = null;
 
 /** Một lần gọi HTTP. Không đọc được câu trả (đứt mạng, hết giờ, thân hỏng) → AHAMOVE_MAT_MANG; HTTP lỗi → AHAMOVE_TU_CHOI (404 → null nếu cho). */
-async function goiTho(url, { method = 'GET', than, headers = {}, khong404 = false } = {}) {
+async function goiTho(url, { method = 'GET', than, headers = {}, khong404 = false, han = HAN_GOI_MS } = {}) {
   let r, tho;
   try {
     r = await fetch(url, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: than ? JSON.stringify(than) : undefined,
-      signal: AbortSignal.timeout(HAN_GOI_MS) });
+      signal: AbortSignal.timeout(han) });
     tho = await r.text();
   } catch {
     throw loi('AHAMOVE_MAT_MANG', r?.status || 0);
@@ -37,7 +37,7 @@ async function goi(duong, tuy = {}) {
   if (!daCai()) throw loi('AHAMOVE_CHUA_CAI');
   for (let lan = 0; ; lan++) {
     if (!token) {
-      const j = await goiTho(gocAhamove() + '/v3/accounts/token', { method: 'POST', than: { mobile: process.env.AHAMOVE_SDT, api_key: process.env.AHAMOVE_API_KEY } });
+      const j = await goiTho(gocAhamove() + '/v3/accounts/token', { method: 'POST', than: { mobile: process.env.AHAMOVE_SDT, api_key: process.env.AHAMOVE_API_KEY }, han: tuy.han });
       if (!j?.token) throw loi('AHAMOVE_TU_CHOI');
       token = j.token;
     }
@@ -76,16 +76,19 @@ async function taoChuyen({ lay, giao, loaiXe }) {
   return { ma: String(ma), phi: so(j.order?.total_price ?? j.total_price) };
 }
 
-/** Đọc một chuyến (trạng thái THẬT — tin báo về không được tin thân). null = Ahamove không có. */
-async function docChuyen(ma) {
-  const o = await goi('/v3/orders/' + encodeURIComponent(ma), { khong404: true });
+/** Một chuyến trong câu trả của Ahamove: gỡ mảng / { order } (GIAO-2 — dạng thật CHƯA đối chiếu; một hàm cho mọi đường đọc chuyến). */
+const motChuyen = (j) => { const o = Array.isArray(j) ? j[0] : j; return o && !(o._id || o.order_id) && o.order ? o.order : o; };
+
+/** Đọc một chuyến (trạng thái THẬT — tin báo về không được tin thân). null = Ahamove không có. `han` (ms): đường đọc lại của màn truyền hạn ngắn. */
+async function docChuyen(ma, han) {
+  const o = motChuyen(await goi('/v3/orders/' + encodeURIComponent(ma), { khong404: true, han }));
   return o ? tomChuyen(o) : null;
 }
 
 /** Tìm chuyến theo mã theo dõi của quán (kiểm trước khi tạo lại sau lỗi mạng). null = chưa có. */
 async function traTheoMa(maTheoDoi) {
   const j = await goi('/v3/orders/tracks/' + encodeURIComponent(maTheoDoi), { khong404: true });
-  const o = Array.isArray(j) ? j[0] : j;
+  const o = motChuyen(j);
   return o && (o._id || o.order_id) ? tomChuyen(o) : null;
 }
 
