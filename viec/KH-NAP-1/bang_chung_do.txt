@@ -79,7 +79,7 @@ SỐ CA cong_cu/thu_P2223.js: 45
 SỐ CA cong_cu/thu_P24.js: 34
 SỐ CA cong_cu/thu_HD1.js: 159
 SỐ CA cong_cu/thu_KHTHE1.js: 73
-SỐ CA cong_cu/thu_HOPDONG_KH.js: 100
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 101
 
 ── Bài thử do COMMIT GỘP MAIN (ab2a9d58 GOP-KH-NAP-1, chat gộp lúc duyệt kế hoạch — VOUCHER-2, DANG-NHAP-2, ND-API-1, QC-APP-1) mang vào nhánh — KHÔNG do việc
    này sửa. Cổng `cong.js chay . 6fe3f4f^ HEAD` lấy mốc TRƯỚC commit gộp nên tính các bài này là bài đổi, ĐỎ trên gốc d8f0053 (tính năng chưa có). Số ca đo trên
@@ -93,3 +93,10 @@ SỐ CA cong_cu/thu_P20.js: 178
 SỐ CA cong_cu/thu_P26c.js: 161
 SỐ CA cong_cu/thu_UUDAI1.js: 88
 SỐ CA cong_cu/thu_VOUCHER2.js: 146
+
+── Chat soát 16.11 (cổng GitHub PR #96 đỏ A11): trên mốc main a7a09bc, HOP_DONG_API_KH.md của gốc là v16 nên các phép sinh từ hợp đồng không đòi /goi-nap, /vi
+   → bài XANH trên gốc. Thêm một phép v17 cố định (khuôn v16 QC-APP-1). Cây gốc = git archive a7a09bc + bài của head:
+cong_cu/thu_HOPDONG_KH.js — cây gốc a7a09bc: thoát 1
+  ✗ v17: khối máy đọc ghi đủ /goi-nap (token: false, 4 trường) + /vi (token: true, 8 trường); có mục "Ghi chú v17" + dòng nhật ký v17
+  94 đạt · 1 hỏng
+  head: 101 đạt · 0 hỏng

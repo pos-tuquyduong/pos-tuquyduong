@@ -123,6 +123,12 @@ async function main() {
     thieuV16.length === 0 && HD.cua.find((c) => c.duong === '/quang-cao')?.token === false && ghiV16.length > 0
     && ['chu_dai', 'tieu_de', 'phu', 'chu_nut', 'dich', 'ma_mon', 'tu_gio', 'den_gio', 'uu_tien', 'gio_vang'].every((f) => ghiV16.includes('`' + f) || ghiV16.includes(f + '`') || ghiV16.includes('"' + f + '"'))
     && /^- v16 ·/m.test(cat(md, '## Nhật ký')), thieuV16.join(', '));
+  // v17 (KH-NAP-1): cửa /goi-nap (không token, 4 trường) + /vi (có token, 8 trường), mục chữ "Ghi chú v17", nhật ký có dòng v17
+  const thieuV17 = [...['ma', 'ten', 'tra', 'vao'].map((f) => ['/goi-nap', 'data[].' + f]),
+    ...['trang', 'con_nua', ...['ngay', 'loai', 'so_tien', 'thuong', 'ma_don', 'ghi_chu'].map((f) => 'data[].' + f)].map((f) => ['/vi', f])].filter(([d, f]) => !traCua(d).includes(f));
+  k('v17: khối máy đọc ghi đủ /goi-nap (token: false, 4 trường) + /vi (token: true, 8 trường); có mục "Ghi chú v17" + dòng nhật ký v17',
+    thieuV17.length === 0 && HD.cua.find((c) => c.duong === '/goi-nap')?.token === false && HD.cua.find((c) => c.duong === '/vi')?.token === true
+    && /### Ghi chú v17/.test(md) && /^- v17 ·/m.test(cat(md, '## Nhật ký')), thieuV17.map((x) => x.join(' ')).join(', '));
   const dongGv = bangChu.split('\n').find((l) => l.includes('`GET /gio-vang`')) || '';
   k('cửa /gio-vang ghi rõ "không có suất"', /không có suất/i.test(dongGv), dongGv.slice(0, 80));
 
