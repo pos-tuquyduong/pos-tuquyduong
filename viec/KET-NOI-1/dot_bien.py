@@ -3,6 +3,7 @@
     python3 viec/KET-NOI-1/dot_bien.py [tên...]                  (không tên = chạy hết; có ĐỐI CHỨNG trước)
     python3 viec/KET-NOI-1/dot_bien.py --liet-ke                  (chỉ in danh sách)
     python3 viec/KET-NOI-1/dot_bien.py --goc <sha> [--bai <file>] (bằng chứng ĐỎ: bài HIỆN TẠI trên server/ + client/src/ của commit sha)
+    python3 viec/KET-NOI-1/dot_bien.py --cay-goc <sha> --bai <file> (như cổng A11: cả cây gốc không .git + bài hiện tại)
 
 Khuôn viec/KH-NAP-1/dot_bien.py: chép server/ và client/src/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink), thay chuỗi (mỗi chuỗi
 phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, K3), chạy `node cong_cu/thu_KETNOI1.js --may-chu <bản sao>/server`.
@@ -155,9 +156,30 @@ def chay_goc(sha, bai):
     shutil.rmtree(tmp, ignore_errors=True)
 
 
+def chay_cay_goc(sha, bai):
+  """Như cổng A11: cả cây của commit `sha` (git archive, KHÔNG .git) + chép đè `bai` HIỆN TẠI, chạy `bai` trong cây đó."""
+  import io, tarfile
+  tmp = tempfile.mkdtemp(prefix='dotbien_ketnoi1_cay_')
+  try:
+    tar = subprocess.run(['git', 'archive', sha], cwd=GOC, capture_output=True, check=True).stdout
+    tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
+    shutil.copy(os.path.join(GOC, bai), os.path.join(tmp, bai))
+    os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+    if os.path.isdir(os.path.join(GOC, 'client', 'node_modules')):
+      os.symlink(os.path.join(GOC, 'client', 'node_modules'), os.path.join(tmp, 'client', 'node_modules'))
+    r = subprocess.run(['node', bai], cwd=tmp, capture_output=True, text=True, timeout=300)
+    ra = re.sub(r'\x1b\[[0-9;]*m', '', ((r.stdout or '') + (r.stderr or '')).strip())
+    print('\n'.join(l for l in ra.splitlines() if '✗' in l or 'đạt ·' in l or 'sập' in l))
+    print(f'CÂY GỐC {sha} · {bai}: thoát {r.returncode}')
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
 if __name__ == '__main__':
   if '--help' in sys.argv or '-h' in sys.argv:
     print(__doc__); sys.exit(0)
+  if '--cay-goc' in sys.argv:
+    chay_cay_goc(sys.argv[sys.argv.index('--cay-goc') + 1], sys.argv[sys.argv.index('--bai') + 1]); sys.exit(0)
   if '--goc' in sys.argv:
     bai = sys.argv[sys.argv.index('--bai') + 1] if '--bai' in sys.argv else BAI
     chay_goc(sys.argv[sys.argv.index('--goc') + 1], bai); sys.exit(0)
