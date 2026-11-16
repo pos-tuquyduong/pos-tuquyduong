@@ -1,12 +1,14 @@
 GIAO-2 — bằng chứng đỏ. Gốc = cây 0c84944 (git archive server cong_cu client/src kiem_tra_truoc_khi_giao.js vào nháp, node_modules nối),
-chép bản bài thử ở commit ea34b3ce (vòng sửa 2) vào đó rồi chạy. Đã vá = ea34b3ce.
+chép bản bài thử ở commit d7827cb7 (vòng sửa 4) vào đó rồi chạy. Đã vá = d7827cb7.
 
-== node cong_cu/thu_GIAO2.js trên GỐC 0c84944 (bản bài ở ea34b3ce — vòng sửa 2) ==
+== node cong_cu/thu_GIAO2.js trên GỐC 0c84944 (bản bài ở d7827cb7 — vòng sửa 4) ==
   ✓ nền, ✓ A1b, ✓ A2a, ✓ A3, ✓ A5 (2 ca), ✓ B4a, ✓ Z1
-  ✗ A1a Ahamove giả chậm 8 s + kho chậm 1,5 s/câu → cửa trả 200 dưới 1 giây (không chờ câu kho nào)  — 200 sau 12517 ms
+  ✗ A1a Ahamove giả chậm 8 s + kho chậm 1,5 s/câu → cửa trả 200 dưới 1 giây (không chờ câu kho nào)  — 200 sau 12516 ms
   ✗ A2b Ahamove lỗi khi đọc lại → 200; log "[GIAO] … <mã chuyến> … lỗi …"; thẻ giữ tim_xe  — 502 []
   ✗ A2c kho hỏng trong phần xử lý → 200, có log [GIAO] kèm mã chuyến, KHÔNG unhandledRejection, máy chủ vẫn trả lời  — 500 [] sập []
-  ✗ A2d kho hỏng lúc cập nhật thẻ → không để lại dòng chống lặp; tin lặp lại sau → doi_tai_xe + tài xế  — tin 1 tim_xe null
+  ✗ A2d kho hỏng lúc cập nhật thẻ → không để lại dòng chống lặp; log "lỗi cập nhật thẻ"; tin lặp lại sau → doi_tai_xe + tài xế  — tin 1 tim_xe null []
+  ✗ A2f kho hỏng cả cập nhật thẻ lẫn gỡ dòng chống lặp → log "lỗi gỡ dòng chống lặp" VÀ "lỗi cập nhật thẻ"; không unhandledRejection  — []
+  ✗ A2e thân tin dị dạng ({_id:{toString:1}}, mã có xuống dòng) → 200, KHÔNG unhandledRejection, máy chủ vẫn trả lời, nhật ký không có dòng chèn  — 500 200 sập [] ["Lỗi ghi: TypeError: Cannot convert object to primitive value"]
   ✗ B3c tin bị bỏ qua (thẻ đang gọi xe) vẫn có log "[GIAO] tin <mã> … bỏ qua: thẻ đang gọi xe"  — []
   ✗ A4 thẻ dang_goi → 200 (không 409), không ghi sổ chống lặp, thẻ không đổi; gọi xe xong, không tin nào nữa → "Tải lại" đọc ra doi_tai_xe  — 409 DANG_GOI_XE tin 0 tim_xe
   ✗ B1 chi tiết chuyến bọc mảng [ … ] → đọc lại 65 s đưa thẻ lên doi_tai_xe + tài xế  — tim_xe null
@@ -17,20 +19,21 @@ chép bản bài thử ở commit ea34b3ce (vòng sửa 2) vào đó rồi chạ
   ✗ B3b mọi dòng [GIAO] không có SĐT tài xế / SĐT, tên, địa chỉ người nhận  — []
   ✗ B3d thẻ dang_giao + Ahamove ACCEPTED cũ → thẻ giữ dang_giao; log in đúng "ACCEPTED → bỏ qua: giữ dang_giao"  — []
   ✗ B4d 9+ chuyến chưa xong, đọc 30 s trước → "Tải lại" đọc đúng 8 chuyến (trần), không hơn  — đọc 0
-  ✗ B2a Ahamove treo 12 s, 2 chuyến + 3 phí huỷ chờ đọc: hẹn 15 s trả < 10 s; thẻ giữ tim_xe  — 30022 ms
+  ✗ B2a Ahamove treo 12 s, 2 chuyến + 3 phí huỷ chờ đọc: hẹn 15 s trả < 10 s; thẻ giữ tim_xe  — 30017 ms
   ✗ B2b lỗi có log đúng bước: chuyến "đọc Ahamove"; CẢ BA dòng phí huỷ "đọc Ahamove" + "ghi kho" (không nuốt lỗi sau lỗi đầu)  — []
-  ✗ B2c "Tải lại" lúc phải lấy token mới mà Ahamove treo 12 s → trả < 10 s (lấy token cũng theo hạn ngắn); thẻ giữ tim_xe; có log lỗi  — 50035 ms []
+  ✗ B2c "Tải lại" lúc phải lấy token mới mà Ahamove treo 12 s → trả < 10 s (lấy token cũng theo hạn ngắn); thẻ giữ tim_xe; có log lỗi  — 50040 ms []
+  ✗ B2d kho hỏng ở câu giành lượt đọc → GET 200, log "[GIAO] doc_lai <mã> lỗi ghi kho"  — 500 []
   ✗ Z2 kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_GIAO2.js'
   ✗ Z3 nút "Tải lại" gọi tai(true), không chỗ nào truyền đối số lạ vào tai; hẹn giờ gọi tai() không cờ; api gửi ?doc_lai=1 chỉ khi có cờ
-  8 đạt · 19 hỏng      (thoát 1)
+  8 đạt · 22 hỏng      (thoát 1)
 
 == node cong_cu/thu_GIAO1.js (bài cũ, sửa baoVe chờ phần nền + V10 409 → 200 — hành vi chủ quán duyệt đổi, LUAT §6.8) trên GỐC 0c84944 ==
   ✗ V10 tin báo lúc thẻ đang gọi xe → 200 (GIAO-2 A4, Ahamove coi 409 là lỗi), không ghi sổ chống lặp; tin sau khi thẻ tim_xe → doi_tai_xe + tài xế  — 409 DANG_GOI_XE doi_tai_xe TX V10
   136 đạt · 1 hỏng      (thoát 1)
 
-== Trên code đã vá (ea34b3ce) ==
-thu_GIAO2.js: 27 đạt · 0 hỏng
+== Trên code đã vá (d7827cb7) ==
+thu_GIAO2.js: 30 đạt · 0 hỏng
 thu_GIAO1.js: 137 đạt · 0 hỏng
 
-SỐ CA cong_cu/thu_GIAO2.js: 27
+SỐ CA cong_cu/thu_GIAO2.js: 30
 SỐ CA cong_cu/thu_GIAO1.js: 137
