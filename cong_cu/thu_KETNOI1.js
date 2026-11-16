@@ -337,6 +337,7 @@ async function main() {
     M.chanTx = null; tha();
     const [f1, f2] = await dua;
     moc();   // giao dịch thứ hai gặp bận trên kho file → P26d thay kết nối — móc lại client mới
+    const soSauB1f = await soPhien();   // chốt số đếm của B1f TRƯỚC khi B1f2 tạo phiên
     // B1f2 — giả kho KHÔNG xếp hàng giao dịch (Turso CHƯA KIỂM): câu đọc theo mã trong giao dịch không thấy phiên lần đầu → lần sau đụng khoá UNIQUE
     // → máy chủ đọc lại phiên đã có (khiTrung), KHÔNG 500.
     const ma6 = maMoi(), p6 = await soPhien();
@@ -352,7 +353,7 @@ async function main() {
     k('B1f2 kho không xếp hàng (câu đọc trong giao dịch bị che) → lần sau đụng khoá UNIQUE → 200 CÙNG phiên, MỘT phiên (không 500)', duaDu6 && la(g6, 200) && la(h6, 200)
       && g6.j.phien?.id === h6.j.phien?.id && await soPhien() === p6 + 1, `đua ${duaDu6} · ${moTa(g6)} / ${moTa(h6)} · +${await soPhien() - p6}`);
     k('B1f hai yêu cầu cùng mã CÙNG LÚC (cả hai đã qua đường nhanh, cùng chờ mở giao dịch) → MỘT phiên, hai câu trả cùng id', duaDu && la(f1, 200) && la(f2, 200)
-      && f1.j.phien?.id === f2.j.phien?.id && await soPhien() === p1 + 1, `đua ${duaDu} · ${moTa(f1)} / ${moTa(f2)} · +${await soPhien() - p1}`);
+      && f1.j.phien?.id === f2.j.phien?.id && soSauB1f === p1 + 1, `đua ${duaDu} · ${moTa(f1)} / ${moTa(f2)} · +${soSauB1f - p1}`);
     const g1 = await tao({ ma: 'ngan' }), g2 = await tao({ ma: 'co dau cach 123' }), g3 = await tao({ ma: 12345678 });
     k('B1g mã sai dạng (ngắn / dấu cách / số) → 400 KHOA_GUI_SAI', [g1, g2, g3].every((r) => la(r, 400, 'KHOA_GUI_SAI')), [g1, g2, g3].map(moTa).join(' / '));
     const ma4 = maMoi(), h1 = await tao({ ma: ma4 });
