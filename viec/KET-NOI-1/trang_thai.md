@@ -253,6 +253,51 @@ BÀI HỌC: KHOÁ — mỗi hằng chờ / gửi lại có ca hai chiều, cả 
   (đối chứng 102 đạt · 0 hỏng). `npm test -- --day-du`: PASS 124 · FAIL 0 · CẢNH BÁO 1.
 SOÁT LẦN CUỐI: chat soát thay
 
+## Soát bảo mật
+Bước 8b (`/soat-bao-mat`, lần 1, HEAD 0e80b150). Bước 2 (subagent tìm lỗ hổng): 0 lỗ hổng → bước 3 (lọc báo nhầm) không cần. Trước lọc: 0 · sau lọc: 0.
+Báo cáo chép nguyên văn:
+
+> ## Kết quả soát bảo mật nhánh `viec/KET-NOI-1` (mốc 1d66c610 → HEAD 0e80b150)
+>
+> **Không tìm thấy lỗ hổng nào** vượt qua được các loại trừ và tiền lệ đã nêu. Mình đã đọc toàn bộ diff phía máy chủ (`git diff 8d83bf8^ HEAD -- server/`) và phía quầy (`client/src`). Ngoài diff, mình đọc thêm `server/routes/thanh-toan.js` dòng 1–120 và `server/utils/giuCho.js` dòng 36–145.
+>
+> ### Những gì đã kiểm
+>
+> 1. **`server/database.js`: đọc lại khi lỗi mạng, đổi lỗi mạng thành `loiKho`, `traLoiKho`, `mocLoiKho`**
+>    - Lỗi trả ra ngoài chỉ có câu cố định trong `LOI_KHO` cùng `code: 'KHO_MAT_KET_NOI'`. Lỗi gốc (có địa chỉ kho Turso) không được gắn vào lỗi mới. `ma_goc` chỉ nằm trên đối tượng lỗi, không ra câu trả lời.
+>    - Log `[KET-NOI]` chỉ in mã lỗi đã lọc qua `maLoi` (chỉ giữ `[\w-]`, tối đa 40 ký tự). Không in câu SQL, tham số hay chữ lỗi gốc.
+>    - `laCauDoc` chỉ dùng để quyết định có đọc lại hay không. Câu ghi và mọi câu trong giao dịch không được gửi lại. Không có đường tiêm SQL mới: tham số vẫn đi qua `sanitizeArgs` và `args`.
+>    - `mocLoiKho` chỉ đổi mã trạng thái sang 503 khi câu lỗi khớp đúng hằng của mình.
+> 2. **Dòng log `[CHAM]` (`doYeuCau`, `duongLog`)**
+>    - Đường dẫn bỏ phần query. Đoạn nào có chữ số (SĐT, mã) đổi thành `:x`, đoạn ngay sau `qr` cũng đổi thành `:x`. Không in thân yêu cầu.
+>    - Log cũ ở `server/index.js` vốn đã in mọi đường dẫn, nên phần này không lộ thêm gì.
+>    - `AsyncLocalStorage` chỉ giữ bộ đếm thời gian, không mang dữ liệu nào giữa các yêu cầu.
+> 3. **`GET /api/pos/health` (công khai) thêm `ket_noi`**: chỉ có số đếm rớt kết nối, số lần đọc lại, số lần chậm và một mốc giờ. Không có dữ liệu khách, khoá hay địa chỉ kho.
+> 4. **`bocFetchNgoai` bọc `globalThis.fetch`**: chỉ cộng thời gian, trả nguyên kết quả và nguyên lỗi. Không đổi đích gọi hay header.
+> 5. **`giuCho.js`: mã chống trùng `ma_gui`, hàm `phienCuaMa`**
+>    - `ma_gui` được kiểm theo mẫu `^[A-Za-z0-9_-]{8,64}$` và truyền vào câu SQL dưới dạng tham số.
+>    - Gửi lại cùng mã chỉ trả phiên cũ khi khớp đủ bốn điều: cùng thân đơn, cùng cách trả, cùng `nguoi_tao` (lấy từ JWT `req.user.username`, không lấy từ thân yêu cầu), và cùng lựa chọn trừ tài khoản khi phiên đã giữ ví. Lệch một điều là trả 409.
+>    - Không cấp lại ví, voucher hay số hoá đơn. Số tiền vẫn do máy chủ tính (`taoDon chiTinh`) ở lần tạo đầu.
+>    - Đường nhanh bỏ qua kiểm PIN. Mình không xếp đây là lỗi: nó chỉ trả lại đúng phiên mà chính tài khoản nhân viên đó đã tạo, sau khi lần tạo đầu đã qua kiểm PIN. Lần tạo đầu mà PIN sai thì không có dòng nào mang `ma_gui` được ghi. Đường nhanh không giữ thêm tiền.
+>    - Nhánh bắt lỗi trùng khoá UNIQUE đọc lại phiên cũ qua cùng `phienCuaMa`.
+> 6. **`chotPhien` với `lapLai` (`POST /phien/:id/chot`)**
+>    - Chốt lần hai một phiên `da_thu` giờ trả `{id, code}` của đơn thay vì 409. Không ghi gì thêm.
+>    - Route chỉ nhận phiên `tien_mat` và `tai_khoan`; phiên của đơn App bị loại.
+>    - `GET /phien/:id` sẵn có (cùng `authenticate`) đã trả đúng `{id, code}` này cho mọi nhân viên đăng nhập, nên không lộ thêm.
+> 7. **`wallets.js` (`loiGhi`) và handler lỗi cuối trong `index.js`**: chỉ chèn `traLoiKho` đặt trước nhánh trả 500, chỉ trả câu cố định.
+> 8. **`029_ket_noi.js`**: chỉ thêm cột và chỉ mục UNIQUE, SQL cố định.
+> 9. **Phía quầy (`api.js`, các màn BanHang)**
+>    - Tự gửi lại khi mất kết nối: GET mặc định, POST chỉ khi lời gọi tự đặt (`tinh-thu` chỉ tính giá; tạo và chốt phiên có mã chống trùng).
+>    - Không có `dangerouslySetInnerHTML`, không đưa token ra ngoài, không thêm `fetch` trần (`goiFetch` nằm trong `api.js`).
+>
+> ### Ghi chú, không phải lỗ hổng
+> - `phienCuaMa` chỉ kiểm cờ `tru_tai_khoan`, không kiểm `tru_tai_khoan_me` khi phiên đã giữ ví mẹ (`giu_vi_me > 0`). Vẫn cần cùng nhân viên, cùng mã và cùng thân đơn, và không giữ thêm tiền, nên không có đường khai thác.
+
+Ghi chú của phiên chính (không phải phần báo cáo): ví mẹ đi trong thân đơn — `giuCho.js` gán `don.parent_phone` khi `tru_tai_khoan_me`, nên bỏ cờ
+trừ tài khoản mẹ ở lần gửi lại làm `than` khác → 409 qua vế so thân.
+
+SOÁT BẢO MẬT: ĐẠT
+
 ## Phát hiện (ngoài Phạm vi / chưa làm — chủ quán xem)
 1. Màn Bán hàng CŨ `Sales.jsx` là màn MẶC ĐỊNH (`client/src/pages/BanHang/index.jsx:35`) và gọi `POST /orders` không chống trùng — hở nặng nhất
    (B6). Chủ quán đã chốt để phiếu sau (BO-MAN-CU-1).
