@@ -26,10 +26,11 @@
 - Kế hoạch: `ke_hoach.md` — chủ quán duyệt `0820b795`.
 
 ## Bước 4–7 — bài thử, sửa, kiểm
-- Bài mới `cong_cu/thu_KETNOI1.js` (89 ca) viết TRƯỚC, đỏ trên gốc 74/89 (`bang_chung_do.txt`). Lớp mạng giả dựng đúng hình lỗi node-fetch 2.7.0.
+- Bài mới `cong_cu/thu_KETNOI1.js` viết TRƯỚC — sau vòng sửa 1: 95 ca, đỏ trên gốc 79/95 (`bang_chung_do.txt`; bản đầu 89 ca, đỏ 74). Lớp mạng giả dựng đúng hình lỗi node-fetch 2.7.0.
 - Bài cũ sửa thường (hành vi chủ quán duyệt đổi / phiếu cho đổi `index.js`, đỏ trên gốc): `thu_BH2.js` R4 + S22, `thu_P3.js` F7,
   `thu_NDAPI1.js` A2 (so BẰNG 18 dòng thêm), `thu_SAOLUUDEM1.js` B3 (theo commit của việc) + ca mới F1/F2 (đúng lỗi Cài đặt › Sao lưu 16.11).
-- `npm test -- --day-du`: PASS 124 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn từ trước việc này).
+- `npm test -- --day-du` (sau vòng sửa 1): PASS 124 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn từ trước việc này). Con số 119 ở mục "Sự cố khác" là lần chạy
+  TRƯỚC khi có bài mới (bước 1, kho nông).
 - `client/dist` build lại sau mọi sửa `client/src/`.
 
 ### Chỗ vá → đột biến (`viec/KET-NOI-1/dot_bien.py`, mỗi đột biến một dòng)
@@ -37,20 +38,20 @@
 |---|---|
 | database.js `query()` đọc lại câu ĐỌC | BV-DOC-THU-LAI · VS-THU-LAI-BA · VS-THU-LAI-GHI · BV-CAU-GHI |
 | database.js `laCauDoc` | VS-CAU-DOC-CHUA-TU |
-| database.js `laLoiMang` | VS-MANG-RONG · VS-MANG-BO-CAUSE |
+| database.js `laLoiMang` | VS-MANG-RONG · VS-MANG-BO-CAUSE · VS-MANG-BO-FETCHERROR |
 | database.js lỗi đổi dạng (không cause) | VS-LOI-GIU-CAUSE |
-| database.js `run()` / giao dịch / commit đổi lỗi | BV-RUN-DOI-LOI · BV-TX-DOI-LOI · BV-COMMIT-DOI-LOI |
+| database.js `run()` / giao dịch (câu đầu, câu sau) / commit đổi lỗi | BV-RUN-DOI-LOI · BV-TX-DOI-LOI · BV-TX-CAU-DAU-DOI-LOI · BV-COMMIT-DOI-LOI |
 | database.js đếm rớt | BV-LOG-DEM |
-| giuCho.js `phienCuaMa` (2 chỗ gọi, so thân / trừ TK, QR đang tạo, QR lỗi, dạng mã) | BV-MA-GUI-NHANH · BV-MA-GUI-TRONG-GD · VS-MA-GUI-BO-SO-THAN · VS-MA-GUI-BO-TK · BV-MA-GUI-QR-DANG-TAO · VS-MA-GUI-QR-LOI · BV-MA-GUI-DANG |
+| giuCho.js `phienCuaMa` (3 chỗ gọi, so thân / cách / trừ TK, QR đang tạo, QR lỗi, dạng mã) + khiTrung | BV-MA-GUI-NHANH · BV-MA-GUI-TRONG-GD · BV-MA-GUI-TRUNG-KHOA · VS-MA-GUI-BO-SO-THAN · VS-MA-GUI-BO-CACH · VS-MA-GUI-BO-TK · BV-MA-GUI-QR-DANG-TAO · VS-MA-GUI-QR-LOI · BV-MA-GUI-DANG |
 | 029_ket_noi.js khoá UNIQUE | BV-029-UNIQUE |
-| giuCho.js `chotPhien` B2 + route `/chot` lapLai | BV-CHOT-LAI · VS-CHOT-LAI-MOI-NGUON · BV-LAP-LAI-ROUTE |
+| giuCho.js `chotPhien` B2 (lapLai, chặn phiên App) + route `/chot` lapLai | BV-CHOT-LAI · VS-CHOT-LAI-MOI-NGUON · VS-CHOT-LAI-APP · BV-LAP-LAI-ROUTE |
 | wallets.js `loiGhi` → 503 | BV-LOIGHI-503 |
 | database.js `mocLoiKho` / index.js gắn móc / bắt lỗi cuối / health | BV-LOI-KHO-MOC · BV-MOC-INDEX · BV-TRA-LOI-KHO-CUOI · BV-HEALTH |
 | api.js `goiFetch` / trang proxy / thuLai mặc định / phiên / tinhThu / upload | BV-API-MAT-KET-NOI · BV-API-PROXY · VS-API-POST-THU-LAI · BV-API-GET-THU-LAI · BV-API-PHIEN-THU-LAI · BV-API-CHOT-THU-LAI · VS-NEN-GUI-LAI-BO-KHO-BAN · VS-NEN-GUI-LAI-MOI-MA · BV-API-TINH-THU · BV-GOI-FETCH-UPLOAD |
 | ThuTien.jsx / tinh.js `nhanhNutThu` | BV-NUT-0D · VS-NHANH-NUT |
-| tinh.js `loiTinhGia` / `viecKhiThuHong` / `thanPhien` maGui | BV-LOI-TINH · BV-VIEC-KHI-THU-HONG · VS-VIEC-KHONG-PHIEN · BV-MA-GUI-THAN |
+| tinh.js `loiTinhGia` / `xuLyThuHong` / `thanPhien` maGui | BV-LOI-TINH · BV-HUY-409-HOI-LAI · VS-HOI-HONG-NHA · VS-VIEC-KHONG-PHIEN · VS-DANG-XU-LY · BV-MA-GUI-THAN |
 | BanHangMoi.jsx mã mỗi lần thu / câu B5 | BV-BH-MA-GUI · BV-BH-CAU-B5 |
-| database.js đo chậm (ngưỡng, đường dẫn, đếm câu, ngoài, health cham) / index.js gắn đo | BV-CHAM · VS-CHAM-NGUONG · VS-CHAM-LO-DUONG · BV-DEM-CAU · BV-NGOAI · BV-CHAM-HEALTH · BV-DO-INDEX |
+| database.js đo chậm (ngưỡng, đường dẫn, đếm câu, ngoài, health cham, chống đo hai lần) / index.js gắn đo (+ /api/nd) | BV-CHAM · VS-CHAM-NGUONG · VS-CHAM-LO-DUONG · BV-DEM-CAU · BV-NGOAI · BV-CHAM-HEALTH · BV-DO-HAI-LAN · BV-DO-INDEX · BV-ND-DO |
 
 ### F2 — số câu kho của ba đường (chỉ đo + báo cáo — `thu_KETNOI1.js` mục [F], kho file cục bộ)
 | Đường | Câu kho TUẦN TỰ | Ghi chú |
@@ -122,6 +123,25 @@ BÀI HỌC: KHOÁ — bài thử nhánh catch chayPhien chạy thật với huyP
 
 ## Vòng sửa 1 (sau soát vòng 1)
 - Nghi ngờ kiemPin: LOẠI — PIN đúng đặt lại bộ đếm (`server/utils/pinKhach.js:52`), gửi lại không khoá oan.
+- Lỗi 1 (B2 phiên App): bỏ hai vế chết, chặn phiên có dòng `pos_don_app.phien_id` (`giuCho.js` chotPhien) — ca B2e + VS-CHOT-LAI-APP.
+- Lỗi 2 (đơn đôi): nhánh lỗi `chayPhien` giao hết cho `xuLyThuHong` (tinh.js — hỏi / huỷ truyền vào): huỷ bị từ chối → hỏi LẠI → đã thu
+  → màn kết thúc; không rõ → câu B5. Ca B3d (3 ca, gồm "cho → huỷ 409 → da_thu → xong") + BV-HUY-409-HOI-LAI · VS-HOI-HONG-NHA.
+  CHƯA KIỂM: nhánh này chạy ở màn thật (chỉ hàm thuần + soi nguồn chỗ gọi).
+- Lỗi 3 (số cũ): bằng chứng chạy lại — gốc 16 đạt · 79 hỏng / 95 ca; SỐ CA 95; NDAPI1 so BẰNG 19.
+- Lỗi 4 (DANG_XU_LY hết lượt): coi là "chưa biết" → câu B5, không mời bấm lại (VS-DANG-XU-LY). Phiên QR kẹt khi `UPDATE qr` rớt sau khi
+  cổng đã tạo link: ghi Phát hiện (đường cũ, ngoài Cấm của giuCho).
+- Lỗi 5 (lỗ bài thử): ca B1c2 (cách khác) + VS-MA-GUI-BO-CACH; A1e cô lập FetchError (Premature close) + VS-MANG-BO-FETCHERROR; vế FetchError
+  rút về type 'system' (bỏ request-timeout / body-timeout không xảy ra).
+- Lỗi 6 (/api/nd không đo): index.js gắn `doYeuCau` riêng cho /api/nd; `doYeuCau` bỏ qua yêu cầu đã đo (BV-DO-HAI-LAN, BV-ND-DO).
+- Nghi ngờ khiTrung: thêm `.catch` đụng khoá UNIQUE → đọc lại phiên (B1f2 + BV-MA-GUI-TRUNG-KHOA); câu đọc đầu giao dịch giữ lớp thứ nhất
+  (B1f3 — đếm 0 lần đụng khoá + BV-MA-GUI-TRONG-GD). Hai lớp che nhau nên mỗi lớp một ca nối tiếp (đua trên kho file làm P26d thay kết nối).
+- Nghi ngờ mã lỗi lệch App: đổi `MA_GUI_KHAC_DON` / `MA_GUI_KHONG_HOP_LE` → `KHOA_GUI_DA_DUNG` / `KHOA_GUI_SAI` (cùng đơn App).
+- Nghi ngờ ke_hoach K1: thêm mục "Chỉnh sau duyệt" cuối `ke_hoach.md` (không viết đè bản chủ quán duyệt).
+- Nghi ngờ câu "thử lại" cho POST ghi rớt mạng (api.js): giữ đúng chữ phiếu C1 — ghi Phát hiện để chủ quán xem (đổi chữ = đổi phiếu).
+- Nghi ngờ thu_SAOLUUDEM1 B3 dựa tiêu đề commit: giữ — B3 gốc đỏ vĩnh viễn với mọi việc sau chạm index.js; ghi Phát hiện.
+- Bài thử tự sửa trong vòng: k() / muc() in thẳng (dòng ✗ không bị gom vào log máy chủ — VS-CHAM-NGUONG từng LẠC); B1f chốt số đếm trước B1f2.
+- Đột biến: lần chạy đủ ở d8789d81: 62 · BẮT 60 · SỐNG 2 (BV-MA-GUI-TRONG-GD, BV-MA-GUI-TRUNG-KHOA — hai lớp che nhau) → sửa bài (d6b5d196)
+  → chạy lại 3 cái đó: BẮT 3.
 
 ## Câu hỏi
 (không có)
