@@ -328,4 +328,12 @@ Thay đổi hành vi so với kế hoạch (đều trong Phạm vi + Cấm của
 - Tạo phiên hết lượt với `DANG_XU_LY` (phiên QR đang tạo) → câu B5 (coi như chưa biết), không báo "chờ vài giây" rồi để bấm mã mới.
 - `laLoiMang` vế FetchError chỉ còn type `system` (libsql không đặt hạn giờ fetch nên không có `request-timeout` / `body-timeout`).
 - F1 đo cả `/api/nd` (gắn trước cors) — `doYeuCau` bỏ qua khi yêu cầu đã được đo.
+Vòng sửa 2 (soát độc lập vòng 2):
+- `:249`, `:271`, `:306` nhắc `viecKhiThuHong` / `BV-VIEC-KHI-THU-HONG` → hàm là `xuLyThuHong`; đột biến tương ứng: BV-HUY-409-HOI-LAI, VS-HOI-HONG-NHA,
+  VS-VIEC-KHONG-PHIEN, VS-DANG-XU-LY, VS-HUY-MOI-TRANG-THAI. `:274` `VS-LOI-KHO-CHU-GOC` không dựng — thay bằng VS-LOI-GIU-CAUSE (lỗi đổi dạng mang lỗi gốc).
+  Danh sách đột biến THẬT: `python3 viec/KET-NOI-1/dot_bien.py --liet-ke` và bảng ở `trang_thai.md`.
+- `xuLyThuHong` chỉ huỷ phiên còn 'cho'; phiên đã thôi giữ (loi / huy / het_han — chốt hỏng vì đơn) → báo lời máy chủ như cũ, không câu B5.
+- Dòng [CHAM] nghe sự kiện 'close' (bắn cả khi khách bỏ kết nối — 'finish' thì không); khách bỏ thì dòng tính tới lúc bỏ.
+- Trang lỗi không JSON 520–524 (Cloudflare đứng trước Render) cũng là mất kết nối, cùng 502 / 503 / 504.
+- B2 bỏ vế `order_id` (cùng giao dịch với da_thu — che nhau, không ca riêng); `giuCho.js` dòng 502 có sẵn giữ nguyên chữ (đúng Cấm).
 
