@@ -41,7 +41,7 @@ DOT_BIEN = [
   ('BV-LOG-DEM', [(DB, '  demRot.rot++;\n', '', 1)], r'✗ A4b'),
   # ── B: mã lượt bấm + chốt lại (giuCho.js, thanh-toan.js, 029) ──
   ('BV-MA-GUI-NHANH', [(GC, '  if (daCo) return daCo;\n', '', 1)], r'✗ B1i'),
-  ('BV-MA-GUI-TRONG-GD', [(GC, '    if (daCoTx) return { huy: true, ...daCoTx };\n', '', 1)], r'✗ B1f'),
+  ('BV-MA-GUI-TRONG-GD', [(GC, '    if (daCoTx) return { huy: true, ...daCoTx };\n', '', 1)], r'✗ B1f3'),
   ('VS-MA-GUI-BO-SO-THAN', [(GC, 'if (p.than !== thanDon || p.cach', 'if (p.cach', 1)], r'✗ B1c'),
   ('VS-MA-GUI-BO-TK', [(GC, ' || (p.giu_vi > 0 && !truTK)', '', 1)], r'✗ B1h'),
   ('BV-MA-GUI-QR-DANG-TAO', [(GC, "  if (p.cach === 'payos' && !p.qr) return loi(503, 'DANG_XU_LY', 'Đang tạo mã QR — chờ vài giây');\n", '', 1)], r'✗ B1j phiên QR đang'),

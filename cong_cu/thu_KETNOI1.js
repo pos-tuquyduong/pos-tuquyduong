@@ -73,8 +73,10 @@ async function main() {
   await D.initDatabase();
 
   // ── Lớp mạng giả (ngoài + trong giao dịch). H: ngoài giao dịch; HT: trong giao dịch; sauCommit: regex câu trong tx → commit thật rồi ném ──
-  // chanTx: mọi giao dịch chờ tới khi thả (B1f ép đua); anMaGui: câu đọc phiên theo ma_gui TRONG giao dịch không thấy gì (giả kho không xếp hàng — B1f2)
-  const M = { goi: 0, H: null, HT: null, sauCommit: null, vaoTx: 0, chanTx: null, anMaGui: false };
+  // chanTx: mọi giao dịch chờ tới khi thả (B1f ép đua); anMaGui = n: n câu đọc phiên theo ma_gui kế tiếp (ngoài lẫn trong giao dịch) không thấy gì
+  // (giả kho không xếp hàng — B1f2/B1f3); trungKhoa: số câu trong giao dịch đụng khoá UNIQUE.
+  const M = { goi: 0, H: null, HT: null, sauCommit: null, vaoTx: 0, chanTx: null, anMaGui: 0, trungKhoa: 0 };
+  const che = (st) => { if (M.anMaGui > 0 && /WHERE ma_gui = \?/.test(traSql(st))) { M.anMaGui--; return { sql: traSql(st), args: ['__kn1_khong_co__'] }; } return st; };
   const datHong = (con, khop = /./, tao = loiMang) => { M.H = { con, khop, tao }; };
   const hongTx = (con, khop = /./, tao = loiMang) => { M.HT = { con, khop, tao }; };
   const traSql = (st) => (typeof st === 'string' ? st : st.sql);
@@ -87,7 +89,7 @@ async function main() {
       M.goi++;
       const H = M.H;
       if (H && H.con > 0 && H.khop.test(traSql(st))) { H.con--; throw H.tao(); }
-      return exe(st);
+      return exe(che(st));
     };
     c.transaction = async (...a) => {
       M.vaoTx++;
@@ -99,8 +101,7 @@ async function main() {
         const sql = traSql(st), HT = M.HT;
         if (HT && HT.con > 0 && HT.khop.test(sql)) { HT.con--; throw HT.tao(); }
         if (M.sauCommit && M.sauCommit.test(sql)) khop = true;
-        if (M.anMaGui && /WHERE ma_gui = \?/.test(sql)) return te({ sql, args: ['__kn1_khong_co__'] });
-        return te(st);
+        try { return await te(che(st)); } catch (e) { if (/UNIQUE/.test(String(e.code) + e.message)) M.trungKhoa++; throw e; }
       };
       t.commit = async () => { await tc(); if (khop) { M.sauCommit = null; throw loiMang(); } };
       return t;
@@ -338,20 +339,20 @@ async function main() {
     const [f1, f2] = await dua;
     moc();   // giao dịch thứ hai gặp bận trên kho file → P26d thay kết nối — móc lại client mới
     const soSauB1f = await soPhien();   // chốt số đếm của B1f TRƯỚC khi B1f2 tạo phiên
-    // B1f2 — giả kho KHÔNG xếp hàng giao dịch (Turso CHƯA KIỂM): câu đọc theo mã trong giao dịch không thấy phiên lần đầu → lần sau đụng khoá UNIQUE
-    // → máy chủ đọc lại phiên đã có (khiTrung), KHÔNG 500.
-    const ma6 = maMoi(), p6 = await soPhien();
-    let tha6;
-    M.chanTx = new Promise((ok) => { tha6 = ok; }); M.anMaGui = true;
-    const v6 = M.vaoTx;
-    const dua6 = Promise.all([tao({ ma: ma6, sl: 5 }), tao({ ma: ma6, sl: 5 })]);
-    for (let i = 0; i < 300 && M.vaoTx - v6 < 2; i++) await ngu(10);
-    const duaDu6 = M.vaoTx - v6 >= 2;
-    M.chanTx = null; tha6();
-    const [g6, h6] = await dua6;
-    M.anMaGui = false; moc();
-    k('B1f2 kho không xếp hàng (câu đọc trong giao dịch bị che) → lần sau đụng khoá UNIQUE → 200 CÙNG phiên, MỘT phiên (không 500)', duaDu6 && la(g6, 200) && la(h6, 200)
-      && g6.j.phien?.id === h6.j.phien?.id && await soPhien() === p6 + 1, `đua ${duaDu6} · ${moTa(g6)} / ${moTa(h6)} · +${await soPhien() - p6}`);
+    // B1f2 / B1f3 — hai lớp chống trùng, mỗi lớp một ca (chạy NỐI TIẾP: đua trên kho file làm P26d thay kết nối → mất móc che).
+    // B1f2: giả kho KHÔNG xếp hàng (Turso CHƯA KIỂM) — che câu đọc đường nhanh + câu đọc đầu giao dịch → lần gửi lại đụng khoá UNIQUE → khiTrung đọc lại.
+    const ma6 = maMoi(), g6 = await tao({ ma: ma6, sl: 5 }), p6 = await soPhien();
+    M.anMaGui = 2;
+    const tk6 = M.trungKhoa, h6 = await tao({ ma: ma6, sl: 5 }), che6 = M.anMaGui;
+    M.anMaGui = 0;
+    k('B1f2 gửi lại mà hai câu đọc theo mã bị che → đụng khoá UNIQUE → 200 CÙNG phiên, không phiên mới (không 500)', la(g6, 200) && la(h6, 200) && che6 === 0
+      && g6.j.phien?.id === h6.j.phien?.id && M.trungKhoa - tk6 >= 1 && await soPhien() === p6, `${moTa(g6)} / ${moTa(h6)} · đụng khoá ${M.trungKhoa - tk6} · +${await soPhien() - p6}`);
+    // B1f3: chỉ che đường nhanh → câu đọc ĐẦU giao dịch thấy phiên → trả phiên, KHÔNG chạm khoá UNIQUE (lớp khiTrung không phải ra tay).
+    M.anMaGui = 1;
+    const tk7 = M.trungKhoa, i6 = await tao({ ma: ma6, sl: 5 });
+    M.anMaGui = 0;
+    k('B1f3 gửi lại mà đường nhanh bị che → câu đọc đầu giao dịch trả CÙNG phiên, KHÔNG đụng khoá UNIQUE', la(i6, 200) && i6.j.phien?.id === g6.j.phien?.id
+      && M.trungKhoa === tk7 && await soPhien() === p6, `${moTa(i6)} · đụng khoá ${M.trungKhoa - tk7}`);
     k('B1f hai yêu cầu cùng mã CÙNG LÚC (cả hai đã qua đường nhanh, cùng chờ mở giao dịch) → MỘT phiên, hai câu trả cùng id', duaDu && la(f1, 200) && la(f2, 200)
       && f1.j.phien?.id === f2.j.phien?.id && soSauB1f === p1 + 1, `đua ${duaDu} · ${moTa(f1)} / ${moTa(f2)} · +${soSauB1f - p1}`);
     const g1 = await tao({ ma: 'ngan' }), g2 = await tao({ ma: 'co dau cach 123' }), g3 = await tao({ ma: 12345678 });
