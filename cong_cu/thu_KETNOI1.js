@@ -649,18 +649,19 @@ async function main() {
     // Khách BỎ kết nối giữa chừng (Ahamove bỏ sau 5 giây — D-LOI-1): máy chủ vẫn phải ghi [CHAM] khi xong (soát vòng 2: 'finish' không bắn).
     nhatKy.length = 0;
     await new Promise((xong) => {
-      const yc = http.request({ host: '127.0.0.1', port: cong, path: '/api/pos/thu-cham/2150', method: 'GET' });
-      yc.on('error', () => xong()); yc.end(); setTimeout(() => { yc.destroy(); xong(); }, 150);
+      const yc = http.request({ host: '127.0.0.1', port: cong, path: '/api/pos/thu-cham/3000', method: 'GET' });
+      yc.on('error', () => xong()); yc.end(); setTimeout(() => { yc.destroy(); xong(); }, 2300);
     });
-    await ngu(2300);
+    await ngu(1000);   // máy chủ làm xong (3 s) sau khi khách đã bỏ
     const dongBo = nhatKy.filter((x) => x.includes('[CHAM]'));
     giuLog = false; noiLai();
     const mm = /^\[CHAM\] GET (\S+) · (\d+) ms · kho (\d+) câu \/ (\d+) ms · ngoài (\d+) ms$/.exec(dong[0] || '');
     k('F1 yêu cầu 2,15 giây (ngay TRÊN ngưỡng) → MỘT dòng [CHAM] đúng dạng; kho 1 câu; ngoài ≥ 60 ms', la(r, 200) && dong.length === 1 && !!mm && Number(mm[2]) > 2000
       && mm[3] === '1' && Number(mm[5]) >= 60, JSON.stringify(dong));
     k('F1 dòng [CHAM] KHÔNG có SĐT / tham số / số / mã QR trong đường dẫn', !!mm && !/0912345678|\?|2150|MAQRBIMAT/.test(dong[0]) && mm[1] === '/api/pos/thu-cham/:x/qr/:x', dong[0]);
-    k('F1 khách bỏ kết nối sau 150 ms, máy chủ làm xong sau 2,15 s → vẫn MỘT dòng [CHAM] (soát vòng 2)', dongBo.length === 1 && /thu-cham\/:x · \d+ ms/.test(dongBo[0] || ''),
-      JSON.stringify(dongBo));
+    const msBo = Number((/ · (\d+) ms · kho/.exec(dongBo[0] || '') || [])[1]);
+    k('F1 khách bỏ kết nối ở 2,3 s (Ahamove bỏ sau 5 s — D-LOI-1), máy chủ còn làm tới 3 s → vẫn MỘT dòng [CHAM], tính tới lúc khách bỏ (soát vòng 2)',
+      dongBo.length === 1 && /thu-cham\/:x · \d+ ms/.test(dongBo[0] || '') && msBo >= 2200 && msBo < 2900, JSON.stringify(dongBo));
     const c1 = dem().cham || {};
     k('F3 demKetNoi().cham: so_lan +2 (gồm lần khách bỏ), lau_nhat_ms ≥ 2150, luc giờ VN', c1.so_lan === (c0.so_lan || 0) + 2 && c1.lau_nhat_ms >= 2150 && /^\d{4}-\d\d-\d\dT/.test(String(c1.luc)), JSON.stringify(c1));
 
