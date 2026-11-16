@@ -488,7 +488,8 @@ async function main() {
     k('F7 phiên chỉ trả tài khoản chốt → đơn balance 75.000, tiền mặt 0, ví còn 0', la(c, 200) && dd.payment_method === 'balance'
       && Number(dd.balance_amount) === 75000 && Number(dd.cash_amount) === 0 && await soDu(f) === 0, moTa(c));
     const c2 = await goi('POST', `/pos/thanh-toan/phien/${p.id}/chot`, {});
-    k('F7 chốt lại lần hai → 409 PHIEN_DA_CHOT', la(c2, 409, 'PHIEN_DA_CHOT'), moTa(c2));
+    // KET-NOI-1 B2 (chủ quán duyệt 16.11): chốt lần hai CHÍNH phiên vừa chốt → 200 đơn đã ghi (lap_lai), ví KHÔNG trừ lần hai.
+    k('F7 chốt lại lần hai → 200 cùng đơn (lap_lai), ví không trừ thêm', la(c2, 200) && c2.j.order?.id === don.id && c2.j.lap_lai === true && await soDu(f) === 0, moTa(c2));
     // F2 / F3: hết hạn, huỷ → nhả, không dòng sổ nào.
     const g = await khach(100000);
     const d1 = await soDongVi();
