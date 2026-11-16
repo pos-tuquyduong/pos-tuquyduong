@@ -143,5 +143,45 @@ BÀI HỌC: KHOÁ — bài thử nhánh catch chayPhien chạy thật với huyP
 - Đột biến: lần chạy đủ ở d8789d81: 62 · BẮT 60 · SỐNG 2 (BV-MA-GUI-TRONG-GD, BV-MA-GUI-TRUNG-KHOA — hai lớp che nhau) → sửa bài (d6b5d196)
   → chạy lại 3 cái đó: BẮT 3.
 
+## Soát độc lập — vòng 2 (agent general-purpose mới, 16.11, trên HEAD aa3a3908) — chép nguyên ý, đủ số liệu
+```
+KHÔNG ĐẠT
+Tóm tắt: bài 95/95 xanh; gốc 1d66c610 16 đạt · 79 hỏng (khớp bằng chứng); --day-du PASS 124 · FAIL 0 · CẢNH BÁO 1; đột biến đủ trên HEAD
+62/62 BẮT (đối chứng xanh). Sáu lỗi vòng 1 đã sửa đúng; bản sửa lỗi 2 sinh lỗi mới. Không lỗi nào đụng tiền / ví / lộ / ngoài Phạm vi.
+LỖI TÌM ĐƯỢC:
+ 1. client/src/pages/BanHang/tinh.js:346-348 xuLyThuHong — chốt hỏng vì ĐƠN (4xx taoDon: hết hàng orders.js:439, ví đổi, voucher đã dùng)
+    → chotPhien đặt 'loi' (giuCho.js:187) → hỏi lần 1 'loi' → huỷ (WHERE trang_thai='cho') 409 (thanh-toan.js:75) → hỏi lại 'loi' →
+    bao_chua_biet → BanHangMoi.jsx:297 câu B5 thay lời máy chủ (gốc: nhả rồi e.message). Phiên 'huy' cũng vậy. Thử hàm thật
+    scratchpad/xu_ly_loi.mjs. Xanh oan: ca B3d w3 thu_KETNOI1.js:594 cho huỷ thành công với phiên 'huy' (máy chủ thật trả 409).
+    Sửa: chỉ huỷ khi hanhDongPhien(lan1) === 'doi'; 'nha' → bao_loi; thêm ca huỷ 409 cho 'loi'/'huy' + đột biến. K5 (D1) + K3 · NHẸ.
+ 2. server/database.js:1562 — [CHAM] dựa res.on('finish'); khách bỏ kết nối trước khi máy chủ trả lời → chỉ 'close' (thử scratchpad/finish_abort.js
+    ra "close, da_tra", không finish) → đúng ca Ahamove bỏ sau 5 giây (D-LOI-1) không có [CHAM], không đếm cham. Sửa: nghe 'close'. K4 · NHẸ.
+ 3. server/utils/giuCho.js:20-21 chú thích "Q16: phiên chờ chuyển khoản giữ voucher" bị dời sang dòng nạp laTrungKhoa; giuCho.js:137 dòng 502 có
+    sẵn đổi thành LOI_QR() — ngoài hai nhánh Cấm cho phép (hành vi không đổi). K1/K6 · NHẸ.
+ 4. Lỗ bài thử (scratchpad/dot_bien_soat2.py: 10 đột biến, 4 BẮT, 6 SỐNG): api.js:102 trang 503/504 proxy không ca (chỉ giữ 502 vẫn sống);
+    database.js:1557 vế che mã QR (P15-QR) trong duongLog không ca; CHO_DOC_MS = [0, 0] sống (A1d chỉ canh trần ≤ 1000 ms — một chiều);
+    mocLoiKho bỏ vế >= 500 sống; api.js:94 nhánh AbortError code chết (không lời gọi nào truyền signal); B2 hai vế trang_thai==='da_thu' và
+    order_id che nhau. K3 · NHẸ.
+ 5. Hồ sơ cũ (K1/K4 TU-CHAY-5): cong_cu/thu_BH2.js:235 nhắc viecKhiThuHong (không còn); bang_chung_do.txt:25,28,49 còn MA_GUI_KHAC_DON /
+    MA_GUI_KHONG_HOP_LE / viecKhiThuHong dưới câu "cùng chữ cho các ca có sẵn"; bang_chung_do.txt:53 "16 ca xanh" chỉ kể 13; ke_hoach.md
+    "Chỉnh sau duyệt" sót :249, :271 (BV-VIEC-KHI-THU-HONG), :274 (VS-LOI-KHO-CHU-GOC), :306; server/index.js:92 lý do "sau bộ đọc thân —
+    ngữ cảnh đo đi theo route" — scratchpad/als_body.js cho thấy ngữ cảnh vẫn còn sau express.json. NHẸ.
+ 6. server/database.js ~1530-1575 — bộ phận HTTP (mocLoiKho, traLoiKho, doYeuCau, duongLog, bocFetchNgoai) trong database.js (>1.700 dòng) sai
+    chỗ theo LUAT §3; gọn hơn: server/middleware/ketNoi.js, database.js chỉ xuất doCau / kho ngữ cảnh. Đơn giản · NHẸ.
+NGHI NGỜ: Cloudflare 520–524 không tính là mất kết nối (api.js:102) → tạo phiên gặp 524 ra bao_loi, bấm lại mã mới, phiên cũ mồ côi 10 phút
+ (không đơn đôi); commit "rớt" sau khi Turso đã ghi: trừ kho SX sau commit (orders.js:1297) + pos_stock_pending không chạy, nay quầy nhận
+ 200 lap_lai → SX lệch im lặng (lỗi cũ, nay che bằng thành công); phiên QR gặp ca này kẹt DANG_XU_LY; fetch không hạn giờ (lỗi cũ);
+ kiemPin cộng đếm trước khi so (pinKhach.js:48-52) — câu đặt lại rớt rồi gửi lại → pin_sai cộng dồn ("LOẠI" chỉ đúng một phần); POST thường
+ gặp 502/503/504 proxy → "…thử lại" (đã ghi Phát hiện); [CHAM] giữ đoạn toàn chữ: mã đơn App /api/kh/don/:ma không chữ số (~10%,
+ donApp.js:57) lên log — cần token khách, rủi ro thấp; thu_SAOLUUDEM1.js B3 dựa tiêu đề commit.
+NGHIỆM THU: 18/20 · lỗi / thiếu: D1 (lỗi 1), F1 (thiếu ca khách bỏ kết nối — lỗi 2).
+CHƯA SOÁT ĐƯỢC: Turso thật; trang 502/52x thật; nhánh catch chayPhien trên màn thật; crypto.randomUUID máy quầy; tu_chay/cong.js chay chưa ghi;
+ thử tay điện thoại; /soat-bao-mat.
+BÀI HỌC: KHOÁ — hàm giả trong bài thử (huỷ / hỏi) theo ĐÚNG điều kiện câu ghi máy chủ (huỷ 409 khi phiên không còn 'cho'); KHOÁ — đo chậm có ca
+ "khách bỏ kết nối giữa chừng". NGUYÊN TẮC K5 — sửa nhánh lỗi chung: liệt kê MỌI trạng thái hỏi về (cho / da_thu / loi / huy / het_han /
+ hỏi hỏng), mỗi trạng thái một ca theo hành vi gốc. K3 — mỗi vế danh sách mã / trạng thái một ca riêng; ngưỡng thời gian canh hai chiều.
+ K4 — đổi tên hàm / mã ở vòng sửa thì grep cả cong_cu/ + bang_chung_do.txt + ke_hoach.md.
+```
+
 ## Câu hỏi
 (không có)

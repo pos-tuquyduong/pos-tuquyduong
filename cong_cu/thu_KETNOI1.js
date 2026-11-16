@@ -143,7 +143,8 @@ async function main() {
   if (typeof D.mocLoiKho === 'function') app.use('/api/pos', D.mocLoiKho);
   const ngoai = typeof D.bocFetchNgoai === 'function' ? D.bocFetchNgoai(globalThis.fetch) : globalThis.fetch;
   if (typeof D.doYeuCau === 'function') app.use('/api/pos/thu-cham', D.doYeuCau);   // gắn HAI lần (như /api/nd ở index.js) — phải đo MỘT lần
-  app.get('/api/pos/thu-cham/:ms', async (req, res) => {
+  app.get('/api/pos/thu-400', (req, res) => res.status(400).json({ error: (D.LOI_KHO || {}).doc || CAU_DOC }));   // C2d: móc chỉ đổi ≥ 500
+  app.get(['/api/pos/thu-cham/:ms', '/api/pos/thu-cham/:ms/qr/:ma'], async (req, res) => {
     await D.query('SELECT 1 AS x');
     await (await ngoai(gocGia + '/ngoai-cham')).json();
     await ngu(Number(req.params.ms));
@@ -232,7 +233,7 @@ async function main() {
     r = await D.queryOne('SELECT 8 AS x').catch((e) => e);
     const ms = Date.now() - t0;
     k('A1b queryOne rớt 2 lần → lần 3 ra kết quả (execute 3 lần)', r?.x === 8 && M.goi - g === 3, `${r?.message || JSON.stringify(r)} · ${M.goi - g}`);
-    k('A1d rớt 2 lần → RA kết quả và tổng chờ ≤ 1000 ms', r?.x === 8 && ms <= 1000, `${ms} ms`);
+    k('A1d rớt 2 lần → RA kết quả, có CHỜ tăng dần (≥ 700 ms = 200 + 600 trừ sai số) và tổng ≤ 1000 ms (hai chiều — soát vòng 2)', r?.x === 8 && ms >= 700 && ms <= 1000, `${ms} ms`);
     g = M.goi; datHong(3, /SELECT/);
     r = await D.query('SELECT 9 AS x').catch((e) => e);
     k('A1c rớt 3 lần → ném KHO_MAT_KET_NOI (câu đọc), execute ĐÚNG 3 lần (2 thử lại)', r?.code === 'KHO_MAT_KET_NOI' && r?.message === CAU_DOC && M.goi - g === 3,
@@ -471,6 +472,14 @@ async function main() {
     k('B3b GET rớt 3 lần → ném MAT_KET_NOI sau ĐÚNG 3 lần gửi', r.loi?.code === 'MAT_KET_NOI' && F.goi.length === 3, `${F.goi.length} · ${r.loi?.code}`);
     r = await goiApi(() => { F.gia = [{ status: 502, than: '<html>Bad gateway</html>' }]; return api.get('/thanh-toan/phien/1'); });
     k('B3b GET gặp trang 502 của proxy (không JSON, không code) → gửi lại', F.goi.length === 2, String(F.goi.length));
+    const proxy = [];
+    for (const st of [503, 504, 524]) {
+      r = await goiApi(() => { F.gia = [{ status: st, than: `<html>${st}</html>` }]; return api.get('/thanh-toan/phien/1'); });
+      proxy.push(`${st}:${F.goi.length}`);
+    }
+    r = await goiApi(() => { F.gia = [{ status: 524, than: '<html>524</html>' }]; return api.post('/wallets/topup', {}); });
+    k('B3b trang 503 / 504 / 524 (Cloudflare) của proxy → GET gửi lại; POST thường gặp 524 → MAT_KET_NOI, gửi 1 lần (soát vòng 2)', proxy.join(' ') === '503:2 504:2 524:2'
+      && r.loi?.code === 'MAT_KET_NOI' && F.goi.length === 1, `${proxy.join(' ')} · ${r.loi?.code} · ${F.goi.length}`);
     r = await goiApi(() => { F.gia = [{ status: 502, than: '<html>x</html>' }]; return api.post('/wallets/topup', {}); });
     k('C1a POST thường gặp trang 502 proxy → MAT_KET_NOI + lời tiếng Việt, gửi 1 lần', r.loi?.code === 'MAT_KET_NOI' && F.goi.length === 1, `${r.loi?.code} · ${r.loi?.message} · ${F.goi.length}`);
     r = await goiApi(() => { F.gia = [{ status: 409, than: { error: 'bận', code: 'KHO_BAN' } }]; return api.get('/thanh-toan/phien/1'); });
@@ -538,6 +547,9 @@ async function main() {
     datHong(1, /FROM pos_orders/, () => Object.assign(new Error('loi la KN1 khong phai mang'), { code: 'SQLITE_MISUSE' }));
     r = await goi('GET', '/pos/orders?limit=5');
     k('C2d lỗi 500 KHÔNG phải mạng → thân giữ nguyên như cũ (móc không đụng)', r.status === 500 && r.j.error === 'loi la KN1 khong phai mang' && r.j.code === undefined, r.tho.slice(0, 160));
+    r = await goi('GET', '/pos/thu-400');
+    k('C2d móc CHỈ đổi trả lời ≥ 500: route trả 400 với đúng lời mất kết nối → giữ 400, không thêm code (soát vòng 2)', r.status === 400 && r.j.code === undefined
+      && r.j.error === CAU_DOC, r.tho.slice(0, 160));
     datHong(3, /FROM pos_users/);
     r = await goi('GET', `/pos/thanh-toan/phien/${p.id}`);
     k('C2e middleware/auth.js 500 (tra nhân viên) khi kho rớt → 503 KHO_MAT_KET_NOI, không lộ', la(r, 503, 'KHO_MAT_KET_NOI') && !LO(r.tho), r.tho.slice(0, 160));
@@ -591,10 +603,14 @@ async function main() {
       s4 = await chay2({ code: 'PIN_SAI' }, null, [], true);
     k('B3d xuLyThuHong: tạo phiên hết lượt MAT_KET_NOI / KHO_MAT_KET_NOI / DANG_XU_LY (QR đang tạo) → bao_chua_biet, KHÔNG gọi huỷ; lỗi khác (PIN_SAI) → bao_loi',
       [s1, s2, s3].every((x) => x.viec === 'bao_chua_biet' && x.huy === 0) && s4.viec === 'bao_loi' && s4.huy === 0, JSON.stringify([s1, s2, s3, s4]));
-    const w1 = await chay2(mk, 9, ['da_thu'], true), w2 = await chay2(mk, 9, ['cho'], true), w3 = await chay2({ code: 'X' }, 9, ['huy'], true), w4 = await chay2(mk, 9, [null], true);
-    k('B3d xuLyThuHong: chốt hỏng + hỏi được da_thu → xong (KHÔNG huỷ); cho / huy → nhả được → bao_loi; hỏi hỏng → bao_chua_biet, KHÔNG huỷ',
-      w1.viec === 'xong' && w1.phien?.order?.id === 77 && w1.huy === 0 && w2.viec === 'bao_loi' && w2.huy === 1 && w3.viec === 'bao_loi'
-      && w4.viec === 'bao_chua_biet' && w4.huy === 0, JSON.stringify([w1, w2, w3, w4]));
+    // Huỷ giả theo ĐÚNG câu ghi máy chủ (thanh-toan.js /huy: UPDATE … WHERE trang_thai = 'cho'): phiên không còn 'cho' → 409 (soát vòng 2).
+    const w1 = await chay2(mk, 9, ['da_thu'], true), w2 = await chay2(mk, 9, ['cho'], true), w4 = await chay2(mk, 9, [null], true);
+    k('B3d xuLyThuHong: chốt hỏng + hỏi được da_thu → xong (KHÔNG huỷ); cho → nhả được → bao_loi; hỏi hỏng → bao_chua_biet, KHÔNG huỷ',
+      w1.viec === 'xong' && w1.phien?.order?.id === 77 && w1.huy === 0 && w2.viec === 'bao_loi' && w2.huy === 1
+      && w4.viec === 'bao_chua_biet' && w4.huy === 0, JSON.stringify([w1, w2, w4]));
+    const nh = await Promise.all(['loi', 'huy', 'het_han'].map((t) => chay2({ code: 'HET_HANG', message: 'Không đủ hàng' }, 9, [t, t], false)));
+    k('B3d xuLyThuHong (soát vòng 2): chốt hỏng vì ĐƠN (phiên đã thôi giữ: loi / huy / het_han, huỷ sẽ 409) → bao_loi (lời máy chủ), KHÔNG huỷ, KHÔNG câu B5',
+      nh.every((x) => x.viec === 'bao_loi' && x.huy === 0), JSON.stringify(nh));
     const u1 = await chay2(mk, 9, ['cho', 'da_thu'], false), u2 = await chay2(mk, 9, ['cho', 'cho'], false), u3 = await chay2(mk, 9, ['cho', null], false);
     k('B3d xuLyThuHong (soát vòng 1 — đơn đôi): hỏi thấy cho, huỷ bị 409 (lệnh chốt trước vừa ghi) → hỏi LẠI: da_thu → xong; vẫn cho / hỏi hỏng → bao_chua_biet (không báo "thử lại")',
       u1.viec === 'xong' && u1.hoi === 2 && u2.viec === 'bao_chua_biet' && u3.viec === 'bao_chua_biet', JSON.stringify([u1, u2, u3]));
@@ -627,16 +643,26 @@ async function main() {
     await ngu(80);
     k('F1 yêu cầu 1,8 giây (ngay DƯỚI ngưỡng) → KHÔNG có dòng [CHAM]', la(r, 200) && !nhatKy.some((x) => x.includes('[CHAM]')), JSON.stringify(nhatKy.filter((x) => x.includes('[CHAM]'))));
     nhatKy.length = 0;
-    r = await goi('GET', '/pos/thu-cham/2150?sdt=0912345678');
+    r = await goi('GET', '/pos/thu-cham/2150/qr/MAQRBIMAT?sdt=0912345678');
     await ngu(80);
     const dong = nhatKy.filter((x) => x.includes('[CHAM]'));
+    // Khách BỎ kết nối giữa chừng (Ahamove bỏ sau 5 giây — D-LOI-1): máy chủ vẫn phải ghi [CHAM] khi xong (soát vòng 2: 'finish' không bắn).
+    nhatKy.length = 0;
+    await new Promise((xong) => {
+      const yc = http.request({ host: '127.0.0.1', port: cong, path: '/api/pos/thu-cham/2150', method: 'GET' });
+      yc.on('error', () => xong()); yc.end(); setTimeout(() => { yc.destroy(); xong(); }, 150);
+    });
+    await ngu(2300);
+    const dongBo = nhatKy.filter((x) => x.includes('[CHAM]'));
     giuLog = false; noiLai();
     const mm = /^\[CHAM\] GET (\S+) · (\d+) ms · kho (\d+) câu \/ (\d+) ms · ngoài (\d+) ms$/.exec(dong[0] || '');
     k('F1 yêu cầu 2,15 giây (ngay TRÊN ngưỡng) → MỘT dòng [CHAM] đúng dạng; kho 1 câu; ngoài ≥ 60 ms', la(r, 200) && dong.length === 1 && !!mm && Number(mm[2]) > 2000
       && mm[3] === '1' && Number(mm[5]) >= 60, JSON.stringify(dong));
-    k('F1 dòng [CHAM] KHÔNG có SĐT / tham số / số trong đường dẫn', !!mm && !/0912345678|\?|2150/.test(dong[0]) && mm[1] === '/api/pos/thu-cham/:x', dong[0]);
+    k('F1 dòng [CHAM] KHÔNG có SĐT / tham số / số / mã QR trong đường dẫn', !!mm && !/0912345678|\?|2150|MAQRBIMAT/.test(dong[0]) && mm[1] === '/api/pos/thu-cham/:x/qr/:x', dong[0]);
+    k('F1 khách bỏ kết nối sau 150 ms, máy chủ làm xong sau 2,15 s → vẫn MỘT dòng [CHAM] (soát vòng 2)', dongBo.length === 1 && /thu-cham\/:x · \d+ ms/.test(dongBo[0] || ''),
+      JSON.stringify(dongBo));
     const c1 = dem().cham || {};
-    k('F3 demKetNoi().cham: so_lan +1, lau_nhat_ms ≥ 2150, luc giờ VN', c1.so_lan === (c0.so_lan || 0) + 1 && c1.lau_nhat_ms >= 2150 && /^\d{4}-\d\d-\d\dT/.test(String(c1.luc)), JSON.stringify(c1));
+    k('F3 demKetNoi().cham: so_lan +2 (gồm lần khách bỏ), lau_nhat_ms ≥ 2150, luc giờ VN', c1.so_lan === (c0.so_lan || 0) + 2 && c1.lau_nhat_ms >= 2150 && /^\d{4}-\d\d-\d\dT/.test(String(c1.luc)), JSON.stringify(c1));
 
     // F2 — đo số câu kho (chỉ đo + báo cáo)
     const a = await khach(0);

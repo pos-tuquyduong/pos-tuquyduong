@@ -232,7 +232,7 @@ async function main() {
   k('S19 KHACH-CK-1: ThuTien sáng theo đúng coSo (không còn khoá chanChietKhau theo hồ sơ khách)', /coSo=\{coSo\}/.test(lay) && !/chanChietKhau|coChietKhauRieng/.test(lay));
   k('S20 hoanTat dự phòng: tiền thối = khách đưa − còn lại (cùng công thức máy chủ), tổng từ phiên — không "Trả lại 0đ" khi đọc đơn hỏng', /change_amount: cach === 'tien_mat' \? Math\.max\(0, khachDua - anh\.phaiTra\)/.test(lay) && /total: anh\.tong/.test(lay));
   k('S21 số dư lệch giữ tiền → nạp lại số dư (lamMoiSoDu) trước khi báo', /await lamMoiSoDu\(\)/.test(lay));
-  // KET-NOI-1 B5 (chủ quán duyệt 16.11): câu MỘT chỗ ở tinh.js (CAU_CHUA_BIET_DON); nhánh quyết định là viecKhiThuHong (thu_KETNOI1.js B3d thử hàm).
+  // KET-NOI-1 B5 (chủ quán duyệt 16.11): câu MỘT chỗ ở tinh.js (CAU_CHUA_BIET_DON); nhánh quyết định là xuLyThuHong (thu_KETNOI1.js B3d thử hàm).
   k('S22 chốt hỏng mà hỏi lại phiên cũng hỏng → báo "chưa biết đơn đã ghi chưa" (CAU_CHUA_BIET_DON), không nhả phiên',
     /else if \(viec === 'bao_chua_biet'\) \{ setHoiPin\(null\); setLoi\(CAU_CHUA_BIET_DON\); \}/.test(lay) && !/Mất kết nối khi chốt/.test(lay));
   k('S13 không công nợ / ghi nợ trong màn mới', Object.values(F).every((s) => !/Ghi nợ|Chưa thu|mang ra bàn/i.test(s)));
