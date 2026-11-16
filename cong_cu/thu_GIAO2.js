@@ -131,7 +131,8 @@ async function main() {
   app.use('/api/pos/giao-hang', gh);
   app.use('/api/giao-hang/ahamove-bao', gh.webhook);
   const giaoHang = require(path.join(GOC, 'server', 'utils', 'giaoHang.js'));
-  const choNen = async () => { if (typeof giaoHang.choTinBao === 'function') await giaoHang.choTinBao(); };
+  // Phần nền ném lỗi ra ngoài (không tự bắt) = máy chủ thật sẽ gặp unhandledRejection → ghi vào sapNen, bài không sập.
+  const choNen = async () => { if (typeof giaoHang.choTinBao === 'function') await giaoHang.choTinBao().catch((e) => sapNen.push('choTinBao: ' + (e?.code || e?.message))); };
   const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
   const goc = `http://127.0.0.1:${sv.address().port}/api`;
 
