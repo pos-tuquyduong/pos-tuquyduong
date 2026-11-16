@@ -1,41 +1,35 @@
 GIAO-2 — bằng chứng đỏ. Gốc = cây 0c84944 (git archive server cong_cu client/src kiem_tra_truoc_khi_giao.js vào nháp, node_modules nối),
-chép bản bài thử ở commit f04d510d vào đó rồi chạy (chạy lại sau khi sửa choNen ghi nhận lỗi nền — cùng 16 ca đỏ, thời gian lệch vài ms).
-Đã vá = HEAD f04d510d.
+chép bản bài thử ở commit f9c6454c (vòng sửa 1) vào đó rồi chạy. Đã vá = f9c6454c.
 
-== node cong_cu/thu_GIAO2.js trên GỐC 0c84944 ==
-  ✓ nền: tạo được chuyến tim_xe có mã Ahamove
-  ✓ A1b khoá sai → 401 BAO_SAI_KHOA, thiếu → 401, chưa cài khoá → 503 BAO_CHUA_CAI; Ahamove KHÔNG bị đọc
-  ✗ A1a Ahamove giả chậm 8 s + kho chậm 300 ms/câu → cửa trả 200 dưới 1 giây  — 200 sau 8913 ms
-  ✓ A2a xử lý sau khi trả lời: đọc lại chuyến THẬT (thân nói COMPLETED, Ahamove nói ACCEPTED) → doi_tai_xe + tài xế
+== node cong_cu/thu_GIAO2.js trên GỐC 0c84944 (bản bài ở f9c6454c — vòng sửa 1) ==
+  ✓ nền, ✓ A1b, ✓ A2a, ✓ A3, ✓ A5 (2 ca), ✓ B4a, ✓ Z1
+  ✗ A1a Ahamove giả chậm 8 s + kho chậm 1,5 s/câu → cửa trả 200 dưới 1 giây (không chờ câu kho nào)  — 200 sau 12521 ms
   ✗ A2b Ahamove lỗi khi đọc lại → 200; log "[GIAO] … <mã chuyến> … lỗi …"; thẻ giữ tim_xe  — 502 []
   ✗ A2c kho hỏng trong phần xử lý → 200, có log [GIAO] kèm mã chuyến, KHÔNG unhandledRejection, máy chủ vẫn trả lời  — 500 [] sập []
-  ✓ A3 hai tin cách 49 ms (Ahamove chậm 300 ms — cả hai cùng đang xử lý) → cả hai 200; MỘT dòng chống lặp; câu cập nhật thẻ chạy MỘT lần; thẻ doi_tai_xe
   ✗ A2d kho hỏng lúc cập nhật thẻ → không để lại dòng chống lặp; tin lặp lại sau → doi_tai_xe + tài xế  — tin 1 tim_xe null
+  ✗ B3c tin bị bỏ qua (thẻ đang gọi xe) vẫn có log "[GIAO] tin <mã> … bỏ qua: thẻ đang gọi xe"  — []
   ✗ A4 thẻ dang_goi → 200 (không 409), không ghi sổ chống lặp, thẻ không đổi; gọi xe xong, không tin nào nữa → "Tải lại" đọc ra doi_tai_xe  — 409 DANG_GOI_XE tin 0 tim_xe
-  ✓ A5 chuyến cũ đã thay → 200, không đọc Ahamove, thẻ (chuyến mới) không đổi
-  ✓ A5 mã lạ / thân rỗng → 200, Ahamove không bị đọc, không ghi sổ tin
   ✗ B1 chi tiết chuyến bọc mảng [ … ] → đọc lại 65 s đưa thẻ lên doi_tai_xe + tài xế  — tim_xe null
   ✗ B1 chi tiết chuyến bọc { order: … } → đọc lại 65 s đưa thẻ lên doi_tai_xe + tài xế  — tim_xe null
-  ✓ B4a tin mất, đọc 10 s trước: hẹn 15 s (không cờ) → vẫn tim_xe (mốc 60 s không đổi)
   ✗ B4b bấm "Tải lại" (?doc_lai=1) → thẻ doi_tai_xe + tài xế NGAY trong lần trả lời đó  — tim_xe null
   ✗ B4c bấm "Tải lại" dồn ngay sau → Ahamove KHÔNG bị đọc thêm  — đọc thêm 0
   ✗ B3a log đọc lại "[GIAO] … <mã> ACCEPTED → doi_tai_xe · <n>ms"  — []
   ✗ B3b mọi dòng [GIAO] không có SĐT tài xế / SĐT, tên, địa chỉ người nhận  — []
+  ✗ B3d thẻ dang_giao + Ahamove ACCEPTED cũ → thẻ giữ dang_giao; log in đúng "ACCEPTED → bỏ qua: giữ dang_giao"  — []
   ✗ B4d 9+ chuyến chưa xong, đọc 30 s trước → "Tải lại" đọc đúng 8 chuyến (trần), không hơn  — đọc 0
-  ✗ B2a Ahamove treo 8 s: hẹn 15 s trả < 6 s, "Tải lại" trả < 6 s; thẻ giữ tim_xe  — 8014 ms · 8010 ms
-  ✗ B2b lỗi đọc lại dự phòng có log "[GIAO] … <mã> … lỗi" (không nuốt im lặng)  — []
-  ✓ Z1 nhật ký cả bài không chứa khoá / token Ahamove
+  ✗ B2a Ahamove treo 12 s, 2 chuyến + 1 phí huỷ chờ đọc: hẹn 15 s trả < 10 s, "Tải lại" trả < 10 s; thẻ giữ tim_xe  — 30024 ms · 30023 ms
+  ✗ B2b lỗi đọc lại dự phòng có log "[GIAO] … <mã> … lỗi" cho chuyến VÀ phí huỷ (không nuốt im lặng)  — []
   ✗ Z2 kiem_tra_truoc_khi_giao.js chạy 'cong_cu/thu_GIAO2.js'
   ✗ Z3 nút "Tải lại" gọi tai(true), không chỗ nào truyền đối số lạ vào tai; hẹn giờ gọi tai() không cờ; api gửi ?doc_lai=1 chỉ khi có cờ
-  8 đạt · 16 hỏng      (thoát 1)
+  8 đạt · 18 hỏng      (thoát 1)
 
 == node cong_cu/thu_GIAO1.js (bài cũ, sửa baoVe chờ phần nền + V10 409 → 200 — hành vi chủ quán duyệt đổi, LUAT §6.8) trên GỐC 0c84944 ==
   ✗ V10 tin báo lúc thẻ đang gọi xe → 200 (GIAO-2 A4, Ahamove coi 409 là lỗi), không ghi sổ chống lặp; tin sau khi thẻ tim_xe → doi_tai_xe + tài xế  — 409 DANG_GOI_XE doi_tai_xe TX V10
   136 đạt · 1 hỏng      (thoát 1)
 
-== Trên code đã vá (f04d510d) ==
-thu_GIAO2.js: 24 đạt · 0 hỏng
+== Trên code đã vá (f9c6454c) ==
+thu_GIAO2.js: 26 đạt · 0 hỏng
 thu_GIAO1.js: 137 đạt · 0 hỏng
 
-SỐ CA cong_cu/thu_GIAO2.js: 24
+SỐ CA cong_cu/thu_GIAO2.js: 26
 SỐ CA cong_cu/thu_GIAO1.js: 137
