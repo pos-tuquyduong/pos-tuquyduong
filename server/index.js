@@ -65,6 +65,7 @@ app.use((req, res, next) => {
   next();
 });
 // ND-API-1: kho nội dung App KH — gắn TRƯỚC cors chung (origin '*'): router nd tự làm CORS chỉ hai tên miền App, thân, 404, lỗi
+app.use('/api/nd', doYeuCau);   // KET-NOI-1 F1: /api/nd gắn trước bộ đọc thân chung — đo riêng ở đây (thu_KETNOI1 F1)
 app.use('/api/nd', require('./nd/duong'));
 
 // Middleware

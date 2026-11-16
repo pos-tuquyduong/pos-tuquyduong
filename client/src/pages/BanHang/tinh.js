@@ -329,12 +329,21 @@ export function hanhDongPhien(trangThai) {
 /** B5 — MỘT chỗ dựng câu: hết lượt gửi lại mà vẫn không biết máy chủ đã ghi chưa. */
 export const CAU_CHUA_BIET_DON = 'Mất kết nối — chưa biết đơn đã ghi chưa. Đừng thu lại: mở Đơn hàng kiểm đơn mới nhất.';
 const laMatKetNoi = (e) => ['MAT_KET_NOI', 'KHO_MAT_KET_NOI'].includes(e?.code);   // api.js đã gửi lại hết lượt
+// Tạo phiên hỏng mà máy chủ có thể đã ghi: mất kết nối, hoặc phiên QR còn đang tạo (DANG_XU_LY hết lượt — bấm lại ra mã mới = phiên thứ hai).
+const chuaBietDaGhi = (e) => laMatKetNoi(e) || e?.code === 'DANG_XU_LY';
 /** E2: lời dưới giỏ khi hỏi giá hỏng — mất kết nối thì câu ngắn (không chữ kỹ thuật); lỗi nghiệp vụ giữ lời máy chủ. */
 export const loiTinhGia = (e) => (laMatKetNoi(e) ? 'Mất kết nối, bấm Thử lại' : e?.message || 'Không tính được giá');
-/** Thu hỏng → việc màn phải làm. daCoPhien: phiên đã tạo (hỏng ở chốt); hoi: phiên vừa hỏi lại (null = hỏi không được).
- *  bao_chua_biet: KHÔNG nhả gì, báo CAU_CHUA_BIET_DON · xong: máy chủ đã ghi → màn kết thúc · nha: nhả phiên, báo lỗi · bao_loi: lỗi lúc tạo phiên. */
-export function viecKhiThuHong({ loi, daCoPhien, hoi }) {
-  if (!daCoPhien) return laMatKetNoi(loi) ? 'bao_chua_biet' : 'bao_loi';
-  if (!hoi) return 'bao_chua_biet';
-  return hanhDongPhien(hoi.trang_thai) === 'xong' ? 'xong' : 'nha';
+/** Thu hỏng (api.js đã gửi lại hết lượt) → việc màn phải làm: { viec, phien }. phienId: phiên đã tạo (hỏng ở chốt) hoặc null (hỏng lúc tạo);
+ *  hoi(id) → phiên máy chủ / ném; huy(id) → nhả phiên / ném (409 = phiên không còn chờ). Không biết máy chủ đã ghi chưa → KHÔNG nhả, bao_chua_biet.
+ *  Huỷ bị từ chối (lệnh chốt trước còn chạy ở máy chủ và vừa ghi xong — soát vòng 1) → hỏi lại: đã thu → xong, không thì bao_chua_biet.
+ *  viec: xong (sang màn kết thúc) · bao_chua_biet (câu B5) · bao_loi (đã nhả hoặc lỗi lúc tạo — báo lời máy chủ). */
+export async function xuLyThuHong({ loi, phienId, hoi, huy }) {
+  if (!phienId) return { viec: chuaBietDaGhi(loi) ? 'bao_chua_biet' : 'bao_loi' };
+  const daThu = async () => { const p = await hoi(phienId).catch(() => null); return { p, xong: hanhDongPhien(p?.trang_thai) === 'xong' }; };
+  const lan1 = await daThu();
+  if (lan1.xong) return { viec: 'xong', phien: lan1.p };
+  if (!lan1.p) return { viec: 'bao_chua_biet' };
+  if (await huy(phienId).then(() => true, () => false)) return { viec: 'bao_loi' };
+  const lan2 = await daThu();
+  return lan2.xong ? { viec: 'xong', phien: lan2.p } : { viec: 'bao_chua_biet' };
 }

@@ -19,7 +19,7 @@ import ManQr from './ManQr';
 import KhungGiao from './KhungGiao';
 import ChipVoucher from './ChipVoucher';
 import MaGhepManKhach, { useQuayManKhach } from '../ManKhach/MaGhep';
-import { CACH_TRA_MAC_DINH, CAU_CHUA_BIET_DON, boVoucherLoi, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, loiTinhGia, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viecKhiThuHong, viTriMayChu, xuLyLoiPin } from './tinh';
+import { CACH_TRA_MAC_DINH, CAU_CHUA_BIET_DON, boVoucherLoi, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, loiTinhGia, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viTriMayChu, xuLyLoiPin, xuLyThuHong } from './tinh';
 import { maGuiMoi } from '../Kho/chung';   // KET-NOI-1: dùng lại bộ sinh mã lượt bấm của Kho
 import { NutThongTin } from '../../components/ThongTinMon';
 import './banHang.css';
@@ -288,13 +288,14 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
       phien = null;
       await hoanTat(c.order?.id, anh, cach, khachDua);
     } catch (e) {
-      // KET-NOI-1: api.js đã gửi lại hết lượt. Phiên đã tạo mà chốt hỏng → hỏi máy chủ đã ghi chưa rồi mới nhả; không biết → KHÔNG nhả, báo B5.
+      // KET-NOI-1: api.js đã gửi lại hết lượt. Phiên đã tạo mà chốt hỏng → hỏi máy chủ đã ghi chưa rồi mới nhả (huỷ bị từ chối → hỏi lại);
+      // không biết → KHÔNG nhả, báo B5. Một hàm quyết định: xuLyThuHong (tinh.js).
       const p = phien; phien = null;
-      const hoi = p ? (await thanhToanApi.hoiPhien(p.id).catch(() => null))?.phien || null : null;
-      const viec = viecKhiThuHong({ loi: e, daCoPhien: !!p, hoi });
-      if (viec === 'xong') await hoanTat(hoi.order?.id, anh, cach, khachDua);
+      const { viec, phien: daGhi } = await xuLyThuHong({ loi: e, phienId: p?.id, hoi: async (id) => (await thanhToanApi.hoiPhien(id)).phien,
+        huy: (id) => thanhToanApi.huyPhien(id) });
+      if (viec === 'xong') await hoanTat(daGhi.order?.id, anh, cach, khachDua);
       else if (viec === 'bao_chua_biet') { setHoiPin(null); setLoi(CAU_CHUA_BIET_DON); }
-      else if (viec === 'nha') { await nhaPhien(p); setLoi(e.message || 'Không thu được tiền'); }
+      else if (p) setLoi(e.message || 'Không thu được tiền');   // đã nhả phiên
       else {
         const viecPin = xuLyLoiPin(e.code);
         if (viecPin === 'nhap_lai') setHoiPin({ cach, khachDua, i: 0, da: {}, kieu: 'nhap', loi: 'PIN không đúng — nhập lại' });

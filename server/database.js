@@ -1499,12 +1499,13 @@ const LOI_KHO = {
 const CHO_DOC_MS = [200, 600];   // chờ trước lần đọc lại thứ 1, 2 — tổng 0,8 s
 const NGUONG_CHAM_MS = 2000;     // F1: yêu cầu /api/* lâu hơn → một dòng [CHAM]
 const MA_MANG = new Set(['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH', 'ECONNABORTED']);
-const KIEU_FETCH = new Set(['system', 'request-timeout', 'body-timeout']);
 
+/** Lỗi mạng tới kho? FetchError 'system' của node-fetch phủ cả thân trả về đứt giữa chừng ("Invalid response body…", mã ERR_STREAM_PREMATURE_CLOSE
+ *  không nằm trong MA_MANG). libsql không đặt hạn giờ cho fetch nên không có FetchError 'request-timeout' / 'body-timeout'. */
 function laLoiMang(err) {
   if (!err) return false;
   const goc = err.cause || {};
-  return (err.name === 'FetchError' && KIEU_FETCH.has(err.type)) || MA_MANG.has(err.code) || MA_MANG.has(goc.code)
+  return (err.name === 'FetchError' && err.type === 'system') || MA_MANG.has(err.code) || MA_MANG.has(goc.code)
     || /fetch failed|socket hang up/i.test(String(err.message)) || (err.code === 'SERVER_ERROR' && [502, 503, 504].includes(goc.status));
 }
 
@@ -1555,6 +1556,7 @@ function mocLoiKho(req, res, next) {
 /** F1 — đo mỗi yêu cầu /api/*: quá ngưỡng thì MỘT dòng [CHAM] (đường dẫn bỏ tham số, đoạn có chữ số → :x; không SĐT, không thân). */
 const duongLog = (req) => req.originalUrl.split('?')[0].split('/').map((s, i, a) => (/\d/.test(s) || a[i - 1] === 'qr' ? ':x' : s)).join('/');
 function doYeuCau(req, res, next) {
+  if (res.locals.ketNoi) return next();   // đã đo ở cửa trước (index.js gắn riêng /api/nd trước cors + gắn chung /api)
   const d = { batDau: Date.now(), cau: 0, khoMs: 0, ngoaiMs: 0 };
   res.locals.ketNoi = d;
   res.on('finish', () => {
