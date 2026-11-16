@@ -4,10 +4,12 @@ Gốc = 1d66c610 (= 8d83bf8^, mốc cổng: cha của commit "PHIEU: KET-NOI-1" 
 Lệnh (như cổng A11 — cả cây gốc, KHÔNG .git, chép đè bài HIỆN TẠI):
   python3 viec/KET-NOI-1/dot_bien.py --cay-goc 1d66c610 --bai <bài>
 
-── cong_cu/thu_KETNOI1.js (bài MỚI) — gốc (chạy lại sau vòng sửa 1, HEAD d6b5d196): 16 đạt · 79 hỏng · tổng 95 ca · thoát 1 ──
+── cong_cu/thu_KETNOI1.js (bài MỚI) — gốc (chạy lại sau vòng sửa 2, HEAD e4337891): 17 đạt · 82 hỏng · tổng 99 ca · thoát 1 ──
   Ca đỏ trên gốc (mã ca, theo thứ tự in): A1a A1b A1d A1c A1c A1e A1f A1g A1h A3c A2a A2b A2b2 A2c A2d A2d2 A2e A4a A4a A4b B1a B1b B1c B1c2 B1d B1h
-  B1e B1f2 B1f3 B1f B1g B1g B1k B1i B1j B2a B2d C1a C1b B3b B3b C1a B3a B4a B4a B4b B4b B4b B3c C1 C1c C2a C2b C2c C2c2 C2f C2e C2e E1a E1b E1a E2a
-  B5a B3d B3d B3d B5b B5a B1/B3 F1 F1 F1 F1 F3 F2 G1 G2 G3 G4. Chi tiết dòng ✗ dưới đây là bản chạy đầu (89 ca, cùng chữ cho các ca có sẵn):
+  B1e B1f2 B1f3 B1f B1g B1g B1k B1i B1j B2a B2d C1a C1b B3b B3b B3b C1a B3a B4a B4a B4b B4b B4b B3c C1 C1c C2a C2b C2c C2c2 C2f C2e C2e E1a E1b E1a
+  E2a B5a B3d B3d B3d B3d B5b B5a B1/B3 F1 F1 F1 F1 F1 F3 F2 G1 G2 G3 G4.
+  Chi tiết dòng ✗ dưới đây là bản chạy ĐẦU (89 ca). Từ đó đổi tên: mã MA_GUI_KHAC_DON → KHOA_GUI_DA_DUNG, MA_GUI_KHONG_HOP_LE → KHOA_GUI_SAI
+  (cùng đơn App — vòng sửa 1), hàm viecKhiThuHong → xuLyThuHong (vòng sửa 1); chữ ✗ còn lại giữ như lần chạy đầu:
   ✗ A1a SELECT rớt 1 lần → tự đọc lại, ra đúng kết quả (execute 2 lần)  — "request to https://thu-kho.turso.io/v2/pipeline failed, reason: socket hang up" · 1
   ✗ A1b queryOne rớt 2 lần → lần 3 ra kết quả (execute 3 lần)
   ✗ A1d rớt 2 lần → RA kết quả và tổng chờ ≤ 1000 ms  — 1 ms
@@ -50,8 +52,10 @@ Lệnh (như cổng A11 — cả cây gốc, KHÔNG .git, chép đè bài HIỆN
   ✗ B5a BanHangMoi câu cũ "Mất kết nối khi chốt" ; B1/B3 BanHangMoi maGuiMoi + loiTinhGia
   ✗ F1 NGUONG_CHAM_MS — undefined ; F1 index.js gắn đo  — -1 -1 ; F1 [CHAM] trên ngưỡng — [] ; F1 dòng [CHAM] ; F3 cham — {} ; F2 — undefined ×4
   ✗ G1 health không có ket_noi ; G2 đăng nhập kho rớt → 500 {"error":"request to https://thu-kho.turso.io/…"} ; G3 ; G4 log "Query error: request to https://thu-kho.turso.io/…"
-  (16 ca xanh trên gốc là ca "phải KHÔNG đổi" — K5 (gồm B2e phiên đơn App lần hai → 409, mới ở vòng sửa 1): B1a ví giữ một lần, B1j cổng hỏng 502, B2a hai chốt cùng lúc, B2b, B2c, A3b, C1b POST 1 lần,
-   B3c GET KHO_BAN, B3b PAYOS_LOI, C2d, E1b ThuTien, E2b — vế đỏ của chúng là đột biến tương ứng trong dot_bien.py.)
+  (17 ca xanh trên gốc (bản 99 ca) là ca "phải KHÔNG đổi" — K5: A3a SQL sai ném nguyên · A3b SELECT bận đường P26d · B1a ví giữ một lần ·
+   B1j cổng QR hỏng 502 · B2a đúng một đơn + hai chốt cùng lúc · B2b phiên huỷ 409 · B2c xác nhận tay lần hai 409 · B2e phiên đơn App lần hai 409 ·
+   C1b POST thường gửi 1 lần · B3c GET thường gặp KHO_BAN không gửi lại · B3b PAYOS_LOI không gửi lại · C2d lỗi 500 không phải mạng giữ nguyên ·
+   C2d móc chỉ đổi ≥ 500 · E1b ThuTien đơn 0đ thật · E2b lỗi nghiệp vụ giữ lời — vế đỏ của từng ca là đột biến tương ứng trong dot_bien.py.)
 
 ── cong_cu/thu_BH2.js (bài SỬA thường — hành vi chủ quán duyệt đổi: B2 chốt lần hai, B5 câu báo) — gốc: 97 đạt · 2 hỏng · thoát 1 ──
   ✗ R4 chốt lần hai (bấm đôi) → 200 CÙNG đơn (lap_lai), không đơn thứ hai  — HTTP 409 · PHIEN_DA_CHOT
@@ -71,7 +75,7 @@ Lệnh (như cổng A11 — cả cây gốc, KHÔNG .git, chép đè bài HIỆN
      — 500 {"error":"request to https://thu-saoluu.turso.io/v2/pipeline failed, reason: socket hang up"}
 
 Số ca khi chạy trên code ĐÃ VÁ (HEAD, cùng lệnh `node <bài>`):
-SỐ CA cong_cu/thu_KETNOI1.js: 95
+SỐ CA cong_cu/thu_KETNOI1.js: 99
 SỐ CA cong_cu/thu_BH2.js: 100
 SỐ CA cong_cu/thu_P3.js: 100
 SỐ CA cong_cu/thu_NDAPI1.js: 89

@@ -26,17 +26,17 @@
 - Kế hoạch: `ke_hoach.md` — chủ quán duyệt `0820b795`.
 
 ## Bước 4–7 — bài thử, sửa, kiểm
-- Bài mới `cong_cu/thu_KETNOI1.js` viết TRƯỚC — sau vòng sửa 1: 95 ca, đỏ trên gốc 79/95 (`bang_chung_do.txt`; bản đầu 89 ca, đỏ 74). Lớp mạng giả dựng đúng hình lỗi node-fetch 2.7.0.
+- Bài mới `cong_cu/thu_KETNOI1.js` viết TRƯỚC — sau vòng sửa 2: 99 ca, đỏ trên gốc 82/99 (`bang_chung_do.txt`; bản đầu 89 ca đỏ 74; vòng 1 95 ca đỏ 79). Lớp mạng giả dựng đúng hình lỗi node-fetch 2.7.0.
 - Bài cũ sửa thường (hành vi chủ quán duyệt đổi / phiếu cho đổi `index.js`, đỏ trên gốc): `thu_BH2.js` R4 + S22, `thu_P3.js` F7,
   `thu_NDAPI1.js` A2 (so BẰNG 18 dòng thêm), `thu_SAOLUUDEM1.js` B3 (theo commit của việc) + ca mới F1/F2 (đúng lỗi Cài đặt › Sao lưu 16.11).
-- `npm test -- --day-du` (sau vòng sửa 1): PASS 124 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn từ trước việc này). Con số 119 ở mục "Sự cố khác" là lần chạy
+- `npm test -- --day-du` (sau vòng sửa 2, HEAD e4337891): PASS 124 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn từ trước việc này). Con số 119 ở mục "Sự cố khác" là lần chạy
   TRƯỚC khi có bài mới (bước 1, kho nông).
 - `client/dist` build lại sau mọi sửa `client/src/`.
 
 ### Chỗ vá → đột biến (`viec/KET-NOI-1/dot_bien.py`, mỗi đột biến một dòng)
 | Chỗ vá | Đột biến |
 |---|---|
-| database.js `query()` đọc lại câu ĐỌC | BV-DOC-THU-LAI · VS-THU-LAI-BA · VS-THU-LAI-GHI · BV-CAU-GHI |
+| database.js `query()` đọc lại câu ĐỌC (số lần, độ chờ) | BV-DOC-THU-LAI · VS-THU-LAI-BA · VS-CHO-KHONG · VS-THU-LAI-GHI · BV-CAU-GHI |
 | database.js `laCauDoc` | VS-CAU-DOC-CHUA-TU |
 | database.js `laLoiMang` | VS-MANG-RONG · VS-MANG-BO-CAUSE · VS-MANG-BO-FETCHERROR |
 | database.js lỗi đổi dạng (không cause) | VS-LOI-GIU-CAUSE |
@@ -46,12 +46,12 @@
 | 029_ket_noi.js khoá UNIQUE | BV-029-UNIQUE |
 | giuCho.js `chotPhien` B2 (lapLai, chặn phiên App) + route `/chot` lapLai | BV-CHOT-LAI · VS-CHOT-LAI-MOI-NGUON · VS-CHOT-LAI-APP · BV-LAP-LAI-ROUTE |
 | wallets.js `loiGhi` → 503 | BV-LOIGHI-503 |
-| database.js `mocLoiKho` / index.js gắn móc / bắt lỗi cuối / health | BV-LOI-KHO-MOC · BV-MOC-INDEX · BV-TRA-LOI-KHO-CUOI · BV-HEALTH |
-| api.js `goiFetch` / trang proxy / thuLai mặc định / phiên / tinhThu / upload | BV-API-MAT-KET-NOI · BV-API-PROXY · VS-API-POST-THU-LAI · BV-API-GET-THU-LAI · BV-API-PHIEN-THU-LAI · BV-API-CHOT-THU-LAI · VS-NEN-GUI-LAI-BO-KHO-BAN · VS-NEN-GUI-LAI-MOI-MA · BV-API-TINH-THU · BV-GOI-FETCH-UPLOAD |
+| database.js `mocLoiKho` (chỉ ≥ 500) / index.js gắn móc / bắt lỗi cuối / health | BV-LOI-KHO-MOC · VS-MOC-MOI-MA · BV-MOC-INDEX · BV-TRA-LOI-KHO-CUOI · BV-HEALTH |
+| api.js `goiFetch` / trang proxy (502–504, 520–524: VS-PROXY-CHI-502) / thuLai mặc định / phiên / tinhThu / upload | BV-API-MAT-KET-NOI · BV-API-PROXY · VS-API-POST-THU-LAI · BV-API-GET-THU-LAI · BV-API-PHIEN-THU-LAI · BV-API-CHOT-THU-LAI · VS-NEN-GUI-LAI-BO-KHO-BAN · VS-NEN-GUI-LAI-MOI-MA · BV-API-TINH-THU · BV-GOI-FETCH-UPLOAD |
 | ThuTien.jsx / tinh.js `nhanhNutThu` | BV-NUT-0D · VS-NHANH-NUT |
-| tinh.js `loiTinhGia` / `xuLyThuHong` / `thanPhien` maGui | BV-LOI-TINH · BV-HUY-409-HOI-LAI · VS-HOI-HONG-NHA · VS-VIEC-KHONG-PHIEN · VS-DANG-XU-LY · BV-MA-GUI-THAN |
+| tinh.js `loiTinhGia` / `xuLyThuHong` / `thanPhien` maGui | BV-LOI-TINH · BV-HUY-409-HOI-LAI · VS-HUY-MOI-TRANG-THAI · VS-HOI-HONG-NHA · VS-VIEC-KHONG-PHIEN · VS-DANG-XU-LY · BV-MA-GUI-THAN |
 | BanHangMoi.jsx mã mỗi lần thu / câu B5 | BV-BH-MA-GUI · BV-BH-CAU-B5 |
-| database.js đo chậm (ngưỡng, đường dẫn, đếm câu, ngoài, health cham, chống đo hai lần) / index.js gắn đo (+ /api/nd) | BV-CHAM · VS-CHAM-NGUONG · VS-CHAM-LO-DUONG · BV-DEM-CAU · BV-NGOAI · BV-CHAM-HEALTH · BV-DO-HAI-LAN · BV-DO-INDEX · BV-ND-DO |
+| database.js đo chậm (ngưỡng, đường dẫn, đếm câu, ngoài, health cham, chống đo hai lần) / index.js gắn đo (+ /api/nd) | BV-CHAM · BV-CHAM-CLOSE · VS-CHAM-NGUONG · VS-CHAM-LO-DUONG · VS-CHAM-BO-QR · BV-DEM-CAU · BV-NGOAI · BV-CHAM-HEALTH · BV-DO-HAI-LAN · BV-DO-INDEX · BV-ND-DO |
 
 ### F2 — số câu kho của ba đường (chỉ đo + báo cáo — `thu_KETNOI1.js` mục [F], kho file cục bộ)
 | Đường | Câu kho TUẦN TỰ | Ghi chú |
@@ -182,6 +182,42 @@ BÀI HỌC: KHOÁ — hàm giả trong bài thử (huỷ / hỏi) theo ĐÚNG đ
  hỏi hỏng), mỗi trạng thái một ca theo hành vi gốc. K3 — mỗi vế danh sách mã / trạng thái một ca riêng; ngưỡng thời gian canh hai chiều.
  K4 — đổi tên hàm / mã ở vòng sửa thì grep cả cong_cu/ + bang_chung_do.txt + ke_hoach.md.
 ```
+
+## Vòng sửa 2 (sau soát vòng 2 — mọi lỗi NHẸ)
+- Lỗi 1 (chốt hỏng vì đơn báo nhầm mất kết nối): `xuLyThuHong` chỉ huỷ phiên còn 'cho'; 'loi' / 'huy' / 'het_han' → bao_loi (lời máy chủ, như gốc).
+  Huỷ giả trong bài thử theo ĐÚNG câu ghi máy chủ (409 khi không còn 'cho'). Ca B3d (soát vòng 2) + VS-HUY-MOI-TRANG-THAI.
+- Lỗi 2 ([CHAM] khi khách bỏ kết nối): nghe 'close'. Ca F1 "khách bỏ ở 2,3 s, máy chủ 3 s" + BV-CHAM-CLOSE. (Thử lần đầu bỏ ở 150 ms → dưới
+  ngưỡng nên không dòng — ca sai thiết kế, sửa thành bỏ TRÊN ngưỡng như Ahamove bỏ sau 5 s.)
+- Lỗi 3 (ngoài Cấm giuCho): trả chú thích Q16 về dòng nạp voucherCode; dòng 502 tạo QR hỏng giữ NGUYÊN chữ gốc (LOI_QR chỉ dùng trong phienCuaMa).
+- Lỗi 4 (lỗ bài thử): proxy 503 / 504 / 524 (VS-PROXY-CHI-502); che mã QR trong đường dẫn [CHAM] (VS-CHAM-BO-QR); A1d hai chiều ≥ 700 ms
+  (VS-CHO-KHONG); móc chỉ ≥ 500 (VS-MOC-MOI-MA); bỏ nhánh AbortError chết; B2 bỏ vế order_id (che nhau, cùng giao dịch với da_thu).
+- Lỗi 5 (hồ sơ cũ): thu_BH2.js chú thích → xuLyThuHong; bang_chung_do.txt ghi rõ đổi tên + đủ 17 ca xanh trên gốc; ke_hoach.md "Chỉnh sau duyệt"
+  bổ sung; index.js bỏ câu lý do "ngữ cảnh đo đi theo route" (người soát đo được ngữ cảnh vẫn còn sau express.json).
+- Lỗi 6 (bộ phận HTTP trong database.js): KHÔNG chuyển — file mới `server/middleware/ketNoi.js` ngoài Phạm vi phiếu; bài thử cần nạp các hàm này
+  trong tiến trình (index.js tự chạy máy chủ khi nạp). Ghi Phát hiện.
+- Nghi ngờ Cloudflare 520–524: thêm vào trang proxy = mất kết nối (api.js MA_TRANG_PROXY).
+- Nghi ngờ kiemPin: sửa lại câu ở vòng sửa 1 — PIN đúng thì cộng đếm rồi đặt lại; nếu câu ĐẶT LẠI (`pinKhach.js:52`) rớt mạng sau khi so đúng,
+  lần gửi lại cộng thêm một lần sai (tối đa = số lần gửi lại, 2) — CHƯA KIỂM, ghi Phát hiện (pinKhach.js ngoài Phạm vi).
+- Bài thử: 99 ca, gốc 17 đạt · 82 hỏng. Đột biến chạy đủ ở e4337891: 68 · BẮT 68 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng 99 đạt · 0 hỏng).
+- `npm test -- --day-du`: PASS 124 · FAIL 0 · CẢNH BÁO 1.
+
+## Phát hiện (ngoài Phạm vi / chưa làm — chủ quán xem)
+1. Màn Bán hàng CŨ `Sales.jsx` là màn MẶC ĐỊNH (`client/src/pages/BanHang/index.jsx:35`) và gọi `POST /orders` không chống trùng — hở nặng nhất
+   (B6). Chủ quán đã chốt để phiếu sau (BO-MAN-CU-1).
+2. Đường ghi tiền còn hở bấm hai lần (B6): `wallets/topup|adjust|deduct`, `loyalty/redeem`, `damages`, `membership/cap`, `pay-debt` trả một phần —
+   cùng khuôn ma_gui ở phiếu sau.
+3. F2 — chốt tiền mặt = 23 câu kho TUẦN TỰ, tạo + chốt = 33 (`thu_KETNOI1.js` [F]). Đề xuất phiếu tối ưu: gộp đọc trong taoDon / gửi lô (batch),
+   đo thật bằng dòng [CHAM] trên production trước. Tin báo Ahamove: trả 200 ngay rồi xử lý sau (GIAO-2).
+4. Commit "rớt" sau khi Turso đã ghi đơn: phần sau commit của taoDon (trừ kho SX `orders.js:1297`, `pos_stock_pending`) không chạy; nay quầy nhận
+   200 lap_lai nên SX lệch im lặng (lỗi cũ, nay bị che bằng thành công). Phiên QR gặp ca này kẹt DANG_XU_LY tới hết hạn (giữ voucher / số HĐ).
+5. `fetch` ở quầy không có hạn giờ — yêu cầu treo không bao giờ tới lượt gửi lại, nút khoá lâu (lỗi cũ).
+6. Câu C1 "…kiểm tra mạng rồi thử lại" cũng hiện cho POST ghi tiền (nạp ví…) — đúng chữ phiếu nhưng ngược lý do đề xuất #2; đổi = đổi phiếu.
+7. Bộ phận HTTP (mocLoiKho, traLoiKho, doYeuCau, bocFetchNgoai) đặt trong `server/database.js` (> 1.700 dòng) — nên tách `server/middleware/ketNoi.js`
+   (ngoài Phạm vi).
+8. `kiemPin` (`server/utils/pinKhach.js:48-52`) cộng đếm sai TRƯỚC khi so; câu đặt lại rớt mạng → gửi lại cộng dồn một lần (CHƯA KIỂM).
+9. [CHAM] giữ đoạn đường dẫn toàn chữ: mã đơn App `/api/kh/don/:ma` không chữ số (~10%) có thể lên log — cần token khách, rủi ro thấp.
+10. `cong_cu/thu_SAOLUUDEM1.js` B3 nay dựa tiêu đề commit "SAOLUU-DEM-1…" (bản cũ "diff index.js rỗng" đỏ vĩnh viễn với mọi việc sau chạm index.js).
+11. CHƯA KIỂM trên Turso thật: hình lỗi mạng thật, BEGIN IMMEDIATE có xếp hàng hai lần gửi cùng mã không (đã thêm lớp khiTrung đỡ), mã bận Turso.
 
 ## Câu hỏi
 (không có)
