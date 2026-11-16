@@ -64,7 +64,7 @@ router.post('/phien/:id/chot', authenticate, async (req, res) => {
     if (p.cach === 'tien_mat' && khachDua != null && !(Number(khachDua) >= p.con_lai)) {
       return loi(res, 400, 'TIEN_KHACH_DUA_THIEU', 'Tiền khách đưa chưa đủ');
     }
-    tra(res, await chotPhien(p, p.cach, { khachDua, nguoi: req.user.username }));
+    tra(res, await chotPhien(p, p.cach, { khachDua, nguoi: req.user.username, lapLai: true }));   // KET-NOI-1 B2: gửi lại lệnh chốt → đơn đã ghi
   } catch (err) {
     loiGhi(res, err);
   }

@@ -35,10 +35,31 @@ const tomPhien = (p, order = null) => ({
   noi_dung: p.noi_dung, qr: p.qr, checkout_url: p.checkout_url, order,
 });
 
+// ── KET-NOI-1 B1: mã lượt bấm (khuôn kho_phieu.ma_gui) ──
+const MAU_MA_GUI = /^[A-Za-z0-9_-]{8,64}$/;
+const LOI_QR = () => loi(502, 'PAYOS_LOI', 'Cổng QR không tạo được QR — thử lại, hoặc dùng QR tĩnh của quán');
+/** Phiên đã tạo cho mã `maGui` (q: { queryOne } hoặc tx) → câu trả cho lần gửi lại; null = chưa có. Cùng mã mà thân / cách / người tạo khác,
+ *  hoặc phiên đã giữ ví mà lần này không xin trừ tài khoản → 409 (không trả nhầm phiên). Phiên QR chưa có QR (lần đầu còn đang gọi cổng)
+ *  → 503 DANG_XU_LY (quầy gửi lại); cổng QR đã hỏng → 502 PAYOS_LOI như lần đầu; phiên không còn chờ → 409 PHIEN_DA_CHOT. */
+async function phienCuaMa(q, maGui, thanDon, cach, nguoi, truTK) {
+  const p = await q.queryOne('SELECT * FROM pos_phien_thanh_toan WHERE ma_gui = ?', [maGui]);
+  if (!p) return null;
+  if (p.than !== thanDon || p.cach !== cach || p.nguoi_tao !== nguoi || (p.giu_vi > 0 && !truTK)) {
+    return loi(409, 'MA_GUI_KHAC_DON', 'Mã lượt bấm đã dùng cho đơn khác — bấm thu lại');
+  }
+  const tt = tomPhien(p).trang_thai;
+  if (tt === 'loi' && p.cach === 'payos') return LOI_QR();
+  if (tt !== 'cho') return loi(409, 'PHIEN_DA_CHOT', 'Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn');
+  if (p.cach === 'payos' && !p.qr) return loi(503, 'DANG_XU_LY', 'Đang tạo mã QR — chờ vài giây');
+  return { status: 200, body: { success: true, phien: tomPhien(p) } };
+}
+
 /** kenh: 'APP' CHỈ donApp.js truyền (tham số, không đọc từ thân yêu cầu — quầy không tự xưng kênh App). */
 async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
   const { cach } = b;
   if (!CACH.includes(cach)) return loi(400, 'CACH_KHONG_HOP_LE', 'Cách trả phải là payos, ck_tay, tien_mat hoặc tai_khoan');
+  const maGui = b.ma_gui ?? null;   // KET-NOI-1 B1: mã lượt bấm của quầy — không gửi = như cũ (đơn App tự dựng thân, không mang mã)
+  if (maGui !== null && !(typeof maGui === 'string' && MAU_MA_GUI.test(maGui))) return loi(400, 'MA_GUI_KHONG_HOP_LE', 'Mã lượt bấm không hợp lệ');
   const cong = cach === 'payos' ? congQr() : null;
   if (cach === 'payos' && !cong?.daCauHinh()) return loi(503, 'PAYOS_CHUA_CAU_HINH', 'Chưa cài cổng QR chuyển khoản — dùng QR tĩnh của quán (xác nhận tay)');
   const goc = b.don && typeof b.don === 'object' ? b.don : {};
@@ -50,6 +71,10 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
   if ((b.tru_tai_khoan && !phone) || (b.tru_tai_khoan_me && !phoneMe)) return loi(400, 'CAN_KHACH', 'Trừ tài khoản cần chọn khách (và SĐT mẹ)');
   if (phoneMe && phoneMe === phone) return loi(400, 'ME_TRUNG_KHACH', 'SĐT mẹ trùng SĐT khách — trừ tài khoản của chính khách, không qua dòng tài khoản mẹ');   // giữ hai lần một ví
   if (phoneMe) don.parent_phone = phoneMe;
+  const thanDon = JSON.stringify(don);
+  // KET-NOI-1 B1 đường nhanh: gửi lại cùng mã → phiên đã có; không tính lại (phiên QR có voucher sẽ bị chính nó chặn VOUCHER_DANG_GIU), không kiểm PIN lại.
+  const daCo = maGui && await phienCuaMa({ queryOne }, maGui, thanDon, cach, nguoi, !!b.tru_tai_khoan);
+  if (daCo) return daCo;
   const r = gomRes();
   const tinh = await taoDon({ body: don, user: { username: nguoi } }, r, { chiTinh: true });
   if (r.body !== undefined) return { status: r.statusCode, body: r.body };
@@ -62,6 +87,9 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
   }
   const now = getNow(), hetGiay = Math.floor(Date.now() / 1000) + HAN_PHUT * 60;   // QR (payOS) hết hạn cùng mốc với het_han của phiên
   const kq = await trongGiaoDich(async (tx) => {
+    // KET-NOI-1 B1: câu ĐẦU của giao dịch ghi (khoá ghi độc quyền), TRƯỚC phép giữ ví / voucher — hai lần gửi cùng lúc: lần sau thấy phiên lần đầu.
+    const daCoTx = maGui && await phienCuaMa(tx, maGui, thanDon, cach, nguoi, !!b.tru_tai_khoan);
+    if (daCoTx) return { huy: true, ...daCoTx };
     const khaDung = async (sdt) => Math.max(0,
       Number((await tx.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [sdt]))?.balance || 0) - await dangGiu(tx, sdt));
     const giu = b.tru_tai_khoan ? Math.min(await khaDung(phone), tong) : 0;
@@ -80,8 +108,8 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
       const giuKhac = await voucherDangGiu(tx, vc.map((g) => g.code));
       if (giuKhac.length) return { huy: true, ...loi(400, 'VOUCHER_DANG_GIU', `Voucher ${giuKhac[0]}: đang được giữ cho một thanh toán chuyển khoản chưa xong`) };
     }
-    const ins = await tx.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, phone_me, giu_vi_me, con_lai, cach, het_han, nguoi_tao, tao_luc)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${GIO}, ?, ?)`, [JSON.stringify(don), tong, phone || null, giu, phoneMe, giuMe, conLai, cach, now, `+${HAN_PHUT} minutes`, nguoi, now]);
+    const ins = await tx.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, phone_me, giu_vi_me, con_lai, cach, het_han, nguoi_tao, tao_luc, ma_gui)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${GIO}, ?, ?, ?)`, [thanDon, tong, phone || null, giu, phoneMe, giuMe, conLai, cach, now, `+${HAN_PHUT} minutes`, nguoi, now, maGui]);
     const id = Number(ins.lastInsertRowid);
     const so = cach === 'payos' || kenh === 'APP' ? await capSoHoaDon(tx, { kenh: kenh === 'APP' ? 'APP' : 'HD', phienId: id, now }) : null;
     if (cach !== 'payos') return { id };
@@ -100,7 +128,7 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
     } catch (e) {
       console.error('Cổng QR tạo QR lỗi:', e.message);
       await run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi' WHERE id = ? AND trang_thai = 'cho'", [phien.id]);   // nhả phần giữ
-      return loi(502, 'PAYOS_LOI', 'Cổng QR không tạo được QR — thử lại, hoặc dùng QR tĩnh của quán');
+      return LOI_QR();
     }
   }
   return { status: 200, body: { success: true, phien: tomPhien(phien) } };
@@ -110,6 +138,11 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
  *  suKien(tx) — ghi trong giao dịch, muon (CHỈ route xác nhận tay — phiên quầy — và webhook tiền về muộn của đơn App chỉ thẻ / chỉ nạp đặt; cho chốt phiên 'cho' đã hết hạn
  *  hoặc 'huy') }. */
 async function chotPhien(phien, nguon, them = {}) {
+  // KET-NOI-1 B2: quầy gửi lại lệnh chốt mà CHÍNH lần chốt trước đã ghi xong → trả đơn đã ghi, không ghi gì. CHỈ route /chot đặt lapLai
+  // (webhook — nguon 'payos' trùng tên cách —, xác nhận tay, đơn App: lần hai vẫn 409 như cũ).
+  if (them.lapLai === true && phien.trang_thai === 'da_thu' && phien.order_id && phien.nguon === nguon && ['tien_mat', 'tai_khoan'].includes(nguon)) {
+    return { status: 200, body: { success: true, order: await queryOne('SELECT id, code FROM pos_orders WHERE id = ?', [phien.order_id]), lap_lai: true } };
+  }
   const muon = them.muon === true;
   // Báo sớm theo trạng thái vừa đọc (khỏi tính lại đơn); cổng THẬT là câu ghi cho → da_thu trong giao dịch (vaoGiaoDich).
   const conChot = muon ? ['cho', 'huy'].includes(phien.trang_thai) : phien.trang_thai === 'cho' && phien.het_han > getNow();

@@ -12,6 +12,7 @@
  * - Các routes cần thêm await khi gọi
  */
 
+const { AsyncLocalStorage } = require('async_hooks');   // KET-NOI-1 F1: đếm câu kho của từng yêu cầu
 const { createClient } = require('@libsql/client');
 const { cauHinhTurso, diaChiSX } = require('./ketNoiKho'); // POS-KHOTHU-v2
 const { getNow } = require('./utils/helpers');   // GIO-VN-1: giờ ghi = giờ VN (cột DEFAULT CURRENT_TIMESTAMP là UTC — luôn truyền giờ)
@@ -1486,24 +1487,119 @@ function sanitizeArgs(params = []) {
   });
 }
 
+// ═══ KET-NOI-1 — mạng Render ↔ Turso chập một nhịp ═══════════════════════════════════════════════════════════════════════════════
+// Lỗi mạng tới tay POS NGUYÊN dạng node-fetch 2.7.0 (@libsql/isomorphic-fetch/node_modules/node-fetch: FetchError type 'system', code hệ
+// thống) — @libsql/client chỉ bọc lỗi giao thức (hrana.js mapHranaError). Turso trả trang 502/503/504 → LibsqlError SERVER_ERROR, cause.status.
+// Câu ĐỌC ngoài giao dịch tự đọc lại; câu GHI và mọi câu trong giao dịch KHÔNG gửi lại (không biết kho đã ghi chưa). Lỗi mạng đổi thành
+// lỗi KHO_MAT_KET_NOI lời dễ hiểu, KHÔNG mang lỗi gốc (địa chỉ kho nằm trong chữ lỗi gốc — console.error(x, err) sẽ in ra).
+const LOI_KHO = {
+  doc: 'Mất kết nối máy chủ — thử lại sau vài giây',
+  ghi: 'Mất kết nối máy chủ — chưa biết đã ghi chưa, xem lại trước khi bấm lại',
+};
+const CHO_DOC_MS = [200, 600];   // chờ trước lần đọc lại thứ 1, 2 — tổng 0,8 s
+const NGUONG_CHAM_MS = 2000;     // F1: yêu cầu /api/* lâu hơn → một dòng [CHAM]
+const MA_MANG = new Set(['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH', 'ECONNABORTED']);
+const KIEU_FETCH = new Set(['system', 'request-timeout', 'body-timeout']);
+
+function laLoiMang(err) {
+  if (!err) return false;
+  const goc = err.cause || {};
+  return (err.name === 'FetchError' && KIEU_FETCH.has(err.type)) || MA_MANG.has(err.code) || MA_MANG.has(goc.code)
+    || /fetch failed|socket hang up/i.test(String(err.message)) || (err.code === 'SERVER_ERROR' && [502, 503, 504].includes(goc.status));
+}
+
+/** Câu ĐỌC (được đọc lại): bắt đầu SELECT; hoặc WITH mà không có từ ghi (chặn `WITH … INSERT`). Chú thích / khoảng trắng đầu bỏ qua. */
+function laCauDoc(sql) {
+  const s = String(sql).replace(/^(\s+|--[^\n]*(\n|$)|\/\*[\s\S]*?\*\/)*/, '');
+  return /^select\b/i.test(s) || (/^with\b/i.test(s) && !/\b(insert|update|delete|replace)\b/i.test(s));
+}
+
+const demRot = { rot: 0, thu_lai_dat: 0, thu_lai_hong: 0, tu: getNow() };
+const cham = { so_lan: 0, lau_nhat_ms: 0, luc: null };   // luc = lúc của lần LÂU NHẤT
+const demKetNoi = () => ({ ...demRot, cham: { ...cham } });
+const doDo = new AsyncLocalStorage();   // F1: { batDau, cau, khoMs, ngoaiMs } của yêu cầu đang chạy
+
+const maLoi = (err) => String(err.code || (err.cause && err.cause.code) || err.type || 'KHONG_RO').replace(/[^\w-]/g, '').slice(0, 40);
+function baoRot(err, kieu, lan, tong, tiep) {
+  demRot.rot++;
+  console.warn(`[KET-NOI] ${kieu} lan ${lan}/${tong} ${maLoi(err)} — ${tiep}`);   // không câu SQL, không tham số, không chữ lỗi gốc
+}
+const loiKho = (err, kieu) => Object.assign(new Error(LOI_KHO[kieu]), { code: 'KHO_MAT_KET_NOI', status: 503, ma_goc: maLoi(err) });
+/** Lỗi trong giao dịch: mạng → ném lỗi đổi dạng (không thử lại); khác → ném nguyên. */
+function nemLoiGhi(err) {
+  if (!laLoiMang(err)) throw err;
+  baoRot(err, 'ghi', 1, 1, 'khong thu lai (giao dich)');
+  throw loiKho(err, 'ghi');
+}
+async function doCau(lam) {
+  const d = doDo.getStore(), t = Date.now();
+  try { return await lam(); } finally { if (d) { d.cau++; d.khoMs += Date.now() - t; } }
+}
+
+/** Trả 503 KHO_MAT_KET_NOI nếu err là lỗi mạng đã đổi dạng (loiGhi, bắt lỗi cuối index.js). Trả true khi đã trả lời. */
+function traLoiKho(res, err) {
+  if (!err || err.code !== 'KHO_MAT_KET_NOI') return false;
+  res.status(503).json({ error: err.message, code: 'KHO_MAT_KET_NOI' });
+  return true;
+}
+/** Móc /api/pos (index.js, trước mọi route): route trả `{ error: err.message }` ≥ 500 với lời mất kết nối → 503 + code. So đúng HẰNG của mình. */
+const CAU_LOI_KHO = Object.values(LOI_KHO);
+function mocLoiKho(req, res, next) {
+  const json = res.json.bind(res);
+  res.json = (than) => {
+    if (res.statusCode >= 500 && than && CAU_LOI_KHO.includes(than.error)) { res.status(503); than = { ...than, code: 'KHO_MAT_KET_NOI' }; }
+    return json(than);
+  };
+  next();
+}
+/** F1 — đo mỗi yêu cầu /api/*: quá ngưỡng thì MỘT dòng [CHAM] (đường dẫn bỏ tham số, đoạn có chữ số → :x; không SĐT, không thân). */
+const duongLog = (req) => req.originalUrl.split('?')[0].split('/').map((s, i, a) => (/\d/.test(s) || a[i - 1] === 'qr' ? ':x' : s)).join('/');
+function doYeuCau(req, res, next) {
+  const d = { batDau: Date.now(), cau: 0, khoMs: 0, ngoaiMs: 0 };
+  res.locals.ketNoi = d;
+  res.on('finish', () => {
+    const tong = Date.now() - d.batDau;
+    if (tong <= NGUONG_CHAM_MS) return;
+    cham.so_lan++;
+    if (tong > cham.lau_nhat_ms) { cham.lau_nhat_ms = tong; cham.luc = getNow(); }
+    console.warn(`[CHAM] ${req.method} ${duongLog(req)} · ${tong} ms · kho ${d.cau} câu / ${d.khoMs} ms · ngoài ${d.ngoaiMs} ms`);
+  });
+  doDo.run(d, next);
+}
+/** F1 "ngoài": bọc fetch toàn cục (SX, Ahamove, cổng QR — kho Turso đi node-fetch riêng nên không bị tính). */
+const bocFetchNgoai = (fetchGoc) => async (...a) => {
+  const d = doDo.getStore(), t = Date.now();
+  try { return await fetchGoc(...a); } finally { if (d) d.ngoaiMs += Date.now() - t; }
+};
+
 /**
- * Query helper - SELECT (ASYNC)
+ * Query helper - SELECT (ASYNC). KET-NOI-1: câu đọc gặp lỗi mạng → đọc lại tối đa CHO_DOC_MS.length lần; câu ghi → không.
  * @param {string} sql - SQL query
  * @param {Array} params - Parameters
  * @returns {Promise<Array>} - Array of rows
  */
 async function query(sql, params = []) {
-  try {
-    const result = await db.execute({
-      sql: sql,
-      args: sanitizeArgs(params)
-    });
-    // Chuyển đổi rows thành array of objects
-    return result.rows.map(row => ({ ...row }));
-  } catch (err) {
-    console.error('Query error:', err.message);
-    thayKetNoiNeuBan(err);
-    throw err;
+  const cau = { sql, args: sanitizeArgs(params) };
+  const doc = laCauDoc(sql);
+  for (let lan = 0; ; lan++) {
+    try {
+      const result = await doCau(() => db.execute(cau));
+      if (lan) demRot.thu_lai_dat++;
+      return result.rows.map(row => ({ ...row }));
+    } catch (err) {
+      if (!laLoiMang(err)) {
+        console.error('Query error:', err.message);
+        thayKetNoiNeuBan(err);
+        throw err;
+      }
+      const conLuot = doc && lan < CHO_DOC_MS.length;
+      baoRot(err, doc ? 'doc' : 'ghi', lan + 1, doc ? CHO_DOC_MS.length + 1 : 1, conLuot ? 'thu lai' : doc ? 'het luot' : 'khong thu lai (cau ghi)');
+      if (!conLuot) {
+        if (doc) demRot.thu_lai_hong++;
+        throw loiKho(err, doc ? 'doc' : 'ghi');
+      }
+      await cho(CHO_DOC_MS[lan]);
+    }
   }
 }
 
@@ -1529,16 +1625,20 @@ const soDong = (v) => (v == null ? v : Number(v));
  */
 async function run(sql, params = []) {
   try {
-    const result = await db.execute({
+    const result = await doCau(() => db.execute({
       sql: sql,
       args: sanitizeArgs(params)
-    });
+    }));
 
     return {
       lastInsertRowid: soDong(result.lastInsertRowid),
       changes: result.rowsAffected
     };
   } catch (err) {
+    if (laLoiMang(err)) {   // KET-NOI-1: câu ghi KHÔNG gửi lại — không biết kho đã ghi chưa
+      baoRot(err, 'ghi', 1, 1, 'khong thu lai (cau ghi)');
+      throw loiKho(err, 'ghi');
+    }
     console.error('Run error:', err.message);
     thayKetNoiNeuBan(err);
     throw err;
@@ -1582,13 +1682,13 @@ async function beginTransaction() {
   let tx = null;
   const chay = async (sql, params) => {
     const cau = { sql, args: sanitizeArgs(params) };
-    if (tx) return tx.execute(cau);
+    if (tx) return doCau(() => tx.execute(cau)).catch(nemLoiGhi);
     for (let lan = 0; ; lan++) {
       try {
         tx = await db.transaction("write");
-        return await tx.execute(cau);
+        return await doCau(() => tx.execute(cau));
       } catch (err) {
-        if (!laLoiBan(err)) throw err;
+        if (!laLoiBan(err)) nemLoiGhi(err);
         if (tx) { try { tx.close(); } catch (e) { /* đã đóng */ } tx = null; }
         thayKetNoiNeuBan(err);
         if (lan >= CHO_BEGIN_MS.length) throw err;
@@ -1609,7 +1709,7 @@ async function beginTransaction() {
       const result = await chay(sql, params);
       return { lastInsertRowid: soDong(result.lastInsertRowid), changes: result.rowsAffected };
     },
-    async commit() { if (tx) await tx.commit(); },
+    async commit() { if (tx) await doCau(() => tx.commit()).catch(nemLoiGhi); },
     async rollback() { try { if (tx) await tx.rollback(); } catch(e) {} }
   };
 }
@@ -1624,5 +1724,7 @@ module.exports = {
   saveDatabase,
   laLoiBan,
   CHO_BEGIN_MS,
-  layNangCapHong: () => nangCapHong
+  layNangCapHong: () => nangCapHong,
+  // KET-NOI-1
+  laLoiMang, laCauDoc, demKetNoi, traLoiKho, mocLoiKho, doYeuCau, bocFetchNgoai, LOI_KHO, CHO_DOC_MS, NGUONG_CHAM_MS
 };
