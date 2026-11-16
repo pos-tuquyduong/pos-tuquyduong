@@ -27,9 +27,9 @@ DOT_BIEN = [
   ('VS-200-truoc-khoa', 'g2', [(RG, "  const khoa = process.env.AHAMOVE_KHOA_BAO;\n", "  res.json({ success: true }); gh.nhanTinBaoNen(req.body); return;\n  const khoa = process.env.AHAMOVE_KHOA_BAO;\n", 1)], r'✗ A1b '),
   ('VS-nen-khong-bat-loi', 'g2', [(GH, "  const p = nhanTinBao(b).catch((e) => logLoi(", "  const p = nhanTinBao(b).then(() => {}, (e) => { logLoi(", 1),
     (GH, "'xử lý tin', e)).finally(", "'xử lý tin', e); throw e; }).finally(", 1)], r'✗ A2c '),
-  ('BV-tin-dang-goi', 'g2', [(GH, "  if (!c || c.trang_thai === 'dang_goi') return;", "  if (!c) return;", 1)], r'✗ A4 '),
+  ('BV-tin-dang-goi', 'g2', [(GH, "  if (c.trang_thai === 'dang_goi') return logGiao('tin', ma, '-', 'bỏ qua: thẻ đang gọi xe', t0);\n", "", 1)], r'✗ A4 '),
   ('VS-tin-dang-goi-409', 'g1', [(RG, "  res.json({ success: true });   // GIAO-2: trả lời NGAY", "  if ((await require('../database').queryOne('SELECT trang_thai FROM pos_giao_chuyen WHERE ma_ahamove = ?', [String(req.body?._id)]))?.trang_thai === 'dang_goi') return res.status(409).json({ code: 'DANG_GOI_XE' });\n  res.json({ success: true });   // GIAO-2: trả lời NGAY", 1)], r'✗ V10 '),
-  ('BV-go-chong-lap', 'g2', [(GH, "      await run('DELETE FROM pos_giao_tin WHERE ma_ahamove = ? AND trang_thai = ? AND phu = ?', [ma, d.trang_thai, phu]);\n", "", 1)], r'✗ A2d '),
+  ('BV-go-chong-lap', 'g2', [(GH, "    await run('DELETE FROM pos_giao_tin WHERE ma_ahamove = ? AND trang_thai = ? AND phu = ?', [ma, d.trang_thai, phu]);\n", "", 1)], r'✗ A2d '),
   ('VS-go-chong-lap-moi-trang-thai', 'g2', [(GH, "'DELETE FROM pos_giao_tin WHERE ma_ahamove = ? AND trang_thai = ? AND phu = ?', [ma, d.trang_thai, phu]", "'DELETE FROM pos_giao_tin WHERE ma_ahamove = ? AND trang_thai = ? AND phu = ?', [ma, 'X', phu]", 1)], r'✗ A2d '),
   # ── B: đọc lại ──
   ('BV-mot-chuyen', 'g2', [(AH, "const motChuyen = (j) => { const o = Array.isArray(j) ? j[0] : j; return o && !(o._id || o.order_id) && o.order ? o.order : o; };", "const motChuyen = (j) => j;", 1)], r'✗ B1 '),

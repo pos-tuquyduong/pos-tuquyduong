@@ -26,6 +26,9 @@
 | ahamove.js motChuyen (gỡ mảng / {order}) | BV-mot-chuyen · VS-mot-chuyen-chi-mang |
 | hạn đọc lại 4 s (HAN_DOC_LAI_MS, goiTho `han`) | BV-han-doc-lai · BV-han-goi-tho |
 | danhSach: log lỗi đọc lại (hết `catch {}`) | BV-log-loi-doc-lai |
+| (vòng sửa 1) docLaiPhiHuy: hạn 8 s, song song, chạy cùng lúc đọc thẻ, log lỗi | BV-han-phi-huy · VS-phi-huy-sau-the · BV-log-phi-huy |
+| (vòng sửa 1) chống lặp `changes` (A3) | BV-chong-lap-changes |
+| (vòng sửa 1) log tin bị bỏ qua; log in giá trị capNhatTuAhamove trả | BV-log-tin-bo-qua · VS-log-suy-lai |
 | danhSach: "Tải lại" đọc ngay (5 s), trần 8, hẹn 15 s giữ 60 s | BV-doc-lai-ngay · VS-tai-lai-khong-chan-don · VS-tai-lai-ca-hen-gio · VS-tran-tai-lai · BV-cua-doc-lai |
 | logGiao: dòng [GIAO] không SĐT | BV-log-giao · VS-log-sdt-tai-xe |
 | màn Giao hàng / api.js: nút Tải lại gửi cờ | BV-nut-tai-lai · VS-in-tem-truyen-doi-so · BV-api-doc-lai |
@@ -42,3 +45,20 @@ NGHI NGỜ: B1 chỉ đỏ trên dạng bọc do Ahamove giả tự bọc (giả
 NGHIỆM THU: 9/12 · thiếu B2, B3, B5 (B5: chưa ghi trong báo cáo cho chủ quán "Render không có hẹn giờ nền").
 CHƯA SOÁT ĐƯỢC: chạy lại thu_GIAO2 trên gốc (người gác chặn nối node_modules); `--day-du`, cổng `cong.js chay`; tài liệu Ahamove; Turso / Render thật.
 BÀI HỌC: KHOÁ — B2 có ca CHO_PHI_HUY + Ahamove treo; đột biến A3. NGUYÊN TẮC — log chẩn đoán in điều code ĐÃ làm (giá trị hàm trả); hạ hạn / sửa nuốt lỗi một đường thì grep mọi lời gọi ra ngoài trong CÙNG yêu cầu; không hạ thời gian chờ dưới độ trễ chưa đo của sự cố đang sửa.
+
+## Vòng sửa 1 (sau soát vòng 1)
+- giaoHang.js: `docLaiPhiHuy` đọc song song, hạn HAN_DOC_LAI_MS, chạy CÙNG LÚC với đọc thẻ, lỗi ghi `[GIAO] phi_huy <mã> lỗi …` (logic phí không đổi:
+  vẫn CANCELLED → ghiPhiHuy một lần mỗi mã; chưa ra → xếp cuối). HAN_DOC_LAI_MS 4 s → 8 s (người soát: không hạ dưới độ trễ chưa đo; 8 s > 5,1 s của
+  sự cố, < nhịp hỏi 15 s). `capNhatTuAhamove` trả ĐIỀU ĐÃ LÀM (trạng thái mới / "bỏ qua: …"); log in đúng giá trị đó. Tin bị bỏ qua (không phải của quán,
+  thẻ đang gọi xe, tin lặp) có log. Lỗi ghi rõ bước: đọc kho / đọc Ahamove / ghi kho. Chú thích hạn ở ahamove.js:10 và giaoHang.js sửa cho đúng.
+- thu_GIAO2: A1a kho chậm 1,5 s/câu (mọi câu kho trước khi trả → > 1 s); B2 Ahamove treo 12 s với 2 chuyến + 1 dòng "phí huỷ chưa rõ"; B3c, B3d mới.
+- Đột biến: 28 · BẮT 28 (lần chạy đủ: 26 BẮT + 2 HỎNG do neo cũ → sửa neo, chạy lại riêng 2 cái: BẮT).
+
+## Phát hiện (ngoài việc / không sửa)
+- giaoHang.js docLaiPhiHuy: dòng CHO_PHI_HUY mà Ahamove không bao giờ báo CANCELLED bị đọc lại ở MỌI lần màn hỏi, mãi mãi (chỉ đổi `luc`) — có từ GIAO-1.
+- Đọc lại song song lúc chưa có token (sau khi máy chủ khởi động lại): nhiều lời lấy token Ahamove cùng lúc (ahamove.js `goi`) — nhỏ, chưa sửa.
+- Các chỗ gọi `aha.docChuyen(...).catch(() => undefined)` trong goiXe / huyChuyenGiao (giaoHang.js đường gọi xe / huỷ) vẫn nuốt lỗi — ngoài B3 (B3 chỉ đòi tin
+  báo + đọc lại dự phòng), đụng đường gọi xe (C2 không đổi) → để việc sau.
+- viec/GIAO-1/dot_bien.py: neo `try { d = await aha.docChuyen(ma); }`, `if (doiLai >= DOC_LAI_TOI_DA) break;`, `if (c.trang_thai === 'dang_goi') return loi(409…`
+  không còn khớp (code đã đổi) — bộ đột biến cũ của GIAO-1 sẽ báo HỎNG ở 3 tên đó (ngoài Phạm vi).
+- Render không có hẹn giờ nền: "tự hỏi lại" chỉ chạy khi màn Giao hàng ĐANG MỞ ở quầy (hẹn 15 s, mốc 60 s) hoặc khi bấm "Tải lại".
