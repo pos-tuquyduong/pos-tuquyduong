@@ -34,9 +34,12 @@ function kiemGoi(g) {
   return null;
 }
 
+/** Gói đang bật, thứ tự quầy — MỘT câu cho quầy (GET /) và App KH (GET /api/kh/goi-nap, KH-NAP-1). */
+const dsGoiBat = () => query(`SELECT ${TRUONG} FROM pos_goi_nap WHERE is_active = 1 ORDER BY thu_tu, khach_tra, id`);
+
 router.get('/', authenticate, async (req, res) => {
   try {
-    res.json(await query(`SELECT ${TRUONG} FROM pos_goi_nap WHERE is_active = 1 ORDER BY thu_tu, khach_tra, id`));
+    res.json(await dsGoiBat());
   } catch (err) {
     console.error('Gói nạp:', err);
     res.status(500).json({ error: 'Lỗi máy chủ', code: 'LOI_MAY_CHU' });
@@ -87,3 +90,4 @@ router.put('/:id', authenticate, chiChuQuan, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.dsGoiBat = dsGoiBat;

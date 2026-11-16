@@ -244,8 +244,9 @@ export function chiaTra({ tong, khach, dungTK, dungMe }) {
 /** QUAY-UI-1: cách trả mặc định — KHÔNG tự trừ tài khoản dù khách có số dư; chỉ bấm "Trừ tài khoản" mới trừ. */
 export const CACH_TRA_MAC_DINH = 'tien_mat';
 /** Nút "Trừ tài khoản" mờ → lý do (chuỗi); bấm được → null. Đơn nạp chỉ tiền mặt / chuyển khoản (NAP-1). */
-export function lyDoKhongTru({ khach, laNap }) {
+export function lyDoKhongTru({ khach, laNap, laThe = false }) {
   if (laNap) return 'Đơn nạp chỉ trả tiền mặt hoặc chuyển khoản';
+  if (laThe) return 'Thẻ hội viên chỉ trả tiền mặt hoặc chuyển khoản';   // KH-NAP-1 (chủ quán 14.11) — máy chủ chặn THE_KHONG_TRA_VI
   if (!khach) return 'Chọn khách để trừ tài khoản';
   if (so(khach.balance) + so(khach.parent_balance) <= 0) return 'Khách chưa có số dư';
   return null;

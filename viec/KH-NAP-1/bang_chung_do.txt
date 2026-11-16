@@ -1,0 +1,102 @@
+KH-NAP-1 — bằng chứng ĐỎ trên code gốc (15.11.2026)
+
+Gốc = 6ca94f07 (PHIEU duyệt kế hoạch, trên GOP-KH-NAP-1 ab2a9d58 — main a7a09bc đã có VOUCHER-2), CHƯA có dòng code nào của việc này.
+Lệnh: bài HIỆN TẠI trên server/ + client/src/ của gốc (git archive, bản chép thật):
+  python3 viec/KH-NAP-1/dot_bien.py --goc 6ca94f07                          (bài có --may-chu)
+  python3 viec/KH-NAP-1/dot_bien.py --cay-goc 6ca94f07 --bai <bài>          (bài không có --may-chu: cả cây gốc + cong_cu/ và hợp đồng hiện tại)
+
+── cong_cu/thu_KHNAP1.js (bài MỚI) — gốc: thoát 1 ──
+  ✗ A1 báo giá giỏ chỉ nạp → 200, tong = khach_tra 100.000 (giá máy chủ)  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · undefined
+  ✗ A3 dòng nạp đúng 6 trường { loai "nap", ma_goi, ma null, so_luong 1, don_gia, thanh_tien }; giam[] rỗng  — {"error":"Yêu cầu không hợp lệ","code":"YEU_CAU_KHONG_HOP_LE"}
+  ✗ A1 so_luong 1 gửi rõ → 200 (không chặn oan)  — HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ A2 nạp + món: báo giá + POST /don → 400 NAP_KHONG_GOP (nguyên mã)  — HTTP 400 · YEU_CAU_KHONG_HOP_LE / HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ A2 nạp + thẻ / hai dòng nạp / gói tắt / gói không có → (cùng: YEU_CAU_KHONG_HOP_LE)
+  ✗ A2 nạp trả vi / vi_qr → 400 NAP_CHI_TIEN_MAT_QR (nguyên mã, không DON_KHONG_HOP_LE)  — HTTP 400 · YEU_CAU_KHONG_HOP_LE / HTTP 400 · YEU_CAU_KHONG_HOP_LE
+  ✗ A2 nạp + ma_giam + voucher: báo giá 200, tong 100.000, ma_giam_loi + voucher_loi = MA_KHONG_AP_MON_THUONG  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · [null,null]
+  ✗ A2 đặt đơn nạp kèm mã / voucher → 200, phiên KHÔNG mang mã / voucher (không giữ voucher cho phiên nạp)  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · undefined
+  ✗ A1 khoá gửi: hai POST /don nạp cùng khoá song song → một dòng đơn App; gửi lại → trung; cùng khoá đổi gói → 409 KHOA_GUI_DA_DUNG  — HTTP 400 · YEU_CAU_KHONG_HOP_LE …
+  ✗ A4 quán đóng: báo giá + đặt giỏ chỉ nạp → 200; giỏ đồ uống → 400 NGOAI_GIO  — HTTP 400 · YEU_CAU_KHONG_HOP_LE / HTTP 400 · YEU_CAU_KHONG_HOP_LE / HTTP 400 · NGOAI_GIO
+  ✗ A5 chưa thu → số dư 0, tien_trinh cho_tra  — HTTP 400 · YEU_CAU_KHONG_HOP_LE · undefined
+  ✗ B: bài chạy hết mục  — Cannot read properties of null (reading 'ma_payos')
+  ✗ C: bài chạy hết mục  — Cannot read properties of null (reading 'id')
+  ✗ B2 quầy: thẻ + balance / ví một phần / ví mẹ / thẻ + đồ uống / thẻ + gói trả bằng ví → 400 THE_KHONG_TRA_VI, đúng câu phiếu; ví không đổi  — HTTP 200 / HTTP 200 / HTTP 200 / HTTP 200 / HTTP 200
+  ✗ B2 cờ "CK phải qua payOS" bật → vẫn THE_KHONG_TRA_VI (không VI_PHAI_QUA_PIN)  — HTTP 400 · VI_PHAI_QUA_PIN
+  ✗ B2 phiên PIN tru_tai_khoan / cách tai_khoan / tru_tai_khoan_me có thẻ → 400 THE_KHONG_TRA_VI, không phiên giữ  — HTTP 400 · CACH_KHONG_KHOP / HTTP 200 / HTTP 400 · CACH_KHONG_KHOP
+  ✗ B2 App: giỏ thẻ / thẻ + đồ uống trả vi / vi_qr → 400 THE_KHONG_TRA_VI (nguyên mã); không đơn / phiên / ví đổi  — HTTP 200 / HTTP 400 · CACH_KHONG_KHOP / HTTP 200 / HTTP 200
+  ✗ C1 GET /goi-nap không token → gói bật, … đúng 4 trường { ma, ten, tra, vao }  — {"error":"Phiên đăng nhập không hợp lệ — đăng nhập lại","code":"KH_TOKEN_SAI"}
+  ✗ C1 ten chuỗi không rỗng; tra, vao nguyên đồng; vao ≥ tra  — []
+  ✗ E: bài chạy hết mục  — Cannot read properties of null (reading 'ma_payos')
+  ✗ B5 lyDoKhongTru: giỏ có thẻ (khách có số dư) → lý do "Thẻ hội viên chỉ trả tiền mặt hoặc chuyển khoản"; bỏ laThe → null  — null
+  ✗ B5 BanHangMoi: giỏ có thẻ tắt trừ tài khoản (cả mẹ) như giỏ nạp; ThuTien chuyển laThe vào lyDoKhongTru
+  ✗ E1 DonApp.jsx: đơn nạp hiện nhãn co_nap "đã vào tài khoản, không pha"
+  KH-NAP-1: 6 đạt · 26 hỏng · tổng 32 ca   (gốc dừng sớm ở mục B, C, E — head in 57 ca)
+  GỐC 6ca94f07 · cong_cu/thu_KHNAP1.js: thoát 1
+
+── cong_cu/thu_KHNAP1.js sau VÒNG SỬA 1 (soát độc lập) — chạy lại trên gốc 6ca94f07: thoát 1, 6 đạt · 28 hỏng · tổng 34 ca (gốc sập ở B, C, E — ca A6
+   "gửi lại cùng báo", D4 "đơn đã xoá", D1 ngưỡng trang nằm trong các mục sập; hai ca mới chạy tới được đều ĐỎ):
+  ✗ K5 quầy: tính thử nạp + mã → 200, tổng 100.000, ma_loi_code MA_KHONG_AP_MON_THUONG; ghi đơn nạp + mã → vẫn 400 NAP_CHI_TIEN_MAT_QR (luật NAP-1)  — HTTP 400 · NAP_CHI_TIEN_MAT_QR
+  ✗ C1 /goi-nap dùng CHUNG trần lượt / IP với /menu: hết lượt (qua /chuong-trinh) → /goi-nap 429 QUA_NHIEU_LAN  — HTTP 401 (cửa chưa có, sau tầng token)
+   Trên code TRƯỚC vòng sửa 1 (HEAD e2bd2855 + bài mới): ✗ A6 gói bật lại rồi cổng gửi lại ĐÚNG báo cũ → không đơn, ví không đổi — 305000 (cộng hai lần);
+   ✗ D4 đơn của chính khách đã xoá → "Thanh toán đơn" / "Hoàn tiền đơn" — "Hoàn tiền đơn trả hộ"; 60 đạt · 3 hỏng · tổng 63 ca. Sau vá: 63 đạt · 0 hỏng.
+── VÒNG SỬA 2 (soát vòng 2 nghi ngờ 1 — đua cùng khoá): ca mới "A6 hai bản CÙNG khoá đua nhau" trên code TRƯỚC vá (HEAD c4c720b9):
+  ✗ A6 hai bản CÙNG khoá đua nhau (bản kia ghi dòng báo giữa chừng) → bản này KHÔNG chốt đơn (giao dịch huỷ, cổng gửi lại sau), ví không đổi  — HTTP 200 · 105000
+  KH-NAP-1: 63 đạt · 1 hỏng · tổng 64 ca. Sau vá: 64 đạt · 0 hỏng. Gốc 6ca94f07 chạy lại: thoát 1, 6 đạt · 28 hỏng · tổng 34 ca (mục C sập trên gốc).
+── VÒNG SỬA 3 (soát vòng 3 nghi ngờ — cổng kia báo xen giữa lúc chốt muộn): ca mới trên code TRƯỚC vá (HEAD d4b67225):
+  ✗ A6 cổng KIA báo xen giữa lúc chốt muộn → không chốt đơn (5xx); gửi lại → 200, không đơn, không tự cộng (cần xem)  — HTTP 200 · HTTP 200 · 105000
+  KH-NAP-1: 64 đạt · 1 hỏng · tổng 65 ca. Sau vá: 65 đạt · 0 hỏng. Gốc 6ca94f07 chạy lại: thoát 1, 6 đạt · 28 hỏng · tổng 34 ca.
+
+── Bài CŨ sửa vì luật ĐÃ ĐƯỢC CHỦ QUÁN DUYỆT đổi (phiếu G2, chủ quán 14.11) — bài sửa thường (LUAT_XAY_APP §6.8–6.9): bản cũ ĐỎ trên code mới
+   (npm test 15.11 trước khi sửa: P2223 D5, P24 sập I1c, HD1 A19–A22, KHTHE1 23 ca, HOPDONG_KH thiếu 2 cửa + 4 mã, giả lập KB22 sập), bản mới ĐỎ trên gốc:
+cong_cu/thu_P2223.js — cây gốc: thoát 1
+  ✗ D5 mua thẻ trả đủ bằng ví → 400 THE_KHONG_TRA_VI, không dòng mua thẻ (KH-NAP-1)  — HTTP 200
+  44 đạt · 1 hỏng
+cong_cu/thu_P24.js — cây gốc: thoát 1
+  ✗ I1d (KH-NAP-1) mua thẻ trả bằng ví → 400 THE_KHONG_TRA_VI, ví không đổi  — HTTP 200
+  33 đạt · 1 hỏng
+cong_cu/thu_HD1.js — cây gốc: thoát 1
+  ✗ A19 (KH-NAP-1) mua thẻ trả đủ bằng tài khoản → 400 THE_KHONG_TRA_VI  — HTTP 200
+  158 đạt · 1 hỏng
+cong_cu/thu_KHTHE1.js — cây gốc: thoát 1
+  ✗ D1 trả ví → 400 THE_KHONG_TRA_VI, chưa hạng, ví không đổi (KH-NAP-1)  — HTTP 200
+  ✗ D1 đã thu (QR về đủ): 200, /toi.hang = Vàng ngay, một dòng sổ  — (gốc: lượt trả ví trước đã ghi một dòng sổ → 2 dòng)
+  ✗ D3 ví + QR cho thẻ → 400 THE_KHONG_TRA_VI, không giữ ví, chưa có hạng (KH-NAP-1)  — HTTP 200
+  ✗ D7 tiền QR về SAU khi đơn App chỉ thẻ hết hạn → máy tự chốt: CÓ hạng, một dòng sổ, ví 0; xác nhận tay sau đó → 409, không đơn thứ hai  — 200 · 100000 · HTTP 409 · PHIEN_APP_KHONG_TAO_LAI
+  ✗ E4 App huỷ đơn thẻ chưa trả → da_huy; tiền về đúng số sau đó → máy tự chốt: một dòng sổ, có hạng, ví 0  — HTTP 200
+  68 đạt · 5 hỏng
+cong_cu/thu_HOPDONG_KH.js — cây gốc: thoát 1
+  ✗ mọi cửa hợp đồng có route (23)  — GET /goi-nap, GET /vi
+  ✗ GET /goi-nap → 200, đủ 4 trường  — HTTP 401 · KH_TOKEN_SAI
+  ✗ GET /goi-nap không token → không 401  — HTTP 401
+  ✗ GET /vi → 200, đủ 8 trường  — HTTP 404 · KHONG_TIM_THAY
+  96 đạt · 4 hỏng
+cong_cu/gia_lap/chay.js (kịch bản KB22 trong cong_cu/gia_lap/kich_ban.js) — cây gốc: thoát 1
+  ✗ KB22 → HTTP: mua thẻ bằng ví → 400 THE_KHONG_TRA_VI, ví không đổi (KH-NAP-1): HTTP 200
+  Giả lập: 33 kịch bản · 18 bất biến · KHÔNG ĐẠT (1 lệch)
+
+── Số ca trên code ĐÃ VÁ (head) ──
+SỐ CA cong_cu/thu_KHNAP1.js: 65
+SỐ CA cong_cu/thu_P2223.js: 45
+SỐ CA cong_cu/thu_P24.js: 34
+SỐ CA cong_cu/thu_HD1.js: 159
+SỐ CA cong_cu/thu_KHTHE1.js: 73
+SỐ CA cong_cu/thu_HOPDONG_KH.js: 101
+
+── Bài thử do COMMIT GỘP MAIN (ab2a9d58 GOP-KH-NAP-1, chat gộp lúc duyệt kế hoạch — VOUCHER-2, DANG-NHAP-2, ND-API-1, QC-APP-1) mang vào nhánh — KHÔNG do việc
+   này sửa. Cổng `cong.js chay . 6fe3f4f^ HEAD` lấy mốc TRƯỚC commit gộp nên tính các bài này là bài đổi, ĐỎ trên gốc d8f0053 (tính năng chưa có). Số ca đo trên
+   head 15.11 (mỗi bài chạy riêng `node cong_cu/<bài>`), ghi để A16 đối chiếu:
+SỐ CA cong_cu/thu_DANGNHAP2.js: 64
+SỐ CA cong_cu/thu_GOI1.js: 115
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_NDAPI1.js: 89
+SỐ CA cong_cu/thu_P20.js: 178
+SỐ CA cong_cu/thu_P26c.js: 161
+SỐ CA cong_cu/thu_UUDAI1.js: 88
+SỐ CA cong_cu/thu_VOUCHER2.js: 146
+
+── Chat soát 16.11 (cổng GitHub PR #96 đỏ A11): trên mốc main a7a09bc, HOP_DONG_API_KH.md của gốc là v16 nên các phép sinh từ hợp đồng không đòi /goi-nap, /vi
+   → bài XANH trên gốc. Thêm một phép v17 cố định (khuôn v16 QC-APP-1). Cây gốc = git archive a7a09bc + bài của head:
+cong_cu/thu_HOPDONG_KH.js — cây gốc a7a09bc: thoát 1
+  ✗ v17: khối máy đọc ghi đủ /goi-nap (token: false, 4 trường) + /vi (token: true, 8 trường); có mục "Ghi chú v17" + dòng nhật ký v17
+  94 đạt · 1 hỏng
+  head: 101 đạt · 0 hỏng

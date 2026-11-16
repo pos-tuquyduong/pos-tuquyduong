@@ -477,8 +477,12 @@ async function phanA(P) {
   await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
   const hang = await mot('SELECT id, card_price, name FROM pos_membership_tiers WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
-  const sq = sdtMoi(); await nap(sq, Number(hang.card_price) + 200000);
-  const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
+  // KH-NAP-1 (chủ quán 14.11): thẻ không trả bằng số dư → đơn mua thẻ nền trả tiền mặt; tài khoản chỉ dùng cho đơn đồ uống A22.
+  const sq = sdtMoi(); await nap(sq, 200000);
+  const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
+  const sThe = sdtMoi(); await nap(sThe, Number(hang.card_price));   // khách riêng, đủ số dư — ca chỉ đỏ vì luật thẻ (K3)
+  const muaVi = await ban({ customer_phone: sThe, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
+  k('A19 (KH-NAP-1) mua thẻ trả đủ bằng tài khoản → 400 THE_KHONG_TRA_VI', muaVi.status === 400 && muaVi.code === 'THE_KHONG_TRA_VI', moTa(muaVi));
   const rq = await ban({ customer_phone: sq, items: [mon(0), mon(1)], payment_method: 'cash', balance_amount: 20000, cash_amount: 25500, shipping_fee: 5000 });
   const aq = await hd(rq.order?.id);
   const H = aq.h;

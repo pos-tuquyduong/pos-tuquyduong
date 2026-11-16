@@ -23,7 +23,10 @@ const loi = (res, status, code, error) => res.status(status).json({ error, code 
 const LY_DO_TOI_THIEU = 3;   // ký tự — cùng mức với điều chỉnh số dư (wallets.js /adjust)
 const lyDoHopLe = (x) => typeof x === 'string' && x.trim().length >= LY_DO_TOI_THIEU;
 const docPhien = (id) => queryOne('SELECT * FROM pos_phien_thanh_toan WHERE id = ?', [id]);
-// Phiên của đơn App (KH-MUA-1 nối qua pos_don_app.phien_id) — App KHÔNG tạo lại đơn khi tiền về muộn (chủ quán Q1b 05.11).
+// Phiên của đơn App (KH-MUA-1 nối qua pos_don_app.phien_id) — quầy KHÔNG xác nhận tay tạo lại đơn App khi tiền về muộn (chủ quán Q1b 05.11);
+// tiền về muộn: đơn chỉ thẻ / chỉ nạp máy tự chốt (KH-NAP-1), đơn khác vào tài khoản khách (xuLyTienVe).
+// KH-NAP-1: thân phiên chỉ có thẻ hạng hoặc gói nạp (không đồ uống, không gói trả trước) — vị từ tiền về muộn vẫn chốt đơn.
+const chiTheNap = (x) => { const d = JSON.parse(x.than || '{}'); return !d.items?.length && !d.package_buy && (!!d.membership_buy || d.goi_nap_id != null); };
 const laPhienApp = async (id) => !!(await queryOne('SELECT 1 AS co FROM pos_don_app WHERE phien_id = ?', [id]));
 const soHdCuaPhien = async (id) => {
   const s = await queryOne('SELECT kenh, so FROM pos_so_hoa_don WHERE phien_id = ?', [id]);
@@ -87,7 +90,7 @@ router.post('/phien/:id/xac-nhan-tay', authenticate, checkPermission('xac_nhan_c
     // Q1a (chủ quán 05.11): tiền về sau khi QR hết hạn / đã huỷ → phiên QUẦY xác nhận tay được (đơn nhận lại số đã giữ); phiên App thì không.
     const muon = !p.order_id && (p.trang_thai === 'huy' || (p.trang_thai === 'cho' && p.het_han <= getNow()));
     if (muon && await laPhienApp(p.id)) {
-      return loi(res, 409, 'PHIEN_APP_KHONG_TAO_LAI', 'Đơn App đã huỷ / hết hạn — không tạo lại đơn; tiền về muộn tự cộng vào tài khoản khách');
+      return loi(res, 409, 'PHIEN_APP_KHONG_TAO_LAI', 'Đơn App đã huỷ / hết hạn — không tạo lại đơn bằng tay; tiền về muộn máy tự xử lý (đơn chỉ thẻ / chỉ nạp tự chốt, đơn khác cộng vào tài khoản khách)');
     }
     tra(res, await chotPhien(p, 'tay', { nguoi: req.user.username, lyDo: lyDo.trim(), muon }));
   } catch (err) {
@@ -129,8 +132,9 @@ const CAU_GHI = `INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua
 // "Hai cổng" ở đường vào ví (Q6 B, chủ quán 06.11): một khoản báo qua HAI cổng (payOS, SePay, Tingee) mang hai khoá khác nhau, và hai cổng không giữ cùng
 // thứ tự (gửi lại sau khi Render ngủ) — máy không phân biệt chắc "bản sao" với "khoản thật thứ hai". Nên phiên đã có báo tiền vào từ CỔNG KIA
 // (khop, chua_khop, vao_vi — trừ báo thất bại / không thuộc phiên / tiền vào tài khoản khác) thì KHÔNG tự cộng ví: ghi CẦN XEM, chủ quán đối
-// chiếu sao kê, cộng tay. Ví không bao giờ cộng thừa. Một cổng (cấu hình QUYET_DINH 01.11) không bao giờ chạm vế này. tx: câu đọc ĐẦU giao
-// dịch ghi — hai báo tới cùng lúc thì báo sau thấy dòng của báo trước.
+// chiếu sao kê, cộng tay. Ví không bao giờ cộng thừa. Một cổng (cấu hình QUYET_DINH 01.11) không bao giờ chạm vế này. tx: đọc TRONG giao dịch ghi —
+// ở vaoVi là câu đọc đầu; ở chốt muộn (KH-NAP-1) là sau câu ghi phiên + dòng báo của chính cổng này (dòng đó bị loại theo cổng) — hai báo tới cùng lúc
+// thì báo sau thấy dòng của báo trước. `{ query }` (ngoài giao dịch) chỉ là báo sớm cho vị từ muonChot.
 async function congKiaDaBao(tx, t) {
   const ds = await tx.query(`SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua NOT IN ('that_bai', 'khong_phien')
     AND COALESCE(ly_do, '') NOT LIKE ?`, [t.ma, LY_DO_TK_KHAC + '%']);
@@ -152,13 +156,13 @@ async function xuLyTienVe(res, t) {
   if (t.thatBai) return ghi('that_bai', t.thatBai);
   const luc = DANG_GIO.test(String(t.luc || '')) ? String(t.luc).replace(' ', 'T') : getNow();
   // Q1b + chủ quán 05.11 lượt 2: phiên App đã huỷ / hết hạn, HOẶC 'loi' (không tạo được đơn — vd hết hàng lúc tiền về đúng hạn), tiền về →
-  // KHÔNG tạo đơn; số tiền thật đã về cộng vào tài khoản khách của phiên. MỘT vị từ (vaoViDuoc), MỘT hàm ghi (vaoVi): dòng báo + dòng ví cùng
+  // KHÔNG tạo đơn (trừ đơn chỉ thẻ / chỉ nạp về đúng số — KH-NAP-1 muonChot dưới); số tiền thật đã về cộng vào tài khoản khách của phiên. MỘT vị từ (vaoViDuoc), MỘT hàm ghi (vaoVi): dòng báo + dòng ví cùng
   // MỘT giao dịch, chỉ cộng khi dòng báo mới được ghi (changes 1) — báo lặp / hai báo cùng lúc cộng đúng một lần. Phiên QUẦY không vào đây.
   const laApp = !!p.phone && t.soTien > 0 && await laPhienApp(p.id);
   const vaoViDuoc = (x) => ['huy', 'loi'].includes(x.trang_thai) || (x.trang_thai === 'cho' && (luc > x.het_han || x.het_han <= getNow()));
   const vaoVi = async (x) => {
     const soHd = await soHdCuaPhien(x.id), maGd = t.maGd || '—';
-    const dau = x.trang_thai === 'loi' ? `không tạo được đơn (${x.ly_do || 'lỗi'})` : 'tiền về muộn';
+    const dau = x.trang_thai === 'loi' ? `không tạo được đơn (${x.ly_do || 'lỗi'})` : `tiền về muộn${x.ly_do ? `, không tạo được đơn (${x.ly_do})` : ''}`;
     await trongGiaoDich(async (tx) => {
       // Cổng kia đã báo tiền cho phiên (congKiaDaBao — câu đọc ĐẦU giao dịch ghi) → chua_khop + LY_DO_HAI_CONG (CẦN XEM), KHÔNG cộng.
       if (await congKiaDaBao(tx, t)) {
@@ -169,17 +173,37 @@ async function xuLyTienVe(res, t) {
       const ins = await tx.run(CAU_GHI, thamSo('vao_vi', `${dau} — ${LY_DO_VAO_VI} ${x.phone} (${soHd}) · mã GD ${maGd}`));
       if (ins.changes !== 1) return;
       await ghiVi(tx, { phone: x.phone, loai: 'topup', soTien: t.soTien, cachTra: 'transfer', nguoi: t.nguon, luc: getNow(), cot: 'total_topup', soCot: t.soTien,
-        ghiChu: (x.trang_thai === 'loi' ? `Không tạo được đơn ${soHd} (${x.ly_do || 'lỗi'})` : `Tiền về muộn ${soHd} (đơn App đã huỷ / hết hạn)`) + ` · mã GD ${maGd}` });
+        ghiChu: (x.trang_thai === 'loi' ? `Không tạo được đơn ${soHd} (${x.ly_do || 'lỗi'})`
+          : `Tiền về muộn ${soHd} (đơn App đã huỷ / hết hạn${x.ly_do ? `; không tạo được đơn: ${x.ly_do}` : ''})`) + ` · mã GD ${maGd}` });
     });
     return res.json({ success: true });
   };
-  if (laApp && vaoViDuoc(p)) return vaoVi(p);
+  // KH-NAP-1 (chủ quán 14.11): đơn App CHỈ thẻ / CHỈ nạp, tiền về ĐÚNG số sau khi QR hết hạn / đơn đã huỷ → chốt đơn y như đúng hạn, qua CHÍNH lời gọi
+  // chotPhien dưới (kiểu muộn — cùng cờ với xác nhận tay quầy). Không chốt được (gói tắt, hạng cao hơn, giá đổi…) → nhánh chốt hỏng cũ: ghi lý do vào
+  // phiên rồi vào ví. Khoá chống trùng = câu ghi phiên của chotPhien; cổng kia đã báo → không chốt (vào nhánh vaoVi cũ, chua_khop cần xem).
+  // Phiên 'loi' không cần loại riêng: chotPhien kiểu muộn chỉ nhận 'cho' / 'huy' → trả PHIEN_DA_CHOT → vào ví như cũ.
+  // Báo ĐÃ GHI (cùng khoá — cổng gửi lại) không bao giờ chốt: chốt muộn hỏng không khoá phiên (giuCho.js), lần đầu đã vào ví → gửi lại sau khi gỡ nguyên
+  // nhân (gói bật lại) mà chốt là cộng hai lần (soát vòng 1). Hai báo cùng khoá tới cùng lúc: câu ghi phiên của chotPhien chỉ cho một bên.
+  const muonChot = laApp && vaoViDuoc(p) && t.soTien === p.con_lai && chiTheNap(p) && !(await congKiaDaBao({ query }, t))
+    && !(await queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [t.khoa]));
+  if (laApp && vaoViDuoc(p) && !muonChot) return vaoVi(p);
   const lyDo = t.soTien !== p.con_lai ? `lệch tiền: về ${t.soTien}, phải thu ${p.con_lai}`
-    : luc > p.het_han ? 'tiền về sau khi QR hết hạn' : null;
+    : luc > p.het_han && !muonChot ? 'tiền về sau khi QR hết hạn' : null;
   if (lyDo) return ghi('chua_khop', lyDo);
-  const kq = await chotPhien(p, t.nguon, { maGd: t.maGd, suKien: (tx) => tx.run(CAU_GHI, thamSo('khop', null)) });
+  const kq = await chotPhien(p, t.nguon, { muon: muonChot, maGd: t.maGd,
+    suKien: async (tx) => {
+      const r = await tx.run(CAU_GHI, thamSo('khop', muonChot ? 'tiền về muộn — máy tự chốt đơn chỉ thẻ / chỉ nạp' : null));
+      // Soát vòng 2: phép kiểm khoá của muonChot nằm NGOÀI giao dịch — bản sao cùng khoá ghi dòng báo xen giữa (vd đã vào ví) thì dòng này không ghi được:
+      // ném → taoDon huỷ cả giao dịch chốt (không đơn), cổng nhận 5xx gửi lại → lần sau thấy khoá, vào nhánh vaoVi (ON CONFLICT, không ghi thêm).
+      // Soát vòng 3: vế "cổng kia đã báo" cũng đọc lại TRONG giao dịch (cổng kia ghi xen giữa → cần xem, không chốt) — mọi vế chặn của muonChot.
+      if (muonChot && (r.changes !== 1 || await congKiaDaBao(tx, t))) throw new Error('KH-NAP-1: báo cùng khoá / cổng kia ghi giữa chừng — không chốt muộn');
+    } });
   if (kq.status === 200) return res.json({ success: true });
   if (kq.status >= 500 || kq.body?.code === 'KHO_BAN') return tra(res, kq);
+  if (muonChot) {   // chốt muộn không đánh dấu 'loi' (giuCho.js) → giữ lý do trên phiên cho câu báo khách + quầy; không đổi trạng thái
+    await run("UPDATE pos_phien_thanh_toan SET ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy')",
+      [String(kq.body?.code || kq.body?.error || 'lỗi').slice(0, 200), p.id]);
+  }
   // Chốt hỏng: chotPhien vừa đổi phiên App sang 'loi' (đơn hỏng), hoặc phiên vừa bị huỷ / hết hạn giữa chừng → đọc lại, cùng vị từ, vào ví.
   const moi = laApp ? await docPhien(p.id) : null;
   if (moi && vaoViDuoc(moi)) return vaoVi(moi);

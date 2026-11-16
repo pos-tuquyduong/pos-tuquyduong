@@ -32,6 +32,8 @@ const { dongHoaDonKhach } = require('./dongHoaDon');
 const { dungThanhToan, tinhGiam } = require('../routes/hoaDon');
 const { tien } = require('./nhatKyDon');
 const { laDongThe } = require('./membershipStatus');
+const { ID_NAP_TU, tenDongNap } = require('./viKhach');
+const laDongNap = (productId) => Number(productId) <= ID_NAP_TU;   // KH-NAP-1: dải dòng nạp của taoDon (viKhach.js)
 
 const NGUOI = 'app_kh';
 const GIOI = {
@@ -48,8 +50,10 @@ const DON_CON = "o.status NOT IN ('cancelled', 'refunded')";   // cùng danh sá
 const THAY_DUOC = "(a.xong = 1 OR p.trang_thai = 'da_thu')";   // đơn App mà App nhìn thấy (a = pos_don_app, p = phiên của nó)
 // Mã lỗi của taoPhien / chotPhien giữ nguyên khi trả App; mã khác → DON_KHONG_HOP_LE (lời báo giữ nguyên) — mọi mã App nhận có trong hợp đồng.
 const GIU_MA = ['CACH_KHONG_KHOP', 'CHUA_CO_PIN', 'PIN_SAI', 'PIN_DANG_KHOA', 'PAYOS_CHUA_CAU_HINH', 'PAYOS_LOI', 'KHO_BAN',
-  'HANG_CHI_CAP', 'GOI_HANG_KHONG_BAN', 'DA_CO_HANG_CAO_HON'];   // KH-THE-1: mã chặn thẻ của quầy (orders.js), lời báo giữ nguyên
+  'HANG_CHI_CAP', 'GOI_HANG_KHONG_BAN', 'DA_CO_HANG_CAO_HON',   // KH-THE-1: mã chặn thẻ của quầy (orders.js), lời báo giữ nguyên
+  'NAP_KHONG_GOP', 'GOI_NAP_KHONG_CO', 'NAP_CHI_TIEN_MAT_QR', 'THE_KHONG_TRA_VI'];   // KH-NAP-1: mã nạp + chỉ trả tiền thật của quầy, lời giữ nguyên
 const TRUONG_THE = ['hang_id', 'loai', 'so_luong', 'so_thang'];   // dòng thẻ chỉ nhận đúng các khoá này (không giá, không ghi chú)
+const TRUONG_NAP = ['loai', 'ma_goi', 'so_luong'];   // KH-NAP-1: dòng nạp — cùng khuôn danh sách trắng
 const CHU_MA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const truGiay = (giay) => new Date(Date.parse(getNow() + 'Z') - giay * 1000).toISOString().slice(0, 19);
@@ -58,7 +62,8 @@ const sinhMa = () => 'A' + [...crypto.randomBytes(8)].map((b) => CHU_MA[b % CHU_
 // (khoá gửi đang sống không lệch); dòng thẻ băm riêng một dạng.
 const bamGio = (b) => crypto.createHash('sha256').update(JSON.stringify([
   Array.isArray(b.mon) ? b.mon.map((m) => (m?.loai === 'the' ? ['the', m.hang_id ?? null, m.so_thang ?? null, m.so_luong ?? 1]   // bỏ trống = 1 (docGio)
-    : [m?.ma ?? null, m?.so_luong ?? null, m?.ghi_chu || null])) : null,
+    : m?.loai === 'nap' ? ['nap', m.ma_goi ?? null, m.so_luong ?? 1]   // KH-NAP-1: dòng nạp băm riêng một dạng
+      : [m?.ma ?? null, m?.so_luong ?? null, m?.ghi_chu || null])) : null,
   b.ma_giam || null, b.cach_nhan ?? null, b.cach_tra ?? null,
   ...(Array.isArray(b.vouchers) && b.vouchers.length ? [b.vouchers] : [])])).digest('hex');   // VOUCHER-2: chỉ thêm KHI CÓ — khoá gửi App cũ không lệch
 
@@ -71,7 +76,8 @@ const qrCua = (p, tt) => (tt === 'cho_tra' ? { chuoi: p.qr, het_han: p.het_han }
 // Lý do NGẮN cho khách khi phiên App 'loi' (không tạo được đơn): đọc từ ly_do phiên (mã lỗi hoặc lời lỗi của taoDon) — KHÔNG đưa lời lỗi nội bộ
 // (số tồn kho, tên lỗi) ra App. Thứ tự là thứ tự xét — mã giảm TRƯỚC giá (lời flash sale có chữ "giảm giá"); mục giá chỉ khớp cụm "giá … đổi" /
 // "không khớp tổng" (không khớp "chưa có giá bán"). Không khớp dòng nào → câu chung.
-const LY_DO_NGAN = [[/HANG_CHI_CAP|GOI_HANG_KHONG_BAN|DA_CO_HANG_CAO_HON|Hạng thành viên/, 'vì thẻ hạng không còn mua được'],   // KH-THE-1: TRƯỚC "không tồn tại" của dòng hết hàng
+const LY_DO_NGAN = [[/GOI_NAP_KHONG_CO|NAP_CHI_TIEN_MAT_QR|NAP_KHONG_GOP/, 'vì gói nạp không còn bán'],   // KH-NAP-1
+  [/HANG_CHI_CAP|GOI_HANG_KHONG_BAN|DA_CO_HANG_CAO_HON|Hạng thành viên/, 'vì thẻ hạng không còn mua được'],   // KH-THE-1: TRƯỚC "không tồn tại" của dòng hết hàng
   [/HET_HANG|hết hàng|không đủ hàng|ngừng bán|không tồn tại/i, 'vì món đã hết hàng'], [/SO_DU|số dư/i, 'vì số dư tài khoản không đủ'],
   [/^MA_|DISCOUNT|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được'], [/GIA_DA_DOI|giá .*đổi|không khớp tổng/i, 'vì giá món đã đổi']];
 const lyDoNgan = (s) => (LY_DO_NGAN.find(([m]) => m.test(String(s || ''))) || [null, 'vì đơn không còn hợp lệ'])[1];
@@ -79,7 +85,9 @@ const lyDoNgan = (s) => (LY_DO_NGAN.find(([m]) => m.test(String(s || ''))) || [n
 function thongBaoTienVe(r) {
   const vi = Number(r.vao_vi || 0);
   if (!vi) return null;
-  return `${r.p_tt === 'loi' ? `Không tạo được đơn ${lyDoNgan(r.p_ly_do)}` : 'Tiền về sau khi đơn đã huỷ / hết hạn'} — đã cộng ${tien(vi)} vào tài khoản của bạn`;
+  // KH-NAP-1: tiền về muộn mà máy không tự chốt được đơn chỉ thẻ / chỉ nạp → phiên mang ly_do (thanh-toan.js) → nói lý do
+  const muon = r.p_ly_do ? `Tiền về sau khi đơn đã huỷ / hết hạn, không tạo được đơn ${lyDoNgan(r.p_ly_do)}` : 'Tiền về sau khi đơn đã huỷ / hết hạn';
+  return `${r.p_tt === 'loi' ? `Không tạo được đơn ${lyDoNgan(r.p_ly_do)}` : muon} — đã cộng ${tien(vi)} vào tài khoản của bạn`;
 }
 
 const luot = new Map();
@@ -105,6 +113,11 @@ function docGio(b) {
     && b.vouchers.every((v) => typeof v === 'string' && v.trim() && v.length <= 32))) return sai;
   const dong = [];
   for (const m of b.mon) {
+    if (m && m.loai === 'nap') {   // KH-NAP-1: dòng nạp { loai, ma_goi, so_luong? } → goi_nap_id của đường nạp quầy
+      if (Object.keys(m).some((x) => !TRUONG_NAP.includes(x)) || !soDuong(m.ma_goi) || (m.so_luong !== undefined && m.so_luong !== 1)) return sai;
+      dong.push({ loai: 'nap', ma_goi: m.ma_goi });
+      continue;
+    }
     if (m && m.loai !== undefined) {
       if (m.loai !== 'the' || Object.keys(m).some((x) => !TRUONG_THE.includes(x)) || !soDuong(m.hang_id) || !soDuong(m.so_thang)
         || (m.so_luong !== undefined && m.so_luong !== 1)) return sai;
@@ -117,7 +130,9 @@ function docGio(b) {
   }
   const the = dong.filter((d) => d.loai === 'the');
   if (the.length > 1) return thanLoi('NHIEU_THE');
-  return { dong, mon: dong.filter((d) => d.loai !== 'the'), the: the[0] || null, maGiam: (b.ma_giam || '').trim() || null,
+  const nap = dong.filter((d) => d.loai === 'nap');
+  if (nap.length > 1) return thanLoi('NAP_KHONG_GOP');   // thân taoDon chỉ mang MỘT goi_nap_id; nạp + món / thẻ → taoDon trả cùng mã
+  return { dong, mon: dong.filter((d) => !d.loai), the: the[0] || null, nap: nap[0] || null, maGiam: (b.ma_giam || '').trim() || null,
     vouchers: (b.vouchers || []).map((v) => v.trim()) };
 }
 
@@ -165,22 +180,22 @@ function chuanLoi({ status, body }, mon = [], ten = []) {
 }
 
 /** Thân đơn của taoDon — báo giá và tạo phiên dùng CHUNG (dòng thẻ → membership_buy của quầy). SĐT luôn từ token. */
-const thanDon = (khach, items, maGiam, the, vouchers = []) => ({ customer_phone: khach.phone, customer_name: khach.name, items,
+const thanDon = (khach, items, maGiam, the, vouchers = [], nap = null) => ({ customer_phone: khach.phone, customer_name: khach.name, items,
   ...(maGiam ? { discount_code: maGiam } : {}), ...(vouchers.length ? { vouchers } : {}),
-  ...(the ? { membership_buy: { tier_id: the.hang_id, so_thang: the.so_thang } } : {}) });
+  ...(the ? { membership_buy: { tier_id: the.hang_id, so_thang: the.so_thang } } : {}), ...(nap ? { goi_nap_id: nap.ma_goi } : {}) });   // KH-NAP-1
 
-async function chiTinh(khach, items, maGiam, the, vouchers) {
+async function chiTinh(khach, items, maGiam, the, vouchers, nap) {
   const r = gomRes();
-  const body = thanDon(khach, items, maGiam, the, vouchers);
+  const body = thanDon(khach, items, maGiam, the, vouchers, nap);
   const kq = await taoDon({ body, user: { username: NGUOI } }, r, { chiTinh: true, tinhThu: true });
   return r.body !== undefined ? { status: r.statusCode, body: r.body } : kq.chiTiet;
 }
 
 /** Báo giá dạng App. Mã làm cả giỏ hỏng (mã % lúc Giờ vàng, MA_KHONG_CO_MON — quầy báo lỗi cả đơn) → tính lại KHÔNG mã + ma_giam_loi (Q10). */
 async function baoGia(khach, gio, d) {
-  let ct = await chiTinh(khach, d.items, gio.maGiam, gio.the, gio.vouchers), maDung = gio.maGiam, maLoi = null;
+  let ct = await chiTinh(khach, d.items, gio.maGiam, gio.the, gio.vouchers, gio.nap), maDung = gio.nap ? null : gio.maGiam, maLoi = null;   // KH-NAP-1: mã không áp lên nạp
   if (ct.status && gio.maGiam && ct.status < 500) {
-    const khongMa = await chiTinh(khach, d.items, null, gio.the, gio.vouchers);
+    const khongMa = await chiTinh(khach, d.items, null, gio.the, gio.vouchers, gio.nap);
     if (!khongMa.status) {
       maLoi = { code: ct.body.code === 'MA_KHONG_CO_MON' ? 'MA_KHONG_CO_MON' : 'MA_KHONG_AP_DUNG', error: ct.body.error };
       ct = khongMa; maDung = null;
@@ -193,14 +208,16 @@ async function baoGia(khach, gio, d) {
     .filter(([, n]) => n > 0).map(([loai, so_tien]) => ({ loai, so_tien }))
     .concat(ct.vouchers.filter((v) => v.so_tien > 0).map((v) => ({ loai: v.ship ? 'voucher_ship' : 'voucher', so_tien: v.so_tien, ma: v.ma })));   // VOUCHER-2
   // Ghép dòng giỏ ↔ dòng taoDon: dòng thẻ theo dải product_id (taoDon đẩy thẻ SAU món), dòng món theo thứ tự — `j` = chỉ số trong gio.mon / d.ten.
-  const monCt = ct.items.filter((x) => !laDongThe(x.product_id)), theCt = ct.items.find((x) => laDongThe(x.product_id));
+  const monCt = ct.items.filter((x) => !laDongThe(x.product_id) && !laDongNap(x.product_id)), theCt = ct.items.find((x) => laDongThe(x.product_id));
+  const napCt = ct.items.find((x) => laDongNap(x.product_id));   // KH-NAP-1: dòng nạp theo dải product_id như dòng thẻ
   let j = 0;
-  const ghep = gio.dong.map((g) => (g.loai === 'the' ? { g, it: theCt } : { g, it: monCt[j], j: j++ }));
+  const ghep = gio.dong.map((g) => (g.loai === 'the' ? { g, it: theCt } : g.loai === 'nap' ? { g, it: napCt } : { g, it: monCt[j], j: j++ }));
   return {
     maDung, ghep, vouchersDung: ct.vouchers.map((v) => v.ma),   // VOUCHER-2: tạo phiên chỉ gửi voucher báo giá đã nhận (voucher hỏng đã báo ở voucher_loi)
     bao: {
       dong: ghep.map(({ g, it }) => (g.loai === 'the'
         ? { loai: 'the', hang_id: g.hang_id, so_thang: g.so_thang, ma: null, so_luong: 1, don_gia: it.unit_price, thanh_tien: it.unit_price }
+        : g.loai === 'nap' ? { loai: 'nap', ma_goi: g.ma_goi, ma: null, so_luong: 1, don_gia: it.unit_price, thanh_tien: it.unit_price }
         : { ma: g.ma, so_luong: it.quantity, don_gia: it.unit_price, thanh_tien: it.unit_price * it.quantity })),   // = itemTotal của taoDon; Σ = subtotal
       tam_tinh: ct.subtotal, giam, phi_giao: 0, tong: ct.total, ma_giam_loi: maLoi,
       voucher_loi: ct.voucher_loi.map(({ ma, code, error }) => ({ ma, code, error })),
@@ -268,11 +285,14 @@ async function datDon(khach, b) {
 
   const ma = sinhMa();
   const the = kq.gio.the && await queryOne('SELECT name FROM pos_membership_tiers WHERE id = ?', [kq.gio.the.hang_id]);
+  const goiNap = kq.gio.nap && await queryOne('SELECT khach_tra, vao_tk FROM pos_goi_nap WHERE id = ?', [kq.gio.nap.ma_goi]);
   // Thân đơn chưa trả = CÙNG hình đơn thật sau khi trả (soát vòng 1): dòng thẻ xếp SAU món, tên như dòng hàng taoDon ghi (orders.js), ghi_chu null —
   // mon[] / mon_dau / so_mon không đổi khi đơn chuyển từ chưa trả sang đã trả.
   const dongThan = kq.bao.dong.map((x, i) => { const { g, j } = kq.ghep[i];
-    return g.loai === 'the' ? { ...x, ten: `🎟️ Thẻ hội viên ${the.name} · ${g.so_thang} tháng`, ghi_chu: null } : { ...x, ten: kq.d.ten[j], ghi_chu: g.ghi_chu }; });
-  const than = JSON.stringify({ dong: [...dongThan.filter((x) => x.loai !== 'the'), ...dongThan.filter((x) => x.loai === 'the')], tong: kq.bao.tong });
+    return g.loai === 'the' ? { ...x, ten: `🎟️ Thẻ hội viên ${the.name} · ${g.so_thang} tháng`, ghi_chu: null }
+      : g.loai === 'nap' ? { ...x, ten: tenDongNap(goiNap), ghi_chu: null }   // KH-NAP-1: CÙNG hàm tên với dòng hàng taoDon ghi
+        : { ...x, ten: kq.d.ten[j], ghi_chu: g.ghi_chu }; });
+  const than = JSON.stringify({ dong: [...dongThan.filter((x) => !x.loai), ...dongThan.filter((x) => x.loai)], tong: kq.bao.tong });
   // Q3 (chủ quán 09.11): giỏ không cần pha chế → tiến trình quầy 'xong' ghi SẴN; tienTrinh chỉ đọc nó khi phiên đã da_thu → "xong" đúng lúc đã thu.
   let appId;
   try {
@@ -285,7 +305,7 @@ async function datDon(khach, b) {
   let xong = false, phienId = null;
   try {
     // Ghi chú in trên bill / phiếu: KHÔNG mang mã App ngẫu nhiên (chủ quán 05.11) — mã vẫn ở pos_don_app.ma; số hoá đơn APP<4 số> là mã đơn.
-    const don = { ...thanDon(khach, kq.d.items, kq.maDung, kq.gio.the, kq.vouchersDung), notes: 'Đơn App · nhận tại quán' };
+    const don = { ...thanDon(khach, kq.d.items, kq.maDung, kq.gio.the, kq.vouchersDung, kq.gio.nap), notes: 'Đơn App · nhận tại quán' };
     const tp = await taoPhien({ cach: tra.cach, don, tru_tai_khoan: tra.vi, pin: b.pin }, NGUOI, { kenh: 'APP' });
     if (tp.status !== 200) return chuanLoi(tp, kq.gio.mon, kq.d.ten);
     phienId = tp.body.phien.id;
@@ -405,7 +425,7 @@ async function chiTietDon(phone, ma) {
         pp.sx_product_type, pp.sx_product_id FROM pos_order_items oi LEFT JOIN pos_products pp ON pp.id = oi.product_id
         WHERE oi.order_id = ? ORDER BY oi.id`, [r.oid])).map((d) => ({
       ma: d.sx_product_type != null ? `${d.sx_product_type}_${d.sx_product_id}` : null, ten: d.product_name, so_luong: d.quantity,
-      don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price, thanh_tien: d.total_price, ghi_chu: d.notes, ...(laDongThe(d.product_id) ? { loai: 'the' } : {}) }))
+      don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price, thanh_tien: d.total_price, ghi_chu: d.notes, ...(laDongThe(d.product_id) ? { loai: 'the' } : laDongNap(d.product_id) ? { loai: 'nap' } : {}) }))
     : JSON.parse(r.than).dong.map((d) => ({ ma: d.ma, ten: d.ten, so_luong: d.so_luong, don_gia: d.don_gia, thanh_tien: d.thanh_tien, ghi_chu: d.ghi_chu,
       ...(d.loai ? { loai: d.loai } : {}) }));
   return { ...tomDon(r, (await tomTatDonThat([r])).get(r.oid)), mon, hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] };
@@ -446,7 +466,8 @@ async function dsQuay() {
     ly_do: r.ly_do, mon: [] })), ...ds.map((r) => { const dong = JSON.parse(r.than).dong; return {
     id: r.id, oid: r.oid, ma: r.ma, ma_bill: r.code, so_hd: soHdCuaMa(r.code), gio: r.luc_chot, ten_khach: r.customer_name,   // oid: HUY-1 huỷ qua route quầy
     co_the: dong.find((d) => d.loai === 'the')?.ten ?? null,   // KH-THE-1: quầy không pha dòng thẻ — chỉ hiện nhãn
-    mon: dong.filter((d) => d.loai !== 'the').map((d) => ({ ten: d.ten, so_luong: d.so_luong, ghi_chu: d.ghi_chu })),
+    co_nap: dong.find((d) => d.loai === 'nap')?.ten ?? null,   // KH-NAP-1: dòng nạp cũng không pha
+    mon: dong.filter((d) => !d.loai).map((d) => ({ ten: d.ten, so_luong: d.so_luong, ghi_chu: d.ghi_chu })),
     da_tra: r.giu_vi + r.con_lai, tra_vi: r.giu_vi, tra_qr: r.con_lai,
     tien_trinh: tienTrinh({ trang_thai: r.p_tt, het_han: r.het_han }, { status: r.status }, r.tien_trinh_quay),
     nguoi_lam: r.nguoi_lam, luc_lam: r.luc_lam, nguoi_xong: r.nguoi_xong, luc_xong: r.luc_xong,
