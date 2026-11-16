@@ -329,3 +329,10 @@ BÀI HỌC:     KHOÁ 2 (1 đã làm trong Phạm vi: ca chen tất định + đ
 ```
 
 HEAD ĐÃ KIỂM: 6b1667c3
+
+## Chat soát (16.11)
+- Cổng GitHub PR #96 lượt 1 (2bd191bc) đỏ A11: `thu_HOPDONG_KH.js` XANH trên mốc main a7a09bc — các phép sinh từ hợp đồng đọc HOP_DONG_API_KH.md của gốc (v16) nên không đòi /goi-nap, /vi.
+- Chat thêm một phép v17 cố định (khuôn v16 QC-APP-1) ở commit 46b9e062: gốc a7a09bc 94 đạt · 1 hỏng (đúng phép v17), head 101/0; SỐ CA 100 → 101. Không đổi code app.
+- Kiểm ở 46b9e062: cổng chạy GitHub (npm ci, bài thử trên gốc, npm test, --day-du) lượt 43802035722 job `cong-chay` ĐẠT.
+
+HEAD ĐÃ KIỂM: 46b9e062
