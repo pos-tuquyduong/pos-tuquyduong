@@ -27,9 +27,9 @@ const DOC_LAI_GIAY = 60;             // dự phòng tin báo không tới: màn 
 const DOC_LAI_TOI_DA = 3;            // mỗi lần hỏi đọc lại tối đa 3 chuyến
 const DOC_LAI_TAY_GIAY = 5;          // nút "Tải lại" (GIAO-2 B4): đọc NGAY chuyến chưa đọc trong 5 s — bấm dồn không gọi Ahamove thêm
 const DOC_LAI_TAY_TOI_DA = 8;        // nút "Tải lại": tối đa 8 chuyến mỗi lần bấm
-const HAN_DOC_LAI_MS = 8000;         // hạn mỗi lần đọc lại trong GET danh sách (chuyến + phí huỷ, đọc SONG SONG): một lần hỏi chờ Ahamove ≤ ~8 s (+ lấy
-                                     // token lần đầu ≤ 8 s), dưới nhịp hỏi 15 s; vẫn trên 5,1 s đã thấy ở sự cố 16.11 (CHƯA đo độ trễ thật — đọc cột ms
-                                     // của log [GIAO]). Gọi xe / huỷ / tin nền giữ 10 s (ahamove.js).
+const HAN_DOC_LAI_MS = 8000;         // hạn mỗi lời đọc chuyến (và lấy token cho lời đó) trong GET danh sách — chuyến + phí huỷ đọc SONG SONG nên thường
+                                     // chờ ≤ 8 s (lấy token lần đầu: ≤ 16 s); riêng nhánh tài xế huỷ → tự tìm lại gọi xe trong cùng lần hỏi theo hạn 10 s
+                                     // của gọi xe (ahamove.js). Trên 5,1 s đã thấy ở sự cố 16.11 — CHƯA đo độ trễ thật (cột ms của log [GIAO]).
 const LY_DO_TOI_THIEU = 3;
 const SONG = ['dang_goi', 'tim_xe', 'doi_tai_xe', 'dang_giao'];   // còn chuyến (hoặc có thể còn) ở Ahamove
 // Chuyến đã chạy = tài xế đã lấy hàng hoặc đã giao xong (theo DẤU GIỜ, không theo trạng thái — thẻ giao lỗi bị đóng khi hoàn tiền vẫn giữ phí):
@@ -218,11 +218,14 @@ const ghiPhiHuyLenh = (chuyenId, ma, d) => (d?.trang_thai === 'CANCELLED' ? ghiP
 const CHO_PHI_HUY = `SELECT t.id, t.ma_ahamove, t.phu FROM pos_giao_tin t WHERE trang_thai = 'CHO_PHI_HUY'
   AND NOT EXISTS (SELECT 1 FROM pos_giao_tin p WHERE p.ma_ahamove = t.ma_ahamove AND p.trang_thai = 'PHI_HUY')`;
 /** Đọc lại chuyến chờ lâu nhất trước; chưa ra (chưa huỷ / Ahamove không trả) thì xếp xuống cuối — chuyến đọc mãi không ra không chặn chuyến sau. */
-async function docLaiPhiHuy() {
-  await Promise.all((await query(CHO_PHI_HUY + ` ORDER BY t.luc, t.id DESC LIMIT ${DOC_LAI_TOI_DA}`)).map(async (t) => {   // song song, hạn ngắn (GIAO-2 B2)
+async function docLaiPhiHuy() {   // không bao giờ ném: mỗi dòng tự bắt + ghi log lỗi của mình (GIAO-2 B3)
+  const ds = await query(CHO_PHI_HUY + ` ORDER BY t.luc, t.id DESC LIMIT ${DOC_LAI_TOI_DA}`).catch((e) => { logLoi('phi_huy', '-', 'đọc kho', e); return []; });
+  await Promise.all(ds.map(async (t) => {   // song song, hạn ngắn (GIAO-2 B2)
     const d = await aha.docChuyen(t.ma_ahamove, HAN_DOC_LAI_MS).catch((e) => { logLoi('phi_huy', t.ma_ahamove, 'đọc Ahamove', e); return null; });
-    if (d?.trang_thai === 'CANCELLED') await ghiPhiHuy(Number(t.phu), d);
-    else await run('UPDATE pos_giao_tin SET luc = ? WHERE id = ?', [getNow(), t.id]);
+    try {
+      if (d?.trang_thai === 'CANCELLED') await ghiPhiHuy(Number(t.phu), d);
+      else await run('UPDATE pos_giao_tin SET luc = ? WHERE id = ?', [getNow(), t.id]);
+    } catch (e) { logLoi('phi_huy', t.ma_ahamove, 'ghi kho', e); }
   }));
 }
 
@@ -422,14 +425,14 @@ async function nhanTinBao(b) {
   if (!c) return logGiao('tin', ma || '-', '-', 'bỏ qua: không phải chuyến của quán', t0);   // hoặc chuyến cũ đã thay
   if (c.trang_thai === 'dang_goi') return logGiao('tin', ma, '-', 'bỏ qua: thẻ đang gọi xe', t0);
   const d = await aha.docChuyen(ma).catch(buoc('đọc Ahamove'));
-  if (!d) return logGiao('tin', ma, '-', await capNhatTuAhamove(c, d), t0);
+  if (!d) return logGiao('tin', ma, '-', 'bỏ qua: Ahamove không có chuyến', t0);
   const phu = `${d.diem_giao}|${d.tai_xe.sdt || ''}`;
   const moi = await run('INSERT OR IGNORE INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, ?, ?, ?)', [ma, d.trang_thai, phu, getNow()]).catch(buoc('ghi kho'));
   if (moi.changes !== 1) return logGiao('tin', ma, d.trang_thai, 'bỏ qua: tin lặp', t0);
   // Cập nhật thẻ hỏng (kho chập chờn) → gỡ dòng chống lặp vừa ghi: tin gửi lại / đọc lại vẫn áp được.
   const kq = await capNhatTuAhamove(c, d).catch(async (e) => {
     await run('DELETE FROM pos_giao_tin WHERE ma_ahamove = ? AND trang_thai = ? AND phu = ?', [ma, d.trang_thai, phu]);
-    buoc('ghi kho')(e);
+    buoc('cập nhật thẻ')(e);
   });
   logGiao('tin', ma, d.trang_thai, kq, t0);
 }
@@ -458,15 +461,16 @@ async function danhSach(docLaiNgay = false) {
   const can = ds.filter((x) => ['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(x.trang_thai) && (!x.doc_luc || x.doc_luc < moc))
     .slice(0, docLaiNgay ? DOC_LAI_TAY_TOI_DA : DOC_LAI_TOI_DA);
   // Đọc SONG SONG, cả phí huỷ (một hạn HAN_DOC_LAI_MS, không cộng dồn theo số chuyến); câu giành doc_luc: hai máy / bấm dồn không đọc trùng.
-  const phiHuy = docLaiPhiHuy().catch((e) => logLoi('phi_huy', '-', 'ghi kho', e));   // lỗi: lần hỏi sau đọc lại
+  // Mỗi nhánh tự bắt lỗi của mình và ghi log đúng bước (Promise.all chỉ báo lỗi đầu) — hỏng thì giữ trạng thái cũ, lần sau đọc lại.
+  const phiHuy = docLaiPhiHuy();
   const daDoc = await Promise.all(can.map(async (c) => {
-    const g = await run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE id = ? AND (doc_luc IS NULL OR doc_luc < ?)', [now, c.id, moc]);
-    if (g.changes !== 1) return false;
+    const g = await run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE id = ? AND (doc_luc IS NULL OR doc_luc < ?)', [now, c.id, moc])
+      .catch((e) => logLoi('doc_lai', c.ma_ahamove, 'ghi kho', e));
+    if (g?.changes !== 1) return false;
     const t0 = Date.now();
-    try {
-      const d = await aha.docChuyen(c.ma_ahamove, HAN_DOC_LAI_MS).catch(buoc('đọc Ahamove'));
-      logGiao('doc_lai', c.ma_ahamove, d ? d.trang_thai : '-', await capNhatTuAhamove(c, d), t0);
-    } catch (e) { logLoi('doc_lai', c.ma_ahamove, 'ghi kho', e); }   // giữ trạng thái cũ, lần sau đọc lại
+    const d = await aha.docChuyen(c.ma_ahamove, HAN_DOC_LAI_MS).catch((e) => { logLoi('doc_lai', c.ma_ahamove, 'đọc Ahamove', e); return false; });
+    if (d !== false) await capNhatTuAhamove(c, d).then((kq) => logGiao('doc_lai', c.ma_ahamove, d ? d.trang_thai : '-', kq, t0),
+      (e) => logLoi('doc_lai', c.ma_ahamove, 'cập nhật thẻ', e));
     return true;
   }));
   if (daDoc.some(Boolean)) ds = await doc();

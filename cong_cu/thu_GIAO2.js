@@ -30,7 +30,7 @@ const ngauNhien = () => crypto.randomBytes(12).toString('hex');
 const KHOA_NV = 'thu_giao2_nv_' + ngauNhien();
 process.env.JWT_SECRET = KHOA_NV;
 process.env.KH_JWT_SECRET = 'thu_giao2_kh_' + ngauNhien();
-const BI_MAT = { api: 'ahk_' + ngauNhien(), bao: 'ahb_' + ngauNhien(), token: 'aht_' + ngauNhien() };
+const BI_MAT = { api: 'ahk_' + ngauNhien(), bao: 'ahb_' + ngauNhien(), token: 'aht_' + ngauNhien(), token2: 'aht2_' + ngauNhien() };
 const SDT_AHA = '0900000002';
 process.env.AHAMOVE_API_KEY = BI_MAT.api;
 process.env.AHAMOVE_SDT = SDT_AHA;
@@ -56,13 +56,16 @@ const coBiMat = (s) => Object.values(BI_MAT).some((b) => String(s).includes(b));
 const ngu = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 // ─── Ahamove GIẢ ─────────────────────────────────────────────────────────
-const A = { chuyen: new Map(), soChuyen: 0, doc: 0, chamDoc: 0, hong: null, boc: null, phi: 25000 };
+// tok: token Ahamove giả đang hiệu lực — B2 đổi sang token2 để máy chủ phải lấy lại (chamToken: lấy token chậm)
+const A = { chuyen: new Map(), soChuyen: 0, doc: 0, chamDoc: 0, chamToken: 0, tok: BI_MAT.token, hong: null, boc: null, phi: 25000 };
 function dungAhamoveGia(express) {
   const g = express();
   g.use(express.json());
-  const coToken = (req) => req.headers.authorization === 'Bearer ' + BI_MAT.token;
-  g.post('/v3/accounts/token', (req, res) => (req.body.api_key === BI_MAT.api && req.body.mobile === SDT_AHA ? res.json({ token: BI_MAT.token })
-    : res.status(401).json({ title: 'sai khoá' })));
+  const coToken = (req) => req.headers.authorization === 'Bearer ' + A.tok;
+  g.post('/v3/accounts/token', async (req, res) => {
+    if (A.chamToken) await ngu(A.chamToken);
+    return req.body.api_key === BI_MAT.api && req.body.mobile === SDT_AHA ? res.json({ token: A.tok }) : res.status(401).json({ title: 'sai khoá' });
+  });
   g.post('/v3/orders/estimates', (req, res) => {
     if (!coToken(req)) return res.status(401).json({});
     res.json([{ _id: req.body.services?.[0]?._id, data: { distance: 3, total_price: A.phi } }]);
@@ -118,6 +121,7 @@ async function main() {
       K.demCapNhat++;
       if (K.nemCapNhat) throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
     }
+    if (K.nemLuc && /^UPDATE pos_giao_tin SET luc/.test(sql)) throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
     return runGoc(sql, p);
   };
 
@@ -340,29 +344,37 @@ async function main() {
     await danhSach(true);
     k('B4d 9+ chuyến chưa xong, đọc 30 s trước → "Tải lại" đọc đúng 8 chuyến (trần), không hơn', A.doc - d4 === 8, `đọc ${A.doc - d4}`);
 
-    // B2: Ahamove treo 12 s; HAI chuyến quá 60 s + MỘT dòng "phí huỷ chưa rõ" (cùng GET danh sách) → mỗi lần hỏi trả < 10 s (một hạn 8 s, đọc song
-    //     song cả phí huỷ — gốc: 3 × 10 s lần lượt); lỗi đọc lại chuyến và phí huỷ đều có log (không nuốt im lặng)
-    const v2 = await moChuyen(), v2b = await moChuyen(), vp = await moChuyen();
+    // B2: HAI chuyến quá 60 s + BA dòng "phí huỷ chưa rõ" (cùng GET danh sách — gốc: 2 + 3 lời đọc LẦN LƯỢT × 10 s).
+    //  B2a hẹn 15 s: Ahamove treo 12 s + kho hỏng ở câu xếp lại phí huỷ → trả < 10 s; log lỗi cho CẢ BA dòng phí huỷ (Promise.all không nuốt lỗi sau).
+    //  B2c "Tải lại": token hết hạn, lấy token mới treo 12 s → lời lấy token cũng theo hạn 8 s → trả < 10 s.
+    const v2 = await moChuyen(), v2b = await moChuyen(), vp = [await moChuyen(), await moChuyen(), await moChuyen()];
     await db.run("UPDATE pos_giao_chuyen SET doc_luc = ? WHERE trang_thai IN ('tim_xe', 'doi_tai_xe', 'dang_giao')", [getNow()]);
     const cuLai = () => db.run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE order_id IN (?, ?)', [luiGiay(65), v2.id, v2b.id]);
     await cuLai();
-    const idVp = (await chuyenCua(vp.id)).id;
-    await runGoc("INSERT INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, 'CHO_PHI_HUY', ?, ?)", [vp.x, String(idVp), getNow()]);
-    A.chamDoc = 12000;
+    for (const x of vp) {
+      await runGoc("INSERT INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, 'CHO_PHI_HUY', ?, ?)", [x.x, String((await chuyenCua(x.id)).id), getNow()]);
+    }
+    A.chamDoc = 12000; K.nemLuc = true;
     const n2 = nhatKy.length;
     let t0 = Date.now();
     const y1 = the(await danhSach(), v2.id);
     const ms1 = Date.now() - t0;
+    A.chamDoc = 0; K.nemLuc = false;
+    const log2 = nhatKy.slice(n2).filter(dongGiao);
     await cuLai();
+    A.tok = BI_MAT.token2; A.chamToken = 12000;
+    const n3 = nhatKy.length;
     t0 = Date.now();
     const y2 = the(await danhSach(true), v2.id);
     const ms2 = Date.now() - t0;
-    A.chamDoc = 0;
-    const log2 = nhatKy.slice(n2).filter(dongGiao);
-    k('B2a Ahamove treo 12 s, 2 chuyến + 1 phí huỷ chờ đọc: hẹn 15 s trả < 10 s, "Tải lại" trả < 10 s; thẻ giữ tim_xe', ms1 < 10000 && ms2 < 10000
-      && y1?.trang_thai === 'tim_xe' && y2?.trang_thai === 'tim_xe', `${ms1} ms · ${ms2} ms`);
-    k('B2b lỗi đọc lại dự phòng có log "[GIAO] … <mã> … lỗi" cho chuyến VÀ phí huỷ (không nuốt im lặng)', log2.some((l) => l.includes(v2.x) && /lỗi/.test(l))
-      && log2.some((l) => l.startsWith(`[GIAO] phi_huy ${vp.x} lỗi`)), J(log2));
+    A.chamToken = 0;
+    const log3 = nhatKy.slice(n3).filter(dongGiao);
+    k('B2a Ahamove treo 12 s, 2 chuyến + 3 phí huỷ chờ đọc: hẹn 15 s trả < 10 s; thẻ giữ tim_xe', ms1 < 10000 && y1?.trang_thai === 'tim_xe', `${ms1} ms`);
+    k('B2b lỗi có log đúng bước: chuyến "đọc Ahamove"; CẢ BA dòng phí huỷ "đọc Ahamove" + "ghi kho" (không nuốt lỗi sau lỗi đầu)',
+      log2.some((l) => l.startsWith(`[GIAO] doc_lai ${v2.x} lỗi đọc Ahamove`)) && vp.every((x) => log2.some((l) => l.startsWith(`[GIAO] phi_huy ${x.x} lỗi đọc Ahamove`))
+        && log2.some((l) => l.startsWith(`[GIAO] phi_huy ${x.x} lỗi ghi kho`))), J(log2));
+    k('B2c "Tải lại" lúc phải lấy token mới mà Ahamove treo 12 s → trả < 10 s (lấy token cũng theo hạn ngắn); thẻ giữ tim_xe; có log lỗi',
+      ms2 < 10000 && y2?.trang_thai === 'tim_xe' && log3.some((l) => l.startsWith(`[GIAO] doc_lai ${v2.x} lỗi`)), `${ms2} ms ${J(log3.slice(0, 2))}`);
   }
 
   // ═══ Z · không lộ khoá; gắn bài; nút Tải lại ═════════════════════════════

@@ -62,3 +62,15 @@ BÀI HỌC: KHOÁ — B2 có ca CHO_PHI_HUY + Ahamove treo; đột biến A3. NG
 - viec/GIAO-1/dot_bien.py: neo `try { d = await aha.docChuyen(ma); }`, `if (doiLai >= DOC_LAI_TOI_DA) break;`, `if (c.trang_thai === 'dang_goi') return loi(409…`
   không còn khớp (code đã đổi) — bộ đột biến cũ của GIAO-1 sẽ báo HỎNG ở 3 tên đó (ngoài Phạm vi).
 - Render không có hẹn giờ nền: "tự hỏi lại" chỉ chạy khi màn Giao hàng ĐANG MỞ ở quầy (hẹn 15 s, mốc 60 s) hoặc khi bấm "Tải lại".
+
+## Soát độc lập — vòng 2 (agent độc lập) — tóm nguyên ý
+KHÔNG ĐẠT (chỉ lỗi NHẸ; không đụng tiền / điểm / ví, không lộ thông tin, không ngoài Phạm vi, không file Cấm)
+LỖI TÌM ĐƯỢC:
+1. giaoHang.js:30-32 chú thích HAN_DOC_LAI_MS "≤ ~8 s (+ token 8 s), dưới nhịp 15 s" sai: 8+8=16; nhánh tài xế huỷ → tự tìm lại (taoChuyenMoi: traTheoMa / baoPhi / taoChuyen) chạy trong cùng GET với hạn 10 s — K1, NHẸ.
+2. giaoHang.js:461, :469, :432 — nhãn bước hỏng sai: :461 luôn 'ghi kho' mã '-'; :469/:432 gán 'ghi kho' cho mọi lỗi của capNhatTuAhamove (kể cả đọc pos_orders) — K1/K4, NHẸ.
+3. giaoHang.js:222 Promise.all trong docLaiPhiHuy chỉ báo lỗi đầu, các lỗi sau bị nuốt; :463 câu giành doc_luc ngoài try — lỗi đầu làm GET 500, lỗi sau nuốt — K4, NHẸ.
+4. thu_GIAO2 B2a chỉ 1 dòng CHO_PHI_HUY, token có sẵn: đột biến "docLaiPhiHuy tuần tự" sẽ SỐNG; nhánh lấy token theo hạn ngắn chưa có ca — K3, NHẸ.
+NGHI NGỜ: B1 vẫn giả thuyết (báo cáo cuối phải nói rõ); HAN 8 s < 10 s cũ khi độ trễ thật chưa đo; nhiều giao dịch ghiPhiHuy đồng thời (không cộng hai lần — UNIQUE + INSERT OR IGNORE trong tx) có thể tăng KHO_BAN; hẹn 15 s cắt 3 chuyến rồi mới giành (hai máy → đọc ít hơn, không chặn); đọc phí huỷ không chặn bấm dồn (có từ trước, đã ghi Phát hiện).
+NGHIỆM THU: 12/12 (B1 cần câu "giả thuyết" trong báo cáo cuối).
+CHƯA SOÁT ĐƯỢC: đủ 28 đột biến (chạy 4), --day-du, cổng chay, tài liệu Ahamove, độ trễ thật, Turso thật.
+BÀI HỌC: KHOÁ — B2 nhiều dòng CHO_PHI_HUY + token chưa lấy; hai nhánh song song cùng hỏng đều có log. NGUYÊN TẮC — đổi tuần tự sang Promise.all thì bắt lỗi TRONG từng nhánh; chú thích "chờ tối đa X" cộng MỌI lời gọi ra ngoài của cùng yêu cầu kể cả hàm phụ; nhãn bước đặt ở đúng câu hỏng.
