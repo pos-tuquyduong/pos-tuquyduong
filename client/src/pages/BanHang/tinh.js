@@ -255,6 +255,12 @@ export function lyDoKhongTru({ khach, laNap, laThe = false }) {
 /** Cách trả còn lại sau khi trừ tài khoản: còn phải trả → tiền mặt hoặc QR (không trộn); hết (kể cả đơn 0đ) → chỉ "tai_khoan". */
 export const cachTraKhaDung = ({ phaiTra }) => (so(phaiTra) > 0 ? ['tien_mat', 'chuyen_khoan'] : ['tai_khoan']);
 
+/** KET-NOI-1 E1: khối nút thu vẽ nhánh nào — 'cho' (chưa có số máy chủ cho đúng giỏ: KHÔNG vẽ nút, kể cả "Đơn 0đ") · 'het' (máy chủ tính ra 0) · 'tra'. */
+export function nhanhNutThu({ coSo, phaiTra }) {
+  if (!coSo) return 'cho';
+  return so(phaiTra) <= 0 ? 'het' : 'tra';
+}
+
 /** Nút thu sáng? Chưa có số máy chủ (coSo) thì KHÔNG bao giờ sáng. */
 export function nutThuSang({ coSo, dangGui, cach, phaiTra, dua }) {
   if (!coSo || dangGui) return false;
@@ -264,10 +270,11 @@ export function nutThuSang({ coSo, dangGui, cach, phaiTra, dua }) {
 }
 
 /** Thân POST /thanh-toan/phien. PIN chỉ gửi khi có trừ tài khoản (máy chủ kiểm PIN của CHỦ tài khoản bị trừ). */
-export function thanPhien({ gio, khach, ma, cach, dungTK, dungMe, pin, pinMe, giao = null, vouchers = [] }) {
+export function thanPhien({ gio, khach, ma, cach, dungTK, dungMe, pin, pinMe, giao = null, vouchers = [], maGui }) {
   const don = thanTinhThu(gio, khach, ma, giao, vouchers);
   if (dungMe && khach?.parent_phone) don.parent_phone = khach.parent_phone;
   const than = { cach, don, tru_tai_khoan: !!dungTK, tru_tai_khoan_me: !!dungMe };
+  if (maGui) than.ma_gui = maGui;   // KET-NOI-1 B1: mã lượt bấm — gửi lại cùng mã ra đúng phiên đã tạo
   if (dungTK) than.pin = pin;
   if (dungMe) than.pin_me = pinMe;
   return than;
@@ -316,4 +323,18 @@ export function dinhDangDemNguoc(giay) {
 export function hanhDongPhien(trangThai) {
   if (trangThai === 'da_thu') return 'xong';
   return ['het_han', 'huy', 'loi'].includes(trangThai) ? 'nha' : 'doi';
+}
+
+// ── KET-NOI-1: mất kết nối khi thu / khi hỏi giá ─────────────────────────────
+/** B5 — MỘT chỗ dựng câu: hết lượt gửi lại mà vẫn không biết máy chủ đã ghi chưa. */
+export const CAU_CHUA_BIET_DON = 'Mất kết nối — chưa biết đơn đã ghi chưa. Đừng thu lại: mở Đơn hàng kiểm đơn mới nhất.';
+const laMatKetNoi = (e) => ['MAT_KET_NOI', 'KHO_MAT_KET_NOI'].includes(e?.code);   // api.js đã gửi lại hết lượt
+/** E2: lời dưới giỏ khi hỏi giá hỏng — mất kết nối thì câu ngắn (không chữ kỹ thuật); lỗi nghiệp vụ giữ lời máy chủ. */
+export const loiTinhGia = (e) => (laMatKetNoi(e) ? 'Mất kết nối, bấm Thử lại' : e?.message || 'Không tính được giá');
+/** Thu hỏng → việc màn phải làm. daCoPhien: phiên đã tạo (hỏng ở chốt); hoi: phiên vừa hỏi lại (null = hỏi không được).
+ *  bao_chua_biet: KHÔNG nhả gì, báo CAU_CHUA_BIET_DON · xong: máy chủ đã ghi → màn kết thúc · nha: nhả phiên, báo lỗi · bao_loi: lỗi lúc tạo phiên. */
+export function viecKhiThuHong({ loi, daCoPhien, hoi }) {
+  if (!daCoPhien) return laMatKetNoi(loi) ? 'bao_chua_biet' : 'bao_loi';
+  if (!hoi) return 'bao_chua_biet';
+  return hanhDongPhien(hoi.trang_thai) === 'xong' ? 'xong' : 'nha';
 }
