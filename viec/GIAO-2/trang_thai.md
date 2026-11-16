@@ -29,6 +29,7 @@
 | (vòng sửa 1) docLaiPhiHuy: hạn 8 s, song song, chạy cùng lúc đọc thẻ, log lỗi | BV-han-phi-huy · VS-phi-huy-sau-the · BV-log-phi-huy |
 | (vòng sửa 1) chống lặp `changes` (A3) | BV-chong-lap-changes |
 | (vòng sửa 1) log tin bị bỏ qua; log in giá trị capNhatTuAhamove trả | BV-log-tin-bo-qua · VS-log-suy-lai |
+| (vòng sửa 2) mỗi nhánh đọc lại / phí huỷ tự bắt lỗi, log đúng bước; phí huỷ song song; lấy token theo hạn ngắn | VS-phi-huy-loi-chung · VS-phi-huy-tuan-tu · BV-han-lay-token |
 | danhSach: "Tải lại" đọc ngay (5 s), trần 8, hẹn 15 s giữ 60 s | BV-doc-lai-ngay · VS-tai-lai-khong-chan-don · VS-tai-lai-ca-hen-gio · VS-tran-tai-lai · BV-cua-doc-lai |
 | logGiao: dòng [GIAO] không SĐT | BV-log-giao · VS-log-sdt-tai-xe |
 | màn Giao hàng / api.js: nút Tải lại gửi cờ | BV-nut-tai-lai · VS-in-tem-truyen-doi-so · BV-api-doc-lai |
@@ -74,3 +75,11 @@ NGHI NGỜ: B1 vẫn giả thuyết (báo cáo cuối phải nói rõ); HAN 8 s 
 NGHIỆM THU: 12/12 (B1 cần câu "giả thuyết" trong báo cáo cuối).
 CHƯA SOÁT ĐƯỢC: đủ 28 đột biến (chạy 4), --day-du, cổng chay, tài liệu Ahamove, độ trễ thật, Turso thật.
 BÀI HỌC: KHOÁ — B2 nhiều dòng CHO_PHI_HUY + token chưa lấy; hai nhánh song song cùng hỏng đều có log. NGUYÊN TẮC — đổi tuần tự sang Promise.all thì bắt lỗi TRONG từng nhánh; chú thích "chờ tối đa X" cộng MỌI lời gọi ra ngoài của cùng yêu cầu kể cả hàm phụ; nhãn bước đặt ở đúng câu hỏng.
+
+## Vòng sửa 2 (sau soát vòng 2 — chỉ lỗi NHẸ)
+- giaoHang.js docLaiPhiHuy: mỗi dòng tự bắt lỗi (đọc Ahamove / ghi kho) + log kèm mã chuyến; câu đọc kho lỗi → log, trả rỗng; không bao giờ ném.
+- giaoHang.js danhSach: mỗi nhánh đọc thẻ tự bắt lỗi theo bước (ghi kho ở câu giành doc_luc · đọc Ahamove · cập nhật thẻ) — lỗi câu giành không còn làm
+  GET 500 (giữ thẻ cũ, ghi log). nhanTinBao: lỗi của capNhatTuAhamove ghi bước "cập nhật thẻ"; `!d` ghi thẳng "bỏ qua: Ahamove không có chuyến".
+- Chú thích HAN_DOC_LAI_MS sửa đúng: thường ≤ 8 s, lấy token lần đầu ≤ 16 s, riêng nhánh tự tìm lại gọi xe theo hạn 10 s.
+- thu_GIAO2 B2: 3 dòng phí huỷ + kho hỏng ở câu xếp lại (log đủ cả ba); B2c: token hết hạn, lấy token treo 12 s → < 10 s.
+- Bằng chứng: gốc 8 đạt · 19 hỏng; đã vá 27 đạt · 0 hỏng; thu_GIAO1 137 · 0. Đột biến: 31 · BẮT 31 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng XANH).
