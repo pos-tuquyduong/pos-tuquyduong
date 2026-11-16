@@ -589,10 +589,10 @@ async function main() {
       s4 = await chay2({ code: 'PIN_SAI' }, null, [], true);
     k('B3d xuLyThuHong: tạo phiên hết lượt MAT_KET_NOI / KHO_MAT_KET_NOI / DANG_XU_LY (QR đang tạo) → bao_chua_biet, KHÔNG gọi huỷ; lỗi khác (PIN_SAI) → bao_loi',
       [s1, s2, s3].every((x) => x.viec === 'bao_chua_biet' && x.huy === 0) && s4.viec === 'bao_loi' && s4.huy === 0, JSON.stringify([s1, s2, s3, s4]));
-    const t1 = await chay2(mk, 9, ['da_thu'], true), t2 = await chay2(mk, 9, ['cho'], true), t3 = await chay2({ code: 'X' }, 9, ['huy'], true), t4 = await chay2(mk, 9, [null], true);
+    const w1 = await chay2(mk, 9, ['da_thu'], true), w2 = await chay2(mk, 9, ['cho'], true), w3 = await chay2({ code: 'X' }, 9, ['huy'], true), w4 = await chay2(mk, 9, [null], true);
     k('B3d xuLyThuHong: chốt hỏng + hỏi được da_thu → xong (KHÔNG huỷ); cho / huy → nhả được → bao_loi; hỏi hỏng → bao_chua_biet, KHÔNG huỷ',
-      t1.viec === 'xong' && t1.phien?.order?.id === 77 && t1.huy === 0 && t2.viec === 'bao_loi' && t2.huy === 1 && t3.viec === 'bao_loi'
-      && t4.viec === 'bao_chua_biet' && t4.huy === 0, JSON.stringify([t1, t2, t3, t4]));
+      w1.viec === 'xong' && w1.phien?.order?.id === 77 && w1.huy === 0 && w2.viec === 'bao_loi' && w2.huy === 1 && w3.viec === 'bao_loi'
+      && w4.viec === 'bao_chua_biet' && w4.huy === 0, JSON.stringify([w1, w2, w3, w4]));
     const u1 = await chay2(mk, 9, ['cho', 'da_thu'], false), u2 = await chay2(mk, 9, ['cho', 'cho'], false), u3 = await chay2(mk, 9, ['cho', null], false);
     k('B3d xuLyThuHong (soát vòng 1 — đơn đôi): hỏi thấy cho, huỷ bị 409 (lệnh chốt trước vừa ghi) → hỏi LẠI: da_thu → xong; vẫn cho / hỏi hỏng → bao_chua_biet (không báo "thử lại")',
       u1.viec === 'xong' && u1.hoi === 2 && u2.viec === 'bao_chua_biet' && u3.viec === 'bao_chua_biet', JSON.stringify([u1, u2, u3]));
