@@ -230,7 +230,7 @@ async function main() {
     r = await D.query('SELECT 9 AS x').catch((e) => e);
     k('A1c rớt 3 lần → ném KHO_MAT_KET_NOI (câu đọc), execute ĐÚNG 3 lần (2 thử lại)', r?.code === 'KHO_MAT_KET_NOI' && r?.message === CAU_DOC && M.goi - g === 3,
       `${r?.code} · ${r?.message} · ${M.goi - g}`);
-    k('A1c lỗi ném ra KHÔNG mang lỗi gốc (cause) / địa chỉ kho', r instanceof Error && !r.cause && !LO(JSON.stringify(r)) && !LO(r.message), JSON.stringify(r));
+    k('A1c lỗi ném ra KHÔNG mang lỗi gốc (cause) / địa chỉ kho', r instanceof Error && !r.cause && !/turso\.io|socket hang up|pipeline/.test(JSON.stringify(r) + r.message), JSON.stringify(r));
 
     const L = D.laLoiMang;
     const co = typeof L === 'function';
@@ -324,6 +324,11 @@ async function main() {
     await goi('POST', `/pos/thanh-toan/phien/${h1.j.phien?.id}/huy`, {});
     const h2 = await tao({ ma: ma4 });
     k('B1g mã của phiên ĐÃ HUỶ gửi lại → 409 PHIEN_DA_CHOT (không trả phiên huỷ, không tạo mới)', la(h2, 409, 'PHIEN_DA_CHOT'), moTa(h2));
+    const chen = (m) => D.run(`INSERT INTO pos_phien_thanh_toan (than, tong, con_lai, cach, het_han, nguoi_tao, tao_luc, ma_gui) VALUES ('{}', 1, 1, 'tien_mat', ?, 'x', ?, ?)`,
+      [getNow(), getNow(), m]).then(() => 'ok', (e) => String(e.code || e.message));
+    const ma5 = maMoi(), u1 = await chen(ma5), u2 = await chen(ma5), u3 = await chen(null), u4 = await chen(null);
+    k('B1k bước 029: khoá UNIQUE — hai dòng cùng ma_gui → kho từ chối; ma_gui NULL (đơn App, lời gọi cũ) → nhiều dòng được', u1 === 'ok' && /UNIQUE|CONSTRAINT/.test(u2)
+      && u3 === 'ok' && u4 === 'ok', `${u1} / ${u2} / ${u3} / ${u4}`);
   });
 
   await chay('B1ij', async () => {
@@ -545,6 +550,12 @@ async function main() {
   muc('[F] Đo chậm: [CHAM] > 2 giây · số câu kho của ba đường (F2 chỉ đo + báo cáo)');
   await chay('F', async () => {
     k('F1 ngưỡng chậm là MỘT hằng 2000 ms', D.NGUONG_CHAM_MS === 2000, String(D.NGUONG_CHAM_MS));
+    const ix = fs.readFileSync(path.join(MAY_CHU, 'index.js'), 'utf8');
+    const vt = (s) => ix.indexOf(s);
+    k('F1 index.js: bọc fetch toàn cục (đo "ngoài"); gắn doYeuCau + mocLoiKho SAU bộ đọc thân, TRƯỚC route đầu tiên', /globalThis\.fetch = bocFetchNgoai\(globalThis\.fetch\);/.test(ix)
+      && vt("app.use('/api', doYeuCau);") > vt('app.use(express.json(') && vt("app.use('/api/pos', mocLoiKho);") > vt('app.use(express.json(')
+      && vt("app.use('/api', doYeuCau);") < vt("app.use('/api/pos/auth'") && vt("app.use('/api/pos', mocLoiKho);") < vt("app.use('/api/pos/auth'"),
+      [vt("app.use('/api', doYeuCau);"), vt("app.use('/api/pos', mocLoiKho);"), vt('app.use(express.json('), vt("app.use('/api/pos/auth'")].join(' '));
     const c0 = dem().cham || {};
     imLang(); giuLog = true;
     nhatKy.length = 0;
