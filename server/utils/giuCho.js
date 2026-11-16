@@ -17,8 +17,8 @@ const { ghiNhatKy, tien } = require('./nhatKyDon');
 const { kiemPin } = require('./pinKhach');
 const { loiTienThat } = require('./viKhach');   // KH-NAP-1: đơn chỉ trả tiền thật (nạp / thẻ)
 const { congQr } = require('./congQr');   // SEPAY-1: cổng QR của phiên cach 'payos' (= QR tự xác nhận)
-const { voucherDangGiu, CACH_GIU_VOUCHER } = require('./voucherCode');
-const { laTrungKhoa } = require('../kho/tinh');   // KET-NOI-1 B1: đụng khoá UNIQUE ma_gui (khuôn khiTrung của Kho)   // Q16: phiên chờ chuyển khoản giữ voucher
+const { voucherDangGiu, CACH_GIU_VOUCHER } = require('./voucherCode');   // Q16: phiên chờ chuyển khoản giữ voucher
+const { laTrungKhoa } = require('../kho/tinh');   // KET-NOI-1 B1: đụng khoá UNIQUE ma_gui (khuôn khiTrung của Kho)
 
 const HAN_PHUT = 10;
 const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay, Tingee dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
@@ -38,7 +38,7 @@ const tomPhien = (p, order = null) => ({
 
 // ── KET-NOI-1 B1: mã lượt bấm (khuôn kho_phieu.ma_gui) ──
 const MAU_MA_GUI = /^[A-Za-z0-9_-]{8,64}$/;
-const LOI_QR = () => loi(502, 'PAYOS_LOI', 'Cổng QR không tạo được QR — thử lại, hoặc dùng QR tĩnh của quán');
+const LOI_QR = () => loi(502, 'PAYOS_LOI', 'Cổng QR không tạo được QR — thử lại, hoặc dùng QR tĩnh của quán');   // cùng câu dòng tạo QR hỏng bên dưới (Cấm: không sửa dòng đó)
 /** Phiên đã tạo cho mã `maGui` (q: { queryOne } hoặc tx) → câu trả cho lần gửi lại; null = chưa có. Cùng mã mà thân / cách / người tạo khác,
  *  hoặc phiên đã giữ ví mà lần này không xin trừ tài khoản → 409 (không trả nhầm phiên). Phiên QR chưa có QR (lần đầu còn đang gọi cổng)
  *  → 503 DANG_XU_LY (quầy gửi lại); cổng QR đã hỏng → 502 PAYOS_LOI như lần đầu; phiên không còn chờ → 409 PHIEN_DA_CHOT. */
@@ -134,7 +134,7 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
     } catch (e) {
       console.error('Cổng QR tạo QR lỗi:', e.message);
       await run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi' WHERE id = ? AND trang_thai = 'cho'", [phien.id]);   // nhả phần giữ
-      return LOI_QR();
+      return loi(502, 'PAYOS_LOI', 'Cổng QR không tạo được QR — thử lại, hoặc dùng QR tĩnh của quán');
     }
   }
   return { status: 200, body: { success: true, phien: tomPhien(phien) } };
@@ -147,7 +147,7 @@ async function chotPhien(phien, nguon, them = {}) {
   // KET-NOI-1 B2: quầy gửi lại lệnh chốt mà CHÍNH lần chốt trước đã ghi xong → trả đơn đã ghi, không ghi gì. CHỈ route /chot đặt lapLai (route
   // chỉ nhận phiên tiền mặt / trả đủ tài khoản). Webhook, xác nhận tay (không lapLai) và phiên của ĐƠN APP (chốt ở donApp.js với nguon
   // 'tai_khoan' trùng quầy — soát vòng 1) lần hai vẫn 409 như cũ.
-  if (them.lapLai === true && phien.trang_thai === 'da_thu' && phien.order_id
+  if (them.lapLai === true && phien.trang_thai === 'da_thu'
     && !(await queryOne('SELECT 1 AS co FROM pos_don_app WHERE phien_id = ?', [phien.id]))) {
     return { status: 200, body: { success: true, order: await queryOne('SELECT id, code FROM pos_orders WHERE id = ?', [phien.order_id]), lap_lai: true } };
   }

@@ -1559,7 +1559,8 @@ function doYeuCau(req, res, next) {
   if (res.locals.ketNoi) return next();   // đã đo ở cửa trước (index.js gắn riêng /api/nd trước cors + gắn chung /api)
   const d = { batDau: Date.now(), cau: 0, khoMs: 0, ngoaiMs: 0 };
   res.locals.ketNoi = d;
-  res.on('finish', () => {
+  // 'close' (không 'finish'): bắn cả khi khách bỏ kết nối trước khi máy chủ trả lời — đúng ca Ahamove bỏ sau 5 giây (D-LOI-1, soát vòng 2).
+  res.on('close', () => {
     const tong = Date.now() - d.batDau;
     if (tong <= NGUONG_CHAM_MS) return;
     cham.so_lan++;

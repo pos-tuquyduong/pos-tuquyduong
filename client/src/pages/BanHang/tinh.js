@@ -335,7 +335,8 @@ const chuaBietDaGhi = (e) => laMatKetNoi(e) || e?.code === 'DANG_XU_LY';
 export const loiTinhGia = (e) => (laMatKetNoi(e) ? 'Mất kết nối, bấm Thử lại' : e?.message || 'Không tính được giá');
 /** Thu hỏng (api.js đã gửi lại hết lượt) → việc màn phải làm: { viec, phien }. phienId: phiên đã tạo (hỏng ở chốt) hoặc null (hỏng lúc tạo);
  *  hoi(id) → phiên máy chủ / ném; huy(id) → nhả phiên / ném (409 = phiên không còn chờ). Không biết máy chủ đã ghi chưa → KHÔNG nhả, bao_chua_biet.
- *  Huỷ bị từ chối (lệnh chốt trước còn chạy ở máy chủ và vừa ghi xong — soát vòng 1) → hỏi lại: đã thu → xong, không thì bao_chua_biet.
+ *  Phiên còn chờ ('cho') mới huỷ; huỷ bị từ chối (lệnh chốt trước còn chạy ở máy chủ và vừa ghi xong — soát vòng 1) → hỏi lại: đã thu → xong,
+ *  không thì bao_chua_biet. Phiên đã thôi giữ (loi / huy / het_han — vd chốt hỏng vì đơn) → bao_loi, không huỷ (soát vòng 2).
  *  viec: xong (sang màn kết thúc) · bao_chua_biet (câu B5) · bao_loi (đã nhả hoặc lỗi lúc tạo — báo lời máy chủ). */
 export async function xuLyThuHong({ loi, phienId, hoi, huy }) {
   if (!phienId) return { viec: chuaBietDaGhi(loi) ? 'bao_chua_biet' : 'bao_loi' };
@@ -343,6 +344,7 @@ export async function xuLyThuHong({ loi, phienId, hoi, huy }) {
   const lan1 = await daThu();
   if (lan1.xong) return { viec: 'xong', phien: lan1.p };
   if (!lan1.p) return { viec: 'bao_chua_biet' };
+  if (hanhDongPhien(lan1.p.trang_thai) === 'nha') return { viec: 'bao_loi' };   // loi / huy / het_han: máy chủ đã thôi giữ — báo lời máy chủ (như cũ)
   if (await huy(phienId).then(() => true, () => false)) return { viec: 'bao_loi' };
   const lan2 = await daThu();
   return lan2.xong ? { viec: 'xong', phien: lan2.p } : { viec: 'bao_chua_biet' };

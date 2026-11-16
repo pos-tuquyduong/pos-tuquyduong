@@ -89,7 +89,7 @@ app.use((req, res, next) => {
   console.log(`${getNow()} | ${req.method} ${req.path.replace(/(\/customers\/qr\/).*/i, '$1***')}`);
   next();
 });
-// KET-NOI-1: đo mỗi yêu cầu /api/* (sau bộ đọc thân — ngữ cảnh đo đi theo route) + lỗi mạng tới kho → 503 KHO_MAT_KET_NOI. TRƯỚC mọi route.
+// KET-NOI-1: đo mỗi yêu cầu /api/* + lỗi mạng tới kho → 503 KHO_MAT_KET_NOI. TRƯỚC mọi route /api/pos (/api/nd đo riêng ở trên).
 app.use('/api', doYeuCau);
 app.use('/api/pos', mocLoiKho);
 

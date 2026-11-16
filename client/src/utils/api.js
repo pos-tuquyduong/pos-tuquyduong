@@ -90,16 +90,16 @@ const nenGuiLai =(err, thuLai) => !!thuLai && (MA_GUI_LAI.includes(err?.code) ||
 async function goiFetch(url, options) {
   try {
     return await fetch(url, options);
-  } catch (e) {
-    if (e && e.name === 'AbortError') throw e;
-    throw loiMatKetNoi();
+  } catch {
+    throw loiMatKetNoi();   // không lời gọi nào qua api.js truyền signal → mọi lỗi fetch là không có trả lời
   }
 }
+const MA_TRANG_PROXY = [502, 503, 504, 520, 521, 522, 523, 524];   // trang lỗi (không JSON) của Render / Cloudflare đứng trước máy chủ
 
 /** Dựng Error mang theo status + code để nơi gọi phân nhánh được nếu cần. */
 function buildApiError(response, data) {
-  // KET-NOI-1: trang lỗi 502 / 503 / 504 của Render / Cloudflare (không JSON) = mất kết nối tới máy chủ
-  if (data && data.khong_json && [502, 503, 504].includes(response.status)) return Object.assign(loiMatKetNoi(), { status: response.status });
+  // KET-NOI-1: trang lỗi của Render / Cloudflare (không JSON) = mất kết nối tới máy chủ
+  if (data && data.khong_json && MA_TRANG_PROXY.includes(response.status)) return Object.assign(loiMatKetNoi(), { status: response.status });
   const err = new Error(
     (data && (data.error || data.message)) || `HTTP ${response.status}`
   );
