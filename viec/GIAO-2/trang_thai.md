@@ -109,3 +109,86 @@ No vulnerabilities found.
 - Không đụng giá, thanh toán, hay quyền xem dữ liệu khách.
 
 SOÁT BẢO MẬT: ĐẠT
+
+## Vòng sửa 4 (LUAT §6.5 — hết 3 vòng soát, chỉ còn lỗi NHẸ → sửa luôn, không gọi soát nữa)
+- giaoHang.js: `maTin(b)` tính mã MỘT lần trong nhanTinBaoNen — chỉ nhận chuỗi / số, bỏ hậu tố `-n`, chỉ giữ `[A-Za-z0-9_-]`, ≤ 40 ký tự; hàm bắt lỗi
+  dùng giá trị đã tính (thân `{"_id":{"toString":1}}` không còn làm sập tiến trình; mã có xuống dòng không chèn được dòng log). nhanTinBao nhận `ma`.
+- giaoHang.js: câu gỡ dòng chống lặp hỏng → log "lỗi gỡ dòng chống lặp" riêng, lỗi gốc vẫn ghi "lỗi cập nhật thẻ".
+- Chú thích HAN_DOC_LAI_MS: nhánh tự tìm lại = 3 lời gọi nối nhau mỗi lời 10 s → lần hỏi đó có thể ~30 s.
+- thu_GIAO2: A2d kiểm thêm log "lỗi cập nhật thẻ"; A2e (thân dị dạng), A2f (hỏng cả gỡ chống lặp), B2d (hỏng câu giành → GET 200 + log). 30 ca.
+- Đột biến thêm: VS-ma-tinh-lai · BV-ma-loc-ky-tu · BV-xoa-chong-lap-bat-loi · BV-nhan-cap-nhat-the · BV-gianh-bat-loi. Tổng 36 · BẮT 36 (chạy đủ: 35 BẮT +
+  1 HỎNG neo cũ BV-go-chong-lap → sửa neo, chạy riêng: BẮT). Đối chứng XANH (g1 137/0 · g2 30/0).
+- Bảng chỗ vá → đột biến bổ sung:
+
+| Chỗ vá | Đột biến |
+|---|---|
+| (vòng sửa 4) mã tin tính một lần, lọc ký tự | VS-ma-tinh-lai · BV-ma-loc-ky-tu |
+| (vòng sửa 4) lỗi gỡ chống lặp không che lỗi gốc; nhãn "cập nhật thẻ" | BV-xoa-chong-lap-bat-loi · BV-nhan-cap-nhat-the |
+| (vòng sửa 4) câu giành doc_luc tự bắt lỗi | BV-gianh-bat-loi |
+
+- npm test -- --day-du: PASS 124 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ: route GET có lệnh ghi ở packages.js / products.js / sync.js — không thuộc việc này).
+- `node tu_chay/cong.js chay . 4c52117^ HEAD viec/GIAO-2` ở e6beafc8 (cây sạch): ✓ CỔNG CHẠY ĐẠT
+- Ghi chú môi trường: kho mở ở dạng NÔNG làm bài thu_BH2 trong npm test đỏ (thiếu commit cbbb809) → đã `git fetch -q --unshallow origin viec/GIAO-2` (chỉ tải lịch sử).
+
+SOÁT LẦN CUỐI: chat soát thay
+
+## Nghiệm thu — đếm từng mục
+- A1 trả lời ngay: thu_GIAO2 A1a (Ahamove 8 s + kho 1,5 s/câu → 200 < 1 s), A1b (401 / 401 / 503, Ahamove không bị đọc); đột biến BV-tra-loi-ngay, VS-200-truoc-khoa.
+- A2 xử lý sau, lỗi chỉ log, không sập: A2a (đọc lại THẬT), A2b (Ahamove lỗi → log), A2c (kho hỏng → log, không unhandledRejection), A2d (gỡ dòng chống lặp),
+  A2e (thân dị dạng), A2f (log đủ hai lỗi); đột biến VS-nen-khong-bat-loi, BV-go-chong-lap, VS-ma-tinh-lai, BV-xoa-chong-lap-bat-loi.
+- A3 hai tin cách 49 ms → một dòng chống lặp, câu cập nhật thẻ chạy MỘT lần: A3; đột biến BV-chong-lap-changes.
+- A4 thẻ dang_goi → 200, không ghi sổ, "Tải lại" đọc ra trạng thái: A4 + thu_GIAO1 V10 (409 → 200); đột biến BV-tin-dang-goi, VS-tin-dang-goi-409.
+- A5 không phải của quán / chuyến cũ đã thay / thân rỗng → 200 không làm gì: hai ca A5.
+- B1 nguyên nhân: GIẢ THUYẾT (xem CHƯA KIỂM) — ca B1 ×2 (chi tiết chuyến bọc mảng / {order}) đỏ trên gốc; log B3 để lần thử sau nhìn ra.
+- B2 hạn có tên, không treo màn: HAN_DOC_LAI_MS (giaoHang.js); B2a (Ahamove treo 12 s, 2 chuyến + 3 phí huỷ → < 10 s), B2c (lấy token treo → < 10 s), B2d.
+- B3 log + hết nuốt lỗi: B3a, B3b (không SĐT / địa chỉ), B3c (tin bỏ qua có log), B3d (log in điều ĐÃ làm), B2b (lỗi đọc lại + phí huỷ có log đúng bước).
+- B4 "Tải lại" hỏi ngay: B4a (hẹn 15 s giữ 60 s), B4b (đọc ngay), B4c (bấm dồn không đọc thêm), B4d (trần 8), Z3 (nút gửi cờ).
+- B5 không làm lại: thu_GIAO1 H12 (60 s) xanh; Render không có hẹn giờ nền — ghi ở Phát hiện và CHƯA KIỂM.
+- C1 thu_GIAO1 137/137, chỉ V10 đổi (đỏ trên gốc — bang_chung_do.txt).
+- C2 gọi xe / tìm lại / huỷ / chuyến trùng / phí huỷ / tự tìm lại: thu_GIAO1 G*, I*, J*, V*, W* xanh không sửa.
+
+## Bài học
+Sự cố của việc: (1) tài liệu Ahamove không mở được (mạng chặn) → B1 chỉ tới giả thuyết; (2) agent soát kế hoạch bắt lỗi thật đầu tiên — sổ chống lặp ghi
+TRƯỚC khi cập nhật thẻ; (3) ba vòng soát đều bắt thêm: đường đọc phí huỷ cùng yêu cầu bị sót (K4), log tự suy lại thay vì in điều đã làm, Promise.all chỉ
+báo lỗi đầu, hàm bắt lỗi làm lại phép tính vừa ném (sập tiến trình); (4) neo đột biến lạc sau mỗi vòng sửa (3 lần HỎNG) — sửa neo rồi chạy lại riêng;
+(5) người gác chặn chạy file script có cụm tên khoá Ahamove chưa commit → commit trước; (6) kho nông làm thu_BH2 đỏ → unshallow.
+- KHOÁ (ngoài Phạm vi — đề xuất): `kiem_tra_truoc_khi_giao.js` — phép tĩnh "trong server/, thân `.catch(` gọi `String(b?.…)` / `String(req.body…)`" đỏ; ca đỏ:
+  giaoHang.js ở d7827cb7^ (dòng nhanTinBaoNen). Chưa làm (phép hẹp; ca A2e đã khoá hành vi).
+- KHOÁ (đã làm trong Phạm vi): thu_GIAO2 A2e / A2f / B2b / B2c / B2d — mỗi lỗi người soát báo có ca đỏ + đột biến đưa lỗi cũ trở lại.
+- NGUYÊN TẮC (đề xuất cho KHUON_LOI.md, ngoài Phạm vi): K4 — "Đổi vòng tuần tự sang Promise.all → bắt lỗi TRONG từng nhánh (all chỉ báo lỗi đầu, các lỗi sau
+  bị nuốt). Hạ hạn chờ / bỏ nuốt lỗi cho một đường → grep MỌI lời gọi ra ngoài trong CÙNG yêu cầu, kể cả hàm phụ (GIAO-2: danhSach → docLaiPhiHuy)."
+- NGUYÊN TẮC (đề xuất, K1): "Log chẩn đoán in điều code ĐÃ làm (giá trị hàm trả về), không suy lại bằng công thức riêng; hàm bắt lỗi chỉ dùng giá trị đã tính an
+  toàn từ trước (GIAO-2: `.catch` gọi lại `String(b._id)` → TypeError → unhandledRejection → sập)."
+- BỎ: thu_BH2 đỏ vì kho nông — môi trường, đã có luật unshallow ở bước 1.3.
+
+## Báo cáo
+```
+VIỆC:        GIAO-2 — Tin báo Ahamove trả lời ngay, xử lý sau; dự phòng đọc lại cập nhật được thẻ; nút Tải lại hỏi Ahamove ngay
+ĐÃ SỬA:      server/routes/giao-hang.js webhook — kiểm khoá như cũ → res.json 200 NGAY → gh.nhanTinBaoNen; GET / nhận ?doc_lai=1
+             server/utils/giaoHang.js — nhanTinBao(ma) chạy nền (maTin an toàn, bỏ 409 dang_goi, gỡ dòng chống lặp khi cập nhật thẻ hỏng, log mọi nhánh);
+               capNhatTuAhamove trả điều đã làm; danhSach(docLaiNgay): đọc song song, hạn HAN_DOC_LAI_MS 8 s, Tải lại = mốc 5 s / trần 8, mỗi nhánh tự bắt
+               lỗi + log đúng bước; docLaiPhiHuy song song + hạn 8 s + log (logic phí không đổi)
+             server/utils/ahamove.js — goiTho nhận `han` (cả lấy token); motChuyen gỡ mảng / {order} cho docChuyen + traTheoMa
+             client/src/pages/GiaoHang/index.jsx — nút Tải lại gọi tai(true); hẹn giờ / in tem gọi tai() không đối số; client/src/utils/api.js danhSach(docLai)
+             client/dist build lại; kiem_tra_truoc_khi_giao.js chạy thu_GIAO2; cong_cu/thu_GIAO1.js baoVe chờ phần nền + V10 409 → 200
+             server + client/src: 108 thêm / 62 bớt — vượt ngân sách ~60 dòng máy chủ vì 3 vòng soát thêm log từng bước + phí huỷ song song
+BÀI THỬ:     cong_cu/thu_GIAO2.js trên gốc 0c84944 → ĐỎ 22/30 (A1a 12516 ms, A2b 502, A2c 500, A2d, A2e 500 TypeError, A2f, A4 409, B1×2, B2a 30017 ms,
+             B2c 50040 ms, B2d 500, B3*, B4b/c/d, Z2, Z3); sau vá → 30/30 XANH. thu_GIAO1 gốc → ĐỎ V10; sau vá 137/137. Đột biến 36 · BẮT 36.
+ĐÃ RÀ K4:    grep "aha.docChuyen" giaoHang.js → 6 chỗ: tin báo + đọc lại thẻ + phí huỷ đã hạn / log; 3 chỗ đường gọi xe / huỷ (.catch(() => undefined)) giữ
+             nguyên — ghi Phát hiện. Đường đọc lại hết `catch {}` / `.catch(() => …)` im lặng. Gỡ bọc dồn một hàm motChuyen (docChuyen + traTheoMa).
+             grep "tai" trong GiaoHang/index.jsx → 6 chỗ gọi, chỉ nút Tải lại truyền true.
+CHƯA KIỂM:   - B1 NGUYÊN NHÂN THẬT CHƯA TÌM RA: máy không mở được tài liệu Ahamove (mạng chặn developers.ahamove.com). Dạng bọc chi tiết chuyến là GIẢ THUYẾT
+               máy tái hiện được; giả thuyết khác: Ahamove bản thử / Turso chậm ≥ 5 s, mã chuyến đọc về có hậu tố, sổ chống lặp kẹt sau lỗi kho (đã vá).
+               Lần thử sau: đọc nhật ký Render dòng "[GIAO] …" — mỗi lần đọc in mã chuyến, trạng thái Ahamove → điều đã làm (hoặc "bỏ qua: …") · ms.
+             - Hạn 8 s chọn khi CHƯA đo độ trễ thật Render → Ahamove; nếu log cho thấy thường > 8 s thì cần nâng.
+             - Chưa chạy với Ahamove thật / Turso thật / Render thật; chưa bấm thử màn trên điện thoại.
+             - Render không có hẹn giờ nền: "tự hỏi lại" chỉ chạy khi màn Giao hàng ĐANG MỞ ở quầy (15 s, mốc 60 s) hoặc khi bấm "Tải lại".
+             - Lọc mã tin còn [A-Za-z0-9_-]: nếu mã chuyến Ahamove thật có ký tự khác thì tin bị bỏ qua (dự phòng đọc lại vẫn lo) — chưa đối chiếu.
+GIT:         e6beafc8 GIAO-2: neo dot bien BV-go-chong-lap; soat bao mat DAT
+             beb75713 GIAO-2: bang chung do vong sua 4
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài học
+```
+Thử tay trên điện thoại (chủ quán): (1) mở màn Giao hàng, gọi xe một đơn thử Ahamove → khi tài xế nhận, thẻ đổi sang có tên tài xế trong vài giây;
+(2) nếu thẻ đứng yên, bấm "Tải lại" → thẻ lên đúng trạng thái ngay; (3) mở nhật ký Render, tìm dòng bắt đầu "[GIAO]" và gửi lại cho chat.
+
+HEAD ĐÃ KIỂM: e6beafc8
