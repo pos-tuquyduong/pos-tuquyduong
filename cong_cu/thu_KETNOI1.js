@@ -73,7 +73,8 @@ async function main() {
   await D.initDatabase();
 
   // ── Lớp mạng giả (ngoài + trong giao dịch). H: ngoài giao dịch; HT: trong giao dịch; sauCommit: regex câu trong tx → commit thật rồi ném ──
-  const M = { goi: 0, H: null, HT: null, sauCommit: null, vaoTx: 0, chanTx: null };   // chanTx: mọi giao dịch chờ tới khi thả (B1f ép đua)
+  // chanTx: mọi giao dịch chờ tới khi thả (B1f ép đua); anMaGui: câu đọc phiên theo ma_gui TRONG giao dịch không thấy gì (giả kho không xếp hàng — B1f2)
+  const M = { goi: 0, H: null, HT: null, sauCommit: null, vaoTx: 0, chanTx: null, anMaGui: false };
   const datHong = (con, khop = /./, tao = loiMang) => { M.H = { con, khop, tao }; };
   const hongTx = (con, khop = /./, tao = loiMang) => { M.HT = { con, khop, tao }; };
   const traSql = (st) => (typeof st === 'string' ? st : st.sql);
@@ -98,6 +99,7 @@ async function main() {
         const sql = traSql(st), HT = M.HT;
         if (HT && HT.con > 0 && HT.khop.test(sql)) { HT.con--; throw HT.tao(); }
         if (M.sauCommit && M.sauCommit.test(sql)) khop = true;
+        if (M.anMaGui && /WHERE ma_gui = \?/.test(sql)) return te({ sql, args: ['__kn1_khong_co__'] });
         return te(st);
       };
       t.commit = async () => { await tc(); if (khop) { M.sauCommit = null; throw loiMang(); } };
@@ -139,6 +141,7 @@ async function main() {
   if (typeof D.doYeuCau === 'function') app.use('/api', D.doYeuCau);
   if (typeof D.mocLoiKho === 'function') app.use('/api/pos', D.mocLoiKho);
   const ngoai = typeof D.bocFetchNgoai === 'function' ? D.bocFetchNgoai(globalThis.fetch) : globalThis.fetch;
+  if (typeof D.doYeuCau === 'function') app.use('/api/pos/thu-cham', D.doYeuCau);   // gắn HAI lần (như /api/nd ở index.js) — phải đo MỘT lần
   app.get('/api/pos/thu-cham/:ms', async (req, res) => {
     await D.query('SELECT 1 AS x');
     await (await ngoai(gocGia + '/ngoai-cham')).json();
@@ -238,7 +241,11 @@ async function main() {
     const L = D.laLoiMang;
     const co = typeof L === 'function';
     const fe = loiMang();
-    k('A1e laLoiMang: FetchError node-fetch (type system) → mạng', co && L(fe) === true);
+    // A1e CÔ LẬP vế FetchError (soát vòng 1): thân trả về đứt giữa chừng — node-fetch index.js:217/400 — mã KHÔNG thuộc danh sách, chữ không có "socket hang up".
+    const deDut = Object.assign(new Error('Invalid response body while trying to fetch https://thu-kho.turso.io/v2/pipeline: Premature close'),
+      { name: 'FetchError', type: 'system', code: 'ERR_STREAM_PREMATURE_CLOSE' });
+    k('A1e laLoiMang: FetchError node-fetch type system (cả khi mã lạ ERR_STREAM_PREMATURE_CLOSE) → mạng; FetchError type khác (invalid-json) → KHÔNG',
+      co && L(fe) === true && L(deDut) === true && L(Object.assign(new Error('invalid json response body at x'), { name: 'FetchError', type: 'invalid-json' })) === false);
     k('A1f laLoiMang: mã ở err.code (ETIMEDOUT) và ở cause.code (ECONNRESET), chữ khác → mạng',
       co && L(Object.assign(new Error('x'), { code: 'ETIMEDOUT' })) && L(Object.assign(new Error('y'), { cause: { code: 'ECONNRESET' } })));
     k('A1g laLoiMang: chữ "fetch failed" / "socket hang up" (không mã) → mạng', co && L(new TypeError('fetch failed')) && L(new Error('read socket hang up')));
@@ -308,11 +315,13 @@ async function main() {
       `${moTa(q1)} / ${moTa(q2)} · cổng ${P.nhan - n0} · HĐ ${await soHd() - h0}`);
     let p1 = await soPhien();
     const c1 = await tao({ sdt: a, sl: 3, tk: true, ma });
-    k('B1c cùng mã, giỏ KHÁC → 409 MA_GUI_KHAC_DON, không phiên mới', la(c1, 409, 'MA_GUI_KHAC_DON') && await soPhien() === p1, moTa(c1));
+    k('B1c cùng mã, giỏ KHÁC → 409 KHOA_GUI_DA_DUNG, không phiên mới', la(c1, 409, 'KHOA_GUI_DA_DUNG') && await soPhien() === p1, moTa(c1));
+    const c1b = await tao({ sdt: a, sl: 2, tk: true, ma, cach: 'ck_tay' });
+    k('B1c2 cùng mã + cùng giỏ, CÁCH TRẢ khác (ck_tay thay tiền mặt) → 409 KHOA_GUI_DA_DUNG', la(c1b, 409, 'KHOA_GUI_DA_DUNG') && await soPhien() === p1, moTa(c1b));
     const c2 = await tao({ sdt: a, sl: 2, tk: true, ma }, tkNv2);
-    k('B1d cùng mã + cùng giỏ, nhân viên KHÁC → 409 MA_GUI_KHAC_DON', la(c2, 409, 'MA_GUI_KHAC_DON') && await soPhien() === p1, moTa(c2));
+    k('B1d cùng mã + cùng giỏ, nhân viên KHÁC → 409 KHOA_GUI_DA_DUNG', la(c2, 409, 'KHOA_GUI_DA_DUNG') && await soPhien() === p1, moTa(c2));
     const c3 = await tao({ sdt: a, sl: 2, ma });
-    k('B1h cùng mã + cùng giỏ, lần đầu trừ tài khoản (giữ 30.000) lần sau KHÔNG xin trừ → 409 MA_GUI_KHAC_DON', la(c3, 409, 'MA_GUI_KHAC_DON') && await soPhien() === p1, moTa(c3));
+    k('B1h cùng mã + cùng giỏ, lần đầu trừ tài khoản (giữ 30.000) lần sau KHÔNG xin trừ → 409 KHOA_GUI_DA_DUNG', la(c3, 409, 'KHOA_GUI_DA_DUNG') && await soPhien() === p1, moTa(c3));
     const e1 = await tao({}), e2 = await tao({}), e3 = await tao({ ma: maMoi() }), e4 = await tao({ ma: maMoi() });
     k('B1e không gửi mã → hai phiên (như cũ); hai mã KHÁC cùng giỏ → hai phiên (không gộp)', [e1, e2, e3, e4].every((r) => la(r, 200))
       && new Set([e1, e2, e3, e4].map((r) => r.j.phien?.id)).size === 4 && await soPhien() === p1 + 4, [e1, e2, e3, e4].map(moTa).join(' / '));
@@ -328,10 +337,24 @@ async function main() {
     M.chanTx = null; tha();
     const [f1, f2] = await dua;
     moc();   // giao dịch thứ hai gặp bận trên kho file → P26d thay kết nối — móc lại client mới
+    // B1f2 — giả kho KHÔNG xếp hàng giao dịch (Turso CHƯA KIỂM): câu đọc theo mã trong giao dịch không thấy phiên lần đầu → lần sau đụng khoá UNIQUE
+    // → máy chủ đọc lại phiên đã có (khiTrung), KHÔNG 500.
+    const ma6 = maMoi(), p6 = await soPhien();
+    let tha6;
+    M.chanTx = new Promise((ok) => { tha6 = ok; }); M.anMaGui = true;
+    const v6 = M.vaoTx;
+    const dua6 = Promise.all([tao({ ma: ma6, sl: 5 }), tao({ ma: ma6, sl: 5 })]);
+    for (let i = 0; i < 300 && M.vaoTx - v6 < 2; i++) await ngu(10);
+    const duaDu6 = M.vaoTx - v6 >= 2;
+    M.chanTx = null; tha6();
+    const [g6, h6] = await dua6;
+    M.anMaGui = false; moc();
+    k('B1f2 kho không xếp hàng (câu đọc trong giao dịch bị che) → lần sau đụng khoá UNIQUE → 200 CÙNG phiên, MỘT phiên (không 500)', duaDu6 && la(g6, 200) && la(h6, 200)
+      && g6.j.phien?.id === h6.j.phien?.id && await soPhien() === p6 + 1, `đua ${duaDu6} · ${moTa(g6)} / ${moTa(h6)} · +${await soPhien() - p6}`);
     k('B1f hai yêu cầu cùng mã CÙNG LÚC (cả hai đã qua đường nhanh, cùng chờ mở giao dịch) → MỘT phiên, hai câu trả cùng id', duaDu && la(f1, 200) && la(f2, 200)
       && f1.j.phien?.id === f2.j.phien?.id && await soPhien() === p1 + 1, `đua ${duaDu} · ${moTa(f1)} / ${moTa(f2)} · +${await soPhien() - p1}`);
     const g1 = await tao({ ma: 'ngan' }), g2 = await tao({ ma: 'co dau cach 123' }), g3 = await tao({ ma: 12345678 });
-    k('B1g mã sai dạng (ngắn / dấu cách / số) → 400 MA_GUI_KHONG_HOP_LE', [g1, g2, g3].every((r) => la(r, 400, 'MA_GUI_KHONG_HOP_LE')), [g1, g2, g3].map(moTa).join(' / '));
+    k('B1g mã sai dạng (ngắn / dấu cách / số) → 400 KHOA_GUI_SAI', [g1, g2, g3].every((r) => la(r, 400, 'KHOA_GUI_SAI')), [g1, g2, g3].map(moTa).join(' / '));
     const ma4 = maMoi(), h1 = await tao({ ma: ma4 });
     await goi('POST', `/pos/thanh-toan/phien/${h1.j.phien?.id}/huy`, {});
     const h2 = await tao({ ma: ma4 });
@@ -394,6 +417,15 @@ async function main() {
     const doc = () => D.queryOne('SELECT * FROM pos_phien_thanh_toan WHERE id = ?', [tk.id]);
     const x2 = await gc.chotPhien(await doc(), 'tai_khoan', { nguoi: 'app' });
     const x3 = await gc.chotPhien(await doc(), 'tai_khoan', { nguoi: 'kn1_nv', lapLai: true });
+    // B2e — phiên của ĐƠN APP (donApp.js chốt với nguon 'tai_khoan' trùng quầy): đã chốt → nhân viên gọi /chot → 409 như cũ (soát vòng 1).
+    const c = await khach(30000);
+    const ap = (await goi('POST', '/pos/thanh-toan/phien', { cach: 'tai_khoan', don: { items: [mon(1)], customer_phone: c, customer_name: 'K' }, tru_tai_khoan: true, pin: PIN })).j.phien;
+    const y1 = await goi('POST', `/pos/thanh-toan/phien/${ap.id}/chot`, {});
+    await D.run(`INSERT INTO pos_don_app (ma, phone, khoa_gui, bam, than, phien_id, tao_luc) VALUES (?, ?, ?, 'x', '{}', ?, ?)`, ['KN1APP' + ap.id, c, 'kg' + ap.id, ap.id, getNow()]);
+    const o2 = await soDon();
+    const y2 = await goi('POST', `/pos/thanh-toan/phien/${ap.id}/chot`, {});
+    k('B2e phiên của đơn App đã chốt → POST /chot lần hai → 409 PHIEN_DA_CHOT (không trả đơn App), không đơn mới', la(y1, 200) && la(y2, 409, 'PHIEN_DA_CHOT') && await soDon() === o2,
+      `${moTa(y1)} / ${moTa(y2)}`);
     k('B2d chotPhien KHÔNG lapLai (đường đơn App) lần hai → 409; CÓ lapLai (route /chot) → 200 lap_lai cùng đơn', la(x1, 200) && x2.status === 409
       && x3.status === 200 && x3.body?.lap_lai === true && x3.body?.order?.id === x1.j.order?.id, `${moTa(x1)} · ${x2.status} · ${x3.status} ${JSON.stringify(x3.body).slice(0, 80)}`);
   });
@@ -544,20 +576,34 @@ async function main() {
       && lt({ code: 'KHO_MAT_KET_NOI', status: 503, message: CAU_DOC }) === 'Mất kết nối, bấm Thử lại');
     k('E2b lỗi nghiệp vụ (400 có code) → giữ lời máy chủ', lt({ status: 400, code: 'MA_HET_HAN', message: 'Mã đã hết hạn' }) === 'Mã đã hết hạn');
     k('B5a câu B5 đúng chữ phiếu, MỘT chỗ (tinh.js CAU_CHUA_BIET_DON)', T.CAU_CHUA_BIET_DON === CAU_B5, String(T.CAU_CHUA_BIET_DON));
-    const vk = T.viecKhiThuHong || (() => 'khong_co');
+    // xuLyThuHong (tinh.js) — hoi / huy giả, ghi lại số lần gọi. Kịch bản lần lượt: danh sách trạng thái trả về cho từng lần hỏi (null = hỏi hỏng).
+    const xl = T.xuLyThuHong || (async () => ({ viec: 'khong_co' }));
     const mk = { code: 'MAT_KET_NOI' };
-    k('B3d viecKhiThuHong: tạo phiên hết lượt lỗi mạng → bao_chua_biet (KHÔNG nhả); lỗi khác → bao_loi', vk({ loi: mk, daCoPhien: false, hoi: null }) === 'bao_chua_biet'
-      && vk({ loi: { code: 'KHO_MAT_KET_NOI' }, daCoPhien: false, hoi: null }) === 'bao_chua_biet' && vk({ loi: { code: 'PIN_SAI' }, daCoPhien: false, hoi: null }) === 'bao_loi');
-    k('B3d viecKhiThuHong: chốt hỏng + hỏi được da_thu → xong; cho / huy → nha; hỏi hỏng → bao_chua_biet',
-      vk({ loi: mk, daCoPhien: true, hoi: { trang_thai: 'da_thu' } }) === 'xong' && vk({ loi: mk, daCoPhien: true, hoi: { trang_thai: 'cho' } }) === 'nha'
-      && vk({ loi: { code: 'X' }, daCoPhien: true, hoi: { trang_thai: 'huy' } }) === 'nha' && vk({ loi: mk, daCoPhien: true, hoi: null }) === 'bao_chua_biet');
+    const chay2 = async (loi, phienId, hoiLan, huyDuoc) => {
+      const g = { hoi: 0, huy: 0 };
+      const kq = await xl({ loi, phienId, hoi: async () => { const t = hoiLan[g.hoi++]; if (t === null || t === undefined) throw mk; return { trang_thai: t, order: { id: 77 } }; },
+        huy: async () => { g.huy++; if (!huyDuoc) throw Object.assign(new Error('đã chốt'), { status: 409, code: 'PHIEN_DA_CHOT' }); return {}; } }).catch((e) => ({ viec: 'nem:' + e.message }));
+      return { ...kq, ...g };
+    };
+    const s1 = await chay2(mk, null, [], true), s2 = await chay2({ code: 'KHO_MAT_KET_NOI' }, null, [], true), s3 = await chay2({ code: 'DANG_XU_LY' }, null, [], true),
+      s4 = await chay2({ code: 'PIN_SAI' }, null, [], true);
+    k('B3d xuLyThuHong: tạo phiên hết lượt MAT_KET_NOI / KHO_MAT_KET_NOI / DANG_XU_LY (QR đang tạo) → bao_chua_biet, KHÔNG gọi huỷ; lỗi khác (PIN_SAI) → bao_loi',
+      [s1, s2, s3].every((x) => x.viec === 'bao_chua_biet' && x.huy === 0) && s4.viec === 'bao_loi' && s4.huy === 0, JSON.stringify([s1, s2, s3, s4]));
+    const t1 = await chay2(mk, 9, ['da_thu'], true), t2 = await chay2(mk, 9, ['cho'], true), t3 = await chay2({ code: 'X' }, 9, ['huy'], true), t4 = await chay2(mk, 9, [null], true);
+    k('B3d xuLyThuHong: chốt hỏng + hỏi được da_thu → xong (KHÔNG huỷ); cho / huy → nhả được → bao_loi; hỏi hỏng → bao_chua_biet, KHÔNG huỷ',
+      t1.viec === 'xong' && t1.phien?.order?.id === 77 && t1.huy === 0 && t2.viec === 'bao_loi' && t2.huy === 1 && t3.viec === 'bao_loi'
+      && t4.viec === 'bao_chua_biet' && t4.huy === 0, JSON.stringify([t1, t2, t3, t4]));
+    const u1 = await chay2(mk, 9, ['cho', 'da_thu'], false), u2 = await chay2(mk, 9, ['cho', 'cho'], false), u3 = await chay2(mk, 9, ['cho', null], false);
+    k('B3d xuLyThuHong (soát vòng 1 — đơn đôi): hỏi thấy cho, huỷ bị 409 (lệnh chốt trước vừa ghi) → hỏi LẠI: da_thu → xong; vẫn cho / hỏi hỏng → bao_chua_biet (không báo "thử lại")',
+      u1.viec === 'xong' && u1.hoi === 2 && u2.viec === 'bao_chua_biet' && u3.viec === 'bao_chua_biet', JSON.stringify([u1, u2, u3]));
     const g = [{ key: 1, product_id: 5, quantity: 1, note: '' }];
     const t1 = T.thanPhien({ gio: g, khach: null, ma: '', cach: 'tien_mat', dungTK: false, dungMe: false, maGui: 'abcd1234' });
     const t0 = T.thanPhien({ gio: g, khach: null, ma: '', cach: 'tien_mat', dungTK: false, dungMe: false });
     k('B5b thanPhien có maGui → than.ma_gui; KHÔNG truyền → không có trường (lời gọi cũ)', t1.ma_gui === 'abcd1234' && !('ma_gui' in t0), JSON.stringify(t1).slice(0, 100));
     const bh = fs.readFileSync(path.join(SRC, 'pages', 'BanHang', 'BanHangMoi.jsx'), 'utf8');
-    k('B5a BanHangMoi: không còn câu cũ "Mất kết nối khi chốt"; dùng CAU_CHUA_BIET_DON + viecKhiThuHong trong chayPhien', !/Mất kết nối khi chốt/.test(bh)
-      && /setLoi\(CAU_CHUA_BIET_DON\)/.test(bh) && /viecKhiThuHong\(\{ loi: e, daCoPhien: !!p, hoi \}\)/.test(bh), '');
+    k('B5a BanHangMoi: không còn câu cũ "Mất kết nối khi chốt"; chayPhien giao nhánh lỗi cho xuLyThuHong (hỏi + huỷ thật qua thanhToanApi), dùng CAU_CHUA_BIET_DON',
+      !/Mất kết nối khi chốt/.test(bh) && /setLoi\(CAU_CHUA_BIET_DON\)/.test(bh) && /await xuLyThuHong\(\{ loi: e, phienId: p\?\.id, hoi: async \(id\) => \(await thanhToanApi\.hoiPhien\(id\)\)\.phien,\s*huy: \(id\) => thanhToanApi\.huyPhien\(id\) \}\)/.test(bh)
+      && /if \(viec === 'xong'\) await hoanTat\(daGhi\.order\?\.id/.test(bh), '');
     k('B1/B3 BanHangMoi: mỗi lần chayPhien sinh MỘT mã (maGuiMoi) gửi trong thân; lời tính giá qua loiTinhGia', /maGui: maGuiMoi\(\)/.test(bh) && /setLoiTinh\(loiTinhGia\(e\)\)/.test(bh));
   });
 
@@ -569,8 +615,9 @@ async function main() {
     const vt = (s) => ix.indexOf(s);
     k('F1 index.js: bọc fetch toàn cục (đo "ngoài"); gắn doYeuCau + mocLoiKho SAU bộ đọc thân, TRƯỚC route đầu tiên', /globalThis\.fetch = bocFetchNgoai\(globalThis\.fetch\);/.test(ix)
       && vt("app.use('/api', doYeuCau);") > vt('app.use(express.json(') && vt("app.use('/api/pos', mocLoiKho);") > vt('app.use(express.json(')
-      && vt("app.use('/api', doYeuCau);") < vt("app.use('/api/pos/auth'") && vt("app.use('/api/pos', mocLoiKho);") < vt("app.use('/api/pos/auth'"),
-      [vt("app.use('/api', doYeuCau);"), vt("app.use('/api/pos', mocLoiKho);"), vt('app.use(express.json('), vt("app.use('/api/pos/auth'")].join(' '));
+      && vt("app.use('/api', doYeuCau);") < vt("app.use('/api/pos/auth'") && vt("app.use('/api/pos', mocLoiKho);") < vt("app.use('/api/pos/auth'")
+      && vt("app.use('/api/nd', doYeuCau);") >= 0 && vt("app.use('/api/nd', doYeuCau);") < vt("app.use('/api/nd', require("),   // /api/nd gắn trước cors — đo riêng (soát vòng 1)
+      [vt("app.use('/api', doYeuCau);"), vt("app.use('/api/pos', mocLoiKho);"), vt('app.use(express.json('), vt("app.use('/api/pos/auth'"), vt("app.use('/api/nd', doYeuCau);")].join(' '));
     const c0 = dem().cham || {};
     imLang(); giuLog = true;
     nhatKy.length = 0;
