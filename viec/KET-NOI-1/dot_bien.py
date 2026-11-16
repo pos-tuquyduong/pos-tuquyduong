@@ -34,7 +34,8 @@ DOT_BIEN = [
   ('VS-LOI-GIU-CAUSE', [(DB, 'Object.assign(new Error(LOI_KHO[kieu]), {', 'Object.assign(new Error(LOI_KHO[kieu], { cause: err }), {', 1)], r'✗ A1c lỗi ném ra'),
   ('BV-CAU-GHI', [(DB, "throw loiKho(err, doc ? 'doc' : 'ghi');", "throw loiKho(err, 'doc');", 1)], r'✗ A2b'),
   ('BV-RUN-DOI-LOI', [(DB, '    if (laLoiMang(err)) {   // KET-NOI-1: câu ghi KHÔNG gửi lại', '    if (false) {   // KET-NOI-1: câu ghi KHÔNG gửi lại', 1)], r'✗ A2a'),
-  ('BV-TX-DOI-LOI', [(DB, 'if (tx) return doCau(() => tx.execute(cau)).catch(nemLoiGhi);', 'if (tx) return doCau(() => tx.execute(cau));', 1)], r'✗ C2c'),
+  ('BV-TX-DOI-LOI', [(DB, 'if (tx) return doCau(() => tx.execute(cau)).catch(nemLoiGhi);', 'if (tx) return doCau(() => tx.execute(cau));', 1)], r'✗ C2c câu GHI thứ hai'),
+  ('BV-TX-CAU-DAU-DOI-LOI', [(DB, 'if (!laLoiBan(err)) nemLoiGhi(err);', 'if (!laLoiBan(err)) throw err;', 1)], r'✗ C2c2'),
   ('BV-COMMIT-DOI-LOI', [(DB, 'await doCau(() => tx.commit()).catch(nemLoiGhi);', 'await doCau(() => tx.commit());', 1)], r'✗ B4a kho ghi phiên'),
   ('BV-LOG-DEM', [(DB, '  demRot.rot++;\n', '', 1)], r'✗ A4b'),
   # ── B: mã lượt bấm + chốt lại (giuCho.js, thanh-toan.js, 029) ──
@@ -72,7 +73,7 @@ DOT_BIEN = [
   ('BV-NUT-0D', [(THU, "      {nhanh === 'cho' ? null : nhanh === 'het' ? (", "      {nhanh === 'het' || nhanh === 'cho' ? (", 1)], r'✗ E1a ThuTien'),
   ('VS-NHANH-NUT', [(TI, "  if (!coSo) return 'cho';\n", '', 1)], r'✗ E1a'),
   ('BV-LOI-TINH', [(TI, "laMatKetNoi(e) ? 'Mất kết nối, bấm Thử lại' : e?.message", "false ? '' : e?.message", 1)], r'✗ E2a'),
-  ('BV-VIEC-KHI-THU-HONG', [(TI, "  if (!hoi) return 'bao_chua_biet';\n", '', 1)], r'✗ B3d'),
+  ('BV-VIEC-KHI-THU-HONG', [(TI, "  if (!hoi) return 'bao_chua_biet';\n", "  if (!hoi) return 'nha';\n", 1)], r'✗ B3d'),
   ('VS-VIEC-KHONG-PHIEN', [(TI, "if (!daCoPhien) return laMatKetNoi(loi) ? 'bao_chua_biet' : 'bao_loi';", "if (!daCoPhien) return 'bao_loi';", 1)], r'✗ B3d'),
   ('BV-MA-GUI-THAN', [(TI, '  if (maGui) than.ma_gui = maGui;', '', 1)], r'✗ B5b'),
   ('BV-BH-MA-GUI', [(BH, ',\n        maGui: maGuiMoi() });', ' });', 1)], r'✗ B1/B3 BanHangMoi'),

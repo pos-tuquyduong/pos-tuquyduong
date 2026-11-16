@@ -43,13 +43,14 @@ const AHA = { api: 'aha_' + ngauNhien(), sdt: '0909000111', bao: 'bao_' + ngauNh
 process.env.AHAMOVE_API_KEY = AHA.api; process.env.AHAMOVE_SDT = AHA.sdt; process.env.AHAMOVE_KHOA_BAO = AHA.bao;
 
 const C = { do: '\x1b[31m', xanh: '\x1b[32m', dam: '\x1b[1m', het: '\x1b[0m' };
-let dat = 0, hong = 0;
-const k = (ten, dung, them = '') => {
-  if (dung) { dat++; console.log(`  ${C.xanh}✓${C.het} ${ten}`); }
-  else { hong++; console.log(`  ${C.do}✗ ${ten}${them ? '  — ' + String(them).slice(0, 220) : ''}${C.het}`); }
-};
-const muc = (t) => console.log(`\n${C.dam}${t}${C.het}`);
 const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
+let dat = 0, hong = 0;
+// In THẲNG (logGoc): lúc gom log máy chủ (imLang) dòng ✓ / ✗ không được lẫn vào nhatKy — đột biến VS-CHAM-NGUONG từng "LẠC" vì dòng ✗ bị nuốt.
+const k = (ten, dung, them = '') => {
+  if (dung) { dat++; logGoc(`  ${C.xanh}✓${C.het} ${ten}`); }
+  else { hong++; logGoc(`  ${C.do}✗ ${ten}${them ? '  — ' + String(them).slice(0, 220) : ''}${C.het}`); }
+};
+const muc = (t) => logGoc(`\n${C.dam}${t}${C.het}`);
 const nhatKy = [];
 const imLang = () => { console.log = console.error = console.warn = (...a) => nhatKy.push(a.map((x) => (x instanceof Error ? `${x.message} ${JSON.stringify(x)} ${x.cause ? JSON.stringify(String(x.cause.message || x.cause)) : ''}` : typeof x === 'object' ? JSON.stringify(x) : String(x))).join(' ')); };
 let giuLog = false;   // [F]: dòng [CHAM] in lúc 'finish' — có thể SAU khi goi() trả; giữ gom log cả khoảng đó
@@ -72,7 +73,7 @@ async function main() {
   await D.initDatabase();
 
   // ── Lớp mạng giả (ngoài + trong giao dịch). H: ngoài giao dịch; HT: trong giao dịch; sauCommit: regex câu trong tx → commit thật rồi ném ──
-  const M = { goi: 0, H: null, HT: null, sauCommit: null };
+  const M = { goi: 0, H: null, HT: null, sauCommit: null, vaoTx: 0, chanTx: null };   // chanTx: mọi giao dịch chờ tới khi thả (B1f ép đua)
   const datHong = (con, khop = /./, tao = loiMang) => { M.H = { con, khop, tao }; };
   const hongTx = (con, khop = /./, tao = loiMang) => { M.HT = { con, khop, tao }; };
   const traSql = (st) => (typeof st === 'string' ? st : st.sql);
@@ -88,6 +89,8 @@ async function main() {
       return exe(st);
     };
     c.transaction = async (...a) => {
+      M.vaoTx++;
+      if (M.chanTx) await M.chanTx;
       const t = await txGoc(...a);
       const te = t.execute.bind(t), tc = t.commit.bind(t);
       let khop = false;
@@ -315,9 +318,17 @@ async function main() {
       && new Set([e1, e2, e3, e4].map((r) => r.j.phien?.id)).size === 4 && await soPhien() === p1 + 4, [e1, e2, e3, e4].map(moTa).join(' / '));
     p1 = await soPhien();
     const ma3 = maMoi();
-    const [f1, f2] = await Promise.all([tao({ ma: ma3, sl: 4 }), tao({ ma: ma3, sl: 4 })]);
-    k('B1f hai yêu cầu cùng mã CÙNG LÚC → MỘT phiên, hai câu trả cùng id', la(f1, 200) && la(f2, 200) && f1.j.phien?.id === f2.j.phien?.id && await soPhien() === p1 + 1,
-      `${moTa(f1)} / ${moTa(f2)} · +${await soPhien() - p1}`);
+    // Ép đua THẬT: cả hai yêu cầu qua đường nhanh (chưa có phiên) rồi cùng chờ mở giao dịch — chỉ câu đọc ĐẦU trong giao dịch cứu được.
+    let tha;
+    M.chanTx = new Promise((ok) => { tha = ok; });
+    const v0 = M.vaoTx;
+    const dua = Promise.all([tao({ ma: ma3, sl: 4 }), tao({ ma: ma3, sl: 4 })]);
+    for (let i = 0; i < 300 && M.vaoTx - v0 < 2; i++) await ngu(10);
+    const duaDu = M.vaoTx - v0 >= 2;
+    M.chanTx = null; tha();
+    const [f1, f2] = await dua;
+    k('B1f hai yêu cầu cùng mã CÙNG LÚC (cả hai đã qua đường nhanh, cùng chờ mở giao dịch) → MỘT phiên, hai câu trả cùng id', duaDu && la(f1, 200) && la(f2, 200)
+      && f1.j.phien?.id === f2.j.phien?.id && await soPhien() === p1 + 1, `đua ${duaDu} · ${moTa(f1)} / ${moTa(f2)} · +${await soPhien() - p1}`);
     const g1 = await tao({ ma: 'ngan' }), g2 = await tao({ ma: 'co dau cach 123' }), g3 = await tao({ ma: 12345678 });
     k('B1g mã sai dạng (ngắn / dấu cách / số) → 400 MA_GUI_KHONG_HOP_LE', [g1, g2, g3].every((r) => la(r, 400, 'MA_GUI_KHONG_HOP_LE')), [g1, g2, g3].map(moTa).join(' / '));
     const ma4 = maMoi(), h1 = await tao({ ma: ma4 });
@@ -483,8 +494,11 @@ async function main() {
     k('C2b route trả { error: err.message } (GET /orders) → móc đổi thành 503 + code, không lộ', la(r, 503, 'KHO_MAT_KET_NOI') && !LO(r.tho), r.tho.slice(0, 160));
     hongTx(1, /INSERT INTO pos_phien_thanh_toan/);
     nhatKy.length = 0;
-    r = await goi('POST', '/pos/thanh-toan/phien', than({}));
-    k('C2c ghi trong giao dịch rớt (tạo phiên, loiGhi) → 503 KHO_MAT_KET_NOI, lời GHI', la(r, 503, 'KHO_MAT_KET_NOI') && r.j.error === CAU_GHI && !LO(r.tho), r.tho.slice(0, 160));
+    r = await goi('POST', '/pos/thanh-toan/phien', than({ ma: maMoi() }));   // có mã → câu đầu giao dịch là đọc phienCuaMa, INSERT là câu SAU
+    k('C2c câu GHI thứ hai trong giao dịch rớt (tạo phiên, loiGhi) → 503 KHO_MAT_KET_NOI, lời GHI', la(r, 503, 'KHO_MAT_KET_NOI') && r.j.error === CAU_GHI && !LO(r.tho), r.tho.slice(0, 160));
+    hongTx(1, /INSERT INTO pos_phien_thanh_toan/);
+    const r2c = await goi('POST', '/pos/thanh-toan/phien', than({}));   // không mã, tiền mặt → INSERT là câu ĐẦU (mở giao dịch + câu đầu)
+    k('C2c2 câu ĐẦU của giao dịch rớt (mở + INSERT) → 503 KHO_MAT_KET_NOI, lời GHI', la(r2c, 503, 'KHO_MAT_KET_NOI') && r2c.j.error === CAU_GHI && !LO(r2c.tho), r2c.tho.slice(0, 160));
     k('C2f log (loiGhi / console.error(x, err)) KHÔNG chứa địa chỉ kho / chữ Turso', !nhatKy.some((x) => /turso\.io|socket hang up/.test(x)), JSON.stringify(nhatKy.filter((x) => LO(x))).slice(0, 200));
     datHong(1, /FROM pos_orders/, () => Object.assign(new Error('loi la KN1 khong phai mang'), { code: 'SQLITE_MISUSE' }));
     r = await goi('GET', '/pos/orders?limit=5');
