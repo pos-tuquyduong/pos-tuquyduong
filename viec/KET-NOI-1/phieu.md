@@ -73,6 +73,22 @@ ghi khác thì báo rõ để nhân viên tự kiểm. Làm TRƯỚC khai trươ
 - E2 Lời lỗi tính giá: lỗi mạng / 503 KHO_MAT_KET_NOI → "Mất kết nối, bấm Thử lại"; không bao giờ hiện chữ kỹ thuật (địa chỉ kho, "socket hang up").
   Lỗi nghiệp vụ (mã hết hạn, hết hàng…) giữ nguyên lời máy chủ.
 
+
+<!-- Chủ quán 16.11 — DUYỆT kế hoạch (ke_hoach.md 96a593c). Main chưa đổi từ lúc mở việc (1d66c61) — không cần gộp.
+  1. Mục "Chủ quán chọn": ĐỒNG Ý cả 5 đề xuất — (1) đường hở B6 để phiếu sau (màn cũ bỏ ở BO-MAN-CU-1); (2) hai câu lỗi đọc / ghi; (3) bấm thu lại sau câu B5
+     = mã mới; (4) lần chốt thứ hai trả gọn; (5) `ordersApi.tinhThu` được tự gửi lại (ngoại lệ C1).
+  2. ĐỔI CHỮ cho nhân viên: chủ quán hiểu "kho" là kho hàng / app SX → mọi câu người dùng thấy dùng "máy chủ", KHÔNG dùng "kho dữ liệu":
+     đọc "Mất kết nối máy chủ — thử lại sau vài giây"; ghi "Mất kết nối máy chủ — chưa biết đã ghi chưa, xem lại trước khi bấm lại".
+     Mã `KHO_MAT_KET_NOI` giữ nguyên (máy đọc, người không thấy).
+  3. THÊM nhóm F — đo chậm (chủ quán 16.11: lỗi Ahamove D-LOI-1 — tin báo 14:04:28 không trả lời kịp 5 giây; bấm "Đã nhận tiền" mất 10–12 giây):
+     F1 mỗi yêu cầu `/api/*` quá 2 giây → MỘT dòng log `[CHAM] <phương thức> <đường dẫn không tham số> · <tổng ms> · kho <số câu> câu / <ms> · ngoài <ms>`
+        ("ngoài" = gọi SX / Ahamove / cổng QR nếu đo được ở chỗ chung) — không SĐT, không thân yêu cầu; hằng ngưỡng một chỗ.
+     F2 bài thử đo SỐ CÂU KHO của ba đường: tạo phiên + chốt tiền mặt ở quầy, `POST /orders/tinh-thu`, tin báo Ahamove (`nhanTinBao`); ghi số đo vào
+        trang_thai.md + nhận xét (vd "chốt tiền mặt = N câu tuần tự → N × độ trễ mạng Render↔Turso"; đường nào gọi SX qua mạng). CHỈ đo + báo cáo, KHÔNG
+        tối ưu trong việc này (KHO-3 bỏ SX; GIAO-2 sửa tin báo) — đề xuất tối ưu ghi ## Phát hiện.
+     F3 `GET /api/pos/health` (`ket_noi`) thêm `cham: { so_lan, lau_nhat_ms, luc }` từ F1.
+  4. Làm theo kế hoạch tới hết (bắt đầu `git pull --ff-only`), không dừng — trừ chỗ phiếu bảo DỪNG hỏi. -->
+
 ## Phạm vi
 - viec/KET-NOI-1/**
 - server/database.js
