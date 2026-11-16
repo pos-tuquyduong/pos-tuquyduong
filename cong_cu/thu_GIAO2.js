@@ -361,6 +361,7 @@ async function main() {
     const ms1 = Date.now() - t0;
     A.chamDoc = 0; K.nemLuc = false;
     const log2 = nhatKy.slice(n2).filter(dongGiao);
+    await db.run("UPDATE pos_giao_chuyen SET doc_luc = ? WHERE trang_thai IN ('tim_xe', 'doi_tai_xe', 'dang_giao')", [getNow()]);   // chỉ v2, v2b chờ đọc
     await cuLai();
     A.tok = BI_MAT.token2; A.chamToken = 12000;
     const n3 = nhatKy.length;
