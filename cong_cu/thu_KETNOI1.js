@@ -327,6 +327,7 @@ async function main() {
     const duaDu = M.vaoTx - v0 >= 2;
     M.chanTx = null; tha();
     const [f1, f2] = await dua;
+    moc();   // giao dịch thứ hai gặp bận trên kho file → P26d thay kết nối — móc lại client mới
     k('B1f hai yêu cầu cùng mã CÙNG LÚC (cả hai đã qua đường nhanh, cùng chờ mở giao dịch) → MỘT phiên, hai câu trả cùng id', duaDu && la(f1, 200) && la(f2, 200)
       && f1.j.phien?.id === f2.j.phien?.id && await soPhien() === p1 + 1, `đua ${duaDu} · ${moTa(f1)} / ${moTa(f2)} · +${await soPhien() - p1}`);
     const g1 = await tao({ ma: 'ngan' }), g2 = await tao({ ma: 'co dau cach 123' }), g3 = await tao({ ma: 12345678 });
