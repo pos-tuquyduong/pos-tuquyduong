@@ -312,3 +312,20 @@ Bốn câu: ra ngoài Phạm vi? cách ngắn hơn? ca nghiệm thu thiếu bài
    Khẳng định "giao dịch ghi xếp hàng" đúng với kho file; với Turso ghi **CHƯA KIỂM** (khoá UNIQUE vẫn chặn phiên đôi).
 5. **Số liệu đã chỉnh theo code:** node-fetch 2.7.0 là bản lồng trong `@libsql/isomorphic-fetch`; `taoPhien` 39-107, `chotPhien` 112-150;
    `loiGhi` nhắc ở 18 file `server/`.
+
+## Chỉnh sau duyệt (vòng sửa 1 — soát độc lập 16.11; bản trên giữ nguyên như chủ quán duyệt)
+Câu trong kế hoạch đã lệch với code — code là sự thật:
+- `:174` "`cause` = lỗi gốc" → SAI: lỗi đổi dạng KHÔNG mang `cause` (chỉ `ma_goc` = mã chữ), đúng như `:62` — `server/database.js` `loiKho`.
+- `:128` `viecKhiThuHong(...)` → thay bằng `xuLyThuHong({ loi, phienId, hoi, huy })` (`client/src/pages/BanHang/tinh.js`): nhận hàm hỏi / huỷ
+  để xử cả trường hợp huỷ phiên bị 409 (lệnh chốt trước vừa ghi xong) → hỏi LẠI, không báo "thử lại" (lỗi đơn đôi soát vòng 1).
+- `:118` "`hoiPhien` (GET) đặt `thuLai`" → `hoiPhien` dùng mặc định của GET ('mang'), không tự đặt.
+- `:87`, `:90`, `:92`, `:234`, `:238`, `:239` mã `MA_GUI_KHAC_DON` / `MA_GUI_KHONG_HOP_LE` → đổi thành `KHOA_GUI_DA_DUNG` / `KHOA_GUI_SAI` — cùng mã
+  với đơn App cho cùng tình huống (`server/utils/donApp.js:261,270`; LUAT_XAY_APP mục 2).
+Thay đổi hành vi so với kế hoạch (đều trong Phạm vi + Cấm của phiếu):
+- B2 không còn so `nguon` (vế chết: route `/chot` chỉ nhận phiên tiền mặt / tài khoản); thay bằng chặn phiên của ĐƠN APP (`pos_don_app.phien_id`) —
+  phiên App chốt ở `donApp.js:321` với nguon `tai_khoan` trùng quầy.
+- B1 thêm đúng kiểu khiTrung: đụng khoá UNIQUE `ma_gui` → đọc lại phiên đã có (phòng Turso không xếp hàng giao dịch — CHƯA KIỂM).
+- Tạo phiên hết lượt với `DANG_XU_LY` (phiên QR đang tạo) → câu B5 (coi như chưa biết), không báo "chờ vài giây" rồi để bấm mã mới.
+- `laLoiMang` vế FetchError chỉ còn type `system` (libsql không đặt hạn giờ fetch nên không có `request-timeout` / `body-timeout`).
+- F1 đo cả `/api/nd` (gắn trước cors) — `doYeuCau` bỏ qua khi yêu cầu đã được đo.
+
