@@ -116,3 +116,12 @@ BÀI HỌC:     KHOÁ 4 · NGUYÊN TẮC 3 (đề xuất, ngoài Phạm vi) · B
 Chủ quán thử tay (điện thoại): (1) Cài đặt › Sao lưu › cuộn xuống thẻ "Sao lưu tự động lên Google Drive" → bấm "Tạo khoá mới" → gõ PIN → chép khoá, dán vào Apps Script (Thuộc tính tập lệnh, tên KHOA_POS); (2) chạy script một lần rồi mở lại thẻ: dòng "Lần Google lấy gần nhất" phải hiện giờ + cỡ tệp; (3) thử "Thu hồi khoá" rồi chạy script lại — phải báo lỗi 401.
 
 HEAD ĐÃ KIỂM: c1718bf
+
+## Chat gộp main (16.11, bàn 38)
+- Gộp main 7cf48ee (VOUCHER-2 + KH-NAP-1) vào nhánh — commit 825c662c. Đụng 3 chỗ: Settings.jsx (giữ cả import KhoaSaoLuuPos và MauVoucher), client/dist
+  (dựng lại từ src sau gộp), index-*.js cũ. Tự gộp, đã đọc: backup.js (main thêm bảng pos_mau_voucher vào BACKUP_TABLES — hàm dựng tệp chung đọc danh sách
+  này, tệp tự động có luôn), settings.js (luật voucher_toi_da / signup_mau_voucher_id + chặn KHOA_RIENG cùng sống), kiem_tra_truoc_khi_giao.js (đủ 3 bài).
+- Kiểm ở 825c662c: thu_SAOLUUDEM1 38/0 (trên gốc main 7cf48ee: 3 đạt · 35 hỏng — vẫn đỏ đúng); npm test 116 đạt · 1 hỏng = thu_NDAPI1 (multer khác bản trong máy
+  chat — main cũng vậy, bài học 37 #4); cổng chạy GitHub sẽ chạy lại đủ.
+
+HEAD ĐÃ KIỂM: 825c662c
