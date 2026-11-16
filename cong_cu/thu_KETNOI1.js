@@ -73,7 +73,7 @@ async function main() {
 
   // ── Lớp mạng giả (ngoài + trong giao dịch). H: ngoài giao dịch; HT: trong giao dịch; sauCommit: regex câu trong tx → commit thật rồi ném ──
   const M = { goi: 0, H: null, HT: null, sauCommit: null };
-  const hong = (con, khop = /./, tao = loiMang) => { M.H = { con, khop, tao }; };
+  const datHong = (con, khop = /./, tao = loiMang) => { M.H = { con, khop, tao }; };
   const hongTx = (con, khop = /./, tao = loiMang) => { M.HT = { con, khop, tao }; };
   const traSql = (st) => (typeof st === 'string' ? st : st.sql);
   const moc = () => {
@@ -185,7 +185,7 @@ async function main() {
   const soPhien = () => so('SELECT COUNT(*) AS n FROM pos_phien_thanh_toan');
   const soDon = () => so('SELECT COUNT(*) AS n FROM pos_orders');
   const soHd = () => so('SELECT COUNT(*) AS n FROM pos_so_hoa_don');
-  const dongVi = (sdt) => so('SELECT COUNT(*) AS n FROM pos_balance_transactions WHERE phone = ?', [sdt]);
+  const dongVi = (sdt) => so('SELECT COUNT(*) AS n FROM pos_balance_transactions WHERE customer_phone = ?', [sdt]);
   const viCon = (sdt) => so('SELECT balance AS n FROM pos_wallets WHERE phone = ?', [sdt]);
   const giuVi = (sdt) => so("SELECT COALESCE(SUM(giu_vi), 0) AS n FROM pos_phien_thanh_toan WHERE phone = ? AND trang_thai = 'cho'", [sdt]);
   const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.stack || e.message); } };
@@ -217,16 +217,16 @@ async function main() {
   muc('[A] Máy chủ ĐỌC tự thử lại khi rớt kết nối (database.js)');
   await chay('A', async () => {
     const d0 = dem();
-    let g = M.goi; hong(1, /SELECT/);
+    let g = M.goi; datHong(1, /SELECT/);
     let r = await D.query('SELECT 7 AS x').catch((e) => e);
     k('A1a SELECT rớt 1 lần → tự đọc lại, ra đúng kết quả (execute 2 lần)', r?.[0]?.x === 7 && M.goi - g === 2, `${JSON.stringify(r?.message || r)} · ${M.goi - g}`);
-    g = M.goi; hong(2, /SELECT/);
+    g = M.goi; datHong(2, /SELECT/);
     const t0 = Date.now();
     r = await D.queryOne('SELECT 8 AS x').catch((e) => e);
     const ms = Date.now() - t0;
     k('A1b queryOne rớt 2 lần → lần 3 ra kết quả (execute 3 lần)', r?.x === 8 && M.goi - g === 3, `${r?.message || JSON.stringify(r)} · ${M.goi - g}`);
     k('A1d rớt 2 lần → RA kết quả và tổng chờ ≤ 1000 ms', r?.x === 8 && ms <= 1000, `${ms} ms`);
-    g = M.goi; hong(3, /SELECT/);
+    g = M.goi; datHong(3, /SELECT/);
     r = await D.query('SELECT 9 AS x').catch((e) => e);
     k('A1c rớt 3 lần → ném KHO_MAT_KET_NOI (câu đọc), execute ĐÚNG 3 lần (2 thử lại)', r?.code === 'KHO_MAT_KET_NOI' && r?.message === CAU_DOC && M.goi - g === 3,
       `${r?.code} · ${r?.message} · ${M.goi - g}`);
@@ -245,18 +245,18 @@ async function main() {
     k('A3c laLoiMang: SQLITE_ERROR / SQLITE_CONSTRAINT_UNIQUE / SQLITE_BUSY / lỗi JS → KHÔNG', co
       && ['SQLITE_ERROR', 'SQLITE_CONSTRAINT_UNIQUE', 'SQLITE_BUSY'].every((c) => !L(Object.assign(new Error(c + ': x'), { code: c }))) && !L(new TypeError('a is undefined')) && !L(null));
 
-    g = M.goi; hong(1);
+    g = M.goi; datHong(1);
     r = await D.run('UPDATE pos_settings SET value = value WHERE key = ?', ['flash_enabled']).catch((e) => e);
     k('A2a run() rớt → KHÔNG thử lại (execute 1 lần), ném KHO_MAT_KET_NOI câu GHI', r?.code === 'KHO_MAT_KET_NOI' && r?.message === CAU_GHI && M.goi - g === 1, `${r?.code} · ${M.goi - g}`);
     for (const [ma, sql] of [['A2b', "INSERT INTO pos_settings (key, value, updated_at) VALUES ('kn1_a2', '1', 'x')"],
       ['A2b2', "WITH x AS (SELECT 1) INSERT INTO pos_settings (key, value, updated_at) SELECT 'kn1_a2b', '1', 'x' FROM x"]]) {
-      g = M.goi; hong(1);
+      g = M.goi; datHong(1);
       r = await D.query(sql).catch((e) => e);
       k(`${ma} câu GHI đi qua query() (${sql.slice(0, 14)}…) rớt → KHÔNG thử lại, ném câu ghi`, r?.code === 'KHO_MAT_KET_NOI' && r?.message === CAU_GHI && M.goi - g === 1, `${r?.code} · ${M.goi - g}`);
     }
     for (const [ma, sql] of [['A2c', '  -- chú thích đầu\n  /* khối */ SELECT 3 AS x'], ['A2d', 'SELECT key, updated_at, 3 AS x FROM pos_settings LIMIT 1'],
       ['A2d2', "SELECT REPLACE('ab', 'a', '') AS y, 3 AS x"], ['A2e', 'WITH t AS (SELECT 3 AS x) SELECT x FROM t']]) {
-      g = M.goi; hong(1);
+      g = M.goi; datHong(1);
       r = await D.query(sql).catch((e) => e);
       k(`${ma} câu ĐỌC "${sql.replace(/\s+/g, ' ').slice(0, 40)}" rớt 1 lần → vẫn thử lại, ra kết quả`, r?.[0]?.x === 3 && M.goi - g === 2, `${r?.message || ''} · ${M.goi - g}`);
     }
@@ -265,16 +265,16 @@ async function main() {
     k('A3a SQL sai → ném NGUYÊN lỗi (SQLITE_ERROR, chữ "no such table"), execute 1 lần', /SQLITE_ERROR/.test(String(r?.code)) && /no such table/.test(r?.message) && M.goi - g === 1,
       `${r?.code} · ${M.goi - g}`);
     const dTruocBan = dem();
-    hong(1, /SELECT/, () => Object.assign(new Error('SQLITE_BUSY: database is locked (giả)'), { code: 'SQLITE_BUSY' }));
+    datHong(1, /SELECT/, () => Object.assign(new Error('SQLITE_BUSY: database is locked (giả)'), { code: 'SQLITE_BUSY' }));
     r = await D.query('SELECT 1 AS x').catch((e) => e);
     moc();   // kho file: lỗi bận thay kết nối (P26d) — móc lại client mới
     k('A3b SELECT gặp SQLITE_BUSY → ném BẬN như cũ (P26d), KHÔNG đếm là rớt mạng', r?.code === 'SQLITE_BUSY' && dem().rot === dTruocBan.rot, `${r?.code} · rot ${dTruocBan.rot}→${dem().rot}`);
 
     nhatKy.length = 0;
     imLang();
-    hong(1, /SELECT/);
+    datHong(1, /SELECT/);
     await D.query('SELECT * FROM pos_customers WHERE phone = ?', ['0912345678']).catch(() => {});
-    hong(1);
+    datHong(1);
     await D.run('UPDATE pos_customers SET name = ? WHERE phone = ?', ['Tên Bí Mật', '0912345678']).catch(() => {});
     noiLai();
     const dong = nhatKy.filter((x) => x.includes('[KET-NOI]'));
@@ -470,10 +470,10 @@ async function main() {
   muc('[C2] Máy chủ: lỗi mạng tới kho → 503 KHO_MAT_KET_NOI, không lộ chữ Turso');
   await chay('C2', async () => {
     const p = (await tao({})).j.phien;
-    hong(3, /FROM pos_phien_thanh_toan/);
+    datHong(3, /FROM pos_phien_thanh_toan/);
     let r = await goi('GET', `/pos/thanh-toan/phien/${p.id}`);
     k('C2a route đọc (GET phiên, qua loiGhi) hết lượt → 503 KHO_MAT_KET_NOI, lời đọc, không chữ Turso', la(r, 503, 'KHO_MAT_KET_NOI') && r.j.error === CAU_DOC && !LO(r.tho), r.tho.slice(0, 160));
-    hong(3, /FROM pos_orders/);
+    datHong(3, /FROM pos_orders/);
     r = await goi('GET', '/pos/orders?limit=5');
     k('C2b route trả { error: err.message } (GET /orders) → móc đổi thành 503 + code, không lộ', la(r, 503, 'KHO_MAT_KET_NOI') && !LO(r.tho), r.tho.slice(0, 160));
     hongTx(1, /INSERT INTO pos_phien_thanh_toan/);
@@ -481,10 +481,10 @@ async function main() {
     r = await goi('POST', '/pos/thanh-toan/phien', than({}));
     k('C2c ghi trong giao dịch rớt (tạo phiên, loiGhi) → 503 KHO_MAT_KET_NOI, lời GHI', la(r, 503, 'KHO_MAT_KET_NOI') && r.j.error === CAU_GHI && !LO(r.tho), r.tho.slice(0, 160));
     k('C2f log (loiGhi / console.error(x, err)) KHÔNG chứa địa chỉ kho / chữ Turso', !nhatKy.some((x) => /turso\.io|socket hang up/.test(x)), JSON.stringify(nhatKy.filter((x) => LO(x))).slice(0, 200));
-    hong(1, /FROM pos_orders/, () => Object.assign(new Error('loi la KN1 khong phai mang'), { code: 'SQLITE_MISUSE' }));
+    datHong(1, /FROM pos_orders/, () => Object.assign(new Error('loi la KN1 khong phai mang'), { code: 'SQLITE_MISUSE' }));
     r = await goi('GET', '/pos/orders?limit=5');
     k('C2d lỗi 500 KHÔNG phải mạng → thân giữ nguyên như cũ (móc không đụng)', r.status === 500 && r.j.error === 'loi la KN1 khong phai mang' && r.j.code === undefined, r.tho.slice(0, 160));
-    hong(3, /FROM pos_users/);
+    datHong(3, /FROM pos_users/);
     r = await goi('GET', `/pos/thanh-toan/phien/${p.id}`);
     k('C2e middleware/auth.js 500 (tra nhân viên) khi kho rớt → 503 KHO_MAT_KET_NOI, không lộ', la(r, 503, 'KHO_MAT_KET_NOI') && !LO(r.tho), r.tho.slice(0, 160));
     const res = { s: 0, j: null, status(x) { this.s = x; return this; }, json(x) { this.j = x; return this; } };
