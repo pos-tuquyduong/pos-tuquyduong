@@ -139,6 +139,16 @@
   .kh-kq{padding:7px 9px;border:1px solid var(--vien);border-top:none;background:#fff;font-size:.8rem;cursor:pointer}
   .kh-kq:hover{background:#f0fdf4} .kh-kq.trong{cursor:default;color:var(--mo);background:#f8fafc}
   .kh-goi{font-size:.7rem;color:var(--mo);margin-top:5px;line-height:1.35}
+  .o-ma input{width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--vien);border-radius:8px;margin-top:8px}
+  .ma-loi{font-size:.72rem;color:#dc2626;margin-top:3px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;align-items:center}
+  .chip{border:1px solid #c4b5fd;background:#f5f3ff;color:#5b21b6;border-radius:999px;padding:4px 9px;font-size:.72rem;cursor:pointer;text-align:left}
+  .chip.on{background:#7c3aed;color:#fff;border-color:#7c3aed}
+  .chip.loi{border:2px solid #dc2626;background:#fff}
+  .chip.loi small{display:block;color:#dc2626;font-weight:700}
+  .chip:disabled{opacity:.4;cursor:not-allowed}
+  .chip-dem{font-size:.68rem;color:var(--mo)}
+  .dong-giam{display:flex;justify-content:space-between;font-size:.8rem;color:#166534;padding:2px 12px}
   .kh-chon{display:flex;justify-content:space-between;align-items:center;background:#f0fdf4;border:1px solid #bbf7d0;
     border-radius:10px;padding:7px 10px;margin-bottom:10px}
   .kh-chon button{border:none;background:none;cursor:pointer;font-size:1rem;color:var(--mo)}
@@ -227,8 +237,15 @@ const PHIEU=[
 ];
 // Khách quen có sẵn trong POS · điểm theo đúng cấu hình máy thật:
 //   loyalty_earn_per_amount = 10.000đ / 1 điểm (database.js 1061) · nhandiem_he_so = 2 (database.js)
+// vc = ví voucher của khách (VOUCHER-2) — câu moTa do MÁY CHỦ dựng từ mẫu voucher (moTaVoucher), màn chỉ hiện nguyên.
 const KHACH=[
-  {ten:'Chị Lan',  sdt:'0912345678', diem:45,  vi:120000, hang:'Bạc',  qr:'TQD-7KQ2M9XA'},
+  {ten:'Chị Lan',  sdt:'0912345678', diem:45,  vi:120000, hang:'Bạc',  qr:'TQD-7KQ2M9XA', vc:[
+    {ma:'VT7K2M',kieu:'tien',gia:10000,moTa:'Giảm 10.000đ · HSD 30/11/2026'},
+    {ma:'VT9Q4N',kieu:'tien',gia:5000,moTa:'Giảm 5.000đ · HSD 05/12/2026'},
+    {ma:'VP3X9A',kieu:'phan_tram',gia:10,tran:20000,moTa:'Giảm 10% tối đa 20.000đ · HSD 10/12/2026'},
+    {ma:'VP8H2C',kieu:'phan_tram',gia:20,tran:0,moTa:'Giảm 20% · HSD 01/12/2026'},
+    {ma:'VM4D6E',kieu:'tien',gia:30000,min:200000,moTa:'Giảm 30.000đ cho đơn từ 200.000đ · HSD 15/12/2026'},
+    {ma:'VS5T7B',kieu:'ship_tien',gia:15000,moTa:'Giảm 15.000đ phí giao · HSD 20/12/2026'}]},
   {ten:'Anh Minh', sdt:'0987654321', diem:12,  vi:0,      hang:'Mới',  qr:'TQD-H4WPZ3NC'},
   {ten:'Cô Hạnh',  sdt:'0903111222', diem:130, vi:350000, hang:'Vàng', qr:'TQD-B8RVY6KD'},
 ];
@@ -263,12 +280,54 @@ const S={man:'ban',khach:null,timKH:'',quet:null,amThanh:true,loc:'tatca',chon:n
   moGC:null,gio:[],khoa:0,buoc:'chon',kieu:null,dua:0,moTM:false,
   inKhach:true,inTem:true,inPC:false,
   don:[],so:13,ve:'moi',
-  ra:{},den:{},bao:null,bam:0};
+  ra:{},den:{},bao:null,bam:0,
+  vc:[],vcLoi:{},maKM:'',maGo:''};
 let hen=null, dem=null;
 
 document.addEventListener('click',e=>{ if(e.target.closest('button,.sp,.ve,label')){ S.bam++; document.getElementById('dem').textContent=S.bam; }},true);
 
 const tongGio=()=>S.gio.reduce((s,g)=>s+g.gia*g.sl,0);
+
+// ─── VOUCHER-2: MỘT mã khuyến mãi chung + nhiều voucher của khách (tối đa N). Bản mẫu GIẢ máy chủ ở tinhGiam — mã thật hỏi
+// POST /orders/tinh-thu (giam[] + voucher_loi[]), màn không tự tính tiền. Thứ tự: mã chung → voucher tiền → MỘT voucher % trên phần còn
+// lại; tổng giảm ≤ tiền món. Voucher máy chủ báo không dùng được → bỏ chọn, chip viền đỏ + lý do (đơn không bao giờ gửi voucher hỏng). ───
+const VOUCHER_TOI_DA=3;                     // Cài đặt → Voucher (voucher_toi_da), mặc định 3
+const MA_KM={KM10K:{tien:10000}};           // mã khuyến mãi chung giả
+function tinhGiam(ds=S.vc){
+  let con=tongGio(); const dong=[], loi={}; let maLoi='';
+  if(S.maKM){ const m=MA_KM[S.maKM]; if(!m) maLoi='Mã không tồn tại hoặc đã tắt';
+    else { const x=Math.min(m.tien,con); con-=x; dong.push({nhan:`Ưu đãi ${S.maKM}`,tien:x}); } }
+  const ok=[]; let pt=0;
+  ds.map(ma=>((S.khach&&S.khach.vc)||[]).find(v=>v.ma===ma)).filter(Boolean).forEach(v=>{
+    const ly=v.kieu.startsWith('ship')?'Voucher giao hàng chỉ dùng cho đơn giao'
+      :(v.min||0)>tongGio()?`Đơn chưa đủ tối thiểu ${t(v.min)}`
+      :v.kieu==='phan_tram'&&pt>=1?'Mỗi đơn chỉ dùng một voucher giảm %':null;
+    if(ly) loi[v.ma]=ly; else { if(v.kieu==='phan_tram') pt++; ok.push(v); } });
+  ok.filter(v=>v.kieu==='tien').forEach(v=>{ const x=Math.min(v.gia,con); con-=x; dong.push({nhan:`Voucher ${v.ma}`,tien:x}); });
+  ok.filter(v=>v.kieu==='phan_tram').forEach(v=>{ let x=Math.round(con*v.gia/100); if(v.tran) x=Math.min(x,v.tran); x=Math.min(x,con); con-=x;
+    dong.push({nhan:`Voucher ${v.ma}`,tien:x}); });
+  return {dong,loi,maLoi,giam:tongGio()-con};
+}
+const phaiTra=()=>tongGio()-tinhGiam().giam;
+function latVoucher(ma){ const i=S.vc.indexOf(ma);
+  if(i>=0){ S.vc.splice(i,1); delete S.vcLoi[ma]; ve(); return; }
+  if(S.vc.length>=VOUCHER_TOI_DA) return;                      // đủ N: chip còn lại mờ, bấm không thêm
+  const kq=tinhGiam([...S.vc,ma]);
+  if(kq.loi[ma]) S.vcLoi[ma]=kq.loi[ma]; else { delete S.vcLoi[ma]; S.vc.push(ma); }
+  ve(); }
+// Giỏ đổi (bớt món) làm voucher đã chọn hết hợp lệ → máy chủ báo → tự bỏ chọn + tô đỏ kèm lý do.
+function soatVoucher(){ const kq=tinhGiam(); for(const ma in kq.loi){ S.vc=S.vc.filter(x=>x!==ma); S.vcLoi[ma]=kq.loi[ma]; } }
+const boVoucher=()=>{ S.vc=[]; S.vcLoi={}; };
+function oMaVoucher(){
+  const kq=tinhGiam(), vc=(S.khach&&S.khach.vc)||[];
+  return `<div class="o-ma"><input id="o-ma" placeholder="🏷 Mã khuyến mãi" value="${S.maGo.replace(/"/g,'&quot;')}" oninput="S.maGo=this.value"
+      onkeydown="if(event.key==='Enter')this.blur()" onblur="S.maKM=S.maGo.trim().toUpperCase();ve()"></div>
+    ${kq.maLoi?`<div class="ma-loi">Mã không áp: ${kq.maLoi}</div>`:''}
+    ${vc.length?`<div class="chips">${vc.map(v=>{ const on=S.vc.includes(v.ma), loi=S.vcLoi[v.ma], mo=!on&&S.vc.length>=VOUCHER_TOI_DA;
+      return `<button class="chip${on?' on':''}${loi?' loi':''}" ${mo?'disabled':''} onclick="latVoucher('${v.ma}')">🎟 ${v.moTa}${loi?`<small>${loi}</small>`:''}</button>`;}).join('')}
+      <span class="chip-dem">${S.vc.length}/${VOUCHER_TOI_DA} voucher</span></div>`:''}
+    ${kq.dong.map(x=>`<div class="dong-giam"><span>${x.nhan}</span><span>−${t(x.tien)}</span></div>`).join('')}`;
+}
 const soLy=l=>l.reduce((s,g)=>s+g.sl,0);
 const mo=()=>S.don.filter(d=>(d.tt==='cho'&&!d.dangThu)||(d.nguon==='app'&&!d.giao)).sort((a,b)=>a.tao-b.tao);
 const phut=ms=>Math.max(0,Math.floor((Date.now()-ms)/60000));
@@ -283,7 +342,7 @@ function tach(k){ const c=S.gio.find(g=>g.k===k); if(c.sl<2) return; c.sl--;
   S.gio.splice(S.gio.indexOf(c)+1,0,{...c,k:++S.khoa,sl:1,chon:[],rieng:''}); S.moGC=S.khoa; ve(); }
 
 // ─── bước 1: chọn cách trả → bước 2: xem trước ───
-function xemTruoc(kieu,dua){ if(kieu==='cash'&&!(dua>=tongGio())) return;   // tiền mặt thiếu thì không cho đi tiếp
+function xemTruoc(kieu,dua){ if(kieu==='cash'&&!(dua>=phaiTra())) return;   // tiền mặt thiếu thì không cho đi tiếp
   S.kieu=kieu; S.dua=dua||0; S.buoc='xem'; S.moTM=false;
   const md=S.cai[kieu==='cho'?'ngoai':'quay'];                 // mặc định lấy từ Cài đặt in
   S.inKhach=md.khach; S.inTem=md.tem; S.inPC=md.pc;          // đổi ở đây chỉ áp cho đơn này
@@ -328,9 +387,10 @@ function inLaiChon(){ const d=S.don.find(x=>x.so===S.inLai); if(!d) return; S.ra
 
 function inVaGhi(){
   S.so++;
-  const d={so:S.so,mon:S.gio.map(g=>({...g})),tong:tongGio(),tt:S.kieu==='cho'?'cho':'da',
+  const T=phaiTra();
+  const d={so:S.so,mon:S.gio.map(g=>({...g})),tong:T,giam:tinhGiam().dong,tt:S.kieu==='cho'?'cho':'da',
     cach:S.kieu==='cho'?null:S.kieu,dua:S.dua,tao:Date.now(),nk:[]};
-  ghi(d,S.kieu==='cho'?'c':'d', S.kieu==='cho'?'Bán · in bill mang ra bàn':`Bán tại quầy · ${S.kieu==='cash'?'tiền mặt'+(S.dua>tongGio()?' · khách đưa '+t(S.dua)+', thối '+t(S.dua-tongGio()):''):'chuyển khoản'} ${t(tongGio())}`);
+  ghi(d,S.kieu==='cho'?'c':'d', S.kieu==='cho'?'Bán · in bill mang ra bàn':`Bán tại quầy · ${S.kieu==='cash'?'tiền mặt'+(S.dua>T?' · khách đưa '+t(S.dua)+', thối '+t(S.dua-T):''):'chuyển khoản'} ${t(T)}`);
   const diem=diemCua(d.tong);
   if(S.khach){ S.khach.diem+=diem; d.khach={ten:S.khach.ten,sdt:S.khach.sdt,cong:diem,tong:S.khach.diem}; }
   else if(diem>0){ d.ma=maNhan(); d.diemMa=diem*HE_SO; }
@@ -343,7 +403,7 @@ function inVaGhi(){
   if(S.inTem)   tems.forEach(x=>gui('tem',{loai:'tem',x}));
   setTimeout(()=>{ S.den={}; ve(); },1400);
   const phan=[S.inKhach&&'bill khách',S.inPC&&'phiếu pha chế',S.inTem&&`${tems.length} tem cốc`].filter(Boolean).join(' · ');
-  S.gio=[]; S.buoc='chon'; S.kieu=null; S.khach=null; S.timKH='';
+  S.gio=[]; S.buoc='chon'; S.kieu=null; S.khach=null; S.timKH=''; boVoucher(); S.maKM=''; S.maGo='';
   if(d.tt==='cho') S.ve='moi';
   thongBao(`${so3(d.so)} đã ghi · đang in ${phan||'(không in gì)'}${d.khach?` · +${d.khach.cong} điểm cho ${d.khach.ten}`:''}`);
 }
@@ -456,6 +516,8 @@ function billGiay(d,loai,lan){
     <div class="kc"></div>
     ${d.mon.map(g=>`<div class="d"><span>${g.ten} ×${g.sl}</span><span>${t(g.gia*g.sl)}</span></div>${chonCua(g)?`<div class="gc">${chonCua(g)}</div>`:''}${g.rieng?`<div class="gc">✎ ${g.rieng}</div>`:''}`).join('')}
     <div class="kc"></div>
+    ${(d.giam||[]).map(x=>`<div class="d"><span>${x.nhan}</span><span>−${t(x.tien)}</span></div>`).join('')}
+    ${d.phiGiao?`<div class="d"><span>Phí giao</span><span>${t(d.phiGiao)}</span></div>${d.giamShip?`<div class="d"><span>Giảm phí giao</span><span>−${t(d.giamShip)}</span></div>`:''}`:''}
     <div class="d" style="font-weight:800"><span>TỔNG</span><span>${t(d.tong)}</span></div>
     ${tt}
     ${d.khach?`<div class="kc"></div>
@@ -485,7 +547,7 @@ function oKhach(){
     <div><b>👤 ${S.khach.ten}</b> <span style="color:var(--mo);font-size:.76rem">${sdtDep(S.khach.sdt)} · hạng ${S.khach.hang}</span>
       <div style="font-size:.74rem;color:#166534">${S.khach.diem} điểm${S.gio.length?` · đơn này <b>+${diemCua(tongGio())}</b>`:''}
         ${S.khach.vi?` · <span style="color:#1e40af">ví ${t(S.khach.vi)}</span>`:''}</div></div>
-    <button onclick="S.khach=null;S.timKH='';ve()" title="Bỏ chọn khách">✕</button></div>`;
+    <button onclick="S.khach=null;S.timKH='';boVoucher();ve()" title="Bỏ chọn khách">✕</button></div>`;
   const q=S.timKH.trim().toLowerCase().replace(/\s/g,'');
   const kq=q.length>=2?KHACH.filter(k=>k.ten.toLowerCase().includes(q)||k.sdt.includes(q)):[];
   return `<div class="kh-tim">
@@ -504,9 +566,10 @@ function kqKhach(kq,q){
 function veKQ(){ const q=S.timKH.trim().toLowerCase().replace(/\s/g,'');
   const kq=q.length>=2?KHACH.filter(k=>k.ten.toLowerCase().includes(q)||k.sdt.includes(q)):[];
   const el=document.getElementById('kq-kh'); if(el) el.innerHTML=kqKhach(kq,q); }
-function chonKhach(sdt){ S.khach=KHACH.find(k=>k.sdt===sdt); S.timKH=''; ve(); }
+function chonKhach(sdt){ S.khach=KHACH.find(k=>k.sdt===sdt); S.timKH=''; boVoucher(); ve(); }
 function khungChon(){
-  const T=tongGio(), co=S.gio.length>0;
+  soatVoucher();
+  const T=phaiTra(), co=S.gio.length>0;
   return `${oKhach()}
     ${!co?'<div class="rong">Chạm món bên trái để bắt đầu</div>':S.gio.map(g=>`<div class="dong">
       <div class="t1"><span><b style="color:var(--lam)">${g.ma}</b> ${g.ten}</span>
@@ -523,6 +586,7 @@ function khungChon(){
         <small id="dem-${g.k}" style="color:${(g.rieng||'').length>TEM_TOI_DA?'#dc2626':'#94a3b8'}">${(g.rieng||'').length}/${TEM_TOI_DA}</small>
         ${g.rieng?`<button onmousedown="event.preventDefault()" onclick="goRieng(${g.k},'');S.moGC=null;ve()" title="Xoá ghi chú">✕</button>`:''}</div>`:''}
     </div>`).join('')}
+    ${co?oMaVoucher():''}
     ${co?`<div class="tongcong"><span>Tổng · ${soLy(S.gio)} ly</span><b>${t(T)}</b></div>`:''}
     <div class="nhan">Khách trả ngay tại quầy</div>
     <div class="hai">
@@ -541,8 +605,8 @@ function khungChon(){
 }
 
 function khungXem(){
-  const T=tongGio(), soSau=S.so+1;
-  const gia={so:soSau,mon:S.gio,tong:T,tt:S.kieu==='cho'?'cho':'da',cach:S.kieu==='cho'?null:S.kieu,dua:S.dua,tao:Date.now()};
+  const T=phaiTra(), soSau=S.so+1;
+  const gia={so:soSau,mon:S.gio,tong:T,giam:tinhGiam().dong,tt:S.kieu==='cho'?'cho':'da',cach:S.kieu==='cho'?null:S.kieu,dua:S.dua,tao:Date.now()};
   if(S.khach) gia.khach={ten:S.khach.ten,sdt:S.khach.sdt,cong:diemCua(T),tong:S.khach.diem+diemCua(T)};
   else if(diemCua(T)>0){ gia.ma='••••-••••'; gia.diemMa=diemCua(T)*HE_SO; }
   const tems=temCua(gia);

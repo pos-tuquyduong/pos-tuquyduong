@@ -322,8 +322,13 @@ async function main() {
       payment_method: 'cash', cash_amount: 300000 });
     k('D4b (K5) gia hạn gói trả đủ → 200', d4b.status === 200, moTa(d4b));
     const s5 = sdtMoi(); await nap(s5, giaThe);
-    const d5 = await ban({ customer_phone: s5, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: giaThe });
-    k('D5 (K5) mua thẻ trả đủ bằng ví → 200, 1 dòng mua thẻ', d5.status === 200
+    // KH-NAP-1 (chủ quán 14.11): thẻ hạng KHÔNG trả bằng số dư tài khoản — ca cũ "mua thẻ trả đủ bằng ví → 200" thành ca CHẶN; phần K5 (mua thẻ thu đủ
+    // không bị chặn oan) chạy tiếp với đơn trả tiền mặt.
+    const d5v = await ban({ customer_phone: s5, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: giaThe });
+    k('D5 mua thẻ trả đủ bằng ví → 400 THE_KHONG_TRA_VI, không dòng mua thẻ (KH-NAP-1)', d5v.status === 400 && d5v.code === 'THE_KHONG_TRA_VI'
+      && await so('SELECT COUNT(*) FROM pos_membership_purchases WHERE customer_phone = ?', [s5]) === 0, moTa(d5v));
+    const d5 = await ban({ customer_phone: s5, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: giaThe });
+    k('D5 (K5) mua thẻ trả đủ tiền mặt → 200, 1 dòng mua thẻ', d5.status === 200
       && await so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [d5.order?.id]) === 1, moTa(d5));
     const d6 = await ban({ customer_phone: s4, items: [mon(0, 1, true), mon(1)], customer_package_id: cp4, payment_method: 'debt', debt_amount: 20000 });
     k('D6 (K5) lấy 1 ly từ gói cũ + 1 món lẻ GHI NỢ 20.000 → 200 pending', d6.status === 200 && d6.order.payment_status === 'pending', moTa(d6));

@@ -10,11 +10,11 @@ import { conThieu, danhSachTo, duDuoc, lyDoKhongTru, nutThuSang, traLai } from '
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const PHIM = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'];
 
-export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDung, cachTra, onCachTra, cachConLai, onCachConLai, laNap, dungMe, onDungMe, dangGui, onThu }) {
+export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDung, cachTra, onCachTra, cachConLai, onCachConLai, laNap, laThe, dungMe, onDungMe, dangGui, onThu }) {
   const [dua, setDua] = useState(0);
   const [moPhim, setMoPhim] = useState(false);
 
-  const lyDoMo = lyDoKhongTru({ khach, laNap });
+  const lyDoMo = lyDoKhongTru({ khach, laNap, laThe });
   const trongTK = cachTra === 'tai_khoan' && !lyDoMo;          // đang ở chế độ trừ tài khoản
   const cach = trongTK ? cachConLai : (cachTra === 'chuyen_khoan' ? 'chuyen_khoan' : 'tien_mat');   // cách trả phần tiền thật
   const coMe = (khach?.parent_balance || 0) > 0;

@@ -123,6 +123,12 @@ async function main() {
     thieuV16.length === 0 && HD.cua.find((c) => c.duong === '/quang-cao')?.token === false && ghiV16.length > 0
     && ['chu_dai', 'tieu_de', 'phu', 'chu_nut', 'dich', 'ma_mon', 'tu_gio', 'den_gio', 'uu_tien', 'gio_vang'].every((f) => ghiV16.includes('`' + f) || ghiV16.includes(f + '`') || ghiV16.includes('"' + f + '"'))
     && /^- v16 ·/m.test(cat(md, '## Nhật ký')), thieuV16.join(', '));
+  // v17 (KH-NAP-1): cửa /goi-nap (không token, 4 trường) + /vi (có token, 8 trường), mục chữ "Ghi chú v17", nhật ký có dòng v17
+  const thieuV17 = [...['ma', 'ten', 'tra', 'vao'].map((f) => ['/goi-nap', 'data[].' + f]),
+    ...['trang', 'con_nua', ...['ngay', 'loai', 'so_tien', 'thuong', 'ma_don', 'ghi_chu'].map((f) => 'data[].' + f)].map((f) => ['/vi', f])].filter(([d, f]) => !traCua(d).includes(f));
+  k('v17: khối máy đọc ghi đủ /goi-nap (token: false, 4 trường) + /vi (token: true, 8 trường); có mục "Ghi chú v17" + dòng nhật ký v17',
+    thieuV17.length === 0 && HD.cua.find((c) => c.duong === '/goi-nap')?.token === false && HD.cua.find((c) => c.duong === '/vi')?.token === true
+    && /### Ghi chú v17/.test(md) && /^- v17 ·/m.test(cat(md, '## Nhật ký')), thieuV17.map((x) => x.join(' ')).join(', '));
   const dongGv = bangChu.split('\n').find((l) => l.includes('`GET /gio-vang`')) || '';
   k('cửa /gio-vang ghi rõ "không có suất"', /không có suất/i.test(dongGv), dongGv.slice(0, 80));
 
@@ -204,6 +210,8 @@ async function main() {
   for (const [a, b] of [['signup_enabled', '1'], ['signup_discount_type', 'percent'], ['signup_discount_value', '10'], ['nhandiem_enabled', '1'],
     ['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', '10000'], ['flash_enabled', 'false']]) await datCaiDat(a, b);
   await db.run("UPDATE pos_chuong_trinh SET dang_bat = 1 WHERE ma = 'sinh_nhat'");   // v6: GET /chuong-trinh phải có ít nhất một mục để thử đủ trường
+  // v17 (KH-NAP-1): GET /goi-nap phải có ít nhất một gói đang bật để thử đủ trường
+  await db.run("INSERT INTO pos_goi_nap (ten, khach_tra, vao_tk, is_active, thu_tu, created_at, updated_at, updated_by) VALUES ('Nạp mẫu', 100000, 105000, 1, 0, ?, ?, 'thu')", [getNow(), getNow()]);
   // v16: GET /quang-cao phải có ít nhất một dòng để thử đủ trường (data[].x đòi mảng KHÔNG rỗng)
   await db.run("INSERT INTO pos_quang_cao (chu_dai, tieu_de, phu, chu_nut, dich, ma_mon, kieu_ngay, cac_thu, tu_ngay, den_ngay, tu_gio, den_gio, uu_tien, bat, created_at, updated_at) VALUES ('Giảm 10% trà sáng', '', '', '', 'menu', NULL, 'hang_ngay', '', NULL, NULL, NULL, NULL, 1, 1, ?, ?)", [getNow(), getNow()]);
   const sp = await db.queryOne('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 1');
@@ -243,8 +251,16 @@ async function main() {
       VALUES (?, ?, 'Mẫu', 1000, NULL, ?, datetime('now', '+7 hours', '+300 days'))`, [SDT, hang, getNow()]);
     await giaGoi();
     await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 80000)', [SDT]);
+    // v17 (KH-NAP-1): GET /vi phải có ít nhất một dòng sổ ví để thử đủ trường (data[].x đòi mảng KHÔNG rỗng)
+    await db.run(`INSERT INTO pos_balance_transactions (customer_phone, type, amount, thuong, balance_before, balance_after, order_id, payment_method, notes, created_by,
+      created_at) VALUES (?, 'topup', 80000, 0, 0, 80000, NULL, 'cash', NULL, 'thu', ?)`, [SDT, getNow()]);
     maBill = (await don()).signup_code;
     maDiem = (await don()).signup_code;
+    // VOUCHER-2 Q11(a) (chủ quán Q2 11.11 + Q9 12.11): nhận mã bill phát voucher theo MẪU (y cấu hình trên: 10 % cả đơn) và chỉ cho tài khoản tạo SAU
+    // lúc in bill — khách mẫu đăng nhập trước khi có bill, nên ghi giờ in của mã bill mẫu = giờ tạo tài khoản (cùng giây vẫn nhận).
+    await datCaiDat('signup_mau_voucher_id', Number((await db.run(`INSERT INTO pos_mau_voucher (ten, kieu, gia_tri, tran, don_toi_thieu, ap_dung, han_ngay,
+      chinh_chu, bat, tao_luc) VALUES ('Khách mới mẫu', 'phan_tram', 10, 0, 0, 'tat_ca', 30, 0, 1, ?)`, [getNow()])).lastInsertRowid));
+    await db.run('UPDATE pos_signup_codes SET issued_at = (SELECT created_at FROM pos_customers WHERE phone = ?) WHERE code = ?', [SDT, maBill]);
   };
 
   muc('[I2] gọi TỪNG cửa: 200 + đủ trường `tra`; token: true thiếu token → 401 KH_TOKEN_SAI');
@@ -254,6 +270,10 @@ async function main() {
     const than = THAN[ten(c)] ? await THAN[ten(c)]() : undefined;
     const r = await goi(c.pt, url, than, c.token ? tk : null);
     if (ten(c) === 'POST /don') maDonApp = r.j.ma_don || null;
+    if (ten(c) === 'POST /nhan-ma-bill') {   // v15 (VOUCHER-2 Q2): data.voucher_code = mã MỚI trong ví (không còn là mã in bill) + data.mo_ta
+      k('nhan-ma-bill v15: data.voucher_code là mã MỚI (≠ mã in bill) + data.mo_ta là chuỗi', !!r.j.data?.voucher_code && r.j.data.voucher_code !== maBill
+        && typeof r.j.data?.mo_ta === 'string', JSON.stringify(r.j.data || null));
+    }
     const thieu = (c.tra || []).filter((d) => !coDuong(r.j, d.split('.')));
     k(`${ten(c)} → 200, đủ ${(c.tra || []).length} trường`, r.status === 200 && r.j.success === true && thieu.length === 0,
       `HTTP ${r.status}${r.j.code ? ' · ' + r.j.code : ''}${thieu.length ? ' · thiếu ' + thieu.join(', ') : ''}`);

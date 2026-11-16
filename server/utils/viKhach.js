@@ -45,7 +45,20 @@ async function laDonNap(q, orderId) {
   return !!(await q.queryOne(`SELECT 1 AS co FROM pos_order_items WHERE order_id = ? AND product_id <= ${ID_NAP_TU} LIMIT 1`, [orderId]));
 }
 
+/** Tên dòng hàng của đơn nạp — MỘT chỗ dựng cho quầy (orders.js taoDon) và thân đơn App chưa trả (donApp.js): hai hình phải bằng nhau. */
+const vnd = (n) => Number(n).toLocaleString('vi-VN') + 'đ';
+const tenDongNap = (goi) => `💳 Nạp ${vnd(goi.khach_tra)} → vào tài khoản ${vnd(goi.vao_tk)}`;
+
+/** KH-NAP-1 (chủ quán 10.11 + 14.11) — MỘT vị từ "đơn chỉ trả tiền thật": đơn có gói nạp hoặc thẻ hạng KHÔNG trừ số dư tài khoản (tiền nạp, thưởng
+ *  nạp, ví mẹ) — tránh lấy thưởng nạp mua thẻ / nạp vòng. Áp CẢ ĐƠN. Gọi ở ĐÚNG hai chỗ: giuCho.taoPhien (lúc giữ) và orders.js taoDon (trả thẳng
+ *  + lúc chốt phiên). Trả { code, error } của lỗi 400, hoặc null (đơn không thuộc luật). */
+function loiTienThat(don) {
+  if (don.goi_nap_id != null) return { code: 'NAP_CHI_TIEN_MAT_QR', error: 'Nạp tiền chỉ trả tiền mặt hoặc chuyển khoản — không trừ tài khoản' };
+  if (don.membership_buy) return { code: 'THE_KHONG_TRA_VI', error: 'Thẻ hội viên chỉ trả tiền mặt (ở quầy) hoặc chuyển khoản — không trừ số dư tài khoản' };
+  return null;
+}
+
 const LOI_NAP_KHONG_HOAN = { error: 'Đơn nạp tiền không huỷ / xoá / hoàn được — tiền nạp không hoàn. Sai số thì chủ quán điều chỉnh số dư (ghi lý do).',
   code: 'NAP_KHONG_HOAN' };
 
-module.exports = { ID_NAP_TU, thuongKhiTru, thuongKhiHoan, sqlDonNap, laDonNap, LOI_NAP_KHONG_HOAN };
+module.exports = { ID_NAP_TU, thuongKhiTru, thuongKhiHoan, sqlDonNap, laDonNap, LOI_NAP_KHONG_HOAN, loiTienThat, tenDongNap };

@@ -477,8 +477,12 @@ async function phanA(P) {
   await db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");   // HANG-1: mua thẻ theo GÓI — gói 3 tháng giá = giá thẻ cũ
   const hang = await mot('SELECT id, card_price, name FROM pos_membership_tiers WHERE is_active = 1 ORDER BY id LIMIT 1');
   await db.run('UPDATE pos_membership_tiers SET discount_percent = 10 WHERE id = ?', [hang.id]);
-  const sq = sdtMoi(); await nap(sq, Number(hang.card_price) + 200000);
-  const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
+  // KH-NAP-1 (chủ quán 14.11): thẻ không trả bằng số dư → đơn mua thẻ nền trả tiền mặt; tài khoản chỉ dùng cho đơn đồ uống A22.
+  const sq = sdtMoi(); await nap(sq, 200000);
+  const mua = await ban({ customer_phone: sq, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: Number(hang.card_price) });
+  const sThe = sdtMoi(); await nap(sThe, Number(hang.card_price));   // khách riêng, đủ số dư — ca chỉ đỏ vì luật thẻ (K3)
+  const muaVi = await ban({ customer_phone: sThe, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'balance', balance_amount: Number(hang.card_price) });
+  k('A19 (KH-NAP-1) mua thẻ trả đủ bằng tài khoản → 400 THE_KHONG_TRA_VI', muaVi.status === 400 && muaVi.code === 'THE_KHONG_TRA_VI', moTa(muaVi));
   const rq = await ban({ customer_phone: sq, items: [mon(0), mon(1)], payment_method: 'cash', balance_amount: 20000, cash_amount: 25500, shipping_fee: 5000 });
   const aq = await hd(rq.order?.id);
   const H = aq.h;
@@ -584,10 +588,17 @@ async function phanA(P) {
   // mỗi loại ưu đãi một cột "đã dùng" + một hạn, đúng như đường dùng nó (soát vòng 2)
   const rUd = await ban({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
   const udTruoc = (await hd(rUd.order.id)).h?.ma_nhan_diem;
-  const rClaim = await goi('POST', '/signup-codes/claim', { code: rUd.order.signup_code, phone: sdtMoi() });
+  // VOUCHER-2 Q11(a) (chủ quán Q2 11.11 + Q9 12.11): nhận mã bill = phát voucher theo MẪU (Cài đặt → Voucher) cho tài khoản tạo SAU lúc in bill.
+  const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
+  await datCaiDat('signup_mau_voucher_id', Number((await db.run(`INSERT INTO pos_mau_voucher (ten, kieu, gia_tri, tran, don_toi_thieu, ap_dung, han_ngay,
+    chinh_chu, bat, tao_luc) VALUES ('Khách mới HD1', 'phan_tram', 10, 0, 0, 'tat_ca', 30, 0, 1, ?)`, [getNow()])).lastInsertRowid));
+  const sClaim = sdtMoi();
+  await db.run('INSERT INTO pos_customers (phone, name, created_at) VALUES (?, ?, ?)', [sClaim, 'Khách ' + sClaim, getNow()]);
+  const rClaim = await goi('POST', '/signup-codes/claim', { code: rUd.order.signup_code, phone: sClaim });
   const udSau = (await hd(rUd.order.id)).h?.ma_nhan_diem;
   k('A28d mã đã CLAIM ưu đãi khách mới (claimed_at) → uu_dai = false (bill không còn ô ưu đãi, QR trần); trước khi claim = true; claim thật qua /signup-codes/claim',
-    rClaim.status === 200 && udTruoc?.uu_dai === true && udSau?.uu_dai === false, `${moTa(rClaim)} ${JSON.stringify([udTruoc, udSau])}`);
+    rClaim.status === 200 && rClaim.data?.voucher_code !== rUd.order.signup_code   // Q11(b): voucher là mã MỚI, không phải mã bill
+      && udTruoc?.uu_dai === true && udSau?.uu_dai === false, `${moTa(rClaim)} ${rClaim.data?.voucher_code} ${JSON.stringify([udTruoc, udSau])}`);
   const rNd = await ban({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
   const rNhan = await goi('POST', '/signup-codes/nhan-diem', { code: rNd.order.signup_code, phone: sdtMoi() });
   const ndSau = (await hd(rNd.order.id)).h?.ma_nhan_diem;

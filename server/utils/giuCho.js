@@ -6,7 +6,8 @@
  * - Hết hạn = tự nhả theo đồng hồ (Render ngủ, không hẹn giờ); huỷ / hết hạn không ghi dòng tiền nào.
  * - CK-NOIDUNG-1: phiên QR (cach 'payos') và MỌI phiên App giữ số hoá đơn NGAY trong giao dịch tạo phiên (helpers capSoHoaDon); cổng SePay
  *   và Tingee (NOI_DUNG_SO_HD) ghi nội dung TQD<MMM><DD> HD|APP<4 số>, cổng payOS giữ TQD<mã phiên> (≤ 9 ký tự). Đơn chốt từ phiên mang đúng số đã giữ.
- *   Xác nhận tay sau khi QR hết hạn / đã huỷ (chủ quán Q1a 05.11): cờ `muon` CHỈ nới điều kiện thời gian của cổng, vẫn một câu ghi.
+ *   Xác nhận tay sau khi QR hết hạn / đã huỷ (chủ quán Q1a 05.11) và tiền QR về muộn của đơn App chỉ thẻ / chỉ nạp (KH-NAP-1, chủ quán 14.11 —
+ *   thanh-toan.js xuLyTienVe): cờ `muon` CHỈ nới điều kiện thời gian của cổng, vẫn một câu ghi.
  */
 const { queryOne, run } = require('../database');
 const { getNow, normalizePhone, capSoHoaDon, noiDungCk } = require('./helpers');
@@ -14,12 +15,14 @@ const { trongGiaoDich, dangGiu } = require('../routes/wallets');
 const { taoDon } = require('../routes/orders');
 const { ghiNhatKy, tien } = require('./nhatKyDon');
 const { kiemPin } = require('./pinKhach');
+const { loiTienThat } = require('./viKhach');   // KH-NAP-1: đơn chỉ trả tiền thật (nạp / thẻ)
 const { congQr } = require('./congQr');   // SEPAY-1: cổng QR của phiên cach 'payos' (= QR tự xác nhận)
+const { voucherDangGiu, CACH_GIU_VOUCHER } = require('./voucherCode');   // Q16: phiên chờ chuyển khoản giữ voucher
 
 const HAN_PHUT = 10;
 const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay, Tingee dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
 const CACH = ['payos', 'ck_tay', 'tien_mat', 'tai_khoan'];
-const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'discount_reason', 'notes', 'is_new_customer',
+const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'vouchers', 'discount_reason', 'notes', 'is_new_customer',   // VOUCHER-2: vouchers
   'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy', 'giao', 'goi_nap_id'];   // GIAO-1: đơn giao trả QR / tài khoản / tiền mặt qua phiên
 const GIO = "strftime('%Y-%m-%dT%H:%M:%S', ?, ?)";
 const loi = (status, code, error) => ({ status, body: { error, code } });
@@ -40,10 +43,9 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
   if (cach === 'payos' && !cong?.daCauHinh()) return loi(503, 'PAYOS_CHUA_CAU_HINH', 'Chưa cài cổng QR chuyển khoản — dùng QR tĩnh của quán (xác nhận tay)');
   const goc = b.don && typeof b.don === 'object' ? b.don : {};
   const don = Object.fromEntries(TRUONG_DON.filter((x) => goc[x] !== undefined).map((x) => [x, goc[x]]));
-  // NAP-1: gói nạp chỉ tiền mặt / QR — chặn ngay lúc giữ (không để phiên giữ ví rồi hỏng lúc chốt); taoDon chặn lần nữa khi chốt.
-  if (don.goi_nap_id != null && (b.tru_tai_khoan || b.tru_tai_khoan_me || cach === 'tai_khoan')) {
-    return loi(400, 'NAP_CHI_TIEN_MAT_QR', 'Nạp tiền chỉ trả tiền mặt hoặc chuyển khoản — không trừ tài khoản');
-  }
+  // NAP-1 + KH-NAP-1: gói nạp / thẻ hạng chỉ tiền mặt / QR — chặn ngay lúc giữ (không để phiên giữ ví rồi hỏng lúc chốt); taoDon chặn lần nữa khi chốt.
+  const tienThat = loiTienThat(don);
+  if (tienThat && (b.tru_tai_khoan || b.tru_tai_khoan_me || cach === 'tai_khoan')) return loi(400, tienThat.code, tienThat.error);
   const phone = normalizePhone(don.customer_phone), phoneMe = b.tru_tai_khoan_me ? normalizePhone(goc.parent_phone) : null;
   if ((b.tru_tai_khoan && !phone) || (b.tru_tai_khoan_me && !phoneMe)) return loi(400, 'CAN_KHACH', 'Trừ tài khoản cần chọn khách (và SĐT mẹ)');
   if (phoneMe && phoneMe === phone) return loi(400, 'ME_TRUNG_KHACH', 'SĐT mẹ trùng SĐT khách — trừ tài khoản của chính khách, không qua dòng tài khoản mẹ');   // giữ hai lần một ví
@@ -67,6 +69,17 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
     const conLai = tong - giu - giuMe;
     if (cach === 'tai_khoan' && conLai > 0) return { huy: true, ...loi(400, 'SO_DU_KHONG_DU', 'Tài khoản không đủ trả cả đơn') };
     if (cach !== 'tai_khoan' && conLai === 0) return { huy: true, ...loi(400, 'CACH_KHONG_KHOP', 'Tài khoản đã trả đủ — chọn trả đủ bằng tài khoản') };
+    // Q16: phiên chờ chuyển khoản GIỮ voucher của thân phiên — đọc lại TRONG giao dịch ghi (đơn / phiên khác chen sau lúc tính): voucher vừa bị tiêu
+    // hoặc phiên khác vừa giữ → không tạo phiên (khách không chuyển tiền cho một voucher không còn).
+    if (CACH_GIU_VOUCHER.includes(cach)) {
+      const ma = [...new Set([...(Array.isArray(don.vouchers) ? don.vouchers : []), don.discount_code].filter((c) => typeof c === 'string' && c.trim())
+        .map((c) => c.trim().toUpperCase()))];
+      const vc = ma.length ? await tx.query(`SELECT UPPER(code) AS code, status FROM pos_voucher_grants WHERE UPPER(code) IN (${ma.map(() => '?').join(', ')})`, ma) : [];
+      const daTieu = vc.find((g) => g.status !== 'available');
+      if (daTieu) return { huy: true, ...loi(400, 'VOUCHER_DA_DUNG', `Voucher ${daTieu.code}: vừa được dùng ở đơn khác`) };
+      const giuKhac = await voucherDangGiu(tx, vc.map((g) => g.code));
+      if (giuKhac.length) return { huy: true, ...loi(400, 'VOUCHER_DANG_GIU', `Voucher ${giuKhac[0]}: đang được giữ cho một thanh toán chuyển khoản chưa xong`) };
+    }
     const ins = await tx.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, phone_me, giu_vi_me, con_lai, cach, het_han, nguoi_tao, tao_luc)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${GIO}, ?, ?)`, [JSON.stringify(don), tong, phone || null, giu, phoneMe, giuMe, conLai, cach, now, `+${HAN_PHUT} minutes`, nguoi, now]);
     const id = Number(ins.lastInsertRowid);
@@ -94,9 +107,10 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
 }
 
 /** Chốt phiên qua taoDon. nguon: tien_mat · tai_khoan · payos · sepay · tingee · tay. them: { khachDua, nguoi, lyDo, maGd (mã giao dịch ngân hàng),
- *  suKien(tx) — ghi trong giao dịch, muon (CHỈ route xác nhận tay đặt, phiên quầy — cho chốt phiên 'cho' đã hết hạn hoặc 'huy') }. */
+ *  suKien(tx) — ghi trong giao dịch, muon (CHỈ route xác nhận tay — phiên quầy — và webhook tiền về muộn của đơn App chỉ thẻ / chỉ nạp đặt; cho chốt phiên 'cho' đã hết hạn
+ *  hoặc 'huy') }. */
 async function chotPhien(phien, nguon, them = {}) {
-  const muon = nguon === 'tay' && them.muon === true;
+  const muon = them.muon === true;
   // Báo sớm theo trạng thái vừa đọc (khỏi tính lại đơn); cổng THẬT là câu ghi cho → da_thu trong giao dịch (vaoGiaoDich).
   const conChot = muon ? ['cho', 'huy'].includes(phien.trang_thai) : phien.trang_thai === 'cho' && phien.het_han > getNow();
   if (!conChot) return loi(409, 'PHIEN_DA_CHOT', 'Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn');
@@ -108,6 +122,7 @@ async function chotPhien(phien, nguon, them = {}) {
   const r = gomRes();
   await taoDon({ body, user: { username: them.nguoi || phien.nguoi_tao } }, r, {
     id: phien.id,
+    taoLuc: phien.tao_luc,   // Q16: hạn voucher xét theo ngày tạo phiên (giá phiên đã tính có voucher)
     vaoGiaoDich: async (tx, now) => {
       const cong = await tx.run(`UPDATE pos_phien_thanh_toan SET trang_thai = 'da_thu', nguon = ?, ly_do = ?, nguoi_xac_nhan = ?, luc_chot = ?
         WHERE id = ? AND (trang_thai = 'cho' AND het_han > ? OR ? = 1 AND trang_thai IN ('cho', 'huy'))`,

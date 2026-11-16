@@ -19,6 +19,7 @@ import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (
 import GoiNap from './CaiDat/GoiNap';   // NAP-1: thẻ Gói nạp tiền (quyền quản lý sản phẩm)
 import TichDiem from './CaiDat/TichDiem';   // DIEM-MON-1: công tắc tích điểm theo món / gói / hạng
 import KhoaSaoLuuPos from './CaiDat/KhoaSaoLuuPos';   // SAOLUU-DEM-1: khoá sao lưu tự động lên Google Drive (chỉ chủ quán)
+import MauVoucher from './CaiDat/MauVoucher';   // VOUCHER-2: mẫu voucher + số voucher tối đa mỗi đơn
 import AppKhachHang from './CaiDat/AppKhachHang';   // ND-API-1: khoá sao lưu chỉ đọc nội dung App (chỉ chủ quán)
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
@@ -1632,6 +1633,7 @@ export default function Settings() {
                 </button>
               </div>
               <TichDiem />
+              <MauVoucher />
             </>
           ) : tab === 'signup' ? (
             /* TAB ƯU ĐÃI KHÁCH MỚI (Bước 4) */

@@ -10,8 +10,57 @@ const express = require('express');
 const { query, queryOne, run } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow } = require('../utils/helpers');
+const { kiemMau, moTaVoucher } = require('../utils/voucherCode');
+const { loiGhi } = require('./wallets');   // VOUCHER-2: cửa ghi mẫu — kho bận → 409 KHO_BAN
 
 const router = express.Router();
+
+// ═══ VOUCHER-2 — MẪU VOUCHER (Cài đặt → Voucher). Mỗi lần phát sinh MỘT mã riêng từ mẫu (utils/voucherCode.js phatVoucher); quyền như quà. ═══
+const COT_MAU = ['ten', 'kieu', 'gia_tri', 'tran', 'don_toi_thieu', 'ap_dung', 'ap_dung_ids', 'han_ngay', 'chinh_chu', 'bat'];
+const voiMoTa = (m) => ({ ...m, mo_ta: moTaVoucher(m) });
+
+router.get('/mau', authenticate, async (req, res) => {
+  try {
+    res.json({ success: true, data: (await query('SELECT * FROM pos_mau_voucher ORDER BY bat DESC, id DESC')).map(voiMoTa) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Xem trước câu khách thấy khi ĐANG gõ (không ghi gì) — màn Cài đặt không tự dựng câu.
+router.post('/mau/mo-ta', authenticate, async (req, res) => {
+  const kq = kiemMau(req.body || {});
+  if (kq.loi) return res.status(400).json(kq.loi);
+  res.json({ success: true, mo_ta: moTaVoucher(kq.mau) });
+});
+
+router.post('/mau', authenticate, checkPermission('manage_promotions'), async (req, res) => {
+  try {
+    const kq = kiemMau(req.body || {});
+    if (kq.loi) return res.status(400).json(kq.loi);
+    const m = kq.mau;
+    const r = await run(`INSERT INTO pos_mau_voucher (${COT_MAU.join(', ')}, tao_boi, tao_luc) VALUES (${COT_MAU.map(() => '?').join(', ')}, ?, ?)`,
+      [...COT_MAU.map((c) => m[c]), req.user.username, getNow()]);
+    res.json({ success: true, id: Number(r.lastInsertRowid), mau: voiMoTa(m), message: `Đã lưu mẫu "${m.ten}"` });
+  } catch (err) {
+    loiGhi(res, err);
+  }
+});
+
+router.put('/mau/:id', authenticate, checkPermission('manage_promotions'), async (req, res) => {
+  try {
+    const cu = await queryOne('SELECT * FROM pos_mau_voucher WHERE id = ?', [req.params.id]);
+    if (!cu) return res.status(404).json({ error: 'Không tìm thấy mẫu voucher', code: 'KHONG_THAY_MAU' });
+    const kq = kiemMau(req.body || {}, cu);
+    if (kq.loi) return res.status(400).json(kq.loi);
+    const m = kq.mau;
+    await run(`UPDATE pos_mau_voucher SET ${COT_MAU.map((c) => `${c} = ?`).join(', ')}, sua_luc = ? WHERE id = ?`,
+      [...COT_MAU.map((c) => m[c]), getNow(), cu.id]);
+    res.json({ success: true, mau: voiMoTa({ ...m, id: cu.id }), message: `Đã lưu mẫu "${m.ten}"` });
+  } catch (err) {
+    loiGhi(res, err);
+  }
+});
 
 // GET /api/pos/rewards  (?active=1 → chỉ lấy quà đang bật)
 router.get('/', authenticate, async (req, res) => {
