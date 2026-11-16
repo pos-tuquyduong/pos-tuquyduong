@@ -94,3 +94,18 @@ NGHI NGỜ: chú thích :31-32 "hạn 10 s" dễ đọc nhầm là trần (taoCh
 NGHIỆM THU: 12/12 (A2 có lỗ ở lỗi 1).
 CHƯA SOÁT ĐƯỢC: 27/31 đột biến, --day-du, cổng chay, tài liệu Ahamove, độ trễ thật.
 BÀI HỌC: KHOÁ — mỗi chỗ vá người soát báo có một ca / đột biến đưa lỗi cũ trở lại; phần nền có ca thân tin dị dạng. NGUYÊN TẮC — hàm bắt lỗi không làm lại phép tính vừa ném; log trong `.catch` chỉ dùng giá trị đã tính an toàn.
+
+## Soát bảo mật
+(/soat-bao-mat — một subagent độc lập, chỉ đọc, trên diff `4c52117^..beb75713`; lỗi trước lọc: 0 · sau lọc: 0 — không có lỗi nên không cần bước lọc)
+
+No vulnerabilities found.
+
+- Webhook check unchanged (`server/routes/giao-hang.js`, `webhook.post('/')`): 503 khi chưa cài khoá và kiểm header `apikey` bằng `timingSafeEqual` vẫn chạy TRƯỚC mọi thứ; nhánh chỉ đổi phần sau: trả `{success:true}` ngay rồi gọi `gh.nhanTinBaoNen(req.body)`. Không có khoá thì không tới code mới.
+- Webhook body still not trusted (`server/utils/giaoHang.js`): `maTin` chỉ nhận chuỗi / số, bỏ ký tự ngoài `[A-Za-z0-9_-]`, cắt 40 ký tự; tra bằng câu có tham số (`WHERE ma_ahamove = ?`); trạng thái vẫn đọc lại từ Ahamove bằng khoá của quán; phát lại vẫn chống lặp bằng `INSERT OR IGNORE INTO pos_giao_tin` — bước gỡ dòng chống lặp khi cập nhật hỏng chỉ mở lại việc áp trạng thái THẬT, vô hại.
+- `?doc_lai=1`: vẫn sau `authenticate`; chỉ cho nhân viên đọc lại ngay ≤ 8 chuyến; câu giành `doc_luc` chặn đọc trùng; không đụng tiền, không lộ dữ liệu.
+- Logs (`logGiao` / `logLoi`): chỉ mã chuyến (đã lọc, ≤ 40 ký tự), trạng thái Ahamove, kết quả, mã lỗi / tên lỗi, HTTP status — không SĐT / tên tài xế, không địa chỉ khách, không token / khoá. `han` thêm vào lời lấy token chỉ đổi hạn chờ.
+- `motChuyen` (`server/utils/ahamove.js`): chỉ gỡ bọc; `capNhatTuAhamove` vẫn chặn chuyến lệch mã (`d.ma !== c.ma_ahamove`).
+- Client (`GiaoHang/index.jsx`, `api.js`): chỉ thêm cờ Tải lại, qua `api.js`; không `fetch` trần, không HTML không an toàn.
+- Không đụng giá, thanh toán, hay quyền xem dữ liệu khách.
+
+SOÁT BẢO MẬT: ĐẠT
