@@ -240,7 +240,18 @@ BÀI HỌC: KHOÁ — mỗi hằng chờ / gửi lại có ca hai chiều, cả 
 ```
 
 ## Vòng sửa 4 (LUAT §6.5 — soát lần cuối chỉ còn lỗi NHẸ: chat soát thay, không gọi agent soát nữa)
-(điền ở dưới khi xong)
+- Lỗi 1 (độ chờ gửi lại ở quầy không ca): ca B3e — 2 lần gửi lại mất ≥ 1800 ms và < 3000 ms (hai chiều) + VS-CHO-GUI-KHONG.
+- Lỗi 2 (log / đếm trong giao dịch không ca): ca A4c — câu đầu, câu sau, commit: mỗi lần một dòng [KET-NOI] "giao dich", rot +3 + BV-LOG-GIAO-DICH.
+- Lỗi 3 (chỗ gọi xuLyThuHong chỉ dò lời gọi): B5a khoá CẢ cụm `const p = phien; phien = null;` + lời gọi + 3 nhánh + VS-BH-P-NULL, VS-BH-NHANH-B5.
+  CHƯA KIỂM: nhánh catch chạy trên màn thật (vẫn dò nguồn — dựng cả BanHangMoi bằng esbuild là việc lớn, khuôn có ở thu_VOUCHER2.js).
+- Lỗi 4 (readBody thân đứt → {} như thành công): `api.js` readBody ném MAT_KET_NOI; ca C1d (GET gửi lại, POST thường báo lời tiếng Việt) + BV-THAN-DUT.
+- Lỗi 5 (hồ sơ): bang_chung_do.txt đủ 17 ca xanh (thêm F1 1,8 giây — đếm bằng máy); ke_hoach.md "Chỉnh sau duyệt" ghi `:225` UND_ERR_SOCKET.
+- Kèm (người soát nêu ở mục Đơn giản): `api.js` sửa định dạng `nenGuiLai`, gộp hai chú thích chồng nhau ở dòng `tinhThu`.
+- Nghi ngờ vòng 3 không sửa (đúng §6.5 — chỉ sửa lỗi lần soát nêu): HRANA_CLOSED_ERROR bọc lỗi mạng (Phát hiện 12), nút thu sáng sau câu B5
+  (Phát hiện 13).
+- Bài thử 102 ca: HEAD 102 đạt · 0 hỏng; gốc 17 đạt · 85 hỏng. Đột biến chạy đủ ở a5d860d9: 73 · BẮT 73 · SỐNG 0 · HỎNG 0 · LẠC 0
+  (đối chứng 102 đạt · 0 hỏng). `npm test -- --day-du`: PASS 124 · FAIL 0 · CẢNH BÁO 1.
+SOÁT LẦN CUỐI: chat soát thay
 
 ## Phát hiện (ngoài Phạm vi / chưa làm — chủ quán xem)
 1. Màn Bán hàng CŨ `Sales.jsx` là màn MẶC ĐỊNH (`client/src/pages/BanHang/index.jsx:35`) và gọi `POST /orders` không chống trùng — hở nặng nhất
@@ -259,6 +270,11 @@ BÀI HỌC: KHOÁ — mỗi hằng chờ / gửi lại có ca hai chiều, cả 
 9. [CHAM] giữ đoạn đường dẫn toàn chữ: mã đơn App `/api/kh/don/:ma` không chữ số (~10%) có thể lên log — cần token khách, rủi ro thấp.
 10. `cong_cu/thu_SAOLUUDEM1.js` B3 nay dựa tiêu đề commit "SAOLUU-DEM-1…" (bản cũ "diff index.js rỗng" đỏ vĩnh viễn với mọi việc sau chạm index.js).
 11. CHƯA KIỂM trên Turso thật: hình lỗi mạng thật, BEGIN IMMEDIATE có xếp hàng hai lần gửi cùng mã không (đã thêm lớp khiTrung đỡ), mã bận Turso.
+12. `laLoiMang` (`server/database.js`) không nhận HRANA_CLOSED_ERROR bọc lỗi mạng ("Stream is closed: FetchError: … reason: read ECONNRESET" —
+    hrana-client errors.js:38-48) → lỗi đi nguyên, err.message có thể lộ địa chỉ kho. Chỉ khi câu SAU chạy tiếp sau câu rớt trong cùng giao dịch
+    (nemLoiGhi ném ngay câu đầu → rất hiếm). Sửa gọn: xét đệ quy `cause`. CHƯA KIỂM trên Turso.
+13. Sau câu B5 ("Đừng thu lại…") nút thu vẫn sáng — chặn đơn đôi ở nhánh "chốt hỏng + hỏi cũng hỏng" chỉ bằng LỜI DẶN (C16). Giữ như gốc;
+    chủ quán đã chọn #3 (bấm lại = mã mới). Đề xuất phiếu sau: khoá nút thu tới khi nhân viên xác nhận đã kiểm Đơn hàng.
 
 ## Câu hỏi
 (không có)

@@ -4,10 +4,10 @@ Gốc = 1d66c610 (= 8d83bf8^, mốc cổng: cha của commit "PHIEU: KET-NOI-1" 
 Lệnh (như cổng A11 — cả cây gốc, KHÔNG .git, chép đè bài HIỆN TẠI):
   python3 viec/KET-NOI-1/dot_bien.py --cay-goc 1d66c610 --bai <bài>
 
-── cong_cu/thu_KETNOI1.js (bài MỚI) — gốc (chạy lại sau vòng sửa 2, HEAD e4337891): 17 đạt · 82 hỏng · tổng 99 ca · thoát 1 ──
-  Ca đỏ trên gốc (mã ca, theo thứ tự in): A1a A1b A1d A1c A1c A1e A1f A1g A1h A3c A2a A2b A2b2 A2c A2d A2d2 A2e A4a A4a A4b B1a B1b B1c B1c2 B1d B1h
-  B1e B1f2 B1f3 B1f B1g B1g B1k B1i B1j B2a B2d C1a C1b B3b B3b B3b C1a B3a B4a B4a B4b B4b B4b B3c C1 C1c C2a C2b C2c C2c2 C2f C2e C2e E1a E1b E1a
-  E2a B5a B3d B3d B3d B3d B5b B5a B1/B3 F1 F1 F1 F1 F1 F3 F2 G1 G2 G3 G4.
+── cong_cu/thu_KETNOI1.js (bài MỚI) — gốc (chạy lại sau vòng sửa 4, HEAD a5d860d9): 17 đạt · 85 hỏng · tổng 102 ca · thoát 1 ──
+  Ca đỏ trên gốc (mã ca, theo thứ tự in): A1a A1b A1d A1c A1c A1e A1f A1g A1h A3c A2a A2b A2b2 A2c A2d A2d2 A2e A4a A4a A4b A4c B1a B1b B1c B1c2
+  B1d B1h B1e B1f2 B1f3 B1f B1g B1g B1k B1i B1j B2a B2d C1a C1b B3e C1d B3b B3b B3b C1a B3a B4a B4a B4b B4b B4b B3c C1 C1c C2a C2b C2c C2c2 C2f
+  C2e C2e E1a E1b E1a E2a B5a B3d B3d B3d B3d B5b B5a B1/B3 F1 F1 F1 F1 F1 F3 F2 G1 G2 G3 G4.
   Chi tiết dòng ✗ dưới đây là bản chạy ĐẦU (89 ca). Từ đó đổi tên: mã MA_GUI_KHAC_DON → KHOA_GUI_DA_DUNG, MA_GUI_KHONG_HOP_LE → KHOA_GUI_SAI
   (cùng đơn App — vòng sửa 1), hàm viecKhiThuHong → xuLyThuHong (vòng sửa 1); chữ ✗ còn lại giữ như lần chạy đầu:
   ✗ A1a SELECT rớt 1 lần → tự đọc lại, ra đúng kết quả (execute 2 lần)  — "request to https://thu-kho.turso.io/v2/pipeline failed, reason: socket hang up" · 1
@@ -76,7 +76,7 @@ Lệnh (như cổng A11 — cả cây gốc, KHÔNG .git, chép đè bài HIỆN
      — 500 {"error":"request to https://thu-saoluu.turso.io/v2/pipeline failed, reason: socket hang up"}
 
 Số ca khi chạy trên code ĐÃ VÁ (HEAD, cùng lệnh `node <bài>`):
-SỐ CA cong_cu/thu_KETNOI1.js: 99
+SỐ CA cong_cu/thu_KETNOI1.js: 102
 SỐ CA cong_cu/thu_BH2.js: 100
 SỐ CA cong_cu/thu_P3.js: 100
 SỐ CA cong_cu/thu_NDAPI1.js: 89
