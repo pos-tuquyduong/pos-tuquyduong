@@ -121,6 +121,8 @@ async function main() {
       K.demCapNhat++;
       if (K.nemCapNhat) throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
     }
+    if (K.nemXoa && /^DELETE FROM pos_giao_tin/.test(sql)) throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
+    if (K.nemGianh && /^UPDATE pos_giao_chuyen SET doc_luc = \? WHERE id/.test(sql)) throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
     if (K.nemLuc && /^UPDATE pos_giao_tin SET luc/.test(sql)) throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
     return runGoc(sql, p);
   };
@@ -249,15 +251,40 @@ async function main() {
     const v5 = await moChuyen();
     datTrangThai(v5.x, { status: 'ACCEPTED', supplier_name: 'TX Hai G', supplier_id: '0977002207' });
     K.nemCapNhat = true;
+    const n5 = nhatKy.length;
     await baoVe({ _id: v5.x, status: 'ACCEPTED' });
     await choNen();
     K.nemCapNhat = false;
     const tin5 = await tinCua(v5.x);
+    const log5 = nhatKy.slice(n5).filter(dongGiao);
     await baoVe({ _id: v5.x, status: 'ACCEPTED' });
     await choNen();
     const c5 = await chuyenCua(v5.id);
-    k('A2d kho hỏng lúc cập nhật thẻ → không để lại dòng chống lặp; tin lặp lại sau → doi_tai_xe + tài xế', tin5 === 0 && c5?.trang_thai === 'doi_tai_xe'
-      && c5?.tai_xe_ten === 'TX Hai G', `tin ${tin5} ${c5?.trang_thai} ${c5?.tai_xe_ten}`);
+    k('A2d kho hỏng lúc cập nhật thẻ → không để lại dòng chống lặp; log "lỗi cập nhật thẻ"; tin lặp lại sau → doi_tai_xe + tài xế', tin5 === 0
+      && log5.some((l) => l.startsWith(`[GIAO] tin ${v5.x} lỗi cập nhật thẻ`)) && c5?.trang_thai === 'doi_tai_xe' && c5?.tai_xe_ten === 'TX Hai G',
+      `tin ${tin5} ${c5?.trang_thai} ${c5?.tai_xe_ten} ${J(log5)}`);
+    // A2f: kho hỏng cả câu cập nhật thẻ LẪN câu gỡ dòng chống lặp → log nói rõ CẢ HAI (lỗi gỡ không che lỗi gốc)
+    const v7 = await moChuyen();
+    datTrangThai(v7.x, { status: 'ACCEPTED', supplier_name: 'TX Hai K', supplier_id: '0977002210' });
+    K.nemCapNhat = true; K.nemXoa = true;
+    const n7 = nhatKy.length;
+    await baoVe({ _id: v7.x, status: 'ACCEPTED' });
+    await choNen();
+    K.nemCapNhat = false; K.nemXoa = false;
+    const log7 = nhatKy.slice(n7).filter(dongGiao);
+    k('A2f kho hỏng cả cập nhật thẻ lẫn gỡ dòng chống lặp → log "lỗi gỡ dòng chống lặp" VÀ "lỗi cập nhật thẻ"; không unhandledRejection',
+      log7.some((l) => l.startsWith(`[GIAO] tin ${v7.x} lỗi gỡ dòng chống lặp`)) && log7.some((l) => l.startsWith(`[GIAO] tin ${v7.x} lỗi cập nhật thẻ`))
+      && sapNen.length === 0, J(log7));
+    // A2e: thân tin dị dạng (mã là object không đổi sang chuỗi được / có ký tự xuống dòng) → 200, không sập, không chèn dòng log giả
+    const n8 = nhatKy.length;
+    const a8 = await baoVe({ _id: { toString: 1 }, status: 'ACCEPTED' });
+    const a8b = await baoVe({ _id: 'AB\n[GIAO] gia mao', status: 'ACCEPTED' });
+    await choNen();
+    await ngu(50);
+    const song8 = await goi('GET', '/giao-hang');
+    k('A2e thân tin dị dạng ({_id:{toString:1}}, mã có xuống dòng) → 200, KHÔNG unhandledRejection, máy chủ vẫn trả lời, nhật ký không có dòng chèn',
+      a8.status === 200 && a8b.status === 200 && sapNen.length === 0 && song8.status === 200 && !nhatKy.slice(n8).some((l) => l.includes('\n')),
+      `${a8.status} ${a8b.status} sập ${J(sapNen)} ${J(nhatKy.slice(n8))}`);
 
     // A4: thẻ đang gọi xe lúc tin tới → 200 (không 409), không ghi sổ chống lặp; thẻ về tim_xe thì tin sau được áp
     const v4 = await moChuyen();
@@ -376,6 +403,14 @@ async function main() {
         && log2.some((l) => l.startsWith(`[GIAO] phi_huy ${x.x} lỗi ghi kho`))), J(log2));
     k('B2c "Tải lại" lúc phải lấy token mới mà Ahamove treo 12 s → trả < 10 s (lấy token cũng theo hạn ngắn); thẻ giữ tim_xe; có log lỗi',
       ms2 < 10000 && y2?.trang_thai === 'tim_xe' && log3.some((l) => l.startsWith(`[GIAO] doc_lai ${v2.x} lỗi`)), `${ms2} ms ${J(log3.slice(0, 2))}`);
+    // B2d: kho hỏng ở câu giành lượt đọc (doc_luc) → GET vẫn 200 (thẻ giữ nguyên), log "lỗi ghi kho" theo mã chuyến
+    await cuLai();
+    K.nemGianh = true;
+    const n9 = nhatKy.length;
+    const r9 = await goi('GET', '/giao-hang');
+    K.nemGianh = false;
+    k('B2d kho hỏng ở câu giành lượt đọc → GET 200, log "[GIAO] doc_lai <mã> lỗi ghi kho"', r9.status === 200
+      && nhatKy.slice(n9).some((l) => l.startsWith(`[GIAO] doc_lai ${v2.x} lỗi ghi kho`)), `${r9.status} ${J(nhatKy.slice(n9).filter(dongGiao))}`);
   }
 
   // ═══ Z · không lộ khoá; gắn bài; nút Tải lại ═════════════════════════════

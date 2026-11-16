@@ -28,8 +28,9 @@ const DOC_LAI_TOI_DA = 3;            // mỗi lần hỏi đọc lại tối đa
 const DOC_LAI_TAY_GIAY = 5;          // nút "Tải lại" (GIAO-2 B4): đọc NGAY chuyến chưa đọc trong 5 s — bấm dồn không gọi Ahamove thêm
 const DOC_LAI_TAY_TOI_DA = 8;        // nút "Tải lại": tối đa 8 chuyến mỗi lần bấm
 const HAN_DOC_LAI_MS = 8000;         // hạn mỗi lời đọc chuyến (và lấy token cho lời đó) trong GET danh sách — chuyến + phí huỷ đọc SONG SONG nên thường
-                                     // chờ ≤ 8 s (lấy token lần đầu: ≤ 16 s); riêng nhánh tài xế huỷ → tự tìm lại gọi xe trong cùng lần hỏi theo hạn 10 s
-                                     // của gọi xe (ahamove.js). Trên 5,1 s đã thấy ở sự cố 16.11 — CHƯA đo độ trễ thật (cột ms của log [GIAO]).
+                                     // chờ ≤ 8 s (lấy token lần đầu: ≤ 16 s). Riêng nhánh tài xế huỷ → tự tìm lại gọi xe ngay trong lần hỏi đó: 3 lời gọi
+                                     // nối nhau (traTheoMa, baoPhi, taoChuyen) mỗi lời hạn 10 s → lần hỏi đó có thể tới ~30 s. Trên 5,1 s đã thấy ở sự cố
+                                     // 16.11 — CHƯA đo độ trễ thật (cột ms của log [GIAO]).
 const LY_DO_TOI_THIEU = 3;
 const SONG = ['dang_goi', 'tim_xe', 'doi_tai_xe', 'dang_giao'];   // còn chuyến (hoặc có thể còn) ở Ahamove
 // Chuyến đã chạy = tài xế đã lấy hàng hoặc đã giao xong (theo DẤU GIỜ, không theo trạng thái — thẻ giao lỗi bị đóng khi hoàn tiền vẫn giữ phí):
@@ -418,9 +419,8 @@ const buoc = (ten) => (e) => { throw Object.assign(e, { buoc: e.buoc || ten }); 
 /** Tin báo về (chạy SAU khi cửa đã trả 200 — GIAO-2): chỉ lấy mã chuyến; trạng thái đọc lại bằng token của quán. Lặp (mã + trạng thái đọc lại +
  *  điểm giao + SĐT tài xế — Ahamove đổi tài xế thì ACCEPTED lần hai là tin MỚI) → không làm gì. Thẻ đang gọi xe: tin của chuyến CŨ (chuyến mới
  *  chưa có mã trên thẻ) — goiXe tự đọc chuyến cũ; không ghi sổ chống lặp; trạng thái sau khi gọi xe do đọc lại (danhSach) lo. */
-async function nhanTinBao(b) {
+async function nhanTinBao(ma) {
   const t0 = Date.now();
-  const ma = String(b?._id || b?.order_id || '').replace(/-\d+$/, '');
   const c = ma ? await queryOne('SELECT * FROM pos_giao_chuyen WHERE ma_ahamove = ?', [ma]).catch(buoc('đọc kho')) : null;
   if (!c) return logGiao('tin', ma || '-', '-', 'bỏ qua: không phải chuyến của quán', t0);   // hoặc chuyến cũ đã thay
   if (c.trang_thai === 'dang_goi') return logGiao('tin', ma, '-', 'bỏ qua: thẻ đang gọi xe', t0);
@@ -431,15 +431,22 @@ async function nhanTinBao(b) {
   if (moi.changes !== 1) return logGiao('tin', ma, d.trang_thai, 'bỏ qua: tin lặp', t0);
   // Cập nhật thẻ hỏng (kho chập chờn) → gỡ dòng chống lặp vừa ghi: tin gửi lại / đọc lại vẫn áp được.
   const kq = await capNhatTuAhamove(c, d).catch(async (e) => {
-    await run('DELETE FROM pos_giao_tin WHERE ma_ahamove = ? AND trang_thai = ? AND phu = ?', [ma, d.trang_thai, phu]);
+    await run('DELETE FROM pos_giao_tin WHERE ma_ahamove = ? AND trang_thai = ? AND phu = ?', [ma, d.trang_thai, phu])
+      .catch((e2) => logLoi('tin', ma, 'gỡ dòng chống lặp', e2));   // lỗi này không che lỗi gốc
     buoc('cập nhật thẻ')(e);
   });
   logGiao('tin', ma, d.trang_thai, kq, t0);
 }
 /** Cửa tin báo gọi SAU khi đã trả 200: xử lý trong cùng tiến trình, lỗi chỉ ghi log (không sập máy chủ). choTinBao — bài thử chờ phần nền xong. */
 const tinDangXuLy = new Set();
+/** Mã chuyến từ thân tin: chỉ chuỗi / số (thân dị dạng không làm ném lỗi), bỏ hậu tố `-n` của tin theo điểm, chỉ giữ chữ-số-gạch (log không bị chèn dòng). */
+const maTin = (b) => {
+  const x = b?._id ?? b?.order_id;
+  return typeof x === 'string' || typeof x === 'number' ? String(x).replace(/-\d+$/, '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40) : '';
+};
 function nhanTinBaoNen(b) {
-  const p = nhanTinBao(b).catch((e) => logLoi('tin', String(b?._id || b?.order_id || '').slice(0, 40), 'xử lý tin', e)).finally(() => tinDangXuLy.delete(p));
+  const ma = maTin(b);   // tính MỘT lần — hàm bắt lỗi chỉ dùng giá trị đã tính an toàn
+  const p = nhanTinBao(ma).catch((e) => logLoi('tin', ma, 'xử lý tin', e)).finally(() => tinDangXuLy.delete(p));
   tinDangXuLy.add(p);
 }
 const choTinBao = () => Promise.all([...tinDangXuLy]);

@@ -83,3 +83,14 @@ BÀI HỌC: KHOÁ — B2 nhiều dòng CHO_PHI_HUY + token chưa lấy; hai nhá
 - Chú thích HAN_DOC_LAI_MS sửa đúng: thường ≤ 8 s, lấy token lần đầu ≤ 16 s, riêng nhánh tự tìm lại gọi xe theo hạn 10 s.
 - thu_GIAO2 B2: 3 dòng phí huỷ + kho hỏng ở câu xếp lại (log đủ cả ba); B2c: token hết hạn, lấy token treo 12 s → < 10 s.
 - Bằng chứng: gốc 8 đạt · 19 hỏng; đã vá 27 đạt · 0 hỏng; thu_GIAO1 137 · 0. Đột biến: 31 · BẮT 31 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng XANH).
+
+## Soát độc lập — vòng 3 (agent độc lập, lần cuối) — tóm nguyên ý
+KHÔNG ĐẠT — chỉ lỗi NHẸ (không tiền / điểm / ví, không lộ thông tin, không ngoài Phạm vi, không file Cấm). Vòng sửa 2 xử lý đủ 4 lỗi vòng 2.
+LỖI TÌM ĐƯỢC:
+1. giaoHang.js:442 nhanTinBaoNen — hàm bắt lỗi gọi lại `String(b?._id …)`: thân `{"_id":{"toString":1}}` → nhanTinBao ném, hàm bắt lỗi ném TypeError, `.finally` chuyền tiếp → unhandledRejection → Node 22 sập tiến trình (gốc chỉ trả 500). Cần khoá đúng → NHẸ. K4 + K3 (A2c không thử thân dị dạng).
+2. Hai chỗ vá vòng 2 không có ca / đột biến: :467-468 `.catch` câu giành doc_luc (gỡ → GET 500, bài vẫn xanh); :435/:473 nhãn "cập nhật thẻ" — K3, NHẸ.
+3. :433-435 DELETE dòng chống lặp ném → lỗi gốc bị thay, log "xử lý tin", dòng chống lặp nằm lại không ai biết — K4, NHẸ.
+NGHI NGỜ: chú thích :31-32 "hạn 10 s" dễ đọc nhầm là trần (taoChuyenMoi gọi 3 lời nối nhau ~30 s); B1 giả thuyết; HAN 8 s chưa đo; slice-rồi-giành; mã từ thân tin vào log không lọc xuống dòng.
+NGHIỆM THU: 12/12 (A2 có lỗ ở lỗi 1).
+CHƯA SOÁT ĐƯỢC: 27/31 đột biến, --day-du, cổng chay, tài liệu Ahamove, độ trễ thật.
+BÀI HỌC: KHOÁ — mỗi chỗ vá người soát báo có một ca / đột biến đưa lỗi cũ trở lại; phần nền có ca thân tin dị dạng. NGUYÊN TẮC — hàm bắt lỗi không làm lại phép tính vừa ném; log trong `.catch` chỉ dùng giá trị đã tính an toàn.
