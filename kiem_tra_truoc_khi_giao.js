@@ -515,6 +515,7 @@ chayBaiThat('cong_cu/thu_DIEMMON1.js');   // DIEM-MON-1: tích điểm theo món
 chayBaiThat('cong_cu/thu_KHTHE1.js');   // KH-THE-1: App KH mua thẻ hạng chung giỏ, hạng lên lúc đã thu, giỏ không pha bán mọi giờ, quyền lợi hạng (023)
 chayBaiThat('cong_cu/thu_KHNAP1.js');   // KH-NAP-1: nạp trên App (dòng nạp đơn App), thẻ / nạp chỉ trả tiền thật, tiền về muộn đủ quyền lợi, /goi-nap, /vi
 chayBaiThat('cong_cu/thu_BAO1a.js');   // BAO-1a: thông báo nổi chung (xanh tự ẩn, đỏ có nút đóng), bánh cóc alert(, nút ghi khoá khi đang xử lý
+chayBaiThat('cong_cu/thu_SAOLUUDEM1.js');   // SAOLUU-DEM-1: cửa sao lưu tự động /api/pos/backup/tu-dong — khoá posk_ chỉ đọc, không lộ ở Cài đặt / tệp xuất, khôi phục giữ nguyên khoá
 chayBaiThat('cong_cu/thu_NDAPI1.js');   // ND-API-1: kho nội dung App KH /api/nd (nhà riêng server/nd/, vé riêng, CORS riêng, 409, xuất / nhập, khoá sao lưu)
 chayBaiThat('cong_cu/thu_HUY1.js');   // HUY-1: huỷ đơn hoàn toàn bộ vào tài khoản (khách lẻ: tiền mặt từ két), lý do có mã, quyền theo ngày, Đối soát, App v14
 chayBaiThat('cong_cu/thu_BAO1b.js');   // BAO-1b: Cài đặt báo rõ mọi thao tác — hết chữ báo đầu trang, lỗi dưới ô, thanh "Có thay đổi chưa lưu", hỏi PIN lúc bấm Lưu

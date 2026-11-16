@@ -18,6 +18,7 @@ import QuangCao from './CaiDat/QuangCao';   // QC-APP-1: thẻ Quảng cáo trê
 import HangThe from './CaiDat/HangThe';   // HANG-1: thẻ Hạng thành viên (hạng, thứ bậc, gói, PIN chủ quán)
 import GoiNap from './CaiDat/GoiNap';   // NAP-1: thẻ Gói nạp tiền (quyền quản lý sản phẩm)
 import TichDiem from './CaiDat/TichDiem';   // DIEM-MON-1: công tắc tích điểm theo món / gói / hạng
+import KhoaSaoLuuPos from './CaiDat/KhoaSaoLuuPos';   // SAOLUU-DEM-1: khoá sao lưu tự động lên Google Drive (chỉ chủ quán)
 import MauVoucher from './CaiDat/MauVoucher';   // VOUCHER-2: mẫu voucher + số voucher tối đa mỗi đơn
 import AppKhachHang from './CaiDat/AppKhachHang';   // ND-API-1: khoá sao lưu chỉ đọc nội dung App (chỉ chủ quán)
 import CaiDatChuong from '../components/CaiDatChuong';
@@ -1572,6 +1573,7 @@ export default function Settings() {
                   <li>Khôi phục: upload file đã tải → xem preview → xác nhận</li>
                 </ul>
               </div>
+              {isAdmin && <KhoaSaoLuuPos />}   {/* SAOLUU-DEM-1: sao lưu tự động lên Google Drive — chỉ chủ quán */}
             </>
           ) : tab === 'loyalty' ? (
             /* TAB ĐIỂM THƯỞNG (LOY-1) */
