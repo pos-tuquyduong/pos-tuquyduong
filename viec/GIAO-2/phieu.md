@@ -16,6 +16,9 @@
          khởi động phải lấy token trước — thêm một lần gọi) → ghi pos_giao_tin (chống lặp) → capNhatTuAhamove (vài câu Turso) → trả 200.
        - server/utils/ahamove.js ~10: HAN_GOI_MS = 10000 (mỗi lần gọi Ahamove chờ tới 10 giây) — lớn hơn hạn 5 giây của tin báo.
        - Dự phòng: danhSach ~427–441 đọc lại chuyến quá DOC_LAI_GIAY (60) — tối đa DOC_LAI_TOI_DA chuyến mỗi lần hỏi, lỗi thì nuốt im lặng (catch rỗng ~438).
+     Chủ quán 16.11 14:28 chốt yêu cầu: (1) tin báo luôn trả "đã nhận" trong vài giây kể cả kho chậm, nhận trùng không sai đơn → A; (2) lỡ tin thì tự về đúng
+     trạng thái: tự hỏi lại khi có chuyến chưa xong + hỏi NGAY khi bấm "Tải lại" → B; (3) nguyên nhân chậm gốc (nhật ký 14:04:28–14:04:34) gộp KET-NOI-1, KHÔNG
+     làm ở đây. Có sẵn thì chỉ làm phần thiếu.
      Song song: KET-NOI-1 (Opus làn 1) sửa database.js / đường thu tiền — KHÔNG đụng giaoHang.js; việc này không sửa database.js. -->
 
 ## Mục tiêu
@@ -43,6 +46,13 @@ Giao hàng tự đọc lại và vẫn lên đúng trạng thái. Làm ngay — 
   Không tìm ra lỗi mã → ghi rõ trong báo cáo các giả thuyết còn lại + thêm log đủ để lần thử sau nhìn ra (B3).
 - B2 Hạn mỗi lần gọi Ahamove (HAN_GOI_MS 10 giây) xét lại: đường dự phòng (màn Giao hàng đang chờ) không được treo màn quá lâu; kế hoạch chọn số
   có lý do (hằng số có tên, một chỗ).
+- B4 **Nút "Tải lại" ở màn Giao hàng = hỏi Ahamove NGAY** (chủ quán 16.11): bấm → máy chủ đọc lại NGAY mọi chuyến chưa xong (tim_xe, doi_tai_xe,
+  dang_giao), không chờ mốc 60 giây; lần tự hỏi 15 giây của màn vẫn theo mốc 60 giây như cũ (không dồn gọi Ahamove). Kế hoạch chọn cách gọn nhất
+  (vd `GET /api/pos/giao-hang?doc_lai=1` chỉ khi bấm tay; trần số chuyến đọc mỗi lần + chặn bấm dồn trong vài giây, không mở đường quá tải Ahamove).
+  Ca thử: tin báo bị mất (không gửi) → bấm Tải lại → thẻ lên đúng trạng thái + tài xế trong lần trả lời đó.
+- B5 Đã có sẵn, KHÔNG làm lại: màn tự hỏi máy chủ mỗi 15 giây (client/src/pages/GiaoHang/index.jsx HOI_MS ~16, ~57) và máy chủ đọc lại chuyến quá 60 giây
+  (giaoHang.js danhSach ~433) — chỉ sửa cho nó CHẠY ĐÚNG (B1) và hết nuốt lỗi (B3). Render không có hẹn giờ nền: "tự hỏi lại" dựa vào màn Giao hàng đang
+  mở ở quầy — ghi rõ trong báo cáo cho chủ quán.
 - B3 Log mỗi lần xử lý tin / đọc lại: `[GIAO] <mã chuyến> <trạng thái Ahamove> → <trạng thái thẻ> · <ms>` (không SĐT tài xế, không địa chỉ khách) —
   để chủ quán / chat đọc nhật ký Render khi thử lại. Lỗi đọc lại dự phòng KHÔNG còn bị nuốt im lặng (catch rỗng ~438 → log).
 
@@ -57,6 +67,9 @@ Giao hàng tự đọc lại và vẫn lên đúng trạng thái. Làm ngay — 
 - server/utils/ahamove.js
 - cong_cu/thu_GIAO2.js
 - cong_cu/thu_GIAO1.js
+- client/src/pages/GiaoHang/index.jsx
+- client/src/utils/api.js
+- client/dist/**
 - kiem_tra_truoc_khi_giao.js
 
 ## Bài thử đỏ
@@ -81,6 +94,7 @@ lộ khoá / token / dữ liệu khách; xử lý nền không mở đường g�
 
 ## Cấm
 - Không đổi cách xác thực tin báo (header `apikey` = AHAMOVE_KHOA_BAO, so timingSafeEqual). Không tin trạng thái trong thân tin.
-- Không đụng tiền / phí giao / phí huỷ ngoài đúng logic đang có. Không đụng database.js, đường thu tiền, màn Bán hàng (KET-NOI-1 đang làm).
+- Không đụng tiền / phí giao / phí huỷ ngoài đúng logic đang có. Không đụng database.js, đường thu tiền, màn Bán hàng, phần thử lại / lỗi mạng chung của api.js (KET-NOI-1 đang làm) — api.js chỉ thêm
+  tham số cho lời gọi danh sách giao.
 - Mặc định: không sửa .claude/, không merge, không tạo PR, không đụng main, chỉ push đúng `git push -u origin viec/GIAO-2`, không sửa sổ việc,
   không chạy patch_*.py. Đẩy nhánh sau mỗi bước lớn.
