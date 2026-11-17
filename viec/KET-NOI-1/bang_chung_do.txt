@@ -75,6 +75,12 @@ Lệnh (như cổng A11 — cả cây gốc, KHÔNG .git, chép đè bài HIỆN
   ✗ F1 kho rớt mạng khi mở Cài đặt › Sao lưu (GET /backup/info) → 503 KHO_MAT_KET_NOI, lời "Mất kết nối máy chủ…", KHÔNG chữ turso.io / socket hang up
      — 500 {"error":"request to https://thu-saoluu.turso.io/v2/pipeline failed, reason: socket hang up"}
 
+── Ghép main 94a90c26 (GIAO-2) vào nhánh, 17.11 (chat POS bàn 39) — cong_cu/thu_KETNOI1.js ca F2 SỬA thường (luật §6.8: hành vi GIAO-2 chủ quán đã duyệt) ──
+  GIAO-2: tin báo Ahamove trả lời NGAY, đọc kho ở nền (server/routes/giao-hang.js: res.json rồi gh.nhanTinBaoNen) → F2 cũ (tin báo > 0 câu kho) đỏ trên bản ghép.
+  F2 mới: tin báo Ahamove đo được, ĐÚNG 0 câu kho trước khi trả lời. Chạy F2 mới trên 35e0567e (nhánh trước khi ghép): 101 đạt · 1 hỏng · thoát 1
+  ✗ F2 … tin báo Ahamove đo được, 0 câu kho trước khi trả lời (GIAO-2), 200  — tạo phiên tiền mặt=10 chốt tiền mặt=23 tinh-thu=5 tin báo Ahamove=3
+  Trên bản ghép: 102 đạt · 0 hỏng (tin báo Ahamove=0).
+
 Số ca khi chạy trên code ĐÃ VÁ (HEAD, cùng lệnh `node <bài>`):
 SỐ CA cong_cu/thu_KETNOI1.js: 102
 SỐ CA cong_cu/thu_BH2.js: 100

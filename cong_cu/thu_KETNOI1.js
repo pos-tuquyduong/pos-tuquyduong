@@ -707,7 +707,9 @@ async function main() {
     const ds = [['tạo phiên tiền mặt', tim(/POST \/api\/pos\/thanh-toan\/phien$/)], ['chốt tiền mặt', tim(/\/chot$/)], ['tinh-thu', tim(/tinh-thu$/)],
       ['tin báo Ahamove', tim(/ahamove-bao$/)]];
     for (const [ten, x] of ds) console.log(`  ĐO F2 ${ten}: ${x ? `${x.cau} câu kho tuần tự · kho ${x.khoMs} ms · ngoài ${x.ngoaiMs} ms` : 'KHÔNG ĐO ĐƯỢC'}`);
-    k('F2 đo được số câu kho (> 0) cho tạo phiên, chốt tiền mặt, tinh-thu, tin báo Ahamove (tin báo 200)', ds.every(([, x]) => x && x.cau > 0) && bao.status === 200,
+    // Sau GIAO-2 (94a90c26): tin báo Ahamove trả lời NGAY rồi mới đọc kho ở nền → yêu cầu đo được, ĐÚNG 0 câu kho trước khi trả lời.
+    k('F2 đo được số câu kho (> 0) cho tạo phiên, chốt tiền mặt, tinh-thu; tin báo Ahamove đo được, 0 câu kho trước khi trả lời (GIAO-2), 200',
+      ds.slice(0, 3).every(([, x]) => x && x.cau > 0) && !!ds[3][1] && ds[3][1].cau === 0 && bao.status === 200,
       ds.map(([t, x]) => `${t}=${x?.cau}`).join(' '));
   });
 
