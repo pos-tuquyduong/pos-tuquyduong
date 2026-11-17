@@ -64,11 +64,18 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
 - B3 Món chưa có công thức (`chua_dinh_luong`, chưa có dòng `kho_san_pham`, hoặc công thức rỗng) → CHẶN: 400, `code: "CHUA_CO_CONG_THUC"`.
   - Màn Bán hàng hiện món đó mờ, ghi "chưa có công thức", không bấm thêm vào giỏ được.
   - App KH: kế hoạch chọn cách gọn nhất (ẩn món, hoặc `con_ban: false`) theo luật hợp đồng.
-- B3b **Khi nào kiểm và chặn:** chặn TRƯỚC khi khách trả tiền: lúc tạo phiên thu (quầy) hoặc đặt đơn (App KH, màn khách). `tinh-thu` chỉ báo, không ghi.
-  - Lúc CHỐT, tiền đã thu (tiền mặt, QR về, kể cả chốt muộn): KHÔNG chặn. Trừ kho, thiếu thì ghi âm và báo đỏ "bán vượt tồn lúc chốt".
-    Lý do: không bao giờ để khách đã trả tiền mà đơn bị huỷ (ràng buộc §5.2 tinh thần "đơn đã tạo là đã tạo").
-  - Kiểm và trừ trong CÙNG giao dịch, điều kiện chặn đua viết trong câu ghi. Hai máy cùng bán ly / chai cuối thì chỉ một máy qua ở bước tạo phiên.
-  - Kế hoạch nêu rõ cách giữ chỗ hoặc kiểm lại giữa tạo phiên và chốt, chọn cách gọn nhất.
+- B3b **GIỮ HÀNG — không bao giờ bán vượt số đang có (chủ quán 17.11 18:54: "liên quan bán hàng online, tránh hết hàng mà vẫn cho bán"):**
+  - Kiểm đủ hàng ở lúc TẠO đơn chờ trả: phiên thu quầy (tiền mặt, QR, PIN), đơn App KH, màn khách. Đủ thì **giữ** đúng số đó cho đơn.
+    Thiếu → chặn ngay (B1–B3). App KH nhận đúng `code` để báo khách "món này vừa hết" (theo luật hợp đồng `/api/kh`).
+  - "Còn bán được" = tồn trừ phần ĐANG GIỮ cho các đơn chưa trả. Quầy, App, màn khách cùng một con số.
+    Menu quầy và `/api/kh/menu` hiện "hết" khi con số này về 0.
+  - Trả tiền trong hạn (chốt) → trừ thật từ phần đã giữ. Không kiểm lại, không thể thiếu.
+  - Đơn huỷ hoặc QR hết hạn → nhả phần giữ ngay, trong cùng câu ghi đổi trạng thái phiên.
+  - Tiền về SAU khi hết hạn (đã nhả giữ): giữ đúng luật hiện có, đơn đồ uống KHÔNG chốt, tiền vào ví khách (`thanh-toan.js` nhánh vào ví).
+    Nhờ vậy không có trường hợp đã thu tiền mà thiếu hàng.
+  - Giữ và nhả nằm trong cùng giao dịch, điều kiện chặn đua viết trong câu ghi. Hai máy hoặc App cùng lấy chai cuối → chỉ một bên giữ được.
+  - Kế hoạch: tìm chỗ phiên đã "giữ chỗ" (`utils/giuCho.js`: voucher, lượt mã) và đặt phần giữ hàng ĐÚNG cùng chỗ đó. Không dựng cơ chế thứ hai.
+    Nêu thời gian giữ (= hạn phiên / QR hiện có) và mọi đường nhả (huỷ, hết hạn, lỗi chốt, dọn phiên cũ).
 - B4 Mỗi đơn có trừ kho ghi một phiếu kho (loại bán hàng, hoặc loại kế hoạch đề xuất), nối với đơn. Xem lại được ở Kho › Phiếu. Không in tự động.
 - B5 Huỷ đơn (HUY-1, kể cả đơn giao):
   - đồ CHƯA pha → trả lại kho đúng lô đã trừ;
@@ -76,7 +83,7 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
   - Kế hoạch đọc `utils/giaoHang.js` và đường huỷ `orders.js`, liệt kê mọi trường hợp. Một đơn chỉ trả kho MỘT lần: hai người cùng bấm huỷ hay huỷ lặp thì không trả hai lần.
 - B6 Đơn tạo từ mọi lối vào `taoDon` đều trừ kho cùng một cách: phiên quầy, App KH (`donApp`), màn khách, chốt muộn. Một hàm chung trong `server/kho/`, mỗi lối gọi hàm đó.
   `tinh-thu` (chỉ tính tiền) KHÔNG trừ.
-- B7 Chặn CHỈ đúng ba trường hợp B1–B3, và chỉ trước khi thu tiền (B3b). Ghi âm chỉ xảy ra với món bật cài đặt B2 hoặc lúc chốt (B3b). Lỗi CSDL thì cả giao dịch rollback như hiện nay.
+- B7 Chặn CHỈ đúng ba trường hợp B1–B3, ở lúc tạo đơn chờ trả (B3b). Ghi âm chỉ xảy ra với món pha tại chỗ bật cài đặt B2. Lỗi CSDL thì cả giao dịch rollback như hiện nay.
 - B8 **Cài đặt "Cho bán khi thiếu nguyên liệu"** theo từng món `pha_tai_cho`. Mặc định TẮT, chỉ chủ quán sửa (máy chủ kiểm), nằm trên màn món (A5).
   Thêm bằng bước nâng cấp đánh số MỚI, chỉ thêm cột.
 
@@ -118,8 +125,9 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
   - nhân viên không bật được cài đặt (403); mặc định TẮT (ca không truyền giá trị);
   - công thức lồng;
   - chưa có công thức / công thức rỗng → `CHUA_CO_CONG_THUC`;
-  - chặn ở tạo phiên, KHÔNG chặn lúc chốt khi tiền đã về (QR chốt muộn sau khi hết hàng → đơn vẫn tạo, ghi âm, báo đỏ);
-  - hai phiên cùng lúc tranh chai cuối → chỉ một qua;
+  - giữ hàng: phiên A giữ chai cuối → quầy B và App thấy "hết", bị chặn; A huỷ hoặc hết hạn → nhả, B bán được;
+  - A trả trong hạn → chốt trừ đúng phần giữ; tiền về sau hạn → không chốt, vào ví, tồn không đổi;
+  - hai phiên cùng lúc tranh chai cuối → chỉ một giữ được (chạy song song thật);
   - huỷ trả kho đúng lô, MỘT lần (hai lần huỷ song song);
   - đồ đã pha không trả;
   - mỗi lối vào `taoDon` trừ một lần;
