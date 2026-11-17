@@ -8,9 +8,9 @@ Phần máy chủ NHỎ (khoảng 15 dòng). Phần NẶNG là bài thử cũ: 2
 nên phải chuyển sang đường mới. Đây là lý do bản này chờ bạn duyệt.
 
 Bạn cần làm gì:
-1. Đọc **mục 7 — Câu hỏi** (3 câu, mỗi câu có đề xuất). Trả lời "đồng ý cả" là đủ.
-2. Câu 1 là bắt buộc: phiếu phải ghi ĐÚNG TÊN 6 file bài thử. Lý do: người gác coi 6 file này là "file luật" và chặn sửa nếu chỉ ghi kiểu
-   `cong_cu/gia_lap/**`.
+1. Đọc **mục 7 — Câu hỏi** (4 câu, mỗi câu có đề xuất của mình). Trả lời "đồng ý cả 4" là đủ.
+2. Câu 1 là bắt buộc: phiếu phải ghi ĐÚNG TÊN 6 file bài thử. Lý do: người gác coi các file này là "file luật" và chặn sửa nếu phiếu chỉ
+   ghi kiểu `cong_cu/gia_lap/**`.
 
 ---
 
@@ -44,35 +44,52 @@ Bạn cần làm gì:
 | 6 | Màn khách `utils/manKhach.js:127` (dựng lại giỏ của phiên) | `{ chiTinh, tinhThu }` | Chỉ khi phiên (lối 3) có gói |
 | 7 | Gói nạp `routes/goi-nap.js` | không gọi. Chỉ ghi chú: bán gói nạp đi lối 1 / 3 với `goi_nap_id` | (gói nạp KHÔNG phải gói trả trước) |
 
-→ Đặt MỘT cổng gói trong thân `taoDon` là phủ cả 7 lối. Không cần cổng thứ hai ở `giuCho.js`: `taoPhien` gọi `taoDon` (`chiTinh`) TRƯỚC khi
+→ MỘT cổng gói ở cửa vào `taoDon` phủ cả 7 lối (mục 2). Không cần cổng thứ hai ở `giuCho.js`: `taoPhien` gọi `taoDon` (`chiTinh`) TRƯỚC khi
 ghi phiên (dòng 80-81). Cổng gói trả 400 thì `taoPhien` trả nguyên lỗi đó, không phiên nào được ghi.
 
 ## 2. Máy chủ — phương án
 
-### B1 + B2 (đường thẳng: tài khoản khách, tài khoản mẹ, chuyển khoản)
-- **A (chọn):** sửa cổng có sẵn `orders.js:252-260`:
-  - bỏ câu đọc cài đặt `thanh_toan_payos_bat_buoc` → cổng luôn chạy khi `!phien`;
-  - thêm vế `payment_method === "transfer"`. Lý do: đường thẳng nhận `payment_method: 'transfer'` với `cash_amount`, và ghi nhãn cách trả
-    "chuyển khoản" cho tiền chưa qua QR (dòng 1087 ghi nguyên `payment_method`).
-  - Giữ mã `VI_PHAI_QUA_PIN` / `CK_PHAI_QUA_PAYOS` (cùng tình huống → cùng `code`, LUAT §2).
-  - Lời báo: đổi "Chuyển khoản phải qua QR payOS" → "Chuyển khoản phải qua QR" (cổng QR nay gồm cả SePay / Tingee).
-  - Khoảng −2 / +3 dòng. Cổng đứng TRƯỚC mọi câu ghi → không ghi gì (dòng ghi đầu tiên là giao dịch ở `:1000+`).
-- B: viết cổng mới riêng. Bị loại vì trùng cổng có sẵn: hai cổng cùng việc sẽ lệch nhau (K4).
-- Cài đặt `thanh_toan_payos_bat_buoc` thành thừa (gieo ở `database.js:1114`, ngoài Phạm vi) → ghi Phát hiện, không xoá.
+### Hình dạng chung: MỘT cửa chặn bọc ngoài `taoDon` (chọn)
+- Thân hiện tại đổi tên `taoDon` → **`taoDonGoc`**. Thân không đổi dòng nào, trừ việc DỜI cổng `:252-260` ra cửa chặn.
+- `taoDon(req, res, phien = null)` mới, khoảng 15 dòng, đứng ngay trên `taoDonGoc`. Nó chạy hai cổng, rồi `return taoDonGoc(req, res, phien)`:
+  1. **Gói (B3), mọi lối:** `package_buy || customer_package_id || (Array.isArray(items) && items.some((i) => i && i.from_package))`
+     → 400 `{ error: "Quầy tạm ngưng gói", code: "GOI_TAM_DUNG" }`.
+     - Dùng giá trị thật/giả (truthy), nên `package_buy: {}` cũng bị chặn.
+     - Vế `customer_package_id` chặn cả "gia hạn" (bật gói cũ, không lấy món) — gia hạn là mua gói.
+  2. **Đường thẳng (`!phien`, B1 + B2):**
+     - `Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance"` → 400 `VI_PHAI_QUA_PIN`;
+     - `Number(transfer_amount) > 0 || payment_method === "transfer"` → 400 `CK_PHAI_QUA_PAYOS`.
+     - Hai mã giữ nguyên từ cổng cũ (cùng tình huống → cùng `code`, LUAT §2).
+     - BỎ câu đọc cài đặt `thanh_toan_payos_bat_buoc` → cổng luôn chạy.
+     - Thêm vế `payment_method === "transfer"`: đường thẳng hôm nay nhận `'transfer'` kèm `cash_amount` và ghi nguyên nhãn đó (`:1087`).
+     - Lời báo "Chuyển khoản phải qua QR payOS" → "Chuyển khoản phải qua QR" (cổng QR nay có cả SePay / Tingee).
+- Cả hai cổng đứng TRƯỚC mọi đọc / ghi của thân → không ghi gì.
+- Mọi lối ở mục 1 đều gọi `taoDon` (đã grep: `orders.js:1443,1499`, `giuCho.js:80,164`, `donApp.js:190`, `manKhach.js:127`) → một cửa phủ đủ.
+  `taoPhien` gọi `taoDon` (`chiTinh`) TRƯỚC khi ghi phiên (`giuCho.js:80-81`) → phiên có gói không bao giờ được ghi.
+- `module.exports.taoDonGoc` — **CHỈ để bài thử dựng "đơn cũ"** (mục 4.3). Không lối HTTP nào tới được.
+  - Khoá bằng phép (C16), không bằng lời dặn: bài mới quét `server/`. Chữ `taoDonGoc` chỉ được có trong `orders.js`, đúng 3 chỗ:
+    định nghĩa, lời gọi trong `taoDon`, dòng export. Kèm đột biến `VS-GOI-THANG-LOI-GOC` (cho `giuCho.js` gọi `taoDonGoc`) để chứng minh phép bắt được.
+- Mã gói nằm lại trong `taoDonGoc` (vòng món, POS-AUTHZ-v1, khối ghi gói). **Không xoá**, vì:
+  (i) phiếu cấm sửa ngoài vùng cổng đầu;
+  (ii) bộ kiểm nhóm E soi POS-AUTHZ-v1 + `item.from_package ? 0` (`kiem_tra_truoc_khi_giao.js:351-373`);
+  (iii) bài thử cũ của gói vẫn chạy trên đúng mã này qua `taoDonGoc` (mục 4.3);
+  (iv) gói kiểu mới là việc sau khai trương.
+- Thứ tự đổi so với hôm nay: cửa chặn đứng trước cổng nạp (`NAP_KHONG_GOP` `:236`) và cổng thẻ / nạp không trừ ví (`:248`). Ví dụ:
+  - đơn nạp + gói → `GOI_TAM_DUNG` (thay `NAP_KHONG_GOP`);
+  - đơn thẻ + ví đường thẳng → `VI_PHAI_QUA_PIN` (thay `THE_KHONG_TRA_VI`).
+  Cả hai vẫn là 400 và không ghi gì. Chỉ 2-3 ca E đổi mã chờ (NAP1 B5 `b5c`, KHNAP1 B2 `t1[4]`).
+- Cài đặt `thanh_toan_payos_bat_buoc` thành thừa. Nó được gieo ở `database.js:1114`, ngoài Phạm vi → ghi Phát hiện, không xoá.
+- Ước lượng: `orders.js` khoảng +18 / −9 dòng.
 
-### B3 (gói, mọi lối)
-- **A (chọn):** một cổng trong `taoDon`, đặt NGAY SAU cổng B1/B2:
-  `if (package_buy || customer_package_id || (Array.isArray(items) && items.some((i) => i && i.from_package))) → 400 { error: "Quầy tạm ngưng gói", code: "GOI_TAM_DUNG" }`.
-  - Khoảng 4 dòng. Phủ cả 7 lối ở mục 1.
-  - Đứng TRƯỚC các cổng riêng của gói (`GOI_MUA_VA_LAY_CUNG_DON` `:275`, `GOI_MUA_THIEU_THONG_TIN` `:283`…). Vì vậy `package_buy: {}`
-    cũng bị chặn: cổng dùng giá trị thật/giả (truthy), `{}` là thật.
-  - Đứng SAU cổng nạp (`NAP_KHONG_GOP` `:236`) và cổng B1/B2. Đơn nạp + gói vẫn báo mã cũ, nên không phải sửa các ca có sẵn ở `thu_NAP1` / `thu_KHNAP1`.
-  - Mã gói nằm lại trong `orders.js` (vòng món, POS-AUTHZ-v1, khối ghi gói) nhưng không lối nào tới được nữa. **Không xoá** mã này, vì:
-    (i) phiếu cấm sửa ngoài vùng cổng đầu `taoDon`;
-    (ii) bộ kiểm nhóm E soi marker POS-AUTHZ-v1 + mẫu `item.from_package ? 0` (`kiem_tra_truoc_khi_giao.js:351-373`);
-    (iii) gói kiểu mới là việc riêng sau khai trương.
-- B: chặn ở `router.post("/")` + `giuCho.taoPhien` (`TRUONG_DON` bỏ hai trường gói). Bị loại: hai chỗ thay vì một, và lối `tinh-thu` / màn khách vẫn tính gói.
-- Vế `customer_package_id` chặn cả "gia hạn" (bật gói cũ, không lấy món). Đây là đúng ý phiếu: gia hạn = mua gói.
+### Phương án B (loại): cổng viết thẳng vào đầu thân `taoDon`, không tách hàm
+- Máy chủ ít hơn khoảng 5 dòng.
+- Nhưng gần 430 ca F (mục 4.3) mất cách dựng đơn cũ. Bài thử phải đi đường phiên (thêm PIN, tạo + chốt), hoặc chèn SQL tay chép lại
+  mọi câu ghi của `taoDon`. Ước lượng trên 1.500 dòng bài thử sửa.
+- Có thứ đường phiên KHÔNG dựng nổi:
+  - đơn trừ ví MỘT PHẦN (phiên luôn lấy `min(khả dụng, tổng)`, `giuCho.js:96`). Gặp ở NAP1, P26b, P26c, HUY1, HD1, kich_ban. NAP1 dùng
+    nhiều nhất — các ca chia thưởng nạp C7b, C13, E3-E12, K2;
+  - đơn gói (bị chặn ở mọi lối).
+  → mất bài thử cho đúng loại đơn cũ đang nằm trên quầy thật (C5).
 
 ### B4 — so ba cách khoá đường thẳng
 Đếm từ một agent chỉ đọc. Nó lần theo mọi hàm phụ trong 38 file `cong_cu/` + `gia_lap/kich_ban.js` có gọi thẳng `POST /orders`.
@@ -147,6 +164,8 @@ Mỗi ca chặn so ĐÚNG `code` + đếm trước / sau: `pos_orders`, `pos_ord
   - Riêng `from_package` không kèm mã gói → `GOI_TAM_DUNG`.
   - Riêng `customer_package_id` không món từ gói (gia hạn) → `GOI_TAM_DUNG`.
 - **B3 chốt phiên cũ:** phiên `cho` có thân gói, gieo bằng SQL (giả phiên tạo trước khi cập nhật) → `/chot` trả `GOI_TAM_DUNG`, phiên sang `loi`, không đơn.
+- **Khoá cửa chặn:** chữ `taoDonGoc` chỉ có trong `server/routes/orders.js`, đúng 3 chỗ (định nghĩa, lời gọi trong `taoDon`, export).
+  Mọi lối ở mục 1 gọi `taoDon` (đếm lời gọi bằng mẫu, so BẰNG danh sách 6 chỗ).
 - **B5 hai người cùng bấm:** hai yêu cầu đường thẳng trừ ví gửi cùng lúc → cả hai 400, số dư không đổi.
 - **K5 — luồng hợp lệ PHẢI KHÔNG bị chặn** (mỗi luồng một ca, so 200 + số tiền):
   - C1a tiền mặt đường thẳng;
@@ -166,7 +185,7 @@ Mỗi ca chặn so ĐÚNG `code` + đếm trước / sau: `pos_orders`, `pos_ord
   - `VS-CAI-DAT-CON` (đưa lại câu đọc cài đặt → cổng chỉ chạy khi '1');
   - `BV-GOI-MUA`, `BV-GOI-MA`, `BV-GOI-TU-GOI` (gỡ từng vế cổng gói);
   - `VS-GOI-CHI-THANG` (cổng gói chỉ khi `!phien` → lối phiên / tinh-thu lọt);
-  - `VS-GOI-SAU-GHI` (cổng gói dời xuống sau `phien?.chiTinh`; tạo phiên lọt);
+  - `VS-GOI-THANG-LOI-GOC` (`giuCho.js` gọi `taoDonGoc` thay `taoDon` → phiên có gói lọt; phép quét `taoDonGoc` + ca B3 phiên phải bắt);
   - `VS-MAN-CU-QUERY` (index.jsx đọc lại `?man=cu` → dựng nhánh khác);
   - `BV-NUT-TAT` (đưa lại nút "Tắt — về màn cũ").
   Mỗi đột biến có đối chứng: bản chưa đột biến xanh. Luật sập: bài sập ≠ bắt.
@@ -189,7 +208,67 @@ Mỗi ca chặn so ĐÚNG `code` + đếm trước / sau: `pos_orders`, `pos_ord
 Mọi bài đổi: đỏ trên gốc (file Sales còn / hành vi cũ), xanh trên HEAD, dòng `SỐ CA` trong `bang_chung_do.txt`.
 
 ### 4.3 Bài CŨ dựng đơn bằng đường thẳng (B4a — 22 bài)
-<<BẢNG KIỂM KÊ — xem mục 4.4>>
+Agent chỉ đọc kiểm kê từng ca. Chia ba loại:
+- **L** — ca thử chính logic mua / lấy gói, hoặc hành vi riêng của đường thẳng;
+- **F** — ca chỉ dùng đơn ví / chuyển khoản / gói làm ĐƠN MẪU để thử thứ vẫn sống: huỷ, hoàn, điểm, đối soát, hoá đơn, voucher;
+- **E** — ca vốn chờ bị từ chối, nay chỉ đổi mã.
+Số là ước lượng, đếm tĩnh.
+
+| Bài | Số ca (≈) | Đỏ: L / F / E | Hàm phụ dựng đơn | Ví trả MỘT PHẦN? |
+|---|---|---|---|---|
+| GOI1 | 114 | 18 / 55 / 12 | muaGoi 139, lay 142, mua30 528 | không |
+| P26c | 138 | 20 / 40 / 12 | taoDon 151, muaGoi 167, lay 170, ban 696 | **có** |
+| P26b | 64 | 1 / 33 / 3 | taoDon 134, donVi 139, donMe 345 | **có** |
+| P2223 | 42 | 3 / 3 / 5 | ban 111, tuChoi 293 | có thể |
+| P24 | 33 | 0 / 6 / 0 | ban 110 | không |
+| P20 | 121 | 0 / 25 / 0 | taoDon 130 | không |
+| P3 | 99 | 3 / 0 / 1 | gọi thẳng | không |
+| P21 | 13 | 0 / 3 / 0 | taoDon 102 | không |
+| P26a | 15 | 0 / 1 / 0 | dòng 98 | không |
+| HUY1 | 56 | 0 / 20 / 0 | ban 98, chuyenKhoan 105 | **có** |
+| HD1 | 161 | 0 / 12 / 1 | ban 393 | **có** |
+| UUDAI1 | 76 | 5 / 1 / 0 | ban 137 | không |
+| DOISOAT1 | 94 | 2 / 16 / 0 | taoDon 128, muaGoi 138 | không |
+| DIEMMON1 | 31 | 1 / 7 / 0 | ban 111, banGoi 237 | không |
+| DIEMTHAT1 | 36 | 0 / 19 / 1 | ban 103 | không |
+| KHNAP1 | 61 | 2 / 2 / 0 | gọi thẳng | không |
+| NAP1 | 89 | 1 / 30 / 1 | ban 121 | **có, nhiều** |
+| VOUCHER2 | 129 | 3 / 8 / 0 | ban 290 | không |
+| VIME1 | 24 | 0 / 4 / 4 | ban 109 | không |
+| GIAO1 | 131 | 0 / 75-95 / 1 | donGiao 211 (mặc định trả ví) | không |
+| GIAO2 | 28 | 0 / 25 / 0 (bài TREO ở vòng chờ 9 chuyến) | moChuyen 174 | không |
+| gia_lap/kich_ban | 87 | 8 / 30 / 2 | c.taoDon 25, mua 452, lay 455 | **có** |
+
+Tổng ≈ 65 L · 430 F · 40 E. Phần lớn là F.
+
+**Cách sửa (chọn):** hàm phụ dùng chung **`cong_cu/gia_lap/donCu.js`**, khoảng 30 dòng.
+- `donCu(mayChu, nguoi, than)` gọi `taoDonGoc` trong cùng tiến trình, với res giả. Trả `{ status, body }` y như gọi HTTP.
+- Cùng một module `orders.js` mà app thử đang dùng: lấy từ `<may-chu>/routes/orders.js`, nên chạy đúng cả trên bản sao đột biến.
+- Đơn dựng ra là ĐƠN CŨ thật: đúng mã đã ghi dữ liệu đang nằm trên quầy. Dựng được cả đơn ví một phần và đơn gói.
+
+Làm theo từng loại ca:
+- **F (≈ 430 ca):** chỉ đổi thân hàm phụ dựng đơn của mỗi bài sang `donCu` (3-8 dòng / bài). Ca giữ nguyên. Huỷ / hoàn / báo cáo vẫn
+  gọi HTTP thật như cũ.
+- **L của gói** (GOI1, P26c, P2223, DOISOAT1, DIEMMON1, VOUCHER2 K5…): logic gói vẫn nằm trong `taoDonGoc` → ca giữ nguyên, đi qua `donCu`.
+  Bài vẫn khoá đúng mã đó cho ngày gói kiểu mới dùng lại.
+- **L / E của hành vi ĐÃ DUYỆT ĐỔI** (sửa thường, đỏ trên gốc — LUAT §6.8):
+  - P3 H "CK trần 25.000 → 200" và I1-I7 (cờ `thanh_toan_payos_bat_buoc`) → đổi sang: chặn bất kể cờ; gói → `GOI_TAM_DUNG`;
+  - UUDAI1 G3b-d, K4a-b (tinh-thu / đơn có gói) → `GOI_TAM_DUNG`;
+  - VOUCHER2 F2, F5 (phiên có `package_buy`) → `GOI_TAM_DUNG`;
+  - KHNAP1 K5 (CK / ví mẹ / gói trên đường thẳng) và B2 `t1[4]` → mã mới;
+  - NAP1 K2 (ví + CK đường thẳng → 200) và B5 `b5c` → mã mới;
+  - VIME1 A1-A4 → giữ nguyên (`kiemTraMe` nằm trong `taoDonGoc`; ca đi qua `donCu`, vẫn 403 `KHONG_PHAI_TK_ME`).
+  Lúc làm, mỗi ca đổi ghi một dòng trong `trang_thai.md`.
+- **Giả lập một ngày (`gia_lap/kich_ban.js`, C7):** đây là tập dượt quầy, nên đơn MỚI đi đúng đường quầy nay dùng:
+  - ví / mẹ → phiên `tai_khoan` hoặc `tien_mat` + PIN;
+  - KB2 chuyển khoản → phiên `ck_tay` + xác nhận tay.
+  Gói KB9 / KB21 / KB23 / KB30 → "gói mua trước ngày cập nhật" dựng bằng `donCu`. Thêm một cảnh "quầy bấm bán gói → `GOI_TAM_DUNG`,
+  không ghi". Các cảnh ví một phần (KB4, KB5, KB17) chuyển sang phiên → số dự kiến tính lại theo `min(khả dụng, tổng)`, ghi rõ từng cảnh.
+  `bat_bien.js` không đổi (chỉ đọc SQL).
+- **GIAO1 / GIAO2:** `donGiao` / `moChuyen` dựng đơn giao cũ bằng `donCu`. Đơn giao MỚI qua phiên (C2) có ca riêng trong `thu_BOMANCU1`.
+
+Ước lượng dòng bài thử: `donCu.js` 30 · đổi hàm phụ 21 bài ≈ 120 · ca L/E đổi ≈ 150 · kich_ban ≈ 120 · bài mới ≈ 350
+→ **≈ 770 dòng**, vượt "~300 dòng thử" của phiếu. Lý do: gói bị chặn ở mọi lối, nên 15 bài phải sửa bất kể cách B4 nào → **Câu hỏi 4**.
 
 ## 5. D2 — `kiem_tra_truoc_khi_giao.js`
 Chỉ hạ `NGUONG_FETCH` 31 → số đo sau khi xoá (dự kiến 22). Grep `Sales` trong file = 0 chỗ, nên không có phép nào phải đổi file soi.
@@ -202,5 +281,46 @@ Không đụng nhóm E (POS-AUTHZ-v1).
 - SX hay hệ thống khác gọi `POST /orders` (CHECKLIST B6): chỉ đơn tiền mặt còn đi được. Grep `server/` không thấy lối dịch vụ nào tạo đơn
   ví / chuyển khoản. Kho SX: CHƯA KIỂM (không có trong máy).
 
-## 7. Câu hỏi cho chủ quán
-<<CÂU HỎI>>
+## 7. Câu hỏi cho chủ quán (mỗi câu có đề xuất — trả lời "đồng ý cả 4" là đủ)
+
+**Câu 1 — Phạm vi phải ghi đúng tên 6 file (bắt buộc).**
+Người gác coi `cong_cu/gia_lap/**`, `thu_P20/P21/P26a/P26b.js` là "file luật": chỉ sửa được khi Phạm vi ghi ĐÚNG TÊN.
+Nguồn: `tu_chay/cau_hinh.json` `file_luat`, `nguoi_gac.js:196`. Glob `cong_cu/gia_lap/**` và `cong_cu/thu_*.js` của phiếu chưa đủ.
+Đề xuất thêm vào `## Phạm vi`:
+```
+- cong_cu/gia_lap/kich_ban.js
+- cong_cu/gia_lap/donCu.js
+- cong_cu/thu_P20.js
+- cong_cu/thu_P21.js
+- cong_cu/thu_P26a.js
+- cong_cu/thu_P26b.js
+```
+
+**Câu 2 — cho bộ kiểm chạy bài mới.**
+`kiem_tra_truoc_khi_giao.js` chạy bài theo danh sách cứng (dòng 495-513). Bài mới `thu_BOMANCU1.js` chỉ được `npm test` chạy khi thêm một dòng
+`chayBaiThat('cong_cu/thu_BOMANCU1.js')`. Phiếu D2 ghi "CHỈ được làm hai việc" với file này, nên mình hỏi.
+Đề xuất: cho thêm đúng dòng đó. Đây là THÊM phép kiểm (CLAUDE.md §6 cho phép), không nới gì. Không có dòng này thì khoá B1-B3 không được
+canh ở mỗi lần commit.
+
+**Câu 3 — một dòng chú thích ngoài Phạm vi.**
+`client/src/pages/InvoiceSettings.jsx:745` có chú thích "Cập nhật cache NGAY để Orders/Sales dùng được". A2 đòi `client/src/` không còn chữ
+`Sales` trỏ về màn cũ.
+Đề xuất: thêm `client/src/pages/InvoiceSettings.jsx` vào Phạm vi, chỉ để sửa chữ chú thích đó (không đổi mã). Không đồng ý thì bài A2
+chừa riêng dòng này và mình ghi Phát hiện.
+
+**Câu 4 — duyệt cách sửa bài thử (mục 2 + 4.3).**
+- Máy chủ tách `taoDon` thành cửa chặn + thân `taoDonGoc`. Thân được xuất ra CHỈ để bài thử dựng "đơn cũ"; một phép kiểm khoá không file
+  máy chủ nào khác gọi nó.
+- Dòng export ở cuối `orders.js` nằm ngoài "vùng cổng đầu" mà phiếu cho sửa, nên mình hỏi luôn.
+- Bài thử vượt ngân sách: ≈ 770 dòng, so với ~300 của phiếu.
+Đề xuất: đồng ý. Cách còn lại (phương án B ở mục 2) phải sửa trên 1.500 dòng bài thử, và mất bài thử cho đúng loại đơn cũ đang có trên quầy
+(đơn ví một phần, đơn gói).
+
+## 8. Phát hiện (không sửa trong việc này)
+- Đường thẳng vẫn nhận **ghi nợ / chờ thu** (`debt_amount`, `payment_method: 'cho_thu'`). Sổ quyết định đã chốt "Không công nợ" và "Không có
+  bill chưa trả tiền" (`QUYET_DINH_CHU_QUAN.md:89,100`). Màn mới không còn ai gửi kiểu đơn này. Đề xuất một việc sau: chặn ở cửa chặn
+  (cách B4b, thêm 4 bài phải sửa).
+- `payment_method` của đường thẳng là chữ tự do, ghi nguyên vào đơn (`'combined'`, `'mixed'`, `'momo'` có trong bài thử). Tiền vẫn đúng cột,
+  chỉ nhãn lạ.
+- Cài đặt `thanh_toan_payos_bat_buoc` thành thừa sau việc này (`database.js:1114`, ngoài Phạm vi).
+- Kho mây là kho nông → `thu_BH2` G1 đỏ oan cho tới khi `git fetch --unshallow` (K2). Máy đã tự tải thêm lịch sử ở bước 1.
