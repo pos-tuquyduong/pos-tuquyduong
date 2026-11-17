@@ -161,6 +161,10 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
 - server/utils/docKhach.js
 - server/ketNoiKho.js
 - server/kho/**
+- server/utils/giuCho.js
+- server/routes/thanh-toan.js
+- server/utils/donApp.js
+- server/utils/manKhach.js
 - server/nang_cap/**
 - server/database.js
 - server/index.js
