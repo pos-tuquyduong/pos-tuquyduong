@@ -46,6 +46,14 @@ Sau việc này màn hình quầy không còn gọi đường này. Mọi đơn 
   - (b) đường thẳng chỉ nhận đơn tiền mặt thuần;
   - (c) đóng hẳn đường thẳng (410).
   Với mỗi cách, đếm số bài thử `cong_cu/` và giả lập quầy (`cong_cu/gia_lap/`) phải sửa (hiện ~35 bài gọi `POST /orders`). Chọn cách ÍT sửa nhất mà vẫn đạt B1–B3. Ghi lý do.
+- B4b **Chủ quán duyệt kế hoạch 17.11 19:04 — "đồng ý cả 5"** (`ke_hoach.md` 4386c365 mục 7):
+  - Câu 1: Phạm vi thêm đúng tên 7 file luật (đã ghi dưới).
+  - Câu 2: được THÊM đúng một dòng `chayBaiThat('cong_cu/thu_BOMANCU1.js')` vào `kiem_tra_truoc_khi_giao.js` (cạnh `thu_KETNOI1`).
+  - Câu 3: `client/src/pages/InvoiceSettings.jsx` vào Phạm vi, CHỈ sửa chữ chú thích dòng nhắc "Orders/Sales". `Layout.jsx` để nguyên.
+  - Câu 4: tách `taoDon` thành cửa chặn + thân `taoDonGoc`. Được thêm dòng `module.exports.taoDonGoc` cuối `orders.js`, có phép khoá chữ `taoDonGoc` đúng 3 chỗ.
+    Hàm phụ bài thử `cong_cu/gia_lap/donCu.js`. Ngân sách bài thử ≈ 780 dòng (+40 cho câu 5) được duyệt.
+  - Câu 5: cửa chặn thêm vế "đường thẳng không nhận ghi nợ / chờ thu" (`debt_amount > 0` hoặc `payment_method` `debt` / `cho_thu`) → 400 `KHONG_GHI_NO`, có đột biến `BV-GHI-NO-THANG`.
+    `pay-debt` cho đơn nợ CŨ giữ nguyên trong việc này. Thu nợ chuyển khoản phải qua QR là việc TIEN-KHOA-2.
 - B5 Đột biến:
   - VS-/BV- cho TỪNG vế chặn (tài khoản khách, tài khoản mẹ, chuyển khoản, mua gói, lấy từ gói), mỗi vế ít nhất một đột biến, có đối chứng.
   - Ca "chặn" so đúng `code` của vế đang thử VÀ dấu vết không ghi (đếm dòng đơn / ví / điểm trước và sau).
@@ -64,7 +72,7 @@ Sau việc này màn hình quầy không còn gọi đường này. Mọi đơn 
   - Danh sách lúc chat đọc: `thu_HANG1`, `thu_BH1`, `thu_BH2`, `thu_UUDAI1`, `thu_P26b`, `thu_P26c`, `thu_BHCKTAY1`, `thu_BAO1a`, `thu_KHACHCK1`, `cong_cu/do_chuathu.js`, `cong_cu/gia_lap/kich_ban.js`. Máy grep lại.
   - Mỗi bài: ca canh hành vi CÒN ở màn mới thì chuyển sang soi file màn mới. Ca chỉ của màn cũ thì bỏ. Ghi rõ từng ca trong kế hoạch.
   - Đây là bài SỬA thường vì hành vi chủ quán đã duyệt đổi (LUAT_XAY_APP §6.8): đỏ trên gốc, xanh trên HEAD, có dòng `SỐ CA`.
-- D2 `kiem_tra_truoc_khi_giao.js`: CHỈ được làm hai việc.
+- D2 `kiem_tra_truoc_khi_giao.js`: CHỈ được làm ba việc (việc thứ ba: dòng `chayBaiThat` ở B4b câu 2).
   - Hạ `NGUONG_FETCH` đúng bằng số `fetch` trần mất theo `Sales.jsx`. Đo trước và sau, ghi số.
   - Đổi phép đang soi `Sales.jsx` (nếu có) sang file màn mới tương ứng.
   - KHÔNG nới hay bỏ phép nào khác (K8).
@@ -90,6 +98,14 @@ Sau việc này màn hình quầy không còn gọi đường này. Mọi đơn 
 - cong_cu/thu_*.js
 - cong_cu/do_chuathu.js
 - cong_cu/gia_lap/**
+- cong_cu/gia_lap/kich_ban.js
+- cong_cu/gia_lap/donCu.js
+- cong_cu/thu_P20.js
+- cong_cu/thu_P21.js
+- cong_cu/thu_P26a.js
+- cong_cu/thu_P26b.js
+- cong_cu/thu_gia_lap.js
+- client/src/pages/InvoiceSettings.jsx
 - README.md
 
 ## Ngân sách
@@ -113,6 +129,6 @@ có — đụng đường ghi tiền (ví khách, ví mẹ, chuyển khoản, g�
 - KHÔNG sửa `server/routes/kh/**`, `server/middleware/khachAuth.js`, `HOP_DONG_API_KH.md`, `HOP_DONG_API_ND.md`. App KH không đổi.
 - KHÔNG sửa `ban_mau_pos/**` (bản vẽ đã chốt). KHÔNG thiết kế lại màn bán hàng.
 - KHÔNG sửa `client/src/pages/Settings.jsx`, `Customers.jsx`, `Reports.jsx`, `components/Layout.jsx` (làn GIAO-DIEN-2), `client/src/pages/GiaoHang/**`.
-- KHÔNG sửa phần trừ kho / sản phẩm trong `orders.js` (làn KHO-3). Chỉ sửa vùng cổng đầu `taoDon` và `router.post("/")`.
+- KHÔNG sửa phần trừ kho / sản phẩm trong `orders.js` (làn KHO-3). Chỉ sửa vùng cổng đầu `taoDon`, `router.post("/")`, và dòng export `taoDonGoc` cuối file (B4b câu 4).
 - KHÔNG xoá dữ liệu, KHÔNG sửa bảng gói. Gói đã kết thúc giữ nguyên làm lịch sử.
 - Mặc định: không sửa `.claude/`, không merge, không tạo PR, không đụng main, chỉ `git push -u origin viec/BO-MAN-CU-1`, không sửa sổ việc, không chạy `patch_*.py`.
