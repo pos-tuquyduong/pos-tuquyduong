@@ -19,8 +19,16 @@ Sau việc này:
 Kiểm kê cuối ca và tỉ lệ ra để **KHO-3b** (việc sau). Topping là TOPPING-1.
 
 **Dữ liệu thật hôm nay (17.11):** bảng kho của POS TRỐNG: 0 nguyên liệu, 0 công thức, 0 dòng `kho_san_pham`. `pos_products` có 14 món.
-Việc này phải chạy đúng khi kho trống: mọi món là "chưa định lượng" → bán bình thường, không trừ gì, báo "chưa trừ kho".
-Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX bằng tệp sao lưu, KHO-1, rồi Sản phẩm & công thức).
+**Luật bán theo kho — chủ quán chốt 17.11 18:47, GIỮ logic cũ "không đủ hàng thì không bán" (`orders.js` `checkStock` → 400 "Không đủ hàng"):**
+- Món làm sẵn theo lô (`lam_san`): phải nhập / pha thành phẩm trước. Hết lô hoặc không đủ → CHẶN. Không tự trừ sang nguyên liệu.
+- Món pha tại chỗ (`pha_tai_cho`): nguyên liệu không đủ → CHẶN, TRỪ KHI món đó bật cài đặt "Cho bán khi thiếu nguyên liệu".
+  Cài đặt theo TỪNG MÓN, mặc định TẮT, chỉ chủ quán bật. Bật thì vẫn bán, ghi âm, báo đỏ.
+- Món chưa có công thức (`chua_dinh_luong`, chưa có dòng `kho_san_pham`, hoặc công thức rỗng): KHÔNG bán.
+- Danh mục từ SX: chủ quán dùng Kho › Nhập từ SX có sẵn (KHO-1) TRƯỚC khi gộp việc này. Chỉ lấy danh sách, KHÔNG lấy tồn. Tồn nhập bằng kiểm kê / pha chế / nhận hàng.
+
+Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công thức thì quầy KHÔNG bán được món nào. Vì vậy:
+- máy làm A7 (màn "món chưa sẵn sàng bán");
+- báo cáo cuối ghi rõ điều kiện gộp: mọi món đang bán đã có kiểu + công thức, món làm sẵn đã có lô.
 
 ## Nghiệm thu
 
@@ -41,17 +49,26 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
   - Không xoá cứng món đã có đơn.
   - Định danh món mới: kế hoạch đề xuất cách gọn nhất KHÔNG làm gãy chỗ đang dùng `sx_product_type` / `sx_product_id` làm khoá (giá, `/api/kh/menu`, `unique_id`, đơn cũ, giỏ App, công thức `kho_san_pham.pos_product_id`).
   - Quyền: tạo món, sửa giá, ẩn → quyền đang dùng cho sửa giá (`manage_settings`); công thức → chỉ chủ quán (như KHO-1).
+- A7 Màn Kho có mục "Món chưa sẵn sàng bán": món đang bán mà chưa có kiểu / công thức, hoặc món làm sẵn hết lô. Có số đếm để chủ quán làm cho đủ trước khi gộp và hằng ngày.
 - A5 **Một món, MỘT chỗ sửa:** màn Kho › Sản phẩm & công thức (`client/src/pages/Kho/SanPham.jsx`) thành màn đầy đủ của món: tên, nhóm, giá, đang bán, kiểu kho, công thức, hạn dùng.
   - Giá sửa ngay tại đây, gọi route giá có sẵn. Bỏ dòng "đặt giá ở Cài đặt › Sản phẩm".
   - Màn Cài đặt › Sản phẩm cũ để GIAO-DIEN-2 gỡ hoặc trỏ về đây. Việc này KHÔNG sửa `Settings.jsx`.
 
 ### B. Bán trừ kho POS (trong CÙNG giao dịch với đơn — LUAT_XAY_APP §5)
-- B1 Món `lam_san`:
-  - trừ lô thành phẩm, hạn gần trước (FEFO);
-  - thiếu thì trừ phần còn lại vào nguyên liệu theo công thức (pha tại chỗ);
-  - vẫn thiếu thì GHI ÂM và báo đỏ ở màn Kho. KHÔNG chặn bán.
-- B2 Món `pha_tai_cho`: trừ nguyên liệu theo công thức × số lượng, kể cả sản phẩm con lồng nhau (`trienKhai`). Thiếu → ghi âm, báo đỏ, không chặn bán.
-- B3 Món `chua_dinh_luong` hoặc chưa có dòng `kho_san_pham`: bán bình thường, không trừ, ghi nhận "chưa trừ kho" để màn Kho / đối soát thấy được.
+- B1 Món `lam_san`: trừ lô thành phẩm còn hạn, hạn gần trước (FEFO).
+  - Tổng lô còn hạn < số lượng → CHẶN: 400, `code: "HET_HANG"`, lời "Không đủ hàng: <món>. Còn: <n>, cần: <m>" (giữ lời cũ).
+  - Lô hết hạn không được bán.
+- B2 Món `pha_tai_cho`: trừ nguyên liệu theo công thức × số lượng, kể cả sản phẩm con lồng nhau (`trienKhai`).
+  - Thiếu nguyên liệu và món TẮT "Cho bán khi thiếu nguyên liệu" → CHẶN: 400, `code: "THIEU_NGUYEN_LIEU"`, lời nêu tên nguyên liệu thiếu.
+  - Món BẬT cài đặt đó → bán, ghi âm, báo đỏ ở màn Kho.
+- B3 Món chưa có công thức (`chua_dinh_luong`, chưa có dòng `kho_san_pham`, hoặc công thức rỗng) → CHẶN: 400, `code: "CHUA_CO_CONG_THUC"`.
+  - Màn Bán hàng hiện món đó mờ, ghi "chưa có công thức", không bấm thêm vào giỏ được.
+  - App KH: kế hoạch chọn cách gọn nhất (ẩn món, hoặc `con_ban: false`) theo luật hợp đồng.
+- B3b **Khi nào kiểm và chặn:** chặn TRƯỚC khi khách trả tiền: lúc tạo phiên thu (quầy) hoặc đặt đơn (App KH, màn khách). `tinh-thu` chỉ báo, không ghi.
+  - Lúc CHỐT, tiền đã thu (tiền mặt, QR về, kể cả chốt muộn): KHÔNG chặn. Trừ kho, thiếu thì ghi âm và báo đỏ "bán vượt tồn lúc chốt".
+    Lý do: không bao giờ để khách đã trả tiền mà đơn bị huỷ (ràng buộc §5.2 tinh thần "đơn đã tạo là đã tạo").
+  - Kiểm và trừ trong CÙNG giao dịch, điều kiện chặn đua viết trong câu ghi. Hai máy cùng bán ly / chai cuối thì chỉ một máy qua ở bước tạo phiên.
+  - Kế hoạch nêu rõ cách giữ chỗ hoặc kiểm lại giữa tạo phiên và chốt, chọn cách gọn nhất.
 - B4 Mỗi đơn có trừ kho ghi một phiếu kho (loại bán hàng, hoặc loại kế hoạch đề xuất), nối với đơn. Xem lại được ở Kho › Phiếu. Không in tự động.
 - B5 Huỷ đơn (HUY-1, kể cả đơn giao):
   - đồ CHƯA pha → trả lại kho đúng lô đã trừ;
@@ -59,7 +76,9 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
   - Kế hoạch đọc `utils/giaoHang.js` và đường huỷ `orders.js`, liệt kê mọi trường hợp. Một đơn chỉ trả kho MỘT lần: hai người cùng bấm huỷ hay huỷ lặp thì không trả hai lần.
 - B6 Đơn tạo từ mọi lối vào `taoDon` đều trừ kho cùng một cách: phiên quầy, App KH (`donApp`), màn khách, chốt muộn. Một hàm chung trong `server/kho/`, mỗi lối gọi hàm đó.
   `tinh-thu` (chỉ tính tiền) KHÔNG trừ.
-- B7 Lỗi kho (thiếu, ghi âm) không bao giờ làm hỏng hay chặn đơn. Lỗi CSDL thì cả giao dịch đơn rollback như hiện nay.
+- B7 Chặn CHỈ đúng ba trường hợp B1–B3, và chỉ trước khi thu tiền (B3b). Ghi âm chỉ xảy ra với món bật cài đặt B2 hoặc lúc chốt (B3b). Lỗi CSDL thì cả giao dịch rollback như hiện nay.
+- B8 **Cài đặt "Cho bán khi thiếu nguyên liệu"** theo từng món `pha_tai_cho`. Mặc định TẮT, chỉ chủ quán sửa (máy chủ kiểm), nằm trên màn món (A5).
+  Thêm bằng bước nâng cấp đánh số MỚI, chỉ thêm cột.
 
 ### C. Gỡ hẳn SX
 - C1 Không còn lời gọi SX nào chạy được trong `server/`. Kế hoạch grep `callSxApi|checkStock|outStockFIFO|inStockReturn|isSxConfigured|SX_API_URL` và xử lý TỪNG chỗ:
@@ -83,18 +102,24 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
   `ketNoiKho.js` bỏ `diaChiSX`, nhóm K của bộ kiểm đổi theo. Ghi trong báo cáo: chủ quán xoá các biến này trên Render sau khi gộp.
 
 ### D. Luồng hợp lệ phải KHÔNG bị chặn (K5)
-- D1 Bán tiền mặt, QR, tài khoản có PIN; giao hàng; đơn App KH; màn khách — khi kho TRỐNG (dữ liệu thật hôm nay) và khi kho có đủ hàng.
+- D1 Bán tiền mặt, QR, tài khoản có PIN; giao hàng; đơn App KH; màn khách — khi kho CÓ ĐỦ hàng và công thức thì đều qua.
+  Thêm một ca kho trống: mọi món bị chặn đúng `CHUA_CO_CONG_THUC`, không ghi gì, không lỗi 500.
 - D2 Món giá 0 hoặc không bán (`is_active = 0`) không hiện như hiện nay. Món mới tạo ở POS không có khoá SX vẫn bán được.
 - D3 Màn Kho (nhập, nhận, pha chế, phát sinh, tồn, phiếu) chạy như cũ. Phiếu pha chế (KHO-2a) vẫn cộng thành phẩm vào lô để bán trừ được.
-- D4 Giả lập một ngày bán hàng (nhóm S) XANH. Thêm vào kịch bản: một món `lam_san` có lô, một món `pha_tai_cho` có công thức, một món chưa định lượng.
+- D4 Giả lập một ngày bán hàng (nhóm S) XANH.
+  - Kịch bản dựng sẵn kiểu, công thức, lô cho các món nó bán.
+  - Thêm cảnh: món làm sẵn hết lô → bị chặn; món pha tại chỗ thiếu nguyên liệu (TẮT → chặn, BẬT → bán, ghi âm); món chưa có công thức → bị chặn.
 
 ### E. Kiểm
 - E1 Bài thử MỚI `cong_cu/thu_KHO3a.js`, gồm các ca:
-  - FEFO hai lô khác hạn;
-  - thiếu lô → trừ nguyên liệu;
-  - thiếu cả hai → ghi âm, không chặn;
+  - FEFO hai lô khác hạn; lô hết hạn không bán;
+  - đủ lô đúng bằng số cần (qua) và thiếu 1 (chặn `HET_HANG`), ngay trên và ngay dưới ngưỡng;
+  - pha tại chỗ thiếu nguyên liệu: cài đặt TẮT → `THIEU_NGUYEN_LIEU`, BẬT → qua + ghi âm;
+  - nhân viên không bật được cài đặt (403); mặc định TẮT (ca không truyền giá trị);
   - công thức lồng;
-  - chưa định lượng;
+  - chưa có công thức / công thức rỗng → `CHUA_CO_CONG_THUC`;
+  - chặn ở tạo phiên, KHÔNG chặn lúc chốt khi tiền đã về (QR chốt muộn sau khi hết hàng → đơn vẫn tạo, ghi âm, báo đỏ);
+  - hai phiên cùng lúc tranh chai cuối → chỉ một qua;
   - huỷ trả kho đúng lô, MỘT lần (hai lần huỷ song song);
   - đồ đã pha không trả;
   - mỗi lối vào `taoDon` trừ một lần;
@@ -105,7 +130,7 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
 - E3 Bài thử cũ đang canh đường SX (tồn cũ POS-TONCU, `checkStock` bọc `try/catch` — CLAUDE.md §5.3, 999…) → sửa theo hành vi mới (bài sửa thường, đỏ trên gốc, `SỐ CA`).
   `kiem_tra_truoc_khi_giao.js`: CHỈ được đổi phép đang canh đường SX sang phép canh "không gọi SX / không bịa số". Không nới hay bỏ phép nào khác (K8). Kế hoạch liệt kê từng phép đụng tới.
 - E4 Chủ quán thử tay (≤ 3 thao tác):
-  1. Kho › Sản phẩm: thêm món mới "Món thử" kèm giá → món hiện ngay ở màn Bán hàng;
+  1. Kho › Sản phẩm: thêm "Món thử" kèm giá, kiểu pha tại chỗ, công thức 1 nguyên liệu → món hiện ở màn Bán hàng (chưa công thức thì mờ);
   2. bán món đó 1 ly;
   3. Kho › Phiếu thấy phiếu "bán hàng" hoặc dòng "chưa trừ kho" của đơn đó. Xong thì ẩn "Món thử".
 
