@@ -34,6 +34,16 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
   - món chưa có dòng kho hoặc `chua_dinh_luong` → không có số, KHÔNG bịa số (ràng buộc §5.8: không 999).
   - Bỏ "tồn gần nhất của SX" (`ton_gan_nhat` / `ton_luc`) khỏi hiển thị. Cột giữ nguyên trong DB (chỉ thêm, không xoá).
 - A3 Khoá nối SX của món (`sx_product_type`, `sx_product_id`) GIỮ NGUYÊN làm khoá giá và lịch sử đơn. Món mới thêm ở POS (không có khoá SX) vẫn bán được.
+- A4 **Quản lý món HOÀN TOÀN trong POS** (chủ quán 17.11: "POS chủ động hoàn toàn"). Hiện nay món chỉ vào POS qua SX: mọi `INSERT INTO pos_products` ở
+  `products.js` đều cần khoá SX (`sync-from-sx`, ghi giá theo khoá SX), hoặc qua Kho › Nhập từ SX.
+  - Thêm được món MỚI ngay trong POS: tên, nhóm, giá, đơn vị, thứ tự, đang bán. Không cần khoá SX.
+  - Sửa được tên, nhóm, thứ tự. Ẩn hoặc hiện món.
+  - Không xoá cứng món đã có đơn.
+  - Định danh món mới: kế hoạch đề xuất cách gọn nhất KHÔNG làm gãy chỗ đang dùng `sx_product_type` / `sx_product_id` làm khoá (giá, `/api/kh/menu`, `unique_id`, đơn cũ, giỏ App, công thức `kho_san_pham.pos_product_id`).
+  - Quyền: tạo món, sửa giá, ẩn → quyền đang dùng cho sửa giá (`manage_settings`); công thức → chỉ chủ quán (như KHO-1).
+- A5 **Một món, MỘT chỗ sửa:** màn Kho › Sản phẩm & công thức (`client/src/pages/Kho/SanPham.jsx`) thành màn đầy đủ của món: tên, nhóm, giá, đang bán, kiểu kho, công thức, hạn dùng.
+  - Giá sửa ngay tại đây, gọi route giá có sẵn. Bỏ dòng "đặt giá ở Cài đặt › Sản phẩm".
+  - Màn Cài đặt › Sản phẩm cũ để GIAO-DIEN-2 gỡ hoặc trỏ về đây. Việc này KHÔNG sửa `Settings.jsx`.
 
 ### B. Bán trừ kho POS (trong CÙNG giao dịch với đơn — LUAT_XAY_APP §5)
 - B1 Món `lam_san`:
@@ -55,7 +65,8 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
 - C1 Không còn lời gọi SX nào chạy được trong `server/`. Kế hoạch grep `callSxApi|checkStock|outStockFIFO|inStockReturn|isSxConfigured|SX_API_URL` và xử lý TỪNG chỗ:
   - `products.js`, `orders.js`, `stock.js`, `damages.js`, `doi-chieu.js`, `backup.js`, `utils/doSoNo.js`, hàng chờ `pos_stock_pending` (bộ hẹn giờ gửi lại nếu có);
   - màn hình `client/src/` gọi các route này.
-  - Route chỉ phục vụ SX → bỏ hoặc trả lỗi có `code`. Màn gọi tới thì bỏ nút hoặc màn tương ứng.
+  - Route chỉ phục vụ SX (kể cả `POST /products/sync-from-sx`) → bỏ hoặc trả lỗi có `code`. Màn gọi tới thì bỏ nút hoặc màn tương ứng.
+    Chữ "đồng bộ SX" ở `Customers.jsx`, `Settings.jsx` và trang `Registrations.jsx` (Export cho SX) là việc của GIAO-DIEN-2, không sửa ở đây.
   - Bước nâng cấp cũ `server/nang_cap/020_chep_khach_sx.js` đã chạy trên production. GIỮ file (luật nâng cấp chỉ thêm). Không để nó gọi SX lại.
 - C2 POS khởi động và chạy đủ khi `SX_API_URL` không có, có giá trị rác, hoặc trỏ tới máy không trả lời. Không treo, không chậm, không log lỗi SX.
 - C3 Sao lưu (`backup.js`) và đối chiếu (`doi-chieu.js`) bỏ phần SX, giữ phần POS. Sao lưu lên Drive (SAOLUU-DEM-1, Apps Script) chạy như cũ.
@@ -84,9 +95,9 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
 - E3 Bài thử cũ đang canh đường SX (tồn cũ POS-TONCU, `checkStock` bọc `try/catch` — CLAUDE.md §5.3, 999…) → sửa theo hành vi mới (bài sửa thường, đỏ trên gốc, `SỐ CA`).
   `kiem_tra_truoc_khi_giao.js`: CHỈ được đổi phép đang canh đường SX sang phép canh "không gọi SX / không bịa số". Không nới hay bỏ phép nào khác (K8). Kế hoạch liệt kê từng phép đụng tới.
 - E4 Chủ quán thử tay (≤ 3 thao tác):
-  1. mở màn Bán hàng thấy menu đủ món, nhanh;
-  2. bán 1 món;
-  3. Kho › Phiếu thấy phiếu "bán hàng" hoặc dòng "chưa trừ kho" của đơn đó.
+  1. Kho › Sản phẩm: thêm món mới "Món thử" kèm giá → món hiện ngay ở màn Bán hàng;
+  2. bán món đó 1 ly;
+  3. Kho › Phiếu thấy phiếu "bán hàng" hoặc dòng "chưa trừ kho" của đơn đó. Xong thì ẩn "Món thử".
 
 ## Phạm vi
 - viec/KHO-3a/**
