@@ -14,6 +14,9 @@ const cors = require('cors');
 const path = require('path');
 
 const { initDatabase } = require('./database');
+const { demKetNoi, doYeuCau, mocLoiKho, traLoiKho, bocFetchNgoai } = require('./database');   // KET-NOI-1
+// KET-NOI-1 F1: thời gian gọi ra ngoài (SX, Ahamove, cổng QR — đều dùng fetch toàn cục) cộng vào dòng [CHAM] của yêu cầu đang chạy.
+globalThis.fetch = bocFetchNgoai(globalThis.fetch);
 const { ipKhach } = require('./utils/ipKhach');
 const { getNow } = require('./utils/helpers');
 
@@ -62,6 +65,7 @@ app.use((req, res, next) => {
   next();
 });
 // ND-API-1: kho nội dung App KH — gắn TRƯỚC cors chung (origin '*'): router nd tự làm CORS chỉ hai tên miền App, thân, 404, lỗi
+app.use('/api/nd', doYeuCau);   // KET-NOI-1 F1: /api/nd gắn trước bộ đọc thân chung — đo riêng ở đây (thu_KETNOI1 F1)
 app.use('/api/nd', require('./nd/duong'));
 
 // Middleware
@@ -85,6 +89,9 @@ app.use((req, res, next) => {
   console.log(`${getNow()} | ${req.method} ${req.path.replace(/(\/customers\/qr\/).*/i, '$1***')}`);
   next();
 });
+// KET-NOI-1: đo mỗi yêu cầu /api/* + lỗi mạng tới kho → 503 KHO_MAT_KET_NOI. TRƯỚC mọi route /api/pos (/api/nd đo riêng ở trên).
+app.use('/api', doYeuCau);
+app.use('/api/pos', mocLoiKho);
 
 // ═══ POS-DODNO-v1 · LOP 1: doi so no an theo hoat dong ═══════════════════
 // PHAI dat TRUOC moi duong /api/pos. Dat sau thi khong bao gio chay: yeu cau
@@ -160,6 +167,7 @@ app.get('/api/pos/health', (req, res) => {
     version: '2.2.0',
     service: 'POS System',
     design: 'phone-based identity',
+    ket_noi: demKetNoi(),   // KET-NOI-1: số lần rớt kho / đọc lại / chậm — không dữ liệu khách
     features: ['invoice-system', 'discount-shipping']
   });
 });
@@ -217,6 +225,7 @@ app.get('/{*splat}', (req, res) => {
 
 // Error handling
 app.use((err, req, res, next) => {
+  if (traLoiKho(res, err)) return;   // KET-NOI-1: lỗi mạng tới kho ném thẳng tới đây → 503 KHO_MAT_KET_NOI
   console.error('Error:', err.message);
   res.status(500).json({
     error: 'Internal server error',

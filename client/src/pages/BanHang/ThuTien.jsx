@@ -5,7 +5,7 @@
  * Màn chỉ chọn cách — máy chủ tính, giữ và chốt tiền (BanHangMoi → phiên). Nút thu CHỈ sáng khi có số máy chủ cho đúng giỏ này (`coSo`).
  */
 import { useState } from 'react';
-import { conThieu, danhSachTo, duDuoc, lyDoKhongTru, nutThuSang, traLai } from './tinh';
+import { conThieu, danhSachTo, duDuoc, lyDoKhongTru, nhanhNutThu, nutThuSang, traLai } from './tinh';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const PHIM = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'];
@@ -20,6 +20,7 @@ export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDu
   const coMe = (khach?.parent_balance || 0) > 0;
   const bam = (p) => setDua((n) => (p === '⌫' ? Math.floor(n / 10) : Number(String(n === 0 ? '' : n) + p)));
   const sang = (c, d = 0) => nutThuSang({ coSo, dangGui, cach: c, phaiTra, dua: d });
+  const nhanh = nhanhNutThu({ coSo, phaiTra });   // KET-NOI-1 E1: chưa có số máy chủ → không vẽ nút thu (kể cả "Đơn 0đ")
   const chonCach = (c) => { setDua(0); setMoPhim(false); onCachTra(c); };
 
   return (
@@ -45,7 +46,7 @@ export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDu
       )}
       <div className="bh-tien-dong bh-tong"><span>{trongTK ? 'Còn lại phải trả' : 'Phải trả'}</span><span>{coSo ? vnd(phaiTra) : 'Đang tính…'}</span></div>
 
-      {phaiTra <= 0 ? (
+      {nhanh === 'cho' ? null : nhanh === 'het' ? (
         <button className="bh-nut bh-xanh bh-lon" disabled={!sang('tai_khoan')} onClick={() => onThu({ cach: 'tai_khoan' })}>
           {soDuDung + soDuMeDung > 0 ? 'Trả đủ bằng tài khoản' : 'Đơn 0đ — hoàn tất'}
         </button>

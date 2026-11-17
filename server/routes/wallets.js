@@ -4,7 +4,7 @@
  */
 
 const express = require('express');
-const { query, queryOne, beginTransaction, laLoiBan } = require('../database');
+const { query, queryOne, beginTransaction, laLoiBan, traLoiKho } = require('../database');
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 const { thuongKhiTru, thuongKhiHoan } = require('../utils/viKhach');   // NAP-1: chia hai ngăn tiền nạp / thưởng nạp
@@ -129,6 +129,7 @@ function loiGhi(res, err) {
   if (laLoiBan(err)) {
     return res.status(409).json({ code: 'KHO_BAN', error: 'Đang có thao tác khác ghi sổ — bấm lại' });
   }
+  if (traLoiKho(res, err)) return undefined;   // KET-NOI-1: mất kết nối tới kho → 503 KHO_MAT_KET_NOI (đã ghi log [KET-NOI])
   console.error('Lỗi ghi:', err);
   return res.status(500).json({ code: 'LOI_MAY_CHU', error: 'Lỗi máy chủ — xem lại đã ghi chưa trước khi bấm lại' });
 }

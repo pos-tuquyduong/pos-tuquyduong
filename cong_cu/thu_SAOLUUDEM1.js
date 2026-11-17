@@ -72,12 +72,12 @@ function multipart(tenTep, buf, truong = 'file') {
   return { body: Buffer.concat([dau, buf, Buffer.from(`\r\n--${ranh}--\r\n`)]), type: 'multipart/form-data; boundary=' + ranh };
 }
 
-async function moMay() {
+async function moMay({ nap = null, kho = 'kho.db' } = {}) {   // KET-NOI-1: nap = tệp nạp trước (-r) giả lớp mạng kho; kho riêng cho máy thứ hai
   const cong = await congTrong();
-  const fileKho = path.join(THU_MUC, 'kho.db');
+  const fileKho = path.join(THU_MUC, kho);
   const env = { PATH: process.env.PATH, HOME: process.env.HOME, PORT: String(cong), JWT_SECRET: process.env.JWT_SECRET,
     TURSO_DATABASE_URL: 'file:' + fileKho, NODE_ENV: 'production' };
-  const con = spawn(process.execPath, [path.join(SV, 'index.js')], { cwd: THU_MUC, env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const con = spawn(process.execPath, [...(nap ? ['-r', nap] : []), path.join(SV, 'index.js')], { cwd: THU_MUC, env, stdio: ['ignore', 'pipe', 'pipe'] });
   let log = '';
   con.stdout.on('data', (d) => { log = (log + d).slice(-300000); });
   con.stderr.on('data', (d) => { log = (log + d).slice(-300000); });
@@ -120,10 +120,12 @@ async function main() {
   k(`B1a khoaSaoLuuPos.js xuất KHOA_CAI_DAT = '${KHOA_DB}' (tên khoá riêng một chỗ)`, new RegExp(`KHOA_CAI_DAT\\s*=\\s*'${KHOA_DB}'`).test(khoaMd) && /KHOA_CAI_DAT/.test(doc(path.join(SV, 'routes', 'settings.js'))));
   k('S1 khoaSaoLuuPos.js: so băm bằng crypto.timingSafeEqual (không === / == / Buffer.compare trên băm); ghiLanLay chỉ ghi khi dòng vẫn là khoá vừa dùng (json_extract ma_bam)',
     /crypto\.timingSafeEqual\(/.test(khoaMd) && !/ma_bam\s*(===|==|!==)|(===|==)\s*[a-z.]*ma_bam|Buffer\.compare/.test(khoaMd) && /json_extract\(value, '\$\.ma_bam'\) = \?/.test(khoaMd));
-  let diffIndex ='không đo được';
-  try { diffIndex = execFileSync('git', ['diff', '--stat', MOC, 'HEAD', '--', 'server/index.js'], { cwd: GOC, encoding: 'utf8' }).trim(); } catch { /* kho nông */ }
+  // KET-NOI-1: việc SAU được đổi index.js (phiếu KET-NOI-1 có server/index.js trong Phạm vi) → khoá "SAOLUU-DEM-1 không đổi index.js" theo commit CỦA việc này,
+  // không theo diff tới HEAD (diff tới HEAD đỏ vĩnh viễn khi việc sau chạm index.js).
+  let commitIndex = 'không đo được';
+  try { commitIndex = execFileSync('git', ['log', '--format=%s', `${MOC}..HEAD`, '--', 'server/index.js'], { cwd: GOC, encoding: 'utf8' }).split('\n').filter((s) => /^SAOLUU-DEM-1\b/.test(s)).join(' | '); } catch { /* kho nông */ }
   const coGit = fs.existsSync(path.join(GOC, '.git'));   // bản sao đột biến không có .git → chỉ còn phép quét chữ dưới đây
-  k('B3 server/index.js không đổi so với gốc của việc (git diff rỗng) và không nhắc tới cửa / module mới', (!coGit || diffIndex === '') && !/tu-dong|khoaSaoLuuPos|SAOLUU-DEM/.test(doc(path.join(SV, 'index.js'))), diffIndex);
+  k('B3 server/index.js không bị commit nào của SAOLUU-DEM-1 đổi và không nhắc tới cửa / module mới', (!coGit || commitIndex === '') && !/tu-dong|khoaSaoLuuPos|SAOLUU-DEM/.test(doc(path.join(SV, 'index.js'))), commitIndex);
 
   const A = await moMay();
   const PIN = '4821';
@@ -298,6 +300,30 @@ async function main() {
     k('G1 ghi lần-lấy-gần-nhất hỏng → vẫn 200 + đủ tệp (đúng bằng tệp bình thường), log báo lỗi, KHÔNG chứa khoá', hong.status === 200 && hong.b.length > 1000 && Object.keys(trangCua(hong.b)).length > 20
       && /\[sao-luu-tu-dong\] khong ghi duoc lan lay/.test(lg2) && !lg2.includes(khoaNay) && !lg2.includes(khoaNay.slice(5)), moTa(hong) + ' ' + lg2.split('\n').filter((l) => /khong ghi duoc/.test(l)).slice(-1));
   });
+
+  // ═══ F · KET-NOI-1 C2 — lỗi chủ quán 16.11: Cài đặt › Sao lưu hiện "Chưa tải dữ liệu… turso.io/v2/pipeline failed, reason: socket hang up" ═══
+  muc('[F] Kho rớt mạng khi mở Cài đặt › Sao lưu (KET-NOI-1)');
+  {
+    const co = path.join(THU_MUC, 'rot_mang.co'), nap = path.join(THU_MUC, 'nap_rot_mang.js');
+    // Lớp mạng giả: câu đọc sqlite_master (bangDangCo — câu đầu của /backup/info) ném lỗi ĐÚNG hình node-fetch 2.7.0 khi có tệp cờ.
+    fs.writeFileSync(nap, `const fs = require('fs');
+const lib = require(require.resolve('@libsql/client', { paths: [${JSON.stringify(SV)}] }));
+const tao = lib.createClient;
+lib.createClient = (cfg) => { const c = tao(cfg); const e = c.execute.bind(c);
+  c.execute = async (st) => { if (fs.existsSync(${JSON.stringify(co)}) && /sqlite_master/.test(typeof st === 'string' ? st : st.sql)) {
+    throw Object.assign(new Error('request to https://thu-saoluu.turso.io/v2/pipeline failed, reason: socket hang up'), { name: 'FetchError', type: 'system', code: 'ECONNRESET' }); }
+    return e(st); }; return c; };
+`);
+    const M = await moMay({ nap, kho: 'kho_rot_mang.db' });
+    fs.writeFileSync(co, '1');
+    const r = await M.goi('GET', '/api/pos/backup/info', { ve: M.vePos });
+    fs.rmSync(co, { force: true });
+    const r2 = await M.goi('GET', '/api/pos/backup/info', { ve: M.vePos });
+    k('F1 kho rớt mạng khi mở Cài đặt › Sao lưu (GET /backup/info) → 503 KHO_MAT_KET_NOI, lời "Mất kết nối máy chủ…", KHÔNG chữ turso.io / socket hang up',
+      r.status === 503 && r.j.code === 'KHO_MAT_KET_NOI' && /^Mất kết nối máy chủ/.test(r.j.error || '') && !/turso\.io|socket hang up|pipeline/.test(JSON.stringify(r.j)),
+      `${r.status} ${JSON.stringify(r.j).slice(0, 160)}`);
+    k('F2 kho nối lại → /backup/info 200 như thường (không kẹt)', r2.status === 200 && Array.isArray(r2.j.tables), String(r2.status));
+  }
 
   // ═══ E · giao diện + bộ kiểm (tĩnh) ═══
   muc('[E] Giao diện + nối bộ kiểm (tĩnh)');

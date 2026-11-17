@@ -68,18 +68,38 @@ async function readBody(response) {
   try {
     text = await response.text();
   } catch {
-    return {};
+    throw loiMatKetNoi();   // KET-NOI-1: thân trả về đứt giữa chừng = mất kết nối (không coi là thành công rỗng)
   }
   if (!text) return {};
   try {
     return JSON.parse(text);
   } catch {
-    return { error: `HTTP ${response.status} (phản hồi không phải JSON)` };
+    return { error: `HTTP ${response.status} (phản hồi không phải JSON)`, khong_json: true };
   }
 }
 
+// ── KET-NOI-1: mất kết nối máy quầy ↔ máy chủ ──
+const LOI_MAT_KET_NOI = 'Mất kết nối tới máy chủ — kiểm tra mạng rồi thử lại';
+const CHO_GUI_LAI_MS = [500, 1500];                         // chờ trước lần gửi lại thứ 1, 2
+const MA_GUI_LAI = ['MAT_KET_NOI', 'KHO_MAT_KET_NOI'];      // lỗi mạng: GET và lời gọi đọc được gửi lại
+const MA_GUI_LAI_CO_MA = ['DANG_XU_LY', 'KHO_BAN'];         // thêm cho lời gọi mang mã lượt bấm (máy chủ chưa ghi / trả đúng bản đã ghi)
+const loiMatKetNoi = () => Object.assign(new Error(LOI_MAT_KET_NOI), { status: 0, code: 'MAT_KET_NOI' });
+/** Gửi lại không? thuLai: 'mang' (chỉ lỗi mạng) · 'co_ma' (thêm DANG_XU_LY / KHO_BAN). */
+const nenGuiLai = (err, thuLai) => !!thuLai && (MA_GUI_LAI.includes(err?.code) || (thuLai === 'co_ma' && MA_GUI_LAI_CO_MA.includes(err?.code)));
+/** MỘT chỗ gọi fetch (request / upload / download): không có trả lời → MAT_KET_NOI, lời tiếng Việt. */
+async function goiFetch(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch {
+    throw loiMatKetNoi();   // không lời gọi nào qua api.js truyền signal → mọi lỗi fetch là không có trả lời
+  }
+}
+const MA_TRANG_PROXY = [502, 503, 504, 520, 521, 522, 523, 524];   // trang lỗi (không JSON) của Render / Cloudflare đứng trước máy chủ
+
 /** Dựng Error mang theo status + code để nơi gọi phân nhánh được nếu cần. */
 function buildApiError(response, data) {
+  // KET-NOI-1: trang lỗi của Render / Cloudflare (không JSON) = mất kết nối tới máy chủ
+  if (data && data.khong_json && MA_TRANG_PROXY.includes(response.status)) return Object.assign(loiMatKetNoi(), { status: response.status });
   const err = new Error(
     (data && (data.error || data.message)) || `HTTP ${response.status}`
   );
@@ -144,7 +164,8 @@ class ApiClient {
     throw buildApiError(response, data);
   }
 
-  async request(endpoint, options = {}) {
+  /** KET-NOI-1: `thuLai` — GET mặc định 'mang' (đọc an toàn); POST / PUT / DELETE mặc định KHÔNG gửi lại, trừ lời gọi tự đặt (phiên có mã, tinh-thu). */
+  async request(endpoint, { thuLai, ...options } = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
@@ -155,23 +176,30 @@ class ApiClient {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+    const guiLai = thuLai !== undefined ? thuLai : (options.method || 'GET') === 'GET' ? 'mang' : false;
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers
-      });
+    for (let lan = 0; ; lan++) {
+      try {
+        const response = await goiFetch(url, {
+          ...options,
+          headers
+        });
 
-      const data = await readBody(response);
+        const data = await readBody(response);
 
-      if (!response.ok) {
-        this.raiseForStatus(response, data);
+        if (!response.ok) {
+          this.raiseForStatus(response, data);
+        }
+
+        return data;
+      } catch (err) {
+        if (lan < CHO_GUI_LAI_MS.length && nenGuiLai(err, guiLai)) {   // gửi lại NGUYÊN yêu cầu (cùng thân, cùng mã lượt bấm)
+          await new Promise((xong) => setTimeout(xong, CHO_GUI_LAI_MS[lan]));
+          continue;
+        }
+        console.error(`API Error [${endpoint}]:`, err.message);
+        throw err;
       }
-
-      return data;
-    } catch (err) {
-      console.error(`API Error [${endpoint}]:`, err.message);
-      throw err;
     }
   }
 
@@ -179,10 +207,11 @@ class ApiClient {
     return this.request(endpoint, { method: 'GET' });
   }
 
-  post(endpoint, data) {
+  post(endpoint, data, tuy = {}) {
     return this.request(endpoint, {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      ...tuy
     });
   }
 
@@ -201,7 +230,7 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     const token = this.getToken();
 
-    const response = await fetch(url, {
+    const response = await goiFetch(url, {
       method: 'POST',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       body: formData
@@ -219,7 +248,7 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     const token = this.getToken();
 
-    const response = await fetch(url, {
+    const response = await goiFetch(url, {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
 
@@ -390,7 +419,7 @@ export const ordersApi = {
   },
   get: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
-  tinhThu: (data) => api.post('/orders/tinh-thu', data),   // BH-2: số máy chủ sẽ tính (hạng, mã) — không ghi gì
+  tinhThu: (data) => api.post('/orders/tinh-thu', data, { thuLai: 'mang' }),   // BH-2: số máy chủ sẽ tính (hạng, mã) — không ghi gì → KET-NOI-1 #5: tự gửi lại khi rớt mạng
   cancel: (id, lyDo) => api.put(`/orders/${id}/cancel`, lyDo),   // HUY-1: lyDo = { ly_do_ma, ghi_them } → { hoan: { tai_khoan, tien_mat } }
   lyDoHuy: () => api.get('/orders/ly-do-huy'),
   delete: (id) => api.delete(`/orders/${id}`),
@@ -399,9 +428,10 @@ export const ordersApi = {
 
 // BH-2 · Phiên thanh toán (P3): giữ tiền tài khoản → chốt (tiền mặt / tài khoản) hoặc QR payOS tự xác nhận
 export const thanhToanApi = {
-  taoPhien: (data) => api.post('/thanh-toan/phien', data),
+  // KET-NOI-1 B3: tạo / chốt phiên mang mã lượt bấm (thân có ma_gui · id phiên) → gửi lại NGUYÊN yêu cầu khi rớt mạng / máy chủ đang làm
+  taoPhien: (data) => api.post('/thanh-toan/phien', data, { thuLai: 'co_ma' }),
   hoiPhien: (id) => api.get(`/thanh-toan/phien/${id}`),
-  chotPhien: (id, data = {}) => api.post(`/thanh-toan/phien/${id}/chot`, data),
+  chotPhien: (id, data = {}) => api.post(`/thanh-toan/phien/${id}/chot`, data, { thuLai: 'co_ma' }),
   huyPhien: (id) => api.post(`/thanh-toan/phien/${id}/huy`, {}),
   xacNhanTay: (id, lyDo) => api.post(`/thanh-toan/phien/${id}/xac-nhan-tay`, { ly_do: lyDo }),
   datPin: (phone, pin, pinLai) => api.post('/thanh-toan/pin', { phone, pin, pin_lai: pinLai })

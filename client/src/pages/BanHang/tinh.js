@@ -255,6 +255,12 @@ export function lyDoKhongTru({ khach, laNap, laThe = false }) {
 /** Cách trả còn lại sau khi trừ tài khoản: còn phải trả → tiền mặt hoặc QR (không trộn); hết (kể cả đơn 0đ) → chỉ "tai_khoan". */
 export const cachTraKhaDung = ({ phaiTra }) => (so(phaiTra) > 0 ? ['tien_mat', 'chuyen_khoan'] : ['tai_khoan']);
 
+/** KET-NOI-1 E1: khối nút thu vẽ nhánh nào — 'cho' (chưa có số máy chủ cho đúng giỏ: KHÔNG vẽ nút, kể cả "Đơn 0đ") · 'het' (máy chủ tính ra 0) · 'tra'. */
+export function nhanhNutThu({ coSo, phaiTra }) {
+  if (!coSo) return 'cho';
+  return so(phaiTra) <= 0 ? 'het' : 'tra';
+}
+
 /** Nút thu sáng? Chưa có số máy chủ (coSo) thì KHÔNG bao giờ sáng. */
 export function nutThuSang({ coSo, dangGui, cach, phaiTra, dua }) {
   if (!coSo || dangGui) return false;
@@ -264,10 +270,11 @@ export function nutThuSang({ coSo, dangGui, cach, phaiTra, dua }) {
 }
 
 /** Thân POST /thanh-toan/phien. PIN chỉ gửi khi có trừ tài khoản (máy chủ kiểm PIN của CHỦ tài khoản bị trừ). */
-export function thanPhien({ gio, khach, ma, cach, dungTK, dungMe, pin, pinMe, giao = null, vouchers = [] }) {
+export function thanPhien({ gio, khach, ma, cach, dungTK, dungMe, pin, pinMe, giao = null, vouchers = [], maGui }) {
   const don = thanTinhThu(gio, khach, ma, giao, vouchers);
   if (dungMe && khach?.parent_phone) don.parent_phone = khach.parent_phone;
   const than = { cach, don, tru_tai_khoan: !!dungTK, tru_tai_khoan_me: !!dungMe };
+  if (maGui) than.ma_gui = maGui;   // KET-NOI-1 B1: mã lượt bấm — gửi lại cùng mã ra đúng phiên đã tạo
   if (dungTK) than.pin = pin;
   if (dungMe) than.pin_me = pinMe;
   return than;
@@ -316,4 +323,29 @@ export function dinhDangDemNguoc(giay) {
 export function hanhDongPhien(trangThai) {
   if (trangThai === 'da_thu') return 'xong';
   return ['het_han', 'huy', 'loi'].includes(trangThai) ? 'nha' : 'doi';
+}
+
+// ── KET-NOI-1: mất kết nối khi thu / khi hỏi giá ─────────────────────────────
+/** B5 — MỘT chỗ dựng câu: hết lượt gửi lại mà vẫn không biết máy chủ đã ghi chưa. */
+export const CAU_CHUA_BIET_DON = 'Mất kết nối — chưa biết đơn đã ghi chưa. Đừng thu lại: mở Đơn hàng kiểm đơn mới nhất.';
+const laMatKetNoi = (e) => ['MAT_KET_NOI', 'KHO_MAT_KET_NOI'].includes(e?.code);   // api.js đã gửi lại hết lượt
+// Tạo phiên hỏng mà máy chủ có thể đã ghi: mất kết nối, hoặc phiên QR còn đang tạo (DANG_XU_LY hết lượt — bấm lại ra mã mới = phiên thứ hai).
+const chuaBietDaGhi = (e) => laMatKetNoi(e) || e?.code === 'DANG_XU_LY';
+/** E2: lời dưới giỏ khi hỏi giá hỏng — mất kết nối thì câu ngắn (không chữ kỹ thuật); lỗi nghiệp vụ giữ lời máy chủ. */
+export const loiTinhGia = (e) => (laMatKetNoi(e) ? 'Mất kết nối, bấm Thử lại' : e?.message || 'Không tính được giá');
+/** Thu hỏng (api.js đã gửi lại hết lượt) → việc màn phải làm: { viec, phien }. phienId: phiên đã tạo (hỏng ở chốt) hoặc null (hỏng lúc tạo);
+ *  hoi(id) → phiên máy chủ / ném; huy(id) → nhả phiên / ném (409 = phiên không còn chờ). Không biết máy chủ đã ghi chưa → KHÔNG nhả, bao_chua_biet.
+ *  Phiên còn chờ ('cho') mới huỷ; huỷ bị từ chối (lệnh chốt trước còn chạy ở máy chủ và vừa ghi xong — soát vòng 1) → hỏi lại: đã thu → xong,
+ *  không thì bao_chua_biet. Phiên đã thôi giữ (loi / huy / het_han — vd chốt hỏng vì đơn) → bao_loi, không huỷ (soát vòng 2).
+ *  viec: xong (sang màn kết thúc) · bao_chua_biet (câu B5) · bao_loi (đã nhả hoặc lỗi lúc tạo — báo lời máy chủ). */
+export async function xuLyThuHong({ loi, phienId, hoi, huy }) {
+  if (!phienId) return { viec: chuaBietDaGhi(loi) ? 'bao_chua_biet' : 'bao_loi' };
+  const daThu = async () => { const p = await hoi(phienId).catch(() => null); return { p, xong: hanhDongPhien(p?.trang_thai) === 'xong' }; };
+  const lan1 = await daThu();
+  if (lan1.xong) return { viec: 'xong', phien: lan1.p };
+  if (!lan1.p) return { viec: 'bao_chua_biet' };
+  if (hanhDongPhien(lan1.p.trang_thai) === 'nha') return { viec: 'bao_loi' };   // loi / huy / het_han: máy chủ đã thôi giữ — báo lời máy chủ (như cũ)
+  if (await huy(phienId).then(() => true, () => false)) return { viec: 'bao_loi' };
+  const lan2 = await daThu();
+  return lan2.xong ? { viec: 'xong', phien: lan2.p } : { viec: 'bao_chua_biet' };
 }
