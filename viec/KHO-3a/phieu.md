@@ -72,6 +72,16 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
 - C3 Sao lưu (`backup.js`) và đối chiếu (`doi-chieu.js`) bỏ phần SX, giữ phần POS. Sao lưu lên Drive (SAOLUU-DEM-1, Apps Script) chạy như cũ.
 - C4 Hàng chờ `pos_stock_pending` (45 dòng chờ gửi SX): không gửi nữa, giữ dữ liệu làm lịch sử, không hiện cảnh báo "chờ đồng bộ SX".
 
+- C5 **Đường đồng bộ TAY với SX** (không gọi SX qua mạng nên grep C1 KHÔNG bắt được, chat rà 17.11):
+  - `server/routes/sync.js` (`/api/pos/sync`: xuất / nhập CSV khách cho SX);
+  - phần xuất SX của `server/routes/registrations.js` (`/export/csv`, `/confirm-export`, `/revert*`, `/export-logs`);
+  - `orders.js` ghi `pos_registrations` khi bán cho SĐT chưa có khách (khoảng dòng 1322-1334: "đăng ký chờ xuất SX").
+  Kế hoạch đọc từng chỗ, chỉ ra ai còn dùng. Ví dụ `utils/docKhach.js` và `donThu.js` đọc `pos_registrations`; bước 022 đã chép đăng ký chờ thành khách.
+  Cái chỉ phục vụ SX thì bỏ, hoặc trả lỗi có `code`. Cái còn dùng thì giữ.
+  KHÔNG xoá bảng hay dữ liệu `pos_registrations`, `pos_sync_logs`. Trang `Registrations.jsx` để GIAO-DIEN-2 gỡ.
+- C6 Sau việc này các biến `SX_API_URL`, `SX_API_URL_THU`, `SX_API_KEY`, `SX_TIMEOUT_MS` không còn ai đọc (trừ chú thích).
+  `ketNoiKho.js` bỏ `diaChiSX`, nhóm K của bộ kiểm đổi theo. Ghi trong báo cáo: chủ quán xoá các biến này trên Render sau khi gộp.
+
 ### D. Luồng hợp lệ phải KHÔNG bị chặn (K5)
 - D1 Bán tiền mặt, QR, tài khoản có PIN; giao hàng; đơn App KH; màn khách — khi kho TRỐNG (dữ liệu thật hôm nay) và khi kho có đủ hàng.
 - D2 Món giá 0 hoặc không bán (`is_active = 0`) không hiện như hiện nay. Món mới tạo ở POS không có khoá SX vẫn bán được.
@@ -113,6 +123,10 @@ Chủ quán sẽ nhập danh mục và công thức sau (Kho › Nhập từ SX 
 - server/utils/donThu.js
 - server/utils/giaoHang.js
 - server/utils/chuanHoaGio.js
+- server/routes/sync.js
+- server/routes/registrations.js
+- server/utils/docKhach.js
+- server/ketNoiKho.js
 - server/kho/**
 - server/nang_cap/**
 - server/database.js
