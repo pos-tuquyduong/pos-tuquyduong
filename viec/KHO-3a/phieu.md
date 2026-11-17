@@ -182,6 +182,7 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
 - client/src/pages/Kho/**
 - client/src/pages/BanHang/**
 - client/src/pages/Reports.jsx
+- client/src/pages/DonApp.jsx
 - client/src/utils/api.js
 - client/dist/**
 - HOP_DONG_API_KH.md
