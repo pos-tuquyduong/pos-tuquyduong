@@ -456,7 +456,7 @@ export const giaoHangApi = {
   diaChi: (q) => api.get(`/giao-hang/dia-chi?q=${encodeURIComponent(q)}`),
   diemLay: (data) => api.post('/giao-hang/diem-lay', data),
   baoPhi: (data) => api.post('/giao-hang/bao-phi', data),
-  danhSach: () => api.get('/giao-hang'),
+  danhSach: (docLai) => api.get(`/giao-hang${docLai ? '?doc_lai=1' : ''}`),   // docLai: nút Tải lại — máy chủ hỏi Ahamove ngay
   nhan: (id) => api.post(`/giao-hang/${id}/nhan`, {}),
   goiXe: (id, loaiXe, tu) => api.post(`/giao-hang/${id}/goi-xe`, { ...(loaiXe ? { loai_xe: loaiXe } : {}), tu }),   // tu: trạng thái thẻ màn đang thấy
   huyChuyen: (id, lyDo) => api.post(`/giao-hang/${id}/huy-chuyen`, { ly_do: lyDo }),

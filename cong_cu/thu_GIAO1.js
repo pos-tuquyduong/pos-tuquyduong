@@ -193,7 +193,13 @@ async function main() {
     } finally { noiLai(); }
   };
   const chuyenCua = (orderId) => db.queryOne('SELECT * FROM pos_giao_chuyen WHERE order_id = ?', [orderId]).catch(() => null);
-  const baoVe = (body, khoa = BI_MAT.bao) => goi('POST', '/giao-hang/ahamove-bao', body, null, { congKhai: true, headers: khoa === null ? {} : { apikey: khoa } });
+  // GIAO-2: cửa tin báo trả 200 trước, xử lý sau — bài chờ phần nền xong (nhật ký của phần nền cũng gom vào nhatKy để quét khoá A3)
+  const baoVe = async (body, khoa = BI_MAT.bao) => {
+    const r = await goi('POST', '/giao-hang/ahamove-bao', body, null, { congKhai: true, headers: khoa === null ? {} : { apikey: khoa } });
+    imLang();
+    try { await giaoHang?.choTinBao?.(); } finally { noiLai(); }
+    return r;
+  };
   const SDT_KHACH = '0911000001';
   await db.run("INSERT INTO pos_customers (phone, name) VALUES (?, 'Khách Giao')", [SDT_KHACH]).catch(() => {});
   await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 10000000)', [SDT_KHACH]);   // đủ cho mọi đơn giao của bài
@@ -951,8 +957,8 @@ async function main() {
     await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'tim_xe' WHERE order_id = ?", [v10.id]).catch(() => {});
     await baoVe({ _id: v10.x, status: 'ACCEPTED' });
     const c10 = await chuyenCua(v10.id);
-    k('V10 tin báo lúc thẻ đang gọi xe → 409 DANG_GOI_XE (không ghi sổ chống lặp); tin gửi lại khi thẻ tim_xe → doi_tai_xe + tài xế', b10.status === 409
-      && b10.j.code === 'DANG_GOI_XE' && c10?.trang_thai === 'doi_tai_xe' && c10?.tai_xe_ten === 'TX V10', `${b10.status} ${b10.j.code} ${c10?.trang_thai} ${c10?.tai_xe_ten}`);
+    k('V10 tin báo lúc thẻ đang gọi xe → 200 (GIAO-2 A4, Ahamove coi 409 là lỗi), không ghi sổ chống lặp; tin sau khi thẻ tim_xe → doi_tai_xe + tài xế', b10.status === 200
+      && c10?.trang_thai === 'doi_tai_xe' && c10?.tai_xe_ten === 'TX V10', `${b10.status} ${b10.j.code} ${c10?.trang_thai} ${c10?.tai_xe_ten}`);
     // V11–V13 (Q8-5): chống đua khi nhận lại chuyến cũ / trả thẻ về — máy khác giành lại thẻ đúng lúc máy này đang đọc Ahamove
     const v11 = await moChuyen();
     dat(v11.x, { status: 'ACCEPTED', supplier_name: 'TX V11', supplier_id: '0977002011' });
