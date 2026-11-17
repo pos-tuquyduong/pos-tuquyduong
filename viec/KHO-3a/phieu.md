@@ -76,6 +76,16 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
   - Giữ và nhả nằm trong cùng giao dịch, điều kiện chặn đua viết trong câu ghi. Hai máy hoặc App cùng lấy chai cuối → chỉ một bên giữ được.
   - Kế hoạch: tìm chỗ phiên đã "giữ chỗ" (`utils/giuCho.js`: voucher, lượt mã) và đặt phần giữ hàng ĐÚNG cùng chỗ đó. Không dựng cơ chế thứ hai.
     Nêu thời gian giữ (= hạn phiên / QR hiện có) và mọi đường nhả (huỷ, hết hạn, lỗi chốt, dọn phiên cũ).
+- B3c **Lưới an toàn — lỡ bán khi hết hàng** (chủ quán 17.11 19:04: "POS phải cảnh báo và hoàn tiền vào ví khách, App khách cũng phải được thông báo"):
+  - Giữ hàng (B3b) đúng thì không xảy ra. Nhưng mọi đường mà tiền đã về / đã thu mà POS không giao đủ hàng vẫn phải xử lý như nhau, kể cả chốt muộn, lỗi giữa chừng, hai cổng báo cùng lúc:
+    - KHÔNG tạo đơn thiếu hàng, KHÔNG ghi âm thành phẩm;
+    - hoàn ĐÚNG số tiền khách đã trả vào ví khách, trong cùng giao dịch, một lần (khoá chống trùng như nhánh "tiền về muộn → vào ví" ở `thanh-toan.js`);
+    - ghi lý do "Hết hàng: <món>".
+  - Quầy thấy cảnh báo đỏ trên màn Bán hàng và màn Đơn App: "Đơn … hết <món> — đã hoàn <số tiền> vào ví khách <SĐT che>".
+  - App KH được báo bằng đường có sẵn của hợp đồng: `GET /don/:ma` có `tien_ve_da_cong_vi` + `thong_bao_tien_ve` = "Món … vừa hết — quán đã hoàn … vào ví của bạn".
+    Nếu hợp đồng đã có đường POS nhờ App gửi thông báo đẩy thì dùng; chưa có thì ghi Phát hiện + soạn thư `TRA_LOI_POS_*` cho App KH. Không tự thêm đường mới ngoài hợp đồng.
+  - Khách vãng lai không có ví (đơn quầy tiền mặt chưa có khách): quầy chặn trước khi thu nên không xảy ra. Kế hoạch chứng minh không có đường nào tới đây.
+    Nếu có thì báo đỏ "hoàn tiền mặt tay" và ghi sổ đối soát.
 - B4 Mỗi đơn có trừ kho ghi một phiếu kho (loại bán hàng, hoặc loại kế hoạch đề xuất), nối với đơn. Xem lại được ở Kho › Phiếu. Không in tự động.
 - B5 Huỷ đơn (HUY-1, kể cả đơn giao):
   - đồ CHƯA pha → trả lại kho đúng lô đã trừ;
@@ -128,6 +138,7 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
   - giữ hàng: phiên A giữ chai cuối → quầy B và App thấy "hết", bị chặn; A huỷ hoặc hết hạn → nhả, B bán được;
   - A trả trong hạn → chốt trừ đúng phần giữ; tiền về sau hạn → không chốt, vào ví, tồn không đổi;
   - hai phiên cùng lúc tranh chai cuối → chỉ một giữ được (chạy song song thật);
+  - lưới an toàn B3c: ép phần giữ bị mất rồi cho tiền QR về → không có đơn, ví +đúng số, một lần (gửi báo hai lần), App thấy `thong_bao_tien_ve`, quầy có cảnh báo;
   - huỷ trả kho đúng lô, MỘT lần (hai lần huỷ song song);
   - đồ đã pha không trả;
   - mỗi lối vào `taoDon` trừ một lần;
