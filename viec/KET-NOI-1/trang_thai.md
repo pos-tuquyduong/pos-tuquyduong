@@ -414,4 +414,5 @@ dòng ✗ bị gom vào log, móc mạng mất khi P26d thay kết nối); bộ 
 bắt ngay, đã theo khuôn 025; P26d thay kết nối làm mất móc bài thử — đặc thù kho file, đã ghi chú trong bài.
 Dọn lời dặn: không có lời dặn nào trong `KHUON_LOI.md` / `CLAUDE.md` được phép kiểm mới của việc này làm thay hoàn toàn.
 
-HEAD ĐÃ KIỂM: 76ecb67b
+HEAD ĐÃ KIỂM: ae778712
+(17.11 chat POS bàn 39: ghép main 94a90c26 (GIAO-2) — xung đột chỉ client/dist, dựng lại; F2 sửa theo GIAO-2; thu_KETNOI1 102/102; --day-du chỉ đỏ thu_NDAPI1 = môi trường sandbox (multer), cổng PR chạy lại.)
