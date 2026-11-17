@@ -8,8 +8,8 @@ Phần máy chủ NHỎ (khoảng 15 dòng). Phần NẶNG là bài thử cũ: 2
 nên phải chuyển sang đường mới. Đây là lý do bản này chờ bạn duyệt.
 
 Bạn cần làm gì:
-1. Đọc **mục 7 — Câu hỏi** (4 câu, mỗi câu có đề xuất của mình). Trả lời "đồng ý cả 4" là đủ.
-2. Câu 1 là bắt buộc: phiếu phải ghi ĐÚNG TÊN 6 file bài thử. Lý do: người gác coi các file này là "file luật" và chặn sửa nếu phiếu chỉ
+1. Đọc **mục 7 — Câu hỏi** (5 câu, mỗi câu có đề xuất của mình). Trả lời "đồng ý cả 5" là đủ.
+2. Câu 1 là bắt buộc: phiếu phải ghi ĐÚNG TÊN 7 file bài thử. Lý do: người gác coi các file này là "file luật" và chặn sửa nếu phiếu chỉ
    ghi kiểu `cong_cu/gia_lap/**`.
 
 ---
@@ -26,7 +26,7 @@ Bạn cần làm gì:
 - Gói: mua `package_buy` (`orders.js:275-291, 369, 505-516, 1214-1240`), lấy từ gói `customer_package_id` / `from_package`
   (`:314-330, 352-392, 450-478, 1059-1066, 1133-1140`). Chỉ `taoDon` ghi gói. `packages.js` chỉ có đọc, sửa mẫu gói và kết thúc gói
   (`:24-243`), không có lối lấy món.
-- Phiên: `server/utils/giuCho.js`. `TRUONG_DON` (dòng 29-30) cho `customer_package_id`, `package_buy` đi qua phiên. `taoPhien` gọi `taoDon`
+- Phiên: `server/utils/giuCho.js`. `TRUONG_DON` (dòng 26-27) cho `customer_package_id`, `package_buy` đi qua phiên. `taoPhien` gọi `taoDon`
   với `{ chiTinh: true }` (dòng 80). `chotPhien` gọi `taoDon` với `phien` đầy đủ (dòng 164).
 - Màn mới KHÔNG gọi `POST /orders`. `BanHangMoi.jsx` chỉ gọi `ordersApi.tinhThu` (dòng 154), `ordersApi.get` (240) và `thanhToanApi.*`.
   `ordersApi.create` chỉ có ở `Sales.jsx:736` (grep `ordersApi\.\w*` toàn `client/src`).
@@ -116,11 +116,15 @@ ghi phiên (dòng 80-81). Cổng gói trả 400 thì `taoPhien` trả nguyên l�
     Khoá cũ `pos_man_ban_hang_moi` còn nằm trong `localStorage` của máy cũ nhưng không ai đọc → vô hại.
   - `BanHangMoi.jsx:470-476`: chữ → "Kiểu màn bán hàng (máy này)", bỏ nút "Tắt — về màn cũ", `onDoiCaiDat(true, k)` → `onDoiKieu(k)`.
 - B: giữ `docCongTac` nhưng ép `bat = true`. Bị loại: để lại công tắc chết, đúng thứ phiếu muốn bỏ.
-- Chú thích nhắc `Sales` ở file trong Phạm vi thì sửa chữ (không đổi mã): `BanHangMoi.jsx:32`, `tinh.js:22,58,117`,
-  `components/QrScanModal.jsx:6`, `components/InPhieu.jsx:18`, `components/InvoicePrint.jsx:17`.
-- **Ngoài Phạm vi:** `pages/InvoiceSettings.jsx:745` (chú thích "Orders/Sales") → **Câu hỏi 2**. `components/Layout.jsx:69` ("Các màn cũ chuyển vào
-  trang Quản lý") nói về các màn khác, không phải Sales; file này thuộc làn GIAO-DIEN-2, bị Cấm → để nguyên.
-  Phép A2 trong bài mới dò đúng các mẫu `man=cu`, `man=moi`, `\bSales\b`, `về màn cũ` (không dò "màn cũ" trần — sẽ bắt oan Layout).
+- Chú thích nhắc `Sales` / "màn cũ" ở file trong Phạm vi thì sửa chữ (không đổi mã):
+  - `BanHangMoi.jsx:32`;
+  - `tinh.js:22` ("như màn cũ"), `tinh.js:58,117` (Sales.jsx);
+  - `BanHang/banHang.css:1` ("không đụng màn cũ");
+  - `components/QrScanModal.jsx:6`, `components/InPhieu.jsx:18`, `components/InvoicePrint.jsx:17`.
+- **Ngoài Phạm vi / vướng Cấm** → **Câu hỏi 3**:
+  - `pages/InvoiceSettings.jsx:745` (chú thích "Orders/Sales");
+  - `components/Layout.jsx:69` ("Các màn cũ chuyển vào trang Quản lý" — nói về các màn khác, không phải Sales). File này bị Cấm
+    (làn GIAO-DIEN-2), nên A2 chép đúng chữ (grep `màn cũ` = 0) KHÔNG đạt được nếu không có quyết định của chủ quán.
 
 ### A3 (xoá)
 | File | Ai import (grep `from ['"].*<tên>['"]` toàn `client/src`) | Quyết |
@@ -190,13 +194,27 @@ Mỗi ca chặn so ĐÚNG `code` + đếm trước / sau: `pos_orders`, `pos_ord
   - `BV-NUT-TAT` (đưa lại nút "Tắt — về màn cũ").
   Mỗi đột biến có đối chứng: bản chưa đột biến xanh. Luật sập: bài sập ≠ bắt.
 
+### 4.1b Luồng hợp lệ — bằng chứng cho từng mục C (ngoài các ca K5 ở trên)
+| Mục | Bằng chứng |
+|---|---|
+| C1 QR tự xác nhận | ca mới C1j: phiên `payos` + webhook giả (như `thu_P3.js` `guiWebhook`) → đơn tạo, `transfer_amount` = còn lại. Thêm `thu_SEPAY1` / `thu_TINGEE1` / `thu_CKNOIDUNG1` xanh, không sửa |
+| C1 hạng + flash | ca mới C1k: khách có hạng Vàng, Flash bật, qua phiên `tien_mat` → tổng = số tinh-thu (giảm hạng, giảm flash như cũ) |
+| C1 nạp | C1h: gói nạp qua phiên `tien_mat` VÀ đường thẳng tiền mặt (cả hai 200) |
+| C2 | ca C2 (đơn giao qua phiên) + `thu_GIAO1` / `thu_GIAO2` xanh |
+| C3 | `thu_HOPDONG_KH.js` (hợp đồng, PHIEN_BAN 17) + `thu_KHMUA1.js` (App đặt / trả ví + PIN / QR / chốt muộn) + `thu_KHAPI2` / `thu_KHNAP1` / `thu_KHTHE1` xanh, KHÔNG sửa (`git diff` 0 dòng). `server/routes/kh/**`, `donApp.js` không đổi |
+| C4 | `thu_MANKHACH1.js` xanh, không sửa; `manKhach.js` không đổi |
+| C5 | ca mới: đơn cũ dựng bằng `donCu` — trừ ví một phần, ví mẹ, chuyển khoản, MUA gói, LẤY từ gói, mỗi loại:<br>- `GET /orders` thấy đơn (lịch sử);<br>- `PUT /orders/:id/cancel` 200, hoàn đúng như HUY-1;<br>- đơn mua gói huỷ → gói `cancelled` (`orders.js:1787`).<br>Thêm `thu_HUY1` / `thu_P26b` / `thu_P26c` / `thu_GOI1` xanh qua `donCu`. Hoàn (`refunds.js`): `thu_P20` / `thu_P26b` xanh qua `donCu` |
+| C6 | ca mới: gói cũ dựng bằng `donCu` → `PUT /packages/customer-packages/:id/cancel` (kết thúc, không hoàn) → `GET /packages/customer-packages/theo-khach` vẫn thấy gói `cancelled` + số đã lấy.<br>Đối soát: `thu_DOISOAT1` xanh. Bài đó tính số tay trên cùng dữ liệu, nay dựng bằng `donCu` (đúng mã cũ) |
+| C7 | `node cong_cu/gia_lap/chay.js` (nhóm S của bộ kiểm) + `bat_bien.js` + `thu_gia_lap.js` (bảng đột biến M1–M…) xanh |
+
 ### 4.2 Bài CŨ đọc `Sales.jsx` (D1) — từng ca
 | Bài | Ca | Quyết |
 |---|---|---|
 | `thu_HANG1.js:677-691` | G2 (giỏ gửi `{tier_id, so_thang}`), G2b (gói đang bán có giá; khoá khi hạng cao hơn) | **chuyển** sang `BanHang/tinh.js` (`dongThe`/`dsGoiThe`/`layThe` dòng 186-217) + `BanHangMoi.jsx:364-371` (`caoHon`, "Khách có hạng cao hơn") |
 | `thu_BH1.js:189-197` | I10, I11 (tập khoá payload màn mới == khoá `orderData` của Sales) | **bỏ**. Chuẩn so sánh không còn; I1-I9 vẫn khoá từng khoá của `dungDonHang` |
 | `thu_BH1.js:216-217` | S9 (App.jsx không `<Sales />` trang chủ) | **giữ**, vẫn đúng. S10 (Sales.jsx không nhắc BanHang) → **đổi**: không còn file `pages/Sales.jsx` |
-| `thu_BH1` / `thu_BH2` ca công tắc (`docCongTac`/`ghiCongTac`, S16 "mặc định TẮT") | | **đổi** theo `docKieu`/`ghiKieu` + "luôn màn mới" (hành vi đã duyệt đổi) |
+| `thu_BH1.js:77-87` A1-A7 (`docCongTac`/`ghiCongTac`, "bật chỉ khi '1'") · `thu_BH2` S16 ("công tắc từng máy, mặc định TẮT") | | **đổi** theo `docKieu`/`ghiKieu` (kho trống / ném lỗi / không kho / giá trị lạ → `tudong`) + "luôn màn mới" (hành vi đã duyệt đổi) |
+| `thu_VOUCHER2.js:1110` | dựng `BanHangMoi` với prop `onDoiCaiDat() {}` | **đổi** tên prop → `onDoiKieu` (không đổi ca) |
 | `thu_UUDAI1.js:494-503` | S1-S4 (Sales hỏi tinh-thu, `donGuiMayChu`, tổng từ tinh-thu, có mã chưa số → không thu) | **chuyển**: màn mới hỏi `ordersApi.tinhThu` với `thanTinhThu` (`BanHangMoi:154`), tổng từ `mayChu` (`coSo`). S2 (hai thân cùng một hàm) → `thanTinhThu` = phần `don` của phiên (`tinh.js:209-217`) |
 | `thu_P26c.js:348-349` | A6c (Sales: ô lượt gói không là ô nhập) | **bỏ** (màn mới không có gói) |
 | `thu_BHCKTAY1.js` (cả bài, A0-C2) | ô giảm tay của Sales | **chuyển** phần còn nghĩa: A1-A3 (không ô / state / nhánh giảm tay) soi `BanHang/*.jsx` + `tinh.js`; B1-B3 (orderData ba khoá discount) → `dungDonHang`; C1-C2 (thân → máy chủ, tổng = tinh-thu) dùng thân `thanTinhThu` của màn mới qua phiên `tien_mat`. Tên file giữ (kiem_tra chạy đúng tên này) |
@@ -241,7 +259,7 @@ Số là ước lượng, đếm tĩnh.
 
 Tổng ≈ 65 L · 430 F · 40 E. Phần lớn là F.
 
-**Cách sửa (chọn):** hàm phụ dùng chung **`cong_cu/gia_lap/donCu.js`**, khoảng 30 dòng.
+**Cách sửa (chọn):** hàm phụ dùng chung **`cong_cu/gia_lap/donCu.js`**, khoảng 10 dòng. Dùng lại `gomRes` có sẵn (`giuCho.js:193`).
 - `donCu(mayChu, nguoi, than)` gọi `taoDonGoc` trong cùng tiến trình, với res giả. Trả `{ status, body }` y như gọi HTTP.
 - Cùng một module `orders.js` mà app thử đang dùng: lấy từ `<may-chu>/routes/orders.js`, nên chạy đúng cả trên bản sao đột biến.
 - Đơn dựng ra là ĐƠN CŨ thật: đúng mã đã ghi dữ liệu đang nằm trên quầy. Dựng được cả đơn ví một phần và đơn gói.
@@ -260,15 +278,18 @@ Làm theo từng loại ca:
   - VIME1 A1-A4 → giữ nguyên (`kiemTraMe` nằm trong `taoDonGoc`; ca đi qua `donCu`, vẫn 403 `KHONG_PHAI_TK_ME`).
   Lúc làm, mỗi ca đổi ghi một dòng trong `trang_thai.md`.
 - **Giả lập một ngày (`gia_lap/kich_ban.js`, C7):** đây là tập dượt quầy, nên đơn MỚI đi đúng đường quầy nay dùng:
-  - ví / mẹ → phiên `tai_khoan` hoặc `tien_mat` + PIN;
+  - ví / mẹ trả đủ (không trả một phần) → phiên `tai_khoan` hoặc `tien_mat` + PIN;
   - KB2 chuyển khoản → phiên `ck_tay` + xác nhận tay.
-  Gói KB9 / KB21 / KB23 / KB30 → "gói mua trước ngày cập nhật" dựng bằng `donCu`. Thêm một cảnh "quầy bấm bán gói → `GOI_TAM_DUNG`,
-  không ghi". Các cảnh ví một phần (KB4, KB5, KB17) chuyển sang phiên → số dự kiến tính lại theo `min(khả dụng, tổng)`, ghi rõ từng cảnh.
-  `bat_bien.js` không đổi (chỉ đọc SQL).
+  Giữ bằng `donCu` (đơn tạo trước ngày cập nhật):
+  - gói KB9 / KB21 / KB23 / KB30;
+  - các cảnh ví một phần hoặc ví + nợ: KB4 (ví + ghi nợ — phiên không có cách nợ, `giuCho.js:25`), KB5, KB17.
+  Vì vậy `thu_gia_lap.js` M13 (KB17), M14 (KB4) không đổi nghĩa.
+  "Quầy bấm bán gói → `GOI_TAM_DUNG`, không ghi" đặt TRONG cảnh KB9 có sẵn, không thêm cảnh mới. Lý do: `thu_gia_lap.js:55` khoá `SO_KB = 33`.
+  `bat_bien.js` không đổi (chỉ đọc SQL). `thu_gia_lap.js` vẫn có thể phải sửa nhãn đột biến → xin tên trong Câu 1.
 - **GIAO1 / GIAO2:** `donGiao` / `moChuyen` dựng đơn giao cũ bằng `donCu`. Đơn giao MỚI qua phiên (C2) có ca riêng trong `thu_BOMANCU1`.
 
-Ước lượng dòng bài thử: `donCu.js` 30 · đổi hàm phụ 21 bài ≈ 120 · ca L/E đổi ≈ 150 · kich_ban ≈ 120 · bài mới ≈ 350
-→ **≈ 770 dòng**, vượt "~300 dòng thử" của phiếu. Lý do: gói bị chặn ở mọi lối, nên 15 bài phải sửa bất kể cách B4 nào → **Câu hỏi 4**.
+Ước lượng dòng bài thử: `donCu.js` 10 · đổi hàm phụ 21 bài ≈ 120 · ca L/E đổi ≈ 150 · kich_ban ≈ 120 · bài mới ≈ 380 (thêm ca C ở 4.1b)
+→ **≈ 780 dòng**. Câu 5 đồng ý thì cộng khoảng 40 dòng (KH1, P20, P21 chuyển đơn nợ mẫu sang `donCu`) + đột biến `BV-GHI-NO-THANG`, vượt "~300 dòng thử" của phiếu. Lý do: gói bị chặn ở mọi lối, nên 15 bài phải sửa bất kể cách B4 nào → **Câu hỏi 4**.
 
 ## 5. D2 — `kiem_tra_truoc_khi_giao.js`
 Chỉ hạ `NGUONG_FETCH` 31 → số đo sau khi xoá (dự kiến 22). Grep `Sales` trong file = 0 chỗ, nên không có phép nào phải đổi file soi.
@@ -294,32 +315,49 @@ Nguồn: `tu_chay/cau_hinh.json` `file_luat`, `nguoi_gac.js:196`. Glob `cong_cu/
 - cong_cu/thu_P21.js
 - cong_cu/thu_P26a.js
 - cong_cu/thu_P26b.js
+- cong_cu/thu_gia_lap.js
 ```
 
 **Câu 2 — cho bộ kiểm chạy bài mới.**
-`kiem_tra_truoc_khi_giao.js` chạy bài theo danh sách cứng (dòng 495-513). Bài mới `thu_BOMANCU1.js` chỉ được `npm test` chạy khi thêm một dòng
-`chayBaiThat('cong_cu/thu_BOMANCU1.js')`. Phiếu D2 ghi "CHỈ được làm hai việc" với file này, nên mình hỏi.
+`kiem_tra_truoc_khi_giao.js` chạy bài theo danh sách cứng (các lời gọi `chayBaiThat`, từ dòng 495). Bài mới `thu_BOMANCU1.js` chỉ được `npm test` chạy khi thêm một dòng
+`chayBaiThat('cong_cu/thu_BOMANCU1.js')`. (Lời gọi `chayBaiThat` có ở nhiều chỗ tới khoảng dòng 927 — mình thêm cạnh
+`thu_KETNOI1`.) Phiếu D2 ghi "CHỈ được làm hai việc" với file này, nên mình hỏi.
 Đề xuất: cho thêm đúng dòng đó. Đây là THÊM phép kiểm (CLAUDE.md §6 cho phép), không nới gì. Không có dòng này thì khoá B1-B3 không được
 canh ở mỗi lần commit.
 
-**Câu 3 — một dòng chú thích ngoài Phạm vi.**
-`client/src/pages/InvoiceSettings.jsx:745` có chú thích "Cập nhật cache NGAY để Orders/Sales dùng được". A2 đòi `client/src/` không còn chữ
-`Sales` trỏ về màn cũ.
-Đề xuất: thêm `client/src/pages/InvoiceSettings.jsx` vào Phạm vi, chỉ để sửa chữ chú thích đó (không đổi mã). Không đồng ý thì bài A2
-chừa riêng dòng này và mình ghi Phát hiện.
+**Câu 3 — A2 vướng hai dòng chú thích ngoài Phạm vi.**
+A2 đòi grep `Sales` và `màn cũ` trong `client/src/` = 0. Còn hai dòng mình không được sửa:
+- `client/src/pages/InvoiceSettings.jsx:745` — "Cập nhật cache NGAY để Orders/Sales dùng được" (ngoài Phạm vi);
+- `client/src/components/Layout.jsx:69` — "Các màn cũ chuyển vào trang Quản lý". Câu này nói về các màn Cài đặt / Đăng ký cũ, không phải
+  màn bán hàng. File bị Cấm (làn GIAO-DIEN-2).
+Đề xuất:
+- thêm `InvoiceSettings.jsx` vào Phạm vi, chỉ sửa chữ chú thích đó;
+- Layout.jsx để nguyên: bài A2 dò `về màn cũ` / `màn cũ Sales`, không dò "màn cũ" trần. Câu đó không trỏ về màn bán hàng cũ.
 
 **Câu 4 — duyệt cách sửa bài thử (mục 2 + 4.3).**
 - Máy chủ tách `taoDon` thành cửa chặn + thân `taoDonGoc`. Thân được xuất ra CHỈ để bài thử dựng "đơn cũ"; một phép kiểm khoá không file
   máy chủ nào khác gọi nó.
 - Dòng export ở cuối `orders.js` nằm ngoài "vùng cổng đầu" mà phiếu cho sửa, nên mình hỏi luôn.
-- Bài thử vượt ngân sách: ≈ 770 dòng, so với ~300 của phiếu.
+- Bài thử vượt ngân sách: ≈ 780 dòng, so với ~300 của phiếu.
 Đề xuất: đồng ý. Cách còn lại (phương án B ở mục 2) phải sửa trên 1.500 dòng bài thử, và mất bài thử cho đúng loại đơn cũ đang có trên quầy
 (đơn ví một phần, đơn gói).
 
+**Câu 5 — chuyển khoản không qua QR còn một lối: thu nợ.** (đụng tiền, nên mình hỏi)
+Cách B4a vẫn cho đường thẳng tạo đơn **ghi nợ / chờ thu**. Sau đó `POST /orders/:id/pay-debt` với `payment_method: 'transfer'`
+(`orders.js:1508-1575`) ghi đơn đó là "đã chuyển khoản" mà không qua QR. Đây là đường vòng của B2. Giả lập quầy KB4 đang làm đúng như vậy.
+Còn lối `doi-cach-tra` (tiền mặt → chuyển khoản, `don-mo-rong.js:112-151`, ngoài Phạm vi).
+Đề xuất:
+- **làm luôn trong việc này:** cửa chặn thêm vế "đường thẳng không nhận ghi nợ / chờ thu" (`debt_amount > 0` hoặc `payment_method` `debt` /
+  `cho_thu`) → 400 `KHONG_GHI_NO`. Khớp "Không công nợ" (`QUYET_DINH_CHU_QUAN.md:89,100`). Thêm khoảng 2 dòng máy chủ; bài thử thêm
+  KH1, P20, P21… nhưng đơn nợ ở đó chỉ là đơn mẫu → chuyển qua `donCu`.
+- `pay-debt` cho ĐƠN NỢ CŨ: giữ nguyên trong việc này (nằm ngoài vùng phiếu cho sửa; đơn nợ cũ phải thu được). Ghi việc sau: thu nợ chuyển
+  khoản phải qua QR.
+Không đồng ý → giữ đúng B4a, ghi Phát hiện.
+
 ## 8. Phát hiện (không sửa trong việc này)
-- Đường thẳng vẫn nhận **ghi nợ / chờ thu** (`debt_amount`, `payment_method: 'cho_thu'`). Sổ quyết định đã chốt "Không công nợ" và "Không có
-  bill chưa trả tiền" (`QUYET_DINH_CHU_QUAN.md:89,100`). Màn mới không còn ai gửi kiểu đơn này. Đề xuất một việc sau: chặn ở cửa chặn
-  (cách B4b, thêm 4 bài phải sửa).
+- Trừ tài khoản KHÔNG PIN còn ở `POST /wallets/deduct` và `/wallets/adjust` (`wallets.js:185,220`, quyền `adjust_balance`; `ViKhach.jsx:53`
+  gọi `adjust`). Sổ quyết định 11.11 nói "trừ tiền tài khoản luôn cần PIN chủ tài khoản". Ngoài Phạm vi → đề xuất việc sau.
+- `doi-cach-tra` tiền mặt → chuyển khoản không qua QR (`don-mo-rong.js:112-151`, ngoài Phạm vi) — xem Câu 5.
 - `payment_method` của đường thẳng là chữ tự do, ghi nguyên vào đơn (`'combined'`, `'mixed'`, `'momo'` có trong bài thử). Tiền vẫn đúng cột,
   chỉ nhãn lạ.
 - Cài đặt `thanh_toan_payos_bat_buoc` thành thừa sau việc này (`database.js:1114`, ngoài Phạm vi).
