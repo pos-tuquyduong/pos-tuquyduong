@@ -8,9 +8,8 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, checkPermission } = require('../middleware/auth');
-const { query, queryOne, run } = require('../database');
+const { query, queryOne } = require('../database');
 const { getNow, getToday } = require('../utils/helpers');
-const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 const { ghiVi, loiGhi, trongGiaoDich } = require('./wallets');
 const { tienDaTraTheoDong } = require('../utils/tienDaTra');
 const { laDonNap } = require('../utils/viKhach');   // QUAY-UI-1 D: MỘT vị từ "đơn nạp" (cùng dải product_id với NAP-1)
@@ -28,7 +27,6 @@ const DAMAGE_REASONS = {
 
 const DAMAGE_ACTIONS = {
   'refund': 'Hoàn tiền',
-  'return_stock': 'Hoàn kho SX',
   'none': 'Chỉ ghi nhận'
 };
 
@@ -158,6 +156,10 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
     if (!order_id || !product_code || !quantity || !reason || !action) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
     }
+    // KHO-3a (Câu 3): SX đã ngắt — "hoàn kho SX" không còn; nút trên màn bỏ ở GIAO-DIEN-2. Không ghi gì.
+    if (action === 'return_stock' || return_to_stock) {
+      return res.status(400).json({ error: 'Đã ngắt kho SX — không hoàn kho SX được. Hàng còn dùng được thì huỷ đơn để trả kho', code: 'HOAN_KHO_SX_DA_BO' });
+    }
     
     const soLuong = Number(quantity);
     if (!Number.isInteger(soLuong) || soLuong <= 0) {
@@ -182,9 +184,6 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
           COALESCE(MAX(unit_price), 0) AS gia, COUNT(*) AS n
         FROM pos_order_items WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
       if (!Number(dong.n)) return loi(400, 'Sản phẩm không có trong đơn hàng');
-      if ((action === 'return_stock' || return_to_stock) && order.status === 'cancelled') {
-        return loi(400, 'Đơn đã huỷ — huỷ đơn đã hoàn kho SX rồi', 'DON_DA_HUY_KHO');
-      }
       const da = await tx.queryOne(`SELECT COALESCE(SUM(quantity), 0) AS sl, COALESCE(SUM(refund_amount), 0) AS tien
         FROM pos_damage_logs WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
       const conLai = Number(dong.sl) - Number(da.sl);
@@ -208,42 +207,23 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
         }
       }
       // DIEM-MON-1: ghi dòng sự cố TRƯỚC khi trừ điểm — truDiemHoan đọc pos_damage_logs để biết lần đền này thuộc món nào (CÁCH 2).
-      const log = await ghiHangHong(tx, { order, product_code, ten: dong.ten, soLuong, gia, reason, reason_note, action, refund: finalRefund, user: req.user });
+      await ghiHangHong(tx, { order, product_code, ten: dong.ten, soLuong, gia, reason, reason_note, action, refund: finalRefund, user: req.user });
       if (finalRefund > 0 && order.customer_phone) {   // finalRefund > 0 chỉ khi action 'refund'
         await ghiVi(tx, { phone: order.customer_phone, ten: order.customer_name || null, loai: 'compensation', soTien: finalRefund,
           orderId: order.id, ghiChu: `Đền bù đơn ${order.code} - ${DAMAGE_REASONS[reason]} - ${product_code} x${soLuong}`,
           nguoi: req.user.display_name || req.user.username });
         await truDiemHoan(tx, order, req.user.username, getNow(), `Đền bù đơn ${order.code}`);
       }
-      return { order, finalRefund, logId: log.lastInsertRowid };
+      return { finalRefund };
     });
     if (kq.huy) return res.status(kq.status).json(kq.body);
-    const { order, finalRefund } = kq;
-
-    // Xử lý hoàn kho (ngoài giao dịch — gọi SX, như trước P26b)
-    if ((action === 'return_stock' || return_to_stock) && isSxConfigured()) {
-      try {
-        await callSxApi('/api/pos/stock/return', {
-          method: 'POST',
-          body: JSON.stringify({
-            product_code,
-            quantity: soLuong,
-            reason: `Hoàn kho từ đơn ${order.code} - ${DAMAGE_REASONS[reason]}`
-          })
-        });
-        await run('UPDATE pos_damage_logs SET returned_to_stock = 1 WHERE id = ?', [kq.logId]);
-      } catch (err) {
-        console.log('Hoàn kho SX thất bại:', err.message);
-      }
-    }
+    const { finalRefund } = kq;
 
     res.json({ 
       success: true, 
       message: action === 'refund' 
         ? `Đã hoàn ${finalRefund.toLocaleString()}đ vào số dư khách`
-        : action === 'return_stock'
-          ? `Đã hoàn ${soLuong} sản phẩm về kho`
-          : 'Đã ghi nhận sự cố'
+        : 'Đã ghi nhận sự cố'
     });
   } catch (err) {
     loiGhi(res, err);

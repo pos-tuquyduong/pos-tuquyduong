@@ -27,8 +27,6 @@ const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const donMoRongRoutes = require('./routes/don-mo-rong'); // POS-NEN-v1 (P19)
 const refundRoutes = require('./routes/refunds');
-const syncRoutes = require('./routes/sync');
-const stockRoutes = require('./routes/stock');
 const reportRoutes = require('./routes/reports');
 const userRoutes = require('./routes/users');
 const backupRoutes = require('./routes/backup');
@@ -52,7 +50,6 @@ const damagesRoutes = require('./routes/damages');
 const packagesRoutes = require('./routes/packages');
 // POS-DODNO-v1: nguoi di doi so no
 const soNoRoutes = require('./routes/so-no');
-const { doNeuDenLuc } = require('./utils/doSoNo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -93,17 +90,6 @@ app.use((req, res, next) => {
 app.use('/api', doYeuCau);
 app.use('/api/pos', mocLoiKho);
 
-// ═══ POS-DODNO-v1 · LOP 1: doi so no an theo hoat dong ═══════════════════
-// PHAI dat TRUOC moi duong /api/pos. Dat sau thi khong bao gio chay: yeu cau
-// khop duong nao thi duong do tra loi va KHONG goi next() di tiep.
-// KHONG dung hen gio: Render Free ngu khi khong ai dung, cron se hong CAM ma
-// van tuong dang chay. Lay chinh viec ban hang lam dong ho.
-// KHONG await: nguoi dung khong phai cho viec nay.
-app.use('/api/pos', (req, res, next) => {
-  try { doNeuDenLuc(); } catch (e) { /* khong bao gio chan nguoi dung */ }
-  next();
-});
-
 // API Routes
 app.use('/api/pos/auth', authRoutes);
 app.use('/api/pos/customers', customerRoutes);
@@ -112,8 +98,10 @@ app.use('/api/pos/products', productRoutes);
 app.use('/api/pos/orders', donMoRongRoutes);
 app.use('/api/pos/orders', orderRoutes);
 app.use('/api/pos/refunds', refundRoutes);
-app.use('/api/pos/sync', syncRoutes);
-app.use('/api/pos/stock', stockRoutes);
+// KHO-3a C1: SX đã ngắt — đường chỉ phục vụ SX (tồn kho SX, xuất / nhập CSV khách cho SX, đối chiếu vân tay SX) trả 410, không gọi SX.
+const sxDaNgat = (req, res) => res.status(410).json({ error: 'Đã ngắt kết nối SX', code: 'SX_DA_NGAT' });
+app.use('/api/pos/sync', sxDaNgat);
+app.use('/api/pos/stock', sxDaNgat);
 app.use('/api/pos/reports', reportRoutes);
 app.use('/api/pos/users', userRoutes);
 app.use('/api/pos/permissions', userRoutes);
@@ -137,7 +125,7 @@ app.use('/api/pos/membership', membershipRoutes);
 app.use('/api/pos/damages', damagesRoutes);
 app.use('/api/pos/packages', packagesRoutes);
 app.use('/api/pos/so-no', soNoRoutes);   // POS-DODNO-v1
-app.use('/api/pos/doi-chieu', require('./routes/doi-chieu'));   // POS-DOICHIEU-v1
+app.use('/api/pos/doi-chieu', sxDaNgat);   // POS-DOICHIEU-v1 (vân tay SX) — KHO-3a: SX đã ngắt
 app.use('/api/pos/kho', require('./kho/duong'));   // KHO-1: mục kho (server/kho/)
 app.use('/api/pos/hoa-don', require('./routes/hoaDon'));   // HD-1: một cửa dữ liệu hoá đơn (chỉ đọc)
 app.use('/api/pos/man-khach', require('./routes/man-khach'));   // MANKHACH-1: màn khách ghép máy quầy (chỉ hiển thị)
@@ -189,8 +177,6 @@ app.get('/api/pos', (req, res) => {
       'customers-v2': '/api/pos/v2/customers',
       settings: '/api/pos/settings',
       'discount-codes': '/api/pos/discount-codes',
-      sync: '/api/pos/sync',
-      stock: '/api/pos/stock',
       reports: '/api/pos/reports',
       users: '/api/pos/users'
     }
