@@ -1,4 +1,5 @@
 # KHO-3a — bằng chứng đỏ (chạy lại 18.11 sau vòng sửa 2 soát bảo mật)
+# (Cập nhật 327166c3: thu_KHO3a thêm 4 ca vòng sửa 3 — 135 ca; 2 ca mới ĐỎ trên 9ec6f770: ví 18000, HTTP 200.)
 # Gốc = 7b8b1dbb (main đã ghép, trước KHO-3a). Code vá = HEAD 9ec6f770. Mỗi bài chạy trong cây tạm (git archive), không đụng data/ của kho.
 
 ## 1. Bài mới cong_cu/thu_KHO3a.js — bản HEAD chạy trên server GỐC → ĐỎ
@@ -237,7 +238,7 @@ SỐ CA cong_cu/thu_P3.js: 101
 SỐ CA cong_cu/thu_TINGEE1.js: 75
 SỐ CA cong_cu/thu_UUDAI1.js: 88
 SỐ CA cong_cu/thu_VIME1.js: 24
-SỐ CA cong_cu/thu_KHO3a.js: 131
+SỐ CA cong_cu/thu_KHO3a.js: 135
 SỐ CA cong_cu/thu_VOUCHER2.js: 146
 SỐ CA cong_cu/thu_gia_lap.js: 179
 SỐ CA cong_cu/thu_GIAO2.js: 30

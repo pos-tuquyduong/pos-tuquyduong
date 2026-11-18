@@ -46,6 +46,22 @@
 - Chủ quán 18.11 20:50 **CHẤP NHẬN** 20 → 33 câu CSDL / lần thu (Render + Turso cùng Virginia); chat đo lại trên Render sau gộp.
 
 ## Câu hỏi
+**Câu 6 — hết 3 vòng sửa mà lần soát cuối (vòng 3) còn MỘT lỗi tiền → máy DỪNG theo LUAT §6.5, không tự làm vòng sửa 4.**
+
+Lỗi (dễ hiểu): khách KHÔNG để lại SĐT trả bằng QR ở quầy, món vừa hết đúng lúc đó. Nếu quản lý bấm "xác nhận tay" ĐÚNG LÚC báo tiền của
+ngân hàng cũng tới (hai việc chen nhau trong cùng khoảnh khắc), màn Đối soát có thể hiện HAI dòng "HOÀN TIỀN TAY" cho cùng một khoản →
+nếu không để ý, quán trả lại tiền mặt hai lần. Máy KHÔNG tự cộng tiền; chỉ là hai lời nhắc trùng. Ngoài lúc chen nhau thì không xảy ra.
+(Khách CÓ SĐT đã được chặn ở vòng 3.)
+
+Đề xuất của mình (bạn chỉ cần trả lời "đồng ý vòng sửa 4"): làm đúng như người soát gợi ý, cùng một vị từ cho hai chiều —
+1. `hoanTayHetHang`: đã có dòng báo của cổng cho cùng mã phiên (vào ví HOẶC "HOÀN TIỀN TAY") → ghi dòng `tay:` dạng "đã có yêu cầu hoàn — KHÔNG
+   hoàn lần hai", không cộng, không thêm yêu cầu hoàn mới;
+2. nhánh tiền về không SĐT: đã có dòng `tay:<phiên>` → ghi "đã hoàn khi xác nhận tay — KHÔNG hoàn lần hai";
+3. hai ca tất định (chèn sẵn dòng bên kia) + đột biến; kèm luôn 2 lỗi nhẹ: `PUT /products/<id không có>` trả 404 thay vì 500 (+ ca), sửa câu chú
+   thích "MỌI đường" ở products.js cho đúng (các đường cũ /price, /batch/prices, /thong-tin, nhapSx.js ghi Phát hiện, không sửa).
+Phần "màn Bán hàng chưa ghi số tiền + SĐT che trong câu hết hàng" (người soát ghi NGHI NGỜ) — mình đề xuất làm cùng vòng 4 nếu bạn đồng ý,
+vì phiếu B3c có ghi.
+
 - Câu 5 (Phạm vi thiếu tên file luật) — **chủ quán đồng ý 18.11 20:50**: chat thêm 9 tên file vào `## Phạm vi` (commit PHIEU d1d2f782);
   đổi số bước 030 → 031, 031 → 032 (GIAO-3 đã dùng 030). Không còn câu hỏi mở.
 
@@ -68,7 +84,50 @@
 - `thu_KHO3a.js`: **135 đạt · 0 hỏng · 135 ca**.
 
 ## Đột biến (`python3 viec/KHO-3a/dot_bien.py`) — chỗ vá → đột biến
-DOT_BIEN_BANG
+- Kết quả lần chạy đủ gần nhất (người soát vòng 3 chạy, HEAD 327166c3): **đối chứng XANH 135/0 · 41 đột biến · BẮT 41 · SỐNG 0 · LẠC 0**. Mình chạy riêng 5 đột biến của vòng sửa 3: BẮT 5/5.
+- Chỗ vá → đột biến (khối chú thích `# ──` trong `dot_bien.py` ghi chỗ vá của từng nhóm):
+  - VS-FEFO-HAN-XA-TRUOC
+  - VS-LO-HET-HAN-VAN-BAN
+  - VS-NGUONG-LON-HON-BANG
+  - BV-KIEM-CA-GIO
+  - BV-CHO-BAN-THIEU
+  - VS-CHO-BAN-THIEU-MAC-DINH-BAT
+  - BV-CHUA-CONG-THUC
+  - BV-TINH-THU-KHONG-KIEM
+  - BV-GIU-HANG-TAO-PHIEN
+  - VS-CHOT-TRUOC-KHI-DOI-PHIEN
+  - BV-CHOT-MUON-BO-QUA-GIU
+  - BV-MENU-TRU-GIU
+  - BV-APP-MA-HET-HANG
+  - BV-MAN-KHACH-BO-NHO
+  - BV-LUOI-VAO-VI-QUAY
+  - BV-LUOI-HOAN-TAY
+  - BV-LUOI-TEN-MON
+  - BV-QR-QUAY-HET-HANG
+  - BV-TAY-HOAN-VI
+  - BV-MOT-VI-TU-CON-RONG
+  - BV-SUA-TEN-TRUNG
+  - BV-HIEN-LAI-TRUNG-TEN
+  - VS-HIEN-LAI-XET-CA-MON-DANG-BAN
+  - BV-TAY-SAU-CONG
+  - VS-TAY-SAU-CONG-MOI-MA
+  - BV-DONG-PHIEN-KHI-HOAN-TAY
+  - BV-TIEN-VE-SAU-HOAN-TAY
+  - BV-TRU-KHO
+  - BV-CHAN-TRONG-TX
+  - BV-HUY-TRA-KHO
+  - BV-XOA-TRA-KHO
+  - VS-XOA-CHI-COMPLETED
+  - VS-BO-DI-VAN-TRA-KHO
+  - VS-MENU-SO-PHAN-LAM-TRON-LEN
+  - BV-032-CHI-TEN-TAM
+  - BV-PHIEU-BAN-KHONG-HUY-TAY
+  - BV-DS-AN-PHIEU-BAN
+  - BV-031-KHOA-DON-HANG
+  - BV-MENU-SELLABLE-CONG-THUC
+  - BV-MON-POS-KHOA
+  - BV-MON-CHUA-SAN-HET-LO
+- Đã bỏ (ghi lý do trong dot_bien.py): VS-GIU-HANG-TINH-CA-PHIEN-MINH, BV-THANH-PHAM-KHONG-AM (code thừa đã xoá), VS-TAY-HOAN-HAI-LAN (đua không tất định → **CHƯA KIỂM**; có ca hai người bấm song song trong thu_KHO3a).
 
 ## Soát độc lập (/ra-soat)
 ### Vòng 1 (HEAD bfe23ff5) — nguyên văn
@@ -187,8 +246,60 @@ chua_khop, không cộng (ca tất định ghi sẵn dòng cổng, ĐỎ trên b
 "Phiên QUẦY không vào đây" sửa; PUT hiện lại món ẩn trùng tên → TEN_TRUNG (ĐỎ trên bản trước: HTTP 200), đối chứng K5 đổi thứ tự món đã trùng
 sẵn → 200. 4 đột biến mới, BẮT 4/4 (+ BV-SUA-TEN-TRUNG neo lại, BẮT).
 
-### Vòng 3
-VONG3
+### Vòng 3 (HEAD 327166c3 + hồ sơ) — báo cáo của người soát
+KHÔNG ĐẠT
+
+Bản vá vòng 3 tự nó đúng. Mình chạy lại: bài thử KHO-3a 135 đạt, 0 hỏng. Bộ đột biến bắt cả 41 trên 41, kể cả 4 đột biến mới (BV-HIEN-LAI-TRUNG-TEN, VS-HIEN-LAI-XET-CA-MON-DANG-BAN, BV-TAY-SAU-CONG, VS-TAY-SAU-CONG-MOI-MA). Giả lập quầy (thu_gia_lap, chạy riêng) 179 đạt, 0 hỏng. Bản dist khớp src: build lại ra đúng `index-DzOu81MF.js`.
+
+Nhưng vòng 3 mới vá chiều "khách CÓ SĐT". Chiều "khách KHÔNG SĐT" cùng khuôn vẫn để ngỏ (K4), và lỗi này đụng tiền.
+
+```
+LỖI TÌM ĐƯỢC:
+1. server/routes/thanh-toan.js:32-34 (hoanTayHetHang, nhánh !p.phone) và :252 (xuLyTienVe, nhánh loiKho && !moi.phone)
+   — Vòng 3 thêm chặn hai chiều cho khách CÓ SĐT: dòng :28 tìm dòng vao_vi của cổng, dòng :208 tìm dòng `tay:`. Phiên QR quầy KHÔNG SĐT
+     thì hai nhánh không xét nhau: :32 không tìm dòng chua_khop "HOÀN TIỀN TAY" mà cổng đã ghi, :252 không tìm dòng `tay:<phiên>`.
+     Mình lần theo code: giuCho.js:176-197 cho phiên về lại 'cho' khi đơn bị huỷ ngang, rồi đổi sang 'loi'. Giao dịch ghi xếp hàng.
+     Quản lý bấm xác nhận tay đúng lúc báo tiền tới: cả hai bên đều đọc thấy phiên 'cho', đều hỏng vì hết hàng, rồi mỗi bên ghi MỘT
+     dòng chua_khop "HOÀN TIỀN TAY <số>" với khoá khác nhau (`tay:<id>` và khoá cổng). Đối soát hiện HAI yêu cầu hoàn tay cho cùng một
+     khoản, nên chủ quán có thể trả tiền mặt hai lần.
+     Ngoài lúc tranh nhau thì không xảy ra: bên nào ghi xong trước thì phiên đã 'loi', bên sau nhận 409 hoặc "phiên đang loi".
+     Bài thử chưa có ca này. Dựng tất định được như ca "Soát vòng 2": chèn sẵn dòng chua_khop của cổng (hoặc dòng `tay:`), rồi gọi
+     nhánh còn lại.
+     Cách vá gọn: dòng :28 xét thêm chua_khop "HOÀN TIỀN TAY" cùng ma_payos; dòng :252 xét dòng `tay:<phiên>` như vaoVi ở :208.
+   — K4 (sửa nửa vời, chỉ vá đường có SĐT) — NẶNG (tiền hoàn; chỉ khi tranh nhau, không tự cộng ví, nhưng ra lệnh hoàn tay hai lần)
+2. server/routes/products.js:107-109 — Lỗi vòng 3 mới sinh ra. Gọi PUT /products/<id không có> với {is_active: 1} thì `cu` = null,
+   nên hienLai = true, rồi tenTrung(..., undefined, ...). Mình thử trực tiếp với @libsql/client: "undefined cannot be passed as
+   argument to the database". Máy trả 500 LOI_MAY_CHU thay vì 404 KHONG_THAY như trước vòng 3. Thêm nữa, câu đọc rồi kiểm nằm NGOÀI
+   giao dịch (khác POST :79 dùng trongGiaoDich), nên hai lần hiện lại cùng lúc có thể lọt trùng tên.
+   — K7/K5 — NHẸ
+3. server/routes/products.js:105 (chú thích) — Ghi "MỘT vị từ cho MỌI đường thành 'đang bán với tên X'". Thật ra trong CÙNG file còn
+   3 chỗ INSERT món đang bán (is_active 1) không qua tenTrung: /price :144 (tên 'Từ SX'), /batch/prices :192, /thong-tin :251.
+   Ngoài file còn kho/nhapSx.js:183. Đều là đường cũ, ít dùng.
+   — K1 (chú thích nói quá) + K4 — NHẸ
+NGHI NGỜ:
+- giuCho.js hetHangCua: vao_vi = !!p.phone. Màn QR quầy nói "đã hoàn vào ví khách" chỉ dựa vào việc có SĐT, không dựa vào dòng vao_vi
+  thật. Lúc hai cổng cùng báo và vaoVi ghi chua_khop không cộng, câu này có thể sai. Mình chưa dựng được đường tới đó cho phiên quầy.
+- Câu báo hết hàng ở màn Bán hàng (BanHang/tinh.js:269) không có SỐ TIỀN và SĐT che như phiếu B3c ghi. Màn Đơn App (DonApp.jsx:75-77)
+  thì có.
+- bang_chung_do.txt còn ghi HEAD 9ec6f770 và "SỐ CA thu_KHO3a: 131" (bây giờ là 135). Hồ sơ chưa ghi lần cuối nên mình không tính là lỗi.
+NGHIỆM THU:    29/31 mục có bằng chứng.
+  Có bằng chứng: A1, A2, A3, A3b, A4, A5, A7 · B1–B8 · C1–C6 · D1–D4 (D4: thu_gia_lap 179/0, giả lập 33 kịch bản ĐẠT)
+  · E1 (135 ca) · E2 (41/41 đột biến) · E3 (bài cũ đã sửa trong nhánh).
+  Mục thiếu: B3c (một phần: thiếu số tiền + SĐT che trên màn Bán hàng; và lỗi 1 ở trên) · E4 (chủ quán thử tay — máy không làm được).
+CHƯA SOÁT ĐƯỢC:
+- Không chạy kiem_tra_truoc_khi_giao.js / --day-du / tu_chay/cong.js (theo dặn). Phần so dist đã thay bằng tự build ra thư mục nháp.
+- Không chạy bằng chứng đỏ --goc trên gốc. Thay vào đó, các đột biến BV- của vòng 3 cho thấy ca mới ĐỎ khi bỏ vá.
+- Không đọc lại toàn bộ 46 bài cũ bị sửa (E3), chỉ dựa vào diff và hai vòng soát trước.
+- Chạy song song thật cho lỗi 1: không dựng được từ đây. Kết luận rút từ đọc code: thanh-toan.js:20-41, :197-252; giuCho.js:154-198.
+BÀI HỌC:       KHOÁ — chặn "hoàn một lần" cho một phiên phải xét MỌI loại dòng hoàn của phiên đó (vao_vi VÀ chua_khop "HOÀN TIỀN TAY"),
+               ở MỌI cặp đường (tay ↔ cổng, có SĐT ↔ không SĐT). Mỗi cặp một ca chèn dòng sẵn, tất định.
+               NGUYÊN TẮC — vá thêm một vế vào điều kiện đọc CSDL thì thêm ca "không tìm thấy dòng" (id không có), vì `undefined` làm libsql ném lỗi.
+```
+
+Phần đã soát kỹ, không thấy lỗi (theo người soát): K3 các ca mới so đúng câu kết luận; K5 chặn mới chỉ kích hoạt khi tranh nhau, không chặn
+oan luồng nào; đường tiền lấy số hoàn từ p.con_lai (máy chủ), giao dịch BEGIN IMMEDIATE (database.js:1676-1691); P1 dist khớp; Phạm vi đúng;
+dòng hoàn đi vào pos_payos_su_kien sẵn có nên Đối soát vẫn thấy.
+
 
 ## Soát bảo mật
 ### Lần 1 (HEAD trước 8e59d04b) — nguyên văn
