@@ -98,48 +98,31 @@ const BAT_BIEN = {
     return ds.filter((r) => Math.abs(so(r.da_ghi) - so(r.total)) > 1)
       .map((r) => `đơn ${r.code}: đã ghi ${tien(r.da_ghi)} ≠ tổng ${tien(r.total)}, lệch ${tien(so(r.da_ghi) - so(r.total))}`);
   },
-  // I7 — mỗi vân tay kho được LÀM ĐÚNG MỘT LẦN: bán → out mỗi món có mã SX; huỷ → thêm in. stt = thứ hạng id trong đơn
-  // (orders.js:987–989 theo mảng, :1502–1513 theo SELECT — món INSERT đúng thứ tự mảng).
-  // LUOI-1 B4 (AU-G6): "làm" = SX giả nhận, HOẶC một dòng nợ kho CHƯA xong (orders.js:946/:1435/:1568) — không cả hai, không
-  // thiếu. Nợ đã xong (đẩy sổ nợ, doSoNo.js) ⇒ SX nhận đúng một lần. Mỗi vân tay SX giả báo lỗi ⇔ đúng một dòng nợ (bắt cả
-  // đơn đã xoá); dòng nợ không có lần lỗi tương ứng → lệch (kịch bản không bật lỗi thì như luật cũ: không được có nợ kho);
-  // lỗi xảy ra ở kịch bản không bật công tắc (kể cả lúc dựng dữ liệu = kịch bản 0) → lệch.
-  async I7(q, ctx) {
-    const mon = await q(`SELECT o.id, o.code, o.status,
-        (SELECT COUNT(*) FROM pos_order_items x WHERE x.order_id = oi.order_id AND x.id < oi.id) AS stt
-      FROM pos_order_items oi JOIN pos_orders o ON o.id = oi.order_id JOIN pos_products p ON p.id = oi.product_id
-      WHERE COALESCE(p.sx_product_type, '') <> ''`);
-    const can = new Map();
-    for (const m of mon) {
-      can.set(`POS:${m.id}:out:${m.stt}`, m.code);
-      if (m.status === 'cancelled') can.set(`POS:${m.id}:in:${m.stt}`, m.code);
-    }
-    const dem = new Map();
-    for (const n of ctx.nhanKho) dem.set(n.van_tay, (dem.get(n.van_tay) || 0) + 1);
-    const no = await q('SELECT order_code, van_tay, status FROM pos_stock_pending');
-    const soNo = new Map(), chuaXong = new Map(), daXong = new Map();
-    const cong = (m, k) => m.set(k, (m.get(k) || 0) + 1);
-    for (const r of no) { cong(soNo, r.van_tay); cong(r.status === 'resolved' ? daXong : chuaXong, r.van_tay); }
-    const hong = ctx.sxGia.hong;
-    const loi = new Set(hong.map((h) => h.van_tay));
+  // I7 — KHO-3a: bán trừ kho POS (SX đã ngắt). Mỗi đơn có món thật (product_id > 0) ↔ ĐÚNG MỘT phiếu bán (PS su_co 'ban_hang', don_hang_id).
+  // Đơn còn hiệu lực: phiếu da_duyet; đơn huỷ: phiếu huy — trừ "đồ đã pha bỏ đi" (da_duyet + ghi_chu hao hụt); phiếu của đơn đã xoá: huy.
+  // Món làm sẵn: phiếu bán trừ ĐÚNG Σ SL của món trong đơn. Không lô thành phẩm nào âm (lưới B3c: không bao giờ ghi âm thành phẩm).
+  async I7(q) {
     const lech = [];
-    for (const [vt, don] of can) {
-      if ((dem.get(vt) || 0) + (chuaXong.get(vt) || 0) !== 1) {
-        lech.push(`vân tay ${vt} (đơn ${don}) SX nhận ${dem.get(vt) || 0} lần` + (chuaXong.get(vt) ? `, nợ kho chưa xong ${chuaXong.get(vt)} dòng` : ''));
-      }
+    const don = await q('SELECT o.id, o.code, o.status FROM pos_orders o WHERE EXISTS (SELECT 1 FROM pos_order_items i WHERE i.order_id = o.id AND i.product_id > 0)');
+    const phieu = await q("SELECT id, don_hang_id, trang_thai, ghi_chu FROM kho_phieu WHERE su_co = 'ban_hang'");
+    const theoDon = new Map();
+    for (const p of phieu) theoDon.set(so(p.don_hang_id), [...(theoDon.get(so(p.don_hang_id)) || []), p]);
+    for (const d of don) {
+      const ds = theoDon.get(so(d.id)) || [];
+      if (ds.length !== 1) { lech.push(`đơn ${d.code}: ${ds.length} phiếu bán (phải đúng 1)`); continue; }
+      const can = d.status === 'cancelled' && !/hao hụt/.test(ds[0].ghi_chu || '') ? 'huy' : 'da_duyet';
+      if (ds[0].trang_thai !== can) lech.push(`đơn ${d.code} (${d.status}): phiếu bán ${ds[0].trang_thai}, phải ${can}`);
     }
-    // P26c (H6): đơn huỷ rồi bị xoá — nợ `in` vẫn đẩy, nên vân tay của đơn không còn được nhận qua đúng một dòng nợ ĐÃ xong.
-    for (const [vt, n] of dem) if (!can.has(vt) && !daXong.has(vt)) lech.push(`SX nhận vân tay lạ ${vt} × ${n}`);
-    // (b) chỉ soát SX nhận: số dòng nợ ≥ 2 cùng vân tay đã bị vế "mỗi vân tay lỗi ⇔ đúng một dòng nợ" và "nợ phải có lần lỗi" bắt.
-    for (const [vt, n] of daXong) if (dem.get(vt) !== 1) lech.push(`nợ kho ${vt} đã xong ${n} dòng, SX nhận ${dem.get(vt) || 0} lần`);
-    // Nợ kho KHÔNG vân tay luôn lệch: sổ nợ không đẩy lại an toàn được (doSoNo.js chuyển can_xem). Phép riêng vì SX giả ghi
-    // `van_tay || null` (chay.js:77) — lệnh lỗi không vân tay làm `loi` chứa null (soát vòng 3 lỗi 2; chat sửa 10.10 — ca tay riêng).
-    for (const r of no) {
-      if (!r.van_tay) lech.push(`nợ kho KHÔNG vân tay (${r.order_code}) — không đẩy lại an toàn được`);
-      else if (!loi.has(r.van_tay)) lech.push(`nợ kho ${r.van_tay} (${r.order_code}) không có lần SX lỗi tương ứng`);
-    }
-    for (const vt of loi) if (soNo.get(vt) !== 1) lech.push(`SX báo lỗi vân tay ${vt}, sổ nợ kho có ${soNo.get(vt) || 0} dòng`);
-    for (const h of hong) if (!ctx.sxGia.kbBat.has(h.kb)) lech.push(`SX lỗi ở kịch bản ${h.kb} không bật công tắc lỗi (vân tay ${h.van_tay})`);
+    const coDon = new Set(don.map((d) => so(d.id)));
+    for (const p of phieu) if (!coDon.has(so(p.don_hang_id)) && p.trang_thai !== 'huy') lech.push(`phiếu bán #${p.id} của đơn #${p.don_hang_id} không còn — vẫn ${p.trang_thai}`);
+    const sai = await q(`SELECT o.code, i.product_id, SUM(i.quantity) AS sl, (SELECT -COALESCE(SUM(d.so_luong), 0) FROM kho_phieu_dong d
+        JOIN kho_phieu p ON p.id = d.phieu_id WHERE p.don_hang_id = o.id AND p.su_co = 'ban_hang' AND d.san_pham_id = i.product_id) AS tru
+      FROM pos_orders o JOIN pos_order_items i ON i.order_id = o.id JOIN kho_san_pham s ON s.pos_product_id = i.product_id AND s.kieu = 'lam_san'
+      GROUP BY o.id, i.product_id`);
+    for (const r of sai) if (Math.abs(so(r.sl) - so(r.tru)) > 1e-9) lech.push(`đơn ${r.code}: món #${r.product_id} bán ${so(r.sl)}, phiếu bán trừ ${so(r.tru)}`);
+    const lo = await q(`SELECT l.id, (SELECT COALESCE(SUM(d.so_luong), 0) FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id
+      WHERE d.lo_id = l.id AND p.trang_thai = 'da_duyet' AND p.loai <> 'DH') AS con FROM kho_lo l WHERE l.san_pham_id IS NOT NULL`);
+    for (const l of lo) if (so(l.con) < -1e-9) lech.push(`lô thành phẩm #${l.id} âm ${so(l.con)}`);
     return lech;
   },
   // I8 — điểm mỗi đơn đúng luật HIỆN TẠI. g = floor(tiền thật/per) (DIEM-THAT-1; luật cũ gCu = floor(total/per)), k = hệ số. Có điểm lúc bán / lúc thu đủ (orders.js tinhDiemDon):
