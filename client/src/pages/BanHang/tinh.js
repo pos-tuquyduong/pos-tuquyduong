@@ -5,7 +5,6 @@
 
 export { ghiChuMacDinh } from './ghiChuMacDinh.js';
 
-export const KHOA_CONG_TAC ='pos_man_ban_hang_moi';
 export const KHOA_KIEU = 'pos_man_ban_hang_kieu';
 export const KIEU_MAN = ['tudong', 'dienthoai', 'maytinhbang'];
 export const NGUONG_DIEN_THOAI = 600;                       // hẹp HƠN số này (px) → hai trang Món ↔ Giỏ
@@ -19,7 +18,7 @@ const so = (n) => (Number.isFinite(Number(n)) ? Number(n) : 0);
 // ── Thu tiền mặt ────────────────────────────────────────────────────────────
 export const traLai = (phaiTra, dua) => Math.max(0, so(dua) - so(phaiTra));
 export const conThieu = (phaiTra, dua) => Math.max(0, so(phaiTra) - so(dua));
-export const duDuoc = (phaiTra, dua) => so(dua) >= so(phaiTra);   // phải trả 0đ (giảm hết) vẫn thu được, như màn cũ
+export const duDuoc = (phaiTra, dua) => so(dua) >= so(phaiTra);   // phải trả 0đ (giảm hết) vẫn thu được
 
 /** "Đúng tiền" + các tờ LỚN HƠN số phải trả, mỗi nút ghi sẵn trả lại. */
 export function danhSachTo(phaiTra) {
@@ -29,7 +28,7 @@ export function danhSachTo(phaiTra) {
   return [{ dua: can, traLai: 0, dungTien: true }, ...dsTo].slice(0, SO_NUT_TIEN_TOI_DA);
 }
 
-// ── Công tắc theo máy ───────────────────────────────────────────────────────
+// ── Kiểu bố cục theo máy ────────────────────────────────────────────────────
 /** Điện thoại / máy tính bảng. kieu lạ → Tự động. */
 export function tachTrang(rong, kieu) {
   if (kieu === 'dienthoai') return 'hai-trang';
@@ -37,25 +36,23 @@ export function tachTrang(rong, kieu) {
   return so(rong) < NGUONG_DIEN_THOAI ? 'hai-trang' : 'hai-cot';
 }
 
-/** kho = localStorage (hoặc giả). Hỏng / lạ → tắt + Tự động. Bật CHỈ khi đúng chuỗi '1'. */
-export function docCongTac(kho) {
+/** kho = localStorage (hoặc giả). Hỏng / thiếu / lạ → Tự động. */
+export function docKieu(kho) {
   try {
-    const bat = kho.getItem(KHOA_CONG_TAC) === '1';
     const kieu = kho.getItem(KHOA_KIEU);
-    return { bat, kieu: KIEU_MAN.includes(kieu) ? kieu : 'tudong' };
+    return KIEU_MAN.includes(kieu) ? kieu : 'tudong';
   } catch {
-    return { bat: false, kieu: 'tudong' };
+    return 'tudong';
   }
 }
 
-export function ghiCongTac(kho, bat, kieu) {
+export function ghiKieu(kho, kieu) {
   try {
-    kho.setItem(KHOA_CONG_TAC, bat ? '1' : '0');
     kho.setItem(KHOA_KIEU, KIEU_MAN.includes(kieu) ? kieu : 'tudong');
   } catch { /* kho bị chặn: coi như không lưu được, máy vẫn bán bình thường */ }
 }
 
-// ── Giá hạng / giỏ (cùng cách Sales.jsx tính; máy chủ luôn tính lại) ─────────
+// ── Giá hạng / giỏ (chỉ để hiển thị; máy chủ luôn tính lại) ──────────────────
 /** % giảm của hạng cho một món; hạng không dùng được → 0. */
 export function phanTramHang(hang, laNhomDacBiet) {
   if (!hang || !hang.usable) return 0;
@@ -114,7 +111,7 @@ export function ghepGhiChu(nhan, tuGo) {
 // ── Payload POST /orders (đợt 1 — màn mới KHÔNG còn dùng: thu qua phiên; giữ vì thu_BH1 I1–I11 khoá, chờ chủ quán duyệt xoá) ──
 /**
  * cach: 'cash' | 'transfer' | 'balance'. soDuDung/soDuMeDung: số tiền trừ tài khoản (đã chặn ≤ tổng ở nơi gọi).
- * Đợt 1 không gói / thẻ / phí giao / mã giảm giá → các khoá đó giữ giá trị rỗng như Sales.jsx khi không dùng.
+ * Đợt 1 không gói / thẻ / phí giao / mã giảm giá → các khoá đó giữ giá trị rỗng khi không dùng.
  */
 export function dungDonHang({ gio, tamTinh, cach, khach, soDuDung = 0, soDuMeDung = 0, khachDua = 0 }) {
   const tong = tamTinh.tong;
