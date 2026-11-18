@@ -51,6 +51,14 @@ async function goi(duong, tuy = {}) {
 }
 
 const so = (x) => (x == null || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));
+/** GIAO-3 C: phí CHUYẾN quán trả — chỉ nhận số > 0; 0 / rỗng / chữ = "không biết" (null) → nơi ghi giữ phí đang có (COALESCE). MỘT quy tắc
+ *  cho tạo chuyến + đọc chuyến. Đọc `total_price`; `total_fee` (tài liệu: phí trước khuyến mãi) CHƯA đối chiếu dữ liệu thật — chỉ đưa vào log. */
+const phiDuong = (x) => (so(x) > 0 ? Math.round(so(x)) : null);
+/** Chữ Ahamove gửi (lý do thất bại / huỷ): bỏ ký tự điều khiển, cắt 200 ký tự; rỗng → null. Màn hiện như chữ thường (React không chèn HTML). */
+const chuAha = (x) => (typeof x === 'string' && x.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200)) || null;
+/** Giờ Ahamove (giây hoặc mili-giây unix) → giờ VN 'YYYY-MM-DDTHH:mm:ss' (cùng quy ước getNow); không phải số → null. */
+const gioAha = (x) => (so(x) > 0 ? new Date(so(x) < 1e12 ? so(x) * 1000 : so(x)).toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).replace(' ', 'T') : null);
+const TRA_HANG = { IN_RETURN: 'dang_tra', RETURNED: 'da_ve' };   // sub_status của COMPLETED (tài liệu Order Status Flow)
 /** Điểm trên đường đi của Ahamove: { address, lat, lng, name, mobile, remarks, tracking_number } — bỏ trường rỗng. */
 const diem = (d) => Object.fromEntries(Object.entries({ address: d.dia_chi, lat: so(d.lat), lng: so(d.lng), name: d.ten, mobile: d.sdt,
   remarks: d.ghi_chu, tracking_number: d.ma_theo_doi }).filter(([, v]) => v != null && v !== ''));
@@ -73,7 +81,7 @@ async function taoChuyen({ lay, giao, loaiXe }) {
   const j = await goi('/v3/orders', { method: 'POST', than: { order_time: 0, service_id: loaiXe, path: [diem(lay), diem(giao)], payment_method: 'BALANCE' } });
   const ma = j?.order_id || j?._id;
   if (!ma) throw loi('AHAMOVE_MAT_MANG', 200);   // trả 200 mà không có mã: không biết đã tạo chưa → kiểm theo mã theo dõi
-  return { ma: String(ma), phi: so(j.order?.total_price ?? j.total_price) };
+  return { ma: String(ma), phi: phiDuong(j.order?.total_price ?? j.total_price) };
 }
 
 /** Một chuyến trong câu trả của Ahamove: gỡ mảng / { order } (GIAO-2 — dạng thật CHƯA đối chiếu; một hàm cho mọi đường đọc chuyến). */
@@ -100,7 +108,9 @@ function tomChuyen(o) {
   return {
     ma: String(o._id || o.order_id), trang_thai: String(o.status || ''), diem_giao: String(den.status || ''),
     tai_xe: { ten: o.supplier_name || null, sdt: o.supplier_id || null, bien_so: o.supplier_plate || o.vehicle_plate || o.supplier_license_plate || null },
-    phi: so(o.total_price), phi_huy: so(o.cancel_fee) ?? 0, nguoi_huy_la_quan: o.cancel_by_user !== false,
+    phi: phiDuong(o.total_price), phi_tho: { total_price: so(o.total_price), total_fee: so(o.total_fee) },   // phi_tho: chỉ số, cho log [GIAO] phi
+    phi_huy: so(o.cancel_fee) ?? 0, nguoi_huy_la_quan: o.cancel_by_user !== false,
+    ly_do: chuAha(den.fail_comment), ly_do_huy: chuAha(o.cancel_comment), tra_hang: TRA_HANG[o.sub_status] || null, tra_luc: gioAha(den.return_time),
   };
 }
 
