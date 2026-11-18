@@ -1,6 +1,6 @@
 /**
  * Thanh khách ngay trên màn: gõ SĐT / tên (trống = khách lẻ) hoặc Quét thẻ. KHÔNG tạo khách ở quầy (luật 6) —
- * không dùng CustomerSearch vì nó có nút "Thêm khách mới". Tra bằng đúng API ô tìm cũ (customersV2Api.search).
+ * không có nút "Thêm khách mới". Tra bằng API tìm khách customersV2Api.search.
  */
 import { useEffect, useRef, useState } from 'react';
 import { Camera, X } from 'lucide-react';

@@ -108,7 +108,7 @@ export function ghepGhiChu(nhan, tuGo) {
   return ds.join(', ').slice(0, GHI_CHU_TOI_DA);
 }
 
-// ── Payload POST /orders (đợt 1 — màn mới KHÔNG còn dùng: thu qua phiên; giữ vì thu_BH1 I1–I11 khoá, chờ chủ quán duyệt xoá) ──
+// ── Payload POST /orders (đợt 1 — màn KHÔNG còn dùng: thu qua phiên; giữ vì thu_BH1 I1–I9 + thu_KHACHCK1 D2 khoá, chờ chủ quán duyệt xoá) ──
 /**
  * cach: 'cash' | 'transfer' | 'balance'. soDuDung/soDuMeDung: số tiền trừ tài khoản (đã chặn ≤ tổng ở nơi gọi).
  * Đợt 1 không gói / thẻ / phí giao / mã giảm giá → các khoá đó giữ giá trị rỗng khi không dùng.
