@@ -3,8 +3,8 @@
 Không chờ duyệt (phiếu: việc giao hàng / báo cáo chỉ đọc). Số dòng đã đọc lại trên `4fd64c3`.
 
 ## 0. Đã đọc (K1)
-- `server/utils/ahamove.js:91-97` tomChuyen: `phi: so(o.total_price)` (0 là số → ghi đè); không đọc `sub_status`, `fail_comment`, `cancel_comment`.
-  `taoChuyen:67` `so(j.order?.total_price ?? j.total_price)` — cùng khuôn phí (K4: tạo chuyến trả 0 → `t.phi ?? bp.phi` lấy 0).
+- `server/utils/ahamove.js:98-103` tomChuyen: `phi: so(o.total_price)` (0 là số → ghi đè); không đọc `sub_status`, `fail_comment`, `cancel_comment`.
+  `taoChuyen:76` `so(j.order?.total_price ?? j.total_price)` — cùng khuôn phí (K4: tạo chuyến trả 0 → `t.phi ?? bp.phi` lấy 0).
 - `server/utils/giaoHang.js:378` capNhatTuAhamove bỏ qua thẻ giao_loi; `:408` `phi_that = COALESCE(?, phi_that)`, `loi = 'Giao không thành công'` cố định;
   `:385` CANCELLED khi dang_giao câu cố định; `:308` nhận lại theo mã theo dõi cũng `COALESCE(co.phi, …)` (K4 — cùng nguồn tomChuyen).
   `:429` khoá chống lặp `phu = diem_giao|sdt`; `:468` danhSach chỉ đọc lại tim_xe/doi_tai_xe/dang_giao.
