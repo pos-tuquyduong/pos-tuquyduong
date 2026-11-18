@@ -8,7 +8,8 @@
          Giao lỗi", không tự hoàn tiền, nút "Đóng thẻ" (luật 02.11). THIẾU: không hiện lý do; 12:23:40 hàng về quán (RETURNED) → bấm "Tải lại" POS không đổi.
        - D-PHI-1: sau ACCEPTED, chi tiết đổi "phí Ahamove 16.000đ" → "0đ (quán dư 16.000đ)". Gặp ở HD0002 (chuyến -3, -4) và HD0003.
        - F-LOI-1: 17.11 ~14:58 tab "🧾 Đối soát" kẹt "Đang đối soát…" > 1 phút (cả ngày 16/11); tab "Hàng ngày" ra số ngay.
-         18.11 16:05 (kho đã ở Virginia) thử lại: VẪN kẹt ~40 giây, không ra số → lỗi ở code, không phải vị trí kho.
+         18.11 16:05 thử lại: VẪN kẹt ~40 giây. ĐÍNH CHÍNH 17:10: lúc đó máy chủ VẪN chạy kho Tokyo — Render chỉ áp biến kho Virginia ở lần triển khai
+         18.11 16:24 (17.11 chỉ Save + Resume). Kho xa làm chậm thêm, nhưng D vẫn bắt buộc: đo bằng độ trễ giả lập, không dựa vào vị trí kho.
        - F-LOI-2 (bổ sung 18.11 16:20, TIỀN — hiển thị): Quản lý › Báo cáo › "Hàng ngày" 18/11 (một đơn HD0003: món 30.000 + phí giao 16.000, tiền mặt 46.000):
          Doanh thu 46.000 · Tiền mặt 46.000 · Phí ship 16.000 · **Thực thu 62.000** (đúng phải 46.000). Kèm "Tổng nạp 3.000đ" trong ngày — chat POS kiểm riêng.
          Chat đọc: client/src/pages/Reports.jsx ~237 màn TỰ TÍNH `total_revenue − total_discount + total_shipping`; server/routes/reports.js ~35–40
