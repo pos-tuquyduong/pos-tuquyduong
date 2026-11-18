@@ -17,6 +17,9 @@ async function hoanTayHetHang(p, mon, nguoi) {
   const soTien = Number(p.con_lai) || 0;
   const lyDo = `Hết hàng: ${mon || 'món'} — xác nhận tay, không tạo được đơn`;
   return trongGiaoDich(async (tx) => {
+    // Đóng phiên CÙNG giao dịch (soát bảo mật): đã hoàn thì không xác nhận tay lại được thành đơn (chotPhien kiểu muộn chỉ nhận 'cho' / 'huy').
+    await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",
+      [`HET_HANG: ${mon || 'món'}`, p.id]);
     const ghi = (ketQua, chu) => tx.run(CAU_GHI, [`tay:${p.id}`, p.ma_payos ?? null, soTien, ketQua, chu, JSON.stringify({ phien: p.id, nguoi }), getNow()]);
     if (!p.phone) {
       await ghi('chua_khop', `${lyDo} — khách chưa có tài khoản: HOÀN TIỀN TAY ${soTien}`);
@@ -190,6 +193,11 @@ async function xuLyTienVe(res, t) {
       if (await congKiaDaBao(tx, t)) {
         await tx.run(CAU_GHI, thamSo('chua_khop', `${dau} — có thể ${LY_DO_HAI_CONG} (cổng kia đã báo tiền cho ${soHd}) · mã GD ${maGd}: máy KHÔNG tự cộng`
           + ` — đối chiếu sao kê, khoản chưa cộng thì cộng tay vào tài khoản ${x.phone}`));
+        return;
+      }
+      // KHO-3a (soát bảo mật): khoản này đã được hoàn khi quản lý xác nhận tay lúc hết hàng (dòng `tay:<phiên>`) → KHÔNG cộng lần hai, CẦN XEM.
+      if (await tx.queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [`tay:${x.id}`])) {
+        await tx.run(CAU_GHI, thamSo('chua_khop', `${dau} — đã hoàn khi xác nhận tay lúc hết hàng (${soHd}) · mã GD ${maGd}: máy KHÔNG cộng lần hai — đối chiếu sao kê`));
         return;
       }
       const ins = await tx.run(CAU_GHI, thamSo('vao_vi', `${dau} — ${LY_DO_VAO_VI} ${x.phone} (${soHd}) · mã GD ${maGd}`));

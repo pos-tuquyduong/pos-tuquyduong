@@ -56,6 +56,12 @@ DOT_BIEN = [
   ('VS-TAY-HOAN-HAI-LAN', [(TT, ".changes !== 1) return { da_hoan: true };", ".changes !== 1 && false) return { da_hoan: true };", 1)], r'✗ B3c xác nhận tay hỏng'),
   ('BV-MOT-VI-TU-CON-RONG', [(BH, "\n  || (p.kieu === 'pha_tai_cho' && !tinh.trienKhai({ goc: p.id, bang }, 1).length);", ';', 1)], r'✗ B3 pha tại chỗ chỉ gồm món con rỗng'),
   ('BV-SUA-TEN-TRUNG', [(P, "    if (doi.name && await tenTrung({ queryOne }, doi.name, Number(req.params.id))) return", "    if (false) return", 1)], r'✗ A4 sửa tên trùng'),
+  # ── vòng sửa 2 (soát bảo mật): hoàn tay đóng phiên · tiền về sau khi đã hoàn tay không cộng lần hai ──
+  ('BV-DONG-PHIEN-KHI-HOAN-TAY', [(TT, """    await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",""",
+    """    if (false) await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",""", 1)],
+    r'✗ B3c xác nhận tay muộn'),
+  ('BV-TIEN-VE-SAU-HOAN-TAY', [(TT, "      if (await tx.queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [`tay:${x.id}`])) {",
+    '      if (false) {', 1)], r'✗ B3c App: xác nhận tay'),
   # ── B4 / B6 / B7: trừ trong giao dịch, một phiếu ──
   ('BV-TRU-KHO', [(O, 'const kho = await banHang.truKhoDon(tx, {', 'const kho = await (async () => ({}))(tx, {', 1)], r'✗ B(1 FEFO|4 đúng MỘT)'),
   ('BV-CHAN-TRONG-TX', [(O, '      if (kho.loi) {\n        await tx.rollback();', '      if (false) {\n        await tx.rollback();', 1)], r'✗ B(1 thiếu 1|3b POST)'),

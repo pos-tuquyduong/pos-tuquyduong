@@ -513,6 +513,29 @@ async function main() {
     k('B3c xác nhận tay hỏng vì hết hàng → 400 HET_HANG, không đơn, ví +đúng số MỘT lần (bấm lại không cộng)', la(xt, 400, 'HET_HANG')
       && Number(xt.j.hoan?.vao_vi) === Number(pt.j.phien?.con_lai) && (await so('SELECT COUNT(*) FROM pos_orders')) === donT
       && (await soDu(kh4.sdt)) === Number(pt.j.phien?.con_lai) && xt2.status >= 400, `${moTa(xt)} ${JSON.stringify(xt.j.hoan)} · ${moTa(xt2)} · ví ${await soDu(kh4.sdt)}`);
+    // Soát bảo mật: xác nhận tay MUỘN (phiên đã huỷ) hỏng vì kho → đã hoàn; nhập thêm hàng rồi xác nhận lại → KHÔNG ra đơn (đã hoàn rồi)
+    const lo6 = await napTP(spL, 1);
+    const kh6 = await khach();
+    const pt6 = await taoPhienQuay([mon(spL, 1)], 'ck_tay', { customer_phone: kh6.sdt, customer_name: 'Khách K3a muộn' });
+    await huyPhien(pt6.j.phien?.id);
+    await mat(lo6);
+    const m1 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pt6.j.phien?.id}/xac-nhan-tay`, { ly_do: 'tiền về sau khi huỷ (thử)' });
+    await napTP(spL, 5);
+    const donM = await so('SELECT COUNT(*) FROM pos_orders');
+    const m2 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pt6.j.phien?.id}/xac-nhan-tay`, { ly_do: 'xác nhận lại sau khi nhập hàng (thử)' });
+    k('B3c xác nhận tay muộn hỏng vì kho → hoàn ví; nhập hàng rồi xác nhận lại → 409, KHÔNG đơn, ví không cộng thêm', la(m1, 400, 'HET_HANG')
+      && m2.status === 409 && (await so('SELECT COUNT(*) FROM pos_orders')) === donM && (await soDu(kh6.sdt)) === Number(pt6.j.phien?.con_lai),
+      `${moTa(m1)} · ${moTa(m2)} · ví ${await soDu(kh6.sdt)}`);
+    // Soát bảo mật: App QR — quản lý xác nhận tay lúc hết hàng (đã hoàn ví) rồi webhook payOS tới → KHÔNG cộng lần hai
+    const lo7 = await napTP(spL, 1);
+    const kh7 = await khach();
+    await datApp(kh7, [{ ma: maCua(spL), so_luong: 1 }]);
+    const pA7 = await phienAppMoiNhat(kh7);
+    await mat(lo7);
+    const t7 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pA7?.id}/xac-nhan-tay`, { ly_do: 'khách đưa sao kê, webhook chưa về (thử)' });
+    await webhook(pA7 || {});
+    k('B3c App: xác nhận tay hết hàng (hoàn ví) rồi webhook payOS cùng khoản → ví chỉ +MỘT lần', la(t7, 400, 'HET_HANG')
+      && (await soDu(kh7.sdt)) === Number(pA7?.con_lai), `${moTa(t7)} · ví ${await soDu(kh7.sdt)} / ${pA7?.con_lai}`);
     const lo5 = await napTP(spL, 1);
     const pt5 = await taoPhienQuay([mon(spL, 1)], 'ck_tay');
     await mat(lo5);
