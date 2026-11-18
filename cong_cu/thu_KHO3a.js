@@ -523,7 +523,7 @@ async function main() {
     k('B5 huỷ đơn CŨ không phiếu bán → 200, không lỗi', la(hc, 200), moTa(hc));
     // Đơn giao "Bỏ đi": dựng chuyến đang pha
     const d4 = (await banTM([mon(spH, 2)], { customer_phone: (await khach()).sdt })).j.order?.id;
-    await ghiDb(`INSERT INTO pos_giao_chuyen (order_id, ten_nhan, sdt_nhan, dia_chi, loai_xe, trang_thai) VALUES (?, 'Nhận thử', '0900000000', 'Địa chỉ thử', 'BIKE', 'dang_pha')`, [d4]);
+    await ghiDb(`INSERT INTO pos_giao_chuyen (order_id, ten_nhan, sdt_nhan, dia_chi, loai_xe, trang_thai, tao_luc) VALUES (?, 'Nhận thử', '0900000000', 'Địa chỉ thử', 'BIKE', 'dang_pha', ?)`, [d4, getNow()]);
     const truoc = await conLo(loH);
     const hb = await huyDon(d4, { do_da_pha: 'bo_di', reason: 'đồ đã pha bỏ đi (thử)' });
     const pb4 = d4 ? await phieuBanCua(d4) : [];
