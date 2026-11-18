@@ -112,15 +112,24 @@ function khungManHinh(cong) {
   const VO = { AuthContext: 'module.exports = { useAuth: () => ({ hasPermission: () => true, user: { role: "owner", username: "chu" } }) };',
     thongBaoKho: 'const b = (k) => (...a) => { globalThis.__G3_BAO.push([k, a.map((x) => (x && x.message) || String(x)).join(" · ")]); };'
       + ' module.exports = { baoXong: b("xong"), baoLoi: b("loi"), baoLoiTu: b("loi"), lyDoLoi: (e) => (e && e.message) || "", dangKy: () => () => {}, laySnapshot: () => [], bo: () => {} };' };
-  const GOI_RONG = 'const vo = () => null; module.exports = new Proxy({ __esModule: true }, { get: (o, k) => (k in o ? o[k]'
-    + ' : k === "useSearchParams" ? () => [new URLSearchParams(), () => {}] : String(k).startsWith("use") ? () => () => {} : vo) });';
+  // Vỏ gói ngoài: đúng các tên file nhập (đọc từ câu import) — esbuild chép thuộc tính module CommonJS, không đọc được Proxy (thu_VOUCHER2.js).
+  const tenNhap = (file, goi) => {
+    const e = goi.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'), ds = new Set();
+    for (const m of fs.readFileSync(file, 'utf8').matchAll(new RegExp(`import\\s+([^;]*?)\\s+from\\s+['"]${e}['"]`, 'g'))) {
+      const nhom = m[1].match(/\{([^}]*)\}/);
+      if (nhom) nhom[1].split(',').map((x) => x.trim().split(/\s+as\s+/)[0]).filter(Boolean).forEach((x) => ds.add(x));
+    }
+    return [...ds];
+  };
+  const GOI_RONG = (ten) => 'const vo = () => null; const ham = (k) => k === "useSearchParams" ? () => [new URLSearchParams(), () => {}] : k.startsWith("use") ? () => () => {} : vo;'
+    + ` module.exports = { __esModule: true, default: vo, ${ten.map((t) => `${JSON.stringify(t)}: ham(${JSON.stringify(t)})`).join(', ')} };`;
   const vo = { name: 'g3', setup(b) {
     b.onResolve({ filter: /\.(css|png|jpe?g|svg|gif|webp)$/ }, () => ({ path: 'css', namespace: 'g3' }));
     b.onResolve({ filter: /^react(\/jsx-runtime|\/jsx-dev-runtime)?$/ }, () => ({ path: 'react', namespace: 'g3' }));
     b.onResolve({ filter: /(AuthContext|thongBaoKho(\.js)?)$/ }, (a) => ({ path: Object.keys(VO).find((x) => a.path.includes(x)), namespace: 'g3' }));
-    b.onResolve({ filter: /^[^./]/ }, () => ({ path: 'goi', namespace: 'g3' }));
+    b.onResolve({ filter: /^[^./]/ }, (a) => ({ path: 'goi:' + tenNhap(a.importer, a.path).join(','), namespace: 'g3' }));
     b.onLoad({ filter: /.*/, namespace: 'g3' }, (a) => ({ loader: 'js', contents: a.path === 'css' ? '' : a.path === 'react' ? 'module.exports = globalThis.__G3_REACT;'
-      : a.path === 'goi' ? GOI_RONG : VO[a.path] }));
+      : a.path.startsWith('goi:') ? GOI_RONG(a.path.slice(4).split(',').filter(Boolean)) : VO[a.path] }));
   } };
   const fetchGoc = globalThis.fetch;
   globalThis.fetch = (u, o) => fetchGoc(typeof u === 'string' && u.startsWith('/') ? `http://127.0.0.1:${cong}${u}` : u, o);
