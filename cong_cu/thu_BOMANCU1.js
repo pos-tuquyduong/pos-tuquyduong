@@ -404,7 +404,8 @@ async function main() {
     k('C5a đơn cũ trừ ví MỘT PHẦN (10.000 / 100.000) → có trong Lịch sử đơn (GET /orders)', d1.status === 200
       && (ls.j.orders || []).some((o) => o.id === d1.body?.order?.id), `HTTP ${d1.status} · ${moTa(ls)}`);
     const h1 = await huy(d1.body?.order?.id);
-    k('C5b huỷ đơn cũ trừ ví một phần → 200, ví về lại 100.000', la(h1, 200) && (await soDu(kh)) === 100000, `${moTa(h1)} · ${await soDu(kh)}`);
+    // HUY-1 (thu_HUY1 D4): huỷ hoàn TOÀN BỘ đã trả vào tài khoản — 100.000 − 10.000 + 10.000 (ví) + 15.000 (tiền mặt) = 115.000.
+    k('C5b huỷ đơn cũ trừ ví một phần → 200, tài khoản 115.000 (hoàn đủ 25.000 như HUY-1)', la(h1, 200) && (await soDu(kh)) === 115000, `${moTa(h1)} · ${await soDu(kh)}`);
     const me = await khach(100000, '2468'), con = await khach(0, PIN, me);
     const d2 = await donCu(MAY_CHU, { customer_phone: con, parent_phone: me, customer_name: 'Con', items: [mon()], payment_method: 'cash', parent_balance_amount: 25000 });
     const h2 = await huy(d2.body?.order?.id);
@@ -420,8 +421,14 @@ async function main() {
     const sau = await so('SELECT delivered_qty AS n FROM pos_customer_packages WHERE id = ?', [cp?.id]);
     k('C5e đơn cũ LẤY 2 ly từ gói → huỷ 200, gói hoàn 2 lượt (2 → 0)', l.status === 200 && da === 2 && la(hl, 200) && sau === 0, `HTTP ${l.status} · ${da} → ${moTa(hl)} → ${sau}`);
     const hm = await huy(m.body?.order?.id);
-    const cpSau = await db.queryOne('SELECT status FROM pos_customer_packages WHERE id = ?', [cp?.id]);
-    k('C5f đơn cũ MUA gói → huỷ 200, gói cancelled', la(hm, 200) && cpSau?.status === 'cancelled', `${moTa(hm)} · ${cpSau?.status}`);
+    const conGoi = await so('SELECT COUNT(*) AS n FROM pos_customer_packages WHERE id = ?', [cp?.id]);
+    k('C5f đơn cũ MUA gói (chưa lấy lượt nào sau C5e) → huỷ 200, gói bị bỏ (như HUY-1, orders.js huỷ đơn mua gói)', m.status === 200 && la(hm, 200) && conGoi === 0,
+      `${moTa(hm)} · còn ${conGoi} dòng gói`);
+    const { r: m2, cp: cp2 } = await muaGoiCu(kg);
+    await donCu(MAY_CHU, { customer_phone: kg, customer_name: 'K', customer_package_id: cp2?.id, items: [mon(1, 0, true)], payment_method: 'cash', cash_amount: 0 });
+    const hm2 = await huy(m2.body?.order?.id);
+    const cpSau = await db.queryOne('SELECT status FROM pos_customer_packages WHERE id = ?', [cp2?.id]);
+    k('C5h đơn cũ MUA gói đã lấy 1 lượt → huỷ 200, gói cancelled (giữ làm lịch sử)', la(hm2, 200) && cpSau?.status === 'cancelled', `${moTa(hm2)} · ${cpSau?.status}`);
     const no = await donCu(MAY_CHU, { customer_phone: kh, customer_name: 'K', items: [mon()], payment_method: 'debt', debt_amount: 25000, due_date: '2026-12-31' });
     const tn = await goi('POST', `/pos/orders/${no.body?.order?.id}/pay-debt`, { payment_method: 'cash', amount: 25000 });
     k('C5g đơn NỢ cũ → thu nợ tiền mặt 200, đơn paid (đơn nợ cũ vẫn thu được)', no.status === 200 && la(tn, 200)
