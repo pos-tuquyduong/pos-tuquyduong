@@ -9,7 +9,15 @@
  * lưới chống lỗi quay lại. Bộ kiểm có bánh cóc số kịch bản (chỉ được tăng).
  * Kịch bản mới phải vào đúng MỘT lượt trong LUOT (cuối file — TACH-GL).
  */
+const fs = require('fs');
+const path = require('path');
+const { donCu, laDonCu } = require('./donCu');
 const KH = { quen: '0900000001', no: '0900000002', moi: '0900000003' };
+// BO-MAN-CU-1: thân taoDonGoc (đơn cũ) phải là ĐÚNG module máy chủ giả lập đang chạy — cùng biểu thức đường dẫn với chay.js.
+const iMC = process.argv.indexOf('--may-chu');
+const MAY_CHU = fs.realpathSync(path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(__dirname, '..', '..', 'server')));
+const PIN = '1357';
+const TRUONG_DON = ['customer_phone', 'customer_name', 'items', 'discount_code', 'vouchers', 'notes', 'shipping_fee', 'membership_buy', 'giao', 'goi_nap_id'];
 const GIA = [25000, 20000, 30000, 15000, 35000];
 let soSdt = 0;
 const sdtMoi = () => '09' + String(20000000 + (++soSdt));
@@ -23,8 +31,34 @@ async function dungDuLieu(c) {
       await db.run('INSERT INTO sqlite_sequence (name, seq) VALUES (?, ?)', [bang, 1000 * (i + 1)]);
     }
   }
+  // BO-MAN-CU-1 (chủ quán 11.11 + 17.11): đường thẳng POST /orders chỉ nhận tiền mặt. Quầy hôm nay:
+  //  - trả đủ bằng tài khoản của chính khách → phiên `tai_khoan` + PIN; chỉ chuyển khoản → phiên `ck_tay` + xác nhận tay;
+  //  - đơn gói, ví một phần, ví mẹ, nợ / chờ thu = ĐƠN CŨ (dữ liệu có sẵn trên quầy) → dựng bằng thân taoDonGoc (donCu.js).
+  // c.goi chặn POST /orders thân kiểu cũ → donCu (giữ nguyên các cảnh đua của KB17); c.goiThang = đường HTTP thật (cảnh "quầy bấm bán gói").
+  c.goiThang = goi;
+  c.goi = async (ai, method, url, body) => (method === 'POST' && url === '/orders' && laDonCu(body)
+    ? donCu(MAY_CHU, body, { username: ai === 'nv' ? 'nv_gia_lap' : 'chu' }).then((x) => ({ ...x.body, status: x.status }))
+    : goi(ai, method, url, body));
+  const donQuay = async (ai, b) => {
+    const coGoi = !!(b.package_buy || b.customer_package_id || (b.items || []).some((i) => i && i.from_package));
+    const so = (x) => Number(x) || 0;
+    const viDu = !coGoi && !!b.customer_phone && (so(b.balance_amount) > 0 || b.payment_method === 'balance') && !b.parent_phone
+      && !so(b.parent_balance_amount) && !so(b.debt_amount) && !so(b.cash_amount) && !so(b.transfer_amount);
+    const chiCK = !coGoi && so(b.transfer_amount) > 0 && !so(b.balance_amount) && b.payment_method !== 'balance' && !so(b.parent_balance_amount)
+      && !so(b.debt_amount) && !so(b.cash_amount);
+    if (!viDu && !chiCK) return c.goi(ai, 'POST', '/orders', b);
+    const don = Object.fromEntries(TRUONG_DON.filter((x) => b[x] !== undefined).map((x) => [x, b[x]]));
+    if (viDu) {   // khách trả bằng tài khoản ở quầy có hồ sơ + PIN (khách chỉ có ví từ lần nạp thì thêm hồ sơ); đã có PIN → lỗi, bỏ qua
+      await db.run('INSERT INTO pos_customers (phone, name) VALUES (?, ?) ON CONFLICT(phone) DO NOTHING', [b.customer_phone, b.customer_name || 'Khách']);
+      await goi('chu', 'POST', '/thanh-toan/pin', { phone: b.customer_phone, pin: PIN, pin_lai: PIN });
+    }
+    const p = await goi(ai, 'POST', '/thanh-toan/phien', { cach: viDu ? 'tai_khoan' : 'ck_tay', don, ...(viDu ? { tru_tai_khoan: true, pin: PIN } : {}) });
+    if (p.status !== 200) return p;
+    return viDu ? goi(ai, 'POST', `/thanh-toan/phien/${p.phien.id}/chot`, {})
+      : goi('chu', 'POST', `/thanh-toan/phien/${p.phien.id}/xac-nhan-tay`, { ly_do: 'Giả lập: khách chuyển khoản' });
+  };
   c.taoDon = async (ten, body, ai = 'chu') => {
-    const r = await goi(ai, 'POST', '/orders', body);
+    const r = await donQuay(ai, body);
     if (!r.success) throw new Error(`không tạo được đơn "${ten}": HTTP ${r.status} ${r.error || ''}`);
     return { ...(await db.queryOne('SELECT * FROM pos_orders WHERE id = ?', [r.order.id])), ma: r.order.signup_code };
   };
@@ -180,6 +214,15 @@ const KICH_BAN = [
       customer_package_id: c.goiCoSan, payment_method: 'cash' });
     const g2 = await c.db.queryOne('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [c.goiCoSan]);
     c.mong('lấy 1 ly 0đ từ gói có sẵn → delivered_qty = 1', Number(g2?.delivered_qty) === 1, JSON.stringify(g2));
+    // BO-MAN-CU-1: KB9a / KB9b là gói mua TRƯỚC ngày cập nhật (donCu). Hôm nay quầy bấm bán / lấy gói → chặn, không ghi gì.
+    const truoc = [await c.so('SELECT COUNT(*) FROM pos_orders'), await c.so('SELECT COALESCE(SUM(delivered_qty), 0) FROM pos_customer_packages')];
+    const m = await c.goiThang('chu', 'POST', '/orders', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [],
+      package_buy: { package_id: c.goiId, total_qty: 10, pkg_qty: 1 }, payment_method: 'cash', cash_amount: 300000 });
+    const l = await c.goiThang('chu', 'POST', '/orders', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(1, 1, true)],
+      customer_package_id: c.goiCoSan, payment_method: 'cash', cash_amount: 0 });
+    const sau = [await c.so('SELECT COUNT(*) FROM pos_orders'), await c.so('SELECT COALESCE(SUM(delivered_qty), 0) FROM pos_customer_packages')];
+    c.mong('quầy hôm nay bán gói / lấy từ gói → 400 GOI_TAM_DUNG, không đơn, không trừ lượt', m.status === 400 && m.code === 'GOI_TAM_DUNG'
+      && l.status === 400 && l.code === 'GOI_TAM_DUNG' && sau.join() === truoc.join(), `${c.ma(m)} / ${c.ma(l)} · ${truoc} → ${sau}`);
   } },
   { ten: 'hai người cùng bấm thu một bill', chay: async (c) => {
     const dau = c.doLenh.length;   // LUOI-1: đo trễ trên lệnh của CHÍNH KB10 (trước đây cả phiên — trễ tắt giữa chừng vẫn đạt)
@@ -381,7 +424,7 @@ const KICH_BAN = [
       && await c.vi(KH.quen) === truoc, `${c.ma(h)} · ví ${truoc} → ${await c.vi(KH.quen)}`);
   } },
   // ── LUOI-1: lưới tiền/kho cho AU-G1/G2/G3/G6 + AU-G4 (viec/LUOI-1). Mỗi kịch bản tự dựng dữ liệu — dungDuLieu không đổi. ──
-  // Màn hình gọi: đổi điểm Customers.jsx:199 · mã Sales.jsx:234/:728 · gói/thẻ Sales.jsx:744–751 · huỷ Orders.jsx (HUY-1: chỉ
+  // Màn hình gọi: đổi điểm Customers.jsx:199 · mã + thẻ: màn Bán hàng (BanHang/, tinh-thu + phiên; màn cũ Sales.jsx xoá ở BO-MAN-CU-1) · huỷ Orders.jsx (HUY-1: chỉ
   // quản lý / chủ có quyền cancel_order) · đẩy sổ nợ Layout.jsx:53. /increment-usage, /deliver, đối soát: KHÔNG màn hình gọi (phủ qua API).
   { ten: 'đổi điểm lấy mã rồi dùng mã khi bán', chay: async (c) => {
     const S = sdtMoi();

@@ -29,7 +29,7 @@ const TEN_NHOM = { juice: 'Nước ép', tea: 'Trà' };          // nhóm lạ h
 const NHOM_THE = 'the';                                     // QUAY-UI-1: nhóm "Thẻ thành viên" (gói thẻ cùng giỏ với món, tối đa một thẻ)
 const NHOM_NAP = 'nap';                                     // NAP-1: nhóm "Nạp tiền" (gói nạp, đơn riêng, chỉ tiền mặt / QR)
 const ID_NAP_TU = -2000000;                                 // khoá dòng giỏ của gói nạp — cùng dải máy chủ dùng (utils/viKhach.js)
-const CHU_KY_FLASH_MS = 60000;                              // như Sales.jsx: làm mới Flash mỗi 60 giây
+const CHU_KY_FLASH_MS = 60000;                              // làm mới Flash mỗi 60 giây
 const DO_TRE_TINH_MS = 250;                                 // gom các lần chạm liên tiếp thành một lần hỏi máy chủ
 const NHAN_KIEU = { tudong: 'Tự động', dienthoai: 'Điện thoại', maytinhbang: 'Máy tính bảng' };
 const CACH_DON = { tien_mat: 'cash', chuyen_khoan: 'transfer', tai_khoan: 'balance' };   // cách trên màn → payment_method của đơn
@@ -45,7 +45,7 @@ function useRongMan() {
   return rong;
 }
 
-export default function BanHangMoi({ kieu, onDoiCaiDat }) {
+export default function BanHangMoi({ kieu, onDoiKieu }) {
   const rong = useRongMan();
   const bo = tachTrang(rong, kieu);
 
@@ -467,13 +467,12 @@ export default function BanHangMoi({ kieu, onDoiCaiDat }) {
         <button className="bh-nut-nho" onClick={() => setMoCaiDat((v) => !v)} aria-label="Cài đặt màn bán hàng"><IconCaiDat size={16} /> Màn bán hàng</button>
         {moCaiDat && (
           <div className="bh-cai-dat">
-            <b>Màn bán hàng mới (máy này)</b>
+            <b>Kiểu màn bán hàng (máy này)</b>
             <div className="bh-chip-hang">
               {Object.entries(NHAN_KIEU).map(([k, ten]) => (
-                <button key={k} className={`bh-chip${kieu === k ? ' bh-chon' : ''}`} onClick={() => onDoiCaiDat(true, k)}>{ten}</button>
+                <button key={k} className={`bh-chip${kieu === k ? ' bh-chon' : ''}`} onClick={() => onDoiKieu(k)}>{ten}</button>
               ))}
             </div>
-            <button className="bh-nut bh-phu" onClick={() => onDoiCaiDat(false, kieu)}>Tắt — về màn cũ</button>
           </div>
         )}
       </div>

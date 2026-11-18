@@ -19,6 +19,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_p26a_'));
@@ -95,8 +96,9 @@ async function main() {
 
   console.log('\nTHỬ P26a — id trả ra JSON là số, đúng dòng vừa ghi');
   console.log('\n[A1] bốn route đưa thẳng lastInsertRowid vào res.json');
-  const don = await goi('POST', '/orders', { customer_phone: SDT, customer_name: 'Khách P26a', payment_method: 'balance', balance_amount: 25000,
-    items: [{ product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, quantity: 1 }] });
+  // BO-MAN-CU-1: đơn trả bằng ví ngoài phiên = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc (bài này thử các route GHI sau đơn).
+  const don = await donCu(MAY_CHU, { customer_phone: SDT, customer_name: 'Khách P26a', payment_method: 'balance', balance_amount: 25000,
+    items: [{ product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, quantity: 1 }] }).then((x) => ({ status: x.status, ...x.body }));
   if (!don.success) throw new Error('không tạo được đơn trả bằng ví: ' + moTa(don));
   const c1 = await goi('POST', '/refunds', { order_id: don.order.id, reason: 'thử P26a' });
   const id1 = await idKho('SELECT id FROM pos_refund_requests WHERE order_id = ?', [don.order.id]);

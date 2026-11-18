@@ -179,8 +179,34 @@ router.get("/:id", authenticate, async (req, res) => {
  *   { chiTinh: true } → trả { total, chiTiet } trước phép đối chiếu tiền, không ghi gì (tạo phiên; UUDAI-1: tinh-thu đọc chiTiet);
  *   { chiTinh: true, tinhThu: true } → như trên, thêm: không gọi SX (checkStock) — chỉ POST /tinh-thu dùng;
  *   { id, vaoGiaoDich(tx, now), sauGhiDon(tx, orderId, orderCode) } → chốt phiên trong giao dịch tạo đơn.
+ * BO-MAN-CU-1: `taoDon` = CỬA CHẶN của mọi lối tạo đơn (route thẳng, tinh-thu, phiên giữ / chốt, App, màn khách) — chủ quán 11.11 + 17.11:
+ *   - gói (mua, lấy món từ gói, gia hạn): quầy tạm ngưng ở MỌI lối → 400 GOI_TAM_DUNG;
+ *   - đường thẳng (`phien` null = POST /orders): chỉ tiền mặt. Trừ tài khoản khách / mẹ chỉ qua phiên có PIN, chuyển khoản chỉ qua phiên QR
+ *     (hoặc xác nhận tay), không ghi nợ / chờ thu ("Không công nợ").
+ *   Thân `taoDonGoc` giữ nguyên; ngoài cửa chặn chỉ bài thử dựng "đơn cũ" gọi thẳng nó (cong_cu/gia_lap/donCu.js) — thu_BOMANCU1 K1 khoá.
  */
 async function taoDon(req, res, phien = null) {
+  const b = req.body || {};
+  if (b.package_buy || b.customer_package_id || (Array.isArray(b.items) && b.items.some((i) => i && i.from_package))) {
+    return res.status(400).json({ error: "Quầy tạm ngưng gói", code: "GOI_TAM_DUNG" });
+  }
+  if (!phien) {
+    if (Number(b.balance_amount) > 0 || Number(b.parent_balance_amount) > 0 || b.payment_method === "balance") {
+      return res.status(400).json({ error: "Trừ tiền tài khoản phải qua phiên thanh toán có PIN khách", code: "VI_PHAI_QUA_PIN" });
+    }
+    // Mọi giá trị KHÁC rỗng / 0 đều là CK: số âm, chuỗi số, chuỗi chữ (NaN). Thân cộng `Number(x) || 0` nhưng GHI cột nguyên `x || 0` — chuỗi
+    // lạ lọt vào cột thì báo cáo SUM đọc phần số đầu chuỗi (soát vòng 1 + 2).
+    if (Number(b.transfer_amount || 0) !== 0 || b.payment_method === "transfer") {
+      return res.status(400).json({ error: "Chuyển khoản phải qua QR", code: "CK_PHAI_QUA_PAYOS" });
+    }
+    if (Number(b.debt_amount) > 0 || b.payment_method === "debt" || b.payment_method === "cho_thu") {
+      return res.status(400).json({ error: "Quầy không ghi nợ — khách trả đủ rồi mới in bill", code: "KHONG_GHI_NO" });
+    }
+  }
+  return taoDonGoc(req, res, phien);
+}
+
+async function taoDonGoc(req, res, phien = null) {
   try {
     const {
       customer_phone,
@@ -249,15 +275,7 @@ async function taoDon(req, res, phien = null) {
     if (tienThat && (Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance")) {
       return res.status(400).json(tienThat);
     }
-    // P3 (Q1a): cờ bật → chuyển khoản chỉ qua QR payOS, trừ tài khoản chỉ qua phiên có PIN (routes/thanh-toan.js). Chốt phiên có `phien`.
-    if (!phien && (Number(transfer_amount) > 0 || Number(balance_amount) > 0 || Number(parent_balance_amount) > 0 || payment_method === "balance")) {
-      const co = await queryOne("SELECT value FROM pos_settings WHERE key = 'thanh_toan_payos_bat_buoc'");
-      if (co?.value === "1") {
-        return res.status(400).json(Number(transfer_amount) > 0
-          ? { error: "Chuyển khoản phải qua QR payOS", code: "CK_PHAI_QUA_PAYOS" }
-          : { error: "Trừ tiền tài khoản phải qua phiên thanh toán có PIN khách", code: "VI_PHAI_QUA_PIN" });
-      }
-    }
+    // P3 (Q1a): cổng "chuyển khoản chỉ qua QR, trừ tài khoản chỉ qua phiên có PIN" nay ở cửa chặn `taoDon` (BO-MAN-CU-1), luôn chạy.
 
     // Validate — cho phép items rỗng nếu đang mua gói / mua thẻ hội viên
     if ((!items || !Array.isArray(items) || items.length === 0) && !package_buy && !membership_buy && goi_nap_id == null) {
@@ -2054,4 +2072,5 @@ router.delete("/:id", authenticate, async (req, res) => {
 
 module.exports = router;
 module.exports.taoDon = taoDon;   // P3: chốt phiên thanh toán (utils/giuCho.js)
+module.exports.taoDonGoc = taoDonGoc;
 module.exports.LY_DO_HUY = LY_DO_HUY;   // HUY-1: nhãn lý do huỷ cho App (utils/donApp.js)

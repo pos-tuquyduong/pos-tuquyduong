@@ -19,6 +19,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_giao2_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 const duongKN = require.resolve(path.join(GOC, 'server', 'ketNoiKho.js'));
@@ -157,6 +158,10 @@ async function main() {
   await db.run('INSERT INTO pos_wallets (phone, balance) VALUES (?, 10000000)', [SDT_KHACH]);
 
   const goi = async (method, url, body, them = {}) => {
+    // BO-MAN-CU-1: đơn giao trả ví = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
+    if (method === 'POST' && url === '/orders' && !them.congKhai && laDonCu(body)) {
+      return donCu(path.join(GOC, 'server'), body).then((x) => ({ status: x.status, j: x.body || {} }));
+    }
     const headers = { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...them.headers };
     if (!them.congKhai) headers.Authorization = 'Bearer ' + tk;
     const r = await fetch(goc + (them.congKhai ? '' : '/pos') + url, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });

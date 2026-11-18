@@ -18,6 +18,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_kh1_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
@@ -181,8 +182,10 @@ async function main() {
     if (r.j.ma) daCap.add(String(r.j.ma));
     return r;
   };
+  // BO-MAN-CU-1: đơn nợ / chờ thu = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
   const taoDon = async (body) => {
-    const r = await goi('POST', '/pos/orders', body, { tk: tkChu });
+    const r = laDonCu(body) ? await donCu(path.join(GOC, 'server'), body).then((x) => ({ status: x.status, j: x.body }))
+      : await goi('POST', '/pos/orders', body, { tk: tkChu });
     if (!r.j.success) throw new Error(`không tạo được đơn: ${r.status} ${r.j.error || ''}`);
     return { id: r.j.order.id, ma: r.j.order.signup_code, code: r.j.order.code };
   };
