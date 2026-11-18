@@ -264,3 +264,17 @@ BỎ:
 
 Dọn: không có lời dặn nào trong KHUON_LOI.md / CLAUDE.md mà việc này thêm phép kiểm làm thay.
 HEAD ĐÃ KIỂM: d8125732
+
+## Chat bàn 40 — ghép main + soát thay vòng sửa 2 (18.11.2026 19:30)
+- Soát thay vòng sửa 2 (LUAT §6.5): đọc diff e9916b9c..9736d480 — 1 dòng code (`ahamove.js` tomChuyen: `Object.hasOwn(TRA_HANG, String(o.sub_status))`) + ca / đột biến
+  theo 6 lỗi nhẹ vòng 2. Đọc lại toàn bộ phần máy chủ (ahamove.js, giaoHang.js, reports.js, doiSoat.js, 030): không đụng tiền khách / ví / điểm; phí chỉ nhận số > 0;
+  Thực thu = `soSach.tien_vao` (một nguồn với Đối soát); thẻ giao_loi chỉ nhận tin trả hàng, một chiều. ĐẠT.
+- Ghép main bc16e140 (PR #100 BO-MAN-CU-1) → 34350ae4: xung đột chỉ ở `client/dist` (hai nhánh cùng build) → build lại từ src đã ghép; src tự ghép (api.js, kiem_tra).
+- Sau ghép `thu_GIAO3.js` SẬP: `moChuyen` tạo đơn giao bằng POST /orders trừ ví thẳng — main nay chặn (VI_PHAI_QUA_PIN). Sửa f1ef0aec: đơn giao thử trả TIỀN MẶT
+  (đường thẳng còn nhận; GIAO-3 không xét cách trả). Số ca không đổi: 46 đạt · 0 hỏng. Không đổi code máy chủ / màn.
+- `node kiem_tra_truoc_khi_giao.js --day-du` trên f1ef0aec: PASS 126 · FAIL 1 · CẢNH BÁO 1 — FAIL = `thu_NDAPI1` (chỉ do môi trường hộp cát chat: multer / xlsx
+  bản 0.18.5, đã ghi bàn giao bàn 39 §6); "dist đã commit KHỚP với src" ✓.
+- `node tu_chay/cong.js chay` KHÔNG chạy được ở hộp cát chat (npm ci → 403 tải xlsx từ cdn.sheetjs.com, xoá node_modules) → check `cong-chay` trên PR quyết.
+- Gốc cổng sau ghép: bc16e140 (main).
+
+HEAD ĐÃ KIỂM: f1ef0aec
