@@ -135,7 +135,9 @@ const DOT_BIEN = [
     ' && don.payment_status === TRANG_THAI_DUNG_MA.payment_status', '', 1, 7, 'I1'],
   ['M3 đối soát ví cộng debt_payment (lỗi P21)', 'routes/wallets.js',
     "const LOAI_TINH_VAO_VI = ['topup',", "const LOAI_TINH_VAO_VI = ['debt_payment', 'topup',", 1, 8, 'I4'],
-  ['M4 vân tay hoàn kho trùng chiều bán', 'routes/orders.js', ':in:${sttMon}', ':out:${sttMon}', 2, 5, 'I7'],
+  // KHO-3a: SX đã ngắt (không còn vân tay kho SX) — M4 cũ "vân tay hoàn kho trùng chiều bán" thay bằng lỗi cùng chỗ của kho POS: huỷ đơn không trả kho.
+  ['M4 huỷ đơn không trả kho POS (phiếu bán giữ da_duyet)', 'routes/orders.js',
+    'await banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha,', 'false && banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha,', 1, 5, 'I7'],
   ['M5 nhận điểm bỏ chiếm mã', 'routes/signup-codes.js',
     'WHERE id = ? AND diem_nhan_luc IS NULL', 'WHERE id = ?', 1, 11, 'I8'],
   ['M6 pay-debt bỏ nhật ký thu', 'routes/orders.js',
