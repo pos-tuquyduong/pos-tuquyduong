@@ -110,7 +110,7 @@ function tomChuyen(o) {
     tai_xe: { ten: o.supplier_name || null, sdt: o.supplier_id || null, bien_so: o.supplier_plate || o.vehicle_plate || o.supplier_license_plate || null },
     phi: phiDuong(o.total_price), phi_tho: { total_price: so(o.total_price), total_fee: so(o.total_fee) },   // phi_tho: chỉ số, cho log [GIAO] phi
     phi_huy: so(o.cancel_fee) ?? 0, nguoi_huy_la_quan: o.cancel_by_user !== false,
-    ly_do: chuAha(den.fail_comment), ly_do_huy: chuAha(o.cancel_comment), tra_hang: TRA_HANG[o.sub_status] || null, tra_luc: gioAha(den.return_time),
+    ly_do: chuAha(den.fail_comment), ly_do_huy: chuAha(o.cancel_comment), tra_hang: Object.hasOwn(TRA_HANG, String(o.sub_status)) ? TRA_HANG[o.sub_status] : null, tra_luc: gioAha(den.return_time),
   };
 }
 
