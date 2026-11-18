@@ -65,6 +65,8 @@ async function layMenuQuay(category) {
 const tenMon = (v) => (typeof v === 'string' && v.trim() && [...v.trim()].length <= 100 ? v.trim().replace(/\s+/g, ' ') : null);
 const chuNgan = (v, macDinh) => (typeof v === 'string' && v.trim() && v.trim().length <= 30 ? v.trim() : macDinh);
 const loiMon = (res, code, error) => res.status(400).json({ error, code });
+/** MỘT vị từ "trùng tên món đang bán" cho tạo và sửa (boId: món đang sửa). */
+const tenTrung = async (csdl, ten, boId = 0) => !!(await csdl.queryOne('SELECT 1 AS co FROM pos_products WHERE is_active = 1 AND name = ? AND id <> ?', [ten, boId]));
 
 /** POST /api/pos/products — món MỚI, không cần khoá SX: khoá (LOAI_MON_POS, id), mã POS<id>, cùng giao dịch. */
 router.post('/', authenticate, checkPermission('manage_settings'), async (req, res) => {
@@ -75,7 +77,7 @@ router.post('/', authenticate, checkPermission('manage_settings'), async (req, r
   if (!Number.isInteger(gia) || gia < 0) return loiMon(res, 'GIA_KHONG_HOP_LE', 'Giá là số nguyên đồng ≥ 0');
   try {
     const kq = await trongGiaoDich(async (tx) => {
-      if (await tx.queryOne('SELECT 1 AS co FROM pos_products WHERE is_active = 1 AND name = ?', [ten])) return { huy: true, trung: true };
+      if (await tenTrung(tx, ten)) return { huy: true, trung: true };
       const luc = getNow();
       const ins = await tx.run(`INSERT INTO pos_products (code, name, category, price, unit, is_active, sort_order, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [`MOI-${luc}-${Math.random().toString(36).slice(2, 8)}`, ten, chuNgan(b.category, 'juice'), gia,
@@ -100,6 +102,7 @@ router.put('/:id', (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : n
   if ('is_active' in b) doi.is_active = [0, 1].includes(Number(b.is_active)) ? Number(b.is_active) : null;
   if (!Object.keys(doi).length || Object.values(doi).some((v) => v == null)) return loiMon(res, 'YEU_CAU_KHONG_HOP_LE', 'Thông tin món không hợp lệ');
   try {
+    if (doi.name && await tenTrung({ queryOne }, doi.name, Number(req.params.id))) return loiMon(res, 'TEN_TRUNG', 'Đã có món đang bán cùng tên');
     const kq = await run(`UPDATE pos_products SET ${Object.keys(doi).map((c) => c + ' = ?').join(', ')}, updated_at = ? WHERE id = ?`,
       [...Object.values(doi), getNow(), Number(req.params.id)]);
     if (!kq.changes) return res.status(404).json({ error: 'Không thấy món', code: 'KHONG_THAY' });

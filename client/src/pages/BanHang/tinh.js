@@ -262,6 +262,15 @@ export function nhapPhim(hienTai, phim) {
   return /^\d$/.test(phim) && cur.length < DO_DAI_PIN ? cur + phim : cur;
 }
 
+/** KHO-3a B3c: câu báo khi phiên QR thôi giữ. Hỏng vì HẾT HÀNG (máy chủ trả het_hang) — tiền khách đã chuyển, KHÔNG phải "đã huỷ": nói rõ đã hoàn vào
+ *  ví khách hay phải hoàn tay. Còn lại: hết hạn / đã huỷ như cũ. */
+export function cauNhaPhien(p) {
+  if (p?.het_hang) {
+    return `⛔ Hết ${p.het_hang.mon} — KHÔNG tạo đơn. Tiền khách đã chuyển ${p.het_hang.vao_vi ? 'đã hoàn vào ví khách' : '— khách chưa có tài khoản: HOÀN TIỀN TAY cho khách'}.`;
+  }
+  return p?.trang_thai === 'het_han' ? 'QR đã hết hạn — chưa nhận được tiền. Giỏ còn nguyên.' : 'Đã huỷ chuyển khoản. Giỏ còn nguyên.';
+}
+
 // ── QR payOS: đếm ngược theo het_han MÁY CHỦ trả, trạng thái phiên ───────────
 const MUI_VN = '+07:00';   // het_han là giờ Việt Nam không hậu tố (getNow của máy chủ)
 

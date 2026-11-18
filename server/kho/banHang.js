@@ -43,7 +43,9 @@ async function docKhaNang(csdl, { bayGio }) {
   return { ...ctx, giu };
 }
 
-const chuaSan = (p, bang) => !p.kieu || p.kieu === 'chua_dinh_luong' || !(bang[p.id] || []).length;
+/** MỘT vị từ "chưa sẵn sàng bán" cho menu, chặn bán, A7: chưa kiểu / chưa định lượng / công thức rỗng — kể cả pha tại chỗ chỉ gồm món con rỗng (triển khai ra không nguyên liệu nào). */
+const chuaSan = (p, bang) => !p.kieu || p.kieu === 'chua_dinh_luong' || !(bang[p.id] || []).length
+  || (p.kieu === 'pha_tai_cho' && !tinh.trienKhai({ goc: p.id, bang }, 1).length);
 
 /** items → cần gì: thành phẩm (món làm sẵn → SL), nguyên liệu (món pha tại chỗ → triển khai × SL, cả giỏ), từng món, món chưa sẵn sàng. */
 function canCuaItems(items, { mon, bang }) {
@@ -90,7 +92,7 @@ const kiemDuHang = async (csdl, items, { bayGio }) => xetDu(csdl, items, await d
 /**
  * Trừ kho cho đơn VỪA ghi — TRONG giao dịch đơn (taoDonGoc). items = orderItems (product_id > 0 = món thật; gói / thẻ / nạp âm → bỏ).
  * Kiểm lại (tồn − phần đang giữ) rồi ghi MỘT phiếu PS ban_hang da_duyet: thành phẩm chia lô còn hạn FEFO, nguyên liệu chia lô FEFO như ghiKho (phần
- * thiếu không lô — chỉ có ở món bật cho_ban_thieu). Chốt phiên: câu ghi phiên → da_thu chạy TRƯỚC trong cùng giao dịch (vaoGiaoDich), nên phần giữ
+ * không lô: món bật cho_ban_thieu khi thiếu, HOẶC tồn nằm ở lô nguyên liệu đã hết hạn / dòng không lô — cùng luật ghiKho của KHO-2a: tồn = Σ dòng). Chốt phiên: câu ghi phiên → da_thu chạy TRƯỚC trong cùng giao dịch (vaoGiaoDich), nên phần giữ
  * của chính phiên đang chốt đã không còn tính — chỉ phần giữ của phiên KHÁC. Thành phẩm không bao giờ âm: kiểm và chia lô đọc CÙNG một câu lô
  * (conLaiTheoLo còn hạn), đủ ở bước kiểm là đủ lô. Trả { loi } → chỗ gọi rollback.
  */
@@ -140,7 +142,7 @@ async function tonMenu(csdl, bayGio) {
     if (Number(p.cho_ban_thieu) === 1) { ra.set(p.id, { stock_quantity: null, khong_quan_kho: true, chua_cong_thuc: false }); continue; }
     const mot = tinh.trienKhai({ goc: p.id, bang: ctx.bang }, 1);
     const phan = mot.map((n) => ((ctx.tonNL.get(n.nguyen_lieu_id) || 0) - (ctx.giu.nguyenLieu.get(n.nguyen_lieu_id) || 0)) / n.luong);
-    ra.set(p.id, { stock_quantity: phan.length ? nguyen(Math.min(...phan)) : 0, khong_quan_kho: false, chua_cong_thuc: false });
+    ra.set(p.id, { stock_quantity: nguyen(Math.min(...phan)), khong_quan_kho: false, chua_cong_thuc: false });   // chuaSan đã loại công thức triển khai rỗng
   }
   return ra;
 }
@@ -150,7 +152,7 @@ async function monChuaSan(csdl, bayGio) {
   const ctx = await docKhaNang(csdl, { bayGio });
   const mon = [];
   for (const p of ctx.mon) {
-    const lyDo = !p.kieu ? 'Chưa có kiểu kho và công thức' : p.kieu === 'chua_dinh_luong' ? 'Chưa định lượng' : !(ctx.bang[p.id] || []).length ? 'Chưa có công thức'
+    const lyDo = !p.kieu ? 'Chưa có kiểu kho và công thức' : p.kieu === 'chua_dinh_luong' ? 'Chưa định lượng' : chuaSan(p, ctx.bang) ? 'Chưa có công thức'
       : p.kieu === 'lam_san' && (ctx.tonTP.get(p.id) || 0) <= tinh.SAI_SO ? 'Làm sẵn: hết lô còn hạn' : null;
     if (lyDo) mon.push({ san_pham_id: p.id, ten: p.name, ly_do: lyDo });
   }

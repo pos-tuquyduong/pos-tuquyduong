@@ -11,6 +11,23 @@ const { getNow, chuoiSoHd } = require('../utils/helpers');
 const { loiGhi, ghiVi, trongGiaoDich } = require('./wallets');
 const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const LOI_KHO = ['HET_HANG', 'THIEU_NGUYEN_LIEU', 'CHUA_CO_CONG_THUC'];   // KHO-3a: mã chặn bán theo kho (kho/banHang.js)
+
+/** KHO-3a B3c — xác nhận tay hỏng vì kho: { vao_vi: số } hoặc { hoan_tay: số }. Một lần: câu ghi dòng báo khoá `tay:<phiên>` (ON CONFLICT DO NOTHING). */
+async function hoanTayHetHang(p, mon, nguoi) {
+  const soTien = Number(p.con_lai) || 0;
+  const lyDo = `Hết hàng: ${mon || 'món'} — xác nhận tay, không tạo được đơn`;
+  return trongGiaoDich(async (tx) => {
+    const ghi = (ketQua, chu) => tx.run(CAU_GHI, [`tay:${p.id}`, p.ma_payos ?? null, soTien, ketQua, chu, JSON.stringify({ phien: p.id, nguoi }), getNow()]);
+    if (!p.phone) {
+      await ghi('chua_khop', `${lyDo} — khách chưa có tài khoản: HOÀN TIỀN TAY ${soTien}`);
+      return { hoan_tay: soTien };
+    }
+    if ((await ghi('vao_vi', `${lyDo} — ${LY_DO_VAO_VI} ${p.phone} (phiên #${p.id})`)).changes !== 1) return { da_hoan: true };
+    await ghiVi(tx, { phone: p.phone, loai: 'topup', soTien, cachTra: 'transfer', nguoi, luc: getNow(), cot: 'total_topup', soCot: soTien,
+      ghiChu: `Hết hàng ${mon || ''} — hoàn tiền chuyển khoản phiên #${p.id} (xác nhận tay)` });
+    return { vao_vi: soTien };
+  });
+}
 const { datPin, xoaPin } = require('../utils/pinKhach');
 const payos = require('../utils/payos');
 const sepay = require('../utils/sepay');
@@ -93,7 +110,11 @@ router.post('/phien/:id/xac-nhan-tay', authenticate, checkPermission('xac_nhan_c
     if (muon && await laPhienApp(p.id)) {
       return loi(res, 409, 'PHIEN_APP_KHONG_TAO_LAI', 'Đơn App đã huỷ / hết hạn — không tạo lại đơn bằng tay; tiền về muộn máy tự xử lý (đơn chỉ thẻ / chỉ nạp tự chốt, đơn khác cộng vào tài khoản khách)');
     }
-    tra(res, await chotPhien(p, 'tay', { nguoi: req.user.username, lyDo: lyDo.trim(), muon }));
+    const kq = await chotPhien(p, 'tay', { nguoi: req.user.username, lyDo: lyDo.trim(), muon });
+    // KHO-3a B3c: xác nhận tay = tiền ĐÃ về. Không tạo được đơn vì kho → hoàn ĐÚNG số tiền vào ví khách một lần (khoá dòng báo `tay:<phiên>`),
+    // khách không có ví → dòng chua_khop "HOÀN TIỀN TAY" (Đối soát CẦN XEM). Cùng mã kho (LOI_KHO) với nhánh tiền về qua cổng (xuLyTienVe).
+    if (kq.status === 400 && LOI_KHO.includes(kq.body?.code)) kq.body = { ...kq.body, hoan: await hoanTayHetHang(p, kq.body.mon, req.user.username) };
+    tra(res, kq);
   } catch (err) {
     loiGhi(res, err);
   }

@@ -27,6 +27,7 @@ const DAMAGE_REASONS = {
 
 const DAMAGE_ACTIONS = {
   'refund': 'Hoàn tiền',
+  'return_stock': 'Hoàn kho SX (đã bỏ — KHO-3a)',   // nhãn để đọc dòng sự cố CŨ; gửi mới bị chặn HOAN_KHO_SX_DA_BO
   'none': 'Chỉ ghi nhận'
 };
 

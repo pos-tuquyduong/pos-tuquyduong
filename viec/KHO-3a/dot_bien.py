@@ -50,6 +50,12 @@ DOT_BIEN = [
   ('BV-LUOI-VAO-VI-QUAY', [(TT, '  const moi = laApp || loiKho ? await docPhien(p.id) : null;', '  const moi = laApp ? await docPhien(p.id) : null;', 1)], r'✗ B3c phiên QR QUẦY có SĐT'),
   ('BV-LUOI-HOAN-TAY', [(TT, "  if (loiKho && moi && !moi.phone) return ghi(", "  if (false) return ghi(", 1)], r'✗ B3c QR quầy KHÔNG SĐT'),
   ('BV-LUOI-TEN-MON', [(G, " + (r.body?.mon ? `: ${r.body.mon}` : '')", '', 1)], r'✗ B3c (App thấy|quầy có dòng)'),
+  # ── vòng sửa 1 (soát độc lập): màn QR quầy báo hết hàng · xác nhận tay hỏng vì kho hoàn ví một lần ──
+  ('BV-QR-QUAY-HET-HANG', [(G, 'order, het_hang: hetHangCua(p),', 'order, het_hang: null,', 1)], r'✗ B3c màn QR quầy'),
+  ('BV-TAY-HOAN-VI', [(TT, "    if (kq.status === 400 && LOI_KHO.includes(kq.body?.code)) kq.body =", "    if (false) kq.body =", 1)], r'✗ B3c xác nhận tay'),
+  ('VS-TAY-HOAN-HAI-LAN', [(TT, ".changes !== 1) return { da_hoan: true };", ".changes !== 1 && false) return { da_hoan: true };", 1)], r'✗ B3c xác nhận tay hỏng'),
+  ('BV-MOT-VI-TU-CON-RONG', [(BH, "\n  || (p.kieu === 'pha_tai_cho' && !tinh.trienKhai({ goc: p.id, bang }, 1).length);", ';', 1)], r'✗ B3 pha tại chỗ chỉ gồm món con rỗng'),
+  ('BV-SUA-TEN-TRUNG', [(P, "    if (doi.name && await tenTrung({ queryOne }, doi.name, Number(req.params.id))) return", "    if (false) return", 1)], r'✗ A4 sửa tên trùng'),
   # ── B4 / B6 / B7: trừ trong giao dịch, một phiếu ──
   ('BV-TRU-KHO', [(O, 'const kho = await banHang.truKhoDon(tx, {', 'const kho = await (async () => ({}))(tx, {', 1)], r'✗ B(1 FEFO|4 đúng MỘT)'),
   ('BV-CHAN-TRONG-TX', [(O, '      if (kho.loi) {\n        await tx.rollback();', '      if (false) {\n        await tx.rollback();', 1)], r'✗ B(1 thiếu 1|3b POST)'),

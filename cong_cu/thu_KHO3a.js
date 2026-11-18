@@ -262,6 +262,8 @@ async function main() {
   await luuSP(spCDL, { kieu: 'chua_dinh_luong', cong_thuc: [] });
   await luuSP(spA, { kieu: 'pha_tai_cho', cong_thuc: [{ nguyen_lieu_id: nlSua, luong: 0.3 }] });
   await luuSP(spB, { kieu: 'pha_tai_cho', cong_thuc: [{ nguyen_lieu_id: nlSua, luong: 0.3 }] });
+  const spConRong = await themSP('Con rỗng K3a', 10000, { thuTu: 20 });
+  await luuSP(spConRong, { kieu: 'pha_tai_cho', cong_thuc: [{ thanh_phan_id: spRong.id, luong: 1 }] });
   const loCu = await napTP(spLS, 2, '2026-11-17T09:00:00');   // ĐÃ hết hạn
   const loGan = await napTP(spLS, 2, '2026-11-18T20:00:00');
   const loXa = await napTP(spLS, 3, '2026-11-19T20:00:00');
@@ -289,6 +291,8 @@ async function main() {
     k('A2 bỏ "tồn gần nhất của SX": ton_cu false, ton_luc null', tren(mq, spLS)?.ton_cu === false && tren(mq, spLS)?.ton_luc === null);
     k('B3 món chưa công thức: quầy sellable false, App KHÔNG thấy', tren(mq, spChua)?.sellable === false && !ma.find((x) => x.ma === maCua(spChua)));
     k('B3 công thức rỗng / chua_dinh_luong cũng chưa sẵn sàng', tren(mq, spRong)?.chua_cong_thuc === true && tren(mq, spCDL)?.chua_cong_thuc === true);
+    k('B3 pha tại chỗ chỉ gồm món con rỗng (triển khai ra không nguyên liệu) → chưa sẵn sàng — MỘT vị từ cho menu và chặn bán',
+      tren(mq, spConRong)?.chua_cong_thuc === true && la(await banTM([mon(spConRong, 1)]), 400, 'CHUA_CO_CONG_THUC'));
     k('C1 tải menu KHÔNG gọi SX', sxNhan.length === 0, sxNhan.slice(0, 3).join(', '));
   });
 
@@ -479,6 +483,13 @@ async function main() {
     await mat(lo2);
     await webhook(p2 || {});
     k('B3c phiên QR QUẦY có SĐT: hỏng vì hết hàng → vào ví đúng số', (await soDu(kh2.sdt)) === Number(p2?.con_lai), `số dư ${await soDu(kh2.sdt)} / ${p2?.con_lai}`);
+    // Màn QR quầy hỏi phiên: máy chủ nói rõ hết hàng + đã hoàn vào ví; câu màn hình KHÔNG phải "Đã huỷ chuyển khoản" (thu ngân không thu lần hai)
+    const xemQ = await goi('chu', 'GET', `/pos/thanh-toan/phien/${p2?.id}`);
+    const T = await import(require('url').pathToFileURL(path.join(GOC, 'client', 'src', 'pages', 'BanHang', 'tinh.js')).href).catch(() => ({}));
+    const cau = typeof T.cauNhaPhien === 'function' ? T.cauNhaPhien(xemQ.j.phien) : '';
+    k('B3c màn QR quầy: phiên báo het_hang { món, đã vào ví } → câu "Hết Lưới K3a … đã hoàn vào ví khách", không phải "Đã huỷ"',
+      xemQ.j.phien?.het_hang?.mon === 'Lưới K3a' && xemQ.j.phien?.het_hang?.vao_vi === true && /Hết Lưới K3a/.test(cau) && /hoàn vào ví khách/.test(cau)
+      && !/Đã huỷ/.test(cau), `${JSON.stringify(xemQ.j.phien?.het_hang)} · ${cau}`);
     // Quầy QR không SĐT
     const lo3 = await napTP(spL, 1);
     const pv = await taoPhienQuay([mon(spL, 1)], 'payos');
@@ -489,6 +500,27 @@ async function main() {
     const b3 = await mot('SELECT ket_qua, ly_do FROM pos_payos_su_kien WHERE ma_payos = ? ORDER BY rowid DESC LIMIT 1', [p3?.ma_payos]);
     k('B3c QR quầy KHÔNG SĐT: chua_khop "HOÀN TIỀN TAY", không dòng ví', b3?.ket_qua === 'chua_khop' && /HOÀN TIỀN TAY/.test(b3?.ly_do || '')
       && (await so('SELECT COUNT(*) FROM pos_balance_transactions')) === viTruoc, JSON.stringify(b3));
+    const cauTay = typeof T.cauNhaPhien === 'function' ? T.cauNhaPhien((await goi('chu', 'GET', `/pos/thanh-toan/phien/${p3?.id}`)).j.phien) : '';
+    k('B3c màn QR quầy KHÔNG SĐT: câu "HOÀN TIỀN TAY cho khách"', /HOÀN TIỀN TAY/.test(cauTay) && !/Đã huỷ/.test(cauTay), cauTay);
+    // Xác nhận tay (tiền ĐÃ về) trong hạn mà hàng giữ vừa mất → không đơn, hoàn ĐÚNG số vào ví MỘT lần; bấm lại không cộng thêm
+    const lo4 = await napTP(spL, 1);
+    const kh4 = await khach();
+    const pt = await taoPhienQuay([mon(spL, 1)], 'ck_tay', { customer_phone: kh4.sdt, customer_name: 'Khách K3a tay' });
+    await mat(lo4);
+    const donT = await so('SELECT COUNT(*) FROM pos_orders');
+    const xt = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pt.j.phien?.id}/xac-nhan-tay`, { ly_do: 'khách đưa sao kê (thử)' });
+    const xt2 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pt.j.phien?.id}/xac-nhan-tay`, { ly_do: 'bấm lại (thử)' });
+    k('B3c xác nhận tay hỏng vì hết hàng → 400 HET_HANG, không đơn, ví +đúng số MỘT lần (bấm lại không cộng)', la(xt, 400, 'HET_HANG')
+      && Number(xt.j.hoan?.vao_vi) === Number(pt.j.phien?.con_lai) && (await so('SELECT COUNT(*) FROM pos_orders')) === donT
+      && (await soDu(kh4.sdt)) === Number(pt.j.phien?.con_lai) && xt2.status >= 400, `${moTa(xt)} ${JSON.stringify(xt.j.hoan)} · ${moTa(xt2)} · ví ${await soDu(kh4.sdt)}`);
+    const lo5 = await napTP(spL, 1);
+    const pt5 = await taoPhienQuay([mon(spL, 1)], 'ck_tay');
+    await mat(lo5);
+    const viT5 = await so('SELECT COUNT(*) FROM pos_balance_transactions');
+    const xt5 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pt5.j.phien?.id}/xac-nhan-tay`, { ly_do: 'khách vãng lai đưa sao kê (thử)' });
+    const b5 = await mot("SELECT ket_qua, ly_do FROM pos_payos_su_kien WHERE khoa = ?", [`tay:${pt5.j.phien?.id}`]);
+    k('B3c xác nhận tay KHÔNG SĐT → hoan_tay, dòng Đối soát chua_khop "HOÀN TIỀN TAY", không dòng ví', la(xt5, 400, 'HET_HANG') && Number(xt5.j.hoan?.hoan_tay) > 0
+      && b5?.ket_qua === 'chua_khop' && /HOÀN TIỀN TAY/.test(b5?.ly_do || '') && (await so('SELECT COUNT(*) FROM pos_balance_transactions')) === viT5, `${moTa(xt5)} · ${JSON.stringify(b5)}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -567,6 +599,12 @@ async function main() {
     const tq = await taoPhienQuay([mon(spM, 1)], 'payos');
     const tay = await goi('chu', 'POST', `/pos/thanh-toan/phien/${tq.j.phien?.id}/xac-nhan-tay`, { ly_do: 'khách đưa sao kê (thử)' });
     k('B6 xác nhận tay → một phiếu', la(tay, 200) && (await phieuBanCua(tay.j.order?.id)).length === 1, moTa(tay));
+    const khP = await khach();
+    await goi('chu', 'POST', '/pos/wallets/topup', { phone: khP.sdt, amount: 50000 });
+    await goi('chu', 'POST', '/pos/thanh-toan/pin', { phone: khP.sdt, pin: '1357', pin_lai: '1357' });
+    const ppc = await goi('chu', 'POST', '/pos/thanh-toan/phien', { cach: 'tai_khoan', tru_tai_khoan: true, pin: '1357', don: { items: [mon(spM, 1)], customer_phone: khP.sdt, customer_name: 'Khách K3a PIN' } });
+    const cp = await chotTM(ppc.j.phien?.id);
+    k('B6 phiên trừ tài khoản có PIN → một phiếu', la(cp, 200) && (await phieuBanCua(cp.j.order?.id)).length === 1, `${moTa(ppc)} · ${moTa(cp)}`);
     const dt = await banTM([mon(spM, 1)]);
     k('B6 POST /orders thẳng → một phiếu', la(dt, 200) && (await phieuBanCua(dt.j.order?.id)).length === 1);
     const donCu = nap(path.join(GOC, 'cong_cu', 'gia_lap', 'donCu.js'));
@@ -577,7 +615,7 @@ async function main() {
     const loi = await banTM([mon(spM, 1)]);
     mocNemBan = false;
     k('B7 lỗi CSDL giữa trừ kho → không đơn, không phiếu', loi.status >= 400 && (await so('SELECT COUNT(*) FROM pos_orders')) === soDon
-      && (await demPhieuBan()) === truoc + 5, `${moTa(loi)} · đơn ${await so('SELECT COUNT(*) FROM pos_orders')}/${soDon} · phiếu ${await demPhieuBan()}`);
+      && (await demPhieuBan()) === truoc + 6, `${moTa(loi)} · đơn ${await so('SELECT COUNT(*) FROM pos_orders')}/${soDon} · phiếu ${await demPhieuBan()}`);
     const d3 = await banTM([{ ...mon(spM, 1) }], { membership_buy: undefined });
     k('D1 sau lỗi bán lại bình thường', la(d3, 200), moTa(d3));
   });
@@ -604,6 +642,8 @@ async function main() {
       const gia = await goi('ql', 'PUT', '/pos/products/price', { sx_product_type: 'pos', sx_product_id: id, price: 17000 });
       const b = await banTM([{ product_id: id, sx_product_type: 'pos', sx_product_id: id, quantity: 1 }]);
       k('A4/A5 có công thức + sửa giá qua route giá có sẵn → bán được, đúng giá mới', la(gia, 200) && la(b, 200) && Number(b.j.order?.total) === 17000, `${moTa(gia)} · ${moTa(b)}`);
+      const suaTrung = await goi('ql', 'PUT', `/pos/products/${id}`, { name: spCF.ten });
+      k('A4 sửa tên trùng món đang bán → 400 TEN_TRUNG (cùng vị từ với tạo món)', la(suaTrung, 400, 'TEN_TRUNG'), moTa(suaTrung));
       const sua = await goi('ql', 'PUT', `/pos/products/${id}`, { name: 'Món thử K3a đổi', category: 'tra', sort_order: 0, is_active: 0 });
       const sau = await menuQuay();
       k('A4 sửa tên + ẩn → menu không còn món', la(sua, 200) && !sau.find((x) => x.id === id), moTa(sua));
@@ -622,7 +662,8 @@ async function main() {
     k('A7 nhân viên không xem (QUAN_LY)', nvDs.status === 403, moTa(nvDs));
     const dist = fs.existsSync(path.join(GOC, 'client', 'dist', 'assets')) ? fs.readdirSync(path.join(GOC, 'client', 'dist', 'assets')).filter((f) => f.endsWith('.js'))
       .map((f) => fs.readFileSync(path.join(GOC, 'client', 'dist', 'assets', f), 'utf8')).join('\n') : '';
-    k('A5 (dist) màn Sản phẩm sửa giá ngay tại chỗ — không còn "đặt giá ở Cài đặt › Sản phẩm"', !/đặt giá ở Cài đặt › Sản phẩm/.test(dist) && /mon-chua-san/.test(dist));
+    k('A5 (dist) màn Sản phẩm gọi route giá có sẵn PUT /products/price + POST /products; không còn "đặt giá ở Cài đặt › Sản phẩm"; có màn món chưa sẵn sàng',
+      !/đặt giá ở Cài đặt › Sản phẩm/.test(dist) && /["'`]\/products\/price["'`]/.test(dist) && /Thêm món/.test(dist) && /mon-chua-san/.test(dist));
   });
 
   // ═════════════════════════════════════════════════════════════════════════

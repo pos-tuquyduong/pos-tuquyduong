@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { thanhToanApi } from '../../utils/api';
 import TheQr from '../../components/TheQr';   // GIAO-DIEN-1 F: thẻ QR thương hiệu dùng chung
-import { conLaiGiay, dinhDangDemNguoc, hanhDongPhien } from './tinh';
+import { cauNhaPhien, conLaiGiay, dinhDangDemNguoc, hanhDongPhien } from './tinh';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const CHU_KY_HOI_MS = 3000;
@@ -30,7 +30,7 @@ export default function ManQr({ phien, onXong, onNha }) {
       if (viec === 'doi' || daXong.current) return;
       daXong.current = true;
       if (viec === 'xong') onXong(r.phien.order?.id);
-      else onNha(r.phien.trang_thai === 'het_han' ? 'QR đã hết hạn — chưa nhận được tiền. Giỏ còn nguyên.' : 'Đã huỷ chuyển khoản. Giỏ còn nguyên.');
+      else onNha(cauNhaPhien(r.phien));   // KHO-3a B3c: hỏng vì hết hàng ≠ đã huỷ
     } catch { /* mạng chập chờn: hỏi lại lượt sau, không bỏ phiên */ }
   }, [phien.id, onXong, onNha]);
 
