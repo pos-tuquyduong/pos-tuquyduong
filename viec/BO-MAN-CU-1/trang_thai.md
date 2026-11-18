@@ -27,3 +27,13 @@ Năm câu ở `ke_hoach.md` mục 7, mỗi câu có đề xuất:
 3. A2: thêm `InvoiceSettings.jsx` vào Phạm vi (sửa một chú thích); `Layout.jsx:69` để nguyên (Cấm, không nói về màn bán hàng).
 4. Duyệt cách tách `taoDon` = cửa chặn + `taoDonGoc` (xuất cho bài thử dựng đơn cũ, có phép khoá) và bài thử ≈ 780 dòng (phiếu ~300).
 5. Chặn luôn ghi nợ / chờ thu ở đường thẳng (đường vòng chuyển khoản không QR qua thu nợ) — đề xuất làm luôn.
+
+## Bước 1 — làm tiếp sau duyệt (18.11.2026, "BO-MAN-CU-1 tiep")
+- Hook mở phiên kéo nhánh `4386c365 → 28b6efeb`. `git fetch` → HEAD `28b6efeb` · FETCH_HEAD `28b6efeb` (bằng nhau). Kho không nông.
+- `git log --oneline -3`:
+  ```
+  28b6efeb PHIEU: BO-MAN-CU-1 chu quan duyet ke hoach 'dong y ca 5' (17.11 19:04): Pham vi 7 file luat + InvoiceSettings, chayBaiThat, taoDonGoc, KHONG_GHI_NO
+  4386c365 BO-MAN-CU-1: ke hoach sua theo soat (thu_gia_lap, A2 vuong Layout, C1-C7 bang chung, duong vong pay-debt) — cho chu quan duyet
+  01941256 BO-MAN-CU-1: ke hoach day du (cua chan taoDon, donCu cho bai thu cu, 4 cau hoi) — cho soat
+  ```
+- Chủ quán duyệt "đồng ý cả 5" (phiếu mục B4b). Code gốc của việc = `28b6efeb` (chưa đổi code chạy thật).
