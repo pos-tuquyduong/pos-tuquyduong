@@ -48,7 +48,10 @@ async function dungDuLieu(c) {
       && !so(b.debt_amount) && !so(b.cash_amount);
     if (!viDu && !chiCK) return c.goi(ai, 'POST', '/orders', b);
     const don = Object.fromEntries(TRUONG_DON.filter((x) => b[x] !== undefined).map((x) => [x, b[x]]));
-    if (viDu) await goi('chu', 'POST', '/thanh-toan/pin', { phone: b.customer_phone, pin: PIN, pin_lai: PIN });   // đã có PIN → lỗi, bỏ qua
+    if (viDu) {   // khách trả bằng tài khoản ở quầy có hồ sơ + PIN (khách chỉ có ví từ lần nạp thì thêm hồ sơ); đã có PIN → lỗi, bỏ qua
+      await db.run('INSERT INTO pos_customers (phone, name) VALUES (?, ?) ON CONFLICT(phone) DO NOTHING', [b.customer_phone, b.customer_name || 'Khách']);
+      await goi('chu', 'POST', '/thanh-toan/pin', { phone: b.customer_phone, pin: PIN, pin_lai: PIN });
+    }
     const p = await goi(ai, 'POST', '/thanh-toan/phien', { cach: viDu ? 'tai_khoan' : 'ck_tay', don, ...(viDu ? { tru_tai_khoan: true, pin: PIN } : {}) });
     if (p.status !== 200) return p;
     return viDu ? goi(ai, 'POST', `/thanh-toan/phien/${p.phien.id}/chot`, {})
