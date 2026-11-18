@@ -264,7 +264,7 @@ async function main() {
   require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => sxBat, checkStock: async () => ({ sufficient: true }), outStockFIFO: sxOk, inStockReturn: sxOk, callSxApi: sxGoi };
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'sync', 'signup-codes', 'backup', 'discount-codes']) {
+  for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'signup-codes', 'backup', 'discount-codes']) {
     app.use('/api/pos/' + (r === 'customers-v2' ? 'customers' : r), require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   app.use('/api/kh', require(path.join(MAY_CHU, 'routes', 'kh')));
@@ -405,10 +405,8 @@ async function main() {
   await db.run("INSERT INTO pos_customers (phone, name, sync_status, created_at, exported_at) VALUES ('0938000013', 'X 48h+1s', 'exported', '2027-04-01T07:00:00', '2027-04-08T07:00:00'), ('0938000014', 'X 48h-1s', 'exported', '2027-04-01T07:00:00', '2027-04-08T07:00:02')");
   datVN('2027-04-10T07:00:01');
   await db.run("UPDATE pos_customers SET sync_status = 'synced' WHERE sync_status IN ('new', 'exported') AND phone NOT IN ('0938000011', '0938000012', '0938000013', '0938000014')");
-  const tt = await goi('GET', '/api/pos/sync/status');
-  const old = (tt.warnings || []).find((w) => w.type === 'old_new'), oldX = (tt.warnings || []).find((w) => w.type !== 'old_new');
-  k('C11 10.04 07:00:01 VN: khách mới tạo 24 giờ + 1 giây có cảnh báo, 24 giờ − 1 giây không; đã xuất 48 giờ ± 1 giây cũng vậy (đếm = 1 mỗi loại)',
-    old?.count === 1 && oldX?.count === 1, JSON.stringify(tt.warnings));
+  // KHO-3a: đường /sync (cảnh báo khách chưa xuất cho SX) đã bỏ cùng SX — C11 khoá việc bỏ (đường không còn), dữ liệu sync_status giữ nguyên.
+  k('C11 (KHO-3a) đường /sync chỉ phục vụ SX đã bỏ: không còn routes/sync.js', !fs.existsSync(path.join(MAY_CHU, 'routes', 'sync.js')));
 
   const { layMaKhachMoi } = require(path.join(MAY_CHU, 'utils', 'diemKhach.js'));
   await db.run("INSERT INTO pos_discount_codes (code, discount_type, discount_value, valid_to, is_active, created_at) VALUES ('GV1C2', 'fixed', 5000, '2027-01-01', 1, '2026-12-01T10:00:00')");

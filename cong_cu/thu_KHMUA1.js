@@ -59,11 +59,20 @@ async function main() {
   await db.initDatabase();
   await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
-  // C10: SX báo thiếu hàng lúc tạo phiên — móc checkStock TRƯỚC khi nạp orders.js (orders.js lấy hàm lúc require).
-  const sx = require(path.join(GOC, 'server', 'utils', 'sxApi.js'));
-  let tonGia = null, mocCS = null;   // mocCS: hàm thay checkStock cho một ca (vòng sửa 1: đổi giá / hết hàng ĐÚNG lúc tạo phiên hay chốt)
-  const csGoc = sx.checkStock;
-  sx.checkStock = async (...a) => (mocCS ? mocCS(...a) : tonGia ? { sufficient: false, stock: tonGia } : csGoc(...a));
+  // C10: kho báo thiếu hàng lúc tạo phiên / lúc chốt. KHO-3a: SX đã ngắt — móc HAI điểm kiểm kho POS (kho/banHang.js): kiemDuHang (tạo phiên,
+  // giuCho lấy hàm lúc require → móc TRƯỚC khi nạp route) và truKhoDon (chốt, trong giao dịch đơn). Cùng thứ tự gọi như checkStock cũ: tạo phiên rồi chốt.
+  const bh = require(path.join(GOC, 'server', 'kho', 'banHang.js'));
+  let tonGia = null, mocCS = null;   // mocCS: hàm cho một ca (vòng sửa 1: đổi giá / hết hàng ĐÚNG lúc tạo phiên hay chốt) — trả { sufficient }
+  const maMon = async (i) => { const p = i.sx_product_type ? i : await db.queryOne('SELECT sx_product_type, sx_product_id FROM pos_products WHERE id = ?', [i.product_id]);
+    return `${p.sx_product_type}_${p.sx_product_id}`; };
+  const hoiMoc = async (items) => {
+    const r = mocCS ? await mocCS() : tonGia ? { sufficient: false } : { sufficient: true };
+    return r.sufficient ? null : { status: 400, body: { error: 'Không đủ hàng (bài thử)', code: 'HET_HANG', ma: await maMon(items[0]) } };
+  };
+  const kiemGoc = bh.kiemDuHang, truGoc = bh.truKhoDon;
+  bh.kiemDuHang = async (csdl, items, o) => (Array.isArray(items) && items.length && (await hoiMoc(items))) || kiemGoc(csdl, items, o);
+  bh.truKhoDon = async (tx, o) => { const that = (o.items || []).filter((i) => Number(i.product_id) > 0); const l = that.length && await hoiMoc(that);
+    return l ? { loi: l } : truGoc(tx, o); };
   // Vòng sửa 1 (soát lỗi 1, 5): móc đọc / ghi CSDL — gắn TRƯỚC khi nạp route (donApp / giuCho lấy hàm lúc require).
   //  mocNemSauChot: lần đọc phiên đầu tiên thấy da_thu thì ném (mạng chập SAU khi chốt ví đã ghi xong).
   //  rao: hai lần tra khoá gửi chờ nhau rồi cùng đi tiếp → hai yêu cầu chồng thật, cùng tới INSERT giữ khoá.
@@ -140,7 +149,16 @@ async function main() {
     ['thanh_toan_payos_bat_buoc', '0']]) await datCaiDat(a, b);
   const sps = await db.query('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 4');
   const GIA = [25000, 30000, 20000];
-  for (let i = 0; i < 3; i++) await db.run('UPDATE pos_products SET price = ?, ton_gan_nhat = ? WHERE id = ?', [GIA[i], [null, 5, 0][i], sps[i].id]);
+  for (let i = 0; i < 3; i++) await db.run('UPDATE pos_products SET price = ? WHERE id = ?', [GIA[i], sps[i].id]);
+  // KHO-3a: tồn theo kho POS (thay ton_gan_nhat): món 0 không quản kho (pha tại chỗ, cho bán khi thiếu) · món 1 còn ĐÚNG 5 · món 2 hết (lô hết hạn)
+  await db.run("UPDATE kho_san_pham SET kieu = 'pha_tai_cho', cho_ban_thieu = 1 WHERE pos_product_id = ?", [sps[0].id]);
+  await db.run("UPDATE kho_lo SET han_dung = '2000-01-01T00:00:00' WHERE san_pham_id IN (?, ?)", [sps[1].id, sps[2].id]);
+  {
+    const ph = Number((await db.run(`INSERT INTO kho_phieu (loai, so_phieu, trang_thai, nguoi_tao, tao_luc, nguoi_duyet, duyet_luc) VALUES ('PX', 'KHMUA1-LO5', 'da_duyet', 'thu', ?, 'thu', ?)`,
+      [getNow(), getNow()])).lastInsertRowid);
+    const lo = Number((await db.run('INSERT INTO kho_lo (san_pham_id, so_luong, phieu_id, tao_luc) VALUES (?, 5, ?, ?)', [sps[1].id, ph, getNow()])).lastInsertRowid);
+    await db.run("INSERT INTO kho_phieu_dong (phieu_id, san_pham_id, lo_id, so_luong, loai) VALUES (?, ?, ?, 5, 'thanh_pham')", [ph, sps[1].id, lo]);
+  }
   await db.run('UPDATE pos_products SET price = 0 WHERE id = ?', [sps[3].id]);
   const ma = (i) => `${sps[i].sx_product_type}_${sps[i].sx_product_id}`;
   const monQuay = (i, sl = 1) => ({ product_id: sps[i].id, sx_product_type: sps[i].sx_product_type, sx_product_id: sps[i].sx_product_id, quantity: sl });
