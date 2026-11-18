@@ -287,3 +287,21 @@ BÀI HỌC:
   cổng tiền nên chuẩn hoá MỘT lần, thân dùng giá trị đã chuẩn hoá.
 - NGUYÊN TẮC (K3 / K1): câu "đã rà K4" phải kèm lệnh grep + số chỗ; không có lệnh là câu đoán.
 ```
+
+## Vòng sửa 2 (theo soát vòng 2)
+| Lỗi soát | Sửa | Bài thử / đột biến |
+|---|---|---|
+| 1 NẶNG — CK chuỗi chữ "100000abc" lọt (cột ghi chữ, SUM báo cáo đọc 100.000) | cửa chặn `Number(b.transfer_amount \|\| 0) !== 0` (NaN cũng chặn; phủ cả chỗ cộng `Number(x) \|\| 0` lẫn chỗ ghi `x \|\| 0`); `laDonCu` cùng biểu thức | `thu_BOMANCU1` B2f — ĐỎ trước khi vá (HTTP 200, đơn ghi), XANH sau; đột biến **VS-CK-BO-NAN** (đưa lại biểu thức vòng 1) BẮT |
+| 2 nhãn "quầy" đi vòng donCu | đổi tên: GOI1 A2d / A2d2, P26c A2c, NAP1 C10 → "thân taoDonGoc (gói cũ / đơn kiểu cũ) — hai lệnh". Rà K4 bằng lệnh: `grep -n "k(\`\?'[^']*quầy"` trên 22 bài dùng donCu → **49 nhãn**; xem thân từng nhãn: 45 nói về việc khác (cấp mã, PIN, huỷ, phiên, giao, hoá đơn, tiền mặt HTTP), 4 nhãn đã đổi trên; VIME1 C3 "hai quầy cùng giữ ví" đi PHIÊN thật (HTTP) — đúng | — |
+| 3 số liệu cũ | cập nhật dòng đột biến (20 · BẮT 20, đối chứng 67) và dòng npm test (chạy lại sau vòng sửa 2); `bang_chung_do.txt` câu tóm tắt lượt 3 sửa đúng (gốc nhận HOẶC từ chối bằng mã khác của thân) | — |
+| 4 mã chết `dungDonHang` | xoá khỏi `client/src/pages/BanHang/tinh.js`; `thu_BH1` phần I chuyển sang khoá `thanTinhThu` (thân màn thật gửi: không trường tiền, không gói / thẻ, không chiết khấu riêng, mã chữ hoa) + **I10** không còn dungDonHang; `thu_KHACHCK1` D2 khoá thanTinhThu. Build lại: gói JS không đổi (hàm không ai gọi vốn đã bị lược khi build) | BH1 69 · KHACHCK1 36 xanh |
+| NGHI NGỜ `vet` / K2 | `vet` đếm thêm `pos_stock_pending` (kho chờ) và câu đọc hỏng thì NÉM (không −1); K2 mẫu `(?<!\w)taoDon\s*\(` đếm cả `x.taoDon(` | — |
+
+Chưa làm (NHẸ / ngoài lời hứa phiếu, ghi Phát hiện):
+- `cash_amount || 0` ở chỗ ghi cột (orders.js thân) so với `Number(cash) || 0` ở chỗ cộng — chuỗi lạ chỉ lọt khi đơn 0đ; tiền mặt là trường được phép;
+  chuẩn hoá cột tiền MỘT lần ở thân là việc sau (ngoài vùng phiếu cho sửa). `transfer_amount: " "` (khoảng trắng) vẫn qua cửa (= 0) và ghi " " vào
+  cột — cộng ra 0, không lệch tiền.
+- `cong_cu/gia_lap/kich_ban.js` `TRUONG_DON` chép danh sách trắng của giuCho.js (chỉ phía bài thử) — lệch thì giả lập đỏ, không ảnh hưởng quầy.
+
+Số hiện tại (HEAD `2f591a6a` + trang thái): `npm test -- --day-du` PASS 126 · FAIL 0 · CẢNH BÁO 1; đột biến 20 · BẮT 20 (đối chứng 67 đạt);
+bằng chứng đỏ 28/28 bài (lượt A11 + lượt hành vi), 28 dòng SỐ CA mới (`bang_chung_do.txt`).

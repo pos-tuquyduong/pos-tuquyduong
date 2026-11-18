@@ -1,19 +1,23 @@
-BO-MAN-CU-1 — bằng chứng ĐỎ trên code gốc (18.11.2026, viết lại sau soát vòng 1 lỗi 3)
+BO-MAN-CU-1 — bằng chứng ĐỎ trên code gốc (18.11.2026, viết lại sau vòng sửa 2)
 Code gốc của việc = 28b6efeb (PHIEU duyệt; chưa đổi code chạy thật). Lệnh: python3 viec/BO-MAN-CU-1/dot_bien.py --cay-goc 28b6efeb [--kem-ham-phu]
 (git archive cả cây 28b6efeb, chép đè MỘT bài thử hiện tại, chạy bài trong cây đó; mọi cong_cu/thu_*.js đổi so với 28b6efeb — 28 bài).
+Lượt 1 và lượt 3 chạy ở HEAD 2f591a6a (sau vòng sửa 2): 28/28 bài thoát ≠ 0, không bài nào xanh trên gốc.
 
 ĐỌC NHANH — vì sao mỗi bài đỏ:
-- Bài đổi theo màn / máy chủ (BAO1a, BH1, BHCKTAY1, BOMANCU1, HANG1, KHACHCK1): đỏ đúng ca hành vi (màn cũ còn, công tắc cũ, đường thẳng nhận ví / CK /
-  nợ / gói) — cả ba lượt.
+- Bài đổi theo màn / máy chủ (BAO1a, BH1, BHCKTAY1, BOMANCU1, HANG1, KHACHCK1): đỏ đúng ca hành vi (màn cũ còn, công tắc cũ còn, dungDonHang
+  còn, đường thẳng nhận ví / CK / nợ / gói) — cả ba lượt.
 - 22 bài dùng hàm phụ donCu (đơn cũ):
   * lượt 1 (như cổng A11, không có hàm phụ): sập "Cannot find module './gia_lap/donCu'" — chỉ là thiếu file;
-  * lượt 2 (TƯƠNG ĐƯƠNG — donCu kèm theo, chưa có khoá, gốc chưa tách nên donCu = taoDon gốc): 17 bài XANH TRỌN (DIEMMON1, DIEMTHAT1,
-    DOISOAT1, GIAO1, GIAO2, GOI1, HD1, HUY1, KH1, P20, P21, P2223, P24, P26a, P26b, P26c, VIME1) = khoảng 430 ca F cho kết quả y đường POST cũ;
-    5 bài đổi hành vi đỏ ĐÚNG ca đổi: P3 (H, I1–I6, I7), VOUCHER2 F5, UUDAI1 K4a / K4b, KHNAP1 B2 / K5, NAP1 B5 / K2;
-  * lượt 3 (HÀNH VI — donCu có khoá: thân phải bị cửa chặn đường thẳng từ chối): mọi bài dùng donCu ĐỎ vì "đường thẳng KHÔNG chặn thân này"
-    (gốc nhận ví / CK / nợ / gói ở đường thẳng) — đúng hành vi việc này đổi.
+  * lượt 2 (TƯƠNG ĐƯƠNG — donCu kèm theo, CHƯA có khoá, gốc chưa tách nên donCu = taoDon gốc; chạy ở HEAD 97af129f, trước vòng sửa 2 — vòng
+    sửa 2 chỉ đổi NHÃN ca ở GOI1 / P26c / NAP1, không đổi thân đơn): 17 bài XANH TRỌN (DIEMMON1, DIEMTHAT1, DOISOAT1, GIAO1, GIAO2, GOI1, HD1,
+    HUY1, KH1, P20, P21, P2223, P24, P26a, P26b, P26c, VIME1) = khoảng 430 ca F cho kết quả y đường POST cũ; 5 bài đổi hành vi đỏ ĐÚNG ca đổi:
+    P3 (H, I1–I6, I7), VOUCHER2 F5, UUDAI1 K4a / K4b, KHNAP1 B2 / K5, NAP1 B5 / K2;
+  * lượt 3 (HÀNH VI — donCu có khoá: thân phải bị CỬA CHẶN đường thẳng từ chối bằng một mã chặn GOI_TAM_DUNG / VI_PHAI_QUA_PIN /
+    CK_PHAI_QUA_PAYOS / KHONG_GHI_NO): mọi bài dùng donCu ĐỎ vì "đường thẳng KHÔNG chặn thân này" — trên gốc đường thẳng hoặc NHẬN (HTTP 200)
+    hoặc từ chối bằng mã KHÁC của thân (THE_KHONG_TRA_VI, NAP_CHI_TIEN_MAT_QR, SO_DU_KHONG_DU, TRA_KET_HOP, KHONG_PHAI_TK_ME) — đúng chỗ
+    việc này đổi: cửa chặn chưa có. Dạng đỏ là "bài sập" do khoá ném (không phải ca có tên) — ghi rõ, không đếm là BẮT.
 
-Lượt 1 — đúng như cổng A11 (chỉ chép bài thử):
+Lượt 1 — đúng như cổng A11 (chỉ chép bài thử; HEAD 2f591a6a):
 == CÂY GỐC 28b6efeb · cong_cu/thu_BAO1a.js: thoát 1
    ✗ C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx
    100 đạt · 1 hỏng
@@ -24,7 +28,7 @@ Lượt 1 — đúng như cổng A11 (chỉ chép bài thử):
    ✗ A4 kho ném lỗi khi đọc → Tự động, không ném  — thiếu hàm docKieu
    ✗ A5 kho ném lỗi khi ghi → không ném  — thiếu hàm ghiKieu
    ✗ A6 không có kho (undefined) → Tự động  — thiếu hàm docKieu
-   … (+4 dòng)
+   … (+5 dòng)
 == CÂY GỐC 28b6efeb · cong_cu/thu_BHCKTAY1.js: thoát 1
    ✗ A6 (BO-MAN-CU-1) chỉ còn MỘT màn Bán hàng: không còn pages/Sales.jsx
    10 đạt · 1 hỏng
@@ -35,7 +39,7 @@ Lượt 1 — đúng như cổng A11 (chỉ chép bài thử):
    ✗ A1e đổi kiểu bằng onDoiKieu("maytinhbang") rồi mở lại → nhớ Máy tính bảng  — Sales · undefined · onDoiKieu undefined
    ✗ A1f localStorage bị chặn → vẫn màn mới, Tự động, không ném  — Sales · undefined
    ✗ A1g kiểu lạ trong kho → Tự động  — Sales · undefined
-   … (+30 dòng)
+   … (+31 dòng)
 == CÂY GỐC 28b6efeb · cong_cu/thu_DIEMMON1.js: thoát 1
    Error: Cannot find module './gia_lap/donCu'
 == CÂY GỐC 28b6efeb · cong_cu/thu_DIEMTHAT1.js: thoát 1
@@ -89,7 +93,7 @@ Lượt 1 — đúng như cổng A11 (chỉ chép bài thử):
 
 [exited with code 0]
 
-Lượt 2 — TƯƠNG ĐƯƠNG (--kem-ham-phu, donCu = taoDon gốc, TRƯỚC khi thêm khoá vào donCu — chạy ở HEAD 97af129f):
+Lượt 2 — TƯƠNG ĐƯƠNG (--kem-ham-phu, donCu = taoDon gốc, TRƯỚC khi thêm khoá vào donCu — HEAD 97af129f):
 == CÂY GỐC 28b6efeb · cong_cu/thu_BAO1a.js: thoát 1
    ✗ C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx
    100 đạt · 1 hỏng
@@ -180,7 +184,7 @@ Lượt 2 — TƯƠNG ĐƯƠNG (--kem-ham-phu, donCu = taoDon gốc, TRƯỚC kh
 
 [exited with code 0]
 
-Lượt 3 — HÀNH VI (--kem-ham-phu, donCu có khoá "đường thẳng phải chặn thân này" — HEAD a448f828):
+Lượt 3 — HÀNH VI (--kem-ham-phu, donCu có khoá — HEAD 2f591a6a):
 == CÂY GỐC 28b6efeb · cong_cu/thu_BAO1a.js: thoát 1
    ✗ C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx
    100 đạt · 1 hỏng
@@ -191,7 +195,7 @@ Lượt 3 — HÀNH VI (--kem-ham-phu, donCu có khoá "đường thẳng phải
    ✗ A4 kho ném lỗi khi đọc → Tự động, không ném  — thiếu hàm docKieu
    ✗ A5 kho ném lỗi khi ghi → không ném  — thiếu hàm ghiKieu
    ✗ A6 không có kho (undefined) → Tự động  — thiếu hàm docKieu
-   … (+4 dòng)
+   … (+5 dòng)
 == CÂY GỐC 28b6efeb · cong_cu/thu_BHCKTAY1.js: thoát 1
    ✗ A6 (BO-MAN-CU-1) chỉ còn MỘT màn Bán hàng: không còn pages/Sales.jsx
    10 đạt · 1 hỏng
@@ -202,7 +206,7 @@ Lượt 3 — HÀNH VI (--kem-ham-phu, donCu có khoá "đường thẳng phải
    ✗ A1e đổi kiểu bằng onDoiKieu("maytinhbang") rồi mở lại → nhớ Máy tính bảng  — Sales · undefined · onDoiKieu undefined
    ✗ A1f localStorage bị chặn → vẫn màn mới, Tự động, không ném  — Sales · undefined
    ✗ A1g kiểu lạ trong kho → Tự động  — Sales · undefined
-   … (+30 dòng)
+   … (+31 dòng)
 == CÂY GỐC 28b6efeb · cong_cu/thu_DIEMMON1.js: thoát 2
    SẬP: Error: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_DIEMTHAT1.js: thoát 2
@@ -278,11 +282,11 @@ Lượt 3 — HÀNH VI (--kem-ham-phu, donCu có khoá "đường thẳng phải
 
 [exited with code 0]
 
-Dòng số ca — số ca mỗi bài in ở dòng tổng khi chạy trên code ĐÃ VÁ (HEAD, lệnh python3 viec/BO-MAN-CU-1/dot_bien.py --so-ca 28b6efeb):
+Dòng số ca — số ca mỗi bài in ở dòng tổng khi chạy trên code ĐÃ VÁ (HEAD 2f591a6a, lệnh python3 viec/BO-MAN-CU-1/dot_bien.py --so-ca 28b6efeb):
 SỐ CA cong_cu/thu_BAO1a.js: 101
-SỐ CA cong_cu/thu_BH1.js: 72
+SỐ CA cong_cu/thu_BH1.js: 69
 SỐ CA cong_cu/thu_BHCKTAY1.js: 11
-SỐ CA cong_cu/thu_BOMANCU1.js: 66
+SỐ CA cong_cu/thu_BOMANCU1.js: 67
 SỐ CA cong_cu/thu_DIEMMON1.js: 32
 SỐ CA cong_cu/thu_DIEMTHAT1.js: 36
 SỐ CA cong_cu/thu_DOISOAT1.js: 134
