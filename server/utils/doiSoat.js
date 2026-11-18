@@ -64,10 +64,12 @@ function loiDS(status, code, error) {
 // Mọi câu SQL của lượt chạy đi qua đây: không mở đầu SELECT / WITH, hoặc có từ khoá ghi ở bất kỳ đâu (SQLite chạy cả lệnh ghi
 // mở đầu bằng WITH) → ném lỗi. Trước khi soi, thay chú thích, chuỗi '…' và tên trong "…" / `…` / […] bằng khoảng trắng: chữ trong dữ liệu
 // không bị bắt oan, và dấu ' nằm trong một tên không nuốt được phần lệnh phía sau.
+let demCau = 0;   // GIAO-3 D4: số câu chiDoc từ lúc máy chủ chạy — log [DOISOAT] lấy hiệu (lượt chạy chồng nhau thì cộng chung)
 const TU_GHI = /\b(insert|update|delete|replace\s+into|create|drop|alter|attach|detach|pragma|vacuum|reindex)\b/i;
 function chiDoc(sql, args = []) {
   const dau = String(sql).replace(/\/\*[\s\S]*?\*\/|--[^\n]*|'(?:[^']|'')*'|"(?:[^"]|"")*"|`[^`]*`|\[[^\]]*\]/g, ' ').trim();
   if (!/^(SELECT|WITH)\b/i.test(dau) || TU_GHI.test(dau)) throw new Error('Đối soát chỉ được ĐỌC: ' + dau.slice(0, 40));
+  demCau++;
   return db.query(sql, args);
 }
 
@@ -340,6 +342,7 @@ async function phepXacNhanTay(q) {
 
 async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
   const ky = tinhKy(kieu, ngay);
+  const t0 = Date.now(), cau0 = demCau;
   const ctx = { thuc: true };
   const bangBB = [];
   const dong = { do: [], can_xem: [], cu: [] };
@@ -404,6 +407,7 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
   kq.do = dong.do; kq.can_xem = dong.can_xem; kq.cu = dong.cu;
   kq.so_luong = dem;
   kq.ket_qua = dem.do > 0 ? 'DO' : 'XANH';
+  console.log(`[DOISOAT] ${kieu} ${ky.tu} · ${Date.now() - t0}ms · ${demCau - cau0} câu`);   // GIAO-3 D4: đo trên Render thật (F-LOI-1)
   return kq;
 }
 

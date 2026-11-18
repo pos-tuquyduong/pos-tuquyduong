@@ -511,6 +511,7 @@ chayBaiThat('cong_cu/thu_HANG1.js');   // HANG-1: hạng thẻ, gói, cấp hạ
 chayBaiThat('cong_cu/thu_GIAODIEN1.js');   // GIAO-DIEN-1: dải Đơn App, Số dư gộp Khách hàng, ô Khách và tiền, nạp tay chỉ chủ quán (018), thẻ QR thương hiệu
 chayBaiThat('cong_cu/thu_GIAO1.js');   // GIAO-1: giao Ahamove ở quầy — phí ship do máy chủ báo, gọi xe một lần, tin báo về, huỷ theo bước, Đối soát
 chayBaiThat('cong_cu/thu_GIAO2.js');   // GIAO-2: tin báo Ahamove trả lời ngay, xử lý sau; đọc lại dự phòng cập nhật được thẻ; nút Tải lại hỏi Ahamove ngay
+chayBaiThat('cong_cu/thu_GIAO3.js');   // GIAO-3: lý do giao thất bại + hàng trả về quán, phí Ahamove không về 0, Đối soát có hạn chờ, Thực thu do máy chủ tính, hộp lý do
 chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai ngăn (tiền nạp / thưởng nạp), điểm khi tiêu ví, sổ sách tiền nạp
 chayBaiThat('cong_cu/thu_DIEMMON1.js');   // DIEM-MON-1: tích điểm theo món / gói / hạng — chỉ cộng phần dòng bật, trừ theo dòng (CÁCH 2), I8
 chayBaiThat('cong_cu/thu_KHTHE1.js');   // KH-THE-1: App KH mua thẻ hạng chung giỏ, hạng lên lúc đã thu, giỏ không pha bán mọi giờ, quyền lợi hạng (023)

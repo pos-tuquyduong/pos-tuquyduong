@@ -84,8 +84,12 @@ router.get('/daily', authenticate, checkPermission('view_reports'), async (req, 
       ORDER BY o.created_at DESC
     `, [date]);
 
+    // GIAO-3 G1: "Thực thu" = tiền thật quán nhận trong ngày — ĐÚNG hàm soSach của Đối soát (tiền mặt ròng + chuyển khoản ròng); màn chỉ hiện.
+    const { tien_vao: vao } = await doiSoat.soSach(date, date);
+
     res.json({
       date,
+      thuc_thu: vao.tien_mat + vao.chuyen_khoan,
       order_stats: orderStats,
       package_stats: packageStats,
       balance_stats: balanceStats,
@@ -93,6 +97,7 @@ router.get('/daily', authenticate, checkPermission('view_reports'), async (req, 
       orders
     });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message, code: err.code });   // soSach: ngày sai dạng → 400 DOI_SOAT_KY_SAI
     res.status(500).json({ error: err.message });
   }
 });

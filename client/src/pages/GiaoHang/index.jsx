@@ -9,6 +9,7 @@ import { giaoHangApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { keuChuong } from '../../components/DonAppNoi';
 import { taiLieuIn, inQuaIframe } from '../../components/InPhieu';
+import HopLyDo from './HopLyDo';
 import './giaoHang.css';
 import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 
@@ -17,6 +18,10 @@ const HOI_MS = 15000;   // hỏi máy chủ — máy chủ so giờ (toi_gio, nh
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const gio = (luc) => (luc ? String(luc).slice(11, 16) : '');
 const thoat = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+/** GIAO-3 B1: hàng của chuyến giao lỗi đang / đã trả về quán (máy chủ đọc từ Ahamove). */
+const traHang = (c) => (c.tra_hang === 'da_ve' ? `📦 Hàng đã về quán${c.tra_hang_luc ? ' lúc ' + gio(c.tra_hang_luc) : ''}`
+  : c.tra_hang === 'dang_tra' ? '↩ Đang trả hàng về quán' : '');
 
 /** Nút chính của thẻ: { chu, viec } — viec null = không bấm được (chỉ báo). */
 function nutChinh(c, toiGio) {
@@ -48,6 +53,10 @@ export default function GiaoHang() {
   const [moThe, setMoThe] = useState(null);           // order_id đang xem chi tiết
   const [dang, setDang] = useState(false);
   const daKeu = useRef(new Set());
+  const [hop, setHop] = useState(null);                // GIAO-3 E: hộp lý do đang mở { id, cau, xong }
+  const soHop = useRef(0);
+  /** Mở hộp lý do, chờ người dùng: trả lý do (đã kiểm ≥ 3 ký tự) hoặc null (Thôi). */
+  const hoiLyDo = (cau) => new Promise((tra) => setHop({ id: ++soHop.current, cau, xong: (x) => { setHop(null); tra(x); } }));
 
   const tai = useCallback(async (docLai = false) => {   // docLai: nút "Tải lại" — máy chủ hỏi Ahamove ngay; hẹn 15 s thì không
     try { setDs((await giaoHangApi.danhSach(docLai)).chuyen || []); setLoi(''); } catch (e) { setLoi('Không tải được danh sách giao: ' + e.message); }
@@ -86,20 +95,20 @@ export default function GiaoHang() {
         const r = await giaoHangApi.inTem(c.order_id, viec === 'tem_lai');
         if (r.duoc) { await inTemTui(c, r.lan); tin = `Đã gửi lệnh in tem túi đơn ${c.code}`; }
       } else if (viec === 'dong_the') {
-        const lyDo = window.prompt('Lý do đóng thẻ giao lỗi (chỉ đóng thẻ, không đụng tiền / đơn):');
+        const lyDo = await hoiLyDo('Lý do đóng thẻ giao lỗi (chỉ đóng thẻ, không đụng tiền / đơn):');
         if (!lyDo) return;
         viecTen = 'đóng thẻ giao';
         await giaoHangApi.dongThe(c.order_id, lyDo);
         tin = `Đã đóng thẻ giao đơn ${c.code}`;
         setMoThe(null);
       } else if (viec === 'huy_chuyen') {
-        const lyDo = window.prompt('Lý do huỷ chuyến Ahamove (phí huỷ nếu có quán chịu):');
+        const lyDo = await hoiLyDo('Lý do huỷ chuyến Ahamove (phí huỷ nếu có quán chịu):');
         if (!lyDo) return;
         viecTen = 'huỷ chuyến';
         await giaoHangApi.huyChuyen(c.order_id, lyDo);
         tin = `Đã huỷ chuyến Ahamove của đơn ${c.code}`;
       } else if (viec === 'huy_don') {
-        const lyDo = window.prompt(c.trang_thai === 'moi' ? 'Lý do từ chối đơn:' : 'Lý do huỷ đơn giao:');
+        const lyDo = await hoiLyDo(c.trang_thai === 'moi' ? 'Lý do từ chối đơn:' : 'Lý do huỷ đơn giao:');
         if (!lyDo) return;
         viecTen = c.trang_thai === 'moi' ? 'từ chối đơn' : 'huỷ đơn giao';
         await giaoHangApi.huyDon(c.order_id, lyDo, them.doDaPha);
@@ -124,6 +133,7 @@ export default function GiaoHang() {
         {c.tai_xe?.ten && <div className="gh-phu">🛵 {c.tai_xe.ten}{c.tai_xe.bien_so ? ` · ${c.tai_xe.bien_so}` : ''}</div>}
         {c.chenh > 0 && <div className="gh-phu">Quán bù {vnd(c.chenh)}</div>}
         {c.loi && <div className="gh-loi">{c.loi}</div>}
+        {traHang(c) && <div className="gh-phu">{traHang(c)}</div>}
         <button className="gh-nut" disabled={!nut.viec || dang} onClick={(e) => { e.stopPropagation(); lam(c, nut.viec); }}>{nut.chu}</button>
       </div>
     );
@@ -160,6 +170,7 @@ export default function GiaoHang() {
             {ct.tai_xe?.ten && <div>Tài xế: {ct.tai_xe.ten} · <a href={`tel:${ct.tai_xe.sdt}`}>{ct.tai_xe.sdt}</a> · {ct.tai_xe.bien_so || 'chưa có biển số'}</div>}
             {ct.phi_huy > 0 && <div>Phí huỷ chuyến (quán chịu): {vnd(ct.phi_huy)}</div>}
             {ct.loi && <div className="gh-loi">{ct.loi}</div>}
+            {traHang(ct) && <div>{traHang(ct)}</div>}
             <div className="gh-hang-nut">
               {nutChinh(ct, false).viec && <button className="gh-nut" disabled={dang} onClick={() => lam(ct, nutChinh(ct, false).viec)}>{nutChinh(ct, false).chu}</button>}
               {(ct.tim_lau || ct.trang_thai === 'chuyen_huy') && (
@@ -183,6 +194,7 @@ export default function GiaoHang() {
           </div>
         </div>
       )}
+      {hop && <HopLyDo key={hop.id} hop={hop} />}
     </div>
   );
 }
