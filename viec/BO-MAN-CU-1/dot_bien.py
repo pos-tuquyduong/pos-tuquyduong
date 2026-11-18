@@ -132,12 +132,14 @@ def chay_cay_goc(sha, bai):
     tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
     shutil.copy(os.path.join(GOC, bai), os.path.join(tmp, bai))
     if '--kem-ham-phu' in sys.argv:
-      # Lượt chứng minh (soát vòng 1 lỗi 3): kèm hàm phụ donCu.js; ở cây gốc chưa có taoDonGoc thì donCu dùng `taoDon` của GỐC — chính là thân cũ
-      # (cổng cờ đọc '0' → không chặn). Ca F (đơn cũ làm đơn mẫu) phải XANH như trước; chỉ ca ĐỔI HÀNH VI đỏ. Bản vá chữ chỉ nằm trong thư mục tạm.
+      # Lượt hành vi (soát vòng 1 lỗi 3): kèm hàm phụ donCu.js; ở cây gốc chưa có taoDonGoc thì donCu dùng `taoDon` của GỐC — chính là thân cũ
+      # (cổng cờ đọc '0' → không chặn). Khoá đầu donCu (đường thẳng phải chặn thân này) → bài dùng donCu ĐỎ vì "đường thẳng KHÔNG chặn";
+      # ca đổi hành vi đỏ đúng ca. (Trước khi có khoá, lượt này cho thấy ca F XANH trên gốc = donCu cho kết quả y đường cũ — bang_chung_do.txt.)
+      # Bản vá chữ chỉ nằm trong thư mục tạm.
       s = open(os.path.join(GOC, 'cong_cu', 'gia_lap', 'donCu.js'), encoding='utf-8').read()
-      neo = "const { taoDonGoc } = require(path.join(mayChu, 'routes', 'orders.js'));"
-      if s.count(neo) != 1: sys.exit('donCu.js: neo require taoDonGoc khớp %d lần' % s.count(neo))
-      s = s.replace(neo, "const _m = require(path.join(mayChu, 'routes', 'orders.js')); const taoDonGoc = _m.taoDonGoc || _m.taoDon;")
+      neo = "const taoDonGoc = m.taoDonGoc;"
+      if s.count(neo) != 1: sys.exit('donCu.js: neo taoDonGoc khớp %d lần' % s.count(neo))
+      s = s.replace(neo, "const taoDonGoc = m.taoDonGoc || m.taoDon;")
       open(os.path.join(tmp, 'cong_cu', 'gia_lap', 'donCu.js'), 'w', encoding='utf-8').write(s)
     os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
     if os.path.isdir(os.path.join(GOC, 'client', 'node_modules')):
