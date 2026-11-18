@@ -263,8 +263,7 @@ Mọi file ở mục 2–5 nằm trong `## Phạm vi`. Xoá file (`stock.js`, `d
 - Cà Phê Đen: `pha_tai_cho`, 16 g "Cà phê" (chat tạo nguyên liệu qua màn Kho) — ca "Dữ liệu 18.11" phía trên.
 - Cam Tân Dưỡng, Công thức 4, TEST 1000, Liệu Trình 30 ngày: hiện ở A7 "chưa sẵn sàng" (chưa công thức) → chủ quán bấm "Ẩn" sau gộp.
 - C3 sao lưu Drive (Apps Script, SAOLUU-DEM-1): máy không chạy được Apps Script — chỉ kiểm đường Excel / JSON của `backup.js`; Drive ghi CHƯA KIỂM.
-- A3b so MỌI tên: máy KHÔNG có tệp sao lưu SX 18.11 lẫn dữ liệu thật → không so được 10 món còn lại. Đề nghị chat (đang giữ tệp sao lưu) so 14 dòng
-  `pos_products.name` với bảng `recipes` / `tea_products` của SX và gửi danh sách lệch cho chủ quán; máy chỉ làm bước 031 đúng 4 dòng phiếu ghi. Ghi CHƯA KIỂM.
+- A3b so MỌI tên: chat đã so (mục 10.3) — chỉ 4 món juice 5–8 lệch.
 - **Điều kiện gộp** (ghi lại ở báo cáo cuối): GIAO-DIEN-2 đã gộp (bỏ nút "Hoàn kho SX"); mọi món đang bán đã có kiểu + công thức (Cà Phê Đen có công thức 16 g);
   9 món làm sẵn đã có lô; 4 món kể trên đã ẩn hoặc chấp nhận hiện mờ.
 
@@ -290,3 +289,63 @@ Mọi file ở mục 2–5 nằm trong `## Phạm vi`. Xoá file (`stock.js`, `d
 2. Hợp đồng `/api/kh` không có đường POS nhờ App gửi thông báo đẩy khi hoàn tiền vì hết hàng — thư `viec/KHO-3a/TRA_LOI_POS_KHO3a.md` cho App KH.
 3. `orders.js` vẫn ghi `pos_registrations` cho `is_new_customer` (quầy mới không gửi cờ này) — GIAO-DIEN-2 xét cùng luật "không tạo khách ở quầy".
 4. `client/src/utils/api.js` khai `productsApi.get/update/toggle/updatePrice` trỏ đường máy chủ không có — việc này nối `create`/`update` vào đường mới; `get/toggle/updatePrice` bỏ (không ai gọi).
+
+## 10. Cập nhật sau soát chat 18.11 18:50 (chủ quán DUYỆT) — mục này THẮNG các mục trên khi lệch
+
+### 10.1 Nền mới: ghép main bc16e140 (BO-MAN-CU-1) → HEAD 7b8b1dbb. Số dòng `orders.js` đọc lại (2076 dòng):
+| Chỗ | Dòng mới |
+|---|---|
+| `taoDon` = CỬA CHẶN (gói → `GOI_TAM_DUNG`; đường thẳng chỉ tiền mặt) | `orders.js:188-207` |
+| Thân cũ `taoDonGoc` | `orders.js:209` |
+| Khối `checkStock` trong vòng món (bỏ) | `orders.js:447-462` |
+| Nhánh `chiTinh` trả tổng | `orders.js:989` |
+| Mở giao dịch / `sauGhiDon` / ghi `pos_order_items` | `orders.js:1041`, `:1121`, `:1130-1140` |
+| `truKhoDon` đặt NGAY SAU vòng ghi `pos_order_items`, TRONG thân `taoDonGoc` | `orders.js:~1141` |
+| Khối `outStockFIFO` + nợ kho sau commit (bỏ) | `orders.js:1305-1334` |
+| Đăng ký khách mới (giữ) | `orders.js:1336-1361` |
+| Huỷ: giao dịch / đọc món / hoàn kho SX sau commit (bỏ) | `orders.js:1735`, `:1860`, `:1877-1905` |
+| Xoá: giao dịch / đọc món / hoàn kho SX (bỏ) | `orders.js:1947`, `:1967`, `:2036-2064` |
+- KHÔNG thêm lời gọi `taoDon(` mới (thu_BOMANCU1 K2 khoá đúng 6 lời gọi). `truKhoDon` ở thân `taoDonGoc` → bài cũ dựng "đơn cũ" qua `cong_cu/gia_lap/donCu.js`
+  (gọi `taoDonGoc`) cũng trừ kho → cần `dungMonThu` như bài khác (1 dòng).
+- `truKhoDon` nhận `orderItems` (đã tra món, `product_id > 0` = món thật; dòng gói / thẻ / nạp có `product_id < 0` → bỏ qua) — không tra lại.
+- K5 mục 4: "lấy món từ gói", "mua gói rồi lấy ngay" không còn ở quầy (tạm ngưng) → chỉ giữ ca qua `donCu` nếu bài cũ cần; không ca mới.
+- Chạy song song, KHÔNG sửa: GIAO-3 (`giaoHang.js` phần Ahamove — hàm huỷ `kiemHuyDonGiao` / `chotHuyGiao` chỉ ĐỌC, không sửa; `utils/doiSoat.js`,
+  `routes/reports.js`, `Reports.jsx`, `DoiSoat.jsx`); TIEN-KHOA-2 (`orders.js` route pay-debt, `wallets.js`, `don-mo-rong.js`, `api.js` dòng deduct).
+  → `api.js`: chỉ thêm `productsApi.create/update`, KHÔNG bỏ `stockApi`/`syncApi` (bớt đụng file chung; ghi Phát hiện).
+
+### 10.2 K4 — mọi chỗ đọc `kho_phieu` và phiếu bán (`PS`, `su_co = 'ban_hang'`)
+| Chỗ (grep `kho_phieu[^_]` trong server/, trừ bước 001–007) | Xử lý phiếu bán | Ca |
+|---|---|---|
+| `kho/duLieu.js:111` `conLaiTheoLo` (còn lại theo lô) + `:115` `COT_TON_NL` (tồn nguyên liệu) — Tồn kho, Pha chế, chia lô | **TÍNH** (đó là việc trừ kho) | E1 B1/B2 tồn sau bán |
+| `duLieu.js:153` số phiếu kế (`PS-…`) | TÍNH — dùng chung dãy PS | B4 số phiếu liên tiếp |
+| `duLieu.js:159` `themPhieu` | ghi phiếu bán (thêm `don_hang_id`) | B4 |
+| `duLieu.js:223,242-255` duyệt / từ chối (`cho_duyet` mới đổi) | phiếu bán luôn `da_duyet` → 409 như cũ, không đổi | — |
+| `duLieu.js:260` `loThanhPhamDaBiTru` | TÍNH: lô pha chế đã bị bán → chặn huỷ / sửa phiếu pha chế (giữ chặn như hiện nay — Câu 4) | ca "huỷ PX sau khi bán từ lô → 409 LO_DA_BI_TRU" |
+| `duLieu.js:268` `huyPhieu` (route `/phieu/:id/huy`) | **LOẠI**: phiếu bán → 409 `PHIEU_BAN_HANG` (chỉ huỷ đơn mới huỷ phiếu) — ĐỔI hành vi | ca |
+| `duLieu.js:277` `suaPhieu` + `duong.js:309` sửa theo loại | **LOẠI**: phiếu bán → 409 `PHIEU_BAN_HANG` — ĐỔI | ca |
+| `duLieu.js:286` `ghiKetQua` (chỉ `PX`) | không chạm | — |
+| `duLieu.js:312` `docPhieu` → `docPhieuNhap` (PS) | đọc được (dòng `ban`, tên, lô) + `don_hang_id` | B4 |
+| `duLieu.js:341,350` chuỗi đơn / phần còn lại đơn DH (lọc `PN`) | loại sẵn | — |
+| `duLieu.js:400` `dsPhieu` | **LOẠI mặc định** (`su_co IS NOT 'ban_hang'`), lọc `?ban_hang=1` mới hiện — ĐỔI | ca |
+| `duong.js:239` `timMaGui` (`ma_gui`) | phiếu bán `ma_gui NULL` — không đụng | — |
+| `duong.js:270` in phiếu (`so_lan_in`) | cho in như phiếu khác | — |
+| `nhapHang.js:51` đơn của phiếu nhận (lọc `DH`) | loại sẵn | — |
+| `nhapHang.js:79` "hay mua" (lọc `PN`) — gợi ý nhập hàng | loại sẵn; tồn trong gợi ý nhập = `docTon` → TÍNH | ca "goi-y-nhap: tồn sau bán, hay_mua không đổi" |
+| `nhapHang.js:86` đơn mở (lọc `DH`) | loại sẵn | — |
+| `phatSinh.js:78` hạn mức nội bộ (lọc `su_co = 'noi_bo'`) | loại sẵn (bán không ăn hạn mức) | ca "PS nội bộ = hạn mức sau khi đã bán nhiều → vẫn tự duyệt" |
+| `phatSinh.js:15,23,50` gợi ý / lô phát sinh (`conLaiTheoLo`) | TÍNH (lô đã bán hết không còn gợi ý) | ca "gợi ý hết hạn không có lô đã bán hết" |
+| `phatSinh.js:116` lô âm khi duyệt PS | TÍNH | — |
+| `utils/khoiPhuc.js:30` "kho trống" khi khôi phục | TÍNH (đã có phiếu bán = kho không trống → không khôi phục kho, như mọi phiếu) | — |
+| `routes/backup.js:144` sao lưu `kho_phieu` `SELECT *` | cột `don_hang_id` tự đi theo; khôi phục vào kho trống giữ `don_hang_id`, khoá duy nhất vẫn còn | ca "sao lưu → khôi phục kho trống: don_hang_id giữ, ghi trùng đơn bị chặn" |
+| `utils/giuCho.js:39` | chỉ chú thích | — |
+
+### 10.3 Câu 2 · A3b · dữ liệu
+- Câu 2 (chốt muộn khi đã hết hàng): trả lời bằng B3c của phiếu — mục 2.6 đúng ý, không hỏi lại.
+- A3b: chat đã so trên POS thật 18.11 — ngoài juice 5–8, tên `pos_products` TRÙNG tên SX đang hiện (Hồng Tân Sinh, Lục Tân Khí, TEST 1000, Dưỡng Nhan Lộ,
+  Ngọc Thanh Lộ, An Mi Lộ, Cà Phê Đen). Cam Tân Dưỡng, Công thức 4, Liệu Trình 30 ngày không có trên menu SX → ẩn sau gộp (A7). **Bỏ dòng CHƯA KIỂM A3b.**
+- Dữ liệu thật (chat nhập lại 18.11 17:35): 33 nguyên liệu (thêm "Cà phê"), giá đều 0; 9 món làm sẵn có công thức, chưa lô; Cà Phê Đen pha tại chỗ 16 g.
+- Bước nâng cấp giữ số 030 / 031 (GIAO-3 cũng thêm một bước — việc gộp sau đổi số khi ghép main).
+
+### 10.4 Đo trước / sau (chat mục 6)
+Giả lập S4 (thời gian chạy riêng) và thời gian tạo đơn qua phiên ("Đã nhận tiền" = taoPhien + chotPhien tiền mặt) — đo trên gốc 7b8b1dbb và trên HEAD,
+ghi `trang_thai.md`; tăng > 30 % thì ghi rõ và báo.
