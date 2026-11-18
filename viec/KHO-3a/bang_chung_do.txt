@@ -1,0 +1,86 @@
+  ✗ A1 menu quầy có món POS (không lấy danh sách SX)  — 0 món thu3a
+  ✗ A1 thứ tự theo sort_order
+  ✗ A1 giá lấy từ POS  — undefined
+  ✗ D2 món giá 0 không bán được (sellable false)
+  ✗ A1 /api/kh/menu có món đủ hàng, đúng giá
+  ✗ A2 làm sẵn: số = lô CÒN HẠN (2 + 3, bỏ lô hết hạn 2)  — undefined
+  ✗ A2 pha tại chỗ: số phần = floor(47,999 / 16) = 2 (không làm tròn lên 3)  — undefined
+  ✗ A2 công thức lồng: số phần = min(sữa 1/0,1 = 10, cà phê 47,999/10 = 4, đường 1/0,06 = 16) = 4  — undefined
+  ✗ A2 chưa công thức: không bịa số (null, không 999)
+  ✗ A2 bỏ "tồn gần nhất của SX": ton_cu false, ton_luc null
+  ✗ B3 món chưa công thức: quầy sellable false, App KHÔNG thấy
+  ✗ B3 công thức rỗng / chua_dinh_luong cũng chưa sẵn sàng
+  ✗ C1 tải menu KHÔNG gọi SX  — GET /api/pos/customers/export, GET /api/pos/products-with-stock, GET /api/pos/products-with-stock
+  ✗ A3b có bước 031_ten_mon_sx.js
+  ✗ B1 thiếu 1 (còn 5 cần 6) → 400 HET_HANG, lời "Không đủ hàng"  — HTTP 200
+  ✗ B1 FEFO: lô hạn gần (2) hết trước, lô xa còn 3 − 1 = 2  — gần 2 · xa 3
+  ✗ B4 đúng MỘT phiếu PS ban_hang da_duyet nối đơn  — []
+  ✗ B4 xem lại được phiếu bán ở Kho › Phiếu (dòng thành phẩm)  — HTTP 0
+  ✗ B1 hết lô còn hạn → HET_HANG (dù còn lô hết hạn)  — HTTP 200
+  ✗ B7 bị chặn thì không ghi đơn
+  ✗ A2 menu sau bán: làm sẵn hiện 0 (hết)
+  ✗ B2 pha tại chỗ TẮT, thiếu (47,999 g, cần 48) → 400 THIEU_NGUYEN_LIEU nêu nguyên liệu  — HTTP 200
+  ✗ B2 đủ (cần 32 g) → 200, trừ đúng 32 g  — HTTP 200 · tồn 47.999
+  ✗ B2 công thức lồng: đường 2 × 0,03 = 0,06; sữa 0,1; cà phê 10  — HTTP 200 · đường 1 · sữa 1
+  ✗ B2 hai món chung nguyên liệu: từng món đủ (0,6 ≤ 0,9) mà cả giỏ thiếu (1,2) → chặn  — HTTP 200
+  ✗ B2 cùng món hai dòng cộng dồn (1,2 > 0,9) → chặn  — HTTP 200
+  ✗ B3b App: thiếu nguyên liệu cả giỏ → HET_HANG kèm ma (mã có trong hợp đồng)  — HTTP 400 · MON_KHONG_BAN · Món này hiện không bán · ma thu3a_910
+  ✗ B8 mặc định TẮT (cột cho_ban_thieu = 0 khi không truyền)
+  ✗ B2 BẬT: phần thiếu ghi âm (dòng không lô), Tồn kho báo đỏ  — dòng âm 0 · tồn 47.999
+  ✗ A2 BẬT: menu không chặn (khong_quan_kho)
+  ✗ B8 tắt lại → chặn ngay  — HTTP 200
+  ✗ B3 không dòng kho → 400 CHUA_CO_CONG_THUC  — HTTP 200
+  ✗ B3 công thức rỗng → 400 CHUA_CO_CONG_THUC  — HTTP 200
+  ✗ B3 chua_dinh_luong → 400 CHUA_CO_CONG_THUC  — HTTP 200
+  ✗ B3b menu quầy hiện 0, App con_hang false (phần đang giữ đã trừ)  — undefined / undefined
+  ✗ B3b màn khách thấy "hết" NGAY khi phiên khác giữ (không chờ bộ nhớ 20 s)  — undefined → undefined
+  ✗ B3b phiên B (món theo product_id) → HET_HANG  — HTTP 200
+  ✗ B3b POST /orders tiền mặt thẳng → HET_HANG  — HTTP 200
+  ✗ B3b App đặt chai đang bị giữ → HET_HANG kèm ma  — HTTP 400 · MON_KHONG_BAN · Món này hiện không bán · ma thu3a_912
+  ✗ B3b chốt trừ đúng lô đã giữ  — 1
+  ✗ B3b ba phiên CÙNG LÚC tranh chai cuối → đúng một giữ được  — HTTP 200 | HTTP 200 | HTTP 200
+  ✗ B3b xác nhận tay QR sau hạn khi phiên KHÁC đang giữ chai cuối → HET_HANG (không bán vượt)  — HTTP 200 · HTTP 200
+  ✗ B3c App đặt QR giữ chai cuối  — HTTP 400 · MON_KHONG_BAN · Món này hiện không bán
+  ✗ B3c ví khách +ĐÚNG số tiền, MỘT lần (báo hai lần)  — số dư 0 / phải undefined
+  ✗ B3c App thấy thong_bao_tien_ve có TÊN món + "vừa hết" + đã hoàn vào ví  — HTTP 404 · KHONG_THAY_DON · Không tìm thấy đơn
+  ✗ B3c quầy có dòng báo (vao_vi) nêu món hết  — (không có)
+  ✗ B3c phiên QR QUẦY có SĐT: hỏng vì hết hàng → vào ví đúng số  — số dư 0 / 18000
+  ✗ B3c QR quầy KHÔNG SĐT: chua_khop "HOÀN TIỀN TAY", không dòng ví  — {"ket_qua":"khop","ly_do":null}
+  ✗ B5 bán 2 → lô còn 2
+  ✗ B5 phiếu bán của đơn huỷ → trạng thái huy
+  ✗ Câu 4: phiếu bán không huỷ / sửa tay được ở Kho → 409 PHIEU_BAN_HANG  — HTTP 500 · LOI_MAY_CHU · Lỗi máy chủ — xem lại đã ghi chưa trước khi bấm lại · HTTP 500 · LOI_MAY_CHU · Lỗi máy chủ — xem lại đã ghi chưa trước khi bấm lại
+  ✗ B5 đơn giao "Bỏ đi" → KHÔNG trả kho, phiếu ghi hao hụt  — HTTP 200 · lô 4/4 · undefined · undefined
+  ✗ B6 phiên tiền mặt: một đơn, một phiếu (gửi lại lệnh chốt không trừ lần hai)  — HTTP 200 · HTTP 200
+  ✗ B6 phiên QR (webhook) → một phiếu
+  ✗ B6 đơn App → một phiếu
+  ✗ B6 xác nhận tay → một phiếu  — HTTP 200
+  ✗ B6 POST /orders thẳng → một phiếu
+  ✗ B7 lỗi CSDL giữa trừ kho → không đơn, không phiếu  — HTTP 200 · đơn 27/26 · phiếu 0
+  ✗ A4 nhân viên tạo món → 403  — HTTP 404
+  ✗ A4 tên rỗng → 400 TEN_KHONG_HOP_LE  — HTTP 404
+  ✗ A4 quản lý tạo món → khoá ("pos", id), mã POS<id>  — HTTP 404 · null
+  ✗ A4 trùng tên món đang bán → 400 TEN_TRUNG  — HTTP 404
+  ✗ A4 món mới chưa công thức: hiện mờ (sellable false), đơn vị "ly" từ cột unit
+  ✗ A7 liệt kê: chưa dòng kho, công thức rỗng, chưa định lượng, làm sẵn hết lô còn hạn  — HTTP 403 · DUONG_LA · Không có quyền truy cập đường này
+  ✗ A7 có số đếm = số dòng  — undefined / 0
+  ✗ Kho › Phiếu: mặc định ẨN phiếu bán; lọc ban_hang=1 mới hiện  — 16 / 16
+  ✗ Gợi ý nhập: tồn giảm theo bán (sữa −0,3), "hay mua" (chỉ đếm phiếu nhận) không đổi  — HTTP 200 · sữa 1 → 1
+  ✗ C3 sao lưu chạy, không gọi SX  — HTTP 200 · SX 94
+  ✗ Sao lưu Excel lấy kho_phieu bằng SELECT * → có cột don_hang_id
+  ✗ Khoá duy nhất một đơn — một phiếu bán (ux_kho_phieu_don_hang)
+  ✗ Ghi hai phiếu bán cùng đơn → khoá duy nhất chặn
+  ✗ C4 GET /so-no = 0 việc dù sổ nợ còn dòng pending (dữ liệu giữ nguyên)  — {"cho":1,"canXem":0,"dangChay":false,"danh_sach":[{"id":1,"order_code":"CU-K3A","product_name":"Cũ","quantity":1,"direct
+  ✗ C4 đẩy sổ nợ → 410 SX_DA_NGAT  — HTTP 200
+  ✗ C5 xuất SX của đăng ký → 410 SX_DA_NGAT; danh sách đăng ký vẫn 200  — HTTP 400 · Không có đăng ký mới để export · HTTP 200
+  ✗ C1 POST /products/sync-from-sx → 410 SX_DA_NGAT  — HTTP 200
+  ✗ Câu 3: báo sự cố "hoàn kho SX" → 400 HOAN_KHO_SX_DA_BO, không gọi SX  — HTTP 200
+  ✗ C1/C2 suốt bài: SX giả nhận 0 lời gọi  — 96: GET /api/pos/customers/export, GET /api/pos/products-with-stock, GET /api/pos/products-with-stock, GET /api/finished-products/check-stock
+  ✗ C1/C6 server/ không còn lời gọi / biến SX (orders, products, damages, backup, so-no, giuCho, index, ketNoiKho, database)  — routes/orders.js, routes/products.js, routes/damages.js, routes/backup.js, ketNoiKho.js, database.js
+  ✗ C1 đã bỏ stock.js, doi-chieu.js, sync.js, utils/doSoNo.js
+  ✗ C1 sxApi.js chỉ còn callSxApi ném SX_DA_NGAT, không fetch (bước 020 vẫn nạp được)
+  ✗ C6 index.js trả 410 cho /stock, /sync, /doi-chieu
+  ✗ D1 kho trống: POST /orders và tạo phiên → CHUA_CO_CONG_THUC, không 500  — HTTP 200 · HTTP 200
+KHO-3a: 30 đạt · 82 hỏng · tổng 112 ca
+GỐC 7b8b1dbb: thoát 1
+
+SỐ CA cong_cu/thu_KHO3a.js: 120
