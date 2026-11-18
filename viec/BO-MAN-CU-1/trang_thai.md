@@ -98,3 +98,24 @@ HỎNG 0 · LẠC 0.
 ### Kiểm
 - `npm test -- --day-du` (cây làm việc = HEAD `a68fee1b`): PASS 126 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn từ trước việc này).
 - Giả lập một ngày (`node cong_cu/gia_lap/chay.js`): 33 kịch bản · 18 bất biến · ĐẠT; `thu_gia_lap.js` 180 đạt · 0 hỏng.
+- Bằng chứng đỏ: `bang_chung_do.txt` — 28 bài thử đổi / mới đều ĐỎ trên cây gốc `28b6efeb` (lượt như cổng A11: 21 bài thiếu hàm phụ
+  `donCu.js` — sập; lượt kèm hàm phụ: đỏ vì "orders.js chưa có taoDonGoc", màn cũ / công tắc cũ còn); 28 dòng `SỐ CA` chạy trên HEAD.
+- `node tu_chay/cong.js tinh . d52b9fb^ HEAD viec/BO-MAN-CU-1` (HEAD `9913355a` sau commit bằng chứng): chỉ `✗ [A20]` (chưa soát bảo mật) và `✗ [A19]`
+  (chưa ghi HEAD ĐÃ KIỂM) — đúng dự kiến ở bước này.
+
+## Phát hiện (không sửa trong việc này)
+- `client/src/index.css:664-700` còn khối CSS "SALES PAGE RESPONSIVE" (`.sales-layout`, giỏ thu gọn) chỉ màn cũ dùng — CSS chết, file ngoài Phạm vi.
+- `client/src/pages/BanHang/tinh.js` `dungDonHang` (thân POST /orders đợt 1) không màn nào gọi nữa; đường thẳng nay chỉ tiền mặt — mã chết,
+  còn bị `thu_BH1` I1–I9 và `thu_KHACHCK1` D2 khoá → đề xuất xoá cùng hai bài ở việc sau (chú thích đầu hàm đã ghi "chờ chủ quán duyệt xoá").
+- Chú thích máy chủ còn nhắc `Sales.jsx`: `server/routes/orders.js:369` ("Man ban hang da kiem viec nay (Sales.jsx:77)"), `:782` ("Sales.jsx:29"),
+  `server/utils/goiKhach.js:21` ("như Sales.jsx") — `orders.js` ngoài vùng phiếu cho sửa, `goiKhach.js` ngoài Phạm vi (K1: chú thích là khẳng định).
+- `cong_cu/thu_BH2.js:243` nhãn S16 còn "công tắc từng máy, mặc định TẮT" (phép vẫn đúng: App.jsx trỏ TrangChu) — không sửa để bài khỏi phải vào
+  "Bài thử cũ sửa"; sửa nhãn khi chạm bài sau.
+- Cài đặt `thanh_toan_payos_bat_buoc` thành thừa (gieo `server/database.js:1114`; không còn chỗ đọc) — bài thử cũ vẫn đặt `'0'`, vô hại.
+- Trừ tài khoản KHÔNG PIN còn ở `POST /wallets/deduct`, `/wallets/adjust` (`server/routes/wallets.js`, quyền `adjust_balance`; `ViKhach.jsx` gọi
+  adjust) — sổ quyết định 11.11 "trừ tiền tài khoản luôn cần PIN chủ tài khoản". Đề xuất việc sau.
+- Chuyển khoản không qua QR còn: `POST /orders/:id/pay-debt` `transfer` cho ĐƠN NỢ CŨ (việc TIEN-KHOA-2 theo phiếu B4b câu 5) và
+  `POST /orders/:id/doi-cach-tra` tiền mặt → chuyển khoản (`server/routes/don-mo-rong.js`, ngoài Phạm vi).
+- `payment_method` của đơn là chữ tự do ghi nguyên (`combined`, `mixed`, `momo` có trong bài thử) — nay đường thẳng chỉ nhận đơn tiền mặt,
+  nhãn lạ (không phải balance / transfer / debt / cho_thu) vẫn lọt vào cột; tiền đúng cột, chỉ nhãn lạ.
+- Kho mây là kho nông → `thu_BH2` G1 đỏ oan cho tới khi `git fetch --unshallow` (K2). Máy đã tự tải thêm lịch sử ở bước 1.
