@@ -119,3 +119,94 @@ HỎNG 0 · LẠC 0.
 - `payment_method` của đơn là chữ tự do ghi nguyên (`combined`, `mixed`, `momo` có trong bài thử) — nay đường thẳng chỉ nhận đơn tiền mặt,
   nhãn lạ (không phải balance / transfer / debt / cho_thu) vẫn lọt vào cột; tiền đúng cột, chỉ nhãn lạ.
 - Kho mây là kho nông → `thu_BH2` G1 đỏ oan cho tới khi `git fetch --unshallow` (K2). Máy đã tự tải thêm lịch sử ở bước 1.
+
+## Soát độc lập — vòng 1 (agent độc lập, HEAD f0ec5fc7) — chép nguyên văn
+```
+KHÔNG ĐẠT
+
+LỖI TÌM ĐƯỢC:
+1. server/routes/orders.js:197 — [K4: cổng không cùng biểu thức với chỗ dùng · đường tiền]
+   - Cửa chặn chuyển khoản dùng `Number(b.transfer_amount) > 0`.
+   - Chỗ dùng cộng mọi số khác 0: orders.js:1002 `(Number(transfer_amount) || 0)`, rồi ghi nguyên vào đơn ở :1104.
+     Cổng TRA_KET_HOP :250 cũng chỉ xét `> 0`.
+   - Đã chạy thử bằng script nháp (gọi taoDon, phien = null): {cash_amount 35.000, transfer_amount −10.000, món 25.000} → 200.
+     Đơn lưu payment_method cash, cash 35.000, transfer −10.000.
+   - Như vậy đường thẳng "chỉ tiền mặt" (chú thích orders.js:184, phiếu B2) vẫn nhận một phần chuyển khoản âm.
+     Sổ đối soát chuyển khoản và két sẽ sai.
+   - Chưa thấy cách lấy tiền ra: mọi nguồn tiền dương khác đều đã bị chặn. Lỗ này có từ trước (cổng cũ cũng `> 0`),
+     nhưng chính việc này hứa đóng nó.
+   - Cách sửa gọn: `Number(b.transfer_amount) !== 0`, hoặc chặn mọi số tiền âm ở cửa chặn. Kèm ca B2d (CK âm → 400, không ghi gì)
+     và một đột biến đưa lại `> 0`.
+   - Số dư / ví mẹ / nợ âm thì vô hại: chỗ dùng :927, :949, :977 cũng là `> 0`.
+
+2. cong_cu/thu_KHNAP1.js:443-449, :478 và cong_cu/thu_NAP1.js:262 — [K3: tên ca nói một đằng, máy kiểm một nẻo · K1]
+   - Hàm gọi máy chủ của hai bài chuyển mọi thân bị chặn sang `donCu` (dòng `laDonCu`), nên các ca này không còn đi qua quầy thật.
+   - Tên ca vẫn khẳng định quầy:
+     - KHNAP1 B2 "quầy: thẻ + balance … → THE_KHONG_TRA_VI";
+     - KHNAP1 B2 "cờ bật → vẫn THE_KHONG_TRA_VI (không VI_PHAI_QUA_PIN)";
+     - KHNAP1 K5 "ví mẹ cho đồ uống ở quầy → 200; gói trả trước trả số dư → 200";
+     - NAP1 B5 b5c "mua gói → NAP_KHONG_GOP".
+   - Quầy thật (HTTP) hôm nay trả 400 VI_PHAI_QUA_PIN / GOI_TAM_DUNG. Ca xanh nhưng khẳng định ngược với hành vi trên quầy.
+   - Kế hoạch đã duyệt (ke_hoach.md mục 4.3) ghi "KHNAP1 K5 và B2 t1[4] → mã mới; NAP1 K2 và B5 b5c → mã mới".
+     Máy làm khác kế hoạch, và trang_thai.md bảng "Bài cũ đổi" ghi "Ca giữ nguyên", không nêu chỗ lệch.
+   - Cách sửa: đổi lời chờ sang mã quầy thật qua HTTP, hoặc đổi tên ca thành "thân taoDonGoc (đơn cũ)".
+
+3. viec/BO-MAN-CU-1/bang_chung_do.txt, đoạn mở đầu lượt 2 — [K1 · K3]
+   - Câu "bài đỏ vì HÀNH VI gốc — orders.js chưa có taoDonGoc" sai với 21 bài dùng donCu (DIEMMON1 … VOUCHER2).
+   - Lượt 1 đỏ vì "Cannot find module './gia_lap/donCu'". Lượt 2 đỏ vì donCu ném lỗi thiếu export. Cả hai là thiếu hàm phụ,
+     không phải hành vi.
+   - Ca đổi theo hành vi không bao giờ chạy tới trên gốc vì bài sập trước: P3 H, I1–I6, I7; VOUCHER2 F5; UUDAI1 K4a / K4b.
+     Bản thân cửa chặn thì có bằng chứng đỏ thật ở thu_BOMANCU1 (đỏ trên gốc, 18/18 BẮT).
+
+4. client/src/pages/BanHang/tinh.js:111 — [K1, chú thích là khẳng định]
+   - Chú thích "giữ vì thu_BH1 I1–I11 khoá": việc này đã bỏ I10 / I11. File nằm trong Phạm vi → sửa cùng lượt.
+   - Nhẹ, cùng loại: ThanhKhach.jsx:3 còn nhắc CustomerSearch (file đã xoá).
+
+5. Kế hoạch mục 4.1 hứa ca chưa làm — [K3 · lệch kế hoạch]
+   - (a) "C2 đơn giao qua phiên (một ca)" trong thu_BOMANCU1: không có. C2 chỉ có bằng chứng từ ca cũ GIAO1 D9 (thu_GIAO1.js:357-369).
+   - (b) "Mọi lối gọi taoDon — so BẰNG danh sách 6 chỗ": ca K1 chỉ đếm chữ taoDonGoc, không đếm lối gọi taoDon.
+     Thêm một lối tạo đơn mới đi vòng taoDon thì không phép nào bắt.
+
+NGHI NGỜ:
+- Khách có ví mà chưa có hồ sơ pos_customers (K5, dữ liệu cũ):
+  - Lần sửa cong_cu/gia_lap/kich_ban.js trong commit 23030445 thêm `INSERT pos_customers` vì PIN không đặt được nếu khách
+    chưa có hồ sơ (pinKhach.js:34 → KHACH_KHONG_TON_TAI).
+  - /wallets/topup (wallets.js:154-177) không đòi hồ sơ. Sau việc này, khách nạp ví mà chưa có hồ sơ KHÔNG trả bằng tài khoản
+    ở quầy được: đường thẳng bị chặn, phiên cần PIN, PIN cần hồ sơ. Màn cũ trước đây cho trả.
+  - Giả lập gặp đúng chỗ này và máy vá cho giả lập xanh, nhưng không ghi Phát hiện. Chưa đo production có bao nhiêu ví như vậy.
+- Phiên tạo trước lúc triển khai có gói, khách đã chuyển khoản, chốt muộn / xác nhận tay sau → GOI_TAM_DUNG, tiền đã về mà không có đơn.
+  Phiên quầy không vào ví: thanh-toan.js:207-216 ghi chua_khop. Khả năng gần 0 (kế hoạch mục 6).
+- BV-GOI-TU-GOI bị bắt chỉ vì mã khác: không có vế đó, thân tự trả TU_GOI_NHUNG_THIEU_GOI.
+  Vế `from_package` của cửa chặn thực chất trùng với khoá có sẵn trong thân; giữ được để thống nhất mã.
+- SX hay hệ khác gọi POST /orders với ví / chuyển khoản: CHƯA KIỂM (kho SX không có ở đây).
+
+NGHIỆM THU: 20/20 mục có bằng chứng (A1–A4, B1–B4, B4b, B5, C1–C7, D1–D3).
+  - A1 ← thu_BOMANCU1 A1a–g; A2 ← A2a, b; A3 ← A3a–c + bảng grep ke_hoach mục 3.
+  - A4 ← 978.980 → 916.573 byte (đã đo lại); `--day-du`: "dist đã commit KHỚP với src hiện tại".
+  - B1 ← B1a–e; B2 ← B2a–c (còn lỗ CK âm — lỗi 1); B3 ← G1–G12 + ke_hoach mục 1; B4 ← bảng ke_hoach mục 2.
+  - B4b ← dòng chayBaiThat (kiem_tra:520), ca K1, N1–N4.
+  - B5 ← dot_bien.py tự chạy lại: đối chứng xanh 62 đạt, 18 BẮT · 0 SỐNG · 0 LẠC; caChan đếm 11 bảng.
+  - C1 ← C1a–l; C2 ← GIAO1 D9 (yếu, xem lỗi 5a); C3 ← HOPDONG_KH, KHMUA1 xanh, cửa /api/kh, khachAuth, donApp, hợp đồng không đổi.
+  - C4 ← MANKHACH1; C5 ← C5a–h; C6 ← C6 + DOISOAT1; C7 ← gia_lap/chay.js + thu_gia_lap xanh.
+  - D1 ← bảng trang_thai + 28 dòng SỐ CA; D2 ← "fetch trần = 22" + đúng 1 dòng thêm; D3 ← thu_BOMANCU1 62 ca.
+  Mục thiếu: không có (E là chủ quán thử tay).
+
+CHƯA SOÁT ĐƯỢC:
+- Chưa chạy `cong.js chay` (bước 11) và chưa soát bảo mật (bước 8b) — chưa tới bước.
+- Chưa có lượt chạy chứng minh donCu (thân taoDonGoc) cho kết quả y như đường POST cũ ở khoảng 430 ca F.
+  Thân không đổi dòng nào ngoài việc dời cổng (đã đọc diff orders.js), nên khả năng lệch thấp.
+- Production: số ví chưa có hồ sơ; phiên có gói đang mở. Kho SX.
+
+BÀI HỌC:
+- KHOÁ: cổng A11 (tu_chay/cong.js) hiện chỉ coi "Cannot find module" của thư viện ngoài là không hợp lệ. Bài đỏ trên gốc vì thiếu
+  hàm phụ CÙNG KHO (đường dẫn './…', hay hàm phụ tự ném lỗi "chưa có X") đang được tính là đỏ hợp lệ → đề xuất coi là không hợp lệ.
+  Ngoài Phạm vi, khung đóng băng → ghi đề xuất.
+- KHOÁ (trong Phạm vi): thu_BOMANCU1 thêm
+  - ca B2d chuyển khoản âm + đột biến;
+  - ca đếm lối gọi taoDon so BẰNG 6 chỗ;
+  - ca C2 đơn giao qua phiên.
+- NGUYÊN TẮC (K3, KHUON_LOI): bài cũ đổi sang hàm phụ "đi vòng" (donCu) thì phải đổi luôn tên ca nói về đường đã bị vòng qua.
+  Bằng chứng đỏ phải có một lượt chạy thử hàm phụ trên gốc để chứng minh hai đường như nhau (ca F xanh, ca đổi đỏ).
+- NGUYÊN TẮC (K5): giả lập phải vá dữ liệu mới chạy được một luồng thật (thêm hồ sơ khách để đặt PIN) → đó là tín hiệu luồng thật
+  có thể bị chặn. Ghi Phát hiện, đừng chỉ vá giả lập.
+```
