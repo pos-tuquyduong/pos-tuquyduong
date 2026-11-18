@@ -37,7 +37,6 @@ const MAN_DA_RA = {
   'pages/Orders.jsx': 10,
   'pages/Refunds.jsx': 4,
   'components/InvoicePrint.jsx': 2,
-  'pages/Sales.jsx': 3,
   'pages/Customers.jsx': 10,
   'pages/DonApp.jsx': 3,
   'pages/DonThu.jsx': 5,
@@ -51,7 +50,6 @@ const MAN_DA_RA = {
   'components/DoiSoat.jsx': 5,
   'components/ThongTinMon.jsx': 2,
   'components/MaDangNhapApp.jsx': 1,
-  'components/CustomerSearch.jsx': 2,
   'components/Layout.jsx': 2,
   'pages/Kho/DatHang.jsx': 2,
   'pages/Kho/DinhMuc.jsx': 2,
@@ -163,7 +161,10 @@ function duyet(thuMuc, ra = []) {
   const lay = SX('components', 'Layout.jsx');
   k('B7 Layout gắn <ThongBao /> đúng MỘT lần', (lay.match(/<ThongBao\s*\/>/g) || []).length === 1 && /import ThongBao from '\.\/ThongBao'/.test(lay));
   k('B7b Layout gắn <ThongBao /> vô điều kiện (không sau && / ? / :)', !/(&&|\?|:)\s*\(?\s*<ThongBao\s*\/>/.test(lay));
-  k('C6 Sales.setError đi qua lyDoLoi (chữ kỹ thuật → câu chung)', /baoLoi\(\s*lyDoLoi\(\s*cau\s*\)\s*\)/.test(SX('pages', 'Sales.jsx')));
+  // BO-MAN-CU-1: màn cũ Sales.jsx (và CustomerSearch.jsx chỉ nó dùng) đã xoá — C6 chuyển sang màn Bán hàng: lỗi tính giá qua loiTinhGia.
+  k('C6 màn Bán hàng: lỗi tính giá đi qua loiTinhGia (mất kết nối → câu ngắn, không chữ kỹ thuật)', /setLoiTinh\(loiTinhGia\(e\)\)/.test(SX('pages', 'BanHang', 'BanHangMoi.jsx')));
+  k('C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx', !fs.existsSync(path.join(SRC, 'pages', 'Sales.jsx'))
+    && !fs.existsSync(path.join(SRC, 'components', 'CustomerSearch.jsx')));
   const gan = fs.existsSync(SRC) ? duyet(SRC).filter((f) => /<ThongBao\s*\/>/.test(sach(fs.readFileSync(f, 'utf8'))) && !/ThongBao\.jsx$/.test(f)) : [];
   k('B8 chỉ MỘT file gắn <ThongBao />', gan.length === 1, gan.map((f) => path.relative(SRC, f)).join(', '));
 

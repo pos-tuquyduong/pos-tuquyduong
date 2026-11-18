@@ -674,7 +674,9 @@ async function main() {
     const cap = sach(doc('client/src/components/CapHang.jsx'));
     const api = sach(doc('client/src/utils/api.js'));
     const caiDat = sach(doc('client/src/pages/Settings.jsx'));
-    const banHang = sach(doc('client/src/pages/Sales.jsx'));
+    // BO-MAN-CU-1: màn cũ Sales.jsx đã xoá — G2 / G2b soi màn Bán hàng (BanHang/tinh.js + BanHangMoi.jsx).
+    const banHang = sach(doc('client/src/pages/BanHang/tinh.js'));
+    const banHangMoi = sach(doc('client/src/pages/BanHang/BanHangMoi.jsx'));
     const khachHang = sach(doc('client/src/pages/Customers.jsx'));
     k('G1 thẻ Hạng (pages/CaiDat/HangThe.jsx): ▲ ▼ thứ bậc, "+ Thêm hạng", "+ Thêm gói", Bán / Chỉ cấp, Lưu', hang.length > 0 && ['▲', '▼', '+ Thêm hạng', '+ Thêm gói', 'Chỉ cấp', 'chi_cap'].every((x) => hang.includes(x)));
     k('G1b xoá hạng bấm 2 lần ("Bấm lần nữa để xoá"), KHÔNG hộp thoại trình duyệt', hang.includes('Bấm lần nữa để xoá') && !/\bconfirm\s*\(|\balert\s*\(|\bprompt\s*\(/.test(hang));
@@ -685,11 +687,15 @@ async function main() {
       && api.includes("api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai, pin_cu: pinCu })"));
     k('G1g (câu 4 b1) đã có PIN: ô "PIN cũ" hiện và gửi kèm khi đổi; KHÔNG nút "quên PIN"', /\{coPin && \(?\s*<input[^>]*placeholder="PIN cũ"/.test(hang)
       && /hangApi\.datPin\(\s*pin\.mat_khau\s*,\s*pin\.pin\s*,\s*pin\.pin_lai\s*,\s*pin\.pin_cu\s*\)/.test(hang) && !/quên\s*PIN/i.test(hang));
-    const khoaGio = (banHang.match(/const khoaGio = [^\n]*/) || [''])[0];
-    k('G2 Sales: giỏ gửi { tier_id, so_thang }, khoaGio có so_thang, unique_key có so_thang', /membership_buy:\s*membershipInCart\s*\?\s*\{\s*tier_id:\s*membershipInCart\.tier_id,\s*so_thang:\s*membershipInCart\.so_thang\s*\}/.test(banHang)
-      && khoaGio.includes('so_thang') && /unique_key:\s*`membership_\$\{tier\.id\}_\$\{goi\.so_thang\}`/.test(banHang), khoaGio);
-    k('G2b Sales: chỉ gói đang bán có giá thành nút; khoá gói khi khách có hạng cao hơn, ghi lý do', banHang.includes('Khách đang có hạng cao hơn')
-      && /\.filter\(\s*\(?g\)?\s*=>\s*g\.bat\s*&&\s*Number\.isInteger\(g\.gia\)\s*&&\s*g\.gia\s*>\s*0\s*\)/.test(banHang) && banHang.includes('thu_bac') && !banHang.includes('card_price'));
+    const khoaGio = (banHang.match(/export function khoaTinh\([\s\S]*?\n\}/) || [''])[0];
+    k('G2 Bán hàng: giỏ gửi membership_buy { tier_id, so_thang }, khoá tính tiền có so_thang, khoá dòng thẻ có so_thang',
+      /membership_buy:\s*\{\s*tier_id:\s*the\.the\.tier_id,\s*so_thang:\s*the\.the\.so_thang\s*\}/.test(banHang)
+      && /the:\s*\[the\.the\.tier_id,\s*the\.the\.so_thang\]/.test(khoaGio) && /key:\s*`the_\$\{tier\.id\}_\$\{goi\.so_thang\}`/.test(banHang), khoaGio.slice(0, 120));
+    k('G2b Bán hàng: chỉ gói đang bán có giá thành nút; khoá gói khi khách có hạng cao hơn, ghi lý do', banHang.includes('Khách đang có hạng')
+      && /\.filter\(\s*\(?g\)?\s*=>\s*g\.bat\s*===\s*true\s*&&\s*Number\.isInteger\(g\.gia\)\s*&&\s*g\.gia\s*>\s*0\s*\)/.test(banHang)
+      && banHang.includes('thu_bac') && /Number\(hang\.thu_bac\) > Number\(tier\.sort_order\)/.test(banHangMoi) && banHangMoi.includes('Khách có hạng cao hơn')
+      && !banHang.includes('card_price') && !banHangMoi.includes('card_price'));
+    k('G2c (BO-MAN-CU-1) chỉ còn MỘT màn bán thẻ: không còn pages/Sales.jsx', !fs.existsSync(path.join(GOC, 'client', 'src', 'pages', 'Sales.jsx')));
     k('G3 Customers: khối Cấp hạng chỉ khi hasPermission(\'cap_hang\'), Nhật ký hạng, "Không thời hạn"', /<CapHang[^>]*coQuyen=\{hasPermission\(\s*['"]cap_hang['"]\s*\)\}/.test(khachHang)
       && /\{coQuyen && \(/.test(cap) && cap.includes('Nhật ký hạng') && cap.includes('hangApi.cap(') && cap.includes('hangApi.thuHoi(') && (cap + khachHang).includes('Không thời hạn')
       && api.includes("api.post('/membership/cap', { phone: sdt, tier_id: tierId, so_thang: soThang, pin })") && api.includes("api.post('/membership/thu-hoi'"));

@@ -1,24 +1,27 @@
 #!/usr/bin/env node
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  THỬ BH-CKTAY-1 — màn Bán hàng cũ bỏ hẳn ô "Chiết khấu" giảm tay
+ *  THỬ BH-CKTAY-1 — màn Bán hàng KHÔNG có ô "Chiết khấu" giảm tay (máy chủ không nhận mức giảm màn hình gửi)
  * ═══════════════════════════════════════════════════════════════════════════
  *  BÀI NÀY PHẢI ĐỎ TRƯỚC KHI VÁ (K3). Chạy ở GỐC kho POS:
  *      node cong_cu/thu_BHCKTAY1.js [--may-chu <thư mục server>]
- *  --may-chu: chạy trên bản sao server/ (đột biến, viec/BH-CKTAY-1/dot_bien.py). Mã giao diện đọc từ <may-chu>/../client/src.
+ *  --may-chu: chạy trên bản sao server/ (đột biến). Mã giao diện đọc từ <may-chu>/../client/src.
  *
- *  Khuôn thu_KHACHCK1.js: database.js thật + libsql thật trên kho TẠM, SX giả. Thân đơn KHÔNG tự gõ: lấy đúng các biểu thức
- *  `discount*` trong orderData của Sales.jsx, chạy với trạng thái "chủ quán gõ 10 % vào ô, không có mã" rồi gửi lên máy chủ thật.
+ *  BO-MAN-CU-1 (chủ quán 11.11): màn cũ Sales.jsx đã xoá — bài soi màn Bán hàng duy nhất (pages/BanHang/). Thân đơn KHÔNG tự gõ:
+ *  chạy THẬT thanTinhThu / thanPhien của BanHang/tinh.js (trạng thái "có / không mã") rồi gửi lên máy chủ thật qua phiên tiền mặt.
+ *  Khuôn thu_KHACHCK1.js: database.js thật + libsql thật trên kho TẠM, SX giả.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 const GOC = path.join(__dirname, '..');
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
-const SALES = path.join(MAY_CHU, '..', 'client', 'src', 'pages', 'Sales.jsx');
+const PAGES = path.join(MAY_CHU, '..', 'client', 'src', 'pages');
+const BAN_HANG = path.join(PAGES, 'BanHang');
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_bhcktay1_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
@@ -37,49 +40,38 @@ const k = (ten, dung, them = '') => {
 const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
 const imLang = () => { console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
 const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
+const sach = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 async function main() {
-  const sa = fs.existsSync(SALES) ? fs.readFileSync(SALES, 'utf8') : '';
-  console.log('\nTHỬ BH-CKTAY-1 — bỏ ô Chiết khấu giảm tay ở màn Bán hàng cũ');
+  const tep = fs.existsSync(BAN_HANG) ? fs.readdirSync(BAN_HANG).filter((n) => /\.(jsx?|js)$/.test(n)) : [];
+  const nguon = tep.map((n) => sach(fs.readFileSync(path.join(BAN_HANG, n), 'utf8'))).join('\n');
+  console.log('\nTHỬ BH-CKTAY-1 — màn Bán hàng không có ô Chiết khấu giảm tay');
 
-  console.log('\n[A] nguồn Sales.jsx không còn ô / state / nhánh giảm tay');
-  k('A0 đọc được Sales.jsx', sa.length > 1000);
-  k('A1 không ô nhập nào ghi vào mức giảm (setDiscount / setDiscountType / setDiscountValue)', !/\bsetDiscount(Type|Value)?\s*\(/.test(sa));
-  k('A2 không còn state discount / discountType / discountValue', !/const \[discount(Type|Value)?,/.test(sa) && !/\bdiscount(Type|Value)\b/.test(sa));
-  k('A3 không còn nhánh cộng giảm ngoài mã (discount > 0, nhánh % / đ cố định)', !/\bdiscount\s*>\s*0/.test(sa)
-    && !/discountType\s*===/.test(sa) && !/value="fixed"/.test(sa));
-  k('A4 giảm trên màn chỉ từ mã / máy chủ: discountAmount = số tinh-thu hoặc discount_amount của mã',
-    /discountAmount = discountCodeValid\.discount_amount \|\| 0;/.test(sa) && /tinhThu \? tinhThu\.discount_amount/.test(sa));
+  console.log('\n[A] nguồn màn Bán hàng (pages/BanHang/) không có ô / state / nhánh giảm tay');
+  k('A0 đọc được BanHang/BanHangMoi.jsx + tinh.js', tep.includes('BanHangMoi.jsx') && tep.includes('tinh.js') && nguon.length > 5000);
+  k('A1 không ô nhập nào ghi vào mức giảm (setDiscount / setDiscountType / setDiscountValue)', !/\bsetDiscount(Type|Value)?\s*\(/.test(nguon));
+  k('A2 không state discount / discountType / discountValue', !/const \[discount(Type|Value)?,/.test(nguon) && !/\bdiscount(Type|Value)\b/.test(nguon));
+  k('A3 không nhánh giảm % / đ cố định trên màn (discountType ===, value="fixed")', !/discountType\s*===/.test(nguon) && !/value="fixed"/.test(nguon));
+  const moi = sach(fs.existsSync(path.join(BAN_HANG, 'BanHangMoi.jsx')) ? fs.readFileSync(path.join(BAN_HANG, 'BanHangMoi.jsx'), 'utf8') : '');
+  k('A4 tổng trên màn lấy từ máy chủ (tinh-thu) khi có số', /const tong = coSo \? Math\.round\(mayChu\.total\) :/.test(moi));
+  k('A6 (BO-MAN-CU-1) chỉ còn MỘT màn Bán hàng: không còn pages/Sales.jsx', !fs.existsSync(path.join(PAGES, 'Sales.jsx')));
 
-  // A5 theo HÀNH VI, không theo tên: khối tính discountAmount (trước dòng gán từ tinhThu) chỉ có MỘT phép gán và không có nhánh else
-  // → state tên khác (giamTay…) cộng vào giảm cũng đỏ.
-  const khoiGiam = (sa.match(/let discountAmount = 0;([\s\S]*?)discountAmount = tinhThu \?/) || [])[1] || '';
-  k('A5 khối tính giảm chỉ một phép gán (từ mã) và không nhánh else — không nguồn giảm tay dưới tên nào',
-    (khoiGiam.match(/discountAmount\s*=[^=]/g) || []).length === 1 && !/\belse\b/.test(khoiGiam) && /discountCodeValid\.discount_amount/.test(khoiGiam),
-    khoiGiam.trim().replace(/\s+/g, ' ').slice(0, 120));
+  console.log('\n[B] thân màn hình gửi máy chủ: không trường giảm tay (chạy thật hàm của tinh.js)');
+  let T = {};
+  try { T = await import(pathToFileURL(path.join(BAN_HANG, 'tinh.js')).href); } catch (e) { k('B0 nạp tinh.js', false, e.message); }
+  const gio = [{ key: 'a', product_id: 1, sx_product_type: 'a', sx_product_id: 1, unit_price: 50000, quantity: 2, note: '' }];
+  const khach = { phone: '0900000001', name: 'A', discount_type: 'percent', discount_value: 10 };   // hồ sơ cũ có mức 10 %
+  const GIAM = ['discount', 'discount_type', 'discount_value', 'discount_reason'];
+  const khongMa = typeof T.thanTinhThu === 'function' ? T.thanTinhThu(gio, khach, '') : null;
+  k('B2 không mã (khách hồ sơ cũ 10 %) → thân tinh-thu không có discount / discount_type / discount_value / discount_reason',
+    !!khongMa && GIAM.every((x) => !(x in khongMa)) && !khongMa.discount_code, JSON.stringify(khongMa));
+  const coMa = typeof T.thanTinhThu === 'function' ? T.thanTinhThu(gio, khach, 'giam15') : null;
+  k('B3 (K5) có mã → thân gửi discount_code (chữ hoa), máy chủ tự tra mức; vẫn không trường giảm tay', !!coMa && coMa.discount_code === 'GIAM15'
+    && GIAM.every((x) => !(x in coMa)), JSON.stringify(coMa));
+  const phien = typeof T.thanPhien === 'function' ? T.thanPhien({ gio, khach, ma: '', cach: 'tien_mat', dungTK: false, dungMe: false }) : null;
+  k('B4 phần `don` của phiên thu = đúng thân tinh-thu (một hàm, không bản lệch)', !!phien && JSON.stringify(phien.don) === JSON.stringify(khongMa), JSON.stringify(phien));
 
-  console.log('\n[B] thân đơn giữ đủ khoá, giá trị giảm tay = 0');
-  const orderData = (sa.match(/const orderData = \{([\s\S]*?)\n      \};/) || [])[1] || '';
-  const bieuThuc = Object.fromEntries([...orderData.matchAll(/^\s{8}(discount|discount_type|discount_value):\s*(.*),$/gm)].map((x) => [x[1], x[2]]));
-  k('B1 orderData còn đủ ba khoá discount / discount_type / discount_value', Object.keys(bieuThuc).length === 3, Object.keys(bieuThuc).join(','));
-  let than = {};
-  try {
-    // Trạng thái "đã gõ 10 % vào ô, không mã": tên cũ truyền vào, mã bản mới không dùng tới nên bỏ qua.
-    // eslint-disable-next-line no-new-func
-    than = new Function('discountCodeValid', 'discountType', 'discountValue', 'discount', 'discountAmount',
-      `return { discount: ${bieuThuc.discount}, discount_type: ${bieuThuc.discount_type}, discount_value: ${bieuThuc.discount_value} };`)(
-      null, 'percent', 10, 0, 5000);
-  } catch (e) { than = { loi: e.message }; }
-  k('B2 không mã, ô từng gõ 10 % → discount 0, discount_type null, discount_value 0', than.discount === 0 && than.discount_type === null && than.discount_value === 0, JSON.stringify(than));
-  let coMa = {};
-  try {
-    coMa = new Function('discountCodeValid', 'discountType', 'discountValue', 'discount', 'discountAmount',
-      `return { discount_type: ${bieuThuc.discount_type}, discount_value: ${bieuThuc.discount_value} };`)(
-      { valid: true, discount_type: 'percent', discount_value: 15 }, 'fixed', 99, 0, 0);
-  } catch (e) { coMa = { loi: e.message }; }
-  k('B3 (K5) có mã hợp lệ → vẫn gửi discount_type / discount_value của mã như cũ', coMa.discount_type === 'percent' && coMa.discount_value === 15, JSON.stringify(coMa));
-
-  console.log('\n[C] đơn không mã: thân do Sales.jsx dựng → máy chủ nhận, tổng = tinh-thu');
+  console.log('\n[C] đơn không mã: thân do màn Bán hàng dựng → phiên tiền mặt → máy chủ ghi đúng tổng tinh-thu');
   try {
     imLang();
     const express = require(path.join(GOC, 'node_modules', 'express'));
@@ -94,6 +86,7 @@ async function main() {
     const app = express();
     app.use(express.json());
     app.use('/api/pos/orders', require(path.join(MAY_CHU, 'routes', 'orders.js')));
+    app.use('/api/pos/thanh-toan', require(path.join(MAY_CHU, 'routes', 'thanh-toan.js')));
     const sv = await new Promise((ok) => { const s = app.listen(0, () => ok(s)); });
     const goc = `http://127.0.0.1:${sv.address().port}/api/pos`;
     const chu = await db.queryOne("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
@@ -103,18 +96,20 @@ async function main() {
       let j = {}; try { j = await r.json(); } catch { /* không phải JSON */ }
       return { ...j, status: r.status };
     };
-    for (const [key, v] of [['flash_enabled', 'false'], ['thanh_toan_payos_bat_buoc', '0']]) await db.run('INSERT OR REPLACE INTO pos_settings (key, value) VALUES (?, ?)', [key, v]);
+    await db.run('INSERT OR REPLACE INTO pos_settings (key, value) VALUES (?, ?)', ['flash_enabled', 'false']);
     const sp = await db.queryOne('SELECT * FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 1');
     await db.run('UPDATE pos_products SET price = 50000, is_special_group = 0 WHERE id = ?', [sp.id]);
-    const don = { customer_name: 'Khách BHCKTAY1', items: [{ product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, quantity: 2 }] };
-    const tt = await goi('/orders/tinh-thu', don);
-    const r = await goi('/orders', { ...don, ...than, payment_method: 'cash', cash_amount: tt.total });
-    const luu = r.order ? await db.queryOne('SELECT total FROM pos_orders WHERE id = ?', [r.order.id]) : null;
+    const gioThat = [{ ...gio[0], product_id: sp.id, sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id }];
+    const than = T.thanPhien({ gio: gioThat, khach: { name: 'Khách BHCKTAY1' }, ma: '', cach: 'tien_mat', dungTK: false, dungMe: false });
+    const tt = await goi('/orders/tinh-thu', than.don);
+    const p = await goi('/thanh-toan/phien', than);
+    const c = p.phien ? await goi(`/thanh-toan/phien/${p.phien.id}/chot`, { cash_received: 100000 }) : { status: 0 };
+    const luu = c.order ? await db.queryOne('SELECT total, discount_type, discount_value FROM pos_orders WHERE id = ?', [c.order.id]) : null;
     sv.close();
     noiLai();
     k('C1 tinh-thu giỏ 2 × 50.000 không mã = 100.000', tt.status === 200 && tt.total === 100000, `HTTP ${tt.status} · ${tt.total}`);
-    k('C2 POST đơn với thân dựng từ Sales.jsx → 200, tổng lưu = tổng tinh-thu = 100.000 (không "tổng lệch")',
-      r.status === 200 && luu && Number(luu.total) === 100000, `HTTP ${r.status}${r.error ? ' · ' + r.error : ''} · lưu ${luu && luu.total}`);
+    k('C2 phiên tiền mặt với thân do màn Bán hàng dựng → chốt 200, tổng lưu = tinh-thu = 100.000, không mức giảm', c.status === 200 && luu
+      && Number(luu.total) === 100000 && !luu.discount_type && !Number(luu.discount_value), `HTTP ${p.status}/${c.status}${c.error ? ' · ' + c.error : ''} · lưu ${JSON.stringify(luu)}`);
   } catch (e) { noiLai(); k('C: bài chạy hết mục', false, e.message); }
 
   try { fs.rmSync(THU_MUC, { recursive: true, force: true }); } catch { /* bỏ qua */ }

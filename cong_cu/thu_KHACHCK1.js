@@ -247,17 +247,13 @@ async function main() {
   await chay('D', async () => {
     const tinh = docNguon(CLIENT, 'pages', 'BanHang', 'tinh.js');
     const moi = docNguon(CLIENT, 'pages', 'BanHang', 'BanHangMoi.jsx');
-    const sa = docNguon(CLIENT, 'pages', 'Sales.jsx');
     const ci = docNguon(CLIENT, 'components', 'CustomerInput.jsx');
     const cu = docNguon(CLIENT, 'pages', 'Customers.jsx');
     k('D1a tinh.js không còn khachGiam / giamKhach / coChietKhauRieng', tinh.length > 0 && !/khachGiam|giamKhach|coChietKhauRieng/.test(tinh));
     k('D1b BanHangMoi.jsx không còn chanChietKhau / coChietKhauRieng; ThuTien nhận coSo={coSo}', moi.length > 0 && !/chanChietKhau|coChietKhauRieng/.test(moi)
       && /coSo=\{coSo\}/.test(moi));
-    // Mọi `<x>.discount_value / discount_type` trong Sales.jsx — chỉ được là của mã giảm hoặc của đơn đã tạo (hoá đơn), không tên khác.
-    const docMuc = [...sa.matchAll(/(\w+)\??\.discount_(?:value|type)\b/g)].map((m) => m[1])
-      .filter((ten) => !['discountCodeValid', 'order', 'completedOrder'].includes(ten));
-    k('D1c Sales.jsx không còn applyCustomerDiscount, không đọc <khách>.discount_value / discount_type (mọi tên biến)', sa.length > 0
-      && !/applyCustomerDiscount/.test(sa) && docMuc.length === 0, docMuc.join(', '));
+    // D1c (Sales.jsx không đọc <khách>.discount_*) bỏ: BO-MAN-CU-1 xoá màn cũ — thay bằng ca màn đó không còn; màn mới khoá ở D1a / D1b.
+    k('D1c (BO-MAN-CU-1) màn cũ có chiết khấu riêng đã xoá: không còn pages/Sales.jsx', !fs.existsSync(path.join(CLIENT, 'pages', 'Sales.jsx')));
     // Mọi tên biến: chỉ còn ĐÚNG hai chỗ chép phản hồi máy chủ vào trạng thái (`data.discount_type / data.discount_value || 0`, giữ theo
     // kế hoạch §9 Q2) — thêm một chỗ đọc nào (huy hiệu qua tên khác) là đỏ.
     const docMucCI = [...ci.matchAll(/(\w+)\??\.discount_(value|type)\b/g)].map((m) => `${m[1]}.${m[2]}`);
@@ -278,12 +274,11 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[E] ghi chú khách giữ nguyên (discount_note → customer_note trên hoá đơn)');
   await chay('E', async () => {
-    const sa = docNguon(CLIENT, 'pages', 'Sales.jsx');
     const od = docNguon(CLIENT, 'pages', 'Orders.jsx');
     const moi = docNguon(CLIENT, 'pages', 'BanHang', 'BanHangMoi.jsx');
     const cu = docNguon(CLIENT, 'pages', 'Customers.jsx');
-    k('E1a Sales / Orders / BanHangMoi vẫn đưa discount_note vào ghi chú hoá đơn', /customerNote: customer\?\.discount_note/.test(sa)
-      && /customer_note: custData\.discount_note/.test(od) && /customer_note: kh\?\.discount_note/.test(moi));
+    // BO-MAN-CU-1: bỏ vế Sales.jsx (màn cũ đã xoá), giữ Orders + màn Bán hàng.
+    k('E1a Orders / BanHangMoi vẫn đưa discount_note vào ghi chú hoá đơn', /customer_note: custData\.discount_note/.test(od) && /customer_note: kh\?\.discount_note/.test(moi));
     k('E1b Customers.jsx nhãn "Ghi chú khách", vẫn gửi discount_note qua updateDiscount', /Ghi chú khách/.test(cu) && !/Lý do chiết khấu/.test(cu)
       && /updateDiscount\(selectedCustomer\.phone, \{\s*discount_note: detailForm\.discount_note\s*\}\)/.test(cu));
     k('E1c Customers.jsx hiện ghi chú khi có (không còn điều kiện mức > 0)', /\{c\.discount_note && \(/.test(cu));
@@ -295,11 +290,9 @@ async function main() {
   });
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[F] giảm tay theo đơn: máy chủ không tin tờ khai; màn cũ không còn ô giảm tay (BH-CKTAY-1)');
+  muc('[F] giảm tay theo đơn: máy chủ không tin tờ khai; màn Bán hàng không có ô giảm tay (BH-CKTAY-1)');
   await chay('F', async () => {
-    const sa = docNguon(CLIENT, 'pages', 'Sales.jsx');
-    k('F3a (BH-CKTAY-1) Sales.jsx bỏ hẳn ô giảm tay; không mã thì gửi discount_value 0', !/setDiscountValue\(/.test(sa)
-      && /discount_value: discountCodeValid\?\.valid \? discountCodeValid\.discount_value : 0,/.test(sa));
+    // F3a (Sales.jsx bỏ ô giảm tay) bỏ: BO-MAN-CU-1 xoá màn cũ; màn Bán hàng (không ô giảm tay) khoá ở thu_BHCKTAY1 [A] + D1b ở trên.
     const r = await ban({ customer_phone: sdtMoi(), items: [mon(1, 1)], discount_type: 'percent', discount_value: 10 }, 30000);
     await caDon('F3b đối chứng: thân gửi percent 10 không mã → máy chủ không tin tờ khai, tổng 30.000 như cũ', r, 30000);
     const d3 = r.order ? await mot('SELECT discount_type, discount_value FROM pos_orders WHERE id = ?', [r.order.id]) : null;

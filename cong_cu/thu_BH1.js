@@ -8,7 +8,7 @@
  *
  *  tinh.js là ES module không phụ thuộc React → nạp bằng import() trực tiếp (không dựng giả lập).
  *  Phần cấu trúc đọc file nguồn: BanHang/ không `fetch` trần, không tạo khách ở quầy, không Ghi nợ / Chưa thu, localStorage trong try;
- *  khoá payload đơn == khoá `orderData` của Sales.jsx (đơn từ màn mới "y như màn cũ").
+ *  từng khoá payload đơn (I1–I9). BO-MAN-CU-1: màn cũ đã xoá — không còn so với orderData của nó; công tắc → kiểu bố cục.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -71,21 +71,23 @@ async function main() {
   thu('B5 kiểu Máy tính bảng ép hai cột dù rộng 320', () => tt(320, 'maytinhbang') === 'hai-cot');
   thu('B6 kiểu lạ / thiếu → coi như Tự động', () => tt(500, 'xyz') === 'hai-trang' && tt(900, undefined) === 'hai-cot');
 
-  muc('A · công tắc theo máy (localStorage, hỏng thì tắt / Tự động)');
+  // BO-MAN-CU-1 (chủ quán 11.11): không còn công tắc màn cũ / mới — máy chỉ nhớ KIỂU bố cục (docKieu / ghiKieu).
+  muc('A · kiểu bố cục theo máy (localStorage, hỏng thì Tự động)');
   const kho = () => { const m = {}; return { getItem: (a) => (a in m ? m[a] : null), setItem: (a, v) => { m[a] = String(v); }, m }; };
   const khoHong = { getItem: () => { throw new Error('bị chặn'); }, setItem: () => { throw new Error('bị chặn'); } };
-  thu('A1 kho trống → TẮT + Tự động (mặc định)', () => bang(f('docCongTac')(kho()), { bat: false, kieu: 'tudong' }));
-  thu('A2 ghi bật + Máy tính bảng rồi đọc lại', () => { const s = kho(); f('ghiCongTac')(s, true, 'maytinhbang'); return bang(f('docCongTac')(s), { bat: true, kieu: 'maytinhbang' }); });
-  thu('A3 ghi tắt rồi đọc lại → tắt', () => { const s = kho(); f('ghiCongTac')(s, true, 'dienthoai'); f('ghiCongTac')(s, false, 'dienthoai'); return f('docCongTac')(s).bat === false; });
-  thu('A4 kho ném lỗi khi đọc → tắt / Tự động, không ném', () => bang(f('docCongTac')(khoHong), { bat: false, kieu: 'tudong' }));
-  thu('A5 kho ném lỗi khi ghi → không ném', () => { f('ghiCongTac')(khoHong, true, 'tudong'); return true; });
-  thu('A6 không có kho (undefined) → tắt / Tự động', () => bang(f('docCongTac')(undefined), { bat: false, kieu: 'tudong' }));
-  thu('A7 giá trị lạ trong kho: bật chỉ khi đúng chuỗi "1"', () => {
-    const kc = T.KHOA_CONG_TAC, kk = T.KHOA_KIEU;
-    const a = kho(); a.setItem(kc, 'true'); a.setItem(kk, 'tuyet-voi');
-    const b = kho(); b.setItem(kc, '1');
-    return bang(f('docCongTac')(a), { bat: false, kieu: 'tudong' }) && f('docCongTac')(b).bat === true;
+  thu('A1 kho trống → Tự động (mặc định)', () => f('docKieu')(kho()) === 'tudong');
+  thu('A2 ghi Máy tính bảng rồi đọc lại', () => { const s = kho(); f('ghiKieu')(s, 'maytinhbang'); return f('docKieu')(s) === 'maytinhbang'; });
+  thu('A3 ghi Điện thoại rồi Tự động → đọc lại Tự động', () => { const s = kho(); f('ghiKieu')(s, 'dienthoai'); f('ghiKieu')(s, 'tudong'); return f('docKieu')(s) === 'tudong'; });
+  thu('A4 kho ném lỗi khi đọc → Tự động, không ném', () => f('docKieu')(khoHong) === 'tudong');
+  thu('A5 kho ném lỗi khi ghi → không ném', () => { f('ghiKieu')(khoHong, 'tudong'); return true; });
+  thu('A6 không có kho (undefined) → Tự động', () => f('docKieu')(undefined) === 'tudong');
+  thu('A7 giá trị lạ trong kho → Tự động; ghi kiểu lạ → lưu Tự động', () => {
+    const a = kho(); a.setItem(T.KHOA_KIEU, 'tuyet-voi');
+    const b = kho(); f('ghiKieu')(b, 'xyz');
+    return f('docKieu')(a) === 'tudong' && b.m[T.KHOA_KIEU] === 'tudong';
   });
+  thu('A8 (BO-MAN-CU-1) không còn công tắc màn cũ: tinh.js không xuất docCongTac / ghiCongTac / KHOA_CONG_TAC', () => !('docCongTac' in T)
+    && !('ghiCongTac' in T) && !('KHOA_CONG_TAC' in T));
 
   muc('D · giá hạng hiển thị / giỏ');
   thu('D1 giaHang 96.000 hạng 10% → 86.400 và coGiam', () => { const g = f('giaHang')(96000, 10); return g.goc === 96000 && g.hang === 86400 && g.coGiam === true; });
@@ -113,7 +115,7 @@ async function main() {
     const g = f('tinhGio')([sp(1, 96000), sp(2, 25000, true)], { hang: hang10 });
     return bang(g.dong.map((d) => d.giaHang), [86400, 23750]);
   });
-  thu('D11 tinhGio Flash đang chạy trên món → hạng KHÔNG cộng (đúng Sales.jsx)', () => {
+  thu('D11 tinhGio Flash đang chạy trên món → hạng KHÔNG cộng (đúng máy chủ)', () => {
     const flash = { is_flash_now: true, percent: 20, product_keys: ['juice_1'] };
     const g = f('tinhGio')([sp(1, 100000), sp(2, 50000)], { hang: hang10, flash });
     return g.giamFlash === 20000 && g.giamHang === 0 && g.tong === 130000;
@@ -186,17 +188,7 @@ async function main() {
   });
   thu('I9 không chiết khấu → discount_type null, discount_value 0', () => { const d = dung({ cach: 'cash', khachDua: 70000 }); return d.discount_type === null && d.discount_value === 0; });
 
-  // Tập khoá == tập khoá orderData của Sales.jsx (đọc từ nguồn, không tự gõ)
-  const ban = DOC('client', 'src', 'pages', 'Sales.jsx');
-  const m = ban.match(/const orderData = \{([\s\S]*?)\n      \};/);
-  const khoaCu = m ? [...m[1].matchAll(/^\s{8}([a-z_]+):/gm)].map((x) => x[1]).sort() : [];
-  thu('I10 tìm được khoá orderData trong Sales.jsx (≥ 20 khoá)', () => khoaCu.length >= 20, 'tìm được ' + khoaCu.length);
-  thu('I11 tập khoá payload màn mới == tập khoá orderData màn cũ', () => {
-    const d = dung({ cach: 'cash', khachDua: 70000 });
-    const moi = Object.keys(d).sort();
-    if (!bang(moi, khoaCu)) throw new Error('khác: ' + moi.filter((x) => !khoaCu.includes(x)).concat(khoaCu.filter((x) => !moi.includes(x))).join(','));
-    return true;
-  });
+  // I10 / I11 (tập khoá payload == khoá orderData của màn cũ) bỏ: BO-MAN-CU-1 xoá màn cũ, chuẩn so sánh không còn; I1–I9 khoá từng khoá.
 
   muc('Cấu trúc nguồn');
   const F = docBanHang();
@@ -214,7 +206,7 @@ async function main() {
   const app = DOC('client', 'src', 'App.jsx');
   k('S8 App.jsx: route trang chủ trỏ TrangChu (chọn màn theo công tắc)', /<Route index element=\{<TrangChu\s*\/>\}\s*\/>/.test(app));
   k('S9 App.jsx: không còn `<Sales />` làm route trang chủ', !/<Route index element=\{<Sales\s*\/>\}/.test(app));
-  k('S10 Sales.jsx không nhắc BanHang (màn cũ KHÔNG đổi)', !/BanHang/.test(ban));
+  k('S10 (BO-MAN-CU-1) màn cũ đã xoá: không còn pages/Sales.jsx', !fs.existsSync(path.join(GOC, 'client', 'src', 'pages', 'Sales.jsx')));
   const kiem = DOC('kiem_tra_truoc_khi_giao.js');
   k('S11 kiem_tra_truoc_khi_giao.js chạy thu_BH1.js', /'cong_cu\/thu_BH1\.js'[,\]][^\n]*chayBaiThat\(bai\)/.test(kiem));
   k('S12 kết thúc: lưới món khoá (bh-khoa) khi xong && !daIn', jsx.some(([, s]) => /xong && !daIn \? ' bh-khoa'/.test(s)));
