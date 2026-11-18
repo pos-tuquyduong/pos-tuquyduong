@@ -463,3 +463,16 @@ NGUYÊN TẮC (4) — đề xuất thêm vào KHUON_LOI.md (ngoài Phạm vi vi�
    NGAY sau `git rm` (cùng lệnh), hoặc `git status --short` trước mỗi commit.
 BỎ (2): stub esbuild CJS (`default` = cả module khi platform node) — một lần, đã ghi chú trong bài; kho nông — bước 1.3 skill đã có luật `--unshallow`.
 Dọn KHUON_LOI.md: không đề xuất xoá (không có lời dặn nào việc này đã biến thành phép máy).
+
+## Cổng (bước 11.4)
+`node tu_chay/cong.js chay . d52b9fb^ HEAD viec/BO-MAN-CU-1` ở HEAD `57cc4091`, cây sạch:
+✓ CỔNG CHẠY ĐẠT
+Một cảnh báo: `CẢNH BÁO A16: cong_cu/thu_BOMANCU1.js chạy trên gốc in 53 ca ≠ 67 ca ở head` — bài DỪNG SỚM trên gốc: mục B3, C5, C6 ngắt ở lần
+gọi `donCu` đầu tiên (gốc chưa có `taoDonGoc`) → thiếu ca của các mục đó; đúng loại cổng ghi "bỏ qua". Bước 11 không đổi file ngoài viec/BO-MAN-CU-1/.
+
+GIT (`git log --oneline -2` trước commit ghi cổng):
+```
+57cc4091 BO-MAN-CU-1: nghiem thu tung muc, bao cao 7 muc, bai hoc
+4cada1d8 BO-MAN-CU-1: soat bao mat — DAT (0 lo hong)
+```
+HEAD ĐÃ KIỂM: 57cc4091
