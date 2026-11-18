@@ -1,8 +1,19 @@
-BO-MAN-CU-1 — bằng chứng ĐỎ trên code gốc (18.11.2026)
-Code gốc của việc = 28b6efeb (PHIEU duyệt; chưa đổi code chạy thật). Lệnh: python3 viec/BO-MAN-CU-1/dot_bien.py --cay-goc 28b6efeb
-(như cổng A11: git archive cả cây 28b6efeb, chép đè MỘT bài thử hiện tại, chạy bài trong cây đó; mọi cong_cu/thu_*.js đổi so với 28b6efeb).
+BO-MAN-CU-1 — bằng chứng ĐỎ trên code gốc (18.11.2026, viết lại sau soát vòng 1 lỗi 3)
+Code gốc của việc = 28b6efeb (PHIEU duyệt; chưa đổi code chạy thật). Lệnh: python3 viec/BO-MAN-CU-1/dot_bien.py --cay-goc 28b6efeb [--kem-ham-phu]
+(git archive cả cây 28b6efeb, chép đè MỘT bài thử hiện tại, chạy bài trong cây đó; mọi cong_cu/thu_*.js đổi so với 28b6efeb — 28 bài).
 
-Lượt 1 — đúng như cổng A11 (chỉ chép bài thử; hàm phụ mới cong_cu/gia_lap/donCu.js KHÔNG có trong cây gốc):
+ĐỌC NHANH — vì sao mỗi bài đỏ:
+- Bài đổi theo màn / máy chủ (BAO1a, BH1, BHCKTAY1, BOMANCU1, HANG1, KHACHCK1): đỏ đúng ca hành vi (màn cũ còn, công tắc cũ, đường thẳng nhận ví / CK /
+  nợ / gói) — cả ba lượt.
+- 22 bài dùng hàm phụ donCu (đơn cũ):
+  * lượt 1 (như cổng A11, không có hàm phụ): sập "Cannot find module './gia_lap/donCu'" — chỉ là thiếu file;
+  * lượt 2 (TƯƠNG ĐƯƠNG — donCu kèm theo, chưa có khoá, gốc chưa tách nên donCu = taoDon gốc): 17 bài XANH TRỌN (DIEMMON1, DIEMTHAT1,
+    DOISOAT1, GIAO1, GIAO2, GOI1, HD1, HUY1, KH1, P20, P21, P2223, P24, P26a, P26b, P26c, VIME1) = khoảng 430 ca F cho kết quả y đường POST cũ;
+    5 bài đổi hành vi đỏ ĐÚNG ca đổi: P3 (H, I1–I6, I7), VOUCHER2 F5, UUDAI1 K4a / K4b, KHNAP1 B2 / K5, NAP1 B5 / K2;
+  * lượt 3 (HÀNH VI — donCu có khoá: thân phải bị cửa chặn đường thẳng từ chối): mọi bài dùng donCu ĐỎ vì "đường thẳng KHÔNG chặn thân này"
+    (gốc nhận ví / CK / nợ / gói ở đường thẳng) — đúng hành vi việc này đổi.
+
+Lượt 1 — đúng như cổng A11 (chỉ chép bài thử):
 == CÂY GỐC 28b6efeb · cong_cu/thu_BAO1a.js: thoát 1
    ✗ C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx
    100 đạt · 1 hỏng
@@ -24,7 +35,7 @@ Lượt 1 — đúng như cổng A11 (chỉ chép bài thử; hàm phụ mới c
    ✗ A1e đổi kiểu bằng onDoiKieu("maytinhbang") rồi mở lại → nhớ Máy tính bảng  — Sales · undefined · onDoiKieu undefined
    ✗ A1f localStorage bị chặn → vẫn màn mới, Tự động, không ném  — Sales · undefined
    ✗ A1g kiểu lạ trong kho → Tự động  — Sales · undefined
-   … (+28 dòng)
+   … (+30 dòng)
 == CÂY GỐC 28b6efeb · cong_cu/thu_DIEMMON1.js: thoát 1
    Error: Cannot find module './gia_lap/donCu'
 == CÂY GỐC 28b6efeb · cong_cu/thu_DIEMTHAT1.js: thoát 1
@@ -78,8 +89,7 @@ Lượt 1 — đúng như cổng A11 (chỉ chép bài thử; hàm phụ mới c
 
 [exited with code 0]
 
-Lượt 2 — thêm --kem-ham-phu (chép kèm donCu.js): bài đỏ vì HÀNH VI gốc — "orders.js chưa có taoDonGoc (code chưa tách cửa chặn)",
-màn cũ còn, công tắc cũ còn; thu_BOMANCU1 đỏ đúng các ca A / B (15 đạt · 33 hỏng ở lần chạy đầu, trước khi sửa lời chờ C5):
+Lượt 2 — TƯƠNG ĐƯƠNG (--kem-ham-phu, donCu = taoDon gốc, TRƯỚC khi thêm khoá vào donCu — chạy ở HEAD 97af129f):
 == CÂY GỐC 28b6efeb · cong_cu/thu_BAO1a.js: thoát 1
    ✗ C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx
    100 đạt · 1 hỏng
@@ -101,77 +111,169 @@ màn cũ còn, công tắc cũ còn; thu_BOMANCU1 đỏ đúng các ca A / B (15
    ✗ A1e đổi kiểu bằng onDoiKieu("maytinhbang") rồi mở lại → nhớ Máy tính bảng  — Sales · undefined · onDoiKieu undefined
    ✗ A1f localStorage bị chặn → vẫn màn mới, Tự động, không ném  — Sales · undefined
    ✗ A1g kiểu lạ trong kho → Tự động  — Sales · undefined
-   … (+28 dòng)
+   … (+34 dòng)
+== CÂY GỐC 28b6efeb · cong_cu/thu_DIEMMON1.js: thoát 0
+   ✓ T18c loyalty_earn_per_amount = 0 / rỗng → I8 không sập (vẫn trả danh sách), có báo lệch
+   32 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_DIEMTHAT1.js: thoát 0
+   36 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_DOISOAT1.js: thoát 0
+   ✓ A6 doiSoat.js nạp bat_bien.js LƯỜI (trong hàm, không ở đầu file): thiếu cong_cu/ chỉ hỏng màn Đối soát, không sập máy chủ; bản sao đột biến của giả lập chỉ chép server/
+   134 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_GIAO1.js: thoát 0
+   137 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_GIAO2.js: thoát 0
+   30 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_GOI1.js: thoát 0
+   115 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_HANG1.js: thoát 1
+   ✗ G2c (BO-MAN-CU-1) chỉ còn MỘT màn bán thẻ: không còn pages/Sales.jsx
+   144 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_HD1.js: thoát 0
+   ✓ C5 chuỗi quá dài cho mã QR (địa chỉ App KH dán sai): veQr / qrSvg KHÔNG ném (render hoá đơn không sập), không vẽ QR
+   159 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_HUY1.js: thoát 0
+   THỬ HUY-1: 59 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_KH1.js: thoát 0
+   157 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_KHACHCK1.js: thoát 1
+   ✗ D1c (BO-MAN-CU-1) màn cũ có chiết khấu riêng đã xoá: không còn pages/Sales.jsx
+   35 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_KHNAP1.js: thoát 1
+   ✗ B2 quầy thật: thẻ trả bằng ví ngoài phiên, cờ cũ tắt / bật → 400 VI_PHAI_QUA_PIN cả hai; ví không đổi  — HTTP 400 · THE_KHONG_TRA_VI / HTTP 400 · THE_KHONG_TRA_VI
+   ✗ K5 thẻ + tiền mặt ở quầy → 200; thẻ + CK đường thẳng → 400 CK_PHAI_QUA_PAYOS; thẻ + CK qua phiên (xác nhận tay) → 200; thẻ App trả QR → 200 + lên hạng  — HTTP 200 / HTTP 200 / HTTP 200 / HTTP 200
+   ✗ K5 đồ uống App trả vi / vi_qr → 200; quầy thật: ví mẹ cho đồ uống ngoài phiên → 400 VI_PHAI_QUA_PIN; gói trả trước → 400 GOI_TAM_DUNG  — HTTP 200 / HTTP 200 / HTTP 200 / HTTP 200
+   KH-NAP-1: 62 đạt · 3 hỏng · tổng 65 ca
+== CÂY GỐC 28b6efeb · cong_cu/thu_NAP1.js: thoát 1
+   ✗ B5 gói nạp kèm món / mua thẻ → 400 NAP_KHONG_GOP; kèm mua gói (quầy thật) → 400 GOI_TAM_DUNG; ví không đổi  — HTTP 400 · NAP_KHONG_GOP · Nạp tiền làm đơn riêng — không gộp với món, gói hay thẻ | HTT
+   ✗ K2 quầy thật: ví 10.000 + CK 11.000 ngoài phiên → 400 VI_PHAI_QUA_PIN, ví vẫn 30.000  — HTTP 200 · số dư 20000 · thưởng 0
+   ✗ K2b thân taoDonGoc (đơn kiểu cũ): ví 10.000 + CK 11.000 → 200, ví 20.000 · thưởng 0  — HTTP 200 · số dư 10000 · thưởng 0
+   87 đạt · 3 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_P20.js: thoát 0
+   178 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_P21.js: thoát 0
+   14 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_P2223.js: thoát 0
+   45 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_P24.js: thoát 0
+   34 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26a.js: thoát 0
+   16 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26b.js: thoát 0
+   104 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26c.js: thoát 0
+   160 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_P3.js: thoát 1
+   ✗ H (BO-MAN-CU-1) chỉ chuyển khoản 25.000 trên đường thẳng (cờ payOS tắt) → 400 CK_PHAI_QUA_PAYOS  — HTTP 200
+   ✗ I1–I6 (BO-MAN-CU-1, cờ TẮT) số dư đủ (2 kiểu) ngoài phiên → 400 VI_PHAI_QUA_PIN; mua gói / giao từ gói cũ → 400 GOI_TAM_DUNG  — HTTP 200, HTTP 200, HTTP 200, HTTP 200
+   ✗ I7 cờ BẬT (K5): tiền mặt · phiên payOS về → vẫn 200, đơn tạo; giao từ gói 0đ → 400 GOI_TAM_DUNG (BO-MAN-CU-1)  — HTTP 200, HTTP 200, HTTP 200
+   98 đạt · 3 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_UUDAI1.js: thoát 1
+   ✗ K4a LẤY TỪ GÓI 1 món + mua 2 × 39.000, Vàng, mã tiền 5.000 → 78.000 − 7.800 − 5.000 = 65.200: tinh-thu → 400 GOI_TAM_DUNG; đơn gói cũ (thân taoDonGoc) → 200, đơn ghi đúng tổng  — HTTP 200 · HTTP 200
+   ✗ K4b MUA GÓI 300.000 + món 50.000, Vàng, mã 10 % → mã chỉ trên món: 350.000 − 5.000 − 4.500 = 340.500: tinh-thu → 400 GOI_TAM_DUNG; đơn gói cũ (thân taoDonGoc) → 200, đơn ghi đúng tổng  — HTTP 200 · 
+   86 đạt · 2 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_VIME1.js: thoát 0
+   24 đạt · 0 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_VOUCHER2.js: thoát 1
+   ✗ F5 phiên thanh toán: gói + món + mã 10 % → 400 GOI_TAM_DUNG (quầy tạm ngưng gói), không tạo phiên  — HTTP 200
+   VOUCHER-2: 145 đạt · 1 hỏng
+
+[exited with code 0]
+
+Lượt 3 — HÀNH VI (--kem-ham-phu, donCu có khoá "đường thẳng phải chặn thân này" — HEAD a448f828):
+== CÂY GỐC 28b6efeb · cong_cu/thu_BAO1a.js: thoát 1
+   ✗ C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx
+   100 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_BH1.js: thoát 1
+   ✗ A1 kho trống → Tự động (mặc định)  — thiếu hàm docKieu
+   ✗ A2 ghi Máy tính bảng rồi đọc lại  — thiếu hàm ghiKieu
+   ✗ A3 ghi Điện thoại rồi Tự động → đọc lại Tự động  — thiếu hàm ghiKieu
+   ✗ A4 kho ném lỗi khi đọc → Tự động, không ném  — thiếu hàm docKieu
+   ✗ A5 kho ném lỗi khi ghi → không ném  — thiếu hàm ghiKieu
+   ✗ A6 không có kho (undefined) → Tự động  — thiếu hàm docKieu
+   … (+4 dòng)
+== CÂY GỐC 28b6efeb · cong_cu/thu_BHCKTAY1.js: thoát 1
+   ✗ A6 (BO-MAN-CU-1) chỉ còn MỘT màn Bán hàng: không còn pages/Sales.jsx
+   10 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_BOMANCU1.js: thoát 1
+   ✗ A1a máy chưa từng bật (kho trống) → màn mới, kiểu Tự động  — Sales · undefined
+   ✗ A1b localStorage cũ ghi "tắt" (pos_man_ban_hang_moi = 0) → màn mới, giữ kiểu Điện thoại  — Sales · undefined
+   ✗ A1c địa chỉ /?man=cu (máy đang bật) → vẫn màn mới  — Sales
+   ✗ A1e đổi kiểu bằng onDoiKieu("maytinhbang") rồi mở lại → nhớ Máy tính bảng  — Sales · undefined · onDoiKieu undefined
+   ✗ A1f localStorage bị chặn → vẫn màn mới, Tự động, không ném  — Sales · undefined
+   ✗ A1g kiểu lạ trong kho → Tự động  — Sales · undefined
+   … (+30 dòng)
 == CÂY GỐC 28b6efeb · cong_cu/thu_DIEMMON1.js: thoát 2
-   SẬP: Error: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   SẬP: Error: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_DIEMTHAT1.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_DOISOAT1.js: thoát 2
-   ✖ Bài thử sập: Error: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: Error: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_GIAO1.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_GIAO2.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_GOI1.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_HANG1.js: thoát 1
    ✗ G2c (BO-MAN-CU-1) chỉ còn MỘT màn bán thẻ: không còn pages/Sales.jsx
    144 đạt · 1 hỏng
 == CÂY GỐC 28b6efeb · cong_cu/thu_HD1.js: thoát 1
    ✓ C5 chuỗi quá dài cho mã QR (địa chỉ App KH dán sai): veQr / qrSvg KHÔNG ném (render hoá đơn không sập), không vẽ QR
-   ✗ A99 phần A chạy hết, không sập  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ A99 phần A chạy hết, không sập  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
    109 đạt · 1 hỏng
 == CÂY GỐC 28b6efeb · cong_cu/thu_HUY1.js: thoát 1
    THỬ HUY-1: 17 đạt · 1 hỏng
-   ✗ BÀI SẬP: Error: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ BÀI SẬP: Error: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_KH1.js: thoát 1
-   ✗ E4: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ E6: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ E7: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ E4: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ E6: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ E7: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
    138 đạt · 3 hỏng
 == CÂY GỐC 28b6efeb · cong_cu/thu_KHACHCK1.js: thoát 1
    ✗ D1c (BO-MAN-CU-1) màn cũ có chiết khấu riêng đã xoá: không còn pages/Sales.jsx
    35 đạt · 1 hỏng
 == CÂY GỐC 28b6efeb · cong_cu/thu_KHNAP1.js: thoát 1
-   ✗ D: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ E: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ D: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 400 · THE_KHONG_TRA_VI) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ E: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
    KH-NAP-1: 49 đạt · 2 hỏng · tổng 51 ca
 == CÂY GỐC 28b6efeb · cong_cu/thu_NAP1.js: thoát 2
-   SẬP: Error: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ B5 gói nạp kèm món / mua thẻ → 400 NAP_KHONG_GOP; kèm mua gói (quầy thật) → 400 GOI_TAM_DUNG; ví không đổi  — HTTP 400 · NAP_KHONG_GOP · Nạp tiền làm đơn riêng — không gộp với món, gói hay thẻ | HTT
+   SẬP: Error: donCu: đường thẳng KHÔNG chặn thân này (HTTP 400 · NAP_CHI_TIEN_MAT_QR) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_P20.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_P21.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_P2223.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_P24.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_P26a.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_P26b.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_P26c.js: thoát 2
-   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✖ Bài thử sập: donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
 == CÂY GỐC 28b6efeb · cong_cu/thu_P3.js: thoát 1
-   ✗ F: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ H: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ I: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ F: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 400 · SO_DU_KHONG_DU) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ H: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 400 · TRA_KET_HOP) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ I: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
    78 đạt · 3 hỏng
 == CÂY GỐC 28b6efeb · cong_cu/thu_UUDAI1.js: thoát 1
-   ✗ C: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ G: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ K4: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ C: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ G: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ K4: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
    72 đạt · 3 hỏng
 == CÂY GỐC 28b6efeb · cong_cu/thu_VIME1.js: thoát 1
-   ✗ A: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ C: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ D1 bỏ quan hệ mẹ của A rồi huỷ đơn C1 → 200, ví M được hoàn 25.000  — HTTP 404 · M 500000
+   ✗ A: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 403 · KHONG_PHAI_TK_ME) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ C: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ D1 bỏ quan hệ mẹ của A rồi huỷ đơn C1 → 200, ví M được hoàn 25.000  — HTTP 404 · M 475000
    12 đạt · 3 hỏng
 == CÂY GỐC 28b6efeb · cong_cu/thu_VOUCHER2.js: thoát 1
-   ✗ F: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ Q22: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ G: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
-   ✗ K5: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ F: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ Q22: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ G: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
+   ✗ K5: bài chạy hết mục  — donCu: đường thẳng KHÔNG chặn thân này (HTTP 200) — chỉ dựng đơn cũ cho thân quầy hôm nay từ chối
    VOUCHER-2: 121 đạt · 4 hỏng
 
 [exited with code 0]
@@ -180,7 +282,7 @@ Dòng số ca — số ca mỗi bài in ở dòng tổng khi chạy trên code �
 SỐ CA cong_cu/thu_BAO1a.js: 101
 SỐ CA cong_cu/thu_BH1.js: 72
 SỐ CA cong_cu/thu_BHCKTAY1.js: 11
-SỐ CA cong_cu/thu_BOMANCU1.js: 62
+SỐ CA cong_cu/thu_BOMANCU1.js: 66
 SỐ CA cong_cu/thu_DIEMMON1.js: 32
 SỐ CA cong_cu/thu_DIEMTHAT1.js: 36
 SỐ CA cong_cu/thu_DOISOAT1.js: 134
@@ -193,7 +295,7 @@ SỐ CA cong_cu/thu_HUY1.js: 59
 SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_KHACHCK1.js: 36
 SỐ CA cong_cu/thu_KHNAP1.js: 65
-SỐ CA cong_cu/thu_NAP1.js: 89
+SỐ CA cong_cu/thu_NAP1.js: 90
 SỐ CA cong_cu/thu_P20.js: 178
 SỐ CA cong_cu/thu_P21.js: 14
 SỐ CA cong_cu/thu_P2223.js: 45
