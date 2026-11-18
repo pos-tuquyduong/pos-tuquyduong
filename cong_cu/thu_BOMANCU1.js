@@ -121,7 +121,8 @@ async function main() {
     // Câu duy nhất được giữ (chủ quán 17.11 câu 3): Layout.jsx nói về các màn Cài đặt cũ, không phải màn bán hàng (file Cấm của việc).
     const GIU = 'Các màn cũ chuyển vào trang Quản lý';
     const vet = duyet(CLIENT, ['.js', '.jsx', '.css']).flatMap((f) => fs.readFileSync(f, 'utf8').split('\n').map((dong, i) => [f, i + 1, dong]))
-      .filter(([, , dong]) => /man=cu|man=moi|\bSales\b|màn cũ|màn bán hàng cũ|onDoiCaiDat|docCongTac|ghiCongTac/i.test(dong.replace(GIU, '')))
+      // `Sales` phân biệt hoa thường như phiếu A2 (grep `Sales`): khối CSS cũ "SALES PAGE" / .sales-layout ở index.css (ngoài Phạm vi) là Phát hiện.
+      .filter(([, , dong]) => /\bSales\b/.test(dong) || /man=cu|man=moi|màn cũ|màn bán hàng cũ|onDoiCaiDat|docCongTac|ghiCongTac/i.test(dong.replace(GIU, '')))
       .map(([f, i]) => path.relative(CLIENT, f) + ':' + i);
     k('A2b client/src không còn man=cu · man=moi · Sales · "màn cũ" · công tắc cũ (trừ câu Layout.jsx đã duyệt giữ)', vet.length === 0, vet.slice(0, 6).join(', '));
   });
