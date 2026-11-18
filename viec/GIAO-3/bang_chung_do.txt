@@ -1,6 +1,6 @@
 # GIAO-3 — bằng chứng đỏ
 
-## cong_cu/thu_GIAO3.js trên code GỐC (mọi file code của 4fd64c3; bài thử bản ca4e55ce) — sau vòng sửa 2; số ca gốc = số ca bản vá
+## cong_cu/thu_GIAO3.js trên code GỐC (mọi file code của 4fd64c3; bài thử bản c956a85c) — sau vòng sửa 2; số ca gốc = số ca bản vá
 Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mới (HopLyDo.jsx, 030_giao_tra_hang.js), `node cong_cu/thu_GIAO3.js`, rồi chép bản vá lại.
 
 ```
@@ -20,7 +20,7 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ B3 tin RETURNED lỡ → "Tải lại" đọc lại thẻ giao_loi → da_ve; không return_time → giờ POS biết  — [null,null]
   ✓ B3 thẻ đã về quán / đã đóng → KHÔNG gọi Ahamove nữa
   ✗ B1 (đường UPDATE chính) tin FAILED + RETURNED cùng lỡ, thẻ dang_giao đọc thẳng → giao_loi + lý do + "đã về quán" + giờ ngay một lần  — ["giao_loi","Giao không thành công",null,null]
-  ✓ B4 sub_status lạ ("constructor" — tên thuộc tính sẵn có của object) → bỏ qua, thẻ vẫn lên xong
+  ✓ B4 sub_status lạ ("constructor" — tên thuộc tính sẵn có của object) → bỏ qua: thẻ vẫn lên giao_loi, không dòng trả hàng
   ✓ B4 giao xong (COMPLETED + COMPLETED) vẫn xong, không dòng trả hàng, loi trống
   ✓ B3 thẻ giao_loi do Ahamove HUỶ khi đang giao (không bao giờ có RETURNED) → KHÔNG đọc lại theo nhịp
   ✗ A3 huỷ khi đang giao: có cancel_comment → "<câu cũ>: <comment>"; không có → câu cũ  — ["Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove","Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove"]
@@ -53,7 +53,7 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ E4 client/src/pages/GiaoHang: 0 chỗ window.prompt / window.confirm / alert(  — 3 chỗ
   ✗ B1 màn: thẻ đã về quán hiện "Hàng đã về quán" + giờ (16:23) và lý do  — ORD-20261118-HD00013 kmChị Nhận Ba · 1 món🛵 TX Ba Mot · 29B3-33301Giao không thành côngGiao lỗi
   ✗ B1 màn: thẻ đang trả về hiện "Đang trả hàng về quán", nút Đóng thẻ như cũ  — ORD-20261118-HD00133 kmChị Nhận Ba · 1 món🛵 TX Ba Mot · 29B3-33301Giao không thành côngGiao lỗi
-  ✗ A1 màn: chi tiết thẻ hiện lý do Ahamove  — Giao hàng · AhamoveTải lạiMới (0)Đang pha (1)Đợi tài xế (3)Đang giao (8)Mới · 0Đang pha · 1ORD-20261118-HD00153 kmChị Nhận Ba · 1 mónGọi tài xế lúc 18:23Gọi tài xế ngayĐợi tài xế · 3ORD-20261118-HD001
+  ✗ A1 màn: chi tiết thẻ hiện lý do Ahamove  — Giao hàng · AhamoveTải lạiMới (0)Đang pha (1)Đợi tài xế (3)Đang giao (9)Mới · 0Đang pha · 1ORD-20261118-HD00153 kmChị Nhận Ba · 1 mónGọi tài xế lúc 18:25Gọi tài xế ngayĐợi tài xế · 3ORD-20261118-HD001
   ✗ E1 Đóng thẻ → mở hộp lý do của POS (câu hỏi cũ), có Xác nhận / Thôi  —  Số 3 Ngõ Thử, Hà Nội · 3 km · HAN-BIKEPhí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tài khoảnTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
   ✗ E2 lý do 2 ký tự → báo ngay dưới ô, KHÔNG gửi (thẻ vẫn giao_loi)  — hí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tài khoảnTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
   ✗ E2 "  ab  " (2 ký tự + khoảng trắng hai đầu) → vẫn báo, không gửi  — hí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tài khoảnTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
