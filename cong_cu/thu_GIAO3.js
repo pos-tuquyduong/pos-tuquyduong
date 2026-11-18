@@ -512,7 +512,7 @@ async function main() {
       o().props.onChange(M.ev({ target: { value: 'Khách đổi giờ' } }));
       await ngu(20);
       man.nut('Xác nhận').props.onClick(M.ev());
-      await man.doi(async () => false, 400);
+      await ngu(400);
       k('E1 lý do hợp lệ → gửi, chuyến huỷ (chuyen_huy)', (await chuyenCua(vE2.id))?.trang_thai === 'chuyen_huy', (await chuyenCua(vE2.id))?.trang_thai);
     }
     await moTheCua(vE3.id);
