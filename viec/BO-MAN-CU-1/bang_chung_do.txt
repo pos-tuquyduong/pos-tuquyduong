@@ -8,8 +8,10 @@ Lượt 1 và lượt 3 chạy ở HEAD 2f591a6a (sau vòng sửa 2): 28/28 bài
   còn, đường thẳng nhận ví / CK / nợ / gói) — cả ba lượt.
 - 22 bài dùng hàm phụ donCu (đơn cũ):
   * lượt 1 (như cổng A11, không có hàm phụ): sập "Cannot find module './gia_lap/donCu'" — chỉ là thiếu file;
-  * lượt 2 (TƯƠNG ĐƯƠNG — donCu kèm theo, CHƯA có khoá, gốc chưa tách nên donCu = taoDon gốc; chạy ở HEAD 97af129f, trước vòng sửa 2 — vòng
-    sửa 2 chỉ đổi NHÃN ca ở GOI1 / P26c / NAP1, không đổi thân đơn): 17 bài XANH TRỌN (DIEMMON1, DIEMTHAT1, DOISOAT1, GIAO1, GIAO2, GOI1, HD1,
+  * lượt 2 (TƯƠNG ĐƯƠNG — donCu kèm theo, CHƯA có khoá, gốc chưa tách nên donCu = taoDon gốc; chạy ở HEAD 97af129f, trước vòng sửa 2 — giữa hai HEAD
+    `git diff --stat 97af129f 2f591a6a -- cong_cu` đổi: nhãn ca GOI1 / P26c / NAP1 (+ NAP1 C10), BH1 phần I / KHACHCK1 D2 / BOMANCU1 B2f / K2 / vet, VÀ donCu.js (thêm khoá a448f828 + vị từ laDonCu — CK
+    `(Number(x) || 0) !== 0` → `Number(x || 0) !== 0`: chỉ khác với chuỗi chữ; thân thử của 17 bài không có CK chuỗi chữ). Lượt này KHÔNG chạy lại
+    với laDonCu mới — công cụ ở HEAD có khoá trong donCu nên không tái lập được; ghi CHƯA KIỂM): 17 bài XANH TRỌN (DIEMMON1, DIEMTHAT1, DOISOAT1, GIAO1, GIAO2, GOI1, HD1,
     HUY1, KH1, P20, P21, P2223, P24, P26a, P26b, P26c, VIME1) = khoảng 430 ca F cho kết quả y đường POST cũ; 5 bài đổi hành vi đỏ ĐÚNG ca đổi:
     P3 (H, I1–I6, I7), VOUCHER2 F5, UUDAI1 K4a / K4b, KHNAP1 B2 / K5, NAP1 B5 / K2;
   * lượt 3 (HÀNH VI — donCu có khoá: thân phải bị CỬA CHẶN đường thẳng từ chối bằng một mã chặn GOI_TAM_DUNG / VI_PHAI_QUA_PIN /

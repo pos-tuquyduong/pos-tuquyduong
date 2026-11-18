@@ -47,6 +47,8 @@ DOT_BIEN = [
   ('VS-GOI-CHI-THANG', [(OR, '    return res.status(400).json({ error: "Quầy tạm ngưng gói", code: "GOI_TAM_DUNG" });',
                          '    if (!phien) return res.status(400).json({ error: "Quầy tạm ngưng gói", code: "GOI_TAM_DUNG" });', 1)], r'✗ G3'),
   ('VS-GOI-THANG-LOI-GOC', [(GC, "const { taoDon } = require('../routes/orders');", "const { taoDonGoc: taoDon } = require('../routes/orders');", 1)], r'✗ K1'),
+  ('VS-THEM-LOI-TAO-DON', [(OR, 'router.post("/", authenticate, (req, res) => taoDon(req, res));',
+                            'router.post("/", authenticate, (req, res) => taoDon(req, res));\nrouter.post("/x", authenticate, (req, res) => taoDon(req, res, {}));', 1)], r'✗ K2'),
   # ── A: một màn Bán hàng ──
   ('VS-MAN-THEO-KHO-CU', [(IX, TRA_VE, "return layKho()?.getItem('pos_man_ban_hang_moi') === '0' ? null : <BanHangMoi kieu={kieu} onDoiKieu={doiKieu} />;", 1)],
    r'✗ A1b'),

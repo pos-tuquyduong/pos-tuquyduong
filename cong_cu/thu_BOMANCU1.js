@@ -305,7 +305,8 @@ async function main() {
       && dong.some(([, d]) => /^module\.exports\.taoDonGoc = taoDonGoc;$/.test(d)) && dong.some(([, d]) => /return taoDonGoc\(req, res, phien\)/.test(d)),
     dong.map(([f, d]) => `${f}: ${d.slice(0, 60)}`).join(' | '));
     // K2 (soát vòng 1 lỗi 5b): mọi lối tạo đơn của máy chủ đi qua cửa chặn `taoDon` — so BẰNG đúng 6 lời gọi (kế hoạch mục 1). Lối mới
-    // phải thêm vào danh sách này (có chủ ý), không được tự lọt.
+    // phải thêm vào danh sách này (có chủ ý), không được tự lọt. GIỚI HẠN (soát vòng 3): quét CHỮ `taoDon(` — không theo bí danh
+    // (`const x = taoDon; x(...)`) hay gọi gián tiếp; đột biến VS-THEM-LOI-TAO-DON khoá trường hợp lối gọi thẳng.
     const GOI = [['routes/orders.js', 2], ['utils/giuCho.js', 2], ['utils/donApp.js', 1], ['utils/manKhach.js', 1]];
     const goiTaoDon = duyet(MAY_CHU, ['.js']).filter((f) => !f.includes('node_modules')).map((f) => [path.relative(MAY_CHU, f).split(path.sep).join('/'),
       (sach(fs.readFileSync(f, 'utf8')).match(/(?<!\w)taoDon\s*\(/g) || []).length - (/async function taoDon\s*\(/.test(sach(fs.readFileSync(f, 'utf8'))) ? 1 : 0)])

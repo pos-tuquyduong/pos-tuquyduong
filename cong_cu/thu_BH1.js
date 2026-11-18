@@ -8,7 +8,7 @@
  *
  *  tinh.js là ES module không phụ thuộc React → nạp bằng import() trực tiếp (không dựng giả lập).
  *  Phần cấu trúc đọc file nguồn: BanHang/ không `fetch` trần, không tạo khách ở quầy, không Ghi nợ / Chưa thu, localStorage trong try;
- *  từng khoá payload đơn (I1–I9). BO-MAN-CU-1: màn cũ đã xoá — không còn so với orderData của nó; công tắc → kiểu bố cục.
+ *  thân màn gửi máy chủ (TM1–TM6, thanTinhThu). BO-MAN-CU-1: màn cũ + dungDonHang đã xoá; công tắc → kiểu bố cục. Tên I1–I11 cũ KHÔNG dùng lại.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -145,30 +145,30 @@ async function main() {
   });
 
   // BO-MAN-CU-1 (soát vòng 2): bỏ dungDonHang (thân POST /orders thẳng — màn không gọi, máy chủ nay chặn ví / CK / nợ / gói ở đường đó).
-  // Phần I khoá ĐÚNG thân màn gửi: thanTinhThu = thân tinh-thu = phần `don` của phiên thu (tinh.js thanPhien).
-  muc('I · thân màn gửi máy chủ (thanTinhThu)');
+  // Phần TM khoá ĐÚNG thân màn gửi: thanTinhThu = thân tinh-thu = phần `don` của phiên thu (tinh.js thanPhien).
+  muc('TM · thân màn gửi máy chủ (thanTinhThu)');
   const gio = [{ product_id: 7, sx_product_type: 'juice', sx_product_id: 3, quantity: 2, unit_price: 35000, note: '  Ít đá ' }];
   const khach = { phone: '0912345678', name: 'Chị Hoa', balance: 50000 };
   const than = (o = {}) => f('thanTinhThu')(o.gio || gio, 'khach' in o ? o.khach : khach, o.ma || '');
   const TIEN = ['payment_method', 'cash_amount', 'cash_received', 'change_amount', 'transfer_amount', 'balance_amount', 'parent_balance_amount', 'debt_amount'];
-  thu('I1 khách lẻ: customer_phone null, customer_name "Khách lẻ"; không trường tiền nào (máy chủ tự tính, phiên quyết cách trả)', () => {
+  thu('TM1 khách lẻ: customer_phone null, customer_name "Khách lẻ"; không trường tiền nào (máy chủ tự tính, phiên quyết cách trả)', () => {
     const d = than({ khach: null });
     return d.customer_phone === null && d.customer_name === 'Khách lẻ' && TIEN.every((x) => !(x in d));
   });
-  thu('I2 khách quen: gửi SĐT + tên, vẫn không trường tiền nào', () => { const d = than(); return d.customer_phone === '0912345678' && d.customer_name === 'Chị Hoa' && TIEN.every((x) => !(x in d)); });
-  thu('I7 món: from_package false, ghi chú cắt khoảng trắng; không gói (package_buy / customer_package_id), không thẻ', () => {
+  thu('TM2 khách quen: gửi SĐT + tên, vẫn không trường tiền nào', () => { const d = than(); return d.customer_phone === '0912345678' && d.customer_name === 'Chị Hoa' && TIEN.every((x) => !(x in d)); });
+  thu('TM3 món: from_package false, ghi chú cắt khoảng trắng; không gói (package_buy / customer_package_id), không thẻ', () => {
     const d = than();
     const it = d.items[0];
     return d.items.length === 1 && it.from_package === false && it.note === 'Ít đá' && it.quantity === 2 && it.product_id === 7
       && !('package_buy' in d) && !('customer_package_id' in d) && !('membership_buy' in d);
   });
-  thu('I8 khách hồ sơ cũ có mức 10 % → KHÔNG gửi chiết khấu riêng (discount / discount_type / discount_value / discount_reason) — KHACH-CK-1', () => {
+  thu('TM4 khách hồ sơ cũ có mức 10 % → KHÔNG gửi chiết khấu riêng (discount / discount_type / discount_value / discount_reason) — KHACH-CK-1', () => {
     const d = than({ khach: { ...khach, discount_type: 'percent', discount_value: 10 } });
     return ['discount', 'discount_type', 'discount_value', 'discount_reason'].every((x) => !(x in d));
   });
-  thu('I9 mã gõ thường có khoảng trắng → discount_code chữ hoa đã cắt; không mã → null', () => than({ ma: ' giam10 ' }).discount_code === 'GIAM10'
+  thu('TM5 mã gõ thường có khoảng trắng → discount_code chữ hoa đã cắt; không mã → null', () => than({ ma: ' giam10 ' }).discount_code === 'GIAM10'
     && than().discount_code === null);
-  thu('I10 (BO-MAN-CU-1) tinh.js không còn dungDonHang (thân đơn POST /orders thẳng)', () => !('dungDonHang' in T));
+  thu('TM6 (BO-MAN-CU-1) tinh.js không còn dungDonHang (thân đơn POST /orders thẳng)', () => !('dungDonHang' in T));
   muc('Cấu trúc nguồn');
   const F = docBanHang();
   const tenFile = Object.keys(F);

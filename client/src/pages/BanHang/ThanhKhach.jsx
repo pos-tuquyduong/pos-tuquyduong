@@ -32,7 +32,7 @@ export default function ThanhKhach({ khach, hang, onChon, onBo }) {
 
   const chon = (c) => { lan.current++; setQ(''); setDs([]); onChon(c); };
 
-  // Quét thẻ: mã → SĐT → tra đúng SĐT bằng API ô tìm (như CustomerSearch). Trả chuỗi = lỗi hiện trong hộp quét.
+  // Quét thẻ: mã → SĐT → tra đúng SĐT bằng API tìm khách (customersV2Api.search). Trả chuỗi = lỗi hiện trong hộp quét.
   const quet = async (doc) => {
     const ma = String(doc || '').trim();
     if (/^QR-/i.test(ma)) return 'Mã kiểu cũ — mời khách mở mã mới trong app, hoặc tìm theo SĐT.';

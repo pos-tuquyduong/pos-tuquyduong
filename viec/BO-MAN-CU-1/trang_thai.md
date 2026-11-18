@@ -108,7 +108,7 @@ HEAD `2f591a6a`): ĐỐI CHỨNG XANH · 67 đạt · 0 hỏng; TỔNG: 20 độ
 - `client/src/index.css:664-700` còn khối CSS "SALES PAGE RESPONSIVE" (`.sales-layout`, giỏ thu gọn) chỉ màn cũ dùng — CSS chết, file ngoài Phạm vi.
 - `client/src/pages/BanHang/tinh.js` `dungDonHang` (thân POST /orders đợt 1) không màn nào gọi nữa; đường thẳng nay chỉ tiền mặt — mã chết,
   còn bị `thu_BH1` I1–I9 và `thu_KHACHCK1` D2 khoá → đề xuất xoá cùng hai bài ở việc sau (chú thích đầu hàm đã ghi "chờ chủ quán duyệt xoá").
-- Chú thích máy chủ còn nhắc `Sales.jsx`: `server/routes/orders.js:369` ("Man ban hang da kiem viec nay (Sales.jsx:77)"), `:782` ("Sales.jsx:29"),
+- Chú thích máy chủ còn nhắc `Sales.jsx`: `server/routes/orders.js:371` ("Man ban hang da kiem viec nay (Sales.jsx:77)"), `:784` ("Sales.jsx:29") (số dòng ở HEAD sau vòng sửa 2),
   `server/utils/goiKhach.js:21` ("như Sales.jsx") — `orders.js` ngoài vùng phiếu cho sửa, `goiKhach.js` ngoài Phạm vi (K1: chú thích là khẳng định).
 - `cong_cu/thu_BH2.js:243` nhãn S16 còn "công tắc từng máy, mặc định TẮT" (phép vẫn đúng: App.jsx trỏ TrangChu) — không sửa để bài khỏi phải vào
   "Bài thử cũ sửa"; sửa nhãn khi chạm bài sau.
@@ -305,3 +305,38 @@ Chưa làm (NHẸ / ngoài lời hứa phiếu, ghi Phát hiện):
 
 Số hiện tại (HEAD `2f591a6a` + trang thái): `npm test -- --day-du` PASS 126 · FAIL 0 · CẢNH BÁO 1; đột biến 20 · BẮT 20 (đối chứng 67 đạt);
 bằng chứng đỏ 28/28 bài (lượt A11 + lượt hành vi), 28 dòng SỐ CA mới (`bang_chung_do.txt`).
+
+## Soát độc lập — vòng 3 (agent độc lập mới) — chép nguyên văn (rút gọn phần nghiệm thu đã khớp)
+```
+KHÔNG ĐẠT, nhưng chỉ còn lỗi NHẸ: không đụng tiền / điểm / ví / bảo mật, không có file nằm ngoài Phạm vi hoặc Cấm. Theo LUAT_XAY_APP §6.5,
+việc này đủ điều kiện làm vòng sửa 4 ngay trong phiếu, không cần hỏi chủ quán.
+
+KIỂM LẠI 4 LỖI VÒNG 2: 1 (CK chuỗi chữ) sửa đúng — orders.js:199 `Number(b.transfer_amount || 0) !== 0 || …`, B2f có, VS-CK-BO-NAN BẮT, laDonCu
+cùng biểu thức; `transfer_amount: " "` = 0 qua cửa, ghi " " vô hại, đã ghi Phát hiện. 2 (nhãn "quầy") đã đổi, grep lại không còn nhãn nói sai đường.
+3 (số liệu) khớp lần chạy lại (20 · BẮT 20 · đối chứng 67; PASS 126). 4 (dungDonHang) đã xoá, grep client/src 0 chỗ; BH1 phần I khoá thanTinhThu,
+I10; KHACHCK1 D2 khoá thanTinhThu; gói JS 916.573 byte không đổi. NGHI NGỜ vòng 2: vet dùng soCh ném + đếm pos_stock_pending; K2 bắt x.taoDon(.
+
+LỖI TÌM ĐƯỢC:
+1. client/src/pages/BanHang/ThanhKhach.jsx:35 — chú thích còn "(như CustomerSearch)", file đã xoá (vòng sửa 1 chỉ sửa dòng 3). K4 + K1. NHẸ.
+2. cong_cu/thu_BOMANCU1.js:309-314 (K2) — khoá "đúng 6 lời gọi taoDon" KHÔNG có đột biến trong dot_bien.py. K3. NHẸ. Thử tạm: thêm
+   router.post("/x", … taoDon(req, res, {})) → BẮT (✗ K2); `const tdx = taoDon;` rồi gọi tdx(...) → SỐNG. Hôm nay không có lối như vậy; phien giả
+   không có vaoGiaoDich ném ở orders.js:1050 → 500, không ghi đơn. Đề xuất: đột biến "thêm lối trực tiếp" + ghi giới hạn "không theo bí danh".
+3. trang_thai.md mục Phát hiện — "orders.js:369 (Sales.jsx:77), :782 (Sales.jsx:29)" nay là :371 và :784. K1. NHẸ.
+4. bang_chung_do.txt:11-12 — "vòng sửa 2 chỉ đổi NHÃN ca …" chưa đủ: vòng sửa 2 còn đổi vị từ laDonCu (donCu.js:16, 0bd127ee). Thân thử của
+   17 bài không có CK chuỗi chữ → khả năng đổi kết quả thấp, nhưng câu không có lượt chạy lại làm căn cứ. K1. NHẸ.
+5. cong_cu/thu_BH1.js:11 — đầu bài vẫn "từng khoá payload đơn (I1–I9)"; phần I nay I1, I2, I7–I10 và các tên DÙNG LẠI cho nghĩa mới. K1 / K3. NHẸ.
+6. Đơn giản (gợi ý, NHẸ) — donCu.js:15-17 laDonCu là bản chép thứ hai của vị từ cửa chặn (orders.js:190-204); gọn hơn: hàm phụ gửi qua taoDon,
+   trả mã trong MA_CHAN thì dựng bằng taoDonGoc → bỏ laDonCu. Cùng dạng: kich_ban.js:20 TRUONG_DON (đã ghi Phát hiện).
+
+NGHI NGỜ: cash_amount ghi nguyên chuỗi (orders.js:1106) vs cộng Number (:1003) — chỉ lọt khi đơn 0đ; payment_method chữ tự do; cash_received /
+change_amount ghi thô (chỉ in hoá đơn) — đều có từ trước, đã ghi Phát hiện. vet không đếm pos_registrations / pos_signup_codes / pos_hoan_tien_mat /
+nhật ký đơn (cửa chặn đứng trước mọi đọc / ghi — rủi ro thấp). Khách có ví chưa có hồ sơ (pinKhach.js:34). client/src/utils/inPhieu.js:8 mô tả
+câu trả "vừa tạo (POST /orders)" — chưa đọc kỹ.
+NGHIỆM THU: 20/20 mục có bằng chứng (gồm B4b). Mục thiếu: không có.
+CHƯA SOÁT ĐƯỢC: cong.js chay; lượt 2 (tương đương) với laDonCu mới; production; kho SX; đột biến bí danh K2 chỉ chạy tạm.
+BÀI HỌC:
+- KHOÁ: mọi phép quét tĩnh (K1, K2) phải có ít nhất một đột biến "thêm lối mới"; ghi cạnh phép giới hạn "không theo bí danh / gọi gián tiếp".
+- KHOÁ (gợi ý): vị từ "thân nào cửa chặn từ chối" về MỘT nguồn — hàm phụ hỏi thẳng taoDon thay vì chép (laDonCu).
+- NGUYÊN TẮC (K4): sửa chú thích người soát chỉ ở file X thì grep CẢ file X (ThanhKhach.jsx:3 sửa, :35 sót).
+- NGUYÊN TẮC (K1): bằng chứng ở HEAD cũ mà ghi "vòng sau chỉ đổi Y" thì liệt kê theo `git diff --stat` giữa hai HEAD; bỏ ca thì không dùng lại tên.
+```
