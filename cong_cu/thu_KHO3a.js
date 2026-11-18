@@ -538,6 +538,17 @@ async function main() {
     await webhook(pA7 || {});
     k('B3c App: xác nhận tay hết hàng (hoàn ví) rồi webhook payOS cùng khoản → ví chỉ +MỘT lần', la(t7, 400, 'HET_HANG')
       && (await soDu(kh7.sdt)) === Number(pA7?.con_lai), `${moTa(t7)} · ví ${await soDu(kh7.sdt)} / ${pA7?.con_lai}`);
+    // Hai người cùng bấm xác nhận tay (song song thật) lúc hết hàng → ví +đúng số MỘT lần (khoá dòng báo `tay:<phiên>`)
+    const spDua = await themSP('Đua tay K3a', 18000, { thuTu: 22 });
+    await luuSP(spDua, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nlCam, luong: 0.2 }] });
+    const lo8 = await napTP(spDua, 1);
+    const kh8 = await khach();
+    const pt8 = await taoPhienQuay([mon(spDua, 1)], 'ck_tay', { customer_phone: kh8.sdt, customer_name: 'Khách K3a đua' });
+    await mat(lo8, spDua);
+    const dua8 = await Promise.all([1, 2].map((i) => goi('chu', 'POST', `/pos/thanh-toan/phien/${pt8.j.phien?.id}/xac-nhan-tay`, { ly_do: `hai người cùng bấm ${i} (thử)` })));
+    k('B3c hai xác nhận tay CÙNG LÚC lúc hết hàng → ví +đúng số MỘT lần', (await soDu(kh8.sdt)) === Number(pt8.j.phien?.con_lai)
+      && (await so("SELECT COUNT(*) FROM pos_payos_su_kien WHERE khoa = ? AND ket_qua = 'vao_vi'", [`tay:${pt8.j.phien?.id}`])) === 1,
+      `${dua8.map(moTa).join(' | ')} · ví ${await soDu(kh8.sdt)} / ${pt8.j.phien?.con_lai}`);
     const lo5 = await napTP(spL, 1);
     const pt5 = await taoPhienQuay([mon(spL, 1)], 'ck_tay');
     await mat(lo5);
