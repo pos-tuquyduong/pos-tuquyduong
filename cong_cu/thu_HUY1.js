@@ -49,6 +49,7 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const { getNow, addDaysToDateString } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
 
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));

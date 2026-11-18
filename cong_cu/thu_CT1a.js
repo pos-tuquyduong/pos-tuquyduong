@@ -52,6 +52,7 @@ async function main() {
   const { getNow } = require(path.join(SV, 'utils', 'helpers.js'));
   const { kyTokenKhach } = require(path.join(SV, 'middleware', 'khachAuth.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const sx = require(path.join(SV, 'utils', 'sxApi.js'));
   sx.checkStock = async () => ({ sufficient: true });   // SX tắt: bài chỉ đo chương trình / ngày sinh
 

@@ -7,7 +7,7 @@
  * - Chưa có dòng kho / chua_dinh_luong / công thức rỗng → CHUA_CO_CONG_THUC.
  * - Phần ĐANG GIỮ = Σ cần của các phiên thanh toán 'cho' còn hạn (khuôn giữ ví / voucher: không cột "đã giữ", nhả = đổi trạng thái / hết hạn).
  *   "Còn bán được" = tồn − phần giữ của phiên KHÁC — quầy, App, màn khách cùng một con số.
- * - Phiếu bán = phiếu PS su_co 'ban_hang', da_duyet, don_hang_id = đơn (khoá duy nhất — bước 030). Huỷ đơn = phiếu → 'huy' → hàng về đúng lô.
+ * - Phiếu bán = phiếu PS su_co 'ban_hang', da_duyet, don_hang_id = đơn (khoá duy nhất — bước 031). Huỷ đơn = phiếu → 'huy' → hàng về đúng lô.
  */
 const tinh = require('./tinh');
 const duLieu = require('./duLieu');

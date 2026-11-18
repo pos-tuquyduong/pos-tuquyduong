@@ -44,12 +44,12 @@ A3b, dữ liệu thật 18.11 và trả lời Câu 1 · 3 · 4 của chủ quán
 
 ## 1. Thiết kế dữ liệu — hai bước nâng cấp MỚI, chỉ thêm
 
-**`server/nang_cap/030_ban_theo_kho.js`** (~12 dòng, `themCot`):
+**`server/nang_cap/031_ban_theo_kho.js`** (đổi số 18.11 — GIAO-3 đã dùng 030) (~12 dòng, `themCot`):
 - `kho_san_pham.cho_ban_thieu INTEGER NOT NULL DEFAULT 0` — B8 "Cho bán khi thiếu nguyên liệu", mặc định TẮT.
 - `kho_phieu.don_hang_id INTEGER` + `CREATE UNIQUE INDEX ux_kho_phieu_don_hang ON kho_phieu(don_hang_id) WHERE don_hang_id IS NOT NULL` — phiếu bán nối đơn;
   một đơn đúng MỘT phiếu bán (khoá trong CSDL, không chỉ trong code).
 
-**`server/nang_cap/031_ten_mon_sx.js`** (~12 dòng, A3b): hằng `TEN_MON_SX = [['juice', 5, 'Công thức 5', 'Thanh Tân Dưỡng'], …×4]`,
+**`server/nang_cap/032_ten_mon_sx.js`** (~12 dòng, A3b): hằng `TEN_MON_SX = [['juice', 5, 'Công thức 5', 'Thanh Tân Dưỡng'], …×4]`,
 `UPDATE pos_products SET name = ?, updated_at = ? WHERE sx_product_type = ? AND sx_product_id = ? AND name = ?` — chỉ đổi khi tên đúng bằng tên tạm,
 chạy lại không đổi gì. Kho thử không có `pos_products` → bỏ qua (khuôn bước 005).
 
@@ -200,7 +200,7 @@ Khuôn `thu_KHO2b.js`: `database.js` thật + libsql kho tạm, route thật (pr
 |---|---|
 | A1 | menu quầy = `/api/kh/menu` cùng tập món đang bán, đúng `sort_order`, đúng giá POS; món `is_active = 0` / giá 0 không bán (D2); trường trả ra BẰNG danh sách hợp đồng (`thu_HOPDONG_KH` canh) |
 | A2 | `lam_san` 2 lô (1 hết hạn) → số = lô còn hạn; `pha_tai_cho` 3 nguyên liệu → số phần = min floor, tồn lẻ (gam) so SỐ TÍNH TAY; BẬT → `khong_quan_kho`; chưa công thức → `null` (không 999); `ton_cu false`, `ton_luc null` |
-| A3 / A3b | món khoá SX bán, giá theo khoá; bước 031: 4 tên đổi đúng, tên thứ 5 (`juice`,4) KHÔNG đổi, tên đã sửa tay KHÔNG đổi, chạy lại 0 thay đổi |
+| A3 / A3b | món khoá SX bán, giá theo khoá; bước 032: 4 tên đổi đúng, tên thứ 5 (`juice`,4) KHÔNG đổi, tên đã sửa tay KHÔNG đổi, chạy lại 0 thay đổi |
 | A5 | (tĩnh, đọc `client/dist`) màn Kho › Sản phẩm gọi `PUT /products/price`, không còn chữ "đặt giá ở Cài đặt"; sửa giá món khoá `pos` qua route giá → menu đổi giá. Bố cục: thử tay (E4) |
 | A4 | tạo món (manage_settings) → khoá `pos`, bán được ngay khi có công thức; nhân viên tạo → 403; sửa tên / nhóm / thứ tự / ẩn → menu đổi; không có đường xoá (DELETE → 404) |
 | A7 | `mon-chua-san` liệt kê đúng: chưa kiểu, công thức rỗng, làm sẵn hết lô (có lô hết hạn), KHÔNG liệt kê món đủ; số đếm đúng |

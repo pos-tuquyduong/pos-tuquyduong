@@ -60,6 +60,7 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(GOC, 'server', 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
   // POS-P20-v3 — MÓC giữa "phép kiểm ngoài giao dịch" và "mở giao dịch", để dựng
   // lại race claim cho CHẮC CHẮN (Promise.all trên kho cục bộ luôn chạy tuần tự,

@@ -293,10 +293,10 @@ async function main() {
   });
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[A3b] Bước 031 — đổi đúng 4 tên nước ép, chỉ khi tên còn là tên tạm');
+  muc('[A3b] Bước 032 — đổi đúng 4 tên nước ép, chỉ khi tên còn là tên tạm');
   await chay('A3b', async () => {
-    const buoc = nap(path.join(MAY_CHU, 'nang_cap', '031_ten_mon_sx.js'));
-    k('A3b có bước 031_ten_mon_sx.js', !!buoc?.chay);
+    const buoc = nap(path.join(MAY_CHU, 'nang_cap', '032_ten_mon_sx.js'));
+    k('A3b có bước 032_ten_mon_sx.js', !!buoc?.chay);
     if (!buoc?.chay) return;
     const giu = await q("SELECT id FROM pos_products WHERE sx_product_type = 'juice' AND sx_product_id IN (4, 5, 6, 7, 8)");
     await ghiDb("DELETE FROM pos_products WHERE sx_product_type = 'juice' AND sx_product_id IN (4, 5, 6, 7, 8)");

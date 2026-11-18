@@ -51,6 +51,7 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(GOC, 'server', 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const R = (f) => path.join(GOC, 'server', 'routes', f);
   const app = express();
   app.use(express.json());

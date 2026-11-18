@@ -71,6 +71,7 @@ async function main() {
   const D = require(path.join(MAY_CHU, 'database.js'));
   const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   await D.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(D);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
   // ── Lớp mạng giả (ngoài + trong giao dịch). H: ngoài giao dịch; HT: trong giao dịch; sauCommit: regex câu trong tx → commit thật rồi ném ──
   // chanTx: mọi giao dịch chờ tới khi thả (B1f ép đua); anMaGui = n: n câu đọc phiên theo ma_gui kế tiếp (ngoài lẫn trong giao dịch) không thấy gì

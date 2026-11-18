@@ -63,6 +63,7 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
   // Ghi lại MỌI câu SQL + số dòng trả về — bọc TRƯỚC khi nạp route / doiSoat.js (module destructure lúc nạp thì bọc muộn không chặn được).
   const ghi = { bat: false, sql: [], dong: 0 };

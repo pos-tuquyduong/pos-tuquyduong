@@ -69,6 +69,7 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
   // Móc B13 (chết giữa chừng): câu ghi sự kiện payOS TRONG giao dịch chạy xong thì ném một lần. Gắn TRƯỚC khi nạp route
   // (route lấy beginTransaction lúc require).

@@ -56,6 +56,7 @@ async function main() {
   const db = require(path.join(MAY_CHU,'database.js'));
   const { getNow } = require(path.join(MAY_CHU,'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const R = (f) => path.join(MAY_CHU,'routes', f);
   const app = express();
   app.use(express.json());

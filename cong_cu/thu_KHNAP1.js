@@ -59,6 +59,7 @@ async function main() {
   const db = require(path.join(MAY_CHU, 'database.js'));
   const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // Soát vòng 2 (nghi ngờ 1): chen một dòng báo CÙNG khoá đúng lúc giữa phép kiểm khoá (ngoài giao dịch) và giao dịch chốt — như bản sao thứ hai của cổng
   // vừa ghi xong. chenKhoa = { khoa, ma } → ghi một lần ở lần mở giao dịch kế tiếp.
   let chenKhoa = null;

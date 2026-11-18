@@ -15,8 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-BH, O, G, TT, DA, DL, P, B30, B31, MK = ('server/kho/banHang.js', 'server/routes/orders.js', 'server/utils/giuCho.js', 'server/routes/thanh-toan.js',
-  'server/utils/donApp.js', 'server/kho/duLieu.js', 'server/routes/products.js', 'server/nang_cap/030_ban_theo_kho.js', 'server/nang_cap/031_ten_mon_sx.js',
+BH, O, G, TT, DA, DL, P, B31, B32, MK = ('server/kho/banHang.js', 'server/routes/orders.js', 'server/utils/giuCho.js', 'server/routes/thanh-toan.js',
+  'server/utils/donApp.js', 'server/kho/duLieu.js', 'server/routes/products.js', 'server/nang_cap/031_ban_theo_kho.js', 'server/nang_cap/032_ten_mon_sx.js',
   'server/utils/manKhach.js')
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
@@ -29,7 +29,7 @@ DOT_BIEN = [
   # ── B2 / B8: pha tại chỗ — cả giỏ, cho bán khi thiếu ──
   ('BV-KIEM-CA-GIO', [(BH, 'if (can.nguyenLieu.get(nlId) > (ctx.tonNL.get(nlId)', 'if (can.phaCua.get(khoa) > (ctx.tonNL.get(nlId)', 1)], r'✗ B2 hai món chung'),
   ('BV-CHO-BAN-THIEU', [(BH, '    if (Number(p.cho_ban_thieu) === 1) continue;\n', '', 1)], r'✗ B2 BẬT \+ thiếu'),
-  ('VS-CHO-BAN-THIEU-MAC-DINH-BAT', [(B30, "'cho_ban_thieu INTEGER NOT NULL DEFAULT 0'", "'cho_ban_thieu INTEGER NOT NULL DEFAULT 1'", 1)], r'✗ B8 mặc định TẮT'),
+  ('VS-CHO-BAN-THIEU-MAC-DINH-BAT', [(B31, "'cho_ban_thieu INTEGER NOT NULL DEFAULT 0'", "'cho_ban_thieu INTEGER NOT NULL DEFAULT 1'", 1)], r'✗ B8 mặc định TẮT'),
   # ── B3: chưa công thức ──
   ('BV-CHUA-CONG-THUC', [(BH, 'if (can.chua.length) return loi(', 'if (false) return loi(', 1)], r'✗ B3 (không dòng kho|công thức rỗng|chua_dinh_luong)'),
   ('BV-TINH-THU-KHONG-KIEM', [(O, '    if (phien?.chiTinh) {\n', "    if (phien?.chiTinh) {\n      { const l = await banHang.kiemDuHang({ query, queryOne }, items, { bayGio: getNow() }); if (l) return res.status(l.status).json(l.body); }\n", 1)],
@@ -62,12 +62,12 @@ DOT_BIEN = [
   ('VS-BO-DI-VAN-TRA-KHO', [(BH, "  if (doDaPha === 'bo_di') {", '  if (false) {', 1)], r'✗ B5 đơn giao "Bỏ đi"'),
   # ── A2 / A3b / Câu 4 / K4 / khoá CSDL ──
   ('VS-MENU-SO-PHAN-LAM-TRON-LEN', [(BH, 'const nguyen = (x) => Math.max(0, Math.floor(x + tinh.SAI_SO));', 'const nguyen = (x) => Math.max(0, Math.round(x));', 1)], r'✗ A2 pha tại chỗ'),
-  ('BV-031-CHI-TEN-TAM', [(B31, 'WHERE sx_product_type = ? AND sx_product_id = ? AND name = ?', 'WHERE sx_product_type = ? AND sx_product_id = ? AND ? IS NOT NULL', 1)],
+  ('BV-032-CHI-TEN-TAM', [(B32, 'WHERE sx_product_type = ? AND sx_product_id = ? AND name = ?', 'WHERE sx_product_type = ? AND sx_product_id = ? AND ? IS NOT NULL', 1)],
     r'✗ A3b juice 8 đã sửa tay'),
   ('BV-PHIEU-BAN-KHONG-HUY-TAY', [(DL, "  if ((await tx.queryOne('SELECT su_co FROM kho_phieu WHERE id = ?', [id]))?.su_co === 'ban_hang') {", '  if (false) {', 1)],
     r'✗ Câu 4'),
   ('BV-DS-AN-PHIEU-BAN', [(DL, """  dk.push(String(loc.ban_hang) === '1' ? "p.su_co = 'ban_hang'" : "p.su_co IS NOT 'ban_hang'");\n""", '', 1)], r'✗ Kho › Phiếu'),
-  ('BV-030-KHOA-DON-HANG', [(B30, "  await tx.run('CREATE UNIQUE INDEX IF NOT EXISTS ux_kho_phieu_don_hang ON kho_phieu(don_hang_id) WHERE don_hang_id IS NOT NULL');\n", '', 1)],
+  ('BV-031-KHOA-DON-HANG', [(B31, "  await tx.run('CREATE UNIQUE INDEX IF NOT EXISTS ux_kho_phieu_don_hang ON kho_phieu(don_hang_id) WHERE don_hang_id IS NOT NULL');\n", '', 1)],
     r'✗ (Khoá duy nhất|Ghi hai phiếu)'),
   # ── A1 / A4 / A7: menu, quản lý món ──
   ('BV-MENU-SELLABLE-CONG-THUC', [(P, "sellable: typeof p.price === 'number' && p.price > 0 && !k.chua_cong_thuc,", "sellable: typeof p.price === 'number' && p.price > 0,", 1)],

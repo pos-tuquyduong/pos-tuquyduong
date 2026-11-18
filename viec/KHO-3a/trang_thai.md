@@ -23,7 +23,7 @@
 - `dot_bien.py`: 31 đột biến (VS-/BV-) — CHƯA CHẠY (chạy sau khi npm test xanh — đối chứng phải xanh).
 
 ## Bước 5 — đã sửa (commit 99034a0b · 11853a94 · 8ba65c04 · de713444 · 7bf5c86e)
-- `server/kho/banHang.js` (mới, MỘT chỗ cho luật bán theo kho), bước `030_ban_theo_kho.js`, `031_ten_mon_sx.js`; `duLieu.js` (themPhieu `donHangId`, phiếu bán không
+- `server/kho/banHang.js` (mới, MỘT chỗ cho luật bán theo kho), bước `031_ban_theo_kho.js`, `032_ten_mon_sx.js` (đổi số 18.11 — GIAO-3 đã dùng 030); `duLieu.js` (themPhieu `donHangId`, phiếu bán không
   huỷ / sửa tay — Câu 4, danh sách phiếu ẩn phiếu bán), `duong.js` (`cho_ban_thieu`, `GET /mon-chua-san`).
 - `orders.js` (bỏ checkStock / outStockFIFO / inStockReturn; `truKhoDon` trong thân `taoDonGoc`, trong giao dịch; huỷ / xoá `huyPhieuBan`) — KHÔNG thêm lời gọi
   `taoDon(`; `products.js` (menu từ pos_products, POST / PUT món, sync-from-sx 410); `giuCho.js` (kiểm đủ hàng trong giao dịch tạo phiên; ly_do nêu món);

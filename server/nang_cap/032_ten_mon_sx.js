@@ -1,5 +1,5 @@
 /**
- * Bước 031 (KHO-3a A3b, chủ quán 18.11): menu chuyển từ SX sang pos_products — 4 món nước ép trong POS còn tên tạm, quầy đang hiện tên SX.
+ * Bước 032 (KHO-3a A3b, chủ quán 18.11): menu chuyển từ SX sang pos_products — 4 món nước ép trong POS còn tên tạm, quầy đang hiện tên SX.
  * Đổi ĐÚNG 4 dòng theo khoá SX, CHỈ khi tên hiện tại đúng bằng tên tạm (tên đã sửa tay giữ nguyên); chạy lại không đổi gì thêm.
  * Nguồn: tệp sao lưu SX 18.11 11:06, bảng recipes. Chưa có bảng pos_products → bỏ qua (kho thử toàn bảng kho).
  */

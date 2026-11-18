@@ -144,6 +144,7 @@ k('B5 ThuTien: chọn cách trả qua onCachTra (không còn nút "Bỏ" của t
     outStockFIFO: async () => ({ ok: true }), inStockReturn: async () => ({ ok: true }), callSxApi: async () => ({ ok: true }) };
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const app = express();
   app.use(express.json());
   app.use('/api/pos/damages', require(path.join(MAY_CHU, 'routes', 'damages.js')));
