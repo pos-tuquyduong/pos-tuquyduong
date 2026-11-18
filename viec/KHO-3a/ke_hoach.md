@@ -71,19 +71,19 @@ chạy lại không đổi gì. Kho thử không có `pos_products` → bỏ qua
 ## 2. Máy chủ — phương án theo phần
 
 ### 2.1 Một file mới `server/kho/banHang.js` (~170 dòng) — MỘT chỗ cho mọi luật bán theo kho
-- `docKhaNang(csdl, { boPhienId })` — một lượt đọc: món (`pos_products` + `kho_san_pham` + có công thức?), bảng công thức (`docBangCongThuc`), tồn nguyên liệu
+- `docKhaNang(csdl, { bayGio })` — một lượt đọc: món (`pos_products` + `kho_san_pham` + có công thức?), bảng công thức (`docBangCongThuc`), tồn nguyên liệu
   (một câu GROUP BY theo `DA_DUYET`), lô thành phẩm còn hạn (`conLaiTheoLo` có sẵn), phần ĐANG GIỮ = Σ cần của `than.items` các phiên `cho` còn hạn
-  (trừ `boPhienId`) — cùng khuôn `voucherDangGiu` (đọc `than` JSON, thân hỏng = không giữ gì). Món trong `than.items` có HAI dạng — `{ sx_product_type, sx_product_id }`
+  (code cuối: không cần `boPhienId` — lúc chốt, phiên đã chuyển `da_thu` TRƯỚC `truKhoDon` trong cùng giao dịch nên phần giữ của chính nó tự không còn tính; đột biến VS-CHOT-TRUOC-KHI-DOI-PHIEN canh thứ tự này) — cùng khuôn `voucherDangGiu` (đọc `than` JSON, thân hỏng = không giữ gì). Món trong `than.items` có HAI dạng — `{ sx_product_type, sx_product_id }`
   (quầy, App `donApp.js:180`) hoặc `{ product_id }` — tra món bằng ĐÚNG vị từ của taoDon (`orders.js:396-407`, tách thành hàm `timMon` dùng chung, không viết lần hai).
 - `canCuaItems(items, ctx)` (thuần, vào `tinh.js`) → `{ thanhPham: Map(spId → SL), nguyenLieu: Map(nlId → lượng), chuaCongThuc: [spId] }`;
   `lam_san` cộng SL món; `pha_tai_cho` → `trienKhai` × SL (lồng); món ảo gói / thẻ / nạp (`product_id < 0`, không có dòng món) bỏ qua.
-- `kiemDuHang(csdl, items, { boPhienId })` → `null` hoặc lỗi `{ status: 400, body: { error, code, mon } }` theo thứ tự B3 → B1 → B2:
+- `kiemDuHang(csdl, items, { bayGio })` → `null` hoặc lỗi `{ status: 400, body: { error, code, mon } }` theo thứ tự B3 → B1 → B2:
   - chưa có công thức → `CHUA_CO_CONG_THUC` "Món chưa có công thức: <món>";
   - `lam_san`: Σ lô còn hạn − giữ < cần → `HET_HANG` "Không đủ hàng: <món>. Còn: <n>, cần: <m>" (giữ lời cũ);
   - `pha_tai_cho` TẮT cho_ban_thieu: tồn nguyên liệu − giữ < cần của CẢ GIỎ → `THIEU_NGUYEN_LIEU` "Thiếu nguyên liệu: <nguyên liệu> cho <món>";
     món BẬT không bao giờ bị chặn (vẫn chiếm phần nguyên liệu của giỏ).
   So bằng có `SAI_SO` (tinh.js) — gam / ml lẻ.
-- `truKhoDon(tx, { orderId, items, nguoi, luc, phienId })` — TRONG giao dịch đơn: (1) kiểm bằng `kiemDuHang(tx, items, { boPhienId: phienId })` — MỘT luật cho mọi lối:
+- `truKhoDon(tx, { orderId, items, nguoi, luc })` — TRONG giao dịch đơn: (1) kiểm bằng `xetDu(tx, items, await docKhaNang(tx, { bayGio: luc }))` — cùng hai hàm `kiemDuHang` dùng, MỘT luật cho mọi lối:
   tồn − phần giữ của phiên KHÁC ≥ cần (phần giữ của CHÍNH phiên đang chốt không tính — soát kế hoạch 4a). Chốt trong hạn: tồn ≥ Σ mọi phần giữ nên luôn qua,
   trừ khi hàng thật đã bị lấy (lưới B3c); chốt muộn (xác nhận tay sau hạn, App chỉ thẻ / nạp) vẫn tôn trọng phần giữ của phiên khác (soát 4b) — không bán vượt;
   (2) `themPhieu` PS `ban_hang` `da_duyet` + `don_hang_id`; (3) dòng `ban`: thành phẩm chia lô còn hạn FEFO (`chiaTheoLo`), nguyên liệu chia lô FEFO như
@@ -122,7 +122,7 @@ Phương án B (rải luật vào `orders.js` + `giuCho.js` + `products.js`) →
 - Bỏ khối `checkStock` trong vòng món (`orders.js:428-441`). KHÔNG thêm kiểm trước giao dịch trong taoDon (soát kế hoạch câu 2 + 4a: trùng với kiểm trong giao dịch
   của `taoPhien` và `truKhoDon`, lại tính nhầm phần giữ của chính phiên đang chốt). Tạo phiên → kiểm trong `taoPhien` (2.5); POST /orders trực tiếp và mọi lần chốt →
   kiểm trong `truKhoDon`. `tinh-thu` không kiểm, không trừ (B6) — báo giá App vẫn chạy khi kho trống.
-- Trong giao dịch, ngay sau ghi dòng đơn (`orders.js:~1105-1120`): `const k = await truKhoDon(tx, { … phienId: phien?.id ?? null })`; `k.loi` → rollback + 400.
+- Trong giao dịch, ngay sau ghi dòng đơn (`orders.js:~1105-1120`): `const k = await truKhoDon(tx, { orderId, items, nguoi, luc })`; `k.loi` → rollback + 400.
   Mọi lối vào taoDon (phiên quầy, App, màn khách, chốt muộn, POST trực tiếp) đi qua đúng một dòng này (B6).
 - Bỏ khối `outStockFIFO` sau commit (`:1282-1316`).
 - Huỷ (`:1705-1913`): sau cổng `status = 'completed'` + `chotHuyGiao`, `await huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha })`; bỏ khối `inStockReturn` sau commit.
@@ -133,12 +133,12 @@ Phương án B (rải luật vào `orders.js` + `giuCho.js` + `products.js`) →
   cả giao dịch rollback (B7). → Ghi Phát hiện đề nghị chat sửa câu §5.3 của CLAUDE.md (máy không sửa CLAUDE.md).
 
 ### 2.5 Giữ hàng (B3b) — `giuCho.js`, đúng chỗ giữ voucher
-- Trong `trongGiaoDich` của `taoPhien`, cạnh khối kiểm voucher (`giuCho.js:112-122`): `kiemDuHang(tx, don.items, { boPhienId: null })` (phiên chưa có) → lỗi thì `{ huy: true, …loi }`.
+- Trong `trongGiaoDich` của `taoPhien`, cạnh khối kiểm voucher (`giuCho.js:112-122`): `kiemDuHang(tx, don.items, { bayGio: now })` (phiên chưa có) → lỗi thì `{ huy: true, …loi }`.
   Câu đầu giao dịch đã là khoá ghi → hai quầy / App tranh chai cuối: bên sau đọc phiên bên trước → chặn.
 - Phần giữ KHÔNG ghi cột nào: chính dòng phiên `cho` còn hạn là phần giữ (như ví, voucher). Thời gian giữ = `HAN_PHUT` 10 phút (= hạn QR).
   Mọi đường nhả: huỷ phiên (`huy`), hết hạn (`het_han ≤ bây giờ` — tự nhả theo đồng hồ, không hẹn giờ), QR lỗi (`loi`), chốt hỏng vì đơn (`loi`),
   chốt xong (`da_thu` — phần giữ thành phiếu bán trong CÙNG giao dịch chốt). "Dọn phiên cũ": không cần (hết hạn = đã nhả).
-- Chốt: `truKhoDon(…, { phienId })` — phần giữ của chính phiên không tính, phần giữ phiên khác có tính. Tiền về sau hạn: luật có sẵn (App → vào ví, không chốt).
+- Chốt: `vaoGiaoDich` đổi phiên → `da_thu` rồi mới `truKhoDon(…)` — phần giữ của chính phiên không tính, phần giữ phiên khác có tính. Tiền về sau hạn: luật có sẵn (App → vào ví, không chốt).
 - Đơn App (soát 4c): `chuanLoi` (`donApp.js:166-180`) đổi `HET_HANG` / `THIEU_NGUYEN_LIEU` → App `HET_HANG`, `CHUA_CO_CONG_THUC` → App `MON_KHONG_BAN`, kèm `ma`
   (= `unique_id` của món, lấy từ `mon` trong thân lỗi) — chỉ mã đã có trong hợp đồng; bỏ nhánh dò lời "Không đủ hàng: " không code (SX hết).
 - Màn khách (soát 4e): bỏ bộ nhớ 20 s của menu (`manKhach.js:21,112-116`, chỉ có vì gọi SX chậm) → cùng một con số với quầy và App ngay lúc đó. Giả lập / đo lại tốc độ.
