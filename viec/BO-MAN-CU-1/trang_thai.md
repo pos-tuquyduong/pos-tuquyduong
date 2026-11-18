@@ -387,3 +387,79 @@ Lý do kết luận:
 ```
 
 SOÁT BẢO MẬT: ĐẠT
+
+## Nghiệm thu — đếm từng mục (20 / 20 có bằng chứng; E là chủ quán thử tay)
+| Mục | Bằng chứng |
+|---|---|
+| A1 | `thu_BOMANCU1` A1a–A1g (dựng thật `BanHang/index.jsx`: kho trống / "tắt" cũ / `?man=cu` / `?man=moi` / kho bị chặn / kiểu lạ / nhớ kiểu); đột biến VS-MAN-THEO-KHO-CU, VS-MAN-CU-QUERY, BV-KIEU-KHONG-NHO BẮT |
+| A2 | A2a (chữ bảng ⚙), A2b (grep client/src: man=cu · man=moi · Sales · "màn cũ" · công tắc cũ = 0, trừ câu Layout.jsx đã duyệt); BV-NUT-TAT BẮT |
+| A3 | A3a–A3c (xoá Sales.jsx + CustomerSearch.jsx, `ordersApi.create` mất, không ai import); BV-API-CREATE BẮT; kế hoạch mục 3 bảng grep |
+| A4 | build: 978.980 → 916.573 byte; `--day-du` "dist đã commit KHỚP với src hiện tại" |
+| B1 | B1a–B1e, B5 (hai quầy cùng bấm); BV-VI-THANG, BV-VI-ME-THANG, BV-BALANCE-NHAN, VS-CAI-DAT-CON BẮT |
+| B2 | B2a–B2f (gồm CK âm, chuỗi số, chuỗi chữ); BV-CK-THANG, BV-CK-NHAN, VS-CK-CHI-DUONG, VS-CK-BO-NAN BẮT |
+| B3 | G1–G12 (đường thẳng, tinh-thu, phiên tiền mặt / QR, chốt phiên cũ, `package_buy: {}`, gia hạn); BV-GOI-MUA, BV-GOI-MA, BV-GOI-TU-GOI, VS-GOI-CHI-THANG BẮT; kế hoạch mục 1 (7 lối vào) |
+| B4 | kế hoạch mục 2 bảng (a) 22 · (b) 26 · (c) 38 bài → chọn (a) |
+| B4b | câu 1 Phạm vi 7 file (sửa được, người gác cho); câu 2 dòng `chayBaiThat` (kiem_tra:520); câu 3 InvoiceSettings chỉ chú thích; câu 4 K1 + VS-GOI-THANG-LOI-GOC + K2 + VS-THEM-LOI-TAO-DON; câu 5 N1–N4 + BV-GHI-NO-THANG, VS-GHI-NO-CHI-SO |
+| B5 | `dot_bien.py`: đối chứng XANH 67 · 21 đột biến · BẮT 21; mỗi ca chặn so `code` + dấu vết 12 bảng (`vet`, câu đọc hỏng thì ném) |
+| C1 | C1a–C1l (tiền mặt, phiên tiền mặt / tài khoản + PIN / mẹ + PIN / tách / CK tay / QR webhook, thẻ hạng, nạp, mã, voucher, hạng, Giờ vàng) |
+| C2 | C2 (đơn giao qua phiên) + `thu_GIAO1` / `thu_GIAO2` xanh |
+| C3 | `thu_HOPDONG_KH`, `thu_KHMUA1`, `thu_KHAPI2`, `thu_KHNAP1`, `thu_KHTHE1` xanh trong `--day-du`; `git diff 28b6efeb HEAD -- server/routes/kh server/middleware/khachAuth.js HOP_DONG_API_KH.md HOP_DONG_API_ND.md` = 0 |
+| C4 | `thu_MANKHACH1` xanh; `server/utils/manKhach.js` không đổi |
+| C5 | C5a–C5h (đơn cũ ví một phần / mẹ / CK / lấy gói / mua gói / nợ: xem, huỷ, hoàn, thu nợ) + HUY1, P26b, P26c, GOI1, P20 xanh |
+| C6 | C6 (kết thúc gói cũ → Báo cáo vẫn xem) + DOISOAT1 xanh |
+| C7 | `gia_lap/chay.js` 33 kịch bản · 18 bất biến · ĐẠT; `thu_gia_lap` 180 đạt |
+| D1 | bảng "Bài cũ đổi" + vòng sửa; 28 dòng `SỐ CA`; bằng chứng đỏ 28/28 (`bang_chung_do.txt`) |
+| D2 | `NGUONG_FETCH` 31 → 22 (bộ kiểm đo "fetch trần = 22"); dòng `chayBaiThat`; không đụng phép khác |
+| D3 | `thu_BOMANCU1` 67 ca phủ A1–A3, B1–B5 |
+
+## Báo cáo 7 mục
+```
+VIỆC:        BO-MAN-CU-1 — Bỏ màn Bán hàng cũ, quầy chỉ còn màn mới · khoá đường tạo đơn thẳng · tạm ngưng gói
+ĐÃ SỬA:      server/routes/orders.js:182-207 — `taoDon` thành cửa chặn: gói (mua / lấy / gia hạn) mọi lối → GOI_TAM_DUNG; đường thẳng (phien null)
+               trừ ví khách / mẹ → VI_PHAI_QUA_PIN, chuyển khoản (mọi giá trị khác rỗng / 0) → CK_PHAI_QUA_PAYOS, ghi nợ / chờ thu → KHONG_GHI_NO;
+               bỏ cờ thanh_toan_payos_bat_buoc; thân cũ → `taoDonGoc` (không đổi), export cuối file
+             client/src/pages/BanHang/index.jsx — luôn BanHangMoi, chỉ nhớ kiểu; tinh.js docKieu/ghiKieu, xoá docCongTac/ghiCongTac/dungDonHang;
+               BanHangMoi.jsx bảng ⚙ "Kiểu màn bán hàng (máy này)", bỏ nút về màn cũ; xoá pages/Sales.jsx, components/CustomerSearch.jsx;
+               utils/api.js bỏ ordersApi.create; chú thích (ThanhKhach, banHang.css, QrScanModal, InPhieu, InvoicePrint, InvoiceSettings:745); dist build lại
+             kiem_tra_truoc_khi_giao.js — NGUONG_FETCH 31 → 22; chayBaiThat thu_BOMANCU1
+             cong_cu/thu_BOMANCU1.js (mới, 67 ca), cong_cu/gia_lap/donCu.js (mới), 27 bài cũ + gia_lap/kich_ban.js đổi; xoá cong_cu/do_chuathu.js
+BÀI THỬ:     chạy trên bản chưa vá (cây 28b6efeb) → ĐỎ 28/28 bài (bang_chung_do.txt: lượt A11, lượt tương đương, lượt hành vi); thu_BOMANCU1 gốc
+               15 đạt · 33 hỏng ở A1–A3, B1–B3, K; sau khi vá → XANH (npm test -- --day-du PASS 126 · FAIL 0 · CẢNH BÁO 1); đột biến 21 · BẮT 21
+ĐÃ RÀ K4:    grep `taoDon(` ở server/ → 6 lời gọi (orders 2, giuCho 2, donApp 1, manKhach 1), tất cả qua cửa chặn (khoá K2); `taoDonGoc` → 3 dòng
+               chỉ orders.js (khoá K1); grep `Sales|CustomerSearch|màn cũ|man=cu|man=moi|docCongTac|ghiCongTac|dungDonHang` ở client/src → 0
+               (trừ Layout.jsx:69 đã duyệt); grep nhãn ca "quầy" ở 22 bài donCu → 49 nhãn, 5 đổi tên, còn lại đúng đường; vế tiền cửa chặn so với
+               chỗ cộng / chỗ ghi ở thân: balance :929, parent :951, debt :979, transfer :1004/:1106 (đã khớp sau 2 vòng)
+CHƯA KIỂM:   - quầy thật / điện thoại (E1–E3 là chủ quán thử tay); Render + Turso thật;
+             - production: số ví có số dư mà chưa có hồ sơ pos_customers (không trả bằng tài khoản ở quầy được — Phát hiện); phiên có gói đang mở lúc triển khai;
+             - kho SX / hệ khác gọi POST /orders với ví / CK (kho SX không có ở máy này);
+             - lượt "tương đương" (donCu = taoDon gốc) chỉ chạy ở HEAD 97af129f — không chạy lại sau khi đổi laDonCu (vòng sửa 2);
+             - huỷ / hoàn đơn CŨ có cột transfer_amount dạng chữ (nếu dữ liệu cũ có) — chưa dựng được ca;
+             - K2 quét chữ, không theo bí danh (`const x = taoDon`).
+GIT:         (dòng thật ở dưới, sau commit cuối)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 4 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+## Bài học
+Sự cố của việc: soát độc lập 3 vòng (vòng 1: 5 lỗi gồm CK âm lọt; vòng 2: CK chuỗi chữ lọt — NẶNG; vòng 3: 5 lỗi nhẹ → vòng sửa 4); bài mới viết sai 3
+lần (stub CJS, hạng + flash, chờ sai HUY-1) — truy nguyên trước; giả lập phải thêm hồ sơ khách để đặt PIN; commit 68ae0d80 gộp nhầm 3 file `git rm`;
+người gác chặn lệnh nhiều lần (B-CHUONGTRINH: `for`/`until`; B-PHANTICH: lệnh chạy script ghép `&&` hoặc `$'…'`; B-CD-VITRI; B-BIMAT-CHU: chạy / grep
+file có chữ khoá mà chưa commit) — đọc lý do và làm đúng dạng; kho nông làm thu_BH2 G1 đỏ oan (tự `--unshallow`).
+
+KHOÁ (3):
+1. (đã làm, trong Phạm vi) `donCu` có khoá: chỉ dựng đơn cũ cho thân mà cửa chặn đường thẳng từ chối bằng mã chặn → bài thử không bao giờ đi vòng
+   một đơn quầy vẫn nhận; trên gốc mọi bài dùng donCu đỏ đúng lý do. Lý do: vòng 1 chỉ ra 21 bài đỏ trên gốc vì THIẾU FILE.
+2. (đã làm) ca B2d / B2e / B2f + VS-CK-CHI-DUONG / VS-CK-BO-NAN; K2 + VS-THEM-LOI-TAO-DON. Lý do: hai vòng soát liên tiếp tìm lỗ CK.
+3. (đề xuất, ngoài Phạm vi — khung đóng băng) `tu_chay/cong.js` A11: bài đỏ trên gốc vì "Cannot find module './…'" (hàm phụ CÙNG KHO mới thêm)
+   KHÔNG tính là đỏ hợp lệ (hôm nay regex chỉ loại thư viện ngoài). Ca đỏ: chạy một thu_*.js chỉ `require('./gia_lap/x')` chưa có ở gốc → cổng phải báo A11.
+NGUYÊN TẮC (4) — đề xuất thêm vào KHUON_LOI.md (ngoài Phạm vi việc này):
+1. K4 · Đã gây: cửa chặn CK `> 0` (vòng 1) rồi `(Number(x) || 0) !== 0` (vòng 2) — khớp chỗ CỘNG nhưng chỗ GHI cột dùng `x || 0`, SQLite giữ chuỗi,
+   SUM báo cáo đọc phần số. Dấu hiệu: cổng tiền viết lại biểu thức của một chỗ dùng. Chặn: cổng khớp MỌI chỗ dùng (cộng, ghi cột, hoàn) — liệt kê
+   từng dòng; tốt nhất chuẩn hoá MỘT lần rồi thân dùng giá trị đã chuẩn hoá.
+2. K3 · Đã gây: 21 bài cũ đổi sang hàm phụ đi vòng (donCu) đỏ trên gốc chỉ vì thiếu file; tên ca vẫn nói "quầy". Chặn: bài đổi sang hàm phụ thì đổi
+   luôn tên ca nói về đường bị vòng qua; bằng chứng đỏ thêm lượt "tương đương" (hàm phụ = đường cũ trên gốc → ca F xanh, chỉ ca đổi hành vi đỏ).
+3. K5 · Đã gây: giả lập phải tự thêm hồ sơ khách mới đặt được PIN → lộ ra khách có ví mà chưa có hồ sơ không trả bằng tài khoản ở quầy được.
+   Chặn: giả lập / bài thử phải vá DỮ LIỆU mới chạy được một luồng thật = tín hiệu luồng thật có thể bị chặn → ghi Phát hiện ngay, không chỉ vá bài.
+4. K7 · Đã gây: `git rm` đưa file vào chỗ chờ, commit kế tiếp (chỉ định add một file khác) gộp luôn — tiêu đề commit sai (68ae0d80). Chặn: commit
+   NGAY sau `git rm` (cùng lệnh), hoặc `git status --short` trước mỗi commit.
+BỎ (2): stub esbuild CJS (`default` = cả module khi platform node) — một lần, đã ghi chú trong bài; kho nông — bước 1.3 skill đã có luật `--unshallow`.
+Dọn KHUON_LOI.md: không đề xuất xoá (không có lời dặn nào việc này đã biến thành phép máy).
