@@ -303,6 +303,12 @@ async function main() {
   k('B2 tin RETURNED lặp (cùng sub_status) → "bỏ qua: tin lặp"', nhatKy.slice(tinLap).some((l) => l.startsWith(`[GIAO] tin ${vA.x} COMPLETED → bỏ qua: tin lặp`)), J(nhatKy.slice(tinLap)));
   const donA1 = await db.queryOne('SELECT status, payment_status, total FROM pos_orders WHERE id = ?', [vA.id]);
   const vi1 = await db.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [SDT_KHACH]);
+  datAha(vA.x, { sub_status: 'IN_RETURN', supplier_id: '0977003399' });   // tin trễ (khoá chống lặp khác: tài xế khác) → câu ghi một chiều phải chặn
+  await baoVe(vA.x);
+  const cLui = await chuyenCua(vA.id);
+  k('B1 một chiều: thẻ đã về quán, tin IN_RETURN tới trễ → VẪN "đã về quán", giữ giờ', cLui?.tra_hang === 'da_ve' && cLui?.tra_hang_luc === '2025-11-18T16:23:40',
+    J([cLui?.tra_hang, cLui?.tra_hang_luc]));
+  datAha(vA.x, { sub_status: 'RETURNED', supplier_id: TX.supplier_id });
   k('B1 trả hàng KHÔNG đụng đơn / ví (luật 02.11)', J(donA0) === J(donA1) && J(vi0) === J(vi1), `${J(donA0)} → ${J(donA1)} · ${J(vi0)} → ${J(vi1)}`);
   const theB = (await danhSach()).find((x) => x.order_id === vA.id);
   k('B1 danh sách màn trả tra_hang + tra_hang_luc; nút Đóng thẻ còn (trạng thái giao_loi)', theB?.tra_hang === 'da_ve' && theB?.tra_hang_luc === '2025-11-18T16:23:40'
@@ -327,10 +333,21 @@ async function main() {
   const d0 = A.doc;
   await danhSach(true);
   k('B3 thẻ đã về quán / đã đóng → KHÔNG gọi Ahamove nữa', A.doc === d0 && (await chuyenCua(vDong.id))?.tra_hang == null, `đọc thêm ${A.doc - d0}`);
+  const vLo = await dangGiao();
+  datAha(vLo.x, { status: 'COMPLETED', sub_status: 'RETURNED', path: diemDen({ status: 'FAILED', fail_comment: 'Sai số nhà', return_time: 1763457820 }) });
+  await baoVe(vLo.x);
+  const cLo = await chuyenCua(vLo.id);
+  k('B1 (đường UPDATE chính) tin FAILED + RETURNED cùng lỡ, thẻ dang_giao đọc thẳng → giao_loi + lý do + "đã về quán" + giờ ngay một lần', cLo?.trang_thai === 'giao_loi'
+    && cLo?.loi === 'Giao không thành công: Sai số nhà' && cLo?.tra_hang === 'da_ve' && cLo?.tra_hang_luc === '2025-11-18T16:23:40', J([cLo?.trang_thai, cLo?.loi, cLo?.tra_hang, cLo?.tra_hang_luc]));
   const vXong = await dangGiao();
   datAha(vXong.x, { status: 'COMPLETED', path: diemDen({ status: 'COMPLETED' }) });
   await baoVe(vXong.x);
   const cX = await chuyenCua(vXong.id);
+  const vLa = await dangGiao();
+  datAha(vLa.x, { status: 'COMPLETED', sub_status: 'constructor', path: diemDen({ status: 'COMPLETED' }) });
+  await baoVe(vLa.x);
+  const cLa = await chuyenCua(vLa.id);
+  k('B4 sub_status lạ ("constructor" — tên thuộc tính sẵn có của object) → bỏ qua, thẻ vẫn lên xong', cLa?.trang_thai === 'xong' && cLa?.tra_hang == null, J([cLa?.trang_thai, cLa?.tra_hang]));
   k('B4 giao xong (COMPLETED + COMPLETED) vẫn xong, không dòng trả hàng, loi trống', cX?.trang_thai === 'xong' && cX?.tra_hang == null && cX?.loi == null, J([cX?.trang_thai, cX?.tra_hang, cX?.loi]));
   const vH = await dangGiao();
   datAha(vH.x, { status: 'CANCELLED', cancel_by_user: false, cancel_comment: 'Khách không nghe máy' });
@@ -506,17 +523,24 @@ async function main() {
       await ngu(150);
       k('E2 lý do 2 ký tự → báo ngay dưới ô, KHÔNG gửi (thẻ vẫn giao_loi)', man.toan().includes('ít nhất 3 ký tự') && (await chuyenCua(vE.id))?.trang_thai === 'giao_loi' && !!o(),
         man.toan().slice(-160));
+      go('  ab  ');
+      await ngu(20);
+      const hetLoi = !man.toan().includes('ít nhất 3 ký tự');   // gõ lại → câu báo tắt
+      bam('Xác nhận');
+      await ngu(150);
+      k('E2 "  ab  " (2 ký tự + khoảng trắng hai đầu) → vẫn báo, không gửi', hetLoi && man.toan().includes('ít nhất 3 ký tự') && !!o()
+        && (await chuyenCua(vE.id))?.trang_thai === 'giao_loi', man.toan().slice(-160));
       bam('Thôi');
       await ngu(150);
       k('E2 bấm Thôi → đóng hộp, không gửi, không báo lỗi', !o() && (await chuyenCua(vE.id))?.trang_thai === 'giao_loi' && M.bao().length === baoTruoc, J(M.bao().slice(baoTruoc)));
       await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'xong' WHERE order_id = ?", [vE.id]);   // thẻ đổi sau lưng màn → máy chủ 409
       bam('Đóng thẻ');
       await man.doi(() => !!o(), 1000);
-      go('Khách không nhận');
+      go('abc');   // ĐÚNG ngưỡng 3 ký tự → hộp cho gửi (máy chủ trả 409 vì thẻ đã đổi)
       await ngu(20);
       bam('Xác nhận');
       await man.doi(() => M.bao().length > baoTruoc, 2000);
-      k('E3 máy chủ trả 409 → báo lỗi rõ (không im lặng)', M.bao().slice(baoTruoc).some(([kieu, chu]) => kieu === 'loi' && chu.includes('Chỉ đóng được thẻ giao lỗi')), J(M.bao().slice(baoTruoc)));
+      k('E3 lý do đúng 3 ký tự được gửi; máy chủ trả 409 → báo lỗi rõ (không im lặng)', M.bao().slice(baoTruoc).some(([kieu, chu]) => kieu === 'loi' && chu.includes('Chỉ đóng được thẻ giao lỗi')), J(M.bao().slice(baoTruoc)));
       await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'giao_loi' WHERE order_id = ?", [vE.id]);
       await man.doi(() => !o(), 1000);
     }
