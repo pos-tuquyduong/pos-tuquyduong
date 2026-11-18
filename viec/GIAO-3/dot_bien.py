@@ -31,6 +31,9 @@ DOT_BIEN = [
     "  const lyDo = d.trang_thai === 'COMPLETED' && d.diem_giao === 'FAILED' ? loiGiao({ ly_do: null }) : null;", 1)], r'✗ B1/B2 tin RETURNED'),
   ('BV-doc-lai-giao-loi', 'g3', [(GH, ", ...ds.filter((x) => x.trang_thai === 'giao_loi' && x.xong_luc && x.tra_hang !== 'da_ve')]", "]", 1)], r'✗ B3 tin RETURNED lỡ'),
   ('VS-doc-lai-ca-da-ve', 'g3', [(GH, "x.trang_thai === 'giao_loi' && x.xong_luc && x.tra_hang !== 'da_ve'", "x.trang_thai === 'giao_loi' && x.xong_luc", 1)], r'✗ B3 thẻ đã về quán'),
+  ('BV-mot-chieu-da-ve', 'g3', [(GH, " AND COALESCE(tra_hang, '') <> 'da_ve'`,", "`,", 1)], r'✗ B1 một chiều'),
+  ('BV-tra-hang-update-chinh', 'g3', [(GH, "tra_hang = CASE WHEN ? = 'giao_loi' THEN ? ELSE tra_hang END", "tra_hang = CASE WHEN ? = 'khong_co' THEN ? ELSE tra_hang END", 1)], r'✗ B1 \(đường UPDATE chính\)'),
+  ('BV-sub-status-prototype', 'g3', [(AH, "Object.hasOwn(TRA_HANG, String(o.sub_status)) ? TRA_HANG[o.sub_status] : null", "TRA_HANG[o.sub_status] || null", 1)], r'✗ B4 sub_status lạ'),
   ('BV-danh-sach-tra-hang', 'g3', [(GH, " tra_hang: c.tra_hang || null, tra_hang_luc: c.tra_hang_luc || null,", "", 1)], r'✗ B1 danh sách'),
   ('BV-man-tra-hang', 'g3', [(MAN, "const traHang = (c) => (c.tra_hang === 'da_ve'", "const traHang = (c) => '' && (c.tra_hang === 'da_ve'", 1)], r'✗ B1 màn'),
   # ── C: phí ──
@@ -51,6 +54,8 @@ DOT_BIEN = [
   # ── E: hộp lý do ──
   ('BV-hop-ly-do', 'g3', [(MAN, "const lyDo = await hoiLyDo('Lý do đóng thẻ giao lỗi", "const lyDo = window.prompt('Lý do đóng thẻ giao lỗi", 1)], r'✗ E4 '),
   ('VS-hop-khong-kiem-do-dai', 'g3', [(HOP, "if (chu.trim().length < LY_DO_TOI_THIEU) {", "if (false) {", 1)], r'✗ E2 lý do 2 ký tự'),
+  ('VS-nguong-4', 'g3', [(HOP, "if (chu.trim().length < LY_DO_TOI_THIEU) {", "if (chu.trim().length <= LY_DO_TOI_THIEU) {", 1)], r'✗ E3 '),
+  ('VS-khong-trim', 'g3', [(HOP, "if (chu.trim().length < LY_DO_TOI_THIEU) {", "if (chu.length < LY_DO_TOI_THIEU) {", 1)], r'✗ E2 "  ab  "'),
   ('VS-thoi-gui-rong', 'g3', [(HOP, "onClick={() => hop.xong(null)}>Thôi", "onClick={() => hop.xong('---')}>Thôi", 1)], r'✗ E2 '),
 ]
 
