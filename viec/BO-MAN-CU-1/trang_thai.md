@@ -210,3 +210,24 @@ BÀI HỌC:
 - NGUYÊN TẮC (K5): giả lập phải vá dữ liệu mới chạy được một luồng thật (thêm hồ sơ khách để đặt PIN) → đó là tín hiệu luồng thật
   có thể bị chặn. Ghi Phát hiện, đừng chỉ vá giả lập.
 ```
+
+## Vòng sửa 1 (theo soát vòng 1)
+| Lỗi soát | Sửa | Bài thử / đột biến |
+|---|---|---|
+| 1 CK âm lọt đường thẳng | `server/routes/orders.js` cửa chặn: `(Number(b.transfer_amount) \|\| 0) !== 0` — CÙNG biểu thức với chỗ cộng tiền ở thân | `thu_BOMANCU1` B2d (CK −10.000), B2e (chuỗi "-10000") — ĐỎ trước khi vá (HTTP 200, đơn ghi), XANH sau; đột biến mới **VS-CK-CHI-DUONG** (đưa lại `> 0`) BẮT |
+| 2 KHNAP1 / NAP1 tên ca nói "quầy" mà đi vòng donCu | làm ĐÚNG kế hoạch 4.3: hàm `goi` có cờ `thang` (quầy thật HTTP). KHNAP1 B2 (quầy thật, cờ tắt / bật → VI_PHAI_QUA_PIN), K5 (thẻ + CK đường thẳng → CK_PHAI_QUA_PAYOS; thêm thẻ + CK qua phiên xác nhận tay → 200), K5 (ví mẹ ngoài phiên → VI_PHAI_QUA_PIN; gói → GOI_TAM_DUNG); NAP1 B5 b5c (quầy thật → GOI_TAM_DUNG), K2 (quầy thật → VI_PHAI_QUA_PIN) + K2b (đơn cũ). Ca còn đi donCu đổi tên "thân taoDonGoc (đơn kiểu cũ)" (KHNAP1 B2, NAP1 B6). Rà K4: mọi nhãn "quầy" khác ở 22 bài là đơn tiền mặt đi HTTP thật | đỏ trên gốc đúng ca (bang_chung_do.txt lượt 3) |
+| 3 bằng chứng đỏ ghi sai lý do | (a) **khoá trong donCu**: trước khi dựng, đưa ĐÚNG thân qua cửa chặn `taoDon` (đường thẳng) — phải bị từ chối bằng một mã chặn, không thì ném lỗi; (b) `bang_chung_do.txt` viết lại: lượt A11, lượt tương đương (donCu = taoDon gốc, chưa khoá → 17 bài XANH trọn trên gốc: ca F như đường cũ), lượt hành vi (có khoá → mọi bài dùng donCu ĐỎ vì "đường thẳng KHÔNG chặn thân này"; ca đổi hành vi đỏ đúng ca) | — |
+| 4 chú thích | `BanHang/tinh.js` (I1–I9 + KHACHCK1 D2), `BanHang/ThanhKhach.jsx:3` (bỏ nhắc CustomerSearch); build lại — `dist` không đổi (chú thích bị lược khi build) | `--day-du` khớp băm |
+| 5a C2 chưa có ca | `thu_BOMANCU1` C2: đơn giao qua phiên tiền mặt (báo phí gieo đúng khuôn bảng) → 200, tổng = tinh-thu, chuyến ghi đúng báo phí | — |
+| 5b chưa đếm lối gọi taoDon | `thu_BOMANCU1` K2: lời gọi `taoDon(` ở server/ so BẰNG 6 chỗ (orders 2, giuCho 2, donApp 1, manKhach 1) | VS-GOI-THANG-LOI-GOC vẫn BẮT (K1) |
+
+Đính chính bảng "Bài cũ đổi" ở trên: KHNAP1, NAP1 KHÔNG còn "ca giữ nguyên" — xem dòng lỗi 2.
+
+Phát hiện thêm (NGHI NGỜ của soát vòng 1 — dữ liệu cũ, LUAT §6.6: ghi, không dừng hỏi):
+- Khách CÓ VÍ mà CHƯA có hồ sơ `pos_customers` (nạp qua `/wallets/topup` không đòi hồ sơ) KHÔNG trả bằng tài khoản ở quầy được nữa:
+  đường thẳng chặn, phiên cần PIN, đặt PIN cần hồ sơ (`server/utils/pinKhach.js:34` → KHACH_KHONG_TON_TAI). Giả lập gặp đúng chỗ này
+  (KB31 / KB32, commit `23030445` thêm hồ sơ trước khi đặt PIN). Chưa đo production có bao nhiêu ví như vậy. Đề xuất: chủ quán / chat
+  kiểm `SELECT COUNT(*) FROM pos_wallets w LEFT JOIN pos_customers c ON c.phone = w.phone WHERE c.phone IS NULL AND w.balance > 0` trên quầy thật;
+  có thì tạo hồ sơ cho các ví đó (việc sau) — màn mới vốn đã đòi PIN từ trước việc này.
+- Phiên tạo TRƯỚC lúc triển khai có gói, khách đã chuyển khoản, chốt muộn / xác nhận tay → GOI_TAM_DUNG, tiền về không có đơn (phiên quầy
+  ghi chua_khop, `server/routes/thanh-toan.js:207-216`). Khả năng gần 0 (phiên sống 10 phút; gói đã kết thúc hết). Triển khai lúc quầy vắng.
