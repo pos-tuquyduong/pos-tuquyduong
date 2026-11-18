@@ -1,6 +1,6 @@
 # GIAO-3 — bằng chứng đỏ
 
-## cong_cu/thu_GIAO3.js trên code GỐC (mọi file code của 4fd64c3; bài thử bản 80c23b0e) — soát vòng 1: ca E luôn chạy, số ca gốc = số ca bản vá
+## cong_cu/thu_GIAO3.js trên code GỐC (mọi file code của 4fd64c3; bài thử bản c329267d) — vòng sửa 1: ca E luôn chạy, số ca gốc = số ca bản vá
 Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mới (HopLyDo.jsx, 030_giao_tra_hang.js), `node cong_cu/thu_GIAO3.js`, rồi chép bản vá lại.
 
 ```
@@ -11,7 +11,7 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ A1 lý do dài → cắt ≤ 200 ký tự, giữ nguyên dạng chữ (không đổi < >, React hiện chữ thường)  — 21 ký tự
 
 [B] Hàng trả về quán (D4-GHICHU phần 2)
-  ✗ B2 tin IN_RETURN (cùng COMPLETED, cùng điểm FAILED, cùng tài xế) → được áp: tra_hang dang_tra, vẫn giao_loi  — undefined giao_loi · ["[GIAO] tin G3AHA1 COMPLETED → bỏ qua: tin lặp · 6ms"]
+  ✗ B2 tin IN_RETURN (cùng COMPLETED, cùng điểm FAILED, cùng tài xế) → được áp: tra_hang dang_tra, vẫn giao_loi  — undefined giao_loi · ["[GIAO] tin G3AHA1 COMPLETED → bỏ qua: tin lặp · 8ms"]
   ✗ B1/B2 tin RETURNED → "Hàng đã về quán" (tra_hang da_ve) + giờ = return_time đổi sang giờ VN; vẫn giao_loi; lý do giữ (A2)  — [null,null,"Giao không thành công"]
   ✓ B2 tin RETURNED lặp (cùng sub_status) → "bỏ qua: tin lặp"
   ✓ B1 trả hàng KHÔNG đụng đơn / ví (luật 02.11)
@@ -27,8 +27,8 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ C3 log MỘT dòng "[GIAO] phi <mã> total_price=0 …" — không SĐT tài xế / khách, không tên  — []
   ✗ C1 phí rỗng / chữ / null → phi_that vẫn 16.000  — 0
   ✓ C2 phí MỚI 21.000 (phụ phí) → cập nhật, chenh = 21.000 − phí khách
-  ✓ C3 (K4) tạo chuyến Ahamove trả total_price 0 → phi_that = phí báo 16.000 (không 0)
-  ✗ C3 (K4) báo phí lúc gọi xe 0 VÀ tạo chuyến không trả phí → phi_that KHÔNG ghi 0 (để trống = chưa biết), chenh trống  — ["tim_xe",0,0]
+  ✗ C3 (K4) tạo chuyến Ahamove trả total_price 0 → phi_that = phí báo 16.000 (không 0)  — 0
+  ✗ C3 (K4) báo phí lúc gọi xe 0 VÀ tạo chuyến trả phí 0 → phi_that KHÔNG ghi 0 (để trống = chưa biết), chenh trống  — ["tim_xe",0,0]
   ✗ C4 Đối soát giao cộng phi_that đã giữ (chuyến lấy hàng với total_price 0 vẫn 16.000)  — 0 · 112000 / 112000
 
 [G] "Thực thu" Báo cáo Hàng ngày do máy chủ tính (F-LOI-2)
@@ -50,7 +50,7 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ E4 client/src/pages/GiaoHang: 0 chỗ window.prompt / window.confirm / alert(  — 3 chỗ
   ✗ B1 màn: thẻ đã về quán hiện "Hàng đã về quán" + giờ (16:23) và lý do  — ORD-20261118-HD00013 kmChị Nhận Ba · 1 món🛵 TX Ba Mot · 29B3-33301Giao không thành côngGiao lỗi
   ✗ B1 màn: thẻ đang trả về hiện "Đang trả hàng về quán", nút Đóng thẻ như cũ  — ORD-20261118-HD00113 kmChị Nhận Ba · 1 món🛵 TX Ba Mot · 29B3-33301Giao không thành côngGiao lỗi
-  ✗ A1 màn: chi tiết thẻ hiện lý do Ahamove  — Giao hàng · AhamoveTải lạiMới (0)Đang pha (1)Đợi tài xế (3)Đang giao (7)Mới · 0Đang pha · 1ORD-20261118-HD00133 kmChị Nhận Ba · 1 mónGọi tài xế lúc 17:55Gọi tài xế ngayĐợi tài xế · 3ORD-20261118-HD000
+  ✗ A1 màn: chi tiết thẻ hiện lý do Ahamove  — Giao hàng · AhamoveTải lạiMới (0)Đang pha (1)Đợi tài xế (3)Đang giao (7)Mới · 0Đang pha · 1ORD-20261118-HD00133 kmChị Nhận Ba · 1 mónGọi tài xế lúc 18:04Gọi tài xế ngayĐợi tài xế · 3ORD-20261118-HD000
   ✗ E1 Đóng thẻ → mở hộp lý do của POS (câu hỏi cũ), có Xác nhận / Thôi  —  Số 3 Ngõ Thử, Hà Nội · 3 km · HAN-BIKEPhí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tài khoảnTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
   ✗ E2 lý do 2 ký tự → báo ngay dưới ô, KHÔNG gửi (thẻ vẫn giao_loi)  — hí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tài khoảnTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
   ✗ E2 bấm Thôi → đóng hộp, không gửi, không báo lỗi  — [["loi","làm việc này · window.prompt is not a function"]]
@@ -60,7 +60,7 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ E1 Huỷ đơn giao → hộp "Lý do huỷ đơn giao:"; Thôi → đơn vẫn còn
   ✓ E2 Thôi ở huỷ đơn → đơn KHÔNG huỷ
 
-GIAO-3: 12 đạt · 30 hỏng
+GIAO-3: 11 đạt · 31 hỏng
 ```
 
 SỐ CA cong_cu/thu_GIAO3.js: 42
