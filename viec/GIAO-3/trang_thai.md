@@ -112,3 +112,14 @@ chỉ HIỆN, không cộng / trừ → không phải lỗi. Reports.jsx: còn h
 2. Giao hàng › bấm "Tải lại" → thẻ HD0003 hiện "Giao không thành công: Người nhận đặt hàng sai địa chỉ" và "📦 Hàng đã về quán lúc 12:23".
 3. Báo cáo › tab 🧾 Đối soát → ra số (hoặc sau 60 s: "Đối soát quá lâu — thử lại hoặc chọn kỳ ngắn hơn", nút Đối soát bấm lại được); một thẻ
    đang tìm xe › Huỷ chuyến › để trống hoặc gõ "ab" › Xác nhận → hộp báo "Nhập lý do (ít nhất 3 ký tự)", không huỷ.
+
+### Sau vòng sửa 1 — số đo lại
+- Bài thử: gốc 11 đạt · 31 hỏng (42 ca); bản vá 42 đạt · 0 hỏng. SỐ CA 42 (bang_chung_do.txt).
+- Ahamove giả: "tạo chuyến trả phí 0" nay trả đúng số 0 (lần sửa đầu vòng 1 làm nó thành "không có phí" → BV-phi-tao-chuyen SỐNG; đã sửa).
+- Đột biến (`python3 viec/GIAO-3/dot_bien.py`): ĐỐI CHỨNG XANH 42/42 · TỔNG 26 · BẮT 26 · SỐNG 0 · HỎNG 0 · LẠC 0. Thêm vào bảng chỗ vá → đột biến:
+  | giaoHang.js taoChuyenMoi phí báo 0 → trống (C, K4) | BV-phi-bao-0 |
+  | danhSach chỉ giao_loi có xong_luc (B3) | VS-doc-lai-giao-loi-do-huy |
+- Tên đột biến đầy đủ: BV-ly-do-giao-loi, VS-ly-do-khong-cat, BV-ly-do-huy, BV-giao-loi-tra-hang, BV-chong-lap-sub-status, BV-gio-return,
+  VS-ly-do-ghi-de-rong, BV-doc-lai-giao-loi, VS-doc-lai-ca-da-ve, BV-danh-sach-tra-hang, BV-man-tra-hang, BV-phi-doc-chuyen, BV-phi-tao-chuyen,
+  BV-phi-bao-0, VS-doc-lai-giao-loi-do-huy, VS-phi-nhan-am, BV-log-phi, BV-thuc-thu-may-chu, VS-thuc-thu-cong-ship, BV-man-thuc-thu, BV-han-doi-soat,
+  VS-han-thanh-mat-mang, BV-log-doi-soat, BV-hop-ly-do, VS-hop-khong-kiem-do-dai, VS-thoi-gui-rong.
