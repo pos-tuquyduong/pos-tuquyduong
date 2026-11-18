@@ -603,8 +603,9 @@ async function main() {
   const traVe = [];
   for (const c of cua) { const r = await goi('GET', '/api/kh' + c, null, tkE); traVe.push(`${c}:${r.status}`); di(r, c); }
   const toi = await goi('GET', '/api/kh/toi', null, tkE);
-  const coGio = ['/toi', '/menu', '/diem', '/don', '/gio-hoat-dong'].filter((c) => !gioDi.includes(c));
-  k('E1 giờ trong /api/kh (hồ sơ, hạng, menu ton_luc, điểm, đơn, giờ hoạt động — dữ liệu cũ đã nâng cấp) đúng dạng YYYY-MM-DDTHH:mm:ss; ngay_tao = giờ VN',
+  // KHO-3a: /menu không còn giờ nào (ton_luc luôn null — bỏ "tồn gần nhất của SX") → bỏ /menu khỏi danh sách cửa PHẢI có giờ; giờ lạ vẫn quét mọi cửa.
+  const coGio = ['/toi', '/diem', '/don', '/gio-hoat-dong'].filter((c) => !gioDi.includes(c));
+  k('E1 giờ trong /api/kh (hồ sơ, hạng, điểm, đơn, giờ hoạt động — dữ liệu cũ đã nâng cấp; /menu KHO-3a không còn ton_luc) đúng dạng YYYY-MM-DDTHH:mm:ss; ngay_tao = giờ VN',
     gioLa.length === 0 && coGio.length === 0 && JSON.stringify(toi).includes('2026-02-01T10:00:00'),
     gioLa.slice(0, 5).join(' | ') + (coGio.length ? ' · cửa không có giờ nào để đo: ' + coGio.join(',') + ` (đơn E ${donE})` : '') + ' · ' + traVe.join(' '));
   const hd2 = doc(path.join(GOC, 'HOP_DONG_API_KH.md'));

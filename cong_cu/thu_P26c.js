@@ -606,6 +606,7 @@ async function main() {
     const doi = await goi('POST', '/loyalty/redeem', { phone: sdt, reward_id: q.id });
     const sp5 = Number((await db.run(`INSERT INTO pos_products (code, name, category, price, unit, sx_product_type, sx_product_id, is_active)
       VALUES ('MON500K', 'Món 500.000', 'khac', 500000, 'ly', 'tea', 9999, 1)`)).lastInsertRowid);
+    await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a: món vừa tạo cũng có công thức + lô
     const ban = await goi('POST', '/orders', { customer_phone: sdt, customer_name: 'Khách P26c', items: [{ product_id: sp5, quantity: 1 }],
       discount_code: doi.data?.code, payment_method: 'balance', balance_amount: 450000 });
     k('D1b quà 50 % trần 50.000 → đơn 500.000 giảm 50.000 (không phải 250.000)', q.status === 200 && doi.status === 200 && ban.status === 200
@@ -1136,12 +1137,12 @@ async function main() {
   muc('[P26d H1] huỷ đơn: lỗi đọc món SAU commit không được báo 409 "chưa ghi gì"');
   {
     const d = await taoDon({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
-    const noIn = () => so("SELECT COUNT(*) FROM pos_stock_pending WHERE order_id = ? AND direction = 'in'", [d]);
+    const noIn = () => so("SELECT COUNT(*) FROM kho_phieu WHERE don_hang_id = ? AND su_co = 'ban_hang' AND trang_thai = 'huy'", [d]);   // KHO-3a: trả kho POS
     co.banDoc = /FROM pos_order_items oi/;
     const h = await huy(d);
     co.banDoc = null;
     const st = (await mot('SELECT status FROM pos_orders WHERE id = ?', [d]))?.status;
-    k('H1 huỷ đơn có món SX, câu đọc món ngoài giao dịch gặp bận → 200, đơn cancelled, có nợ kho "in" (kho SX được hoàn)',
+    k('H1 huỷ đơn, câu đọc món ngoài giao dịch gặp bận → 200, đơn cancelled, kho được hoàn (KHO-3a: phiếu bán → huy, trong giao dịch huỷ)',
       !!sp[0].sx_product_type && h.status === 200 && st === 'cancelled' && await noIn() === 1, `${moTa(h)} · ${st} · nợ kho in ${await noIn()}`);
   }
 
