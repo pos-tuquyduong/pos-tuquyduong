@@ -10,6 +10,7 @@ const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, chuoiSoHd } = require('../utils/helpers');
 const { loiGhi, ghiVi, trongGiaoDich } = require('./wallets');
 const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
+const LOI_KHO = ['HET_HANG', 'THIEU_NGUYEN_LIEU', 'CHUA_CO_CONG_THUC'];   // KHO-3a: mã chặn bán theo kho (kho/banHang.js)
 const { datPin, xoaPin } = require('../utils/pinKhach');
 const payos = require('../utils/payos');
 const sepay = require('../utils/sepay');
@@ -205,8 +206,12 @@ async function xuLyTienVe(res, t) {
       [String(kq.body?.code || kq.body?.error || 'lỗi').slice(0, 200), p.id]);
   }
   // Chốt hỏng: chotPhien vừa đổi phiên App sang 'loi' (đơn hỏng), hoặc phiên vừa bị huỷ / hết hạn giữa chừng → đọc lại, cùng vị từ, vào ví.
-  const moi = laApp ? await docPhien(p.id) : null;
-  if (moi && vaoViDuoc(moi)) return vaoVi(moi);
+  // KHO-3a B3c (lưới an toàn): hỏng vì KHO (hàng đã giữ mà mất trước khi tiền về) → phiên QUẦY có SĐT khách cũng vào ví (cùng hàm, một lần);
+  // không SĐT (khách vãng lai, không ví) → chua_khop "HOÀN TIỀN TAY" (Đối soát CẦN XEM) + màn QR quầy báo lỗi của phiên.
+  const loiKho = LOI_KHO.includes(kq.body?.code) && t.soTien > 0;
+  const moi = laApp || loiKho ? await docPhien(p.id) : null;
+  if (moi && moi.phone && vaoViDuoc(moi)) return vaoVi(moi);
+  if (loiKho && moi && !moi.phone) return ghi('chua_khop', `Hết hàng: ${kq.body.mon || 'món'} — khách chưa có tài khoản: HOÀN TIỀN TAY ${t.soTien}`);
   const sau = kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;
   // "Hai cổng" chỉ khi phiên do CỔNG KIA chốt và cổng này CHƯA báo gì cho phiên — cổng này báo lần nữa là khách chuyển thêm thật (phải hoàn).
   const daBao = sau ? (await query('SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ?', [t.ma])).some((x) => congCuaKhoa(x.khoa) === t.nguon) : false;

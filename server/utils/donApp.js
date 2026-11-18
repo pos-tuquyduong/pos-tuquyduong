@@ -78,7 +78,7 @@ const qrCua = (p, tt) => (tt === 'cho_tra' ? { chuoi: p.qr, het_han: p.het_han }
 // "không khớp tổng" (không khớp "chưa có giá bán"). Không khớp dòng nào → câu chung.
 const LY_DO_NGAN = [[/GOI_NAP_KHONG_CO|NAP_CHI_TIEN_MAT_QR|NAP_KHONG_GOP/, 'vì gói nạp không còn bán'],   // KH-NAP-1
   [/HANG_CHI_CAP|GOI_HANG_KHONG_BAN|DA_CO_HANG_CAO_HON|Hạng thành viên/, 'vì thẻ hạng không còn mua được'],   // KH-THE-1: TRƯỚC "không tồn tại" của dòng hết hàng
-  [/HET_HANG|hết hàng|không đủ hàng|ngừng bán|không tồn tại/i, 'vì món đã hết hàng'], [/SO_DU|số dư/i, 'vì số dư tài khoản không đủ'],
+  [/HET_HANG|THIEU_NGUYEN_LIEU|CHUA_CO_CONG_THUC|hết hàng|không đủ hàng|ngừng bán|không tồn tại/i, 'vì món đã hết hàng'], [/SO_DU|số dư/i, 'vì số dư tài khoản không đủ'],
   [/^MA_|DISCOUNT|mã giảm|voucher/i, 'vì mã giảm giá không còn dùng được'], [/GIA_DA_DOI|giá .*đổi|không khớp tổng/i, 'vì giá món đã đổi']];
 const lyDoNgan = (s) => (LY_DO_NGAN.find(([m]) => m.test(String(s || ''))) || [null, 'vì đơn không còn hợp lệ'])[1];
 /** Câu App hiện khi tiền đã về được cộng vào tài khoản (dòng báo 'vao_vi' — thanh-toan.js xuLyTienVe); không có → null. */
@@ -87,6 +87,8 @@ function thongBaoTienVe(r) {
   if (!vi) return null;
   // KH-NAP-1: tiền về muộn mà máy không tự chốt được đơn chỉ thẻ / chỉ nạp → phiên mang ly_do (thanh-toan.js) → nói lý do
   const muon = r.p_ly_do ? `Tiền về sau khi đơn đã huỷ / hết hạn, không tạo được đơn ${lyDoNgan(r.p_ly_do)}` : 'Tiền về sau khi đơn đã huỷ / hết hạn';
+  const het = r.p_tt === 'loi' && /^(?:HET_HANG|THIEU_NGUYEN_LIEU|CHUA_CO_CONG_THUC): (.+)$/.exec(String(r.p_ly_do || ''));   // KHO-3a B3c: ly_do "<mã kho>: <món>"
+  if (het) return `Món ${het[1]} vừa hết — quán đã hoàn ${tien(vi)} vào ví của bạn`;
   return `${r.p_tt === 'loi' ? `Không tạo được đơn ${lyDoNgan(r.p_ly_do)}` : muon} — đã cộng ${tien(vi)} vào tài khoản của bạn`;
 }
 
@@ -167,15 +169,14 @@ async function dungItems(mon) {
 }
 
 /** Lỗi của taoDon / taoPhien / chotPhien → lỗi App (mọi mã có trong hợp đồng; không lộ lời máy). */
-function chuanLoi({ status, body }, mon = [], ten = []) {
+function chuanLoi({ status, body }) {
   const code = body && body.code, error = body && body.error;
   if (code === 'SO_DU_KHONG_DU') return thanLoi('VI_KHONG_DU');
   if (GIU_MA.includes(code)) return { status, body: { error, code } };
   if (status >= 500) return thanLoi('LOI_MAY_CHU');
-  if (!code && /^Không đủ hàng: /.test(error || '')) {   // checkStock của SX lúc tạo phiên (orders.js — 400 không code)
-    const i = ten.findIndex((t) => error.startsWith(`Không đủ hàng: ${t}.`));
-    return thanLoi('HET_HANG', { ma: i >= 0 ? mon[i].ma : null });
-  }
+  // KHO-3a: chặn bán theo kho (kho/banHang.js — thân có `ma` = mã món của /menu) → mã CÓ trong hợp đồng: hết / thiếu nguyên liệu → HET_HANG, chưa công thức → MON_KHONG_BAN.
+  if (code === 'HET_HANG' || code === 'THIEU_NGUYEN_LIEU') return thanLoi('HET_HANG', { ma: body.ma ?? null });
+  if (code === 'CHUA_CO_CONG_THUC') return thanLoi('MON_KHONG_BAN', { ma: body.ma ?? null });
   return thanLoi('DON_KHONG_HOP_LE', typeof error === 'string' && error ? { error } : {});
 }
 
@@ -201,7 +202,7 @@ async function baoGia(khach, gio, d) {
       ct = khongMa; maDung = null;
     }
   }
-  if (ct.status) return chuanLoi(ct, gio.mon, d.ten);
+  if (ct.status) return chuanLoi(ct);
   if (!maLoi && ct.ma_loi_code) maLoi = { code: ct.ma_loi_code, error: ct.ma_loi };
   if (!maLoi && maDung && !ct.discount_code && ct.cach === 'hang') maLoi = { code: 'MA_KHONG_LOI_HON', error: ct.cau_ghi };   // Q4
   const giam = [['ma_giam', ct.discount_amount], ['hang', ct.tier_discount], ['gio_vang', ct.flash_discount]]
@@ -307,7 +308,7 @@ async function datDon(khach, b) {
     // Ghi chú in trên bill / phiếu: KHÔNG mang mã App ngẫu nhiên (chủ quán 05.11) — mã vẫn ở pos_don_app.ma; số hoá đơn APP<4 số> là mã đơn.
     const don = { ...thanDon(khach, kq.d.items, kq.maDung, kq.gio.the, kq.vouchersDung, kq.gio.nap), notes: 'Đơn App · nhận tại quán' };
     const tp = await taoPhien({ cach: tra.cach, don, tru_tai_khoan: tra.vi, pin: b.pin }, NGUOI, { kenh: 'APP' });
-    if (tp.status !== 200) return chuanLoi(tp, kq.gio.mon, kq.d.ten);
+    if (tp.status !== 200) return chuanLoi(tp);
     phienId = tp.body.phien.id;
     // Gắn phiên NGAY (trước khi chốt): lỗi ném sau đó thì dòng đơn App vẫn trỏ đúng phiên — finally xét theo trạng thái phiên trong CSDL.
     if ((await run('UPDATE pos_don_app SET phien_id = ? WHERE id = ? AND phien_id IS NULL', [phienId, appId])).changes !== 1) {
@@ -319,7 +320,7 @@ async function datDon(khach, b) {
     }
     if (tra.cach === 'tai_khoan') {
       const c = await chotPhien(await docPhien(phienId), 'tai_khoan', { nguoi: NGUOI });
-      if ((await docPhien(phienId)).trang_thai !== 'da_thu') return chuanLoi(c.status === 200 ? { status: 500, body: {} } : c, kq.gio.mon, kq.d.ten);
+      if ((await docPhien(phienId)).trang_thai !== 'da_thu') return chuanLoi(c.status === 200 ? { status: 500, body: {} } : c);
     }
     await run('UPDATE pos_don_app SET xong = 1 WHERE id = ?', [appId]);
     xong = true;
