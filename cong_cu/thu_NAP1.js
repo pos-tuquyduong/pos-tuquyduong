@@ -99,9 +99,10 @@ async function main() {
   const PIN = '1357';
   await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu_nap1', ?)",
     [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN, 4), getToday() + 'T00:00:00']);
-  const goi = async (method, url, body, the = THE_CHU) => {
+  const goi = async (method, url, body, the = THE_CHU, thang = false) => {
     // BO-MAN-CU-1: đơn ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
-    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body).then((x) => ({ ...x.body, status: x.status }));
+    // `thang` = gửi QUA QUẦY THẬT (HTTP đường thẳng) — ca nói về cách quầy trả lời hôm nay (soát vòng 1 lỗi 2).
+    if (!thang && method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,
@@ -258,14 +259,17 @@ async function main() {
     [b4a, b4b, b4c].map(moTa).join(' | '));
   const b5 = await banNap(s4, ID1, { items: [mon(0)], cash_amount: 121000 });
   const b5b = await banNap(s4, ID1, { membership_buy: { tier_id: 1, so_thang: 1 } });
-  const b5c = await banNap(s4, ID1, { package_buy: { package_id: 1 } });
-  k('B5 gói nạp kèm món / mua thẻ / mua gói → 400 NAP_KHONG_GOP, ví không đổi',
-    [b5, b5b, b5c].every((r) => r.status === 400 && r.code === 'NAP_KHONG_GOP') && (await vi(s4)).so_du === 0, [b5, b5b, b5c].map(moTa).join(' | '));
+  // BO-MAN-CU-1 (kế hoạch 4.3, soát vòng 1): gói nạp + mua gói gửi qua QUẦY THẬT → cửa chặn trả GOI_TAM_DUNG (quầy tạm ngưng gói) trước luật nạp.
+  const b5c = await goi('POST', '/orders', { customer_phone: s4, customer_name: 'Khách NAP-1', items: [], goi_nap_id: ID1, payment_method: 'cash',
+    cash_amount: 100000, package_buy: { package_id: 1 } }, THE_CHU, true);
+  k('B5 gói nạp kèm món / mua thẻ → 400 NAP_KHONG_GOP; kèm mua gói (quầy thật) → 400 GOI_TAM_DUNG; ví không đổi',
+    [b5, b5b].every((r) => r.status === 400 && r.code === 'NAP_KHONG_GOP') && b5c.status === 400 && b5c.code === 'GOI_TAM_DUNG' && (await vi(s4)).so_du === 0,
+    [b5, b5b, b5c].map(moTa).join(' | '));
   await napTay(s4, 200000);
   const b6 = [await banNap(s4, ID1, { cash_amount: 0, balance_amount: 100000 }), await banNap(s4, ID1, { cash_amount: 0, payment_method: 'balance' }),
     await banNap(sdtMoi(), ID1, { cash_amount: 0, parent_phone: s4, parent_balance_amount: 100000 }),
     await banNap(s4, ID1, { cash_amount: 50000, balance_amount: 50000 })];
-  k('B6 trả gói nạp bằng ví / payment_method balance / ví mẹ / ví một phần → 400 NAP_CHI_TIEN_MAT_QR, ví không đổi',
+  k('B6 thân taoDonGoc (đơn kiểu cũ — quầy thật chặn trước ở cửa VI_PHAI_QUA_PIN): trả gói nạp bằng ví / balance / ví mẹ / ví một phần → 400 NAP_CHI_TIEN_MAT_QR, ví không đổi',
     b6.every((r) => r.status === 400 && r.code === 'NAP_CHI_TIEN_MAT_QR') && (await vi(s4)).so_du === 200000, b6.map(moTa).join(' | '));
   const soPhien = () => so('SELECT COUNT(*) FROM pos_phien_thanh_toan');
   const truocB7 = await soPhien();
@@ -757,9 +761,15 @@ async function main() {
     k('K6 bán món thường không SĐT → 200 (cổng nạp không chặn oan)', k6.status === 200 && k6.order?.total === 21000, moTa(k6));
     const sK = sdtMoi();
     await napTay(sK, 30000);
+    // BO-MAN-CU-1 (kế hoạch 4.3): quầy thật chặn ví + CK ngoài phiên; đơn kiểu cũ (thân taoDonGoc) vẫn trừ ví đúng, không thưởng.
+    const k2q = await goi('POST', '/orders', { customer_name: 'Khách NAP-1', items: [mon(0)], customer_phone: sK, payment_method: 'transfer',
+      balance_amount: 10000, transfer_amount: 11000 }, THE_CHU, true);
+    const vQ = await vi(sK);
+    k('K2 quầy thật: ví 10.000 + CK 11.000 ngoài phiên → 400 VI_PHAI_QUA_PIN, ví vẫn 30.000', k2q.status === 400 && k2q.code === 'VI_PHAI_QUA_PIN'
+      && vQ.so_du === 30000, `${moTa(k2q)} · ${viChu(vQ)}`);
     const k2 = await ban({ customer_phone: sK, payment_method: 'transfer', balance_amount: 10000, transfer_amount: 11000 });
     const vK = await vi(sK);
-    k('K2 ví 10.000 + CK 11.000 → 200, ví 20.000 · thưởng 0', k2.status === 200 && vK.so_du === 20000 && vK.thuong === 0, `${moTa(k2)} · ${viChu(vK)}`);
+    k('K2b thân taoDonGoc (đơn kiểu cũ): ví 10.000 + CK 11.000 → 200, ví 20.000 · thưởng 0', k2.status === 200 && vK.so_du === 20000 && vK.thuong === 0, `${moTa(k2)} · ${viChu(vK)}`);
     const cuoi = await lechBB();
     k('K9 bất biến I4 · I6 · I8 · I11 · I15 · I18 · I19 = 0 lệch cuối bài', cuoi.length === 0, cuoi.join(' | '));
   }

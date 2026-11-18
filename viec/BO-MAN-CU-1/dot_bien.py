@@ -33,8 +33,9 @@ DOT_BIEN = [
                        '''  if (!phien && (await queryOne("SELECT value FROM pos_settings WHERE key = 'thanh_toan_payos_bat_buoc'"))?.value === "1") {\n    if (Number(b.balance_amount)''', 1)],
    r'✗ B1a'),
   # ── B2: chuyển khoản trên đường thẳng ──
-  ('BV-CK-THANG', [(OR, 'if (Number(b.transfer_amount) > 0 || b.payment_method === "transfer") {', 'if (b.payment_method === "transfer") {', 1)], r'✗ B2c'),
-  ('BV-CK-NHAN', [(OR, 'if (Number(b.transfer_amount) > 0 || b.payment_method === "transfer") {', 'if (Number(b.transfer_amount) > 0) {', 1)], r'✗ B2b'),
+  ('BV-CK-THANG', [(OR, 'if ((Number(b.transfer_amount) || 0) !== 0 || b.payment_method === "transfer") {', 'if (b.payment_method === "transfer") {', 1)], r'✗ B2c'),
+  ('BV-CK-NHAN', [(OR, 'if ((Number(b.transfer_amount) || 0) !== 0 || b.payment_method === "transfer") {', 'if ((Number(b.transfer_amount) || 0) !== 0) {', 1)], r'✗ B2b'),
+  ('VS-CK-CHI-DUONG', [(OR, 'if ((Number(b.transfer_amount) || 0) !== 0 || b.payment_method', 'if (Number(b.transfer_amount) > 0 || b.payment_method', 1)], r'✗ B2d'),
   # ── câu 5: ghi nợ / chờ thu trên đường thẳng ──
   ('BV-GHI-NO-THANG', [(OR, 'if (Number(b.debt_amount) > 0 || b.payment_method === "debt" || b.payment_method === "cho_thu") {', 'if (false) {', 1)], r'✗ N1'),
   ('VS-GHI-NO-CHI-SO', [(OR, ' || b.payment_method === "debt" || b.payment_method === "cho_thu") {', ') {', 1)], r'✗ N4'),
@@ -130,8 +131,14 @@ def chay_cay_goc(sha, bai):
     tar = subprocess.run(['git', 'archive', sha], cwd=GOC, capture_output=True, check=True).stdout
     tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
     shutil.copy(os.path.join(GOC, bai), os.path.join(tmp, bai))
-    if '--kem-ham-phu' in sys.argv:   # lượt thứ hai: kèm hàm phụ mới cong_cu/gia_lap/donCu.js → thấy bài đỏ vì HÀNH VI gốc, không vì thiếu file
-      shutil.copy(os.path.join(GOC, 'cong_cu', 'gia_lap', 'donCu.js'), os.path.join(tmp, 'cong_cu', 'gia_lap', 'donCu.js'))
+    if '--kem-ham-phu' in sys.argv:
+      # Lượt chứng minh (soát vòng 1 lỗi 3): kèm hàm phụ donCu.js; ở cây gốc chưa có taoDonGoc thì donCu dùng `taoDon` của GỐC — chính là thân cũ
+      # (cổng cờ đọc '0' → không chặn). Ca F (đơn cũ làm đơn mẫu) phải XANH như trước; chỉ ca ĐỔI HÀNH VI đỏ. Bản vá chữ chỉ nằm trong thư mục tạm.
+      s = open(os.path.join(GOC, 'cong_cu', 'gia_lap', 'donCu.js'), encoding='utf-8').read()
+      neo = "const { taoDonGoc } = require(path.join(mayChu, 'routes', 'orders.js'));"
+      if s.count(neo) != 1: sys.exit('donCu.js: neo require taoDonGoc khớp %d lần' % s.count(neo))
+      s = s.replace(neo, "const _m = require(path.join(mayChu, 'routes', 'orders.js')); const taoDonGoc = _m.taoDonGoc || _m.taoDon;")
+      open(os.path.join(tmp, 'cong_cu', 'gia_lap', 'donCu.js'), 'w', encoding='utf-8').write(s)
     os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
     if os.path.isdir(os.path.join(GOC, 'client', 'node_modules')):
       os.symlink(os.path.join(GOC, 'client', 'node_modules'), os.path.join(tmp, 'client', 'node_modules'))

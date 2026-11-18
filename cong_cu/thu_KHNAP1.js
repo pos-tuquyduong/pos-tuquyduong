@@ -126,9 +126,10 @@ async function main() {
   await db.run(`INSERT INTO pos_discount_codes (code, discount_type, discount_value, min_order, max_discount, usage_limit, used_count, is_active, discount_scope)
     VALUES ('KN1CHUNG', 'fixed', 5000, 0, 0, 0, 0, 1, 'order')`);
 
-  const goi = async (method, url, body, tk) => {
+  const goi = async (method, url, body, tk, thang = false) => {
     // BO-MAN-CU-1: đơn quầy ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc (luật THE_KHONG_TRA_VI nằm ở đó).
-    if (method === 'POST' && url === '/pos/orders' && laDonCu(body)) {
+    // `thang` = gửi QUA QUẦY THẬT (HTTP đường thẳng) — ca nói về cách quầy trả lời hôm nay (soát vòng 1 lỗi 2).
+    if (!thang && method === 'POST' && url === '/pos/orders' && laDonCu(body)) {
       return donCu(MAY_CHU, body).then((x) => ({ status: x.status, j: x.body, tho: JSON.stringify(x.body) }));
     }
     const headers = body !== undefined ? { 'Content-Type': 'application/json' } : {};
@@ -192,6 +193,7 @@ async function main() {
   };
   const boLich = async () => { await datCaiDat('gio_hd_lich', ''); await datCaiDat('gio_hd_ngung_truoc_phut', 0); };
   const quay = (than) => goi('POST', '/pos/orders', { customer_name: 'K', ...than }, tkChu);
+  const quayThat = (than) => goi('POST', '/pos/orders', { customer_name: 'K', ...than }, tkChu, true);   // BO-MAN-CU-1: quầy thật, không vòng donCu
   const diemDon = (oid) => so('SELECT COALESCE(SUM(points), 0) AS n FROM pos_point_transactions WHERE order_id = ?', [oid]);
   const suKien = (p) => db.query('SELECT ket_qua, ly_do FROM pos_payos_su_kien WHERE ma_payos = ? ORDER BY id', [p.ma_payos]);
   /** Đặt đơn App nạp gói G1 bằng QR, trả { d, p } (phiên). */
@@ -440,13 +442,17 @@ async function main() {
       await quay({ customer_phone: kh.sdt, ...theQ, payment_method: 'cash', parent_phone: me.sdt, parent_balance_amount: 100000 }),
       await quay({ customer_phone: kh.sdt, ...theQ, items: [monQuay(0)], payment_method: 'balance', balance_amount: 125000 }),
       await quay({ customer_phone: kh.sdt, ...theQ, package_buy: { package_id: GOI_TT, pkg_qty: 1 }, payment_method: 'balance', balance_amount: 400000 })];
-    k('B2 quầy: thẻ + balance / ví một phần / ví mẹ / thẻ + đồ uống / thẻ + gói trả bằng ví → 400 THE_KHONG_TRA_VI, đúng câu phiếu; ví không đổi',
+    k('B2 thân taoDonGoc (đơn kiểu cũ): thẻ + balance / ví một phần / ví mẹ / thẻ + đồ uống / thẻ + gói trả bằng ví → 400 THE_KHONG_TRA_VI, đúng câu phiếu; ví không đổi',
       t1.every((r) => la(r, 400, 'THE_KHONG_TRA_VI') && r.j.error === CAU_THE) && (await vi(kh.sdt)).so_du === 1000000 && (await vi(me.sdt)).so_du === 1000000
       && (await soThe(kh.sdt)) === 0, t1.map(moTa).join(' / '));
+    // BO-MAN-CU-1 (kế hoạch 4.3): quầy thật chặn MỌI trừ tài khoản ngoài phiên ở cửa (VI_PHAI_QUA_PIN), cờ cũ bật hay tắt như nhau; thẻ + ví
+    // chỉ còn tới được qua phiên — ở đó vẫn THE_KHONG_TRA_VI (ca B2 phiên dưới).
+    const t1q = await quayThat({ customer_phone: kh.sdt, ...theQ, payment_method: 'balance', balance_amount: 100000 });
     await datCaiDat('thanh_toan_payos_bat_buoc', '1');
-    const t1c = await quay({ customer_phone: kh.sdt, ...theQ, payment_method: 'balance', balance_amount: 100000 });
+    const t1c = await quayThat({ customer_phone: kh.sdt, ...theQ, payment_method: 'balance', balance_amount: 100000 });
     await datCaiDat('thanh_toan_payos_bat_buoc', '0');
-    k('B2 cờ "CK phải qua payOS" bật → vẫn THE_KHONG_TRA_VI (không VI_PHAI_QUA_PIN)', la(t1c, 400, 'THE_KHONG_TRA_VI'), moTa(t1c));
+    k('B2 quầy thật: thẻ trả bằng ví ngoài phiên, cờ cũ tắt / bật → 400 VI_PHAI_QUA_PIN cả hai; ví không đổi', la(t1q, 400, 'VI_PHAI_QUA_PIN')
+      && la(t1c, 400, 'VI_PHAI_QUA_PIN') && (await vi(kh.sdt)).so_du === 1000000, `${moTa(t1q)} / ${moTa(t1c)}`);
     const soPhien = () => so('SELECT COUNT(*) AS n FROM pos_phien_thanh_toan');
     const truocP = await soPhien();
     const don = { customer_phone: kh.sdt, ...theQ };
@@ -463,20 +469,25 @@ async function main() {
     k('B2 App: giỏ thẻ / thẻ + đồ uống trả vi / vi_qr → 400 THE_KHONG_TRA_VI (nguyên mã); không đơn / phiên / ví đổi', t3.every((r) => la(r, 400, 'THE_KHONG_TRA_VI'))
       && (await chup(kh.sdt)) === truoc, t3.map(moTa).join(' / '));
     const k4 = await quay({ customer_phone: (await khach()).sdt, ...theQ, payment_method: 'cash', cash_amount: 100000 });
-    const k4b = await quay({ customer_phone: (await khach()).sdt, ...theQ, payment_method: 'transfer', transfer_amount: 100000 });
+    // BO-MAN-CU-1 (kế hoạch 4.3): thẻ + CK trên đường thẳng bị chặn (CK chỉ qua phiên); thẻ + CK qua phiên xác nhận tay → 200 (K5).
+    const k4b = await quayThat({ customer_phone: (await khach()).sdt, ...theQ, payment_method: 'transfer', transfer_amount: 100000 });
+    const pCk = (await goi('POST', '/pos/thanh-toan/phien', { cach: 'ck_tay', don: { customer_phone: (await khach()).sdt, customer_name: 'K', ...theQ } }, tkChu)).j.phien;
+    const k4c = pCk ? await goi('POST', `/pos/thanh-toan/phien/${pCk.id}/xac-nhan-tay`, { ly_do: 'Khách chuyển khoản mua thẻ' }, tkChu) : { status: 0, j: {} };
     const kq = await khach();
     const k5 = await dat1(kq, gio([the()]));
     await webhook(await phienCua(k5.j.ma_don));
-    k('K5 thẻ + tiền mặt / CK ở quầy → 200; thẻ App trả QR → 200 + lên hạng', la(k4, 200) && la(k4b, 200) && la(k5, 200) && (await hangToi(kq))?.id === VANG,
-      `${moTa(k4)} / ${moTa(k4b)} / ${moTa(k5)}`);
+    k('K5 thẻ + tiền mặt ở quầy → 200; thẻ + CK đường thẳng → 400 CK_PHAI_QUA_PAYOS; thẻ + CK qua phiên (xác nhận tay) → 200; thẻ App trả QR → 200 + lên hạng',
+      la(k4, 200) && la(k4b, 400, 'CK_PHAI_QUA_PAYOS') && la(k4c, 200) && la(k5, 200) && (await hangToi(kq))?.id === VANG,
+      `${moTa(k4)} / ${moTa(k4b)} / ${moTa(k4c)} / ${moTa(k5)}`);
     const kv = await khach(500000), kvq = await khach(10000), conV = await khach();
     await datMe(conV.sdt, kv.sdt);
     const k1 = await dat1(kv, gio([mon(0)]), { cach_tra: 'vi', pin: '1357' });
     const k1b = await dat1(kvq, gio([mon(1)]), { cach_tra: 'vi_qr', pin: '1357' });
-    const k2 = await quay({ customer_phone: conV.sdt, items: [monQuay(0)], payment_method: 'cash', cash_amount: 0, parent_phone: kv.sdt, parent_balance_amount: 25000 });
-    const k3 = await quay({ customer_phone: kv.sdt, items: [], package_buy: { package_id: GOI_TT, pkg_qty: 1 }, payment_method: 'balance', balance_amount: 300000 });
-    k('K5 đồ uống App trả vi / vi_qr → 200; ví mẹ cho đồ uống ở quầy → 200; gói trả trước trả số dư → 200', la(k1, 200) && la(k1b, 200) && la(k2, 200) && la(k3, 200),
-      [k1, k1b, k2, k3].map(moTa).join(' / '));
+    // BO-MAN-CU-1 (kế hoạch 4.3): ví mẹ ngoài phiên → VI_PHAI_QUA_PIN (quầy dùng phiên + PIN mẹ — thu_BOMANCU1 C1d); gói tạm ngưng → GOI_TAM_DUNG.
+    const k2 = await quayThat({ customer_phone: conV.sdt, items: [monQuay(0)], payment_method: 'cash', cash_amount: 0, parent_phone: kv.sdt, parent_balance_amount: 25000 });
+    const k3 = await quayThat({ customer_phone: kv.sdt, items: [], package_buy: { package_id: GOI_TT, pkg_qty: 1 }, payment_method: 'balance', balance_amount: 300000 });
+    k('K5 đồ uống App trả vi / vi_qr → 200; quầy thật: ví mẹ cho đồ uống ngoài phiên → 400 VI_PHAI_QUA_PIN; gói trả trước → 400 GOI_TAM_DUNG',
+      la(k1, 200) && la(k1b, 200) && la(k2, 400, 'VI_PHAI_QUA_PIN') && la(k3, 400, 'GOI_TAM_DUNG'), [k1, k1b, k2, k3].map(moTa).join(' / '));
     // B4: đơn thẻ cũ trả bằng số dư (dữ liệu trước việc) → huỷ quầy theo luật cũ: ví hoàn, hạng thu hồi.
     const kc = await khach();
     const o = await quay({ customer_phone: kc.sdt, ...theQ, payment_method: 'cash', cash_amount: 100000 });
