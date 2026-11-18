@@ -73,7 +73,7 @@ async function napTrangChu() {
     b.onResolve({ filter: /^react(\/jsx-runtime|\/jsx-dev-runtime)?$/ }, () => ({ path: 'react', namespace: 'bmc' }));
     b.onResolve({ filter: /^(\.\/BanHangMoi|\.\.\/Sales)$/ }, (a) => ({ path: a.path.endsWith('Sales') ? 'Sales' : 'BanHangMoi', namespace: 'bmc' }));
     b.onLoad({ filter: /.*/, namespace: 'bmc' }, (a) => ({ loader: 'js', contents: a.path === 'react' ? 'module.exports = globalThis.__BMC_REACT;'
-      : `module.exports = { __esModule: true, default: function ${a.path}() { return null; } };` }));
+      : `export default function ${a.path}() { return null; }` }));
   } };
   const kq = await esbuild.build({ entryPoints: [path.join(CLIENT, 'pages', 'BanHang', 'index.jsx')], bundle: true, write: false, format: 'cjs',
     platform: 'node', jsx: 'automatic', keepNames: true, logLevel: 'silent', plugins: [vo] });
@@ -380,14 +380,19 @@ async function main() {
     const [bd, kt] = gio < '12:00' ? ['00:00', '23:59'] : ['12:00', '11:59'];
     for (const [a, b] of [['flash_enabled', 'true'], ['flash_start', bd], ['flash_end', kt], ['flash_percent', '20'],
       ['flash_product_keys', JSON.stringify([`${sp[1].sx_product_type}_${sp[1].sx_product_id}`])]]) await datCaiDat(a, b);
-    const don = { customer_phone: kh, customer_name: 'K', items: [mon(1, 0), mon(1, 1)] };
-    const tinh = await goi('POST', '/pos/orders/tinh-thu', don);
-    const p = (await taoPhien({ cach: 'tien_mat', don })).j.phien;
-    const c = await chot(p?.id, { cash_received: 50000 });
+    // Máy chủ: đơn có món Flash thì KHÔNG cộng giảm hạng (orders.js `if (!flashApplied && phone)`) → hai đơn riêng.
+    const qua = async (don) => {
+      const tinh = await goi('POST', '/pos/orders/tinh-thu', don);
+      const p = (await taoPhien({ cach: 'tien_mat', don })).j.phien;
+      return { tinh, p, c: await chot(p?.id, { cash_received: 50000 }) };
+    };
+    const h = await qua({ customer_phone: kh, customer_name: 'K', items: [mon(1, 0)] });
+    k('C1k khách hạng (giảm 10 %) qua phiên → 200, giảm hạng 2.500, tổng đơn = tinh-thu = 22.500', la(h.c, 200) && h.tinh.j.tier_discount === 2500
+      && h.p?.tong === 22500 && h.c.j.order?.total === 22500, `${moTa(h.c)} · hạng ${h.tinh.j.tier_discount} · ${h.tinh.j.total}/${h.p?.tong}/${h.c.j.order?.total}`);
+    const f = await qua({ items: [mon(1, 1)] });
     await datCaiDat('flash_enabled', 'false');
-    k('C1k hạng + Giờ vàng qua phiên → 200, có giảm hạng VÀ giảm flash, tổng đơn = tinh-thu', la(c, 200) && tinh.j.tier_discount > 0
-      && tinh.j.flash_discount > 0 && p?.tong === tinh.j.total && c.j.order?.total === tinh.j.total,
-    `${moTa(c)} · hạng ${tinh.j.tier_discount} · flash ${tinh.j.flash_discount} · ${tinh.j.total}/${p?.tong}/${c.j.order?.total}`);
+    k('C1l Giờ vàng 20 % qua phiên → 200, giảm flash 5.000, tổng đơn = tinh-thu = 20.000', la(f.c, 200) && f.tinh.j.flash_discount === 5000
+      && f.p?.tong === 20000 && f.c.j.order?.total === 20000, `${moTa(f.c)} · flash ${f.tinh.j.flash_discount} · ${f.tinh.j.total}/${f.p?.tong}/${f.c.j.order?.total}`);
   });
 
   muc('[C5 · C6] đơn CŨ (dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy): xem, huỷ, thu nợ, kết thúc gói');
