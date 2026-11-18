@@ -18,7 +18,8 @@ Sau việc này:
 
 Kiểm kê cuối ca và tỉ lệ ra để **KHO-3b** (việc sau). Topping là TOPPING-1.
 
-**Dữ liệu thật hôm nay (17.11):** bảng kho của POS TRỐNG: 0 nguyên liệu, 0 công thức, 0 dòng `kho_san_pham`. `pos_products` có 14 món.
+**Dữ liệu thật (18.11, sau khi chat nhập danh mục SX qua Kho › Nhập từ SX):** 32 nguyên liệu, 2 nhóm, 9 món có công thức (kiểu làm sẵn), CHƯA có lô nào (tồn = 0).
+Món chưa công thức: Cà Phê Đen, TEST 1000, Cam Tân Dưỡng, Công thức 4, Liệu Trình 30 ngày (gói, tạm ngưng). 20 nguyên liệu chưa có giá nhập.
 **Luật bán theo kho — chủ quán chốt 17.11 18:47, GIỮ logic cũ "không đủ hàng thì không bán" (`orders.js` `checkStock` → 400 "Không đủ hàng"):**
 - Món làm sẵn theo lô (`lam_san`): phải nhập / pha thành phẩm trước. Hết lô hoặc không đủ → CHẶN. Không tự trừ sang nguyên liệu.
 - Món pha tại chỗ (`pha_tai_cho`): nguyên liệu không đủ → CHẶN, TRỪ KHI món đó bật cài đặt "Cho bán khi thiếu nguyên liệu".
