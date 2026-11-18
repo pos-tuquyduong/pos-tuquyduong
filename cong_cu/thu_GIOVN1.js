@@ -327,11 +327,10 @@ async function main() {
   k('A2h dữ liệu gieo lúc khởi tạo kho (chủ, quyền, hạng, nhóm) ghi dạng T', Object.values(kSeed || {}).every((v) => DANG_T.test(String(v))), JSON.stringify(kSeed));
 
   await db.run("INSERT INTO pos_stock_pending (order_code, sx_product_type, sx_product_id, quantity, direction, status, van_tay, created_at) VALUES ('GV1DS', 'juice', 1, 1, 'out', 'pending', 'POS:GV1DS:1', ?)", [MOC]);
-  const { doSoNo } = require(path.join(MAY_CHU, 'utils', 'doSoNo.js'));
-  sxBat = true; imLang();
-  try { await doSoNo(); } finally { noiLai(); sxBat = false; }
+  // KHO-3a: SX đã ngắt — sổ nợ kho không còn đẩy sang SX (utils/doSoNo.js bỏ); dòng cũ giữ nguyên làm lịch sử.
   const kDs = await motDong("SELECT status, resolved_at AS t FROM pos_stock_pending WHERE order_code = 'GV1DS'");
-  k('A2i đẩy sổ nợ tồn sang SX (doSoNo, SX giả) → pos_stock_pending.resolved_at', kDs?.status === 'resolved' && gan(kDs?.t, MOC), JSON.stringify(kDs));
+  k('A2i (KHO-3a) sổ nợ kho SX không còn đẩy: doSoNo.js đã bỏ, dòng pending giữ nguyên', !fs.existsSync(path.join(MAY_CHU, 'utils', 'doSoNo.js'))
+    && kDs?.status === 'pending' && kDs?.t == null, JSON.stringify(kDs));
   // KHACH-APP-1 (Q4 chủ quán 07.11): bộ đệm khách SX (cacheCustomersToLocal) đã bỏ — A2j kiểm giờ ghi của bước chép lần cuối 020
   // (lúc khởi động SX giả trả rỗng → bước HOÃN; nay SX trả danh sách → chạy khung lại).
   khachSX = [{ phone: '0938000060', name: 'Khách SX mới' }, { phone: '0938111222', name: 'Khách SX đã có' }];

@@ -533,6 +533,8 @@ async function main() {
     k('E5 con_hang (KHO-3a, kho POS): còn lô → true · lô hết hạn → false · chưa công thức → không hiện',
       !!theo(ds[1].id) && theo(ds[1].id).con_hang === true && !!theo(ds[2].id) && theo(ds[2].id).con_hang === false && !theo(ds[0].id),
       JSON.stringify([theo(ds[1].id), theo(ds[2].id), theo(ds[0].id)]));
+    await db.run('UPDATE kho_lo SET han_dung = NULL WHERE san_pham_id = ?', [ds[2].id]);   // KHO-3a: trả lại kho cho các mục sau bán tiếp
+    await require('./gia_lap/monThu').dungMonThu(db);
     const nvR = await goi('GET', '/pos/products', undefined, { tk: tkChu });
     const dvR = await goi('GET', '/pos/products', undefined, { dichVu: true });
     const dung = Array.isArray(nvR.j) && nvR.j.length === giaMoi.length && nvR.j.every((p) => {

@@ -299,10 +299,10 @@ async function main() {
   {
     const d = await donTien(s2, [mon(0, 2)]);   // 2 × 25.000
     const ma = sp[0].code;
-    const a = await baoHong(d, { product_code: ma, quantity: 1, action: 'return_stock', return_to_stock: true });
+    const a = await baoHong(d, { product_code: ma, quantity: 1, action: 'none' });   // KHO-3a: "hoàn kho SX" đã bỏ — đếm số lượng bằng "chỉ ghi nhận"
     const b = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund', refund_amount: 25000 });   // P26c Q3: hoàn tiền phải có số
     const c = await baoHong(d, { product_code: ma, quantity: 1, action: 'none' });
-    k('C2a món qty 2: báo return_stock 1 → 200, refund 1 → 200, none 1 → 400 VUOT_SO_LUONG',
+    k('C2a món qty 2: báo none 1 → 200, refund 1 → 200, none 1 → 400 VUOT_SO_LUONG',
       a.status === 200 && b.status === 200 && c.status === 400 && c.code === 'VUOT_SO_LUONG', `${moTa(a)} / ${moTa(b)} / ${moTa(c)}`);
   }
   {

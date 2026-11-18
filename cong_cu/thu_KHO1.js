@@ -120,7 +120,6 @@ async function main() {
   const XLSX = require(path.join(GOC, 'node_modules', 'xlsx'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
-  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);

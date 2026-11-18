@@ -265,8 +265,8 @@ async function main() {
     const diem = await db.queryOne("SELECT points FROM pos_point_transactions WHERE order_id = ? AND type = 'earn'", [don.id || -1]);
     k('B3 đúng chữ ký + mã + tiền → 200, MỘT đơn paid, CK 20.000 + tài khoản 30.000', la(b3, 200) && await soDon() === d0 + 1
       && don.payment_status === 'paid' && Number(don.transfer_amount) === 20000 && Number(don.balance_amount) === 30000 && Number(don.cash_amount) === 0, moTa(b3) + ' ' + JSON.stringify(pp).slice(0, 100));
-    k('B3 ví trừ đúng 30.000 (còn 0), điểm = floor(50.000 / 10.000) = 5 (NAP-1: CK + tài khoản đều có điểm), kho SX có dòng ra như đơn quầy', await soDu(a) === 0 && Number(diem?.points) === 5
-      && await dem("SELECT COUNT(*) AS n FROM pos_stock_pending WHERE order_id = ? AND direction = 'out'", [don.id || -1]) === 1);
+    k('B3 ví trừ đúng 30.000 (còn 0), điểm = floor(50.000 / 10.000) = 5 (NAP-1: CK + tài khoản đều có điểm), kho POS có MỘT phiếu bán như đơn quầy (KHO-3a)', await soDu(a) === 0 && Number(diem?.points) === 5
+      && await dem("SELECT COUNT(*) AS n FROM kho_phieu WHERE don_hang_id = ? AND su_co = 'ban_hang' AND trang_thai = 'da_duyet'", [don.id || -1]) === 1);
     k('B3 phiên da_thu nguồn payos, sự kiện khop', pp.trang_thai === 'da_thu' && pp.nguon === 'payos' && (await suKien(p.id)).map((x) => x.ket_qua).join() === 'khop');
     for (let i = 0; i < 3; i++) await guiWebhook(bao);
     k('B4 báo lặp 3 lần → vẫn MỘT đơn, MỘT sự kiện', await soDon() === d0 + 1 && (await suKien(p.id)).length === 1);

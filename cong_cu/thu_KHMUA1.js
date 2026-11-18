@@ -59,20 +59,28 @@ async function main() {
   await db.initDatabase();
   await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
-  // C10: kho báo thiếu hàng lúc tạo phiên / lúc chốt. KHO-3a: SX đã ngắt — móc HAI điểm kiểm kho POS (kho/banHang.js): kiemDuHang (tạo phiên,
-  // giuCho lấy hàm lúc require → móc TRƯỚC khi nạp route) và truKhoDon (chốt, trong giao dịch đơn). Cùng thứ tự gọi như checkStock cũ: tạo phiên rồi chốt.
+  // C10: kho báo thiếu hàng lúc tạo phiên / lúc chốt. KHO-3a: SX đã ngắt — móc chạy đúng hai lúc checkStock cũ chạy (NGOÀI giao dịch — móc có ca ghi
+  // CSDL, vd bật Giờ vàng): bọc taoPhien / chotPhien của giuCho (donApp, thanh-toan lấy hàm lúc require → bọc TRƯỚC khi nạp route). Kết quả "thiếu"
+  // lúc chốt đi vào ĐÚNG điểm trừ kho thật (banHang.truKhoDon trong giao dịch đơn) → taoDon 400 HET_HANG như kho thật hết.
   const bh = require(path.join(GOC, 'server', 'kho', 'banHang.js'));
+  const gc = require(path.join(GOC, 'server', 'utils', 'giuCho.js'));
   let tonGia = null, mocCS = null;   // mocCS: hàm cho một ca (vòng sửa 1: đổi giá / hết hàng ĐÚNG lúc tạo phiên hay chốt) — trả { sufficient }
   const maMon = async (i) => { const p = i.sx_product_type ? i : await db.queryOne('SELECT sx_product_type, sx_product_id FROM pos_products WHERE id = ?', [i.product_id]);
     return `${p.sx_product_type}_${p.sx_product_id}`; };
   const hoiMoc = async (items) => {
+    if (!Array.isArray(items) || !items.length) return null;
     const r = mocCS ? await mocCS() : tonGia ? { sufficient: false } : { sufficient: true };
     return r.sufficient ? null : { status: 400, body: { error: 'Không đủ hàng (bài thử)', code: 'HET_HANG', ma: await maMon(items[0]) } };
   };
-  const kiemGoc = bh.kiemDuHang, truGoc = bh.truKhoDon;
-  bh.kiemDuHang = async (csdl, items, o) => (Array.isArray(items) && items.length && (await hoiMoc(items))) || kiemGoc(csdl, items, o);
-  bh.truKhoDon = async (tx, o) => { const that = (o.items || []).filter((i) => Number(i.product_id) > 0); const l = that.length && await hoiMoc(that);
-    return l ? { loi: l } : truGoc(tx, o); };
+  const truGoc = bh.truKhoDon, taoGoc = gc.taoPhien, chotGoc = gc.chotPhien;
+  let thieuLucChot = null;
+  gc.taoPhien = async (b, ...r) => (await hoiMoc(b?.don?.items)) || taoGoc(b, ...r);
+  gc.chotPhien = async (p, ...r) => {
+    let t = {}; try { t = JSON.parse(p.than) || {}; } catch { /* thân hỏng */ }
+    thieuLucChot = await hoiMoc(t.items);
+    try { return await chotGoc(p, ...r); } finally { thieuLucChot = null; }
+  };
+  bh.truKhoDon = async (tx, o) => (thieuLucChot ? { loi: thieuLucChot } : truGoc(tx, o));
   // Vòng sửa 1 (soát lỗi 1, 5): móc đọc / ghi CSDL — gắn TRƯỚC khi nạp route (donApp / giuCho lấy hàm lúc require).
   //  mocNemSauChot: lần đọc phiên đầu tiên thấy da_thu thì ném (mạng chập SAU khi chốt ví đã ghi xong).
   //  rao: hai lần tra khoá gửi chờ nhau rồi cùng đi tiếp → hai yêu cầu chồng thật, cùng tới INSERT giữ khoá.
@@ -897,6 +905,12 @@ async function main() {
   // ═════════════════════════════════════════════════════════════════════════
   muc('[K] luồng quầy chạy y như cũ — bảng số chụp (số lấy từ lần chạy trên code GỐC, ghi ở bang_chung_do.txt)');
   await chay('K', async () => {
+    {   // KHO-3a: món 1 đã bán hết 5 ở các mục trước — thêm lô cho mục K (số tiền chụp trên gốc không đổi)
+      const ph = Number((await db.run(`INSERT INTO kho_phieu (loai, so_phieu, trang_thai, nguoi_tao, tao_luc, nguoi_duyet, duyet_luc) VALUES ('PX', 'KHMUA1-LOK', 'da_duyet', 'thu', ?, 'thu', ?)`,
+        [getNow(), getNow()])).lastInsertRowid);
+      const lo = Number((await db.run('INSERT INTO kho_lo (san_pham_id, so_luong, phieu_id, tao_luc) VALUES (?, 100, ?, ?)', [sps[1].id, ph, getNow()])).lastInsertRowid);
+      await db.run("INSERT INTO kho_phieu_dong (phieu_id, san_pham_id, lo_id, so_luong, loai) VALUES (?, ?, ?, 100, 'thanh_pham')", [ph, sps[1].id, lo]);
+    }
     const kh = await khach(200000);
     await choHang(kh.sdt);
     const tt1 = await goi('POST', '/pos/orders/tinh-thu', { customer_phone: kh.sdt, items: [monQuay(0, 2), monQuay(1, 1)], discount_code: 'THU5K' }, tkChu);
