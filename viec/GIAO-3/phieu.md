@@ -1,4 +1,4 @@
-# GIAO-3 — Ahamove sau lượt thử 16–18.11: lý do thất bại + hàng trả về quán, phí Ahamove không về 0, Đối soát không kẹt, hộp lý do thay hộp thoại trình duyệt
+# GIAO-3 — Ahamove sau lượt thử 16–18.11: Đối soát không kẹt, "Thực thu" đúng, phí Ahamove không về 0, lý do thất bại + hàng trả về quán, hộp lý do thay hộp thoại trình duyệt
 
 <!-- Phiếu do chat POS soạn 18.11.2026 16:20 (bàn 40, main c8d0c7d0). Máy: Claude Code · OPUS (đụng số Đối soát + cửa tin báo công khai).
      Việc giao hàng / báo cáo chỉ đọc (không đổi tiền khách, ví, điểm, cách xác thực) → KHÔNG chờ duyệt kế hoạch (như GIAO-2: chủ quán cần
@@ -8,7 +8,12 @@
          Giao lỗi", không tự hoàn tiền, nút "Đóng thẻ" (luật 02.11). THIẾU: không hiện lý do; 12:23:40 hàng về quán (RETURNED) → bấm "Tải lại" POS không đổi.
        - D-PHI-1: sau ACCEPTED, chi tiết đổi "phí Ahamove 16.000đ" → "0đ (quán dư 16.000đ)". Gặp ở HD0002 (chuyến -3, -4) và HD0003.
        - F-LOI-1: 17.11 ~14:58 tab "🧾 Đối soát" kẹt "Đang đối soát…" > 1 phút (cả ngày 16/11); tab "Hàng ngày" ra số ngay.
-         Ghi chú chat: lúc đó kho còn ở Tokyo (đổi sang Virginia 15:15). Chủ quán được khuyên thử lại ngay — việc này vẫn làm phần đo + chống kẹt.
+         18.11 16:05 (kho đã ở Virginia) thử lại: VẪN kẹt ~40 giây, không ra số → lỗi ở code, không phải vị trí kho.
+       - F-LOI-2 (bổ sung 18.11 16:20, TIỀN — hiển thị): Quản lý › Báo cáo › "Hàng ngày" 18/11 (một đơn HD0003: món 30.000 + phí giao 16.000, tiền mặt 46.000):
+         Doanh thu 46.000 · Tiền mặt 46.000 · Phí ship 16.000 · **Thực thu 62.000** (đúng phải 46.000). Kèm "Tổng nạp 3.000đ" trong ngày — chat POS kiểm riêng.
+         Chat đọc: client/src/pages/Reports.jsx ~237 màn TỰ TÍNH `total_revenue − total_discount + total_shipping`; server/routes/reports.js ~35–40
+         `total_revenue = SUM(total)` mà `total` đã trừ chiết khấu + cộng phí giao → phí giao cộng HAI lần, chiết khấu trừ HAI lần. Trái LUAT §2 "quy tắc
+         tiền chỉ ở máy chủ". Hàm có sẵn: server/utils/doiSoat.js `soSach` ~153 trả `tien_vao` (tiền mặt ròng + chuyển khoản ròng).
        - D-WEBHOOK-0: 5 tin HTTP 0 (17.11 11:46:17, 14:52:03; 18.11 12:21:04, 12:22:31 tin COMPLETED, 12:23:40 RETURNED). Tin FAILED cùng giây 12:22:31 → 200.
          Nguyên nhân CHƯA rõ: cửa tin báo đã trả lời ngay (GIAO-2); mỗi yêu cầu đã có dòng log "giờ | POST /api/giao-hang/ahamove-bao" (server/index.js
          ~88). Chat đang xin chủ quán nhật ký Render các giờ đó. Việc này KHÔNG đoán nguyên nhân; chỉ làm cho tin lỡ không gây sai (đọc lại phủ cả hàng trả về, B).
@@ -29,6 +34,8 @@
      không đụng file nào của việc này. Nâng cấp dữ liệu (nếu cần) lấy số kế tiếp trên main; ai gộp sau thì đổi số khi ghép main. -->
 
 ## Mục tiêu
+**Ưu tiên 1 (đang chặn F1–F2 của chat thử):** tab Đối soát ra số trong vài giây, không bao giờ treo; ô "Thực thu" của báo cáo Hàng ngày là số tiền thật
+quán nhận (một nguồn với Đối soát); phí Ahamove không tự về 0.
 Nhân viên nhìn màn Giao hàng biết chuyện gì đã xảy ra với một chuyến giao lỗi: Ahamove nói lý do gì, hàng đang trên đường về hay đã về quán. Phí Ahamove
 trên thẻ và ở Đối soát luôn là số quán thật sự trả, không tự về 0 sau khi tài xế nhận. Tab Đối soát không bao giờ treo mãi "Đang đối soát…". Nhập lý do
 (đóng thẻ, huỷ chuyến, huỷ đơn giao) bằng hộp của POS, lý do trống thì báo rõ. Làm ngay: đang chặn chat thử Ahamove chạy F1–F2 trước khai trương.
@@ -64,11 +71,22 @@ trên thẻ và ở Đối soát luôn là số quán thật sự trả, không 
 ### D. Đối soát không kẹt (F-LOI-1)
 - D1 Đo: dựng kho giả lập có độ trễ mỗi câu (vd 40 ms và 150 ms, như Render ↔ Turso Virginia / Tokyo) với dữ liệu cỡ quầy chạy 30 ngày; ghi vào
   trang_thai.md số câu đọc và thời gian `chayDoiSoat` kiểu ngày / tuần / tháng TRƯỚC khi sửa.
-- D2 Nếu kiểu ngày > 5 giây ở 40 ms: giảm (chạy song song các phép CHỈ ĐỌC độc lập, gộp câu lặp…) — kết quả trả về GIỐNG HỆT bản cũ (đối chứng: so
+- D2 Mục tiêu BẮT BUỘC: kiểu ngày ≤ 5 giây ở 40 ms / câu (thật 18.11 16:05 ở Virginia: > 40 giây). Kế hoạch / trang_thai ghi phép nào tốn nhiều câu
+  nhất (đếm theo từng bất biến). Giảm (chạy song song các phép CHỈ ĐỌC độc lập, gộp câu lặp…) — kết quả trả về GIỐNG HỆT bản cũ (đối chứng: so
   JSON bản cũ / bản mới trên cùng dữ liệu, mọi kiểu, có đơn lệch thật để bảng đỏ không rỗng). Không đổi phép kiểm nào, không bỏ bất biến nào.
 - D3 Màn Đối soát: hết hạn chờ (đặt hằng số có tên, vd 60 giây) → thôi "Đang đối soát…", hiện "Đối soát quá lâu — thử lại hoặc chọn kỳ ngắn hơn" +
   nút Đối soát bấm lại được. Lỗi mạng / 503 KHO_MAT_KET_NOI → câu báo của máy chủ, không treo. Hạn chờ đặt qua `utils/api.js` (không fetch trần).
 - D4 Máy chủ ghi log một dòng thời gian mỗi lần đối soát (`[DOISOAT] ngay 2026-11-17 · 1234ms · n câu`) để đo trên Render thật.
+
+### G. "Thực thu" đúng (F-LOI-2)
+- G1 Báo cáo Hàng ngày: "Thực thu" do MÁY CHỦ trả (trường mới trong câu trả `/reports/daily` hoặc tương đương), tính bằng ĐÚNG hàm `soSach`
+  (`tien_vao.tien_mat + tien_vao.chuyen_khoan` của ngày đó) — cùng số với Đối soát. Màn chỉ hiển thị, KHÔNG cộng / trừ tiền.
+- G2 Ca (so SỐ TÍNH TAY): (a) đơn giao món 30.000 + phí giao 16.000, tiền mặt 46.000 → Thực thu 46.000 (gốc 62.000 → đỏ); (b) món 50.000 giảm mã 10.000,
+  tiền mặt 40.000 → 40.000 (gốc trừ chiết khấu hai lần → 30.000); (c) đơn trả HẾT bằng tài khoản → 0 (tiền đã vào lúc nạp); (d) đơn huỷ trong ngày → không
+  tính; (e) đơn nạp tiền mặt → có tính (giống soSach). Đột biến: đưa lại công thức cũ trên màn / bỏ trường máy chủ → BẮT.
+- G3 Dưới ô ghi một dòng nhỏ "= tiền mặt + chuyển khoản thật nhận". Giữ nguyên các ô Doanh thu / Tiền mặt / Chuyển khoản / Chiết khấu / Phí ship.
+- G4 K4: grep client/src mọi chỗ tự tính tiền từ `total_revenue` / `total_discount` / `total_shipping` / `total_shipping_fee` → trong Phạm vi thì sửa theo
+  G1, ngoài Phạm vi ghi Phát hiện.
 
 ### E. Hộp lý do thay window.prompt (E-GD-1)
 - E1 Đóng thẻ, huỷ chuyến Ahamove, huỷ / từ chối đơn giao: mở hộp nhập lý do của POS (giữ đúng câu hỏi hiện nay), nút Xác nhận / Thôi.
@@ -77,8 +95,8 @@ trên thẻ và ở Đối soát luôn là số quán thật sự trả, không 
 - E4 grep `window.prompt|window.confirm|alert(` trong client/src/pages/GiaoHang → 0.
 
 ### F. Chung
-- F1 thu_GIAO1, thu_GIAO2, thu_DOISOAT1 và mọi bài cũ xanh; bài mới `cong_cu/thu_GIAO3.js` đỏ trên gốc ở A1, B2, B3, C1, D3, E4 (không miễn bài thử đỏ).
-- F2 Ghi 1–3 thao tác cho chat thử / chủ quán trên điện thoại (Tải lại thẻ HD0003 → thấy lý do + "Hàng đã về quán"; tab Đối soát ra số; huỷ chuyến
+- F1 thu_GIAO1, thu_GIAO2, thu_DOISOAT1 và mọi bài cũ xanh; bài mới `cong_cu/thu_GIAO3.js` đỏ trên gốc ở A1, B2, B3, C1, D3, E4, G2 (không miễn bài thử đỏ).
+- F2 Ghi 1–3 thao tác cho chat thử / chủ quán trên điện thoại (Hàng ngày 18/11 Thực thu 46.000; Tải lại thẻ HD0003 → thấy lý do + "Hàng đã về quán"; tab Đối soát ra số; huỷ chuyến
   để trống lý do → hộp báo).
 
 ## Phạm vi
@@ -91,6 +109,7 @@ trên thẻ và ở Đối soát luôn là số quán thật sự trả, không 
 - server/nang_cap/*_giao_tra_hang.js
 - client/src/pages/GiaoHang/**
 - client/src/components/DoiSoat.jsx
+- client/src/pages/Reports.jsx
 - client/src/utils/api.js
 - client/dist/**
 - cong_cu/thu_GIAO3.js
@@ -100,7 +119,7 @@ trên thẻ và ở Đối soát luôn là số quán thật sự trả, không 
 - kiem_tra_truoc_khi_giao.js
 
 ## Ngân sách
-~150 dòng máy chủ + ~120 dòng giao diện + ~350 dòng thử. Vượt 1,5 lần phải giải thích.
+~170 dòng máy chủ + ~130 dòng giao diện + ~400 dòng thử. Vượt 1,5 lần phải giải thích.
 **Phương án đơn giản nhất đã xét:** lý do + trạng thái trả hàng: thêm tối đa 2–3 cột vào `pos_giao_chuyen` (vd `ly_do_loi`, `tra_hang`, `tra_hang_luc`)
 bằng một bước nâng cấp — không thêm trạng thái thẻ mới (giao_loi đang được đóng thẻ / chặn huỷ đơn kiểm ở nhiều chỗ, thêm trạng thái là phải sửa mọi chỗ đó).
 Phí: một vế "chỉ nhận số > 0" ở tomChuyen / câu UPDATE. Đối soát: hạn chờ + log đo trước; chỉ tối ưu khi số đo vượt ngưỡng D2.
@@ -123,4 +142,5 @@ SĐT / tên / địa chỉ / khoá.
 - KHÔNG đổi luật tiền giao lỗi: không tự hoàn tiền, không đụng đơn / ví / két khi Ahamove báo thất bại hay trả hàng (chủ quán 02.11, 06.11).
 - KHÔNG đổi cách xác thực cửa tin báo (khoá `AHAMOVE_KHOA_BAO`, trả 200 ngay — GIAO-2).
 - KHÔNG đổi phép kiểm / bất biến của Đối soát; chỉ đổi cách chạy (song song, gộp) với đối chứng giống hệt.
+- KHÔNG đổi `soSach` / `tongHop` (cách tính tiền vào) — G chỉ GỌI hàm có sẵn.
 - KHÔNG sửa biến môi trường Render, không gọi Ahamove thật.
