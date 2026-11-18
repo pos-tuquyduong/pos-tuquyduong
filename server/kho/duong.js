@@ -18,6 +18,7 @@ const duLieu = require('./duLieu');
 const nhapSx = require('./nhapSx');
 const nhapHang = require('./nhapHang');
 const phatSinh = require('./phatSinh');
+const banHang = require('./banHang');   // KHO-3a
 
 const router = express.Router();
 const QUAN_LY = checkRole('owner', 'manager');
@@ -113,6 +114,9 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
   if (hanNgay === null && hanVao !== null && hanVao !== '') {
     return res.status(400).json({ error: `Hạn dùng phải là số ngày nguyên từ 1 tới ${tinh.HAN_NGAY_TOI_DA}`, code: 'HAN_SAI' });
   }
+  // KHO-3a B8: "Cho bán khi thiếu nguyên liệu" — chỉ chủ quán (đường này CHU_QUAN); không gửi = giữ; chỉ 0 / 1.
+  const choBanThieu = 'cho_ban_thieu' in req.body ? [0, 1].indexOf(Number(req.body.cho_ban_thieu)) : undefined;
+  if (choBanThieu === -1) return res.status(400).json({ error: 'Cho bán khi thiếu nguyên liệu chỉ nhận 0 hoặc 1', code: 'CHO_BAN_THIEU_SAI' });
   const dong = Array.isArray(dongVao) ? dongVao.map((d) => ({ nguyen_lieu_id: Number(d.nguyen_lieu_id) || null,
     thanh_phan_id: Number(d.thanh_phan_id) || null, luong: Number(d.luong) })) : null;
   if (!dong || dong.some((d) => !(d.luong > 0) || !Number.isFinite(d.luong) || !d.nguyen_lieu_id === !d.thanh_phan_id)) {
@@ -134,7 +138,7 @@ router.put('/san-pham/:id', CHU_QUAN, async (req, res) => {
         const chuoi = (await duLieu.tenSanPham(tx, e.chuoi)).join(' → ');
         return { huy: true, loi: [400, { error: `Công thức vòng lặp: ${chuoi}`, code: 'CONG_THUC_VONG_LAP' }] };
       }
-      await duLieu.luuSanPham(tx, spId, kieu, nhomId, dong, getNow(), hanNgay);
+      await duLieu.luuSanPham(tx, spId, kieu, nhomId, dong, getNow(), hanNgay, choBanThieu);
       return {};
     });
     if (kq.loi) return res.status(kq.loi[0]).json(kq.loi[1]);
@@ -319,6 +323,8 @@ router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
   return TAO[cu.loai](tx, { ...THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body }), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
     thayCho: id, lyDo: lyDoCua(req), ep: true });
 }));
+
+router.get('/mon-chua-san', QUAN_LY, doc(() => banHang.monChuaSan(csdl, getNow())));   // KHO-3a A7
 
 router.get('/ton', NHAN_VIEN, doc((req) => duLieu.docTon(csdl, getNow()).then((r) => (anGia(req) ? tinh.boGia(r) : r))));
 
