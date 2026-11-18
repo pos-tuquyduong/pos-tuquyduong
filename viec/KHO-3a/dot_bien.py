@@ -36,10 +36,10 @@ DOT_BIEN = [
     r'✗ B6 tinh-thu \(báo giá\)'),
   # ── B3b: giữ hàng ──
   ('BV-GIU-HANG-TAO-PHIEN', [(G, '    if (thieu) return { huy: true, status: thieu.status, body: thieu.body };\n', '', 1)], r'✗ B3b (phiên B|ba phiên)'),
-  ('VS-GIU-HANG-TINH-CA-PHIEN-MINH', [(BH, 'const ctx = await docKhaNang(tx, { boPhienId: phienId, bayGio: luc });', 'const ctx = await docKhaNang(tx, { boPhienId: null, bayGio: luc });', 1)],
-    r'✗ B3b C trả trong hạn'),
-  ('BV-CHOT-MUON-BO-QUA-GIU', [(BH, 'const ctx = await docKhaNang(tx, { boPhienId: phienId, bayGio: luc });',
-    'const ctx = await docKhaNang(tx, { boPhienId: phienId, bayGio: luc }); if (phienId) { ctx.giu.thanhPham.clear(); ctx.giu.nguyenLieu.clear(); }', 1)],
+  # Vòng đột biến 1: VS-GIU-HANG-TINH-CA-PHIEN-MINH SỐNG — phiên đang chốt đã là da_thu (vaoGiaoDich chạy trước) → bỏ tham số phienId (thừa), bỏ đột biến.
+  ('VS-CHOT-TRUOC-KHI-DOI-PHIEN', [(O, '      if (phien && !(await phien.vaoGiaoDich(tx, now))) {', '      if (false) {', 1)], r'✗ B(3b C trả trong hạn|6 phiên tiền mặt)'),
+  ('BV-CHOT-MUON-BO-QUA-GIU', [(BH, 'const ctx = await docKhaNang(tx, { bayGio: luc });',
+    "const ctx = await docKhaNang(tx, { bayGio: luc }); if (orderId) { ctx.giu.thanhPham.clear(); ctx.giu.nguyenLieu.clear(); }", 1)],
     r'✗ B3b xác nhận tay'),
   ('BV-MENU-TRU-GIU', [(BH, "stock_quantity: nguyen((ctx.tonTP.get(p.id) || 0) - (ctx.giu.thanhPham.get(p.id) || 0))", "stock_quantity: nguyen(ctx.tonTP.get(p.id) || 0)", 1)],
     r'✗ B3b menu quầy hiện 0'),
@@ -53,7 +53,7 @@ DOT_BIEN = [
   # ── B4 / B6 / B7: trừ trong giao dịch, một phiếu ──
   ('BV-TRU-KHO', [(O, 'const kho = await banHang.truKhoDon(tx, {', 'const kho = await (async () => ({}))(tx, {', 1)], r'✗ B(1 FEFO|4 đúng MỘT)'),
   ('BV-CHAN-TRONG-TX', [(O, '      if (kho.loi) {\n        await tx.rollback();', '      if (false) {\n        await tx.rollback();', 1)], r'✗ B(1 thiếu 1|3b POST)'),
-  ('BV-THANH-PHAM-KHONG-AM', [(BH, "    if (manh.some((m) => m.lo_id == null)) return { loi:", "    if (false) return { loi:", 1)], r'✗ B3c (tiền về|ví khách)'),
+  # Vòng đột biến 1: BV-THANH-PHAM-KHONG-AM SỐNG — nhánh "lô thiếu" không bao giờ chạy (kiểm và chia lô cùng một câu) → bỏ nhánh, bỏ đột biến.
   # ── B5: huỷ / xoá trả kho ──
   ('BV-HUY-TRA-KHO', [(O, "        await banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha,", "        if (false) await banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha,", 1)],
     r'✗ B5 hai lần huỷ'),

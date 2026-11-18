@@ -23,8 +23,8 @@ const timMon = (ds, i) => (i && i.sx_product_type && i.sx_product_id !== undefin
   ? ds.find((p) => p.sx_product_type === i.sx_product_type && String(p.sx_product_id) === String(i.sx_product_id))
   : ds.find((p) => Number(p.id) === Number(i?.product_id))) || null;
 
-/** Một lượt đọc: món đang bán + kiểu kho, công thức, tồn nguyên liệu, lô thành phẩm còn hạn tại `bayGio`, phần đang giữ (trừ phiên boPhienId). */
-async function docKhaNang(csdl, { boPhienId = null, bayGio }) {
+/** Một lượt đọc: món đang bán + kiểu kho, công thức, tồn nguyên liệu, lô thành phẩm còn hạn tại `bayGio`, phần đang giữ (phiên 'cho' còn hạn). */
+async function docKhaNang(csdl, { bayGio }) {
   const mon = await csdl.query(`SELECT p.id, p.name, p.sx_product_type, p.sx_product_id, s.kieu, COALESCE(s.cho_ban_thieu, 0) AS cho_ban_thieu
     FROM pos_products p LEFT JOIN kho_san_pham s ON s.pos_product_id = p.id WHERE p.is_active = 1`);
   const bang = await duLieu.docBangCongThuc(csdl);
@@ -34,7 +34,7 @@ async function docKhaNang(csdl, { boPhienId = null, bayGio }) {
   for (const l of await duLieu.conLaiTheoLo(csdl, 'l.san_pham_id IS NOT NULL AND (l.han_dung IS NULL OR l.han_dung > ?)', [bayGio])) cong(tonTP, Number(l.san_pham_id), Number(l.con));
   const ctx = { mon, bang, tonNL, tonTP };
   const giu = { thanhPham: new Map(), nguyenLieu: new Map() };
-  for (const ph of await csdl.query("SELECT than FROM pos_phien_thanh_toan WHERE trang_thai = 'cho' AND het_han > ? AND id <> ?", [bayGio, Number(boPhienId) || 0])) {
+  for (const ph of await csdl.query("SELECT than FROM pos_phien_thanh_toan WHERE trang_thai = 'cho' AND het_han > ?", [bayGio])) {
     let t = {}; try { t = JSON.parse(ph.than) || {}; } catch { /* thân hỏng: không giữ gì */ }
     const c = canCuaItems(t.items, ctx);
     for (const [k, v] of c.thanhPham) cong(giu.thanhPham, k, v);
@@ -84,18 +84,20 @@ async function xetDu(csdl, items, ctx) {
   return null;
 }
 
-/** Kiểm đủ hàng cho items (tạo phiên — trong giao dịch giữ; trừ kho — trong giao dịch đơn). boPhienId: phiên đang chốt (phần giữ của chính nó không tính). */
-const kiemDuHang = async (csdl, items, { boPhienId = null, bayGio }) => xetDu(csdl, items, await docKhaNang(csdl, { boPhienId, bayGio }));
+/** Kiểm đủ hàng cho items TRONG giao dịch ghi: tạo phiên (giuCho) — tồn − phần đang giữ của các phiên khác ≥ cần. */
+const kiemDuHang = async (csdl, items, { bayGio }) => xetDu(csdl, items, await docKhaNang(csdl, { bayGio }));
 
 /**
  * Trừ kho cho đơn VỪA ghi — TRONG giao dịch đơn (taoDonGoc). items = orderItems (product_id > 0 = món thật; gói / thẻ / nạp âm → bỏ).
- * Kiểm lại (tồn − giữ của phiên khác) rồi ghi MỘT phiếu PS ban_hang da_duyet: thành phẩm chia lô còn hạn FEFO (không bao giờ âm), nguyên liệu chia lô
- * FEFO như ghiKho (phần thiếu không lô — chỉ có ở món bật cho_ban_thieu). Trả { loi } → chỗ gọi rollback.
+ * Kiểm lại (tồn − phần đang giữ) rồi ghi MỘT phiếu PS ban_hang da_duyet: thành phẩm chia lô còn hạn FEFO, nguyên liệu chia lô FEFO như ghiKho (phần
+ * thiếu không lô — chỉ có ở món bật cho_ban_thieu). Chốt phiên: câu ghi phiên → da_thu chạy TRƯỚC trong cùng giao dịch (vaoGiaoDich), nên phần giữ
+ * của chính phiên đang chốt đã không còn tính — chỉ phần giữ của phiên KHÁC. Thành phẩm không bao giờ âm: kiểm và chia lô đọc CÙNG một câu lô
+ * (conLaiTheoLo còn hạn), đủ ở bước kiểm là đủ lô. Trả { loi } → chỗ gọi rollback.
  */
-async function truKhoDon(tx, { orderId, items, nguoi, luc, phienId = null }) {
+async function truKhoDon(tx, { orderId, items, nguoi, luc }) {
   const that = (items || []).filter((i) => Number(i.product_id) > 0).map((i) => ({ product_id: i.product_id, quantity: i.quantity }));
   if (!that.length) return {};
-  const ctx = await docKhaNang(tx, { boPhienId: phienId, bayGio: luc });
+  const ctx = await docKhaNang(tx, { bayGio: luc });
   const thieu = await xetDu(tx, that, ctx);
   if (thieu) return { loi: thieu };
   const can = canCuaItems(that, ctx);
@@ -103,9 +105,8 @@ async function truKhoDon(tx, { orderId, items, nguoi, luc, phienId = null }) {
   const ghi = (cot, ma, loId, so, donGia) => tx.run(`INSERT INTO kho_phieu_dong (phieu_id, ${cot}, lo_id, so_luong, don_gia, loai, nguoi, luc) VALUES (?, ?, ?, ?, ?, 'ban', ?, ?)`,
     [id, ma, loId, -so, donGia, nguoi, luc]);
   for (const [spId, sl] of can.thanhPham) {
-    const manh = tinh.chiaTheoLo([{ khoa: spId, luong: sl }], await duLieu.conLaiTheoLo(tx, 'l.san_pham_id = ? AND (l.han_dung IS NULL OR l.han_dung > ?)', [spId, luc], LO_FEFO));
-    if (manh.some((m) => m.lo_id == null)) return { loi: loi('HET_HANG', `Không đủ hàng: ${ctx.mon.find((p) => p.id === spId).name}`, ctx.mon.find((p) => p.id === spId)) };
-    for (const m of manh) await ghi('san_pham_id', spId, m.lo_id, m.luong, null);
+    const lo = await duLieu.conLaiTheoLo(tx, 'l.san_pham_id = ? AND (l.han_dung IS NULL OR l.han_dung > ?)', [spId, luc], LO_FEFO);
+    for (const m of tinh.chiaTheoLo([{ khoa: spId, luong: sl }], lo)) await ghi('san_pham_id', spId, m.lo_id, m.luong, null);
   }
   for (const [nlId, luong] of can.nguyenLieu) {
     const gia = (await tx.queryOne('SELECT gia_nhap FROM kho_nguyen_lieu WHERE id = ?', [nlId]))?.gia_nhap ?? null;

@@ -1124,7 +1124,7 @@ async function taoDonGoc(req, res, phien = null) {
 
       // KHO-3a: trừ kho POS (một phiếu bán) CÙNG giao dịch — mọi lối vào (quầy, phiên, App, màn khách, chốt muộn, đơn cũ của bài thử) qua đúng dòng này.
       // Không đủ (tồn − phần giữ của phiên KHÁC) → rollback cả đơn, 400 HET_HANG / THIEU_NGUYEN_LIEU / CHUA_CO_CONG_THUC (chốt phiên: lưới B3c).
-      const kho = await banHang.truKhoDon(tx, { orderId, items: orderItems, nguoi: req.user.username, luc: now, phienId: phien?.id ?? null });
+      const kho = await banHang.truKhoDon(tx, { orderId, items: orderItems, nguoi: req.user.username, luc: now });
       if (kho.loi) {
         await tx.rollback();
         return res.status(kho.loi.status).json(kho.loi.body);
