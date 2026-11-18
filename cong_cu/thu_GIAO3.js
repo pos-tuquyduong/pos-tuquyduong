@@ -53,17 +53,17 @@ const setTimeoutGoc = globalThis.setTimeout;
 globalThis.setTimeout = (fn, ms, ...a) => setTimeoutGoc(fn, ms >= 30000 ? 300 : ms, ...a);   // hạn chờ dài (≥ 30 s) → 300 ms
 
 // ─── Ahamove GIẢ ─────────────────────────────────────────────────────────
-const A = { chuyen: new Map(), so: 0, doc: 0, phi: 16000, phiTao: null };
+const A = { chuyen: new Map(), so: 0, doc: 0, phi: 16000, phiTao: null, phiBao: null };
 function dungAhamoveGia(express) {
   const g = express();
   g.use(express.json());
   const coToken = (req) => req.headers.authorization === 'Bearer ' + BI_MAT.token;
   g.post('/v3/accounts/token', (req, res) => (req.body.api_key === BI_MAT.api ? res.json({ token: BI_MAT.token }) : res.status(401).json({})));
-  g.post('/v3/orders/estimates', (req, res) => res.json([{ _id: req.body.services?.[0]?._id, data: { distance: 3, total_price: A.phi } }]));
+  g.post('/v3/orders/estimates', (req, res) => res.json([{ _id: req.body.services?.[0]?._id, data: { distance: 3, total_price: A.phiBao ?? A.phi } }]));
   g.post('/v3/orders', (req, res) => {
     if (!coToken(req)) return res.status(401).json({});
     const id = 'G3AHA' + (++A.so);
-    const phi = A.phiTao ?? A.phi;
+    const phi = A.phiTao != null ? A.phiTao || undefined : A.phi;   // phiTao 0 → câu trả KHÔNG có phí
     A.chuyen.set(id, { _id: id, status: 'ASSIGNING', tracking_number: req.body.path?.[1]?.tracking_number, total_price: phi, path: req.body.path });
     res.json({ order_id: id, status: 'ASSIGNING', order: { total_price: phi } });
   });
@@ -316,6 +316,7 @@ async function main() {
   const c3 = await chuyenCua(vA2.id);
   k('B3 tin RETURNED lỡ → "Tải lại" đọc lại thẻ giao_loi → da_ve; không return_time → giờ POS biết', c3?.tra_hang === 'da_ve'
     && String(c3?.tra_hang_luc || '').slice(0, 16) >= truocB3, J([c3?.tra_hang, c3?.tra_hang_luc]));
+  await db.run('UPDATE pos_giao_chuyen SET doc_luc = ?', [getNow()]);
   await luiDoc(vA2.id); await luiDoc(vA.id);
   const vDong = await dangGiao();
   datAha(vDong.x, { status: 'COMPLETED', path: diemDen({ status: 'FAILED' }) });
@@ -338,6 +339,11 @@ async function main() {
   datAha(vH2.x, { status: 'CANCELLED', cancel_by_user: false });
   await baoVe(vH2.x);
   const CAU_HUY = 'Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove';
+  await db.run('UPDATE pos_giao_chuyen SET doc_luc = ?', [getNow()]);
+  await luiDoc(vH.id); await luiDoc(vH2.id);
+  const dH = A.doc;
+  await danhSach(true);
+  k('B3 thẻ giao_loi do Ahamove HUỶ khi đang giao (không bao giờ có RETURNED) → KHÔNG đọc lại theo nhịp', A.doc === dH, `đọc thêm ${A.doc - dH}`);
   k('A3 huỷ khi đang giao: có cancel_comment → "<câu cũ>: <comment>"; không có → câu cũ', (await chuyenCua(vH.id))?.loi === CAU_HUY + ': Khách không nghe máy'
     && (await chuyenCua(vH2.id))?.loi === CAU_HUY, J([(await chuyenCua(vH.id))?.loi, (await chuyenCua(vH2.id))?.loi]));
 
@@ -367,6 +373,13 @@ async function main() {
   const vT = await moChuyen();
   A.phiTao = null;
   k('C3 (K4) tạo chuyến Ahamove trả total_price 0 → phi_that = phí báo 16.000 (không 0)', (await chuyenCua(vT.id))?.phi_that === 16000, String((await chuyenCua(vT.id))?.phi_that));
+  A.phiBao = 0; A.phiTao = 0;
+  const vT0 = await moChuyen(false);
+  await goi('POST', `/giao-hang/${vT0.id}/goi-xe`, {});
+  A.phiBao = null; A.phiTao = null;
+  const cT0 = await chuyenCua(vT0.id);
+  k('C3 (K4) báo phí lúc gọi xe 0 VÀ tạo chuyến không trả phí → phi_that KHÔNG ghi 0 (để trống = chưa biết), chenh trống', cT0?.trang_thai === 'tim_xe'
+    && cT0?.phi_that == null && cT0?.chenh == null, J([cT0?.trang_thai, cT0?.phi_that, cT0?.chenh]));
   datAha(vT.x, { status: 'IN PROCESS', total_price: 0, ...TX });
   await baoVe(vT.x);
   const ds = await giaoHang.doiSoatGiao(db.query, getToday(), getToday());
@@ -465,6 +478,9 @@ async function main() {
       await ngu(30);
     };
     const o = () => man.tim((n) => (n.type === 'input' || n.type === 'textarea') && typeof n.props.onChange === 'function')[0];
+    // Ca LUÔN chạy (soát vòng 1, TU-CHAY-5): bản không có hộp thì gõ / bấm là không làm gì và ca in ✗ — số ca không phụ thuộc code.
+    const go = (chu) => o()?.props.onChange(M.ev({ target: { value: chu } }));
+    const bam = (ten) => man.nut(ten)?.props.onClick(M.ev());
     const theCua = (c) => man.tim((n) => n.type === 'div' && /gh-the\b/.test(n.props.className || '') && man.chu(n).includes(c))[0];
     const cA = await code(vA.id);
     await man.doi(() => !!theCua(cA));
@@ -483,22 +499,22 @@ async function main() {
     await man.doi(() => !!o(), 1000);
     k('E1 Đóng thẻ → mở hộp lý do của POS (câu hỏi cũ), có Xác nhận / Thôi', !!o() && man.toan().includes('Lý do đóng thẻ giao lỗi (chỉ đóng thẻ, không đụng tiền / đơn):')
       && !!man.nut('Xác nhận') && !!man.nut('Thôi'), man.toan().slice(-200));
-    if (o()) {
-      o().props.onChange(M.ev({ target: { value: 'ab' } }));
+    {
+      go('ab');
       await ngu(20);
-      man.nut('Xác nhận').props.onClick(M.ev());
+      bam('Xác nhận');
       await ngu(150);
       k('E2 lý do 2 ký tự → báo ngay dưới ô, KHÔNG gửi (thẻ vẫn giao_loi)', man.toan().includes('ít nhất 3 ký tự') && (await chuyenCua(vE.id))?.trang_thai === 'giao_loi' && !!o(),
         man.toan().slice(-160));
-      man.nut('Thôi').props.onClick(M.ev());
+      bam('Thôi');
       await ngu(150);
       k('E2 bấm Thôi → đóng hộp, không gửi, không báo lỗi', !o() && (await chuyenCua(vE.id))?.trang_thai === 'giao_loi' && M.bao().length === baoTruoc, J(M.bao().slice(baoTruoc)));
       await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'xong' WHERE order_id = ?", [vE.id]);   // thẻ đổi sau lưng màn → máy chủ 409
-      man.nut('Đóng thẻ').props.onClick(M.ev());
+      bam('Đóng thẻ');
       await man.doi(() => !!o(), 1000);
-      o().props.onChange(M.ev({ target: { value: 'Khách không nhận' } }));
+      go('Khách không nhận');
       await ngu(20);
-      man.nut('Xác nhận').props.onClick(M.ev());
+      bam('Xác nhận');
       await man.doi(() => M.bao().length > baoTruoc, 2000);
       k('E3 máy chủ trả 409 → báo lỗi rõ (không im lặng)', M.bao().slice(baoTruoc).some(([kieu, chu]) => kieu === 'loi' && chu.includes('Chỉ đóng được thẻ giao lỗi')), J(M.bao().slice(baoTruoc)));
       await db.run("UPDATE pos_giao_chuyen SET trang_thai = 'giao_loi' WHERE order_id = ?", [vE.id]);
@@ -508,10 +524,10 @@ async function main() {
     man.nut('Huỷ chuyến')?.props.onClick(M.ev());
     await man.doi(() => !!o(), 1000);
     k('E1 Huỷ chuyến → hộp "Lý do huỷ chuyến Ahamove (phí huỷ nếu có quán chịu):"', !!o() && man.toan().includes('Lý do huỷ chuyến Ahamove (phí huỷ nếu có quán chịu):'));
-    if (o()) {
-      o().props.onChange(M.ev({ target: { value: 'Khách đổi giờ' } }));
+    {
+      go('Khách đổi giờ');
       await ngu(20);
-      man.nut('Xác nhận').props.onClick(M.ev());
+      bam('Xác nhận');
       await ngu(400);
       k('E1 lý do hợp lệ → gửi, chuyến huỷ (chuyen_huy)', (await chuyenCua(vE2.id))?.trang_thai === 'chuyen_huy', (await chuyenCua(vE2.id))?.trang_thai);
     }
@@ -519,7 +535,7 @@ async function main() {
     man.nut('Bỏ đi')?.props.onClick(M.ev());
     await man.doi(() => !!o(), 1000);
     k('E1 Huỷ đơn giao → hộp "Lý do huỷ đơn giao:"; Thôi → đơn vẫn còn', !!o() && man.toan().includes('Lý do huỷ đơn giao:'));
-    if (o()) { man.nut('Thôi').props.onClick(M.ev()); await ngu(100); }
+    bam('Thôi'); await ngu(100);
     k('E2 Thôi ở huỷ đơn → đơn KHÔNG huỷ', (await db.queryOne('SELECT status FROM pos_orders WHERE id = ?', [vE3.id]))?.status === 'completed');
   } catch (e) { k('E màn dựng được GiaoHang/index.jsx', false, e.stack); }
 
