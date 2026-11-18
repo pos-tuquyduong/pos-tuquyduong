@@ -354,3 +354,36 @@ BÀI HỌC:
 Kiểm sau vòng sửa 4 (HEAD `bbe41245`): `npm test -- --day-du` PASS 126 · FAIL 0 · CẢNH BÁO 1; đột biến ĐỐI CHỨNG XANH 67 đạt · TỔNG 21 · BẮT 21 · SỐNG 0 ·
 HỎNG 0 · LẠC 0; `thu_BH1` trên cây gốc 28b6efeb vẫn ĐỎ (thoát 1, "thiếu hàm docKieu"…), trên HEAD 69 đạt (SỐ CA không đổi); `thu_BOMANCU1` 67 (không đổi).
 SOÁT LẦN CUỐI: chat soát thay
+
+## Soát bảo mật
+Lời nhắc /soat-bao-mat (bản Anthropic security-review + "Tiền lệ của kho này"), một subagent độc lập chỉ đọc, mốc d52b9fb^..HEAD (`bbe41245` + hồ sơ).
+Số lỗ hổng trước lọc: 0 · sau lọc: 0 (không có gì để lọc — bước 3 không cần). Báo cáo nguyên văn:
+
+```
+Không tìm thấy lỗ hổng nào (không có phát hiện nào đạt ngưỡng tin cậy từ 7/10 trở lên).
+
+Phạm vi đã đọc trong lượt này: `git diff d52b9fb^ HEAD` cho server/routes/orders.js, client/src/utils/api.js, client/src/pages/BanHang/{index.jsx,
+tinh.js, BanHangMoi.jsx, ThanhKhach.jsx, banHang.css}, các file chỉ đổi chú thích (InPhieu.jsx, InvoicePrint.jsx, QrScanModal.jsx, InvoiceSettings.jsx)
+và cong_cu/gia_lap/donCu.js. Bước này không chạy thử khai thác.
+
+Lý do kết luận:
+1. Máy chủ (server/routes/orders.js:182-207). Cửa chặn mới `taoDon` chỉ thêm việc chặn. Nó không mở thêm đường nào.
+   - Gói (`package_buy`, `customer_package_id`, `items[].from_package`) bị trả 400 `GOI_TAM_DUNG` ở mọi lối gọi.
+   - Riêng lối POST /orders gọi thẳng (`phien` null), các cách trả sau đều bị chặn vô điều kiện: trừ ví khách, trừ ví mẹ, `payment_method` "balance",
+     chuyển khoản, ghi nợ, "cho_thu".
+   - Bản cũ chỉ chặn ví và chuyển khoản khi cài đặt `thanh_toan_payos_bat_buoc` = '1'; bản gốc chạy cổng này ở các dòng 252-260 cũ. Bản mới chạy
+     luôn, nên chặt hơn.
+   - Các vị từ ở cửa chặn khớp với chỗ thân hàm dùng: `balance_amount > 0` ở dòng 929, `parent_balance_amount > 0` ở dòng 951,
+     `payment_method === "balance"` ở dòng 913, `debt_amount > 0` ở dòng 979. Toán tử `>` của JS ép kiểu sang số giống `Number()`, nên chuỗi số hay
+     mảng không lọt qua cửa mà lại trừ tiền ở thân.
+   - Cổng chuyển khoản dùng `Number(x || 0) !== 0`, chặn được cả số âm lẫn chuỗi chữ.
+2. Hàm `taoDonGoc` mới được xuất ra (orders.js:2075). Grep thấy trong `server/` không có route nào gọi nó. Route POST / (dòng 1461), tinh-thu
+   (dòng 1517), giuCho.js, donApp.js và manKhach.js đều vẫn gọi `taoDon`, tức là vẫn đi qua cửa chặn. Chỉ có hàm phụ của bài thử
+   (cong_cu/gia_lap/donCu.js) gọi thẳng `taoDonGoc`, chạy trong cùng tiến trình và không có đường HTTP nào tới được.
+3. Quầy (client/src). Chủ yếu là xoá: bỏ Sales.jsx, CustomerSearch.jsx, `ordersApi.create` và `dungDonHang`, bỏ công tắc màn cũ/màn mới qua `?man=` và
+   localStorage. Phần còn lại là đổi chú thích và đổi tên prop. Không có `dangerouslySetInnerHTML`, `innerHTML`, `eval`, cũng không thêm `fetch` trần.
+   localStorage giờ chỉ lưu kiểu bố cục và chỉ nhận giá trị trong danh sách trắng `KIEU_MAN`.
+4. Phần còn lại là bài thử trong cong_cu/** và hồ sơ trong viec/**, thuộc diện loại trừ: chỉ phục vụ chạy bài thử, hoặc là tài liệu.
+```
+
+SOÁT BẢO MẬT: ĐẠT
