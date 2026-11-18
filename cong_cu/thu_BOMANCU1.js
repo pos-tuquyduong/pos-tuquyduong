@@ -239,6 +239,11 @@ async function main() {
     await caChan('B2a chuyển khoản (transfer_amount 25.000)', thang({ items: [mon()], payment_method: 'transfer', transfer_amount: 25000 }), 'CK_PHAI_QUA_PAYOS');
     await caChan('B2b nhãn "transfer" nhưng số ở cash_amount', thang({ items: [mon()], payment_method: 'transfer', cash_amount: 25000 }), 'CK_PHAI_QUA_PAYOS');
     await caChan('B2c transfer_amount dưới nhãn "cash"', thang({ items: [mon()], payment_method: 'cash', transfer_amount: 25000 }), 'CK_PHAI_QUA_PAYOS');
+    // Soát vòng 1 lỗi 1: thân cộng transfer_amount KHÁC 0 bất kỳ dấu (orders.js `(Number(transfer_amount) || 0)`) — cổng phải cùng biểu thức.
+    await caChan('B2d chuyển khoản ÂM (tiền mặt 35.000 + CK −10.000 = 25.000)', thang({ items: [mon()], payment_method: 'cash', cash_amount: 35000,
+      transfer_amount: -10000 }), 'CK_PHAI_QUA_PAYOS');
+    await caChan('B2e chuyển khoản dạng chuỗi "-10000"', thang({ items: [mon()], payment_method: 'cash', cash_amount: 35000, transfer_amount: '-10000' }),
+      'CK_PHAI_QUA_PAYOS');
     await caChan('N1 ghi nợ (payment_method debt, debt_amount 25.000)', thang({ customer_phone: kh, customer_name: 'K', items: [mon()], payment_method: 'debt',
       debt_amount: 25000, due_date: '2026-12-31' }), 'KHONG_GHI_NO');
     await caChan('N2 chờ thu (payment_method cho_thu)', thang({ items: [mon()], payment_method: 'cho_thu', debt_amount: 25000 }), 'KHONG_GHI_NO');
@@ -294,6 +299,14 @@ async function main() {
       && dong.length === 3 && dong.some(([, d]) => /^async function taoDonGoc\(req, res, phien = null\)/.test(d))
       && dong.some(([, d]) => /^module\.exports\.taoDonGoc = taoDonGoc;$/.test(d)) && dong.some(([, d]) => /return taoDonGoc\(req, res, phien\)/.test(d)),
     dong.map(([f, d]) => `${f}: ${d.slice(0, 60)}`).join(' | '));
+    // K2 (soát vòng 1 lỗi 5b): mọi lối tạo đơn của máy chủ đi qua cửa chặn `taoDon` — so BẰNG đúng 6 lời gọi (kế hoạch mục 1). Lối mới
+    // phải thêm vào danh sách này (có chủ ý), không được tự lọt.
+    const GOI = [['routes/orders.js', 2], ['utils/giuCho.js', 2], ['utils/donApp.js', 1], ['utils/manKhach.js', 1]];
+    const goiTaoDon = duyet(MAY_CHU, ['.js']).filter((f) => !f.includes('node_modules')).map((f) => [path.relative(MAY_CHU, f).split(path.sep).join('/'),
+      (sach(fs.readFileSync(f, 'utf8')).match(/(?<![\w.])taoDon\s*\(/g) || []).length - (/async function taoDon\s*\(/.test(sach(fs.readFileSync(f, 'utf8'))) ? 1 : 0)])
+      .filter(([, n]) => n > 0).sort();
+    k('K2 lời gọi taoDon( ở server/ đúng 6 chỗ: orders.js 2 (route thẳng, tinh-thu) · giuCho.js 2 (tạo / chốt phiên) · donApp.js 1 · manKhach.js 1',
+      JSON.stringify(goiTaoDon) === JSON.stringify(GOI.slice().sort()), JSON.stringify(goiTaoDon));
   });
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -350,6 +363,19 @@ async function main() {
     const n2 = await chot(pn?.id, { cash_received: 100000 });
     k('C1h nạp tiền tiền mặt: đường thẳng → 200; qua phiên → 200; tài khoản +220.000', la(n1, 200) && la(n2, 200) && (await soDu(kn)) === 220000,
       `${moTa(n1)} · ${moTa(n2)} · ${await soDu(kn)}`);
+  });
+  await chay('C2', async () => {
+    // Đơn giao (GIAO-1/2) qua phiên: báo phí gieo sẵn như máy chủ đã tính (khuôn bảng pos_giao_bao_phi), phí do máy chủ lấy từ báo phí.
+    const now = getNow();
+    await db.run(`INSERT INTO pos_giao_bao_phi (ma, dia_chi, lat, lng, km, loai_xe, phi, het_han, nguoi_tao, tao_luc)
+      VALUES ('BMC_BP1', 'Số 1 Ngõ Thử, Hà Nội', 21.02, 105.82, 2.5, 'BIKE', 15000, strftime('%Y-%m-%dT%H:%M:%S', ?, '+30 minutes'), 'chu', ?)`, [now, now]);
+    const giao = { ma_bao_phi: 'BMC_BP1', ten: 'Chị Nhận', sdt: '0988000111', ghi_chu: 'Gọi trước' };
+    const tinh = await goi('POST', '/pos/orders/tinh-thu', { items: [mon()], giao });
+    const p = (await taoPhien({ cach: 'tien_mat', don: { customer_name: 'Khách giao', items: [mon()], giao } })).j.phien;
+    const c = await chot(p?.id, { cash_received: 50000 });
+    const chuyen = c.j.order ? await db.queryOne('SELECT ma_bao_phi, phi_khach FROM pos_giao_chuyen WHERE order_id = ?', [c.j.order.id]).catch(() => null) : null;
+    k('C2 đơn giao qua phiên tiền mặt → 200, tổng = tinh-thu (25.000 + phí 15.000), ghi chuyến giao với đúng báo phí', la(c, 200) && tinh.j.total === 40000
+      && p?.tong === 40000 && chuyen?.ma_bao_phi === 'BMC_BP1' && Number(chuyen?.phi_khach) === 15000, `${moTa(c)} · ${tinh.j.total}/${p?.tong} · ${JSON.stringify(chuyen)}`);
   });
   await chay('C1i', async () => {
     await db.run("INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, is_active) VALUES ('BMC10', 'percent', 10, 0, 0, 1)");
