@@ -323,7 +323,7 @@ async function taoChuyenMoi(c, o, cu, khoa) {
     const giao = { ...diemGiao(c), ma_theo_doi: tn };
     const bp = await aha.baoPhi({ lay, giao, loaiXe: c.loai_xe });
     const t = await aha.taoChuyen({ lay, giao, loaiXe: c.loai_xe });
-    const phi = t.phi ?? bp.phi;
+    const phi = t.phi ?? (bp.phi > 0 ? bp.phi : null);   // GIAO-3 C: không biết phí → để trống, không ghi 0 ("quán dư" giả)
     const n = await run(`UPDATE pos_giao_chuyen SET ma_ahamove = ?, trang_thai = 'tim_xe', phi_that = ?, chenh = ? - phi_khach, loi = NULL, loi_mang = 0, doc_luc = ?,
       tai_xe_ten = NULL, tai_xe_sdt = NULL, tai_xe_bien_so = NULL WHERE ${giu}`, [t.ma, phi, phi, getNow(), c.id, khoa]);
     if (n.changes !== 1) {   // thua giành: chuyến vừa tạo không ai giữ → huỷ ngay (trừ khi máy thắng đã nhận chính chuyến này qua mã theo dõi);
@@ -485,7 +485,8 @@ async function danhSach(docLaiNgay = false) {
     WHERE c.trang_thai NOT IN ('xong', 'huy', 'da_dong') ORDER BY COALESCE(c.nhan_luc, c.tao_luc), c.id`);
   let ds = await doc();
   // GIAO-3 B3: cả thẻ giao_loi chưa "đã về quán" (tin RETURNED có thể lỡ) — xếp SAU thẻ đang chạy trong trần mỗi lần; đã về quán / đã đóng thì thôi.
-  const can = [...ds.filter((x) => ['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(x.trang_thai)), ...ds.filter((x) => x.trang_thai === 'giao_loi' && x.tra_hang !== 'da_ve')]
+  // Chỉ thẻ giao THẤT BẠI (có xong_luc — COMPLETED + FAILED); giao_loi do Ahamove HUỶ khi đang giao không có xong_luc, không bao giờ RETURNED.
+  const can = [...ds.filter((x) => ['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(x.trang_thai)), ...ds.filter((x) => x.trang_thai === 'giao_loi' && x.xong_luc && x.tra_hang !== 'da_ve')]
     .filter((x) => !x.doc_luc || x.doc_luc < moc).slice(0, docLaiNgay ? DOC_LAI_TAY_TOI_DA : DOC_LAI_TOI_DA);
   // Đọc SONG SONG, cả phí huỷ (một hạn HAN_DOC_LAI_MS, không cộng dồn theo số chuyến); câu giành doc_luc: hai máy / bấm dồn không đọc trùng.
   // Mỗi nhánh tự bắt lỗi của mình và ghi log đúng bước (Promise.all chỉ báo lỗi đầu) — hỏng thì giữ trạng thái cũ, lần sau đọc lại.
