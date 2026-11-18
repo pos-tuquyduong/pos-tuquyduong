@@ -176,3 +176,21 @@ No vulnerabilities found.
 - 030 chỉ thêm 2 cột tên cố định; hạn chờ api.js và HopLyDo chỉ phía màn, máy chủ vẫn kiểm độ dài lý do.
 ```
 Số lỗi trước lọc: 0 · sau lọc: 0 (bước 3 không cần).
+
+## Soát bảo mật — lần 2 (HEAD 9736d480, sau vòng sửa 2; agent mới, cùng lời nhắc)
+```
+No vulnerabilities found
+- Toàn nhánh (a5adb8f^..HEAD); thay đổi từ 4417b2e7: ahamove.js tomChuyen tra sub_status bằng Object.hasOwn(TRA_HANG, String(o.sub_status)) — đóng
+  lỗ tra khoá prototype, không mở gì.
+- fail_comment / cancel_comment: chuAha (bỏ ký tự điều khiển, cắt 200) → `loi` bằng SQL tham số → màn React chữ thường (GiaoHang/index.jsx 135, 172);
+  không vào mẫu in HTML (thoat), không dangerouslySetInnerHTML; chữ lấy từ lần đọc Ahamove của máy chủ, không từ thân tin báo công khai.
+- Cửa tin báo + kiểm khoá không đổi; khoá chống lặp thêm đuôi |tra_hang; capNhatTraHang chỉ ghi tra_hang / tra_hang_luc / loi của thẻ giao_loi, một
+  chiều, đúng mã chuyến — không đụng tiền / đơn / kho.
+- Phí: phiDuong > 0; không biết → giữ (COALESCE); SQL dùng tham số.
+- Log mới: [GIAO] phi chỉ mã chuyến (≤ 40) + số; [DOISOAT] kiểu, ngày, ms, số câu.
+- /reports/daily: thuc_thu tính ở máy chủ (soSach); giữ authenticate + checkPermission('view_reports'); nhánh lỗi mới chỉ trả lỗi có status (400).
+- Phía màn (hạn chờ api.js, HopLyDo, Reports) không thêm đường vào máy chủ hay vẽ không an toàn. 030 chỉ thêm 2 cột.
+```
+Số lỗi trước lọc: 0 · sau lọc: 0.
+
+SOÁT BẢO MẬT: ĐẠT
