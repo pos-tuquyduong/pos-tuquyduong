@@ -29,8 +29,8 @@ DOT_BIEN = [
   ('BV-gio-return', 'g3', [(GH, "[d.tra_hang, d.tra_hang, d.tra_luc || getNow(), lyDo,", "[d.tra_hang, d.tra_hang, getNow(), lyDo,", 1)], r'✗ B1/B2 tin RETURNED'),
   ('VS-ly-do-ghi-de-rong', 'g3', [(GH, "  const lyDo = d.trang_thai === 'COMPLETED' && d.diem_giao === 'FAILED' && d.ly_do ? loiGiao(d) : null;",
     "  const lyDo = d.trang_thai === 'COMPLETED' && d.diem_giao === 'FAILED' ? loiGiao({ ly_do: null }) : null;", 1)], r'✗ B1/B2 tin RETURNED'),
-  ('BV-doc-lai-giao-loi', 'g3', [(GH, ", ...ds.filter((x) => x.trang_thai === 'giao_loi' && x.tra_hang !== 'da_ve')]", "]", 1)], r'✗ B3 tin RETURNED lỡ'),
-  ('VS-doc-lai-ca-da-ve', 'g3', [(GH, "x.trang_thai === 'giao_loi' && x.tra_hang !== 'da_ve'", "x.trang_thai === 'giao_loi'", 1)], r'✗ B3 thẻ đã về quán'),
+  ('BV-doc-lai-giao-loi', 'g3', [(GH, ", ...ds.filter((x) => x.trang_thai === 'giao_loi' && x.xong_luc && x.tra_hang !== 'da_ve')]", "]", 1)], r'✗ B3 tin RETURNED lỡ'),
+  ('VS-doc-lai-ca-da-ve', 'g3', [(GH, "x.trang_thai === 'giao_loi' && x.xong_luc && x.tra_hang !== 'da_ve'", "x.trang_thai === 'giao_loi' && x.xong_luc", 1)], r'✗ B3 thẻ đã về quán'),
   ('BV-danh-sach-tra-hang', 'g3', [(GH, " tra_hang: c.tra_hang || null, tra_hang_luc: c.tra_hang_luc || null,", "", 1)], r'✗ B1 danh sách'),
   ('BV-man-tra-hang', 'g3', [(MAN, "const traHang = (c) => (c.tra_hang === 'da_ve'", "const traHang = (c) => '' && (c.tra_hang === 'da_ve'", 1)], r'✗ B1 màn'),
   # ── C: phí ──
