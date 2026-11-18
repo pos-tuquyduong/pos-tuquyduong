@@ -1,0 +1,208 @@
+BO-MAN-CU-1 — bằng chứng ĐỎ trên code gốc (18.11.2026)
+Code gốc của việc = 28b6efeb (PHIEU duyệt; chưa đổi code chạy thật). Lệnh: python3 viec/BO-MAN-CU-1/dot_bien.py --cay-goc 28b6efeb
+(như cổng A11: git archive cả cây 28b6efeb, chép đè MỘT bài thử hiện tại, chạy bài trong cây đó; mọi cong_cu/thu_*.js đổi so với 28b6efeb).
+
+Lượt 1 — đúng như cổng A11 (chỉ chép bài thử; hàm phụ mới cong_cu/gia_lap/donCu.js KHÔNG có trong cây gốc):
+== CÂY GỐC 28b6efeb · cong_cu/thu_BAO1a.js: thoát 1
+   ✗ C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx
+   100 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_BH1.js: thoát 1
+   ✗ A1 kho trống → Tự động (mặc định)  — thiếu hàm docKieu
+   ✗ A2 ghi Máy tính bảng rồi đọc lại  — thiếu hàm ghiKieu
+   ✗ A3 ghi Điện thoại rồi Tự động → đọc lại Tự động  — thiếu hàm ghiKieu
+   ✗ A4 kho ném lỗi khi đọc → Tự động, không ném  — thiếu hàm docKieu
+   ✗ A5 kho ném lỗi khi ghi → không ném  — thiếu hàm ghiKieu
+   ✗ A6 không có kho (undefined) → Tự động  — thiếu hàm docKieu
+   … (+4 dòng)
+== CÂY GỐC 28b6efeb · cong_cu/thu_BHCKTAY1.js: thoát 1
+   ✗ A6 (BO-MAN-CU-1) chỉ còn MỘT màn Bán hàng: không còn pages/Sales.jsx
+   10 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_BOMANCU1.js: thoát 1
+   ✗ A1a máy chưa từng bật (kho trống) → màn mới, kiểu Tự động  — Sales · undefined
+   ✗ A1b localStorage cũ ghi "tắt" (pos_man_ban_hang_moi = 0) → màn mới, giữ kiểu Điện thoại  — Sales · undefined
+   ✗ A1c địa chỉ /?man=cu (máy đang bật) → vẫn màn mới  — Sales
+   ✗ A1e đổi kiểu bằng onDoiKieu("maytinhbang") rồi mở lại → nhớ Máy tính bảng  — Sales · undefined · onDoiKieu undefined
+   ✗ A1f localStorage bị chặn → vẫn màn mới, Tự động, không ném  — Sales · undefined
+   ✗ A1g kiểu lạ trong kho → Tự động  — Sales · undefined
+   … (+28 dòng)
+== CÂY GỐC 28b6efeb · cong_cu/thu_DIEMMON1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_DIEMTHAT1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_DOISOAT1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_GIAO1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_GIAO2.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_GOI1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_HANG1.js: thoát 1
+   ✗ G2c (BO-MAN-CU-1) chỉ còn MỘT màn bán thẻ: không còn pages/Sales.jsx
+   144 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_HD1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_HUY1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_KH1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_KHACHCK1.js: thoát 1
+   ✗ D1c (BO-MAN-CU-1) màn cũ có chiết khấu riêng đã xoá: không còn pages/Sales.jsx
+   35 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_KHNAP1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_NAP1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_P20.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_P21.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_P2223.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_P24.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26a.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26b.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26c.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_P3.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_UUDAI1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_VIME1.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+== CÂY GỐC 28b6efeb · cong_cu/thu_VOUCHER2.js: thoát 1
+   Error: Cannot find module './gia_lap/donCu'
+
+[exited with code 0]
+
+Lượt 2 — thêm --kem-ham-phu (chép kèm donCu.js): bài đỏ vì HÀNH VI gốc — "orders.js chưa có taoDonGoc (code chưa tách cửa chặn)",
+màn cũ còn, công tắc cũ còn; thu_BOMANCU1 đỏ đúng các ca A / B (15 đạt · 33 hỏng ở lần chạy đầu, trước khi sửa lời chờ C5):
+== CÂY GỐC 28b6efeb · cong_cu/thu_BAO1a.js: thoát 1
+   ✗ C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx
+   100 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_BH1.js: thoát 1
+   ✗ A1 kho trống → Tự động (mặc định)  — thiếu hàm docKieu
+   ✗ A2 ghi Máy tính bảng rồi đọc lại  — thiếu hàm ghiKieu
+   ✗ A3 ghi Điện thoại rồi Tự động → đọc lại Tự động  — thiếu hàm ghiKieu
+   ✗ A4 kho ném lỗi khi đọc → Tự động, không ném  — thiếu hàm docKieu
+   ✗ A5 kho ném lỗi khi ghi → không ném  — thiếu hàm ghiKieu
+   ✗ A6 không có kho (undefined) → Tự động  — thiếu hàm docKieu
+   … (+4 dòng)
+== CÂY GỐC 28b6efeb · cong_cu/thu_BHCKTAY1.js: thoát 1
+   ✗ A6 (BO-MAN-CU-1) chỉ còn MỘT màn Bán hàng: không còn pages/Sales.jsx
+   10 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_BOMANCU1.js: thoát 1
+   ✗ A1a máy chưa từng bật (kho trống) → màn mới, kiểu Tự động  — Sales · undefined
+   ✗ A1b localStorage cũ ghi "tắt" (pos_man_ban_hang_moi = 0) → màn mới, giữ kiểu Điện thoại  — Sales · undefined
+   ✗ A1c địa chỉ /?man=cu (máy đang bật) → vẫn màn mới  — Sales
+   ✗ A1e đổi kiểu bằng onDoiKieu("maytinhbang") rồi mở lại → nhớ Máy tính bảng  — Sales · undefined · onDoiKieu undefined
+   ✗ A1f localStorage bị chặn → vẫn màn mới, Tự động, không ném  — Sales · undefined
+   ✗ A1g kiểu lạ trong kho → Tự động  — Sales · undefined
+   … (+28 dòng)
+== CÂY GỐC 28b6efeb · cong_cu/thu_DIEMMON1.js: thoát 2
+   SẬP: Error: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_DIEMTHAT1.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_DOISOAT1.js: thoát 2
+   ✖ Bài thử sập: Error: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_GIAO1.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_GIAO2.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_GOI1.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_HANG1.js: thoát 1
+   ✗ G2c (BO-MAN-CU-1) chỉ còn MỘT màn bán thẻ: không còn pages/Sales.jsx
+   144 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_HD1.js: thoát 1
+   ✓ C5 chuỗi quá dài cho mã QR (địa chỉ App KH dán sai): veQr / qrSvg KHÔNG ném (render hoá đơn không sập), không vẽ QR
+   ✗ A99 phần A chạy hết, không sập  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   109 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_HUY1.js: thoát 1
+   THỬ HUY-1: 17 đạt · 1 hỏng
+   ✗ BÀI SẬP: Error: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_KH1.js: thoát 1
+   ✗ E4: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ E6: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ E7: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   138 đạt · 3 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_KHACHCK1.js: thoát 1
+   ✗ D1c (BO-MAN-CU-1) màn cũ có chiết khấu riêng đã xoá: không còn pages/Sales.jsx
+   35 đạt · 1 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_KHNAP1.js: thoát 1
+   ✗ D: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ E: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   KH-NAP-1: 49 đạt · 2 hỏng · tổng 51 ca
+== CÂY GỐC 28b6efeb · cong_cu/thu_NAP1.js: thoát 2
+   SẬP: Error: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_P20.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_P21.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_P2223.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_P24.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26a.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26b.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_P26c.js: thoát 2
+   ✖ Bài thử sập: donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+== CÂY GỐC 28b6efeb · cong_cu/thu_P3.js: thoát 1
+   ✗ F: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ H: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ I: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   78 đạt · 3 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_UUDAI1.js: thoát 1
+   ✗ C: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ G: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ K4: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   72 đạt · 3 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_VIME1.js: thoát 1
+   ✗ A: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ C: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ D1 bỏ quan hệ mẹ của A rồi huỷ đơn C1 → 200, ví M được hoàn 25.000  — HTTP 404 · M 500000
+   12 đạt · 3 hỏng
+== CÂY GỐC 28b6efeb · cong_cu/thu_VOUCHER2.js: thoát 1
+   ✗ F: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ Q22: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ G: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   ✗ K5: bài chạy hết mục  — donCu: orders.js chưa có taoDonGoc (code chưa tách cửa chặn BO-MAN-CU-1)
+   VOUCHER-2: 121 đạt · 4 hỏng
+
+[exited with code 0]
+
+Dòng số ca — số ca mỗi bài in ở dòng tổng khi chạy trên code ĐÃ VÁ (HEAD, lệnh python3 viec/BO-MAN-CU-1/dot_bien.py --so-ca 28b6efeb):
+SỐ CA cong_cu/thu_BAO1a.js: 101
+SỐ CA cong_cu/thu_BH1.js: 72
+SỐ CA cong_cu/thu_BHCKTAY1.js: 11
+SỐ CA cong_cu/thu_BOMANCU1.js: 62
+SỐ CA cong_cu/thu_DIEMMON1.js: 32
+SỐ CA cong_cu/thu_DIEMTHAT1.js: 36
+SỐ CA cong_cu/thu_DOISOAT1.js: 134
+SỐ CA cong_cu/thu_GIAO1.js: 137
+SỐ CA cong_cu/thu_GIAO2.js: 30
+SỐ CA cong_cu/thu_GOI1.js: 115
+SỐ CA cong_cu/thu_HANG1.js: 145
+SỐ CA cong_cu/thu_HD1.js: 159
+SỐ CA cong_cu/thu_HUY1.js: 59
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_KHACHCK1.js: 36
+SỐ CA cong_cu/thu_KHNAP1.js: 65
+SỐ CA cong_cu/thu_NAP1.js: 89
+SỐ CA cong_cu/thu_P20.js: 178
+SỐ CA cong_cu/thu_P21.js: 14
+SỐ CA cong_cu/thu_P2223.js: 45
+SỐ CA cong_cu/thu_P24.js: 34
+SỐ CA cong_cu/thu_P26a.js: 16
+SỐ CA cong_cu/thu_P26b.js: 104
+SỐ CA cong_cu/thu_P26c.js: 160
+SỐ CA cong_cu/thu_P3.js: 101
+SỐ CA cong_cu/thu_UUDAI1.js: 88
+SỐ CA cong_cu/thu_VIME1.js: 24
+SỐ CA cong_cu/thu_VOUCHER2.js: 146
+
