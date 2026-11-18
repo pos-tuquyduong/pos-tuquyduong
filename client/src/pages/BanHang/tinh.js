@@ -94,8 +94,9 @@ export const coGia = (sp) => typeof sp?.price === 'number' && sp.price > 0;
 /** Trả chuỗi lỗi (tiếng Việt) hoặc null nếu thêm được. soDangCo = số lượng món này đã trong giỏ. */
 export function kiemTraThem(sp, soDangCo, them = 1) {
   if (!coGia(sp)) return `${sp.name} chưa có giá bán`;
+  if (sp.chua_cong_thuc) return `${sp.name} chưa có công thức — chưa bán được`;   // KHO-3a B3
   if (sp.khong_quan_kho) return null;
-  if (sp.stock_quantity === 0) return `${sp.name} hiện hết hàng trong kho SX`;
+  if (sp.stock_quantity === 0) return `${sp.name} hiện hết hàng`;
   if (sp.stock_quantity > 0 && soDangCo + them > sp.stock_quantity) return `Không đủ hàng. Tồn kho: ${sp.stock_quantity}`;
   return null;
 }

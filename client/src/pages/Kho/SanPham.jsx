@@ -1,6 +1,8 @@
 /**
  * KHO-1 — Sản phẩm & công thức: danh sách theo nhóm; bấm món → công thức cho 1 đơn vị + "Tính cho N phần" (máy chủ triển khai,
  * cùng hàm tinh.trienKhai). Chỉ chủ quán sửa kiểu + công thức + hạn dùng (KHO-2a) (máy chủ kiểm). Lượng lưu theo đơn vị LƯU, hiện theo đơn vị hiện.
+ * KHO-3a A5: MỘT chỗ sửa món — tên, nhóm, giá (route giá có sẵn), đơn vị, thứ tự, đang bán (quản lý / chủ quán — máy chủ kiểm manage_settings);
+ * "Cho bán khi thiếu nguyên liệu" (chỉ chủ quán, món pha tại chỗ); nút "Thêm món" (món mới không cần SX).
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
@@ -12,8 +14,10 @@ const hien = (d) => `${so(d.luong_hien)} ${d.don_vi_hien || d.don_vi_luu || ''}`
 // Giá NULL = chưa có giá (món nhập từ SX); giá 0 thật (hàng tặng) là hợp lệ. MỘT vị từ cho cả số đếm lẫn lọc.
 const chuaCoGia = (p) => !!p.is_active && p.price === null;
 
-export default function SanPham({ vaiTro }) {
+export default function SanPham({ vaiTro, moId }) {
   const chuQuan = vaiTro === 'owner';
+  const quanLy = chuQuan || vaiTro === 'manager';
+  const [themMoi, setThemMoi] = useState(false);
   const [dl, setDl] = useState({ san_pham: [], nhom: [] });
   const [nl, setNl] = useState([]);
   const [loi, setLoi] = useState('');
@@ -22,8 +26,8 @@ export default function SanPham({ vaiTro }) {
   const [locGia, setLocGia] = useState(false);
 
   const tai = () => Promise.all([api.get('/kho/san-pham'), api.get('/kho/nguyen-lieu')])
-    .then(([sp, n]) => { setDl(sp); setNl(n.nguyen_lieu); }).catch((e) => setLoi(e.message));
-  useEffect(() => { tai(); }, []);
+    .then(([sp, n]) => { setDl(sp); setNl(n.nguyen_lieu); return sp; }).catch((e) => setLoi(e.message));
+  useEffect(() => { tai().then((sp) => { const m = moId && sp?.san_pham.find((p) => p.id === moId); if (m) setChon(m); }); }, [moId]);
 
   const theoNhom = useMemo(() => {
     const t = tim.trim().toLowerCase();
@@ -34,8 +38,9 @@ export default function SanPham({ vaiTro }) {
 
   const soChuaGia = dl.san_pham.filter(chuaCoGia).length;
   if (chon) {
-    return <ChiTiet sp={chon} dl={dl} nl={nl} chuQuan={chuQuan} dong={(doi) => { setChon(null); if (doi) tai(); }} />;
+    return <ChiTiet sp={chon} dl={dl} nl={nl} chuQuan={chuQuan} quanLy={quanLy} dong={(doi) => { setChon(null); if (doi) tai(); }} />;
   }
+  if (themMoi) return <ThongTinMon sp={null} dong={(doi) => { setThemMoi(false); if (doi) tai(); }} />;
   return (
     <div>
       {loi && <div className="kho-loi">{loi}</div>}
@@ -43,10 +48,11 @@ export default function SanPham({ vaiTro }) {
         <div className="kho-canh">
           <span>⚠️ Thiếu thông tin:</span>
           <button onClick={() => { setLocGia(!locGia); setTim(''); }}>{soChuaGia} món chưa có giá{locGia ? ' ✓' : ''}</button>
-          <span className="kho-nho">đặt giá ở Cài đặt › Sản phẩm</span>
+          <span className="kho-nho">bấm món để đặt giá</span>
         </div>
       )}
-      <div className="kho-hang"><input className="input" placeholder="Tìm món" value={tim} onChange={(e) => setTim(e.target.value)} /></div>
+      <div className="kho-hang"><input className="input" placeholder="Tìm món" value={tim} onChange={(e) => setTim(e.target.value)} />
+        {quanLy && <button className="btn btn-primary" onClick={() => setThemMoi(true)}>+ Thêm món</button>}</div>
       {theoNhom.map((n) => (
         <div key={n.id ?? 'chua'} style={{ marginBottom: '1rem' }}>
           <h3 className="card-title">{n.ten}</h3>
@@ -64,7 +70,49 @@ export default function SanPham({ vaiTro }) {
   );
 }
 
-function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
+// ── KHO-3a A4 / A5: thông tin bán của món (tạo mới khi sp = null) ──
+function ThongTinMon({ sp, dong }) {
+  const [f, setF] = useState({ name: sp?.name ?? '', category: sp?.category ?? 'juice', price: sp?.price ?? '', unit: sp?.unit ?? 'ly',
+    sort_order: sp?.sort_order ?? 0, is_active: sp ? Number(sp.is_active) : 1 });
+  const [dang, setDang] = useState(false);
+  const doi = (gt) => setF({ ...f, ...gt });
+  const luu = async () => {
+    if (dang) return;
+    setDang(true);
+    try {
+      const than = { name: f.name, category: f.category, unit: f.unit, sort_order: Number(f.sort_order) || 0, is_active: Number(f.is_active) };
+      if (!sp) {
+        await api.post('/products', { ...than, price: f.price === '' ? 0 : Number(f.price) });
+      } else {
+        await api.put(`/products/${sp.id}`, than);
+        if (f.price !== '' && Number(f.price) !== sp.price) {
+          await api.put('/products/price', { sx_product_type: sp.sx_product_type, sx_product_id: sp.sx_product_id, price: Number(f.price) });
+        }
+      }
+      baoXong(sp ? `Đã lưu ${f.name}` : `Đã thêm món ${f.name} — nhớ đặt kiểu và công thức`);
+      dong(true);
+    } catch (e) { baoLoiTu(sp ? 'lưu món' : 'thêm món', e); } finally { setDang(false); }
+  };
+  return (
+    <div className="card" style={{ padding: '1rem', marginBottom: '0.75rem' }}>
+      <h3 className="card-title">{sp ? 'Thông tin bán' : 'Thêm món'}</h3>
+      <div className="kho-form">
+        <label>Tên món<input className="input" value={f.name} onChange={(e) => doi({ name: e.target.value })} /></label>
+        <label>Nhóm (tab ở màn Bán hàng)<input className="input" value={f.category} onChange={(e) => doi({ category: e.target.value })} /></label>
+        <label>Giá bán (đồng)<input className="input" type="number" min="0" step="1000" value={f.price ?? ''} onChange={(e) => doi({ price: e.target.value })} /></label>
+        <label>Đơn vị<input className="input" value={f.unit} onChange={(e) => doi({ unit: e.target.value })} /></label>
+        <label>Thứ tự<input className="input" type="number" step="1" value={f.sort_order} onChange={(e) => doi({ sort_order: e.target.value })} /></label>
+        <label className="kho-hang"><input type="checkbox" checked={!!f.is_active} onChange={(e) => doi({ is_active: e.target.checked ? 1 : 0 })} /> Đang bán (bỏ chọn = ẩn khỏi quầy và App)</label>
+      </div>
+      <div className="kho-hang" style={{ marginTop: '0.75rem' }}>
+        <button className="btn btn-primary" disabled={dang} onClick={luu}>{dang ? 'Đang lưu…' : sp ? 'Lưu thông tin' : 'Thêm món'}</button>
+        {!sp && <button className="btn btn-outline" onClick={() => dong(false)}>Huỷ</button>}
+      </div>
+    </div>
+  );
+}
+
+function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
   const nlTheo = useMemo(() => new Map(nl.map((n) => [n.id, n])), [nl]);
   const [soPhan, setSoPhan] = useState(1);
   const [ket, setKet] = useState(null);
@@ -76,7 +124,8 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
     setLoi('');
     try { setKet((await api.get(`/kho/san-pham/${sp.id}/trien-khai?so_phan=${soPhan}`)).nguyen_lieu); } catch (e) { setLoi(e.message); }
   };
-  const batSua = () => setSua({ kieu: sp.kieu, nhom_id: sp.nhom_id ?? '', han_ngay: sp.han_ngay ?? '', dong: sp.cong_thuc.map((d) => (d.nguyen_lieu_id
+  const batSua = () => setSua({ kieu: sp.kieu, nhom_id: sp.nhom_id ?? '', han_ngay: sp.han_ngay ?? '', cho_ban_thieu: Number(sp.cho_ban_thieu) === 1,
+    dong: sp.cong_thuc.map((d) => (d.nguyen_lieu_id
     ? { loai: 'nl', id: d.nguyen_lieu_id, so: d.luong_hien }
     : { loai: 'sp', id: d.thanh_phan_id, so: d.luong })) });
   const doiDong = (i, gt) => setSua({ ...sua, dong: sua.dong.map((d, j) => (j === i ? { ...d, ...gt } : d)) });
@@ -89,17 +138,20 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
     setDang(true);
     try {
       await api.put(`/kho/san-pham/${sp.id}`, { kieu: sua.kieu, nhom_id: sua.nhom_id ? Number(sua.nhom_id) : null, han_ngay: sua.han_ngay === '' ? null : Number(sua.han_ngay),
-        cong_thuc: congThuc });
+        cong_thuc: congThuc, cho_ban_thieu: sua.kieu === 'pha_tai_cho' && sua.cho_ban_thieu ? 1 : 0 });
       baoXong(`Đã lưu công thức ${sp.name}`);
       dong(true);
     } catch (e) { baoLoiTu('lưu công thức', e); } finally { setDang(false); }
   };
 
   return (
+    <div>
+    {quanLy && <ThongTinMon sp={sp} dong={(doi) => { if (doi) dong(true); }} />}
     <div className="card" style={{ padding: '1rem' }}>
       <h3 className="card-title">{sp.name}</h3>
       <div className="kho-nho" style={{ marginBottom: '0.75rem' }}>{KIEU[sp.kieu]} · công thức cho 1 {sp.category === 'tea' ? 'gói' : 'phần'}
-        {sp.kieu === 'lam_san' && ` · hạn dùng ${sp.han_ngay ? sp.han_ngay + ' ngày' : 'chưa đặt'}`}</div>
+        {sp.kieu === 'lam_san' && ` · hạn dùng ${sp.han_ngay ? sp.han_ngay + ' ngày' : 'chưa đặt'}`}
+        {sp.kieu === 'pha_tai_cho' && Number(sp.cho_ban_thieu) === 1 && <span className="kho-thieu"> · cho bán khi thiếu nguyên liệu (ghi âm)</span>}</div>
       {!sua && (
         <>
           {sp.cong_thuc.map((d) => (
@@ -137,6 +189,10 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
             <label>Hạn dùng thành phẩm (ngày)
               <input className="input" type="number" min="1" step="1" value={sua.han_ngay} onChange={(e) => setSua({ ...sua, han_ngay: e.target.value })} />
             </label>
+            {sua.kieu === 'pha_tai_cho' && (
+              <label className="kho-hang"><input type="checkbox" checked={sua.cho_ban_thieu} onChange={(e) => setSua({ ...sua, cho_ban_thieu: e.target.checked })} />
+                Cho bán khi thiếu nguyên liệu (vẫn bán, ghi âm, báo đỏ ở Tồn kho)</label>
+            )}
           </div>
           {sua.dong.map((d, i) => (
             <div key={i} className="kho-dong">
@@ -159,6 +215,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, dong }) {
         {!sua && chuQuan && <button className="btn btn-primary" onClick={batSua}>Sửa công thức</button>}
         <button className="btn btn-outline" onClick={() => (sua ? setSua(null) : dong(false))}>{sua ? 'Huỷ' : 'Quay lại'}</button>
       </div>
+    </div>
     </div>
   );
 }
