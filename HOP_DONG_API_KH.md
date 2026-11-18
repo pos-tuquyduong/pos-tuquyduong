@@ -1,6 +1,6 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 17
+PHIEN_BAN: 18
 NGAY: 2026-11-15
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1 + KH-THE-1) + HUY-1 + VOUCHER-2 + QC-APP-1 + KH-NAP-1 (utils/lichSuVi.js, routes/goi-nap.js, routes/thanh-toan.js, utils/viKhach.js, routes/quang-cao.js, nang_cap/028_quang_cao.js, routes/chuong-trinh.js, routes/tiers.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
@@ -351,7 +351,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 17,
+  "phien_ban": 18,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -462,3 +462,8 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   thẻ hạng chỉ trả tiền thật (`vi` / `vi_qr` → `THE_KHONG_TRA_VI`); tiền QR về muộn ĐÚNG số của đơn chỉ thẻ / chỉ nạp → tự chốt đủ quyền lợi (thay luật v13);
   4 mã lỗi mới. "Đã hẹn": NAP-2 xong, BỎ `POST /nap` / `GET /nap/:ma`. Không xoá / đổi tên trường cũ — App v16 không gửi dòng nạp / không gọi cửa mới là chạy
   nguyên; App đang cho trả thẻ bằng `vi` / `vi_qr` sẽ nhận 400 `THE_KHONG_TRA_VI` (App KH-THE-2 đã đổi sang chỉ QR — thư 14.11).
+- v18 · 18.11.2026 · KHO-3a: POS ngắt hẳn SX — `GET /menu` lấy món từ POS, số `con_hang` theo kho POS (đã trừ phần ĐANG GIỮ cho đơn chờ trả của quầy / App / màn
+  khách — "còn bán được" một con số); `ton_cu` luôn `false`, `ton_luc` luôn `null` (không còn "tồn gần nhất của SX"); món chưa có công thức không hiện. Đặt đơn
+  (`POST /gio/bao-gia`, `POST /don`): món vừa hết / thiếu nguyên liệu → 400 `HET_HANG` kèm `ma`, món chưa có công thức → 400 `MON_KHONG_BAN` kèm `ma` (mã có sẵn).
+  Tiền QR về đúng hạn mà món đã giữ vừa mất (lưới an toàn) → không tạo đơn, cộng ĐÚNG số tiền vào tài khoản (`tien_ve_da_cong_vi`), `thong_bao_tien_ve`
+  = "Món <tên> vừa hết — quán đã hoàn <số> vào ví của bạn". Không thêm / xoá / đổi tên trường, không mã lỗi mới — App v17 chạy nguyên.

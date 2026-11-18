@@ -16,7 +16,8 @@ const path = require('path');
 const crypto = require('crypto');
 
 const GOC = path.join(__dirname, '..');
-const MAY_CHU = path.join(GOC, 'server');
+const iMC = process.argv.indexOf('--may-chu');   // bản sao đột biến / server của commit gốc (viec/KHO-3a/dot_bien.py)
+const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_kho3a_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 const ngauNhien = () => crypto.randomBytes(12).toString('hex');
@@ -47,8 +48,10 @@ const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.war
 const chuoiKy = (d) => Object.keys(d).sort().map((x) => `${x}=${d[x] == null ? '' : d[x]}`).join('&');
 const hmac = (s) => crypto.createHmac('sha256', KHOA.ck).update(s).digest('hex');
 const gan = (a, b) => Math.abs(Number(a) - Number(b)) < 1e-6;
-const doc = (p) => { try { return fs.readFileSync(path.join(GOC, p), 'utf8'); } catch { return ''; } };
-const coFile = (p) => fs.existsSync(path.join(GOC, p));
+// Đọc file của MÁY CHỦ đang thử (server/... → MAY_CHU/...) — bản sao đột biến đọc đúng bản sao.
+const tepMC = (p) => (p.startsWith('server/') ? path.join(MAY_CHU, p.slice('server/'.length)) : path.join(GOC, p));
+const doc = (p) => { try { return fs.readFileSync(tepMC(p), 'utf8'); } catch { return ''; } };
+const coFile = (p) => fs.existsSync(tepMC(p));
 
 async function main() {
   imLang();
@@ -233,6 +236,7 @@ async function main() {
   const datApp = async (kh, mons) => {
     const than = { mon: mons, cach_nhan: 'tai_quan' };
     const bg = await goi(null, 'POST', '/kh/gio/bao-gia', than, kh.tk);
+    if (bg.status !== 200) return bg;   // App: báo giá đã báo lỗi (vd HET_HANG) thì không đặt
     return goi(null, 'POST', '/kh/don', { ...than, khoa_gui: 'k3a-' + ngauNhien().slice(0, 16), cach_tra: 'qr', tong_da_xem: bg.j.tong }, kh.tk);
   };
   const phienAppMoiNhat = async (kh) => mot(`SELECT p.* FROM pos_don_app a JOIN pos_phien_thanh_toan p ON p.id = a.phien_id WHERE a.phone = ? ORDER BY a.id DESC LIMIT 1`, [kh.sdt]);
@@ -350,6 +354,11 @@ async function main() {
     k('B2 hai món chung nguyên liệu: từng món đủ (0,6 ≤ 0,9) mà cả giỏ thiếu (1,2) → chặn', la(rg, 400, 'THIEU_NGUYEN_LIEU'), moTa(rg));
     const rDong = await banTM([mon(spA, 2), mon(spA, 2)]);
     k('B2 cùng món hai dòng cộng dồn (1,2 > 0,9) → chặn', la(rDong, 400, 'THIEU_NGUYEN_LIEU'), moTa(rDong));
+    // App: menu từng món đủ (3 phần) nên báo giá qua; tạo phiên kiểm CẢ GIỎ → THIEU_NGUYEN_LIEU → App nhận mã hợp đồng HET_HANG + ma
+    const kh = await khach();
+    const app = await datApp(kh, [{ ma: maCua(spA), so_luong: 2 }, { ma: maCua(spB), so_luong: 2 }]);
+    k('B3b App: thiếu nguyên liệu cả giỏ → HET_HANG kèm ma (mã có trong hợp đồng)', la(app, 400, 'HET_HANG') && [maCua(spA), maCua(spB)].includes(app.j.ma),
+      moTa(app) + ' · ma ' + app.j.ma);
   });
 
   await chay('B8', async () => {
@@ -390,11 +399,16 @@ async function main() {
   await luuSP(spGiu, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nlCam, luong: 0.2 }] });
   const loGiu = await napTP(spGiu, 1);
   await chay('B3b', async () => {
+    const manKhach = require(path.join(MAY_CHU, 'utils', 'manKhach.js'));
+    const hetMK = async () => (await manKhach.noiDung()).menu.find((m) => m.ten === spGiu.ten)?.het;
+    const mkTruoc = await hetMK();   // đọc một lần TRƯỚC khi giữ (bộ nhớ cũ 20 s sẽ giữ bản này)
     const a = await taoPhienQuay([mon(spGiu, 1)]);
     k('B3b phiên A (tiền mặt) giữ chai cuối → 200', la(a, 200), moTa(a));
     const mq = await menuQuay(), ma = await menuApp();
     k('B3b menu quầy hiện 0, App con_hang false (phần đang giữ đã trừ)', tren(mq, spGiu)?.stock_quantity === 0 && ma.find((x) => x.ma === maCua(spGiu))?.con_hang === false,
       `${tren(mq, spGiu)?.stock_quantity} / ${ma.find((x) => x.ma === maCua(spGiu))?.con_hang}`);
+    const mkSau = await hetMK();
+    k('B3b màn khách thấy "hết" NGAY khi phiên khác giữ (không chờ bộ nhớ 20 s)', mkTruoc === false && mkSau === true, `${mkTruoc} → ${mkSau}`);
     const b = await taoPhienQuay([{ product_id: spGiu.id, quantity: 1 }]);
     k('B3b phiên B (món theo product_id) → HET_HANG', la(b, 400, 'HET_HANG'), moTa(b));
     const tm = await banTM([mon(spGiu, 1)]);
@@ -417,8 +431,7 @@ async function main() {
     k('B3b ba phiên CÙNG LÚC tranh chai cuối → đúng một giữ được', dua.filter((r) => la(r, 200)).length === 1, dua.map(moTa).join(' | '));
     const giuDuoc = dua.find((r) => la(r, 200));
     // Xác nhận tay QR quầy SAU hạn khi phiên khác đang giữ chai cuối → không bán vượt
-    datGio('2026-11-18T09:30:00');
-    await napTP(spGiu, 1);
+    datGio('2026-11-18T09:30:00');   // phiên thắng cuộc đua đã hết hạn (không trả) → còn ĐÚNG 1 chai
     const qr = await taoPhienQuay([mon(spGiu, 1)], 'payos');
     k('B3b phiên QR quầy giữ chai (chuẩn bị ca chốt muộn)', la(qr, 200), moTa(qr));
     datGio('2026-11-18T09:41:00');   // QR hết hạn → nhả
@@ -510,7 +523,7 @@ async function main() {
     k('B5 huỷ đơn CŨ không phiếu bán → 200, không lỗi', la(hc, 200), moTa(hc));
     // Đơn giao "Bỏ đi": dựng chuyến đang pha
     const d4 = (await banTM([mon(spH, 2)], { customer_phone: (await khach()).sdt })).j.order?.id;
-    await ghiDb(`INSERT INTO pos_giao_chuyen (order_id, trang_thai, tao_luc) VALUES (?, 'dang_pha', ?)`, [d4, getNow()]).catch(() => null);
+    await ghiDb(`INSERT INTO pos_giao_chuyen (order_id, ten_nhan, sdt_nhan, dia_chi, loai_xe, trang_thai) VALUES (?, 'Nhận thử', '0900000000', 'Địa chỉ thử', 'BIKE', 'dang_pha')`, [d4]);
     const truoc = await conLo(loH);
     const hb = await huyDon(d4, { do_da_pha: 'bo_di', reason: 'đồ đã pha bỏ đi (thử)' });
     const pb4 = d4 ? await phieuBanCua(d4) : [];
@@ -616,7 +629,11 @@ async function main() {
     const ps = await goi('nv', 'POST', '/pos/kho/phieu-phat-sinh', { su_co: 'noi_bo', ghi_chu: 'uống thử', muc: [{ nguyen_lieu_id: nlCam, luong: 0.001 }], ma_gui: 'k3a-' + ngauNhien() });
     k('PS nội bộ nhỏ sau khi đã bán nhiều → không bị hạn mức chặn (bán không cộng vào hạn mức)', la(ps, 200) && ps.j.phieu?.trang_thai !== undefined, moTa(ps));
     const gy = await goi('nv', 'GET', '/pos/kho/goi-y-nhap');
-    k('Gợi ý nhập: tồn lấy sau bán, "hay mua" không gồm nguyên liệu chỉ bị bán', la(gy, 200) && !(gy.j.hay_mua || []).includes(nlCaPhe), moTa(gy));
+    const ban = await banTM([mon(spA, 1)]);
+    const gy2 = await goi('nv', 'GET', '/pos/kho/goi-y-nhap');
+    const tonSua = (r) => (r.j.nguyen_lieu || []).find((x) => x.id === nlSua)?.ton;
+    k('Gợi ý nhập: tồn giảm theo bán (sữa −0,3), "hay mua" (chỉ đếm phiếu nhận) không đổi', la(ban, 200) && gan(tonSua(gy) - tonSua(gy2), 0.3)
+      && JSON.stringify(gy.j.hay_mua) === JSON.stringify(gy2.j.hay_mua), `${moTa(ban)} · sữa ${tonSua(gy)} → ${tonSua(gy2)}`);
     const goiY = await goi('nv', 'GET', '/pos/kho/phat-sinh/goi-y?su_co=hong');
     k('Gợi ý phát sinh chạy (lô đã bán hết không còn)', la(goiY, 200) && !JSON.stringify(goiY.j).includes(`"lo_id":${loGan},`), moTa(goiY));
   });

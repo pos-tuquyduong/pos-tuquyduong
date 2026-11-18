@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""KHO-3a — đột biến cho MỖI chỗ vá: VS- (vá sai cách) và BV- (bỏ vá). Chạy ở GỐC kho:
+    python3 viec/KHO-3a/dot_bien.py [tên...]          (không tên = chạy hết; có ĐỐI CHỨNG trước)
+    python3 viec/KHO-3a/dot_bien.py --liet-ke          (chỉ in danh sách)
+    python3 viec/KHO-3a/dot_bien.py --goc <sha>        (bằng chứng ĐỎ: bài hiện tại trên server/ của commit sha)
+    python3 viec/KHO-3a/dot_bien.py --help             (in hướng dẫn này)
+
+Khuôn viec/KHO-2b/dot_bien.py: chép server/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink), thay chuỗi (mỗi chuỗi
+phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, không bao giờ đếm là đạt, K3), chạy `node cong_cu/thu_KHO3a.js --may-chu <bản sao>`.
+BẮT = thoát ≠ 0 VÀ có dòng `✗` khớp mẫu ĐÚNG ca phải bắt. Bài sập (LỖI CHẠY BÀI) hoặc đỏ mà không khớp mẫu = LẠC. Xanh trọn = SỐNG.
+Không đụng server/ thật, data/, Turso.
+"""
+import os, re, shutil, subprocess, sys, tempfile
+from concurrent.futures import ThreadPoolExecutor
+
+sys.dont_write_bytecode = True
+GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+BH, O, G, TT, DA, DL, P, B30, B31, MK = ('server/kho/banHang.js', 'server/routes/orders.js', 'server/utils/giuCho.js', 'server/routes/thanh-toan.js',
+  'server/utils/donApp.js', 'server/kho/duLieu.js', 'server/routes/products.js', 'server/nang_cap/030_ban_theo_kho.js', 'server/nang_cap/031_ten_mon_sx.js',
+  'server/utils/manKhach.js')
+
+# (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
+DOT_BIEN = [
+  # ── B1: làm sẵn — FEFO, lô hết hạn, ngưỡng ──
+  ('VS-FEFO-HAN-XA-TRUOC', [(BH, "const LO_FEFO = 'han_dung IS NULL, han_dung, id';", "const LO_FEFO = 'han_dung DESC, id';", 1)], r'✗ B1 FEFO'),
+  ('VS-LO-HET-HAN-VAN-BAN', [(BH, "'l.san_pham_id IS NOT NULL AND (l.han_dung IS NULL OR l.han_dung > ?)'", "'l.san_pham_id IS NOT NULL AND ? IS NOT NULL'", 1)],
+    r'✗ A2 làm sẵn'),
+  ('VS-NGUONG-LON-HON-BANG', [(BH, 'if (con + tinh.SAI_SO < sl) {', 'if (con <= sl) {', 1)], r'✗ B1 đủ ĐÚNG'),
+  # ── B2 / B8: pha tại chỗ — cả giỏ, cho bán khi thiếu ──
+  ('BV-KIEM-CA-GIO', [(BH, 'if (can.nguyenLieu.get(nlId) > (ctx.tonNL.get(nlId)', 'if (can.phaCua.get(khoa) > (ctx.tonNL.get(nlId)', 1)], r'✗ B2 hai món chung'),
+  ('BV-CHO-BAN-THIEU', [(BH, '    if (Number(p.cho_ban_thieu) === 1) continue;\n', '', 1)], r'✗ B2 BẬT \+ thiếu'),
+  ('VS-CHO-BAN-THIEU-MAC-DINH-BAT', [(B30, "'cho_ban_thieu INTEGER NOT NULL DEFAULT 0'", "'cho_ban_thieu INTEGER NOT NULL DEFAULT 1'", 1)], r'✗ B8 mặc định TẮT'),
+  # ── B3: chưa công thức ──
+  ('BV-CHUA-CONG-THUC', [(BH, 'if (can.chua.length) return loi(', 'if (false) return loi(', 1)], r'✗ B3 (không dòng kho|công thức rỗng|chua_dinh_luong)'),
+  ('BV-TINH-THU-KHONG-KIEM', [(O, '    if (phien?.chiTinh) {\n', "    if (phien?.chiTinh) {\n      { const l = await banHang.kiemDuHang({ query, queryOne }, items, { bayGio: getNow() }); if (l) return res.status(l.status).json(l.body); }\n", 1)],
+    r'✗ B6 tinh-thu \(báo giá\)'),
+  # ── B3b: giữ hàng ──
+  ('BV-GIU-HANG-TAO-PHIEN', [(G, '    if (thieu) return { huy: true, status: thieu.status, body: thieu.body };\n', '', 1)], r'✗ B3b (phiên B|ba phiên)'),
+  ('VS-GIU-HANG-TINH-CA-PHIEN-MINH', [(BH, 'const ctx = await docKhaNang(tx, { boPhienId: phienId, bayGio: luc });', 'const ctx = await docKhaNang(tx, { boPhienId: null, bayGio: luc });', 1)],
+    r'✗ B3b C trả trong hạn'),
+  ('BV-CHOT-MUON-BO-QUA-GIU', [(BH, 'const ctx = await docKhaNang(tx, { boPhienId: phienId, bayGio: luc });',
+    'const ctx = await docKhaNang(tx, { boPhienId: phienId, bayGio: luc }); if (phienId) { ctx.giu.thanhPham.clear(); ctx.giu.nguyenLieu.clear(); }', 1)],
+    r'✗ B3b xác nhận tay'),
+  ('BV-MENU-TRU-GIU', [(BH, "stock_quantity: nguyen((ctx.tonTP.get(p.id) || 0) - (ctx.giu.thanhPham.get(p.id) || 0))", "stock_quantity: nguyen(ctx.tonTP.get(p.id) || 0)", 1)],
+    r'✗ B3b menu quầy hiện 0'),
+  ('BV-APP-MA-HET-HANG', [(DA, "  if (code === 'HET_HANG' || code === 'THIEU_NGUYEN_LIEU') return thanLoi('HET_HANG', { ma: body.ma ?? null });\n", '', 1)], r'✗ B3b App: thiếu'),
+  ('BV-MAN-KHACH-BO-NHO', [(MK, "async function layMenu() {\n  return (await layMenuQuay())", "let nho = null;\nasync function layMenu() {\n  return nho || (nho = await layMenuQuay())", 1)],
+    r'✗ B3b màn khách'),
+  # ── B3c: lưới an toàn ──
+  ('BV-LUOI-VAO-VI-QUAY', [(TT, '  const moi = laApp || loiKho ? await docPhien(p.id) : null;', '  const moi = laApp ? await docPhien(p.id) : null;', 1)], r'✗ B3c phiên QR QUẦY có SĐT'),
+  ('BV-LUOI-HOAN-TAY', [(TT, "  if (loiKho && moi && !moi.phone) return ghi(", "  if (false) return ghi(", 1)], r'✗ B3c QR quầy KHÔNG SĐT'),
+  ('BV-LUOI-TEN-MON', [(G, " + (r.body?.mon ? `: ${r.body.mon}` : '')", '', 1)], r'✗ B3c (App thấy|quầy có dòng)'),
+  # ── B4 / B6 / B7: trừ trong giao dịch, một phiếu ──
+  ('BV-TRU-KHO', [(O, 'const kho = await banHang.truKhoDon(tx, {', 'const kho = await (async () => ({}))(tx, {', 1)], r'✗ B(1 FEFO|4 đúng MỘT)'),
+  ('BV-CHAN-TRONG-TX', [(O, '      if (kho.loi) {\n        await tx.rollback();', '      if (false) {\n        await tx.rollback();', 1)], r'✗ B(1 thiếu 1|3b POST)'),
+  ('BV-THANH-PHAM-KHONG-AM', [(BH, "    if (manh.some((m) => m.lo_id == null)) return { loi:", "    if (false) return { loi:", 1)], r'✗ B3c (tiền về|ví khách)'),
+  # ── B5: huỷ / xoá trả kho ──
+  ('BV-HUY-TRA-KHO', [(O, "        await banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha,", "        if (false) await banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha,", 1)],
+    r'✗ B5 hai lần huỷ'),
+  ('BV-XOA-TRA-KHO', [(O, "        await banHang.huyPhieuBan(tx, order.id, { nguoi: req.user.username, luc: now, lyDo: `Xoá đơn", "        if (false) await banHang.huyPhieuBan(tx, order.id, { nguoi: req.user.username, luc: now, lyDo: `Xoá đơn", 1)],
+    r'✗ B5 xoá đơn completed'),
+  ('VS-BO-DI-VAN-TRA-KHO', [(BH, "  if (doDaPha === 'bo_di') {", '  if (false) {', 1)], r'✗ B5 đơn giao "Bỏ đi"'),
+  # ── A2 / A3b / Câu 4 / K4 / khoá CSDL ──
+  ('VS-MENU-SO-PHAN-LAM-TRON-LEN', [(BH, 'const nguyen = (x) => Math.max(0, Math.floor(x + tinh.SAI_SO));', 'const nguyen = (x) => Math.max(0, Math.round(x));', 1)], r'✗ A2 pha tại chỗ'),
+  ('BV-031-CHI-TEN-TAM', [(B31, 'WHERE sx_product_type = ? AND sx_product_id = ? AND name = ?', 'WHERE sx_product_type = ? AND sx_product_id = ? AND ? IS NOT NULL', 1)],
+    r'✗ A3b juice 8 đã sửa tay'),
+  ('BV-PHIEU-BAN-KHONG-HUY-TAY', [(DL, "  if ((await tx.queryOne('SELECT su_co FROM kho_phieu WHERE id = ?', [id]))?.su_co === 'ban_hang') {", '  if (false) {', 1)],
+    r'✗ Câu 4'),
+  ('BV-DS-AN-PHIEU-BAN', [(DL, """  dk.push(String(loc.ban_hang) === '1' ? "p.su_co = 'ban_hang'" : "p.su_co IS NOT 'ban_hang'");\n""", '', 1)], r'✗ Kho › Phiếu'),
+  ('BV-030-KHOA-DON-HANG', [(B30, "  await tx.run('CREATE UNIQUE INDEX IF NOT EXISTS ux_kho_phieu_don_hang ON kho_phieu(don_hang_id) WHERE don_hang_id IS NOT NULL');\n", '', 1)],
+    r'✗ (Khoá duy nhất|Ghi hai phiếu)'),
+  # ── A1 / A4 / A7: menu, quản lý món ──
+  ('BV-MENU-SELLABLE-CONG-THUC', [(P, "sellable: typeof p.price === 'number' && p.price > 0 && !k.chua_cong_thuc,", "sellable: typeof p.price === 'number' && p.price > 0,", 1)],
+    r'✗ B3 món chưa công thức'),
+  ('BV-MON-POS-KHOA', [(P, "await tx.run('UPDATE pos_products SET code = ?, sx_product_type = ?, sx_product_id = ? WHERE id = ?', [`POS${id}`, LOAI_MON_POS, id, id]);", '', 1)],
+    r'✗ A4 quản lý tạo món'),
+  ('BV-MON-CHUA-SAN-HET-LO', [(BH, "      : p.kieu === 'lam_san' && (ctx.tonTP.get(p.id) || 0) <= tinh.SAI_SO ? 'Làm sẵn: hết lô còn hạn' : null;", '      : null;', 1)],
+    r'✗ A7 liệt kê'),
+]
+
+
+def ban_sao(thay):
+  """Chép server/ ra thư mục tạm, áp các thay thế. Trả (thư mục, lỗi|None)."""
+  tmp = tempfile.mkdtemp(prefix='dotbien_kho3a_')
+  shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
+  os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+  for f, goc, moi, n in thay:
+    p = os.path.join(tmp, f)
+    if not os.path.realpath(p).startswith(os.path.realpath(tmp) + os.sep):
+      return tmp, f'{f}: đích ghi nằm NGOÀI thư mục tạm'   # K5
+    s = open(p, encoding='utf-8').read()
+    if s.count(goc) != n:
+      return tmp, f'{f}: khớp {s.count(goc)} lần, cần {n}'
+    open(p, 'w', encoding='utf-8').write(s.replace(goc, moi))
+  return tmp, None
+
+
+def chay_bai(tmp):
+  return subprocess.run(['node', os.path.join(GOC, 'cong_cu', 'thu_KHO3a.js'), '--may-chu', os.path.join(tmp, 'server')],
+                        cwd=GOC, capture_output=True, text=True, timeout=400)
+
+
+def chay(ten, thay, mau):
+  tmp, loi = ban_sao(thay)
+  try:
+    if loi:
+      return ten, 'HỎNG', loi
+    r = chay_bai(tmp)
+    ra = (r.stdout or '') + (r.stderr or '')
+    if '--in-ra' in sys.argv: print(f'── {ten}: 12 dòng cuối ──\n' + '\n'.join(ra.strip().splitlines()[-12:]))
+    hong = [l.strip() for l in ra.splitlines() if '✗' in l]
+    if 'LỖI CHẠY BÀI' in ra:
+      return ten, 'LẠC', 'bài sập: ' + (hong[-1] if hong else ra.strip().splitlines()[-1][:160] if ra.strip() else '')
+    if r.returncode == 0:
+      return ten, 'SỐNG', 'bài xanh trọn'
+    khop = [l for l in hong if re.search(mau, l)]
+    return (ten, 'BẮT', khop[0][:140]) if khop else (ten, 'LẠC', f'đỏ nhưng không khớp {mau}: ' + ' | '.join(h[:60] for h in hong[:3]))
+  except subprocess.TimeoutExpired:
+    return ten, 'LẠC', 'quá hạn 400 s'
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+def doi_chung():
+  tmp, _ = ban_sao([])
+  try:
+    r = chay_bai(tmp)
+    ra = (r.stdout or '') + (r.stderr or '')
+    m = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
+    return r.returncode == 0 and m is not None and m.group(2) == '0', (m.group(0) if m else ra[-200:])
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+def chay_goc(sha):
+  """Bằng chứng ĐỎ trên code chưa vá: bài thử HIỆN TẠI với server/ của commit `sha` (git archive, bản chép thật)."""
+  import io, tarfile
+  tmp = tempfile.mkdtemp(prefix='dotbien_kho3a_goc_')
+  try:
+    tar = subprocess.run(['git', 'archive', sha, 'server'], cwd=GOC, capture_output=True, check=True).stdout
+    tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter='data')
+    os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+    r = chay_bai(tmp)
+    ra = ((r.stdout or '') + (r.stderr or '')).strip()
+    print('\n'.join(l for l in ra.splitlines() if '✗' in l or 'đạt ·' in l or 'LỖI CHẠY BÀI' in l))
+    print(f'GỐC {sha}: thoát {r.returncode}')
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+if __name__ == '__main__':
+  if '--help' in sys.argv or '-h' in sys.argv:
+    print(__doc__); sys.exit(0)
+  if '--goc' in sys.argv:
+    chay_goc(sys.argv[sys.argv.index('--goc') + 1]); sys.exit(0)
+  chon = [a for a in sys.argv[1:] if not a.startswith('--')]
+  if '--liet-ke' in sys.argv:
+    for t, _, _ in DOT_BIEN: print(t)
+    sys.exit(0)
+  ds = [d for d in DOT_BIEN if not chon or d[0] in chon]
+  if chon and len(ds) != len(chon):
+    sys.exit('tên không có trong danh sách: ' + ', '.join(set(chon) - {d[0] for d in ds}))
+  ok, dong = doi_chung()
+  print(f'ĐỐI CHỨNG (bản chưa đột biến): {"XANH" if ok else "ĐỎ"} · {dong}')
+  if not ok:
+    sys.exit('đối chứng đỏ — không chạy đột biến (K3)')
+  with ThreadPoolExecutor(max_workers=4) as ex:
+    kq = list(ex.map(lambda d: chay(*d), ds))
+  for ten, tt, ghi in kq: print(f'{tt:5} {ten} — {ghi}')
+  dem = {t: sum(1 for _, x, _ in kq if x == t) for t in ('BẮT', 'SỐNG', 'HỎNG', 'LẠC')}
+  print(f'TỔNG {len(kq)} đột biến · BẮT {dem["BẮT"]} · SỐNG {dem["SỐNG"]} · HỎNG {dem["HỎNG"]} · LẠC {dem["LẠC"]}')
+  sys.exit(0 if dem['BẮT'] == len(kq) else 1)
