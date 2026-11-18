@@ -83,7 +83,7 @@ Năm câu ở `ke_hoach.md` mục 7, mỗi câu có đề xuất:
 | cửa chặn: vế tài khoản khách (`balance_amount`, nhãn `balance`) | BV-VI-THANG · BV-BALANCE-NHAN |
 | cửa chặn: vế tài khoản mẹ | BV-VI-ME-THANG |
 | cửa chặn: bỏ cờ `thanh_toan_payos_bat_buoc` | VS-CAI-DAT-CON |
-| cửa chặn: vế chuyển khoản (`transfer_amount`, nhãn `transfer`) | BV-CK-THANG · BV-CK-NHAN |
+| cửa chặn: vế chuyển khoản (`transfer_amount`, nhãn `transfer`; mọi giá trị khác rỗng / 0 — số âm, chuỗi chữ) | BV-CK-THANG · BV-CK-NHAN · VS-CK-CHI-DUONG · VS-CK-BO-NAN |
 | cửa chặn: vế ghi nợ / chờ thu (câu 5) | BV-GHI-NO-THANG · VS-GHI-NO-CHI-SO |
 | cửa chặn: gói (mua / mã gói / món từ gói), mọi lối | BV-GOI-MUA · BV-GOI-MA · BV-GOI-TU-GOI · VS-GOI-CHI-THANG |
 | khoá: chỉ `taoDon` gọi `taoDonGoc` | VS-GOI-THANG-LOI-GOC |
@@ -92,11 +92,12 @@ Năm câu ở `ke_hoach.md` mục 7, mỗi câu có đề xuất:
 | bảng ⚙ không nút về màn cũ | BV-NUT-TAT |
 | api.js bỏ ordersApi.create | BV-API-CREATE |
 
-Kết quả `python3 viec/BO-MAN-CU-1/dot_bien.py` (HEAD `a68fee1b` + dot_bien.py): ĐỐI CHỨNG XANH · 62 đạt · 0 hỏng; TỔNG: 18 đột biến · BẮT 18 · SỐNG 0 ·
-HỎNG 0 · LẠC 0.
+Kết quả `python3 viec/BO-MAN-CU-1/dot_bien.py` — lần đầu (HEAD `a68fee1b`): 18 đột biến · BẮT 18, đối chứng 62 đạt. **Số hiện tại (sau vòng sửa 2,
+HEAD `2f591a6a`): ĐỐI CHỨNG XANH · 67 đạt · 0 hỏng; TỔNG: 20 đột biến · BẮT 20 · SỐNG 0 · HỎNG 0 · LẠC 0** (thêm VS-CK-CHI-DUONG vòng 1, VS-CK-BO-NAN vòng 2).
 
 ### Kiểm
-- `npm test -- --day-du` (cây làm việc = HEAD `a68fee1b`): PASS 126 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn từ trước việc này).
+- `npm test -- --day-du`: lần đầu HEAD `a68fee1b` PASS 126 · FAIL 0 · CẢNH BÁO 1; **chạy lại sau vòng sửa 2 (HEAD `2f591a6a`): PASS 126 · FAIL 0 ·
+  CẢNH BÁO 1** (cảnh báo có sẵn từ trước việc này).
 - Giả lập một ngày (`node cong_cu/gia_lap/chay.js`): 33 kịch bản · 18 bất biến · ĐẠT; `thu_gia_lap.js` 180 đạt · 0 hỏng.
 - Bằng chứng đỏ: `bang_chung_do.txt` — 28 bài thử đổi / mới đều ĐỎ trên cây gốc `28b6efeb` (lượt như cổng A11: 21 bài thiếu hàm phụ
   `donCu.js` — sập; lượt kèm hàm phụ: đỏ vì "orders.js chưa có taoDonGoc", màn cũ / công tắc cũ còn); 28 dòng `SỐ CA` chạy trên HEAD.
