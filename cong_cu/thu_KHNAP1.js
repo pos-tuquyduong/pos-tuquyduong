@@ -20,6 +20,7 @@ const crypto = require('crypto');
 const { pathToFileURL } = require('url');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_khnap1_'));
@@ -126,6 +127,10 @@ async function main() {
     VALUES ('KN1CHUNG', 'fixed', 5000, 0, 0, 0, 0, 1, 'order')`);
 
   const goi = async (method, url, body, tk) => {
+    // BO-MAN-CU-1: đơn quầy ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc (luật THE_KHONG_TRA_VI nằm ở đó).
+    if (method === 'POST' && url === '/pos/orders' && laDonCu(body)) {
+      return donCu(MAY_CHU, body).then((x) => ({ status: x.status, j: x.body, tho: JSON.stringify(x.body) }));
+    }
     const headers = body !== undefined ? { 'Content-Type': 'application/json' } : {};
     if (tk) headers.Authorization = 'Bearer ' + tk;
     imLang();

@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *  BÀI NÀY PHẢI ĐỎ TRƯỚC KHI VÁ (K3). Chạy ở GỐC kho POS:
  *      node cong_cu/thu_UUDAI1.js [--may-chu <thư mục server>]
- *  --may-chu: chạy trên bản sao server/ (đột biến, viec/UUDAI-1/dot_bien.py). Settings.jsx / Sales.jsx đọc từ <may-chu>/../client/src.
+ *  --may-chu: chạy trên bản sao server/ (đột biến, viec/UUDAI-1/dot_bien.py). Settings.jsx / BanHang/ đọc từ <may-chu>/../client/src.
  *
  *  Khuôn thu_DIEMTHAT1.js: database.js thật + libsql thật trên kho TẠM, SX giả (đếm lần gọi checkStock). co.mocTruocTx chạy TRỌN một
  *  lệnh khác trước khi giao dịch kế tiếp mở (hai quầy chồng nhau TẤT ĐỊNH). Số theo phiếu: hạng Vàng 10 % (nhóm đặc biệt 20 %),
@@ -17,6 +17,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const CLIENT = path.join(MAY_CHU, '..', 'client', 'src', 'pages');
@@ -91,6 +92,8 @@ async function main() {
   const theCua = { chu: jwt.sign({ userId: chu.id }, process.env.JWT_SECRET, { expiresIn: '1h' }),
     nv: jwt.sign({ userId: nv }, process.env.JWT_SECRET, { expiresIn: '1h' }) };
   const goiAi = async (ai, method, url, body) => {
+    // BO-MAN-CU-1: đơn ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc (luật hạng / mã nằm ở đó).
+    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body, { username: ai || 'chu' }).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,
@@ -440,10 +443,18 @@ async function main() {
       { customer_phone: await khachHang(), items: [mon(0, 1)], membership_buy: { tier_id: hangId, so_thang: 3 }, discount_code: await taoMa('fixed', 5000) }, 140000]);
     for (const [ten, than, tong] of caK4) {
       const tt = await tinhThu(than);
-      const r = await ban(than, tt.total);
+      // BO-MAN-CU-1 (chủ quán 17.11): quầy tạm ngưng gói ở mọi lối → tinh-thu có gói 400 GOI_TAM_DUNG; tổng của đơn gói CŨ (thân taoDonGoc,
+      // qua `ban` → donCu) vẫn đúng số tính tay. Ca thẻ (K4c) giữ nguyên: tinh-thu = POST.
+      const coGoi = !!(than.package_buy || than.customer_package_id);
+      const r = await ban(than, coGoi ? tong : tt.total);
       const d = r.order ? await donDb(r.order.id) : {};
-      k(`${ten}: tinh-thu 200 đúng tổng; POST / gửi tổng đó → 200, đơn ghi đúng tổng`, tt.status === 200 && tt.total === tong && r.status === 200
-        && Number(d.total) === tong, `${moTa(tt)} · tinh-thu ${tt.total} · ${moTa(r)} · đơn ${d.total}`);
+      if (coGoi) {
+        k(`${ten}: tinh-thu → 400 GOI_TAM_DUNG; đơn gói cũ (thân taoDonGoc) → 200, đơn ghi đúng tổng`, tt.status === 400 && tt.code === 'GOI_TAM_DUNG'
+          && r.status === 200 && Number(d.total) === tong, `${moTa(tt)} · ${moTa(r)} · đơn ${d.total}`);
+      } else {
+        k(`${ten}: tinh-thu 200 đúng tổng; POST / gửi tổng đó → 200, đơn ghi đúng tổng`, tt.status === 200 && tt.total === tong && r.status === 200
+          && Number(d.total) === tong, `${moTa(tt)} · tinh-thu ${tt.total} · ${moTa(r)} · đơn ${d.total}`);
+      }
     }
   });
 
@@ -491,31 +502,26 @@ async function main() {
   });
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[S] màn Bán hàng cũ (Sales.jsx) dùng số máy chủ khi có mã');
+  // BO-MAN-CU-1: màn cũ đã xoá — các phép S chuyển sang ĐÚNG chỗ tương ứng của màn Bán hàng (BanHang/BanHangMoi.jsx + tinh.js).
+  muc('[S] màn Bán hàng dùng số máy chủ (tinh-thu) khi tính và khi thu');
   {
-    const sa = docNguon(CLIENT, 'Sales.jsx');
-    k('S1 Sales.jsx nạp client `api` có sẵn và hỏi POST /orders/tinh-thu (không fetch trần)', /import \{[^}]*\bapi\b[^}]*\} from '\.\.\/utils\/api'/.test(sa)
-      && /api\.post\('\/orders\/tinh-thu'/.test(sa));
-    const khoaDon = ['customer_phone', 'items', 'discount_code', 'shipping_fee', 'customer_package_id', 'package_buy', 'membership_buy'];
-    k('S2 thân tinh-thu và thân tạo đơn dựng từ CÙNG một hàm donGuiMayChu (món, khách, mã, phí giao, gói, thẻ) — không hai bản lệch nhau',
-      /api\.post\('\/orders\/tinh-thu', donGuiMayChu\(\)\)/.test(sa) && /const don = donGuiMayChu\(\);/.test(sa)
-      && khoaDon.every((x) => new RegExp(`\\n        ${x}: don\\.${x},`).test(sa)) && (sa.match(/discount_code: discountCodeValid/g) || []).length === 1);
-    k('S3 có mã → tổng / giảm hạng / giảm mã lấy từ kết quả tinh-thu', /const total = tinhThu \? tinhThu\.total :/.test(sa)
-      && /tinhThu \? tinhThu\.tier_discount :/.test(sa) && /tinhThu \? tinhThu\.discount_amount :/.test(sa));
-    k('S4 có mã mà chưa có số máy chủ → không mở thu tiền', /discountCodeValid\?\.valid && !tinhThu\)/.test(sa));
-    k('S5 giỏ hiện câu máy chủ ghi (cau_ghi)', /tinhThu\?\.cau_ghi/.test(sa));
-    k('S6 tinh-thu lỗi → giữ lý do máy chủ (tinhThuLoi), bấm thu hiện đúng lý do, không ghi đè bằng "đang tính"',
-      /setTinhThuLoi\(e\.message/.test(sa) && /setError\(tinhThuLoi \|\| /.test(sa));
-    k('S7 tinh-thu hỏi lại khi Flash / hạng ĐỔI NỘI DUNG (khoá chuỗi — làm mới 60 giây không xoá số máy chủ) và ngay trước khi ghi đơn có mã',
-      /\[khoaGio, customer\?\.phone, discountCodeValid, shippingFee, activePkgId, buyQty, khoaFlash, khoaHang\]/.test(sa)
-      && /const khoaFlash = flashState \? `\$\{flashState\.is_flash_now\}\|\$\{flashState\.percent\}\|/.test(sa)
-      && /const khoaHang = membershipInfo \? `\$\{membershipInfo\.usable\}\|\$\{membershipInfo\.discount_percent\}\|\$\{membershipInfo\.special_discount_percent\}`/.test(sa)
-      && /const moi = await api\.post\('\/orders\/tinh-thu', don\);\s*if \(moi\.total !== total\) \{\s*setTinhThu\(moi\);/.test(sa));
-    const khoaGio = (sa.match(/const khoaGio = [^\n]*/) || [''])[0];
-    k('S10 giỏ khoá theo phần tính tiền (món, số lượng, lấy từ gói, gói, thẻ), KHÔNG theo ghi chú — gõ ghi chú không xoá số máy chủ (vòng soát 3)',
-      /\}, \[khoaGio, /.test(sa) && /i\.product_id, i\.quantity, i\.fromPkg, i\.is_pkg, i\.is_membership, i\.package_id, i\.tier_id/.test(khoaGio)
-      && !/note/.test(khoaGio), khoaGio);
-    k('S9 giỏ hiện lý do mã không áp (ma_loi) từ tinh-thu', /\{tinhThu\?\.ma_loi && \(/.test(sa) && /\{tinhThu\.ma_loi\}/.test(sa));
+    const sa = docNguon(CLIENT, path.join('BanHang', 'BanHangMoi.jsx'));
+    const ti = docNguon(CLIENT, path.join('BanHang', 'tinh.js'));
+    k('S1 BanHangMoi.jsx nạp ordersApi có sẵn và hỏi POST /orders/tinh-thu (không fetch trần)', /import \{[^}]*\bordersApi\b[^}]*\} from '\.\.\/\.\.\/utils\/api'/.test(sa)
+      && /ordersApi\.tinhThu\(thanTinhThu\(/.test(sa) && !/\bfetch\s*\(/.test(sa));
+    k('S2 thân tinh-thu và phần `don` của phiên thu dựng từ CÙNG một hàm thanTinhThu (món, khách, mã, phí giao, thẻ, voucher) — không hai bản lệch nhau',
+      /export function thanPhien\([^)]*\) \{\s*const don = thanTinhThu\(gio, khach, ma, giao, vouchers\);/.test(ti) && /thanPhien\(\{ gio, khach, ma, /.test(sa));
+    k('S3 có số máy chủ → tổng lấy từ kết quả tinh-thu', /const tong = coSo \? Math\.round\(mayChu\.total\) :/.test(sa));
+    k('S4 chưa có số máy chủ (hoặc số của giỏ cũ) → không thu', /if \(dangGuiRef\.current \|\| !coSo\) return;/.test(sa)
+      && /export const coSoMayChu = \(mayChu, khoa\) => !!mayChu && mayChu\.khoa === khoa && Number\.isFinite\(mayChu\.total\);/.test(ti));
+    k('S5 giỏ hiện câu máy chủ ghi (cau_ghi)', /\{mayChu\.cau_ghi && /.test(sa));
+    k('S6 tinh-thu lỗi → giữ lý do máy chủ (loiTinh), hiện đúng lý do thay cho "đang hỏi"', /setLoiTinh\(loiTinhGia\(e\)\)/.test(sa)
+      && /\{loiTinh \|\| 'Đang hỏi máy chủ giá…'\}/.test(sa));
+    k('S7 tinh-thu hỏi lại khi NỘI DUNG tính tiền đổi (khoá chuỗi khoaTinh: khách, món, mã, giao, voucher)', /const khoa = useMemo\(\(\) => khoaTinh\(gio, khach, ma, giao, vcChon\), \[gio, khach, ma, giao, vcChon\]\);/.test(sa));
+    const khoaGio = (ti.match(/export function khoaTinh\([\s\S]*?\n\}/) || [''])[0];
+    k('S10 khoá tính tiền theo món + số lượng, KHÔNG theo ghi chú — gõ ghi chú không xoá số máy chủ (vòng soát 3)',
+      /soLuong\[m\.product_id\] = \(soLuong\[m\.product_id\] \|\| 0\) \+ m\.quantity/.test(khoaGio) && !/note/.test(khoaGio), khoaGio.slice(0, 80));
+    k('S9 giỏ hiện lý do mã không áp (ma_loi) từ tinh-thu', /\{mayChu\.ma_loi && /.test(sa) && /\{mayChu\.ma_loi\}/.test(sa));
     const st2 = docNguon(CLIENT, 'Settings.jsx');
     const khoiUuDai = (st2.match(/const loadUuDaiChung = [\s\S]*?\/\/ Permissions functions/) || [''])[0];   // HANG-1: deleteTier dời sang CaiDat/HangThe.jsx
     k('S8 Settings.jsx: khối mới gọi máy chủ qua utils/api.js (api.get / api.put), không qua pkgApi / fetch',
