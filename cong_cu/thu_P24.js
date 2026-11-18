@@ -17,6 +17,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_p24_'));
@@ -107,8 +108,10 @@ async function main() {
     sx_product_id: sp[i].sx_product_id, quantity: sl, from_package: tuGoi });
   let soSdt = 0;
   const sdtMoi = () => '0938' + String(400000 + (++soSdt));
+  // BO-MAN-CU-1: đơn ví / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
+  const taoDonThat = (b) => (laDonCu(b) ? donCu(MAY_CHU, b).then((x) => ({ ...x.body, status: x.status })) : goi('POST', '/orders', b));
   const ban = async (body) => {
-    const r = await goi('POST', '/orders', { customer_name: 'Khách P24', ...body });
+    const r = await taoDonThat({ customer_name: 'Khách P24', ...body });
     if (r.status !== 200) throw new Error('không tạo được đơn: ' + moTa(r));
     return r.order;
   };
@@ -384,7 +387,7 @@ async function main() {
     k('I1c huỷ đơn mua thẻ (tiền mặt) → 200, dòng mua thẻ xoá, tài khoản nhận hoàn đủ, điểm đơn 0', hThe.status === 200 && await vi(s2) === Number(hang.card_price)
       && await so('SELECT COUNT(*) FROM pos_membership_purchases WHERE order_id = ?', [the1.id]) === 0 && await diemDon(the1.id) === 0, moTa(hThe));
     const s2v = sdtMoi(); await nap(s2v, Number(hang.card_price));
-    const theVi = await goi('POST', '/orders', { customer_name: 'Khách P24', customer_phone: s2v, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 },
+    const theVi = await taoDonThat({ customer_name: 'Khách P24', customer_phone: s2v, items: [], membership_buy: { tier_id: hang.id, so_thang: 3 },
       payment_method: 'balance', balance_amount: Number(hang.card_price) });
     k('I1d (KH-NAP-1) mua thẻ trả bằng ví → 400 THE_KHONG_TRA_VI, ví không đổi', theVi.status === 400 && theVi.code === 'THE_KHONG_TRA_VI'
       && await vi(s2v) === Number(hang.card_price), moTa(theVi));

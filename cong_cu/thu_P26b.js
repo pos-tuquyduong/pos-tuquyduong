@@ -26,6 +26,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_p26b_'));
@@ -104,6 +105,8 @@ async function main() {
   const chu = await db.queryOne("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const token = jwt.sign({ userId: chu.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
   const goi = async (method, url, body) => {
+    // BO-MAN-CU-1: đơn ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
+    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,
@@ -339,7 +342,7 @@ async function main() {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  muc('[MẸ] ví mẹ (parent_phone / parent_balance_amount — Sales.jsx gửi): trừ đúng, hoàn đúng MỘT lần (soát vòng 3)');
+  muc('[MẸ] ví mẹ (parent_phone / parent_balance_amount — đơn cũ màn cũ gửi): trừ đúng, hoàn đúng MỘT lần (soát vòng 3)');
   {
     const me = sdtMoi(), con = sdtMoi(); await nap(me, 100000); await nap(con, 50000); await datMe(con, me);
     const donMe = (conTra = 0) => taoDon({ customer_phone: con, customer_name: 'Con P26b', parent_phone: me, items: [mon(0)],

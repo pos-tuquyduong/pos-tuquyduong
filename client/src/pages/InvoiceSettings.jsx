@@ -742,7 +742,7 @@ export default function InvoiceSettings() {
       const verifiedLogo = result.data?.logo;
       if (verifiedLogo) {
         setLogo(verifiedLogo);
-        // Cập nhật cache NGAY để Orders/Sales dùng được
+        // Cập nhật cache NGAY để Orders / màn Bán hàng dùng được
         try {
           localStorage.setItem(
             CACHE_KEY,

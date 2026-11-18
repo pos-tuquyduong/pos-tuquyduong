@@ -20,6 +20,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const iCL = process.argv.indexOf('--client');
@@ -102,6 +103,8 @@ async function main() {
   await db.run("UPDATE pos_permissions SET allowed = 1 WHERE role = 'manager' AND permission = 'manage_users'");
   const the = Object.fromEntries(Object.entries(nguoi).map(([a, id]) => [a, jwt.sign({ userId: id }, process.env.JWT_SECRET, { expiresIn: '1h' })]));
   const goiAi = async (ai, method, url, body) => {
+    // BO-MAN-CU-1: đơn mua / lấy gói, ví, CK, nợ = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc (logic gói vẫn nằm ở đó).
+    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body, { username: ai }).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,
@@ -248,7 +251,7 @@ async function main() {
     const [d1, d2] = await Promise.all([lay(d.sdt, d.cp, [[0, 2]]), lay(d.sdt, d.cp, [[0, 2]])]);
     const tot = [d1, d2].filter((r) => r.status === 200).length;
     const thua = [d1, d2].filter((r) => r.status === 400 && r.code === 'GOI_HET_LUOT_LOAI').length;
-    k('A2d hai quầy cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5',
+    k('A2d thân taoDonGoc (gói cũ — quầy hôm nay tạm ngưng gói) hai lệnh cùng xin 2 CT1 (cài 5, đã lấy 3) → một 200 + một 400 GOI_HET_LUOT_LOAI; CT1 = 5',
       tot === 1 && thua === 1 && await daLayLoai(d.cp, 0) === 5, `${moTa(d1)} / ${moTa(d2)} · CT1 ${await daLayLoai(d.cp, 0)}`);
     const q = await coGoi(3);
     khe.chen = async () => {   // quầy 2: một đơn lấy 2 CT1 đã ghi xong (đúng như POST /orders ghi)
@@ -263,7 +266,7 @@ async function main() {
     const conChen = khe.chen !== null;
     khe.chen = null;
     const q2 = await lay(q.sdt, q.cp, [[0, 1]]);
-    k('A2d2 quầy 2 ghi xong 2 CT1 đúng lúc quầy 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400',
+    k('A2d2 thân taoDonGoc (gói cũ): lệnh 2 ghi xong 2 CT1 đúng lúc lệnh 1 vừa đọc "đã lấy" — đọc phải nằm TRONG giao dịch (không có khe hở): CT1 không vượt 5; xin thêm 1 → 400',
       await daLayLoai(q.cp, 0) <= 5 && (conChen ? q1.status === 200 : q1.status === 400) && q2.status === 400,
       `${moTa(q1)} / ${moTa(q2)} · CT1 ${await daLayLoai(q.cp, 0)} · ${conChen ? 'không có câu đọc ngoài giao dịch' : 'đọc NGOÀI giao dịch'}`);
 

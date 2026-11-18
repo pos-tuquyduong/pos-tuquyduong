@@ -19,6 +19,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const GOC = path.join(__dirname, '..');
+const { donCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_p3_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
@@ -147,6 +148,8 @@ async function main() {
   };
   const moTa = (r) => `HTTP ${r.status}${r.j.code ? ' · ' + r.j.code : ''}`;
   const la = (r, status, code) => r.status === status && (code === undefined || r.j.code === code);
+  // BO-MAN-CU-1: ĐƠN CŨ (trừ ví ngoài phiên, CK, nợ, gói — đường thẳng nay chặn) dựng bằng thân taoDonGoc, cùng hình { status, j } với goi.
+  const donCuP3 = (than) => donCu(path.join(GOC, 'server'), than).then((x) => ({ status: x.status, j: x.body || {}, tho: '' }));
   const dem = async (sql, p = []) => Number((await db.queryOne(sql, p).catch(() => null))?.n ?? -1);
   const soDon = () => dem('SELECT COUNT(*) AS n FROM pos_orders');
   const soDongVi = () => dem('SELECT COUNT(*) AS n FROM pos_balance_transactions');
@@ -476,8 +479,9 @@ async function main() {
       && w.j.dang_giu === 75000 && w.j.kha_dung === 25000 && Number(w.j.balance) === 100000 && await soDongVi() === dong0, moTa(r) + ' ' + JSON.stringify(w.j));
     const tru = await goi('POST', '/pos/wallets/deduct', { phone: f, amount: 30000 }, tkChu);
     const dc = await goi('POST', '/pos/wallets/adjust', { phone: f, amount: -30000, reason: 'thử giữ' }, tkChu);
-    const od = await goi('POST', '/pos/orders', { customer_phone: f, items: [mon(2)], balance_amount: 50000 }, tkNv);
-    k('F1 đang giữ: trừ tay 30.000 / điều chỉnh −30.000 / đơn quầy trừ 50.000 → 400 SO_DU_KHONG_DU', la(tru, 400, 'SO_DU_KHONG_DU')
+    // BO-MAN-CU-1: đường thẳng nay chặn trừ ví (VI_PHAI_QUA_PIN) → đơn trừ ví ngoài phiên dựng bằng thân taoDonGoc (khả dụng = số dư − đang giữ ở đó).
+    const od = await donCuP3({ customer_phone: f, items: [mon(2)], balance_amount: 50000 });
+    k('F1 đang giữ: trừ tay 30.000 / điều chỉnh −30.000 / đơn trừ 50.000 (thân taoDonGoc) → 400 SO_DU_KHONG_DU', la(tru, 400, 'SO_DU_KHONG_DU')
       && la(dc, 400, 'SO_DU_KHONG_DU') && la(od, 400, 'SO_DU_KHONG_DU'), [tru, dc, od].map(moTa).join(' / '));
     const nap = await goi('POST', '/pos/wallets/topup', { phone: f, amount: 5000 }, tkChu);
     const tru2 = await goi('POST', '/pos/wallets/deduct', { phone: f, amount: 30000 }, tkChu);
@@ -570,10 +574,11 @@ async function main() {
 
   muc('[H] một đơn không trả kết hợp tiền mặt + chuyển khoản');
   await chay('H', async () => {
-    const h1 = await goi('POST', '/pos/orders', { items: [mon(1)], payment_method: 'cash', cash_amount: 10000, transfer_amount: 15000 });
-    k('H1 POST /orders tiền mặt 10.000 + CK 15.000 → 400 TRA_KET_HOP', la(h1, 400, 'TRA_KET_HOP'), moTa(h1));
+    // BO-MAN-CU-1: đường thẳng chặn MỌI chuyển khoản (CK chỉ qua phiên QR / xác nhận tay) → luật "không kết hợp" khoá ở thân taoDonGoc.
+    const h1 = await donCuP3({ items: [mon(1)], payment_method: 'cash', cash_amount: 10000, transfer_amount: 15000 });
+    k('H1 thân taoDonGoc: tiền mặt 10.000 + CK 15.000 → 400 TRA_KET_HOP', la(h1, 400, 'TRA_KET_HOP'), moTa(h1));
     const k1 = await goi('POST', '/pos/orders', { items: [mon(1)], payment_method: 'transfer', transfer_amount: 25000 });
-    k('H (K5) chỉ chuyển khoản 25.000 (cờ payOS tắt) → 200', la(k1, 200), moTa(k1));
+    k('H (BO-MAN-CU-1) chỉ chuyển khoản 25.000 trên đường thẳng (cờ payOS tắt) → 400 CK_PHAI_QUA_PAYOS', la(k1, 400, 'CK_PHAI_QUA_PAYOS'), moTa(k1));
   });
 
   muc('[I] K5 — luồng cũ chạy như cũ; cờ thanh_toan_payos_bat_buoc');
@@ -585,15 +590,19 @@ async function main() {
     await db.run("INSERT INTO pos_packages (code, name, price, unit, total_qty, is_active) VALUES ('GOI-P3', 'Gói P3', 200000, 'túi', 10, 1)");
     const goiP = await db.queryOne("SELECT id FROM pos_packages WHERE code = 'GOI-P3'");
     const i4 = await goi('POST', '/pos/orders', { customer_phone: a, items: [], package_buy: { package_id: goiP.id }, payment_method: 'cash', cash_amount: 200000 });
+    await donCuP3({ customer_phone: a, items: [], package_buy: { package_id: goiP.id }, payment_method: 'cash', cash_amount: 200000 });   // gói CŨ khách đang có
     const cp = await db.queryOne('SELECT id FROM pos_customer_packages WHERE customer_phone = ? ORDER BY id DESC LIMIT 1', [a]);
     const i3 = await goi('POST', '/pos/orders', { customer_phone: a, items: [{ ...mon(1), from_package: true }], customer_package_id: cp?.id, payment_method: 'cash', cash_amount: 0 });
     await db.run("INSERT INTO pos_membership_tiers (name, card_price, discount_percent, is_active, sort_order, goi) VALUES ('Vàng', 300000, 5, 1, 99, json_array(json_object('so_thang', 3, 'gia', 300000, 'bat', json('true'))))");
     const hang = await db.queryOne("SELECT id FROM pos_membership_tiers WHERE name = 'Vàng' ORDER BY id DESC LIMIT 1");
     const i5 = await goi('POST', '/pos/orders', { customer_phone: await khach(0, null), items: [], membership_buy: { tier_id: hang.id, so_thang: 3 }, payment_method: 'cash', cash_amount: 300000 });
-    const no = await goi('POST', '/pos/orders', { customer_phone: a, customer_name: 'K', items: [mon(1)], payment_method: 'debt', debt_amount: 25000, due_date: '2026-12-31' });
+    const no = await donCuP3({ customer_phone: a, customer_name: 'K', items: [mon(1)], payment_method: 'debt', debt_amount: 25000, due_date: '2026-12-31' });   // đơn nợ CŨ
     const i6 = await goi('POST', `/pos/orders/${no.j.order?.id}/pay-debt`, { payment_method: 'cash', amount: 25000 });
-    k('I1–I6 tiền mặt · số dư đủ (2 kiểu) · mua gói · giao từ gói 0đ · mua thẻ · thu nợ CŨ ở pay-debt → 200',
-      [i1, i2, i2b, i4, i3, i5, no, i6].every((x) => la(x, 200)), [i1, i2, i2b, i4, i3, i5, no, i6].map(moTa).join(', '));
+    // BO-MAN-CU-1 (chủ quán 11.11 + 17.11): cờ không còn quyết — đường thẳng luôn chặn trừ tài khoản; gói tạm ngưng ở mọi lối.
+    k('I1–I6 (cờ TẮT) tiền mặt · mua thẻ · đơn nợ CŨ thu ở pay-debt → 200', [i1, i5, no, i6].every((x) => la(x, 200)), [i1, i5, no, i6].map(moTa).join(', '));
+    k('I1–I6 (BO-MAN-CU-1, cờ TẮT) số dư đủ (2 kiểu) ngoài phiên → 400 VI_PHAI_QUA_PIN; mua gói / giao từ gói cũ → 400 GOI_TAM_DUNG',
+      la(i2, 400, 'VI_PHAI_QUA_PIN') && la(i2b, 400, 'VI_PHAI_QUA_PIN') && la(i4, 400, 'GOI_TAM_DUNG') && la(i3, 400, 'GOI_TAM_DUNG') && !!cp,
+      [i2, i2b, i4, i3].map(moTa).join(', '));
     await datCaiDat('thanh_toan_payos_bat_buoc', '1');
     const j1 = await goi('POST', '/pos/orders', { items: [mon(1)], payment_method: 'transfer', transfer_amount: 25000 });
     const j2 = await goi('POST', '/pos/orders', { customer_phone: a, items: [mon(1)], payment_method: 'cash', balance_amount: 25000 });
@@ -606,8 +615,8 @@ async function main() {
     await datCaiDat('thanh_toan_payos_bat_buoc', '0');
     k('I7 cờ BẬT: CK trần → 400 CK_PHAI_QUA_PAYOS; trừ tài khoản / ví mẹ ngoài phiên (3 kiểu) → 400 VI_PHAI_QUA_PIN', la(j1, 400, 'CK_PHAI_QUA_PAYOS')
       && la(j2, 400, 'VI_PHAI_QUA_PIN') && la(j3, 400, 'VI_PHAI_QUA_PIN') && la(j3b, 400, 'VI_PHAI_QUA_PIN'), [j1, j2, j3, j3b].map(moTa).join(', '));
-    k('I7 cờ BẬT (K5): tiền mặt · giao từ gói 0đ · phiên payOS về → vẫn 200, đơn tạo', la(j4, 200) && la(j5, 200) && la(j6, 200)
-      && !!(await dongPhien(pj?.id))?.order_id, [j4, j5, j6].map(moTa).join(', '));
+    k('I7 cờ BẬT (K5): tiền mặt · phiên payOS về → vẫn 200, đơn tạo; giao từ gói 0đ → 400 GOI_TAM_DUNG (BO-MAN-CU-1)', la(j4, 200) && la(j5, 400, 'GOI_TAM_DUNG')
+      && la(j6, 200) && !!(await dongPhien(pj?.id))?.order_id, [j4, j5, j6].map(moTa).join(', '));
     const kl = await taoPhien({});
     k('I (K5) khách lẻ (không SĐT) tạo phiên payOS → 200', la(kl, 200), moTa(kl));
   });

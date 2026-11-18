@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import jsQR from 'jsqr';
 
 /**
- * A5: Modal quét QR bằng camera — dùng ở hai chỗ: mã khuyến mãi (Sales.jsx) và Quét thẻ thành viên (CustomerSearch.jsx, P15-QR).
+ * A5: Modal quét QR bằng camera — Quét thẻ thành viên ở màn Bán hàng (BanHang/ThanhKhach.jsx, P15-QR).
  * Hộp tự nó không gọi API; cha quyết định làm gì với text đọc được.
  * Đọc được QR → gọi onResult(text), dừng quét; CHA đóng hộp.
  * Vẽ qua portal ra document.body: cha nằm trong .card (backdrop-filter, z-index riêng) thì position:fixed bị bó trong thẻ (P15-QR).

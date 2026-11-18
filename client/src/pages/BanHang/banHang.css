@@ -1,4 +1,4 @@
-/* Màn Bán hàng mới (BH-1). Mọi lớp bắt đầu bằng bh- để không đụng màn cũ. */
+/* Màn Bán hàng (BH-1). Mọi lớp bắt đầu bằng bh- để không đụng lớp của các màn khác. */
 .bh { --bh-do: #b91c1c; --bh-do-nhat: #fee2e2; --bh-xanh: #15803d; --bh-xam: #64748b; --bh-vien: #e2e8f0;
   display: flex; flex-direction: column; gap: 0.5rem; height: calc(100vh - 90px); min-height: 480px; position: relative; }
 .bh * { box-sizing: border-box; }

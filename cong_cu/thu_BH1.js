@@ -8,7 +8,7 @@
  *
  *  tinh.js là ES module không phụ thuộc React → nạp bằng import() trực tiếp (không dựng giả lập).
  *  Phần cấu trúc đọc file nguồn: BanHang/ không `fetch` trần, không tạo khách ở quầy, không Ghi nợ / Chưa thu, localStorage trong try;
- *  khoá payload đơn == khoá `orderData` của Sales.jsx (đơn từ màn mới "y như màn cũ").
+ *  thân màn gửi máy chủ (TM1–TM6, thanTinhThu). BO-MAN-CU-1: màn cũ + dungDonHang đã xoá; công tắc → kiểu bố cục. Tên I1–I11 cũ KHÔNG dùng lại.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -71,21 +71,23 @@ async function main() {
   thu('B5 kiểu Máy tính bảng ép hai cột dù rộng 320', () => tt(320, 'maytinhbang') === 'hai-cot');
   thu('B6 kiểu lạ / thiếu → coi như Tự động', () => tt(500, 'xyz') === 'hai-trang' && tt(900, undefined) === 'hai-cot');
 
-  muc('A · công tắc theo máy (localStorage, hỏng thì tắt / Tự động)');
+  // BO-MAN-CU-1 (chủ quán 11.11): không còn công tắc màn cũ / mới — máy chỉ nhớ KIỂU bố cục (docKieu / ghiKieu).
+  muc('A · kiểu bố cục theo máy (localStorage, hỏng thì Tự động)');
   const kho = () => { const m = {}; return { getItem: (a) => (a in m ? m[a] : null), setItem: (a, v) => { m[a] = String(v); }, m }; };
   const khoHong = { getItem: () => { throw new Error('bị chặn'); }, setItem: () => { throw new Error('bị chặn'); } };
-  thu('A1 kho trống → TẮT + Tự động (mặc định)', () => bang(f('docCongTac')(kho()), { bat: false, kieu: 'tudong' }));
-  thu('A2 ghi bật + Máy tính bảng rồi đọc lại', () => { const s = kho(); f('ghiCongTac')(s, true, 'maytinhbang'); return bang(f('docCongTac')(s), { bat: true, kieu: 'maytinhbang' }); });
-  thu('A3 ghi tắt rồi đọc lại → tắt', () => { const s = kho(); f('ghiCongTac')(s, true, 'dienthoai'); f('ghiCongTac')(s, false, 'dienthoai'); return f('docCongTac')(s).bat === false; });
-  thu('A4 kho ném lỗi khi đọc → tắt / Tự động, không ném', () => bang(f('docCongTac')(khoHong), { bat: false, kieu: 'tudong' }));
-  thu('A5 kho ném lỗi khi ghi → không ném', () => { f('ghiCongTac')(khoHong, true, 'tudong'); return true; });
-  thu('A6 không có kho (undefined) → tắt / Tự động', () => bang(f('docCongTac')(undefined), { bat: false, kieu: 'tudong' }));
-  thu('A7 giá trị lạ trong kho: bật chỉ khi đúng chuỗi "1"', () => {
-    const kc = T.KHOA_CONG_TAC, kk = T.KHOA_KIEU;
-    const a = kho(); a.setItem(kc, 'true'); a.setItem(kk, 'tuyet-voi');
-    const b = kho(); b.setItem(kc, '1');
-    return bang(f('docCongTac')(a), { bat: false, kieu: 'tudong' }) && f('docCongTac')(b).bat === true;
+  thu('A1 kho trống → Tự động (mặc định)', () => f('docKieu')(kho()) === 'tudong');
+  thu('A2 ghi Máy tính bảng rồi đọc lại', () => { const s = kho(); f('ghiKieu')(s, 'maytinhbang'); return f('docKieu')(s) === 'maytinhbang'; });
+  thu('A3 ghi Điện thoại rồi Tự động → đọc lại Tự động', () => { const s = kho(); f('ghiKieu')(s, 'dienthoai'); f('ghiKieu')(s, 'tudong'); return f('docKieu')(s) === 'tudong'; });
+  thu('A4 kho ném lỗi khi đọc → Tự động, không ném', () => f('docKieu')(khoHong) === 'tudong');
+  thu('A5 kho ném lỗi khi ghi → không ném', () => { f('ghiKieu')(khoHong, 'tudong'); return true; });
+  thu('A6 không có kho (undefined) → Tự động', () => f('docKieu')(undefined) === 'tudong');
+  thu('A7 giá trị lạ trong kho → Tự động; ghi kiểu lạ → lưu Tự động', () => {
+    const a = kho(); a.setItem(T.KHOA_KIEU, 'tuyet-voi');
+    const b = kho(); f('ghiKieu')(b, 'xyz');
+    return f('docKieu')(a) === 'tudong' && b.m[T.KHOA_KIEU] === 'tudong';
   });
+  thu('A8 (BO-MAN-CU-1) không còn công tắc màn cũ: tinh.js không xuất docCongTac / ghiCongTac / KHOA_CONG_TAC', () => !('docCongTac' in T)
+    && !('ghiCongTac' in T) && !('KHOA_CONG_TAC' in T));
 
   muc('D · giá hạng hiển thị / giỏ');
   thu('D1 giaHang 96.000 hạng 10% → 86.400 và coGiam', () => { const g = f('giaHang')(96000, 10); return g.goc === 96000 && g.hang === 86400 && g.coGiam === true; });
@@ -113,7 +115,7 @@ async function main() {
     const g = f('tinhGio')([sp(1, 96000), sp(2, 25000, true)], { hang: hang10 });
     return bang(g.dong.map((d) => d.giaHang), [86400, 23750]);
   });
-  thu('D11 tinhGio Flash đang chạy trên món → hạng KHÔNG cộng (đúng Sales.jsx)', () => {
+  thu('D11 tinhGio Flash đang chạy trên món → hạng KHÔNG cộng (đúng máy chủ)', () => {
     const flash = { is_flash_now: true, percent: 20, product_keys: ['juice_1'] };
     const g = f('tinhGio')([sp(1, 100000), sp(2, 50000)], { hang: hang10, flash });
     return g.giamFlash === 20000 && g.giamHang === 0 && g.tong === 130000;
@@ -142,62 +144,31 @@ async function main() {
     return g(['Ít đá', 'Ít ngọt'], ' ít đá ') === 'Ít đá, Ít ngọt' && g([], '') === '' && g(['a'], 'x'.repeat(300)).length === 200;
   });
 
-  muc('I · payload đơn (K5: y như màn cũ)');
+  // BO-MAN-CU-1 (soát vòng 2): bỏ dungDonHang (thân POST /orders thẳng — màn không gọi, máy chủ nay chặn ví / CK / nợ / gói ở đường đó).
+  // Phần TM khoá ĐÚNG thân màn gửi: thanTinhThu = thân tinh-thu = phần `don` của phiên thu (tinh.js thanPhien).
+  muc('TM · thân màn gửi máy chủ (thanTinhThu)');
   const gio = [{ product_id: 7, sx_product_type: 'juice', sx_product_id: 3, quantity: 2, unit_price: 35000, note: '  Ít đá ' }];
   const khach = { phone: '0912345678', name: 'Chị Hoa', balance: 50000 };
-  const tinh = (ctx = {}) => f('tinhGio')(gio, ctx);
-  const dung = (o) => f('dungDonHang')({ gio, tamTinh: tinh(), ...o });
-  thu('I1 tiền mặt đúng tiền (khách lẻ): cash_amount = tổng, cash_received = tổng, trả lại 0', () => {
-    const d = dung({ cach: 'cash', khachDua: 70000 });
-    return d.payment_method === 'cash' && d.cash_amount === 70000 && d.cash_received === 70000 && d.change_amount === 0 &&
-      d.transfer_amount === 0 && d.balance_amount === 0 && d.customer_phone === null && d.customer_name === 'Khách lẻ';
+  const than = (o = {}) => f('thanTinhThu')(o.gio || gio, 'khach' in o ? o.khach : khach, o.ma || '');
+  const TIEN = ['payment_method', 'cash_amount', 'cash_received', 'change_amount', 'transfer_amount', 'balance_amount', 'parent_balance_amount', 'debt_amount'];
+  thu('TM1 khách lẻ: customer_phone null, customer_name "Khách lẻ"; không trường tiền nào (máy chủ tự tính, phiên quyết cách trả)', () => {
+    const d = than({ khach: null });
+    return d.customer_phone === null && d.customer_name === 'Khách lẻ' && TIEN.every((x) => !(x in d));
   });
-  thu('I2 tiền mặt số khác: đưa 100.000 → cash_received 100.000, change_amount 30.000, cash_amount vẫn 70.000', () => {
-    const d = dung({ cach: 'cash', khachDua: 100000 });
-    return d.cash_amount === 70000 && d.cash_received === 100000 && d.change_amount === 30000;
-  });
-  thu('I3 chuyển khoản: transfer_amount = tổng, cash 0, cash_received 0', () => {
-    const d = dung({ cach: 'transfer' });
-    return d.payment_method === 'transfer' && d.transfer_amount === 70000 && d.cash_amount === 0 && d.cash_received === 0 && d.change_amount === 0;
-  });
-  thu('I4 khách quen trừ số dư một phần (50.000) + tiền mặt 20.000', () => {
-    const d = dung({ cach: 'cash', khach, soDuDung: 50000, khachDua: 20000 });
-    return d.balance_amount === 50000 && d.cash_amount === 20000 && d.cash_received === 20000 && d.change_amount === 0 &&
-      d.customer_phone === '0912345678' && d.customer_name === 'Chị Hoa' && d.payment_method === 'cash';
-  });
-  thu('I5 số dư đủ trả hết → payment_method "balance", balance_amount = tổng, cash/transfer 0', () => {
-    const d = dung({ cach: 'balance', khach: { ...khach, balance: 100000 }, soDuDung: 70000 });
-    return d.payment_method === 'balance' && d.balance_amount === 70000 && d.cash_amount === 0 && d.transfer_amount === 0 && d.cash_received === 0;
-  });
-  thu('I6 số dư mẹ: gửi parent_phone + parent_balance_amount; mặc định không có', () => {
-    const co = dung({ cach: 'cash', khach: { ...khach, parent_phone: '0900000000' }, soDuMeDung: 10000, khachDua: 10000 });
-    const khong = dung({ cach: 'cash', khach: { ...khach, parent_phone: '0900000000' }, khachDua: 70000 });   // có mẹ nhưng không dùng → không gửi
-    return co.parent_phone === '0900000000' && co.parent_balance_amount === 10000 && khong.parent_phone === null && khong.parent_balance_amount === 0;
-  });
-  thu('I7 món: from_package false, ghi chú cắt khoảng trắng, không gói / thẻ', () => {
-    const d = dung({ cach: 'cash', khachDua: 70000 });
+  thu('TM2 khách quen: gửi SĐT + tên, vẫn không trường tiền nào', () => { const d = than(); return d.customer_phone === '0912345678' && d.customer_name === 'Chị Hoa' && TIEN.every((x) => !(x in d)); });
+  thu('TM3 món: from_package false, ghi chú cắt khoảng trắng; không gói (package_buy / customer_package_id), không thẻ', () => {
+    const d = than();
     const it = d.items[0];
-    return d.items.length === 1 && it.from_package === false && it.note === 'Ít đá' && it.quantity === 2 && it.product_id === 7 &&
-      d.package_buy === null && d.membership_buy === null && d.customer_package_id === null && d.shipping_fee === 0;
+    return d.items.length === 1 && it.from_package === false && it.note === 'Ít đá' && it.quantity === 2 && it.product_id === 7
+      && !('package_buy' in d) && !('customer_package_id' in d) && !('membership_buy' in d);
   });
-  thu('I8 khách hồ sơ cũ có mức 10 % → KHÔNG gửi chiết khấu riêng (discount_type null, discount_value 0, discount_reason null) — KHACH-CK-1', () => {
-    const d = dung({ cach: 'cash', khach: { ...khach, discount_type: 'percent', discount_value: 10 }, tamTinh: tinh({ khachGiam: { loai: 'percent', gia_tri: 10 } }), khachDua: 70000 });
-    return d.discount_type === null && d.discount_value === 0 && d.discount_reason === null;
+  thu('TM4 khách hồ sơ cũ có mức 10 % → KHÔNG gửi chiết khấu riêng (discount / discount_type / discount_value / discount_reason) — KHACH-CK-1', () => {
+    const d = than({ khach: { ...khach, discount_type: 'percent', discount_value: 10 } });
+    return ['discount', 'discount_type', 'discount_value', 'discount_reason'].every((x) => !(x in d));
   });
-  thu('I9 không chiết khấu → discount_type null, discount_value 0', () => { const d = dung({ cach: 'cash', khachDua: 70000 }); return d.discount_type === null && d.discount_value === 0; });
-
-  // Tập khoá == tập khoá orderData của Sales.jsx (đọc từ nguồn, không tự gõ)
-  const ban = DOC('client', 'src', 'pages', 'Sales.jsx');
-  const m = ban.match(/const orderData = \{([\s\S]*?)\n      \};/);
-  const khoaCu = m ? [...m[1].matchAll(/^\s{8}([a-z_]+):/gm)].map((x) => x[1]).sort() : [];
-  thu('I10 tìm được khoá orderData trong Sales.jsx (≥ 20 khoá)', () => khoaCu.length >= 20, 'tìm được ' + khoaCu.length);
-  thu('I11 tập khoá payload màn mới == tập khoá orderData màn cũ', () => {
-    const d = dung({ cach: 'cash', khachDua: 70000 });
-    const moi = Object.keys(d).sort();
-    if (!bang(moi, khoaCu)) throw new Error('khác: ' + moi.filter((x) => !khoaCu.includes(x)).concat(khoaCu.filter((x) => !moi.includes(x))).join(','));
-    return true;
-  });
-
+  thu('TM5 mã gõ thường có khoảng trắng → discount_code chữ hoa đã cắt; không mã → null', () => than({ ma: ' giam10 ' }).discount_code === 'GIAM10'
+    && than().discount_code === null);
+  thu('TM6 (BO-MAN-CU-1) tinh.js không còn dungDonHang (thân đơn POST /orders thẳng)', () => !('dungDonHang' in T));
   muc('Cấu trúc nguồn');
   const F = docBanHang();
   const tenFile = Object.keys(F);
@@ -214,7 +185,7 @@ async function main() {
   const app = DOC('client', 'src', 'App.jsx');
   k('S8 App.jsx: route trang chủ trỏ TrangChu (chọn màn theo công tắc)', /<Route index element=\{<TrangChu\s*\/>\}\s*\/>/.test(app));
   k('S9 App.jsx: không còn `<Sales />` làm route trang chủ', !/<Route index element=\{<Sales\s*\/>\}/.test(app));
-  k('S10 Sales.jsx không nhắc BanHang (màn cũ KHÔNG đổi)', !/BanHang/.test(ban));
+  k('S10 (BO-MAN-CU-1) màn cũ đã xoá: không còn pages/Sales.jsx', !fs.existsSync(path.join(GOC, 'client', 'src', 'pages', 'Sales.jsx')));
   const kiem = DOC('kiem_tra_truoc_khi_giao.js');
   k('S11 kiem_tra_truoc_khi_giao.js chạy thu_BH1.js', /'cong_cu\/thu_BH1\.js'[,\]][^\n]*chayBaiThat\(bai\)/.test(kiem));
   k('S12 kết thúc: lưới món khoá (bh-khoa) khi xong && !daIn', jsx.some(([, s]) => /xong && !daIn \? ' bh-khoa'/.test(s)));

@@ -14,7 +14,7 @@
  * - onClose: Function đóng modal
  * - onPrintComplete: Function callback sau khi in xong
  * - inLai: true → in lại từ màn Đơn hàng (bill + tem + phiếu đều mang dòng "IN LẠI")
- * - nhomTheoMa: bảng mã món → nhóm nếu nơi gọi đã có (Sales); không có thì tự tải
+ * - nhomTheoMa: bảng mã món → nhóm nếu nơi gọi đã có; không có thì tự tải
  *
  * HD-1: bill vẽ từ GET /api/pos/hoa-don/:id (một cửa dữ liệu, cùng số lúc mua và lúc in lại) — 2 tờ GIAO KHÁCH / LƯU QUẦY
  * (cài đặt `invoice_so_to`). Cửa lỗi / đơn không có id → rơi về bố cục cũ (InvoicePreview), việc in không bị chặn.

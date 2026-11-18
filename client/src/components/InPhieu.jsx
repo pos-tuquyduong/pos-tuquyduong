@@ -15,7 +15,7 @@ const CHO_NHOM_TOI_DA_MS = 4000;   // SX chậm thì thôi chờ: tem in mọi m
 export const bangNhomTuDanhSach = (ds) => Object.fromEntries((ds || []).filter((p) => p.code && p.category).map((p) => [p.code, p.category]));
 
 /**
- * Trả { nhomTheoMa, sanSang }. `bietSan` = bảng đã có (Sales đang giữ danh sách sản phẩm) → không gọi lại máy chủ.
+ * Trả { nhomTheoMa, sanSang }. `bietSan` = bảng đã có (nơi gọi đang giữ danh sách sản phẩm) → không gọi lại máy chủ.
  * Tải hỏng / quá CHO_NHOM_TOI_DA_MS → bảng rỗng (tem vẫn in, mặc định bật mọi nhóm).
  */
 export function useNhomTheoMa(bietSan) {
