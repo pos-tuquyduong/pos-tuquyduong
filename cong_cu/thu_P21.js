@@ -22,6 +22,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_p21_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
@@ -99,7 +100,9 @@ async function main() {
 
   const soDu = async (phone) => (await db.queryOne('SELECT balance FROM pos_wallets WHERE phone = ?', [phone]))?.balance ?? null;
   const napVi = (phone, soTien) => buoc('nạp ví', goi('POST', '/wallets/topup', { phone, amount: soTien, customer_name: 'Khách', payment_method: 'cash' }));
-  const taoDon = async (ten, body) => (await buoc('tạo đơn ' + ten, goi('POST', '/orders', body))).order;
+  // BO-MAN-CU-1: đơn ghi nợ = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
+  const taoDon = async (ten, body) => (await buoc('tạo đơn ' + ten, laDonCu(body)
+    ? donCu(path.join(GOC, 'server'), body).then((x) => ({ status: x.status, ...x.body })) : goi('POST', '/orders', body))).order;
   // Đơn ghi nợ 19.000đ rồi thu nợ bằng tiền mặt qua pay-debt THẬT → sinh dòng debt_payment +19.000.
   const noRoiThu = async (phone) => {
     const d = await taoDon('ghi nợ', { customer_phone: phone, customer_name: 'Khách', items: [mon()], payment_method: 'debt', debt_amount: 19000 });
