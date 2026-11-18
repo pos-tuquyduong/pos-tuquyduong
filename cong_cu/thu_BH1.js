@@ -144,52 +144,31 @@ async function main() {
     return g(['Ít đá', 'Ít ngọt'], ' ít đá ') === 'Ít đá, Ít ngọt' && g([], '') === '' && g(['a'], 'x'.repeat(300)).length === 200;
   });
 
-  muc('I · payload đơn (K5: y như màn cũ)');
+  // BO-MAN-CU-1 (soát vòng 2): bỏ dungDonHang (thân POST /orders thẳng — màn không gọi, máy chủ nay chặn ví / CK / nợ / gói ở đường đó).
+  // Phần I khoá ĐÚNG thân màn gửi: thanTinhThu = thân tinh-thu = phần `don` của phiên thu (tinh.js thanPhien).
+  muc('I · thân màn gửi máy chủ (thanTinhThu)');
   const gio = [{ product_id: 7, sx_product_type: 'juice', sx_product_id: 3, quantity: 2, unit_price: 35000, note: '  Ít đá ' }];
   const khach = { phone: '0912345678', name: 'Chị Hoa', balance: 50000 };
-  const tinh = (ctx = {}) => f('tinhGio')(gio, ctx);
-  const dung = (o) => f('dungDonHang')({ gio, tamTinh: tinh(), ...o });
-  thu('I1 tiền mặt đúng tiền (khách lẻ): cash_amount = tổng, cash_received = tổng, trả lại 0', () => {
-    const d = dung({ cach: 'cash', khachDua: 70000 });
-    return d.payment_method === 'cash' && d.cash_amount === 70000 && d.cash_received === 70000 && d.change_amount === 0 &&
-      d.transfer_amount === 0 && d.balance_amount === 0 && d.customer_phone === null && d.customer_name === 'Khách lẻ';
+  const than = (o = {}) => f('thanTinhThu')(o.gio || gio, 'khach' in o ? o.khach : khach, o.ma || '');
+  const TIEN = ['payment_method', 'cash_amount', 'cash_received', 'change_amount', 'transfer_amount', 'balance_amount', 'parent_balance_amount', 'debt_amount'];
+  thu('I1 khách lẻ: customer_phone null, customer_name "Khách lẻ"; không trường tiền nào (máy chủ tự tính, phiên quyết cách trả)', () => {
+    const d = than({ khach: null });
+    return d.customer_phone === null && d.customer_name === 'Khách lẻ' && TIEN.every((x) => !(x in d));
   });
-  thu('I2 tiền mặt số khác: đưa 100.000 → cash_received 100.000, change_amount 30.000, cash_amount vẫn 70.000', () => {
-    const d = dung({ cach: 'cash', khachDua: 100000 });
-    return d.cash_amount === 70000 && d.cash_received === 100000 && d.change_amount === 30000;
-  });
-  thu('I3 chuyển khoản: transfer_amount = tổng, cash 0, cash_received 0', () => {
-    const d = dung({ cach: 'transfer' });
-    return d.payment_method === 'transfer' && d.transfer_amount === 70000 && d.cash_amount === 0 && d.cash_received === 0 && d.change_amount === 0;
-  });
-  thu('I4 khách quen trừ số dư một phần (50.000) + tiền mặt 20.000', () => {
-    const d = dung({ cach: 'cash', khach, soDuDung: 50000, khachDua: 20000 });
-    return d.balance_amount === 50000 && d.cash_amount === 20000 && d.cash_received === 20000 && d.change_amount === 0 &&
-      d.customer_phone === '0912345678' && d.customer_name === 'Chị Hoa' && d.payment_method === 'cash';
-  });
-  thu('I5 số dư đủ trả hết → payment_method "balance", balance_amount = tổng, cash/transfer 0', () => {
-    const d = dung({ cach: 'balance', khach: { ...khach, balance: 100000 }, soDuDung: 70000 });
-    return d.payment_method === 'balance' && d.balance_amount === 70000 && d.cash_amount === 0 && d.transfer_amount === 0 && d.cash_received === 0;
-  });
-  thu('I6 số dư mẹ: gửi parent_phone + parent_balance_amount; mặc định không có', () => {
-    const co = dung({ cach: 'cash', khach: { ...khach, parent_phone: '0900000000' }, soDuMeDung: 10000, khachDua: 10000 });
-    const khong = dung({ cach: 'cash', khach: { ...khach, parent_phone: '0900000000' }, khachDua: 70000 });   // có mẹ nhưng không dùng → không gửi
-    return co.parent_phone === '0900000000' && co.parent_balance_amount === 10000 && khong.parent_phone === null && khong.parent_balance_amount === 0;
-  });
-  thu('I7 món: from_package false, ghi chú cắt khoảng trắng, không gói / thẻ', () => {
-    const d = dung({ cach: 'cash', khachDua: 70000 });
+  thu('I2 khách quen: gửi SĐT + tên, vẫn không trường tiền nào', () => { const d = than(); return d.customer_phone === '0912345678' && d.customer_name === 'Chị Hoa' && TIEN.every((x) => !(x in d)); });
+  thu('I7 món: from_package false, ghi chú cắt khoảng trắng; không gói (package_buy / customer_package_id), không thẻ', () => {
+    const d = than();
     const it = d.items[0];
-    return d.items.length === 1 && it.from_package === false && it.note === 'Ít đá' && it.quantity === 2 && it.product_id === 7 &&
-      d.package_buy === null && d.membership_buy === null && d.customer_package_id === null && d.shipping_fee === 0;
+    return d.items.length === 1 && it.from_package === false && it.note === 'Ít đá' && it.quantity === 2 && it.product_id === 7
+      && !('package_buy' in d) && !('customer_package_id' in d) && !('membership_buy' in d);
   });
-  thu('I8 khách hồ sơ cũ có mức 10 % → KHÔNG gửi chiết khấu riêng (discount_type null, discount_value 0, discount_reason null) — KHACH-CK-1', () => {
-    const d = dung({ cach: 'cash', khach: { ...khach, discount_type: 'percent', discount_value: 10 }, tamTinh: tinh({ khachGiam: { loai: 'percent', gia_tri: 10 } }), khachDua: 70000 });
-    return d.discount_type === null && d.discount_value === 0 && d.discount_reason === null;
+  thu('I8 khách hồ sơ cũ có mức 10 % → KHÔNG gửi chiết khấu riêng (discount / discount_type / discount_value / discount_reason) — KHACH-CK-1', () => {
+    const d = than({ khach: { ...khach, discount_type: 'percent', discount_value: 10 } });
+    return ['discount', 'discount_type', 'discount_value', 'discount_reason'].every((x) => !(x in d));
   });
-  thu('I9 không chiết khấu → discount_type null, discount_value 0', () => { const d = dung({ cach: 'cash', khachDua: 70000 }); return d.discount_type === null && d.discount_value === 0; });
-
-  // I10 / I11 (tập khoá payload == khoá orderData của màn cũ) bỏ: BO-MAN-CU-1 xoá màn cũ, chuẩn so sánh không còn; I1–I9 khoá từng khoá.
-
+  thu('I9 mã gõ thường có khoảng trắng → discount_code chữ hoa đã cắt; không mã → null', () => than({ ma: ' giam10 ' }).discount_code === 'GIAM10'
+    && than().discount_code === null);
+  thu('I10 (BO-MAN-CU-1) tinh.js không còn dungDonHang (thân đơn POST /orders thẳng)', () => !('dungDonHang' in T));
   muc('Cấu trúc nguồn');
   const F = docBanHang();
   const tenFile = Object.keys(F);

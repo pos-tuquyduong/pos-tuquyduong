@@ -33,9 +33,10 @@ DOT_BIEN = [
                        '''  if (!phien && (await queryOne("SELECT value FROM pos_settings WHERE key = 'thanh_toan_payos_bat_buoc'"))?.value === "1") {\n    if (Number(b.balance_amount)''', 1)],
    r'✗ B1a'),
   # ── B2: chuyển khoản trên đường thẳng ──
-  ('BV-CK-THANG', [(OR, 'if ((Number(b.transfer_amount) || 0) !== 0 || b.payment_method === "transfer") {', 'if (b.payment_method === "transfer") {', 1)], r'✗ B2c'),
-  ('BV-CK-NHAN', [(OR, 'if ((Number(b.transfer_amount) || 0) !== 0 || b.payment_method === "transfer") {', 'if ((Number(b.transfer_amount) || 0) !== 0) {', 1)], r'✗ B2b'),
-  ('VS-CK-CHI-DUONG', [(OR, 'if ((Number(b.transfer_amount) || 0) !== 0 || b.payment_method', 'if (Number(b.transfer_amount) > 0 || b.payment_method', 1)], r'✗ B2d'),
+  ('BV-CK-THANG', [(OR, 'if (Number(b.transfer_amount || 0) !== 0 || b.payment_method === "transfer") {', 'if (b.payment_method === "transfer") {', 1)], r'✗ B2c'),
+  ('BV-CK-NHAN', [(OR, 'if (Number(b.transfer_amount || 0) !== 0 || b.payment_method === "transfer") {', 'if (Number(b.transfer_amount || 0) !== 0) {', 1)], r'✗ B2b'),
+  ('VS-CK-CHI-DUONG', [(OR, 'if (Number(b.transfer_amount || 0) !== 0 || b.payment_method', 'if (Number(b.transfer_amount) > 0 || b.payment_method', 1)], r'✗ B2d'),
+  ('VS-CK-BO-NAN', [(OR, 'if (Number(b.transfer_amount || 0) !== 0 || b.payment_method', 'if ((Number(b.transfer_amount) || 0) !== 0 || b.payment_method', 1)], r'✗ B2f'),
   # ── câu 5: ghi nợ / chờ thu trên đường thẳng ──
   ('BV-GHI-NO-THANG', [(OR, 'if (Number(b.debt_amount) > 0 || b.payment_method === "debt" || b.payment_method === "cho_thu") {', 'if (false) {', 1)], r'✗ N1'),
   ('VS-GHI-NO-CHI-SO', [(OR, ' || b.payment_method === "debt" || b.payment_method === "cho_thu") {', ') {', 1)], r'✗ N4'),

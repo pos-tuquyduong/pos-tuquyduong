@@ -223,7 +223,7 @@ async function main() {
     k('A2b (K5) còn 2, lấy 1 → 200, giao 9', b.status === 200 && await daGiao(g.cp) === 9, `${moTa(b)} · ${await daGiao(g.cp)}`);
     const [c1, c2] = await Promise.all([lay(g.sdt, g.cp, 1), lay(g.sdt, g.cp, 1)]);
     const tot = [c1, c2].filter((r) => r.status === 200).length;
-    k('A2c hai quầy cùng lấy lượt cuối → đúng một 200, giao = 10 (≤ tổng)', tot === 1 && await daGiao(g.cp) === 10,
+    k('A2c thân taoDonGoc (gói cũ — quầy hôm nay tạm ngưng gói) hai lệnh cùng lấy lượt cuối → đúng một 200, giao = 10 (≤ tổng)', tot === 1 && await daGiao(g.cp) === 10,
       `${moTa(c1)} / ${moTa(c2)} · giao ${await daGiao(g.cp)}`);
     const sdt = sdtMoi();
     const goiId = await taoGoi(300000, 10);

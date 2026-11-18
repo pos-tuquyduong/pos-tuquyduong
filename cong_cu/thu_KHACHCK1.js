@@ -265,10 +265,10 @@ async function main() {
     try { m = await import(pathToFileURL(path.join(CLIENT, 'pages', 'BanHang', 'tinh.js')).href); } catch (e) { k('D2 nạp tinh.js', false, e.message); }
     const sp1 = { product_id: 1, sx_product_type: 'a', sx_product_id: 1, unit_price: 100000, quantity: 1 };
     const g = typeof m.tinhGio === 'function' ? m.tinhGio([sp1], { khachGiam: { loai: 'percent', gia_tri: 10 } }) : {};
-    const d = typeof m.dungDonHang === 'function' && typeof m.tinhGio === 'function'
-      ? m.dungDonHang({ gio: [sp1], tamTinh: g, cach: 'cash', khach: { phone: '0900000000', name: 'A', discount_type: 'percent', discount_value: 10 }, khachDua: 100000 }) : {};
-    k('D2 tinhGio bỏ qua khachGiam cũ (tổng 100.000); dungDonHang khách hồ sơ 10 % → gửi discount_type null, discount_value 0',
-      g.tong === 100000 && d.discount_type === null && d.discount_value === 0, `tổng ${g.tong} · ${d.discount_type}/${d.discount_value}`);
+    // BO-MAN-CU-1: dungDonHang (thân POST /orders thẳng) đã bỏ — khoá thân màn THẬT gửi (thanTinhThu = tinh-thu = `don` của phiên).
+    const d = typeof m.thanTinhThu === 'function' ? m.thanTinhThu([sp1], { phone: '0900000000', name: 'A', discount_type: 'percent', discount_value: 10 }, '') : null;
+    k('D2 tinhGio bỏ qua khachGiam cũ (tổng 100.000); thanTinhThu khách hồ sơ 10 % → không gửi discount / discount_type / discount_value',
+      g.tong === 100000 && !!d && ['discount', 'discount_type', 'discount_value'].every((x) => !(x in d)), `tổng ${g.tong} · ${JSON.stringify(d)}`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════

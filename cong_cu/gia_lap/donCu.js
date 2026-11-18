@@ -14,7 +14,7 @@ const path = require('path');
 const MA_CHAN = ['GOI_TAM_DUNG', 'VI_PHAI_QUA_PIN', 'CK_PHAI_QUA_PAYOS', 'KHONG_GHI_NO'];   // mã của cửa chặn taoDon (server/routes/orders.js)
 
 const laDonCu = (b = {}) => !!(b.package_buy || b.customer_package_id || (Array.isArray(b.items) && b.items.some((i) => i && i.from_package))
-  || Number(b.balance_amount) > 0 || Number(b.parent_balance_amount) > 0 || (Number(b.transfer_amount) || 0) !== 0 || Number(b.debt_amount) > 0
+  || Number(b.balance_amount) > 0 || Number(b.parent_balance_amount) > 0 || Number(b.transfer_amount || 0) !== 0 || Number(b.debt_amount) > 0
   || ['balance', 'transfer', 'debt', 'cho_thu'].includes(b.payment_method));
 
 // res giả: json() đi qua JSON như res.json của express (BigInt ném lỗi y như thật — thu_P26a canh lỗi đó), giữ thân đã qua dây.

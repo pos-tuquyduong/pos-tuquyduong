@@ -463,7 +463,7 @@ async function main() {
   const c10b = await ban({ customer_phone: sC10, payment_method: 'balance', balance_amount: 21000, items: [mon(0)] });
   co.mocTruocTx = null;
   const vC10 = await vi(sC10);
-  k('C10 hai quầy cùng trả trên một ví → cả hai qua, ví 63.000 · thưởng 3.000, I4 = 0 lệch',
+  k('C10 thân taoDonGoc (đơn kiểu cũ trả ví ngoài phiên) hai lệnh cùng trả trên một ví → cả hai qua, ví 63.000 · thưởng 3.000, I4 = 0 lệch',
     c10a?.status === 200 && c10b.status === 200 && vC10.so_du === 63000 && vC10.thuong === 3000 && (await lechBB(['I4'])).length === 0,
     `${c10a && moTa(c10a)} · ${moTa(c10b)} · ${viChu(vC10)}`);
   await db.run('UPDATE pos_wallets SET thuong = thuong + 777 WHERE phone = ?', [sC10]).catch(() => {});
