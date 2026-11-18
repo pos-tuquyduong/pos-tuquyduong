@@ -244,12 +244,14 @@ async function main() {
   const luiDoc = (orderId) => db.run('UPDATE pos_giao_chuyen SET doc_luc = ? WHERE order_id = ?',
     [new Date(Date.parse(getNow() + 'Z') - 6000).toISOString().slice(0, 19), orderId]);
   const danhSach = async (docLai) => (await goi('GET', '/giao-hang' + (docLai ? '?doc_lai=1' : ''))).j.chuyen || [];
-  /** Đơn giao trả đủ bằng ví (+ gọi xe nếu `goiXe`) → { id, x: mã chuyến }. */
+  /** Đơn giao trả đủ tiền mặt (+ gọi xe nếu `goiXe`) → { id, x: mã chuyến }. */
   async function moChuyen(goiXe = true) {
     const b = await goi('POST', '/giao-hang/bao-phi', { dia_chi: 'Số 3 Ngõ Thử, Hà Nội' });
     const tinh = await goi('POST', '/orders/tinh-thu', { customer_phone: SDT_KHACH, customer_name: 'Khách Giao 3', items: [mon], giao: { ma_bao_phi: b.j.ma_bao_phi } });
-    const r = await goi('POST', '/orders', { customer_phone: SDT_KHACH, customer_name: 'Khách Giao 3', items: [mon], payment_method: 'balance',
-      balance_amount: Number(tinh.j.total || 0), giao: { ma_bao_phi: b.j.ma_bao_phi, ten: 'Chị Nhận Ba', sdt: '0988000333', ghi_chu: '' } });
+    // Ghép main (BO-MAN-CU-1): đường thẳng POST /orders chỉ nhận tiền mặt — đơn giao thử trả đủ TIỀN MẶT (việc này không xét cách trả).
+    const tong = Number(tinh.j.total || 0);
+    const r = await goi('POST', '/orders', { customer_phone: SDT_KHACH, customer_name: 'Khách Giao 3', items: [mon], payment_method: 'cash',
+      cash_amount: tong, cash_received: tong, giao: { ma_bao_phi: b.j.ma_bao_phi, ten: 'Chị Nhận Ba', sdt: '0988000333', ghi_chu: '' } });
     const id = r.j.order?.id;
     if (goiXe) await goi('POST', `/giao-hang/${id}/goi-xe`, {});
     return { id, x: (await chuyenCua(id))?.ma_ahamove };
