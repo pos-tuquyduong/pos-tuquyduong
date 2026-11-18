@@ -344,10 +344,11 @@ async function main() {
   await baoVe(vXong.x);
   const cX = await chuyenCua(vXong.id);
   const vLa = await dangGiao();
-  datAha(vLa.x, { status: 'COMPLETED', sub_status: 'constructor', path: diemDen({ status: 'COMPLETED' }) });
+  datAha(vLa.x, { status: 'COMPLETED', sub_status: 'constructor', path: diemDen({ status: 'FAILED' }) });
   await baoVe(vLa.x);
   const cLa = await chuyenCua(vLa.id);
-  k('B4 sub_status lạ ("constructor" — tên thuộc tính sẵn có của object) → bỏ qua, thẻ vẫn lên xong', cLa?.trang_thai === 'xong' && cLa?.tra_hang == null, J([cLa?.trang_thai, cLa?.tra_hang]));
+  k('B4 sub_status lạ ("constructor" — tên thuộc tính sẵn có của object) → bỏ qua: thẻ vẫn lên giao_loi, không dòng trả hàng', cLa?.trang_thai === 'giao_loi'
+    && cLa?.tra_hang == null, J([cLa?.trang_thai, cLa?.tra_hang]));
   k('B4 giao xong (COMPLETED + COMPLETED) vẫn xong, không dòng trả hàng, loi trống', cX?.trang_thai === 'xong' && cX?.tra_hang == null && cX?.loi == null, J([cX?.trang_thai, cX?.tra_hang, cX?.loi]));
   const vH = await dangGiao();
   datAha(vH.x, { status: 'CANCELLED', cancel_by_user: false, cancel_comment: 'Khách không nghe máy' });
