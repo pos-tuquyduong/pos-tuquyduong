@@ -86,7 +86,7 @@ Năm câu ở `ke_hoach.md` mục 7, mỗi câu có đề xuất:
 | cửa chặn: vế chuyển khoản (`transfer_amount`, nhãn `transfer`; mọi giá trị khác rỗng / 0 — số âm, chuỗi chữ) | BV-CK-THANG · BV-CK-NHAN · VS-CK-CHI-DUONG · VS-CK-BO-NAN |
 | cửa chặn: vế ghi nợ / chờ thu (câu 5) | BV-GHI-NO-THANG · VS-GHI-NO-CHI-SO |
 | cửa chặn: gói (mua / mã gói / món từ gói), mọi lối | BV-GOI-MUA · BV-GOI-MA · BV-GOI-TU-GOI · VS-GOI-CHI-THANG |
-| khoá: chỉ `taoDon` gọi `taoDonGoc` | VS-GOI-THANG-LOI-GOC |
+| khoá: chỉ `taoDon` gọi `taoDonGoc` (K1); mọi lối tạo đơn đi qua `taoDon` — đúng 6 lời gọi (K2) | VS-GOI-THANG-LOI-GOC · VS-THEM-LOI-TAO-DON |
 | index.jsx luôn màn mới (kho cũ "tắt", ?man=cu) | VS-MAN-THEO-KHO-CU · VS-MAN-CU-QUERY |
 | tinh.js nhớ kiểu | BV-KIEU-KHONG-NHO |
 | bảng ⚙ không nút về màn cũ | BV-NUT-TAT |
@@ -340,3 +340,17 @@ BÀI HỌC:
 - NGUYÊN TẮC (K4): sửa chú thích người soát chỉ ở file X thì grep CẢ file X (ThanhKhach.jsx:3 sửa, :35 sót).
 - NGUYÊN TẮC (K1): bằng chứng ở HEAD cũ mà ghi "vòng sau chỉ đổi Y" thì liệt kê theo `git diff --stat` giữa hai HEAD; bỏ ca thì không dùng lại tên.
 ```
+
+## Vòng sửa 4 (theo soát vòng 3 — chỉ lỗi NHẸ, LUAT §6.5: máy làm luôn, không gọi agent soát nữa)
+| Lỗi | Sửa |
+|---|---|
+| 1 ThanhKhach.jsx:35 "(như CustomerSearch)" | sửa chú thích (grep CẢ file: không còn chỗ nào nhắc CustomerSearch / Sales); build lại — `dist` không đổi |
+| 2 K2 chưa có đột biến | ghi cạnh phép K2 giới hạn "quét chữ, không theo bí danh / gọi gián tiếp"; đột biến **VS-THEM-LOI-TAO-DON** (thêm `router.post("/x", … taoDon(req, res, {}))`) → BẮT ✗ K2 |
+| 3 số dòng Phát hiện | orders.js `:369/:782` → `:371/:784` |
+| 4 câu bằng chứng lượt 2 | ghi theo `git diff --stat 97af129f 2f591a6a -- cong_cu` (7 file — gồm donCu.js: khoá + laDonCu); lượt 2 không chạy lại với laDonCu mới → CHƯA KIỂM |
+| 5 tên ca BH1 dùng lại | phần I đổi tên TM1–TM6 (không dùng lại I1–I11 cũ); đầu bài sửa |
+| 6 gợi ý bỏ laDonCu (hỏi thẳng taoDon) | KHÔNG làm trong việc này: phải đổi hàm gọi máy chủ của 22 bài sang bất đồng bộ dò trước — rủi ro lớn hơn lợi; khoá trong donCu đã bắt mọi lệch giữa laDonCu và cửa chặn theo một chiều (thân laDonCu đưa vào donCu mà cửa không chặn → ném). Ghi Phát hiện / đề xuất việc sau |
+
+Kiểm sau vòng sửa 4 (HEAD `bbe41245`): `npm test -- --day-du` PASS 126 · FAIL 0 · CẢNH BÁO 1; đột biến ĐỐI CHỨNG XANH 67 đạt · TỔNG 21 · BẮT 21 · SỐNG 0 ·
+HỎNG 0 · LẠC 0; `thu_BH1` trên cây gốc 28b6efeb vẫn ĐỎ (thoát 1, "thiếu hàm docKieu"…), trên HEAD 69 đạt (SỐ CA không đổi); `thu_BOMANCU1` 67 (không đổi).
+SOÁT LẦN CUỐI: chat soát thay

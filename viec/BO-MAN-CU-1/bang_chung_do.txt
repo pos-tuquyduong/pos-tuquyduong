@@ -314,3 +314,6 @@ SỐ CA cong_cu/thu_UUDAI1.js: 88
 SỐ CA cong_cu/thu_VIME1.js: 24
 SỐ CA cong_cu/thu_VOUCHER2.js: 146
 
+
+Vòng sửa 4 (HEAD bbe41245): thu_BH1 đổi tên phần I → TM1–TM6, thu_BOMANCU1 thêm chú thích K2 (không đổi ca). Chạy lại BH1 trên cây gốc:
+== CÂY GỐC 28b6efeb · cong_cu/thu_BH1.js: thoát 1 (✗ A1 "thiếu hàm docKieu" …). Số ca trên HEAD không đổi: BH1 69, BOMANCU1 67.
