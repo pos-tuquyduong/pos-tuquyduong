@@ -20,6 +20,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const iCL = process.argv.indexOf('--client');
@@ -102,6 +103,8 @@ async function main() {
   await db.run("UPDATE pos_permissions SET allowed = 1 WHERE role = 'manager' AND permission = 'manage_users'");
   const the = Object.fromEntries(Object.entries(nguoi).map(([a, id]) => [a, jwt.sign({ userId: id }, process.env.JWT_SECRET, { expiresIn: '1h' })]));
   const goiAi = async (ai, method, url, body) => {
+    // BO-MAN-CU-1: đơn mua / lấy gói, ví, CK, nợ = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc (logic gói vẫn nằm ở đó).
+    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body, { username: ai }).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,

@@ -13,7 +13,7 @@
  *  Soát vòng 1 lỗi 1 + vòng 2 lỗi 1: SX tắt hẳn chỉ phủ nhánh "chưa tới SX" — ca C2 đo SX RÒNG = 0 sau khi đẩy sổ nợ.
  *  Công tắc co.banCauDau: câu ĐẦU trong giao dịch kế tiếp ném SQLITE_BUSY (Turso gửi BEGIN lười — ca K1b của P26b).
  *  Ba người: chủ (owner), quản lý (manager), nhân viên (staff). Chỉ so status / code / kho — không dò chữ (E12).
- *  Hai phép tĩnh đọc <client>/src/pages (mặc định client/ của kho): D1 Settings.jsx, A6 Sales.jsx.
+ *  Phép tĩnh đọc <client>/src/pages (mặc định client/ của kho): D1 Settings.jsx. BO-MAN-CU-1: đơn gói / ví / CK / nợ dựng bằng donCu (đơn cũ).
  * ═══════════════════════════════════════════════════════════════════════════
  */
 const fs = require('fs');
@@ -21,6 +21,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const iCL = process.argv.indexOf('--client');
@@ -121,6 +122,8 @@ async function main() {
   }
   const the = Object.fromEntries(Object.entries(nguoi).map(([a, id]) => [a, jwt.sign({ userId: id }, process.env.JWT_SECRET, { expiresIn: '1h' })]));
   const goiAi = async (ai, method, url, body) => {
+    // BO-MAN-CU-1: đơn mua / lấy gói, ví, CK, nợ = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc (logic gói vẫn nằm ở đó).
+    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body, { username: ai }).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,
@@ -240,7 +243,7 @@ async function main() {
       { items: [mon(0, 1, true)], customer_package_id: g.cp });
     k('A3 → 400 GOI_MUA_VA_LAY_CUNG_DON, gói cũ vẫn giao 2, không thêm gói', r.status === 400 && r.code === 'GOI_MUA_VA_LAY_CUNG_DON'
       && await daGiao(g.cp) === 2 && await so('SELECT COUNT(*) FROM pos_customer_packages') === truoc, `${moTa(r)} · giao ${await daGiao(g.cp)}`);
-    // Sales.jsx:744 gửi gói cũ đang bật cả khi không lấy món nào từ nó (khách gia hạn) — soát vòng 1 lỗi 7.
+    // Màn cũ gửi gói cũ đang bật cả khi không lấy món nào từ nó (khách gia hạn) — soát vòng 1 lỗi 7.
     const r2 = await muaGoi(g.sdt, await taoGoi(300000, 10), 10, { cash_amount: 300000 }, { customer_package_id: g.cp });
     k('A3b (K5) gia hạn: bật gói cũ, KHÔNG lấy món nào, mua gói mới → 200, gói cũ vẫn giao 2, có gói mới', r2.status === 200
       && await daGiao(g.cp) === 2 && await so('SELECT COUNT(*) FROM pos_customer_packages') === truoc + 1, moTa(r2));
@@ -345,8 +348,7 @@ async function main() {
     k('A6a gói cài 10 lượt, màn hình gửi 100 → gói khách 10 lượt', m.status === 200 && luot === 10, `${moTa(m)} · ${luot} lượt`);
     const m2 = await muaGoi(sdt, goiId, 100, { cash_amount: 300000 }, { items: [mon(0, 11, true)] });
     k('A6b màn hình gửi 100 lượt, lấy ngay 11 (gói cài 10) → 400', m2.status === 400, moTa(m2));
-    const src = fs.readFileSync(path.join(CLIENT, 'src', 'pages', 'Sales.jsx'), 'utf8');
-    k('A6c Sales.jsx: ô số lượt gói không còn là ô nhập (không có <input … value={buyQty})', !/<input[^>]*value=\{buyQty\}/.test(src));
+    // A6c (ô số lượt gói của màn cũ) bỏ: BO-MAN-CU-1 xoá màn cũ, màn mới không bán gói.
   }
 
   // ═════════════════════════════════════════════════════════════════════════
