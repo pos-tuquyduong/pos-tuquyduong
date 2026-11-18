@@ -451,10 +451,10 @@ async function main() {
     datGio('2026-11-18T10:00:00');
     const spL = await themSP('Lưới K3a', 18000, { thuTu: 13 });
     await luuSP(spL, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nlCam, luong: 0.2 }] });
-    const mat = async (lo) => {   // phiếu phát sinh lấy mất hàng thật (không xét phần giữ — đúng như KHO-2b)
+    const mat = async (lo, sp = spL) => {   // phiếu phát sinh lấy mất hàng thật (không xét phần giữ — đúng như KHO-2b)
       const id = Number((await ghiDb(`INSERT INTO kho_phieu (loai, so_phieu, trang_thai, nguoi_tao, tao_luc, nguoi_duyet, duyet_luc, su_co)
         VALUES ('PS', ?, 'da_duyet', 'nen', ?, 'nen', ?, 'hong')`, [`NEN-PS-${++soPhieu}`, getNow(), getNow()])).lastInsertRowid);
-      await ghiDb("INSERT INTO kho_phieu_dong (phieu_id, san_pham_id, lo_id, so_luong, loai) VALUES (?, ?, ?, -1, 'phat_sinh')", [id, spL.id, lo]);
+      await ghiDb("INSERT INTO kho_phieu_dong (phieu_id, san_pham_id, lo_id, so_luong, loai) VALUES (?, ?, ?, -1, 'phat_sinh')", [id, sp.id, lo]);
     };
     // App
     const lo1 = await napTP(spL, 1);
@@ -514,13 +514,15 @@ async function main() {
       && Number(xt.j.hoan?.vao_vi) === Number(pt.j.phien?.con_lai) && (await so('SELECT COUNT(*) FROM pos_orders')) === donT
       && (await soDu(kh4.sdt)) === Number(pt.j.phien?.con_lai) && xt2.status >= 400, `${moTa(xt)} ${JSON.stringify(xt.j.hoan)} · ${moTa(xt2)} · ví ${await soDu(kh4.sdt)}`);
     // Soát bảo mật: xác nhận tay MUỘN (phiên đã huỷ) hỏng vì kho → đã hoàn; nhập thêm hàng rồi xác nhận lại → KHÔNG ra đơn (đã hoàn rồi)
-    const lo6 = await napTP(spL, 1);
+    const spMuon = await themSP('Muộn K3a', 18000, { thuTu: 21 });   // món riêng: nhập thêm hàng ở ca này không đụng các ca sau
+    await luuSP(spMuon, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nlCam, luong: 0.2 }] });
+    const lo6 = await napTP(spMuon, 1);
     const kh6 = await khach();
-    const pt6 = await taoPhienQuay([mon(spL, 1)], 'ck_tay', { customer_phone: kh6.sdt, customer_name: 'Khách K3a muộn' });
+    const pt6 = await taoPhienQuay([mon(spMuon, 1)], 'ck_tay', { customer_phone: kh6.sdt, customer_name: 'Khách K3a muộn' });
     await huyPhien(pt6.j.phien?.id);
-    await mat(lo6);
+    await mat(lo6, spMuon);
     const m1 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pt6.j.phien?.id}/xac-nhan-tay`, { ly_do: 'tiền về sau khi huỷ (thử)' });
-    await napTP(spL, 5);
+    await napTP(spMuon, 5);
     const donM = await so('SELECT COUNT(*) FROM pos_orders');
     const m2 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pt6.j.phien?.id}/xac-nhan-tay`, { ly_do: 'xác nhận lại sau khi nhập hàng (thử)' });
     k('B3c xác nhận tay muộn hỏng vì kho → hoàn ví; nhập hàng rồi xác nhận lại → 409, KHÔNG đơn, ví không cộng thêm', la(m1, 400, 'HET_HANG')
