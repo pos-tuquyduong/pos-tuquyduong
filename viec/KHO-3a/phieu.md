@@ -42,6 +42,19 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
   - món chưa có dòng kho hoặc `chua_dinh_luong` → không có số, KHÔNG bịa số (ràng buộc §5.8: không 999).
   - Bỏ "tồn gần nhất của SX" (`ton_gan_nhat` / `ton_luc`) khỏi hiển thị. Cột giữ nguyên trong DB (chỉ thêm, không xoá).
 - A3 Khoá nối SX của món (`sx_product_type`, `sx_product_id`) GIỮ NGUYÊN làm khoá giá và lịch sử đơn. Món mới thêm ở POS (không có khoá SX) vẫn bán được.
+- A3b **Tên món trên quầy không được đổi khi menu chuyển sang POS** (chủ quán 18.11: "đổi tên 4 món cho tôi"):
+  - Hôm nay quầy hiện tên lấy từ SX, còn `pos_products.name` của 4 món nước ép vẫn là tên tạm.
+  - Đối chiếu bằng tệp sao lưu SX 18.11 11:06, bảng `recipes`:
+
+    | Khoá (`sx_product_type`, `sx_product_id`) | Tên tạm trong POS | Tên đúng |
+    |---|---|---|
+    | (`juice`, 5) | Công thức 5 | **Thanh Tân Dưỡng** |
+    | (`juice`, 6) | Công thức 6 | **Tĩnh Nguyên Thủy** |
+    | (`juice`, 7) | Công thức 7 | **Ôn Dương Lộ** |
+    | (`juice`, 8) | Công thức 8 | **Tâm Vệ Lộ** |
+
+  - Một bước nâng cấp đánh số MỚI đổi đúng 4 dòng này. Hằng số có tên, theo khoá SX; chỉ đổi khi tên hiện tại đúng bằng tên tạm, chạy lại không đổi gì thêm.
+  - Kế hoạch cũng so mọi món: tên trong `pos_products` phải bằng tên quầy đang hiện (lấy từ SX) trước khi bỏ SX. Lệch chỗ nào khác thì liệt kê để chủ quán quyết, không tự đổi.
 - A4 **Quản lý món HOÀN TOÀN trong POS** (chủ quán 17.11: "POS chủ động hoàn toàn"). Hiện nay món chỉ vào POS qua SX: mọi `INSERT INTO pos_products` ở
   `products.js` đều cần khoá SX (`sync-from-sx`, ghi giá theo khoá SX), hoặc qua Kho › Nhập từ SX.
   - Thêm được món MỚI ngay trong POS: tên, nhóm, giá, đơn vị, thứ tự, đang bán. Không cần khoá SX.
