@@ -17,6 +17,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_nap1_'));
@@ -99,6 +100,8 @@ async function main() {
   await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu_nap1', ?)",
     [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN, 4), getToday() + 'T00:00:00']);
   const goi = async (method, url, body, the = THE_CHU) => {
+    // BO-MAN-CU-1: đơn ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
+    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,

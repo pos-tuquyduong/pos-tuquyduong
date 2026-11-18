@@ -19,6 +19,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_doisoat1_'));
@@ -99,6 +100,8 @@ async function main() {
   }
   const the = Object.fromEntries(Object.entries(nguoi).map(([a, id]) => [a, jwt.sign({ userId: id }, process.env.JWT_SECRET, { expiresIn: '3650d' })]));
   const goiAi = async (ai, method, url, body) => {
+    // BO-MAN-CU-1: đơn ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
+    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body, { username: ai || 'chu' }).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const headers = { 'Content-Type': 'application/json' };

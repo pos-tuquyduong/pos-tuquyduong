@@ -19,6 +19,7 @@ const { pathToFileURL } = require('url');
 const iG = process.argv.indexOf('--goc');
 const GOC = path.resolve(iG > 0 ? process.argv[iG + 1] : path.join(__dirname, '..'));
 const MAY_CHU = path.join(GOC, 'server');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_hd1_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
@@ -371,6 +372,8 @@ async function phanA(P) {
   const chu = await mot("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const the = jwt.sign({ userId: chu.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
   const goi = async (method, url, body, khongThe = false) => {
+    // BO-MAN-CU-1: đơn ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc, như dữ liệu đang có trên quầy.
+    if (method === 'POST' && url === '/orders' && laDonCu(body)) return donCu(MAY_CHU, body).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body ? JSON.stringify(body) : undefined,
