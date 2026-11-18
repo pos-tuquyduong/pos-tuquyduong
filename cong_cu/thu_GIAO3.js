@@ -63,7 +63,7 @@ function dungAhamoveGia(express) {
   g.post('/v3/orders', (req, res) => {
     if (!coToken(req)) return res.status(401).json({});
     const id = 'G3AHA' + (++A.so);
-    const phi = A.phiTao != null ? A.phiTao || undefined : A.phi;   // phiTao 0 → câu trả KHÔNG có phí
+    const phi = A.phiTao ?? A.phi;
     A.chuyen.set(id, { _id: id, status: 'ASSIGNING', tracking_number: req.body.path?.[1]?.tracking_number, total_price: phi, path: req.body.path });
     res.json({ order_id: id, status: 'ASSIGNING', order: { total_price: phi } });
   });
@@ -378,7 +378,7 @@ async function main() {
   await goi('POST', `/giao-hang/${vT0.id}/goi-xe`, {});
   A.phiBao = null; A.phiTao = null;
   const cT0 = await chuyenCua(vT0.id);
-  k('C3 (K4) báo phí lúc gọi xe 0 VÀ tạo chuyến không trả phí → phi_that KHÔNG ghi 0 (để trống = chưa biết), chenh trống', cT0?.trang_thai === 'tim_xe'
+  k('C3 (K4) báo phí lúc gọi xe 0 VÀ tạo chuyến trả phí 0 → phi_that KHÔNG ghi 0 (để trống = chưa biết), chenh trống', cT0?.trang_thai === 'tim_xe'
     && cT0?.phi_that == null && cT0?.chenh == null, J([cT0?.trang_thai, cT0?.phi_that, cT0?.chenh]));
   datAha(vT.x, { status: 'IN PROCESS', total_price: 0, ...TX });
   await baoVe(vT.x);
