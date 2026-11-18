@@ -418,7 +418,6 @@ export const ordersApi = {
     return api.get(`/orders${query ? '?' + query : ''}`);
   },
   get: (id) => api.get(`/orders/${id}`),
-  create: (data) => api.post('/orders', data),
   tinhThu: (data) => api.post('/orders/tinh-thu', data, { thuLai: 'mang' }),   // BH-2: số máy chủ sẽ tính (hạng, mã) — không ghi gì → KET-NOI-1 #5: tự gửi lại khi rớt mạng
   cancel: (id, lyDo) => api.put(`/orders/${id}/cancel`, lyDo),   // HUY-1: lyDo = { ly_do_ma, ghi_them } → { hoan: { tai_khoan, tien_mat } }
   lyDoHuy: () => api.get('/orders/ly-do-huy'),

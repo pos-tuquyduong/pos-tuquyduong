@@ -23,6 +23,7 @@ const os = require('os');
 const path = require('path');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_p20_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 
@@ -126,9 +127,10 @@ async function main() {
     } finally { noiLai(); }
   };
 
-  // Tạo đơn qua POST /orders thật. Trả { id, ma, trangThaiTien } đọc lại từ DB.
+  // Tạo đơn qua POST /orders thật. Trả { id, ma, trangThaiTien } đọc lại từ DB. BO-MAN-CU-1: đơn chờ thu / nợ / ví / CK = ĐƠN CŨ (đường thẳng
+  // nay chặn) → dựng bằng thân taoDonGoc (cong_cu/gia_lap/donCu.js), như dữ liệu đang có trên quầy.
   const taoDon = async (ten, body) => {
-    const r = await goi('POST', '/orders', body);
+    const r = laDonCu(body) ? await donCu(path.join(GOC, 'server'), body).then((x) => ({ status: x.status, ...x.body })) : await goi('POST', '/orders', body);
     if (!r.success) throw new Error(`Không tạo được đơn "${ten}": ${r.status} ${r.error || ''}`);
     const o = await db.queryOne('SELECT id, payment_status, status FROM pos_orders WHERE id = ?', [r.order.id]);
     if (!r.order.signup_code) throw new Error(`Đơn "${ten}" không được phát mã in bill`);

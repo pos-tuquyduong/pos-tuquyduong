@@ -21,6 +21,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const iMC = process.argv.indexOf('--may-chu');
 const MAY_CHU = path.resolve(iMC > 0 ? process.argv[iMC + 1] : path.join(GOC, 'server'));
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_voucher2_'));
@@ -231,6 +232,8 @@ async function main() {
   const theCua = { chu: jwt.sign({ userId: chu.id }, process.env.JWT_SECRET, { expiresIn: '1h' }),
     nv: jwt.sign({ userId: nv }, process.env.JWT_SECRET, { expiresIn: '1h' }) };
   const goiTk = async (tk, method, url, body) => {
+    // BO-MAN-CU-1: đơn quầy ví / mẹ / CK / nợ / gói = ĐƠN CŨ (đường thẳng nay chặn) → dựng bằng thân taoDonGoc (luật mã / voucher nằm ở đó).
+    if (method === 'POST' && url === '/pos/orders' && laDonCu(body)) return donCu(MAY_CHU, body).then((x) => ({ ...x.body, status: x.status }));
     imLang();
     try {
       const r = await fetch(goc + url, { method, body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -565,7 +568,9 @@ async function main() {
     k('F3 chỉ thẻ + mã chung → mềm: không giảm (100.000), ma_loi_code MA_KHONG_AP_MON_THUONG', f3b.status === 200 && f3b.total === 100000 && f3b.ma_loi_code === 'MA_KHONG_AP_MON_THUONG', JSON.stringify(f3b).slice(0, 200));
     await la400('F4 nạp + voucher → 400 NAP_CHI_TIEN_MAT_QR', await ban({ customer_phone: c.sdt, goi_nap_id: napId, vouchers: [vt] }, 100000), 'NAP_CHI_TIEN_MAT_QR', tr, vt);
     const ph = await goi('POST', '/pos/thanh-toan/phien', { don: { customer_phone: b.sdt, customer_name: 'K', items: [mon(0)], package_buy: { package_id: goiId }, discount_code: m10 }, cach: 'tien_mat' });
-    k('F5 phiên thanh toán: gói + món + mã 10 % → tổng 345.000', ph.status === 200 && ph.phien?.tong === 345000, moTa(ph) + ' ' + ph.phien?.tong);
+    // BO-MAN-CU-1 (chủ quán 17.11): quầy tạm ngưng gói ở mọi lối → phiên có gói bị chặn; luật "mã không áp lên gói" vẫn khoá ở F2 (đơn cũ).
+    k('F5 phiên thanh toán: gói + món + mã 10 % → 400 GOI_TAM_DUNG (quầy tạm ngưng gói), không tạo phiên', ph.status === 400 && ph.code === 'GOI_TAM_DUNG' && !ph.phien,
+      moTa(ph));
     if (ph.phien) await goi('POST', `/pos/thanh-toan/phien/${ph.phien.id}/huy`, {});
     const mMin = await maChung('fixed', 5000, { min: 50000 });
     const f6 = await tinhThu({ customer_phone: c.sdt, items: [mon(1)], membership_buy: { tier_id: hangId, so_thang: 1 }, discount_code: mMin });
@@ -1107,7 +1112,7 @@ async function main() {
       const vt = await phat(c.sdt, 'tien', 10000), vp = await phat(c.sdt, 'phan_tram', 10), vt2 = await phat(c.sdt, 'tien', 5000), vs = await phat(c.sdt, 'ship_tien', 8000);
       await datCaiDat('voucher_toi_da', 2);
       const BH = await man.nap(path.join(MAY_CHU, '..', 'client', 'src'), ['pages', 'BanHang', 'BanHangMoi.jsx'], theCua.chu);
-      const m = man.dung(BH, { kieu: 'tudong', onDoiCaiDat() {} }, ['BanHangMoi', 'ChipVoucher']);
+      const m = man.dung(BH, { kieu: 'tudong', onDoiKieu() {} }, ['BanHangMoi', 'ChipVoucher']);
       const nut = (dk) => m.tim((n) => n.type === 'button' && dk(n));
       const conTen = (ten) => m.tim((n) => typeof n.type === 'function' && n.type.name === ten)[0];
       const chip = (ma) => nut((n) => /bh-chip-voucher/.test(n.props.className || '') && m.chu(n).includes(ma === vt ? 'Giảm 10.000đ' : ma === vp ? 'Giảm 10%'

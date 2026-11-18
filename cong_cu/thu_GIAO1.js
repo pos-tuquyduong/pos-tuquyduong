@@ -19,6 +19,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const GOC = path.join(__dirname, '..');
+const { donCu, laDonCu } = require('./gia_lap/donCu');   // BO-MAN-CU-1: dựng đơn cũ (ví / CK / nợ / gói) bằng thân taoDonGoc
 const THU_MUC = fs.mkdtempSync(path.join(os.tmpdir(), 'thu_giao1_'));
 const FILE_KHO = path.join(THU_MUC, 'kho.db');
 const duongKN = require.resolve(path.join(GOC, 'server', 'ketNoiKho.js'));
@@ -182,6 +183,10 @@ async function main() {
   await db.run("INSERT INTO pos_discount_codes (code, discount_type, discount_value, is_active, usage_limit, used_count) VALUES ('G1GIAM10', 'percent', 10, 1, 0, 0)");
 
   const goi = async (method, url, body, token = tk.owner, them = {}) => {
+    // BO-MAN-CU-1: đơn giao trả ví / CK / nợ = ĐƠN CŨ (đường thẳng nay chặn; đơn giao mới qua phiên — D2c) → dựng bằng thân taoDonGoc.
+    if (method === 'POST' && url === '/orders' && !them.congKhai && laDonCu(body)) {
+      return donCu(path.join(GOC, 'server'), body).then((x) => ({ status: x.status, j: x.body || {}, tho: JSON.stringify(x.body) }));
+    }
     const headers = { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...them.headers };
     if (token) headers.Authorization = 'Bearer ' + token;
     imLang();

@@ -1,6 +1,6 @@
 /**
  * Thanh khách ngay trên màn: gõ SĐT / tên (trống = khách lẻ) hoặc Quét thẻ. KHÔNG tạo khách ở quầy (luật 6) —
- * không dùng CustomerSearch vì nó có nút "Thêm khách mới". Tra bằng đúng API ô tìm cũ (customersV2Api.search).
+ * không có nút "Thêm khách mới". Tra bằng API tìm khách customersV2Api.search.
  */
 import { useEffect, useRef, useState } from 'react';
 import { Camera, X } from 'lucide-react';
@@ -32,7 +32,7 @@ export default function ThanhKhach({ khach, hang, onChon, onBo }) {
 
   const chon = (c) => { lan.current++; setQ(''); setDs([]); onChon(c); };
 
-  // Quét thẻ: mã → SĐT → tra đúng SĐT bằng API ô tìm (như CustomerSearch). Trả chuỗi = lỗi hiện trong hộp quét.
+  // Quét thẻ: mã → SĐT → tra đúng SĐT bằng API tìm khách (customersV2Api.search). Trả chuỗi = lỗi hiện trong hộp quét.
   const quet = async (doc) => {
     const ma = String(doc || '').trim();
     if (/^QR-/i.test(ma)) return 'Mã kiểu cũ — mời khách mở mã mới trong app, hoặc tìm theo SĐT.';
