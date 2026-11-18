@@ -203,6 +203,15 @@ Hệ quả: hôm nay kho trống, nên gộp việc này khi chưa có công th�
 - cong_cu/thu_KHO3a.js
 - cong_cu/thu_*.js
 - cong_cu/gia_lap/**
+- cong_cu/gia_lap/monThu.js
+- cong_cu/gia_lap/chay.js
+- cong_cu/gia_lap/bat_bien.js
+- cong_cu/gia_lap/kich_ban.js
+- cong_cu/thu_gia_lap.js
+- cong_cu/thu_P20.js
+- cong_cu/thu_P21.js
+- cong_cu/thu_P26a.js
+- cong_cu/thu_P26b.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Ngân sách
@@ -213,7 +222,9 @@ Khoảng 250–350 dòng code (một hàm trừ kho chung, trả kho khi huỷ, 
 - Mọi lối vào `taoDon` gọi MỘT hàm. Không đổi cấu trúc DB nếu phiếu kho có sẵn đủ loại. Cần loại phiếu mới thì thêm bằng bước nâng cấp đánh số MỚI, chỉ thêm.
 
 ## Đổi cấu trúc DB
-có thể — chỉ THÊM (vd loại phiếu "bán hàng", cột nối phiếu ↔ đơn) bằng bước `server/nang_cap/NNN_*.js` mới. Không sửa hay xoá bước cũ, bảng cũ, cột cũ.
+có thể — chỉ THÊM (vd loại phiếu "bán hàng", cột nối phiếu ↔ đơn) bằng bước `server/nang_cap/NNN_*.js` mới.
+**Số bước (chat bàn 40, 18.11 20:45):** GIAO-3 (PR #101, gộp TRƯỚC) đã dùng `030_giao_tra_hang.js` → KHO-3a đổi `030_ban_theo_kho.js` → `031_ban_theo_kho.js`,
+`031_ten_mon_sx.js` → `032_ten_mon_sx.js` (đổi tên file + mọi chỗ nhắc số trong code / bài thử / hồ sơ — K4). Chưa gộp nên đổi số an toàn. Không sửa hay xoá bước cũ, bảng cũ, cột cũ.
 
 ## Thư viện mới
 không
