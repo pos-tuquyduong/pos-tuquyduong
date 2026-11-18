@@ -194,8 +194,9 @@ async function taoDon(req, res, phien = null) {
     if (Number(b.balance_amount) > 0 || Number(b.parent_balance_amount) > 0 || b.payment_method === "balance") {
       return res.status(400).json({ error: "Trừ tiền tài khoản phải qua phiên thanh toán có PIN khách", code: "VI_PHAI_QUA_PIN" });
     }
-    // Cùng biểu thức với chỗ cộng tiền ở thân (`(Number(transfer_amount) || 0)`): CK âm / chuỗi số cũng là CK (soát vòng 1).
-    if ((Number(b.transfer_amount) || 0) !== 0 || b.payment_method === "transfer") {
+    // Mọi giá trị KHÁC rỗng / 0 đều là CK: số âm, chuỗi số, chuỗi chữ (NaN). Thân cộng `Number(x) || 0` nhưng GHI cột nguyên `x || 0` — chuỗi
+    // lạ lọt vào cột thì báo cáo SUM đọc phần số đầu chuỗi (soát vòng 1 + 2).
+    if (Number(b.transfer_amount || 0) !== 0 || b.payment_method === "transfer") {
       return res.status(400).json({ error: "Chuyển khoản phải qua QR", code: "CK_PHAI_QUA_PAYOS" });
     }
     if (Number(b.debt_amount) > 0 || b.payment_method === "debt" || b.payment_method === "cho_thu") {
