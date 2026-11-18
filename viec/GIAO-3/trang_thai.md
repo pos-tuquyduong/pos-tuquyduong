@@ -194,3 +194,73 @@ No vulnerabilities found
 Số lỗi trước lọc: 0 · sau lọc: 0.
 
 SOÁT BẢO MẬT: ĐẠT
+
+## Số cuối (HEAD d8125732)
+- `node cong_cu/thu_GIAO3.js`: 46 đạt · 0 hỏng. Trên gốc (4fd64c3, bài bản cuối): 12 đạt · 34 hỏng = 46 ca. SỐ CA 46 (bang_chung_do.txt).
+- `python3 viec/GIAO-3/dot_bien.py`: ĐỐI CHỨNG XANH 46/46 · TỔNG 31 · BẮT 31 · SỐNG 0 · HỎNG 0 · LẠC 0. Bảng chỗ vá → đột biến: bảng đầu + "Thêm vào
+  bảng" vòng 1 + vòng 2: BV-mot-chieu-da-ve, BV-tra-hang-update-chinh, VS-sub-status-chuoi, VS-nguong-4, VS-khong-trim.
+- `node kiem_tra_truoc_khi_giao.js --day-du` (gồm thu_GIAO1, thu_GIAO2, thu_DOISOAT1, thu_SAOLUU2, giả lập quầy, so băm dist): lần 1 PASS 125 · FAIL 1
+  (chạy cùng lúc một agent soát; chỉ giữ 6 dòng cuối nên KHÔNG biết phép nào); lần 2 và lần 3 PASS 126 · FAIL 0 · CẢNH BÁO 1 (GET có lệnh ghi —
+  packages.js / products.js / sync.js, có sẵn). Ghi nhận: có một phép chập chờn chưa xác định khi máy chạy song song việc khác.
+- `node tu_chay/cong.js chay . a5adb8f^ HEAD viec/GIAO-3`: ✓ CỔNG CHẠY ĐẠT
+- D2 đối chứng: cmp JSON bản gốc / bản mới GIỐNG HẾT (giữ nguyên — doiSoat.js chỉ thêm log, không đổi sau vòng sửa).
+
+## Báo cáo 7 mục
+```
+VIỆC:        GIAO-3 — Ahamove sau lượt thử 16–18.11: Đối soát không kẹt, "Thực thu" đúng, phí Ahamove không về 0, lý do thất bại + hàng trả về quán,
+             hộp lý do thay hộp thoại trình duyệt
+ĐÃ SỬA:      server/utils/ahamove.js — phiDuong (phí chỉ nhận > 0) ở tomChuyen + taoChuyen; chuAha (lý do Ahamove, cắt 200); gioAha (return_time → giờ VN);
+               TRA_HANG + Object.hasOwn (sub_status IN_RETURN / RETURNED)
+             server/utils/giaoHang.js — capNhatTuAhamove: thẻ giao_loi → capNhatTraHang (một chiều, chỉ tra_hang / tra_hang_luc / lý do); loiGiao kèm lý do;
+               CANCELLED khi dang_giao nối cancel_comment; UPDATE chính ghi tra_hang khi lên giao_loi; logPhi; khoá chống lặp + |sub_status;
+               taoChuyenMoi phí báo 0 → trống; danhSach đọc lại thẻ giao_loi giao thất bại chưa về quán + trả tra_hang / tra_hang_luc
+             server/nang_cap/030_giao_tra_hang.js — 2 cột tra_hang, tra_hang_luc
+             server/routes/reports.js — /daily trả thuc_thu = soSach (tiền mặt + CK ròng); lỗi có status trả đúng status
+             server/utils/doiSoat.js — log [DOISOAT] kiểu · ngày · ms · số câu
+             client/src/utils/api.js — get(endpoint, { han }) → QUA_HAN, không gửi lại; DoiSoat.jsx hạn 60 s + câu báo; Reports.jsx hiện thuc_thu + dòng chú thích;
+             GiaoHang/HopLyDo.jsx (mới) + index.jsx (3 window.prompt → hộp POS; dòng "Đang trả / Hàng đã về quán"); giaoHang.css; client/dist build
+             kiem_tra_truoc_khi_giao.js — thêm chayBaiThat thu_GIAO3
+BÀI THỬ:     cong_cu/thu_GIAO3.js trên gốc → ĐỎ 34/46 (A1, A3, B1, B2, B3, C1, C3, C4, D3, D4, E1–E4, G1–G4 …, bang_chung_do.txt); sau vá → XANH 46/46
+ĐÃ RÀ K4:    phí: grep "total_price|phi_that = " ahamove.js / giaoHang.js → tomChuyen, taoChuyen, taoChuyenMoi (2 chỗ), capNhatTuAhamove — đã xử lý; baoPhi (phí khách)
+               để nguyên → Phát hiện. Câu loi giao_loi: 3 chỗ (UPDATE chính, CANCELLED dang_giao, capNhatTraHang) — đã xử lý; chuyen_huy → Phát hiện.
+               window.prompt|confirm|alert( trong pages/GiaoHang → 0. total_revenue|total_discount|total_shipping trong client/src → chỉ hiển thị (Orders.jsx:504).
+CHƯA KIỂM:   - Tên trường thật của Ahamove: phí sau ACCEPTED (total_price là 0 hay ở trường khác — log [GIAO] phi in total_price + total_fee để đối chiếu),
+               sub_status IN_RETURN / RETURNED, path[1].fail_comment, return_time (giây hay mili-giây) — theo tài liệu, chưa đối chiếu dữ liệu thật.
+             - Nguyên nhân thật của Đối soát > 40 s: giả lập 40 ms = 2,4 s, 150 ms = 7,9 s không tái hiện; việc này chỉ có hạn chờ 60 s + log — "ra số
+               trong vài giây" trên Render CHƯA chứng minh. Đọc dòng [DOISOAT] sau triển khai (số câu có thể cộng lẫn khi /reports/daily chạy cùng lúc).
+             - Tin báo HTTP 0 (D-WEBHOOK-0): không đoán nguyên nhân; chỉ làm cho tin RETURNED lỡ vẫn được đọc lại.
+             - Màn hình chạy bằng bộ hook tối giản trong bài thử, không phải React + trình duyệt thật — chưa thử trên điện thoại (F2).
+             - Số bước nâng cấp 030 chưa so với main (máy không đọc được main).
+             - --day-du lần 1 có 1 phép đỏ chưa rõ tên (lần 2, 3 xanh).
+GIT:         d8125732 GIAO-3: soat bao mat lan 2 — DAT
+             928040a2 GIAO-3 soat 2: trang thai — bao cao soat 2, vong sua 2, soat bao mat lan 1
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 4 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+## Bài học
+Sự cố: soát vòng 1 bắt 5 lỗi (ca bọc if, phí 0 qua báo phí, đọc lại mãi, hồ sơ thiếu, số dòng lệch); soát vòng 2 bắt 6 lỗi NHẸ; bài thử đổi sau bằng chứng
+4 lần (chạy lại gốc mỗi lần); một đột biến "sửa bài thử" làm đột biến khác SỐNG (Ahamove giả đổi nghĩa phí 0); đột biến bỏ vá làm libsql PANIC; kho nông làm
+thu_BH2 đỏ; người gác chặn 20 lệnh (B-PHANTICH 7, B-CHUONGTRINH 3, GIT-LENH 2, B-DICHCHU 2, B-BIMAT-CHU 2, GIT-ADD 1, G0-NGOAI 1, CC-LA 1, B-CD-VITRI 1).
+
+KHOÁ (ngoài Phạm vi — đề xuất, máy không làm):
+1. Cổng (tu_chay/cong.js, A16): đếm dòng ✓/✗ trong khối bằng chứng đỏ của bang_chung_do.txt, phải BẰNG dòng `SỐ CA` — ca giao diện bọc `if (phần tử có
+   mặt)` làm số ca gốc < số ca bản vá (vòng 1: 36 ≠ 40). Ca đỏ: bang_chung_do có 36 dòng ✓/✗ + SỐ CA 40 → cổng phải ✗.
+2. Bộ kiểm (kiem_tra_truoc_khi_giao.js): server/** tra bảng bằng giá trị từ ngoài (`BANG[o.x]`, `BANG[req.…]`) phải qua Object.hasOwn — giá trị
+   'constructor' đưa một HÀM vào tham số SQL làm libsql PANIC, sập tiến trình (đo được ở VS/BV-sub-status, vòng 2). Ca đỏ: file thử có
+   `TRA_HANG[o.sub_status] || null` → phép ✗.
+3. Skill lam-viec bước 1: kho nông (`--is-shallow-repository` = true) thì `git fetch --unshallow` luôn, không chỉ khi lệch hai phía — thu_BH2 cần lịch sử
+   (bad revision cbbb809). Ca: phiên mở từ kho nông → npm test không đỏ vì thiếu commit.
+NGUYÊN TẮC (đề xuất thêm KHUON_LOI.md — ngoài Phạm vi):
+1. K3 — Câu ghi "một chiều" (WHERE chặn lùi) cần ca "tin lùi tới trễ" + đột biến gỡ vế WHERE; ca đếm lượt gọi / khoá chống lặp không thay được (GIAO-3 vòng 2).
+   Một trạng thái có HAI đường ghi (UPDATE chính + hàm phụ) → mỗi đường một ca.
+2. K3 — Mô hình đo phải tái hiện được triệu chứng thật (lệch < 2 lần) trước khi kết luận "đạt ngưỡng"; không tái hiện → CHƯA KIỂM (GIAO-3 D: 2,4 s vs > 40 s).
+3. K1/K4 — Lời hứa trong ke_hoach ("ghi Phát hiện", "CHƯA KIỂM") và lý do "không dựng được ca đỏ" là khẳng định: phải có trong trang_thai kèm lệnh đã thử
+   (GIAO-3 vòng 1 lỗi 4, vòng 2 lỗi 6 — câu "câu ghi ném, không ghi sai" sai: thật ra sập tiến trình).
+4. K3 — Sửa Ahamove giả / dữ liệu giả cho ca MỚI có thể đổi nghĩa ca CŨ (phí 0 → "không có phí" làm BV-phi-tao-chuyen SỐNG): sau mỗi lần đổi bộ giả,
+   chạy lại toàn bộ đột biến chứ không chỉ đột biến mới.
+BỎ:
+1. Người gác chặn lệnh ghép (`cmd1 && node file`, `until`, `$N`, `/dev/null`) — đã làm theo hướng dẫn, mỗi lần một lệnh; không phải lỗi mã.
+2. Ô "Thực thu" F2 bỏ quên khoản nạp 3.000 cùng ngày — một lần, đã sửa thao tác F2.
+
+Dọn: không có lời dặn nào trong KHUON_LOI.md / CLAUDE.md mà việc này thêm phép kiểm làm thay.
+HEAD ĐÃ KIỂM: d8125732
