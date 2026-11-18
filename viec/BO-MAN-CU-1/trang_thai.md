@@ -231,3 +231,58 @@ Phát hiện thêm (NGHI NGỜ của soát vòng 1 — dữ liệu cũ, LUAT §6
   có thì tạo hồ sơ cho các ví đó (việc sau) — màn mới vốn đã đòi PIN từ trước việc này.
 - Phiên tạo TRƯỚC lúc triển khai có gói, khách đã chuyển khoản, chốt muộn / xác nhận tay → GOI_TAM_DUNG, tiền về không có đơn (phiên quầy
   ghi chua_khop, `server/routes/thanh-toan.js:207-216`). Khả năng gần 0 (phiên sống 10 phút; gói đã kết thúc hết). Triển khai lúc quầy vắng.
+
+## Soát độc lập — vòng 2 (agent độc lập mới) — chép nguyên văn
+```
+KHÔNG ĐẠT
+
+KIỂM LẠI 5 LỖI VÒNG 1
+1. CK âm — vá ĐÚNG với số âm và chuỗi số. Có ca B2d, B2e; VS-CK-CHI-DUONG BẮT (đã chạy). Nhưng chưa đủ, xem lỗi 1 dưới.
+2. KHNAP1 / NAP1 — đã sửa: cờ `thang` (thu_KHNAP1.js:129-134, thu_NAP1.js:102-105), ca quầy thật chờ đúng mã mới, ca còn đi donCu đã đổi
+   tên "thân taoDonGoc", lượt 2 trong bằng chứng cho thấy các ca này đỏ trên gốc. Nhưng câu rà K4 trong trang_thai sai, xem lỗi 2.
+3. Bằng chứng đỏ — đã viết lại ba lượt; khoá nằm ở donCu.js:28-34. Còn một câu không chính xác, xem lỗi 3.
+4. Chú thích — tinh.js:111 nay đúng (thu_BH1.js:151 I1–I9, thu_KHACHCK1.js:268 D2). ThanhKhach.jsx:3 đã bỏ nhắc CustomerSearch.
+5. C2 và K2 — đã có (thu_BOMANCU1 C2; K2 ở các dòng 163-170).
+
+LỖI TÌM ĐƯỢC
+1. NẶNG (tiền / đối soát) — server/routes/orders.js:197-198 — K4 (cổng không cùng biểu thức với MỌI chỗ dùng) + K1 (chú thích sai).
+   - Cửa chặn `(Number(b.transfer_amount) || 0) !== 0` chỉ cùng biểu thức với chỗ CỘNG tiền (:1003). Chỗ GHI cột dùng `transfer_amount || 0` (:1105).
+   - Đo (đường thẳng, cash_amount 25.000, món 25.000): `transfer_amount: "100000abc"` → 200, cột lưu TEXT "100000abc"; SUM(transfer_amount)
+     (khuôn reports.js:37/130/145) = 100000; Đối soát kiểu doiSoat.js:158 (cash + ck) = 350.000 trong khi két thật 250.000. "abc", " " cũng lọt
+     (lưu text, cộng ra 0).
+   - Chú thích :197 "… chuỗi số cũng là CK" khẳng định đã đóng — không đúng với chỗ ghi. Có từ trước việc này, nhưng phiếu B2 hứa chặn.
+   - Cách sửa: `Number(b.transfer_amount || 0) !== 0` (NaN cũng bị chặn). Ca B2f "100000abc" → 400 CK_PHAI_QUA_PAYOS, không ghi gì; đột biến
+     đưa lại biểu thức vòng 1 → BẮT. Cùng khuôn ghi Phát hiện: `cash_amount || 0` ở :1105 so với `Number(cash) || 0` ở :1002 (chỉ lọt khi đơn 0đ).
+2. NHẸ — tên ca nói "quầy" nhưng đi vòng donCu (K3 + K1): thu_GOI1.js:254 (A2d), :269 (A2d2), thu_P26c.js:226 (A2c). Câu trang_thai.md:218
+   "Rà K4: mọi nhãn 'quầy' khác ở 22 bài là đơn tiền mặt đi HTTP thật" vì thế sai. Sửa: tên "thân taoDonGoc (gói cũ) — hai lệnh cùng lúc".
+3. NHẸ — số liệu cũ sau vòng sửa (K1): trang_thai.md:95 "18 đột biến · 62 đạt" (nay 19 / 66); :99 PASS 126 trên HEAD a68fee1b, chưa chạy lại
+   sau vòng sửa; bang_chung_do.txt:14 "(gốc nhận ví / CK / nợ / gói ở đường thẳng)" không đúng với 5 bài — gốc TỪ CHỐI bằng mã khác
+   (THE_KHONG_TRA_VI, NAP_CHI_TIEN_MAT_QR, SO_DU_KHONG_DU, TRA_KET_HOP, KHONG_PHAI_TK_ME); bài vẫn đỏ đúng lý do, chỉ câu tóm tắt sai.
+4. NHẸ — mã chết (đơn giản / LUAT §3): client/src/pages/BanHang/tinh.js:111-116 `dungDonHang` dựng thân POST /orders có CK / ví — máy chủ nay
+   từ chối, không màn nào gọi; vẫn bị thu_BH1 I1–I9 và KHACHCK1 D2 khoá (I3, I5 khoá cả thân CK / ví). Gọn hơn: xoá hàm cùng các ca đó ngay.
+
+NGHI NGỜ
+- Huỷ / hoàn đơn có `transfer_amount` dạng text: hoanVi (orders.js:1687) `Number(order.transfer_amount || 0)` = NaN vào soTienHoan — chưa chạy được.
+- K2 (thu_BOMANCU1.js:167): mẫu `(?<![\w.])taoDon\s*\(` bỏ qua `x.taoDon(` — lối mới `orders.taoDon(req, res, {…})` với phien khác null bỏ qua
+  vế tiền mà K2 không đếm. Hôm nay không có (một INSERT pos_orders orders.js:1087; taoDonGoc bị K1 khoá).
+- `vet()`: hàm `so` trả −1 khi câu đọc lỗi → "không ghi gì" có thể đúng suông (hôm nay 10 bảng đều có); `vet` chưa đếm kho (pos_stock_pending)
+  trong khi B1 hứa "không ghi … kho".
+- Lượt 2 (tương đương) không tái lập được bằng công cụ ở HEAD (donCu nay luôn có khoá). Lượt 3 đỏ chủ yếu dạng "bài sập" do khoá donCu ném —
+  chấp nhận làm bằng chứng đỏ, không phải dạng BẮT.
+- gia_lap/kich_ban.js `TRUONG_DON` chép danh sách trắng của giuCho → hai nguồn (chỉ phía bài thử).
+- Khách có ví chưa có hồ sơ không trả bằng tài khoản ở quầy được (pinKhach.js:33); `/wallets/topup` vẫn tạo được ví như vậy → không chỉ dữ liệu cũ.
+- `payment_method` lạ ("qr") vẫn lọt đường thẳng, ghi nguyên chữ (200, tiền đúng cột tiền mặt) — đã ghi Phát hiện.
+
+K5: phiên giữ / chốt, webhook QR, xác nhận tay, đơn giao, thẻ hạng, nạp không bị chặn oan (C1a–l, C2; P3 101; KHNAP1 65; NAP1 90); donApp,
+manKhach không gửi trường gói; màn mới gửi from_package false / package_buy null / customer_package_id null (falsy); transfer_amount null / ""
+/ "0" / 0 → 200; đơn cũ huỷ / hoàn / thu nợ C5a–h, C6 xanh. Không thấy luồng hợp lệ bị chặn oan.
+Đường tiền: ngoài lỗi 1, balance :194 ~ :912/:928, parent :194 ~ :950, debt :201 ~ :978; không tin payment_status máy khách.
+
+NGHIỆM THU: 19/20 · thiếu B2 (lỗ chuyển khoản dạng chuỗi chữ, chưa có ca).
+CHƯA SOÁT ĐƯỢC: chưa chạy hết 19 đột biến (chạy 3); chưa chạy cong.js chay; chưa chạy kịch bản huỷ đơn có cột CK text; production; kho SX.
+BÀI HỌC:
+- KHOÁ: ca B2f transfer_amount chuỗi chữ + đột biến đưa lại biểu thức vòng 1; thêm kho vào `vet`; `so()` trong `vet` ném thay vì −1.
+- NGUYÊN TẮC (K4): "cổng cùng biểu thức với chỗ dùng" = MỌI chỗ dùng (cộng, GHI cột, hoàn); SQLite giữ chuỗi lạ, SUM đọc phần số đầu chuỗi —
+  cổng tiền nên chuẩn hoá MỘT lần, thân dùng giá trị đã chuẩn hoá.
+- NGUYÊN TẮC (K3 / K1): câu "đã rà K4" phải kèm lệnh grep + số chỗ; không có lệnh là câu đoán.
+```

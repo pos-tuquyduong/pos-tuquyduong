@@ -190,13 +190,15 @@ async function main() {
   const la = (r, status, code) => r.status === status && (code === undefined || r.j.code === code);
   const so = async (sql, p = []) => Number(Object.values((await db.queryOne(sql, p).catch(() => null)) || { n: -1 })[0] ?? 0);
   const soDu = (sdt) => so('SELECT COALESCE((SELECT balance FROM pos_wallets WHERE phone = ?), 0) AS n', [sdt]);
-  // Dấu vết ghi: mọi bảng tiền / điểm / gói / phiên / mã / voucher / thẻ (B5: "không ghi gì").
+  // Dấu vết ghi: mọi bảng tiền / điểm / gói / phiên / mã / voucher / thẻ / kho chờ (B5: "không ghi gì"). Câu đọc hỏng → NÉM (không trả −1
+  // để phép so "không đổi" khỏi đúng suông — soát vòng 2).
+  const soCh = async (sql) => Number(Object.values(await db.queryOne(sql))[0] ?? 0);
   const vet = async () => JSON.stringify(await Promise.all([
     'SELECT COUNT(*) AS n FROM pos_orders', 'SELECT COUNT(*) AS n FROM pos_order_items', 'SELECT COUNT(*) AS n FROM pos_balance_transactions',
     'SELECT COALESCE(SUM(balance), 0) AS n FROM pos_wallets', 'SELECT COUNT(*) AS n FROM pos_point_transactions', 'SELECT COUNT(*) AS n FROM pos_customer_packages',
     'SELECT COALESCE(SUM(delivered_qty), 0) AS n FROM pos_customer_packages', 'SELECT COUNT(*) AS n FROM pos_phien_thanh_toan',
     'SELECT COALESCE(SUM(used_count), 0) AS n FROM pos_discount_codes', "SELECT COUNT(*) AS n FROM pos_voucher_grants WHERE status <> 'available'",
-    'SELECT COUNT(*) AS n FROM pos_membership_purchases'].map((q) => so(q))));
+    'SELECT COUNT(*) AS n FROM pos_membership_purchases', 'SELECT COUNT(*) AS n FROM pos_stock_pending'].map((q) => soCh(q))));
   let soSdt = 0;
   const sdtMoi = () => '09' + String(41000000 + (++soSdt)).padStart(8, '0');
   const khach = async (napVi = 0, pin = '1357', me = null) => {
@@ -244,6 +246,9 @@ async function main() {
       transfer_amount: -10000 }), 'CK_PHAI_QUA_PAYOS');
     await caChan('B2e chuyển khoản dạng chuỗi "-10000"', thang({ items: [mon()], payment_method: 'cash', cash_amount: 35000, transfer_amount: '-10000' }),
       'CK_PHAI_QUA_PAYOS');
+    // Soát vòng 2 lỗi 1: chỗ GHI cột dùng `transfer_amount || 0` (giữ nguyên chuỗi) — "100000abc" cộng ra 0 nhưng cột lưu chữ, SUM báo cáo đọc 100.000.
+    await caChan('B2f chuyển khoản dạng chuỗi chữ "100000abc" (tiền mặt đủ 25.000)', thang({ items: [mon()], payment_method: 'cash', cash_amount: 25000,
+      transfer_amount: '100000abc' }), 'CK_PHAI_QUA_PAYOS');
     await caChan('N1 ghi nợ (payment_method debt, debt_amount 25.000)', thang({ customer_phone: kh, customer_name: 'K', items: [mon()], payment_method: 'debt',
       debt_amount: 25000, due_date: '2026-12-31' }), 'KHONG_GHI_NO');
     await caChan('N2 chờ thu (payment_method cho_thu)', thang({ items: [mon()], payment_method: 'cho_thu', debt_amount: 25000 }), 'KHONG_GHI_NO');
@@ -303,7 +308,7 @@ async function main() {
     // phải thêm vào danh sách này (có chủ ý), không được tự lọt.
     const GOI = [['routes/orders.js', 2], ['utils/giuCho.js', 2], ['utils/donApp.js', 1], ['utils/manKhach.js', 1]];
     const goiTaoDon = duyet(MAY_CHU, ['.js']).filter((f) => !f.includes('node_modules')).map((f) => [path.relative(MAY_CHU, f).split(path.sep).join('/'),
-      (sach(fs.readFileSync(f, 'utf8')).match(/(?<![\w.])taoDon\s*\(/g) || []).length - (/async function taoDon\s*\(/.test(sach(fs.readFileSync(f, 'utf8'))) ? 1 : 0)])
+      (sach(fs.readFileSync(f, 'utf8')).match(/(?<!\w)taoDon\s*\(/g) || []).length - (/async function taoDon\s*\(/.test(sach(fs.readFileSync(f, 'utf8'))) ? 1 : 0)])
       .filter(([, n]) => n > 0).sort();
     k('K2 lời gọi taoDon( ở server/ đúng 6 chỗ: orders.js 2 (route thẳng, tinh-thu) · giuCho.js 2 (tạo / chốt phiên) · donApp.js 1 · manKhach.js 1',
       JSON.stringify(goiTaoDon) === JSON.stringify(GOI.slice().sort()), JSON.stringify(goiTaoDon));
