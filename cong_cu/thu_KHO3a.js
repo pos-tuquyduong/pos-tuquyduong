@@ -621,10 +621,10 @@ async function main() {
     k('Gợi ý phát sinh chạy (lô đã bán hết không còn)', la(goiY, 200) && !JSON.stringify(goiY.j).includes(`"lo_id":${loGan},`), moTa(goiY));
   });
   await chay('SaoLuu', async () => {
-    const sl = await goi('chu', 'GET', '/pos/backup/export');
+    const sl = await goi('chu', 'GET', '/pos/backup/export-all');
     k('C3 sao lưu chạy, không gọi SX', [200].includes(sl.status) && sxNhan.length === 0, `${moTa(sl)} · SX ${sxNhan.length}`);
     const cot = await q('PRAGMA table_info(kho_phieu)');
-    k('Sao lưu giữ cột don_hang_id (SELECT * theo bảng)', cot.some((c) => c.name === 'don_hang_id'));
+    k('Sao lưu Excel lấy kho_phieu bằng SELECT * → có cột don_hang_id', cot.some((c) => c.name === 'don_hang_id'));
     const chiMuc = await q("SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'ux_kho_phieu_don_hang'");
     k('Khoá duy nhất một đơn — một phiếu bán (ux_kho_phieu_don_hang)', /UNIQUE/i.test(chiMuc[0]?.sql || ''));
     let trung = false;
@@ -653,9 +653,11 @@ async function main() {
     k('Câu 3: báo sự cố "hoàn kho SX" → 400 HOAN_KHO_SX_DA_BO, không gọi SX', la(hoan, 400, 'HOAN_KHO_SX_DA_BO') && sxNhan.length === 0, moTa(hoan));
     k('C1/C2 suốt bài: SX giả nhận 0 lời gọi', sxNhan.length === 0, `${sxNhan.length}: ${sxNhan.slice(0, 4).join(', ')}`);
     k('C2 không lời gọi mạng nào ra ngoài', raNgoai.length === 0, raNgoai.slice(0, 3).join(', '));
-    k('C2 không log lỗi SX', !nhatKyLoi.some((l) => /\bSX\b/.test(l)), nhatKyLoi.filter((l) => /\bSX\b/.test(l)).slice(0, 2).join(' | '));
+    // Bước 020 (đã chạy trên production — luật nâng cấp: không sửa bước cũ) chỉ HOÃN trên kho mới của bài: dòng "⏸ NÂNG CẤP 020" không tính.
+    const logSx = nhatKyLoi.filter((l) => /\bSX\b/.test(l) && !/NÂNG CẤP 020_chep_khach_sx/.test(l));
+    k('C2 không log lỗi SX (trừ dòng hoãn của bước 020 trên kho mới)', logSx.length === 0, logSx.slice(0, 2).join(' | '));
     const may = ['routes/orders.js', 'routes/products.js', 'routes/damages.js', 'routes/backup.js', 'routes/so-no.js', 'utils/giuCho.js', 'index.js', 'ketNoiKho.js', 'database.js']
-      .map((f) => [f, doc('server/' + f)]);
+      .map((f) => [f, doc('server/' + f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')]);   // bỏ chú thích (lịch sử ghi "SX_API_URL")
     const con = may.filter(([, s]) => /outStockFIFO|inStockReturn|checkStock\(|products-with-stock|isSxConfigured|diaChiSX|SX_API_URL/.test(s)).map(([f]) => f);
     k('C1/C6 server/ không còn lời gọi / biến SX (orders, products, damages, backup, so-no, giuCho, index, ketNoiKho, database)', con.length === 0, con.join(', '));
     k('C1 đã bỏ stock.js, doi-chieu.js, sync.js, utils/doSoNo.js', !coFile('server/routes/stock.js') && !coFile('server/routes/doi-chieu.js')
