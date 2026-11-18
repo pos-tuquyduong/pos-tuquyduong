@@ -538,6 +538,28 @@ async function main() {
     await webhook(pA7 || {});
     k('B3c App: xác nhận tay hết hàng (hoàn ví) rồi webhook payOS cùng khoản → ví chỉ +MỘT lần', la(t7, 400, 'HET_HANG')
       && (await soDu(kh7.sdt)) === Number(pA7?.con_lai), `${moTa(t7)} · ví ${await soDu(kh7.sdt)} / ${pA7?.con_lai}`);
+    // Soát vòng 2 (chiều ngược): cổng ĐÃ cộng ví cho phiên (dòng vao_vi cùng mã — ghi sẵn: tất định, không cần đua) rồi quản lý mới xác nhận tay
+    // lúc hết hàng → KHÔNG cộng lần hai; dòng `tay:` là chua_khop CẦN XEM.
+    const lo9 = await napTP(spL, 1);
+    const kh9 = await khach();
+    const pq9 = await taoPhienQuay([mon(spL, 1)], 'payos', { customer_phone: kh9.sdt, customer_name: 'Khách K3a cổng trước' });
+    const p9 = await phien(pq9.j.phien?.id);
+    await mat(lo9);
+    await ghiDb('INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua, ly_do, du_lieu, luc) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [`payos:k3a-truoc-${p9?.id}`, p9?.ma_payos, Number(p9?.con_lai), 'vao_vi', 'cổng đã cộng (thử)', '{}', '2026-11-18T10:00:00']);
+    const t9 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${p9?.id}/xac-nhan-tay`, { ly_do: 'khách đưa sao kê (thử)' });
+    const b9 = await mot('SELECT ket_qua FROM pos_payos_su_kien WHERE khoa = ?', [`tay:${p9?.id}`]);
+    k('B3c cổng đã cộng ví rồi mới xác nhận tay lúc hết hàng → ví KHÔNG cộng lần hai, dòng tay: chua_khop', la(t9, 400, 'HET_HANG')
+      && (await soDu(kh9.sdt)) === 0 && b9?.ket_qua === 'chua_khop', `${moTa(t9)} ${JSON.stringify(t9.j.hoan)} · ví ${await soDu(kh9.sdt)} · ${JSON.stringify(b9)}`);
+    // Đối chứng K5: phiên KHÁC mã (dòng vao_vi của phiên khác) không làm mất phần hoàn của phiên này
+    const lo10 = await napTP(spL, 1);
+    const kh10 = await khach();
+    const pq10 = await taoPhienQuay([mon(spL, 1)], 'payos', { customer_phone: kh10.sdt, customer_name: 'Khách K3a đối chứng' });
+    const p10 = await phien(pq10.j.phien?.id);
+    await mat(lo10);
+    const t10 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${p10?.id}/xac-nhan-tay`, { ly_do: 'khách đưa sao kê (thử)' });
+    k('B3c đối chứng: phiên chưa có dòng cổng → xác nhận tay hết hàng vẫn hoàn ví đúng số', la(t10, 400, 'HET_HANG')
+      && (await soDu(kh10.sdt)) === Number(p10?.con_lai), `${moTa(t10)} · ví ${await soDu(kh10.sdt)} / ${p10?.con_lai}`);
     // Hai người cùng bấm xác nhận tay (song song thật) lúc hết hàng → ví +đúng số MỘT lần (khoá dòng báo `tay:<phiên>`)
     const spDua = await themSP('Đua tay K3a', 18000, { thuTu: 22 });
     await luuSP(spDua, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nlCam, luong: 0.2 }] });
@@ -683,6 +705,15 @@ async function main() {
       const sua = await goi('ql', 'PUT', `/pos/products/${id}`, { name: 'Món thử K3a đổi', category: 'tra', sort_order: 0, is_active: 0 });
       const sau = await menuQuay();
       k('A4 sửa tên + ẩn → menu không còn món', la(sua, 200) && !sau.find((x) => x.id === id), moTa(sua));
+      // Soát vòng 2: hiện lại (chỉ gửi is_active: 1) món ẩn trùng tên món đang bán → cùng vị từ TEN_TRUNG; đối chứng: đổi thứ tự món đang bán (dữ liệu cũ có thể trùng) vẫn qua
+      await ghiDb('UPDATE pos_products SET name = ? WHERE id = ?', [spCF.ten, id]);
+      const hien = await goi('ql', 'PUT', `/pos/products/${id}`, { is_active: 1 });
+      k('A4 hiện lại món ẩn trùng tên món đang bán (chỉ is_active: 1) → 400 TEN_TRUNG, món vẫn ẩn', la(hien, 400, 'TEN_TRUNG')
+        && Number((await mot('SELECT is_active FROM pos_products WHERE id = ?', [id]))?.is_active) === 0, moTa(hien));
+      await ghiDb('UPDATE pos_products SET is_active = 1 WHERE id = ?', [id]);
+      const thuTu = await goi('ql', 'PUT', `/pos/products/${id}`, { sort_order: 3 });
+      k('A4 đối chứng K5: đổi thứ tự món đang bán đã trùng tên sẵn (dữ liệu cũ) → 200', la(thuTu, 200), moTa(thuTu));
+      await ghiDb("UPDATE pos_products SET name = 'Món thử K3a đổi', is_active = 0 WHERE id = ?", [id]);
       const nvSua = await goi('nv', 'PUT', `/pos/products/${id}`, { is_active: 1 });
       k('A4 nhân viên sửa / hiện món → 403', nvSua.status === 403, moTa(nvSua));
       const xoa = await goi('chu', 'DELETE', `/pos/products/${id}`);

@@ -56,7 +56,15 @@ DOT_BIEN = [
   # VS-TAY-HOAN-HAI-LAN (gỡ vế `.changes !== 1` của khoá `tay:<phiên>`) SỐNG: hai xác nhận tay cùng lúc thường bị chặn sớm vì phiên đã đóng ('loi') —
   # đua không tất định, không dựng được ca đỏ tất định → CHƯA KIỂM (K3), không đếm là phép (trang_thai.md).
   ('BV-MOT-VI-TU-CON-RONG', [(BH, "\n  || (p.kieu === 'pha_tai_cho' && !tinh.trienKhai({ goc: p.id, bang }, 1).length);", ';', 1)], r'✗ B3 pha tại chỗ chỉ gồm món con rỗng'),
-  ('BV-SUA-TEN-TRUNG', [(P, "    if (doi.name && await tenTrung({ queryOne }, doi.name, Number(req.params.id))) return", "    if (false) return", 1)], r'✗ A4 sửa tên trùng'),
+  ('BV-SUA-TEN-TRUNG', [(P, "    if ((doi.name || hienLai) && await tenTrung(", "    if (false && await tenTrung(", 1)], r'✗ A4 sửa tên trùng'),
+  # ── vòng sửa 3 (soát vòng 2): hiện lại món ẩn trùng tên · cổng đã cộng rồi mới xác nhận tay ──
+  ('BV-HIEN-LAI-TRUNG-TEN', [(P, "    if ((doi.name || hienLai) && await tenTrung(", "    if ((doi.name) && await tenTrung(", 1)], r'✗ A4 hiện lại món ẩn'),
+  ('VS-HIEN-LAI-XET-CA-MON-DANG-BAN', [(P, "const hienLai = doi.is_active === 1 && Number(cu?.is_active) !== 1;", "const hienLai = doi.is_active === 1 || 'sort_order' in doi;", 1)],
+    r'✗ A4 đối chứng K5'),
+  ('BV-TAY-SAU-CONG', [(TT, "    if (p.ma_payos && await tx.queryOne(\"SELECT 1 AS co FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua = 'vao_vi' AND khoa <> ?\"",
+    "    if (false && await tx.queryOne(\"SELECT 1 AS co FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua = 'vao_vi' AND khoa <> ?\"", 1)], r'✗ B3c cổng đã cộng ví'),
+  ('VS-TAY-SAU-CONG-MOI-MA', [(TT, "WHERE ma_payos = ? AND ket_qua = 'vao_vi' AND khoa <> ?\", [p.ma_payos, `tay:${p.id}`]",
+    "WHERE ma_payos <> ? AND ket_qua = 'vao_vi' AND khoa <> ?\", [p.ma_payos, `tay:${p.id}`]", 1)], r'✗ B3c (đối chứng|cổng đã cộng)'),
   # ── vòng sửa 2 (soát bảo mật): hoàn tay đóng phiên · tiền về sau khi đã hoàn tay không cộng lần hai ──
   ('BV-DONG-PHIEN-KHI-HOAN-TAY', [(TT, """    await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",""",
     """    if (false) await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",""", 1)],

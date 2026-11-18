@@ -12,7 +12,11 @@ const { loiGhi, ghiVi, trongGiaoDich } = require('./wallets');
 const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const LOI_KHO = ['HET_HANG', 'THIEU_NGUYEN_LIEU', 'CHUA_CO_CONG_THUC'];   // KHO-3a: mã chặn bán theo kho (kho/banHang.js)
 
-/** KHO-3a B3c — xác nhận tay hỏng vì kho: { vao_vi: số } hoặc { hoan_tay: số }. Một lần: câu ghi dòng báo khoá `tay:<phiên>` (ON CONFLICT DO NOTHING). */
+/**
+ * KHO-3a B3c — xác nhận tay hỏng vì kho: { vao_vi: số } hoặc { hoan_tay: số }. Một lần: câu ghi dòng báo khoá `tay:<phiên>` (ON CONFLICT DO NOTHING).
+ * Hai chiều với tiền về qua cổng (soát vòng 2): cổng ĐÃ cộng ví cho phiên này (dòng vao_vi cùng ma_payos) → dòng `tay:` là chua_khop, KHÔNG cộng;
+ * chiều ngược (tay trước, cổng sau) do vaoVi chặn bằng dòng `tay:`. Cả hai câu đọc nằm TRONG giao dịch ghi (khoá ghi xếp hàng hai bên).
+ */
 async function hoanTayHetHang(p, mon, nguoi) {
   const soTien = Number(p.con_lai) || 0;
   const lyDo = `Hết hàng: ${mon || 'món'} — xác nhận tay, không tạo được đơn`;
@@ -21,6 +25,10 @@ async function hoanTayHetHang(p, mon, nguoi) {
     await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",
       [`HET_HANG: ${mon || 'món'}`, p.id]);
     const ghi = (ketQua, chu) => tx.run(CAU_GHI, [`tay:${p.id}`, p.ma_payos ?? null, soTien, ketQua, chu, JSON.stringify({ phien: p.id, nguoi }), getNow()]);
+    if (p.ma_payos && await tx.queryOne("SELECT 1 AS co FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua = 'vao_vi' AND khoa <> ?", [p.ma_payos, `tay:${p.id}`])) {
+      await ghi('chua_khop', `${lyDo} — cổng đã cộng khoản này vào ví ${p.phone || ''} trước: máy KHÔNG cộng lần hai — đối chiếu sao kê`);
+      return { da_hoan: true };
+    }
     if (!p.phone) {
       await ghi('chua_khop', `${lyDo} — khách chưa có tài khoản: HOÀN TIỀN TAY ${soTien}`);
       return { hoan_tay: soTien };
@@ -182,7 +190,8 @@ async function xuLyTienVe(res, t) {
   const luc = DANG_GIO.test(String(t.luc || '')) ? String(t.luc).replace(' ', 'T') : getNow();
   // Q1b + chủ quán 05.11 lượt 2: phiên App đã huỷ / hết hạn, HOẶC 'loi' (không tạo được đơn — vd hết hàng lúc tiền về đúng hạn), tiền về →
   // KHÔNG tạo đơn (trừ đơn chỉ thẻ / chỉ nạp về đúng số — KH-NAP-1 muonChot dưới); số tiền thật đã về cộng vào tài khoản khách của phiên. MỘT vị từ (vaoViDuoc), MỘT hàm ghi (vaoVi): dòng báo + dòng ví cùng
-  // MỘT giao dịch, chỉ cộng khi dòng báo mới được ghi (changes 1) — báo lặp / hai báo cùng lúc cộng đúng một lần. Phiên QUẦY không vào đây.
+  // MỘT giao dịch, chỉ cộng khi dòng báo mới được ghi (changes 1) — báo lặp / hai báo cùng lúc cộng đúng một lần. Phiên QUẦY chỉ vào đây khi chốt hỏng
+  // vì KHO và phiên có SĐT (KHO-3a B3c, nhánh loiKho dưới).
   const laApp = !!p.phone && t.soTien > 0 && await laPhienApp(p.id);
   const vaoViDuoc = (x) => ['huy', 'loi'].includes(x.trang_thai) || (x.trang_thai === 'cho' && (luc > x.het_han || x.het_han <= getNow()));
   const vaoVi = async (x) => {
