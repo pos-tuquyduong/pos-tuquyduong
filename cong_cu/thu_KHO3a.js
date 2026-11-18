@@ -516,6 +516,12 @@ async function main() {
     const lo3 = await conLo(loH);
     const xoa3 = await goi('chu', 'DELETE', `/pos/orders/${d3}`);
     k('B5 xoá đơn ĐÃ huỷ → không trả thêm', la(xoa3, 200) && (await conLo(loH)) === lo3 && lo3 === 4, `lô ${await conLo(loH)}`);
+    // K4 (giả lập I7 bắt): xoá đơn trạng thái KHÁC completed mà chưa huỷ (vd đã hoàn tiền) → vẫn trả kho, như đường SX cũ (status !== 'cancelled')
+    const d5 = (await banTM([mon(spH, 1)])).j.order?.id;
+    await ghiDb("UPDATE pos_orders SET status = 'refunded' WHERE id = ?", [d5]);
+    const xoa5 = await goi('chu', 'DELETE', `/pos/orders/${d5}`);
+    k('B5 xoá đơn đã hoàn tiền (refunded, chưa huỷ) → trả kho (lô về 4), phiếu bán huy', la(xoa5, 200) && (await conLo(loH)) === 4
+      && (await phieuBanCua(d5))[0]?.trang_thai === 'huy', `${moTa(xoa5)} · lô ${await conLo(loH)}`);
     // Đơn cũ (trước gộp — không phiếu bán): huỷ không lỗi
     const cu = Number((await ghiDb(`INSERT INTO pos_orders (code, customer_name, subtotal, total, payment_method, cash_amount, status, created_by, created_at)
       VALUES ('CU-K3A-1', 'Khách lẻ', 10000, 10000, 'cash', 10000, 'completed', 'nen', ?)`, [getNow()])).lastInsertRowid);

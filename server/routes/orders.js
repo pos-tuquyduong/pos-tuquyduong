@@ -1899,7 +1899,10 @@ router.delete("/:id", authenticate, async (req, res) => {
         await hoanVi(tx, order, req.user.username, now, "xóa");
         await traLuotMa(tx, order);
         await truDiemDon(tx, order, req.user.username, now, "Xoá");
-        await banHang.huyPhieuBan(tx, order.id, { nguoi: req.user.username, luc: now, lyDo: `Xoá đơn ${order.code}` });   // KHO-3a B5: trả kho đúng lô
+      }
+      // KHO-3a B5: xoá đơn CHƯA huỷ (mọi trạng thái khác — như đường hoàn kho SX cũ `status !== 'cancelled'`) → trả kho đúng lô; đơn đã huỷ đã trả lúc huỷ.
+      if (order.status !== "cancelled") {
+        await banHang.huyPhieuBan(tx, order.id, { nguoi: req.user.username, luc: now, lyDo: `Xoá đơn ${order.code}` });
       }
 
       // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══

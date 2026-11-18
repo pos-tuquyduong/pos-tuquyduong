@@ -59,6 +59,8 @@ DOT_BIEN = [
     r'✗ B5 hai lần huỷ'),
   ('BV-XOA-TRA-KHO', [(O, "        await banHang.huyPhieuBan(tx, order.id, { nguoi: req.user.username, luc: now, lyDo: `Xoá đơn", "        if (false) await banHang.huyPhieuBan(tx, order.id, { nguoi: req.user.username, luc: now, lyDo: `Xoá đơn", 1)],
     r'✗ B5 xoá đơn completed'),
+  ('VS-XOA-CHI-COMPLETED', [(O, '      if (order.status !== "cancelled") {\n        await banHang.huyPhieuBan(', '      if (order.status === "completed") {\n        await banHang.huyPhieuBan(', 1)],
+    r'✗ B5 xoá đơn đã hoàn tiền'),   # lỗi giả lập I7 bắt (KB14): xoá đơn refunded không trả kho
   ('VS-BO-DI-VAN-TRA-KHO', [(BH, "  if (doDaPha === 'bo_di') {", '  if (false) {', 1)], r'✗ B5 đơn giao "Bỏ đi"'),
   # ── A2 / A3b / Câu 4 / K4 / khoá CSDL ──
   ('VS-MENU-SO-PHAN-LAM-TRON-LEN', [(BH, 'const nguyen = (x) => Math.max(0, Math.floor(x + tinh.SAI_SO));', 'const nguyen = (x) => Math.max(0, Math.round(x));', 1)], r'✗ A2 pha tại chỗ'),

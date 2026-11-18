@@ -410,7 +410,7 @@ const KICH_BAN = [
   { ten: 'báo hỏng chồng nhau vượt số lượng; báo hỏng đơn đã huỷ', chay: async (c) => {
     const d = await c.taoDon('KB18a', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(1, 2)], payment_method: 'cash', cash_amount: 40000 });
     const ma = c.sp[1].code;
-    const a = await c.baoHong(d.id, { product_code: ma, quantity: 1, action: 'return_stock', return_to_stock: true });
+    const a = await c.baoHong(d.id, { product_code: ma, quantity: 1, action: 'none' });   // KHO-3a: "hoàn kho SX" đã bỏ — đếm số lượng bằng "chỉ ghi nhận"
     const [chen, b] = await c.chong(() => c.baoHong(d.id, { product_code: ma, quantity: 1, action: 'none' }),
       () => c.baoHong(d.id, { product_code: ma, quantity: 1, action: 'refund' }));
     const tong = await c.so('SELECT COALESCE(SUM(quantity), 0) FROM pos_damage_logs WHERE order_id = ?', [d.id]);
