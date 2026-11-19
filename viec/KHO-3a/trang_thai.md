@@ -78,7 +78,10 @@ vì phiếu B3c có ghi.
   `thu_gia_lap.js` khung I7 + 15 ca I7, M4 = huỷ không trả kho. Giả lập bắt được lỗi thật: xoá đơn `refunded` không trả kho → sửa `orders.js`
   (`status !== 'cancelled'`) + ca B5 refunded trong `thu_KHO3a.js`.
 
-## Bước 6 — kiểm (HEAD 327166c3, chạy riêng — không chạy song song bài khác)
+## Bước 6 — kiểm lần cuối (code HEAD 578e0062 = 4bd4bf5d, chạy riêng): `--day-du` **PASS 129 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ packages.js);
+giả lập chay.js xanh 53,6 s (33 KB · 18 bất biến); thu_gia_lap.js xanh 68,4 s; thu_KHO3a.js 145/0; dist KHỚP src.
+
+### Lần kiểm trước (HEAD 327166c3, chạy riêng — không chạy song song bài khác)
 - `node kiem_tra_truoc_khi_giao.js --day-du`: **PASS 128 · FAIL 0 · CẢNH BÁO 1** (cảnh báo cũ `packages.js`, không thuộc việc này).
   Giả lập `chay.js` xanh 54,7 s; `thu_gia_lap.js` xanh 73,4 s; `thu_KHO3a.js` xanh; dist KHỚP src.
 - Lần cổng đầu (`cong1.txt`) báo `thu_gia_lap.js` đỏ "data/ không đổi (pos_thu.db …)": do mình chạy giả lập SONG SONG lúc cổng chạy (cùng
@@ -562,3 +565,83 @@ SOÁT BẢO MẬT: ĐẠT
     để chủ quán biết; Đối soát có dòng `tay:<phiên>` để đối chiếu sao kê.
 12. Đối soát: quy tắc "mỗi đơn completed đúng 1 phiếu bán" mới nằm ở bất biến I7 của giả lập, chưa có trên màn Đối soát (`doiSoat.js` là việc của GIAO-3) —
     đề xuất việc sau.
+
+## E4 — thử tay trên điện thoại (chủ quán, sau gộp)
+1. Kho › Sản phẩm: chọn một món làm sẵn, nhập 2 chai (phiếu nhập) → Bán hàng thấy "còn 2"; bán 2 → món hiện hết, bấm thêm báo "Không đủ hàng".
+2. Kho › "Chưa sẵn sàng bán": thấy Cam Tân Dưỡng / món chưa có công thức hoặc hết lô; ẩn món bằng nút đang bán (A7) → món biến khỏi quầy và App.
+3. Bán QR một món còn đúng 1 chai, trong lúc QR đang chờ dùng phiếu phát sinh lấy chai đó → khi tiền về màn QR báo đỏ "⛔ Hết … — KHÔNG tạo đơn …
+   đã hoàn vào ví khách 09x****xxx: <số tiền>" (khách có SĐT) hoặc "HOÀN TIỀN TAY <số tiền>" (không SĐT); Đối soát có đúng MỘT dòng hoàn.
+
+## Nghiệm thu — đếm từng mục (bằng chứng ở `cong_cu/thu_KHO3a.js` HEAD, 145 ca; đột biến 50/50 + 1 tay)
+- A1 menu từ pos_products, quầy và /api/kh/menu cùng hàm — ca A1 (5 ca) + C1 "tải menu KHÔNG gọi SX".
+- A2 số còn bán: làm sẵn = lô còn hạn − giữ, pha tại chỗ = số phần floor, lồng, chưa công thức null — ca A2 (6 ca) + VS-MENU-SO-PHAN-LAM-TRON-LEN.
+- A3 khoá món giữ nguyên — ca A3; A3b đổi tên 4 món nước ép (bước 032) — ca A3b + BV-032-CHI-TEN-TAM.
+- A4 thêm / sửa / ẩn món, trùng tên, 404, nhân viên 403, không xoá cứng — ca A4 (9 ca) + BV-SUA-TEN-TRUNG, BV-HIEN-LAI-TRUNG-TEN, BV-PUT-404, BV-MON-POS-KHOA.
+- A5 màn Sản phẩm sửa giá tại chỗ (dist gọi /products/price, Thêm món, món chưa sẵn) — ca A5 (dist); bố cục thử tay E4.
+- A7 danh sách món chưa sẵn sàng — ca A7 (4 ca) + BV-MON-CHUA-SAN-HET-LO.
+- B1 làm sẵn FEFO, lô hết hạn, ngưỡng — ca B1 + VS-FEFO-HAN-XA-TRUOC, VS-LO-HET-HAN-VAN-BAN, VS-NGUONG-LON-HON-BANG.
+- B2 pha tại chỗ cả giỏ, lồng, cùng món hai dòng — ca B2 + BV-KIEM-CA-GIO.
+- B3 chưa công thức / rỗng / chưa định lượng / con rỗng — ca B3 + BV-CHUA-CONG-THUC, BV-MOT-VI-TU-CON-RONG.
+- B3b giữ hàng theo phiên (quầy, App, màn khách, ba phiên đua, chốt muộn) — ca B3b + BV-GIU-HANG-TAO-PHIEN, BV-MENU-TRU-GIU, BV-CHOT-MUON-BO-QUA-GIU, BV-MAN-KHACH-BO-NHO.
+- B3c lưới hết hàng sau khi giữ: App / quầy có SĐT vào ví, không SĐT HOÀN TIỀN TAY, xác nhận tay trong hạn / muộn / hai người, bốn cặp tay ↔ cổng,
+  hai cổng, K5 chuyển hai lần, màn QR số tiền + SĐT che + chờ dòng hoàn — ca B3c (≈ 25 ca) + 17 đột biến B3c.
+- B4 một phiếu PS ban_hang da_duyet nối đơn, khoá duy nhất — ca B4 + BV-TRU-KHO, BV-031-KHOA-DON-HANG.
+- B5 huỷ / xoá trả kho một lần, bỏ đi, refunded, đơn cũ — ca B5 + BV-HUY-TRA-KHO, BV-XOA-TRA-KHO, VS-XOA-CHI-COMPLETED, VS-BO-DI-VAN-TRA-KHO.
+- B6 mọi lối tạo đơn trừ đúng một phiếu (tiền mặt, PIN tài khoản, POST thẳng, App, màn khách, chốt muộn), tinh-thu không trừ — ca B6 + BV-TINH-THU-KHONG-KIEM.
+- B7 trong giao dịch, bị chặn thì không ghi đơn — ca B7 + BV-CHAN-TRONG-TX.
+- B8 cho bán khi thiếu mặc định TẮT, bật ghi âm — ca B8 + BV-CHO-BAN-THIEU, VS-CHO-BAN-THIEU-MAC-DINH-BAT.
+- C1–C6 gỡ SX — nhóm K của `kiem_tra_truoc_khi_giao.js` (K4 vắng mặt mẫu SX) + ca C (410 SX_DA_NGAT, HOAN_KHO_SX_DA_BO, so-no 0, xuất SX 410).
+- D1 bài cũ chạy lại theo kho POS (46 bài + thu_GIAO3) — `npm test` / `--day-du` xanh. D2 giá 0 không bán — ca D2. D3 KHO-2a/2b xanh. D4 giả lập
+  33 KB · 18 bất biến ĐẠT, I7 theo phiếu bán, `thu_gia_lap` 179/0.
+- E1 bài thử 145 ca đỏ trên gốc (bang_chung_do.txt mục 1). E2 đột biến 50/50 + 1 tay. E3 bài cũ sửa có bằng chứng đỏ (mục 2). E4 thử tay — trên, máy không làm được.
+
+## Báo cáo 7 mục
+```
+VIỆC:        KHO-3a — Ngắt SX: bán trừ kho POS trong cùng giao dịch đơn, giữ hàng theo phiên, lưới hết hàng B3c, quản lý món trong POS
+ĐÃ SỬA:      server/kho/banHang.js (mới) — một chỗ cho luật bán theo kho: docKhaNang, xetDu, kiemDuHang, truKhoDon, huyPhieuBan, tonMenu, monChuaSan
+             server/nang_cap/031_ban_theo_kho.js, 032_ten_mon_sx.js — cột cho_ban_thieu, don_hang_id + khoá duy nhất, đổi tên 4 món nước ép
+             server/routes/orders.js — truKhoDon trong thân taoDonGoc (giao dịch), huỷ / xoá huyPhieuBan; bỏ checkStock / outStockFIFO / inStockReturn
+             server/utils/giuCho.js — kiemDuHang trong giao dịch tạo phiên; ly_do nêu món; het_hang của phiên
+             server/routes/thanh-toan.js — lưới B3c: hoanTayHetHang, nhánh tiền về quầy, MỘT vị từ dongHoanCua / daHoanDuongKia, cheSdt, GET het_hang thật
+             server/routes/products.js — menu từ pos_products, POST / PUT món (tenTrung, trong giao dịch, 404), sync-from-sx 410
+             server/kho/duLieu.js, duong.js — phiếu bán không huỷ / sửa tay, ẩn khỏi danh sách, cho_ban_thieu, /mon-chua-san
+             gỡ SX: xoá routes/stock.js, doi-chieu.js, sync.js, utils/doSoNo.js; index.js 410; so-no, registrations, damages, backup, sxApi, ketNoiKho
+             server/utils/donApp.js, manKhach.js — mã lỗi kho cho App, bỏ bộ nhớ 20 s
+             client/src: Kho/SanPham.jsx, Kho/ChuaSan.jsx, Kho/index.jsx, Kho/chung.js, DsPhieu, XemPhieu, BanHang/BanHangMoi.jsx, BanHang/tinh.js
+             (cauNhaPhien, choDongHoan), BanHang/ManQr.jsx, DonApp.jsx; client/dist build lại
+             HOP_DONG_API_KH.md v18; kiem_tra_truoc_khi_giao.js (K2 đổi, thêm K4, chạy thu_KHO3a)
+             cong_cu: thu_KHO3a.js (mới), gia_lap/monThu.js (mới), giả lập chay / bat_bien / kich_ban, thu_gia_lap, 47 bài cũ (+1 dòng / E3)
+BÀI THỬ:     thu_KHO3a.js chạy trên gốc main e1a89bb3 → ĐỎ (bang_chung_do.txt mục 1); sau vá → XANH 145/145.
+             Bài cũ: bản gốc của từng bài chạy trên code mới → ĐỎ "Món chưa có công thức" / HET_HANG (mục 2); bản sửa → XANH.
+             Đột biến: 50/50 BẮT + 1 tay BẮT; đối chứng xanh.
+ĐÃ RÀ K4:    grep "pos_payos_su_kien … vao_vi | HOÀN TIỀN TAY | tay:\${" trong server/ → 4 chỗ ghi dòng hoàn (thanh-toan.js: hoanTayHetHang,
+             vaoVi, nhánh không SĐT; doiSoat / donApp chỉ đọc) — cả 4 qua daHoanDuongKia; grep "kho_phieu" mọi chỗ đọc (hạn mức, gợi ý, Tồn kho,
+             sao lưu) — đã xử lý phiếu bán (ke_hoach mục 10); grep mẫu SX trong server/ → 0 (phép K4); grep "het_hang" → tinh.js, thanh-toan.js, giuCho.js
+CHƯA KIỂM:   Turso thật (khoá ghi giữa hai máy, độ trễ; +65 % câu CSDL / lần thu — chủ quán chấp nhận, chat đo lại trên Render sau gộp).
+             Đua thật: hai xác nhận tay cùng lúc (VS-TAY-HOAN-HAI-LAN không tất định), tay ↔ cổng tranh nhau (chỉ có ca chèn sẵn dòng bên kia),
+             hai người cùng hiện lại món trùng tên (PUT trong giao dịch — không có ca đua).
+             Ca "PUT món không có → 404" XANH cả trên bản cũ: kho thử đổi undefined → null (sanitizeArgs) nên lỗi 500 người soát nêu không tái hiện được.
+             Khe "phiên 'loi' mà dòng hoàn chưa ghi" trên màn QR: chỉ khoá vị từ choDongHoan + ManQr gọi nó; số lượt chờ 4 (≈ 12 s) chưa đo trên Turso.
+             Giao diện điện thoại (E4); sao lưu Drive / Apps Script với cột don_hang_id.
+GIT:         4bd4bf5d KHO-3a: ho so vong 4 — soat phan vong 4 DAT, bang chung do goc e1a89bb3, dot bien 50/50
+             578e0062 KHO-3a soat vong 4 (DAT, loi nhe sua luon): man QR cho dong hoan, che SDT la, hai cong nhanh khong SDT, chu thich  (trước commit hồ sơ này)
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+```
+
+## Bài học
+- **KHOÁ** (đã làm trong Phạm vi) — chặn "hoàn một lần" phải phủ MỌI cặp đường (tay ↔ cổng × có / không SĐT × hai cổng): một vị từ `dongHoanCua` +
+  6 ca chèn sẵn dòng bên kia (tất định, thay cho ca đua) + đột biến từng vế. Lỗi cũ: vá chiều tay→cổng ở soát bảo mật, quên cổng→tay (vòng 2),
+  rồi quên nhánh không SĐT (vòng 3), rồi quên hai cổng (vòng 4).
+- **KHOÁ** — màn QR nói theo dòng hoàn THẬT, không suy từ có SĐT (`het_hang.vao_vi` từ dòng `vao_vi`; ca "có SĐT mà chưa có dòng hoàn").
+- **KHOÁ** — `bang_chung_do.txt` ghi hai lớp cho bài cũ: đỏ trên gốc (hình thức, thiếu `monThu`) VÀ bản gốc bài chạy trên code mới (đỏ có nghĩa — LUAT §6.9).
+  Đề xuất (ngoài Phạm vi, `tu_chay/cong.js`): A16 cảnh báo khi lý do đỏ trên gốc là "Cannot find module './…'" (đỏ hình thức).
+- **NGUYÊN TẮC** (đề xuất KHUON_LOI.md K4, ngoài Phạm vi) — "vá một chiều của khoá chống trùng giữa hai đường ghi tiền → liệt kê đủ ma trận đường × loại
+  khách × cổng trước khi viết dòng đầu; mỗi ô một ca chèn sẵn". Ví dụ thật: KHO-3a mất 4 vòng soát cho cùng một khoá.
+- **NGUYÊN TẮC** (đề xuất K1) — lỗi người soát báo cũng phải tự tái hiện trên gốc trước khi viết ca "đỏ trên gốc" (vòng 3 nói 500; kho thử đổi undefined →
+  null nên không có 500 — ca thành đỏ danh nghĩa).
+- **NGUYÊN TẮC** (đề xuất K5) — đổi một cờ từ suy đoán ("có SĐT = đã hoàn") sang dữ liệu thật thì liệt kê cả khe giữa hai câu ghi không cùng giao dịch
+  (phiên đã 'loi' mà dòng hoàn chưa ghi) — màn hỏi lại thay vì chốt câu sai.
+- **BỎ** — chạy giả lập song song với cổng làm `thu_gia_lap` đỏ "data/ không đổi" (một lần; đã biết luật chạy riêng).
+- **BỎ** — neo đột biến bị lạc vì đổi `cu?.` → `cu.` (bộ đột biến báo HỎNG đúng như thiết kế, sửa neo).
+- Người gác chặn trong việc: G-LUAT (file luật cần đúng tên trong Phạm vi — Câu 5), B-BIMAT-CHU (tên file thu_KHO3a.js chứa SECRET → chạy qua
+  chay_bai.js), B-CD-VITRI / B-PHANTICH / B-CHUONGTRINH (lệnh ghép), GIT-KEO (không kéo main — chat ghép giúp).
