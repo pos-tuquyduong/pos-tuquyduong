@@ -1,6 +1,5 @@
-# KHO-3a — bằng chứng đỏ (chạy lại 18.11 sau vòng sửa 2 soát bảo mật)
-# (Cập nhật 327166c3: thu_KHO3a thêm 4 ca vòng sửa 3 — 135 ca; 2 ca mới ĐỎ trên 9ec6f770: ví 18000, HTTP 200.)
-# Gốc = 7b8b1dbb (main đã ghép, trước KHO-3a). Code vá = HEAD 9ec6f770. Mỗi bài chạy trong cây tạm (git archive), không đụng data/ của kho.
+# KHO-3a — bằng chứng đỏ (chạy lại 19.11 sau vòng sửa 4, gốc cổng = main e1a89bb3 — chat ghép PR #101 GIAO-3)
+# Gốc = e1a89bb3 (main đã ghép, chưa có KHO-3a). Code vá = HEAD 578e0062. Mỗi bài chạy trong cây tạm (git archive), không đụng data/ của kho.
 
 ## 1. Bài mới cong_cu/thu_KHO3a.js — bản HEAD chạy trên server GỐC → ĐỎ
   ✗ A1 menu quầy có món POS (không lấy danh sách SX)  — 0 món thu3a
@@ -52,11 +51,18 @@
   ✗ B3c quầy có dòng báo (vao_vi) nêu món hết  — (không có)
   ✗ B3c phiên QR QUẦY có SĐT: hỏng vì hết hàng → vào ví đúng số  — số dư 0 / 18000
   ✗ B3c màn QR quầy: phiên báo het_hang { món, đã vào ví } → câu "Hết Lưới K3a … đã hoàn vào ví khách", không phải "Đã huỷ"  — undefined · 
+  ✗ B3c màn QR quầy (vòng 4): câu nêu SỐ TIỀN đã hoàn + SĐT che giữa (như Đơn App), không lộ SĐT đủ  — undefined · 
+  ✗ B3c màn QR quầy (vòng 4): có SĐT nhưng CHƯA có dòng vào ví → het_hang.vao_vi false, câu KHÔNG nói "đã hoàn vào ví", bảo xem Đối soát  — undefined · 
   ✗ B3c QR quầy KHÔNG SĐT: chua_khop "HOÀN TIỀN TAY", không dòng ví  — {"ket_qua":"khop","ly_do":null}
   ✗ B3c màn QR quầy KHÔNG SĐT: câu "HOÀN TIỀN TAY cho khách"
   ✗ B3c xác nhận tay hỏng vì hết hàng → 400 HET_HANG, không đơn, ví +đúng số MỘT lần (bấm lại không cộng)  — HTTP 200 undefined · HTTP 409 · PHIEN_DA_CHOT · Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn · ví 0
   ✗ B3c xác nhận tay muộn hỏng vì kho → hoàn ví; nhập hàng rồi xác nhận lại → 409, KHÔNG đơn, ví không cộng thêm  — HTTP 200 · HTTP 409 · PHIEN_DA_CHOT · Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn · ví 0
   ✗ B3c App: xác nhận tay hết hàng (hoàn ví) rồi webhook payOS cùng khoản → ví chỉ +MỘT lần  — HTTP 404 · KHONG_THAY_PHIEN · Không tìm thấy phiên thanh toán · ví 0 / undefined
+  ✗ B3c cổng đã cộng ví rồi mới xác nhận tay lúc hết hàng → ví KHÔNG cộng lần hai, dòng tay: chua_khop  — HTTP 200 undefined · ví 0 · null
+  ✗ B3c đối chứng: phiên chưa có dòng cổng → xác nhận tay hết hàng vẫn hoàn ví đúng số  — HTTP 200 · ví 0 / 18000
+  ✗ B3c vòng 4 (c) không SĐT · cổng trước → xác nhận tay: đúng MỘT yêu cầu HOÀN TIỀN TAY, dòng tay: "KHÔNG hoàn lần hai", không hoan_tay  — HTTP 200 undefined · dòng hoàn 1 · null
+  ✗ B3c vòng 4 (d) không SĐT · tay trước → cổng: đúng MỘT yêu cầu HOÀN TIỀN TAY, dòng cổng "KHÔNG hoàn lần hai"  — dòng hoàn 1 · {"ket_qua":"khop","ly_do":null}
+  ✗ B3c vòng 4 K5: App chuyển hai lần thật qua cổng (khác khoá) → ví +HAI lần (không chặn oan tiền thật)  — ví 0 / 2 × undefined
   ✗ B3c hai xác nhận tay CÙNG LÚC lúc hết hàng → ví +đúng số MỘT lần  — HTTP 200 | HTTP 409 · PHIEN_DA_CHOT · Phiên thanh toán đã chốt, đã huỷ hoặc đã hết hạn · ví 0 / 18000
   ✗ B3c xác nhận tay KHÔNG SĐT → hoan_tay, dòng Đối soát chua_khop "HOÀN TIỀN TAY", không dòng ví  — HTTP 200 · null
   ✗ B5 bán 2 → lô còn 2
@@ -70,7 +76,7 @@
   ✗ B6 xác nhận tay → một phiếu  — HTTP 200
   ✗ B6 phiên trừ tài khoản có PIN → một phiếu  — HTTP 200 · HTTP 200
   ✗ B6 POST /orders thẳng → một phiếu
-  ✗ B7 lỗi CSDL giữa trừ kho → không đơn, không phiếu  — HTTP 200 · đơn 32/31 · phiếu 0
+  ✗ B7 lỗi CSDL giữa trừ kho → không đơn, không phiếu  — HTTP 200 · đơn 37/36 · phiếu 0
   ✗ A4 nhân viên tạo món → 403  — HTTP 404
   ✗ A4 tên rỗng → 400 TEN_KHONG_HOP_LE  — HTTP 404
   ✗ A4 quản lý tạo món → khoá ("pos", id), mã POS<id>  — HTTP 404 · null
@@ -79,9 +85,9 @@
   ✗ A7 liệt kê: chưa dòng kho, công thức rỗng, chưa định lượng, làm sẵn hết lô còn hạn  — HTTP 403 · DUONG_LA · Không có quyền truy cập đường này
   ✗ A7 có số đếm = số dòng  — undefined / 0
   ✗ A5 (dist) màn Sản phẩm gọi route giá có sẵn PUT /products/price + POST /products; không còn "đặt giá ở Cài đặt › Sản phẩm"; có màn món chưa sẵn sàng
-  ✗ Kho › Phiếu: mặc định ẨN phiếu bán; lọc ban_hang=1 mới hiện  — 27 / 27
+  ✗ Kho › Phiếu: mặc định ẨN phiếu bán; lọc ban_hang=1 mới hiện  — 41 / 41
   ✗ Gợi ý nhập: tồn giảm theo bán (sữa −0,3), "hay mua" (chỉ đếm phiếu nhận) không đổi  — HTTP 200 · sữa 1 → 1
-  ✗ C3 sao lưu chạy, không gọi SX  — HTTP 200 · SX 114
+  ✗ C3 sao lưu chạy, không gọi SX  — HTTP 200 · SX 131
   ✗ Sao lưu Excel lấy kho_phieu bằng SELECT * → có cột don_hang_id
   ✗ Khoá duy nhất một đơn — một phiếu bán (ux_kho_phieu_don_hang)
   ✗ Ghi hai phiếu bán cùng đơn → khoá duy nhất chặn
@@ -90,14 +96,14 @@
   ✗ C5 xuất SX của đăng ký → 410 SX_DA_NGAT; danh sách đăng ký vẫn 200  — HTTP 400 · Không có đăng ký mới để export · HTTP 200
   ✗ C1 POST /products/sync-from-sx → 410 SX_DA_NGAT  — HTTP 200
   ✗ Câu 3: báo sự cố "hoàn kho SX" → 400 HOAN_KHO_SX_DA_BO, không gọi SX  — HTTP 200
-  ✗ C1/C2 suốt bài: SX giả nhận 0 lời gọi  — 116: GET /api/pos/customers/export, GET /api/pos/products-with-stock, GET /api/pos/products-with-stock, GET /api/finished-products/check-stock
+  ✗ C1/C2 suốt bài: SX giả nhận 0 lời gọi  — 133: GET /api/pos/customers/export, GET /api/pos/products-with-stock, GET /api/pos/products-with-stock, GET /api/finished-products/check-stock
   ✗ C1/C6 server/ không còn lời gọi / biến SX (orders, products, damages, backup, so-no, giuCho, index, ketNoiKho, database)  — routes/orders.js, routes/products.js, routes/damages.js, routes/backup.js, ketNoiKho.js, database.js
   ✗ C1 đã bỏ stock.js, doi-chieu.js, sync.js, utils/doSoNo.js
   ✗ C1 sxApi.js chỉ còn callSxApi ném SX_DA_NGAT, không fetch (bước 020 vẫn nạp được)
   ✗ C6 index.js trả 410 cho /stock, /sync, /doi-chieu
   ✗ D1 kho trống: POST /orders và tạo phiên → CHUA_CO_CONG_THUC, không 500  — HTTP 200 · HTTP 200
-KHO-3a: 29 đạt · 93 hỏng · tổng 122 ca
-(gốc in 122 ca vì vài nhóm dừng sớm khi bước dựng dữ liệu hỏng trên gốc — ví dụ không tạo được món POS; head in 131 ca)
+KHO-3a: 30 đạt · 100 hỏng · tổng 130 ca
+(gốc in ít ca hơn head vì vài nhóm dừng sớm khi bước dựng dữ liệu hỏng trên gốc — ví dụ không tạo được món POS; bản bài chạy trên gốc là af6bddb4 (142 ca), HEAD thêm 3 ca soát vòng 4 — 145 ca)
 
 ## 2. Bài cũ sửa (LUAT §6.8 — hành vi chủ quán duyệt đổi: bán theo kho POS)
 # Cột "gốc": bản HEAD của bài chạy trên code GỐC → đỏ (thoát ≠ 0). Với các bài chỉ thêm 1 dòng dungMonThu, lý do đỏ là thiếu
@@ -107,10 +113,10 @@ KHO-3a: 29 đạt · 93 hỏng · tổng 122 ca
     ✗ C2 phiên tiền mặt với thân do màn Bán hàng dựng → chốt 200, tổng lưu = tinh-thu = 100.000, không mức giảm  — HTTP 400/0 · lưu null
 - cong_cu/thu_BH2.js: gốc thoát 1 (BH-2: 75 đạt · 1 hỏng) · cũ/mới thoát 1 — BH-2: 83 đạt · 16 hỏng — CHUA_CO_CONG_THUC
     ✗ R4 tiền mặt: /phien nhận thân của màn → 200, còn lại 50.000  — HTTP 400 · CHUA_CO_CONG_THUC
-- cong_cu/thu_CT1a.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 74 đạt · 1 hỏng — CHUA_CO_CONG_THUC
-    ✗ K5f tổng đơn y nguyên khi bật chương trình Sinh nhật / Học sinh giỏi (khách sinh nhật hôm nay): CT-1a chỉ lưu cấu hình, không áp giá  — HT
 - cong_cu/thu_BOMANCU1.js: gốc thoát 1 (BO-MAN-CU-1: 12 đạt · 1 hỏng) · cũ/mới thoát 1 — BO-MAN-CU-1: 48 đạt · 19 hỏng — CHUA_CO_CONG_THUC
     ✗ C1a đường thẳng tiền mặt → 200, tổng 25.000  — HTTP 400 · CHUA_CO_CONG_THUC · Món chưa có công thức: Hồng Tân Sinh
+- cong_cu/thu_CT1a.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 74 đạt · 1 hỏng — CHUA_CO_CONG_THUC
+    ✗ K5f tổng đơn y nguyên khi bật chương trình Sinh nhật / Học sinh giỏi (khách sinh nhật hôm nay): CT-1a chỉ lưu cấu hình, không áp giá  — HT
 - cong_cu/thu_DIEMMON1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 4 đạt · 28 hỏng — CHUA_CO_CONG_THUC
     ✗ T2 (đối chứng) mọi món bật: X + Y tiền mặt 100.000 → 100 điểm; đơn cũ (không cột / cột NULL) và đơn bật hết tính như hôm nay; tiền hàng 0 
 - cong_cu/thu_DIEMTHAT1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — CHUA_CO_CONG_THUC
@@ -119,9 +125,10 @@ KHO-3a: 29 đạt · 93 hỏng · tổng 122 ca
     ✗ A1 phiên QR quầy giữ số ngay lúc tạo: sổ có dòng (ngày hôm nay giờ VN, kênh HD), nội dung = TQD<MMM><DD> HD<4 số> (cả 62.08 VietQR)  — HTT
 - cong_cu/thu_DOISOAT1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — CHUA_CO_CONG_THUC
 - cong_cu/thu_GIOVN1.js: gốc thoát 1 (20 đạt · 1 hỏng) · cũ/mới thoát 1 — 20 đạt · 1 hỏng
-    ✗ Bài thử sập: Error: Cannot find module '/tmp/bchead-BtTS9Z/g10/server/routes/sync.js' | Require stack: | - /tmp/bchead-BtTS9Z/g10/cong_cu/
+    ✗ Bài thử sập: Error: Cannot find module '/tmp/bchead-qqTgsA/g11/server/routes/sync.js' | Require stack: | - /tmp/bchead-qqTgsA/g11/cong_cu/
 - cong_cu/thu_GIAO1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 43 đạt · 94 hỏng — Món chưa có công thức: Hồng Tân Sinh
     ✗ D1 đơn giao: shipping_fee = phí báo (25.000), bỏ qua số màn hình gửi  — 400 {"error":"Món chưa có công thức: Hồng Tân Sinh","code":"CHUA_C
+- cong_cu/thu_GIAO3.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2
 - cong_cu/thu_GOI1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — CHUA_CO_CONG_THUC
     ✗ dựng coGoi lấy 3 CT1  — HTTP 400 · CHUA_CO_CONG_THUC · Món chưa có công thức: Hồng Tân Sinh
 - cong_cu/thu_HD1.js: gốc thoát 1 (94 đạt · 1 hỏng) · cũ/mới thoát 1 — 98 đạt · 6 hỏng
@@ -146,37 +153,37 @@ KHO-3a: 29 đạt · 93 hỏng · tổng 122 ca
     ✗ A2 nạp + món: báo giá + POST /don → 400 NAP_KHONG_GOP (nguyên mã)  — HTTP 400 · MON_KHONG_BAN / HTTP 400 · MON_KHONG_BAN
 - cong_cu/thu_KHO1.js: gốc thoát 1 (110 đạt · 2 hỏng) · cũ/mới thoát 1 — 106 đạt · 6 hỏng — HET_HANG
     ✗ K1 menu dự phòng: mọi món CŨ y hệt trước khi nhập; thêm đúng 2 món tạo mới, cả 2 "Chưa có giá" (sellable false, giá null); không có caphe_
+- cong_cu/thu_KHO2a.js: gốc thoát 1 (85 đạt · 1 hỏng) · cũ/mới thoát 1 — 85 đạt · 1 hỏng
+    ✗ J1 đơn món làm sẵn đã có lô → 200, tổng 25.000, SX nhận 1 lệnh trừ kho như cũ, kho_phieu_dong KHÔNG thêm dòng (KHO-3 mới trừ)  — HTTP 200 
 - cong_cu/thu_KHMUA1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 30 đạt · 92 hỏng — HET_HANG
     ✗ A1 giỏ hạng + mã: tam_tinh / giảm hạng / giảm mã / tong = tinh-thu của quầy cùng giỏ  — HTTP 400 · MON_KHONG_BAN · {"error":"Món này hiện 
 - cong_cu/thu_KHSP1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 37 đạt · 6 hỏng
     ✗ B1 quầy (GET /pos/products) thấy thông tin, giá + sellable như cũ  — {"id":9,"code":"KHSP1_801","name":"Món thử 801","category":"juice","p
-- cong_cu/thu_KHO2a.js: gốc thoát 1 (85 đạt · 1 hỏng) · cũ/mới thoát 1 — 85 đạt · 1 hỏng
-    ✗ J1 đơn món làm sẵn đã có lô → 200, tổng 25.000, SX nhận 1 lệnh trừ kho như cũ, kho_phieu_dong KHÔNG thêm dòng (KHO-3 mới trừ)  — HTTP 200 
 - cong_cu/thu_KHTOMTAT1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — ✗ 0 đạt · 8 hỏng — Món chưa có công thức: Hồng Tân Sinh
     ✗ A: bài chạy hết mục  — TypeError: Cannot read properties of undefined (reading 'id')
-- cong_cu/thu_KETNOI1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — KET-NOI-1: 62 đạt · 26 hỏng · tổng 88 ca — CHUA_CO_CONG_THUC
-    ✗ B1a cùng ma_gui hai lần → 200 CÙNG phiên (id, tong, giu_vi, con_lai), chỉ +1 phiên  — HTTP 400 · CHUA_CO_CONG_THUC / HTTP 400 · CHUA_CO_CO
 - cong_cu/thu_MANKHACH1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2
 - cong_cu/thu_KHTHE1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 38 đạt · 16 hỏng
     ✗ B1 thẻ GIỮA giỏ: dong[] theo đúng thứ tự gửi — món 0 (25.000) · thẻ (250.000) · món 1 (30.000); tong = tinh-thu quầy cùng giỏ  — HTTP 400 
 - cong_cu/thu_NAP1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 58 đạt · 32 hỏng — CHUA_CO_CONG_THUC
     ✗ B13 khách có hạng (đơn món đối chứng được giảm 10 %) mua gói nạp → tổng 100.000, không giảm hạng  — đối chứng HTTP 400 · CHUA_CO_CONG_THUC
-- cong_cu/thu_P21.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — Món chưa có công thức: Hồng Tân Sinh
 - cong_cu/thu_P20.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — Món chưa có công thức: Hồng Tân Sinh
+- cong_cu/thu_P21.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — Món chưa có công thức: Hồng Tân Sinh
 - cong_cu/thu_P2223.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — CHUA_CO_CONG_THUC
     ✗ A1 tiền mặt đủ 25.000 có SĐT → 1 dòng earn 25 điểm, lý do "Tích điểm đơn <mã>", không hạn  — HTTP 400 · CHUA_CO_CONG_THUC · Món chưa có cô
 - cong_cu/thu_P24.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — CHUA_CO_CONG_THUC
-- cong_cu/thu_P26a.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — Món chưa có công thức: Hồng Tân Sinh
 - cong_cu/thu_NDAPI1.js: gốc thoát 1 (88 đạt · 1 hỏng) · cũ/mới thoát 1 — 88 đạt · 1 hỏng
     ✗ A2 index.js: gắn /api/nd TRƯỚC cors chung; so với gốc chỉ THÊM dòng (mọi dòng cũ còn nguyên, đúng thứ tự)  — cũ 0 khớp 0 · nd 64 · cors 70
+- cong_cu/thu_P26a.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — Món chưa có công thức: Hồng Tân Sinh
+- cong_cu/thu_KETNOI1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — KET-NOI-1: 62 đạt · 26 hỏng · tổng 88 ca — CHUA_CO_CONG_THUC
+    ✗ B1a cùng ma_gui hai lần → 200 CÙNG phiên (id, tong, giu_vi, con_lai), chỉ +1 phiên  — HTTP 400 · CHUA_CO_CONG_THUC / HTTP 400 · CHUA_CO_CO
 - cong_cu/thu_P26b.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — CHUA_CO_CONG_THUC
 - cong_cu/thu_P26c.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 2 — CHUA_CO_CONG_THUC
 - cong_cu/thu_QUAYUI1.js: gốc thoát 1 (TỔNG: 44/45 ca đạt · 44 đạt · 1 hỏng) · cũ/mới thoát 1 — TỔNG: 62/63 ca đạt · 62 đạt · 1 hỏng
     ✗ D1 đơn nạp, hành động return_stock → 400, code DON_NAP_KHONG_SU_CO, đúng câu  — HTTP 400 {"error":"Đã ngắt kho SX — không hoàn kho SX được
-- cong_cu/thu_QCAPP1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 124 đạt · 3 hỏng
-    ✗ A6b đọc trả kèm gio_vang (false) và danh sách món ĐANG BÁN đúng 2 món  — []
 - cong_cu/thu_SEPAY1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 11 đạt · 21 hỏng — CHUA_CO_CONG_THUC
     ✗ A1 không đặt CONG_QR → cổng payOS (gọi payOS, có checkout_url)  — HTTP 400 · CHUA_CO_CONG_THUC
+- cong_cu/thu_QCAPP1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 124 đạt · 3 hỏng
+    ✗ A6b đọc trả kèm gio_vang (false) và danh sách món ĐANG BÁN đúng 2 món  — []
 - cong_cu/thu_P3.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 27 đạt · 29 hỏng — CHUA_CO_CONG_THUC
     ✗ A1 tạo phiên 50.000 (giữ 30.000 tài khoản) → 200, payOS nhận đúng PHẦN CÒN LẠI 20.000  — HTTP 400 · CHUA_CO_CONG_THUC · {}
 - cong_cu/thu_TINGEE1.js: gốc thoát 2 (thiếu monThu) · cũ/mới thoát 1 — 24 đạt · 33 hỏng — Món chưa có công thức: Hồng Tân Sinh
@@ -195,14 +202,15 @@ KHO-3a: 29 đạt · 93 hỏng · tổng 122 ca
 ## SỐ CA (số ca bài in khi chạy trên code đã vá — HEAD)
 SỐ CA cong_cu/thu_BHCKTAY1.js: 11
 SỐ CA cong_cu/thu_BH2.js: 99
-SỐ CA cong_cu/thu_CT1a.js: 75
 SỐ CA cong_cu/thu_BOMANCU1.js: 67
+SỐ CA cong_cu/thu_CT1a.js: 75
 SỐ CA cong_cu/thu_DIEMMON1.js: 32
 SỐ CA cong_cu/thu_DIEMTHAT1.js: 36
 SỐ CA cong_cu/thu_CKNOIDUNG1.js: 113
 SỐ CA cong_cu/thu_DOISOAT1.js: 134
 SỐ CA cong_cu/thu_GIOVN1.js: 61
 SỐ CA cong_cu/thu_GIAO1.js: 137
+SỐ CA cong_cu/thu_GIAO3.js: 46
 SỐ CA cong_cu/thu_GOI1.js: 115
 SỐ CA cong_cu/thu_HD1.js: 159
 SỐ CA cong_cu/thu_HDKH1.js: 35
@@ -215,30 +223,30 @@ SỐ CA cong_cu/thu_KHAPI2.js: 101
 SỐ CA cong_cu/thu_KHAPI3.js: 67
 SỐ CA cong_cu/thu_KHNAP1.js: 65
 SỐ CA cong_cu/thu_KHO1.js: 112
+SỐ CA cong_cu/thu_KHO2a.js: 86
 SỐ CA cong_cu/thu_KHMUA1.js: 122
 SỐ CA cong_cu/thu_KHSP1.js: 43
-SỐ CA cong_cu/thu_KHO2a.js: 86
 SỐ CA cong_cu/thu_KHTOMTAT1.js: 33
-SỐ CA cong_cu/thu_KETNOI1.js: 102
 SỐ CA cong_cu/thu_MANKHACH1.js: 53
 SỐ CA cong_cu/thu_KHTHE1.js: 73
 SỐ CA cong_cu/thu_NAP1.js: 90
-SỐ CA cong_cu/thu_P21.js: 14
 SỐ CA cong_cu/thu_P20.js: 178
+SỐ CA cong_cu/thu_P21.js: 14
 SỐ CA cong_cu/thu_P2223.js: 45
 SỐ CA cong_cu/thu_P24.js: 34
-SỐ CA cong_cu/thu_P26a.js: 16
 SỐ CA cong_cu/thu_NDAPI1.js: 89
+SỐ CA cong_cu/thu_P26a.js: 16
+SỐ CA cong_cu/thu_KETNOI1.js: 102
 SỐ CA cong_cu/thu_P26b.js: 104
 SỐ CA cong_cu/thu_P26c.js: 158
 SỐ CA cong_cu/thu_QUAYUI1.js: 63
-SỐ CA cong_cu/thu_QCAPP1.js: 127
 SỐ CA cong_cu/thu_SEPAY1.js: 78
+SỐ CA cong_cu/thu_QCAPP1.js: 127
 SỐ CA cong_cu/thu_P3.js: 101
 SỐ CA cong_cu/thu_TINGEE1.js: 75
 SỐ CA cong_cu/thu_UUDAI1.js: 88
 SỐ CA cong_cu/thu_VIME1.js: 24
-SỐ CA cong_cu/thu_KHO3a.js: 135
+SỐ CA cong_cu/thu_KHO3a.js: 145
 SỐ CA cong_cu/thu_VOUCHER2.js: 146
 SỐ CA cong_cu/thu_gia_lap.js: 179
 SỐ CA cong_cu/thu_GIAO2.js: 30

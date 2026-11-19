@@ -46,7 +46,9 @@
 - Chủ quán 18.11 20:50 **CHẤP NHẬN** 20 → 33 câu CSDL / lần thu (Render + Turso cùng Virginia); chat đo lại trên Render sau gộp.
 
 ## Câu hỏi
-**Câu 6 — hết 3 vòng sửa mà lần soát cuối (vòng 3) còn MỘT lỗi tiền → máy DỪNG theo LUAT §6.5, không tự làm vòng sửa 4.**
+- Câu 6 — **chủ quán ĐỒNG Ý VÒNG SỬA 4 (chat 19.11 11:55)**: làm đúng đề xuất dưới + soát thêm một lần chỉ phần vòng 4. Không còn câu hỏi mở.
+
+(Nguyên văn câu hỏi lúc dừng:) **Câu 6 — hết 3 vòng sửa mà lần soát cuối (vòng 3) còn MỘT lỗi tiền → máy DỪNG theo LUAT §6.5, không tự làm vòng sửa 4.**
 
 Lỗi (dễ hiểu): khách KHÔNG để lại SĐT trả bằng QR ở quầy, món vừa hết đúng lúc đó. Nếu quản lý bấm "xác nhận tay" ĐÚNG LÚC báo tiền của
 ngân hàng cũng tới (hai việc chen nhau trong cùng khoảnh khắc), màn Đối soát có thể hiện HAI dòng "HOÀN TIỀN TAY" cho cùng một khoản →
@@ -84,7 +86,9 @@ vì phiếu B3c có ghi.
 - `thu_KHO3a.js`: **135 đạt · 0 hỏng · 135 ca**.
 
 ## Đột biến (`python3 viec/KHO-3a/dot_bien.py`) — chỗ vá → đột biến
-- Kết quả lần chạy đủ gần nhất (người soát vòng 3 chạy, HEAD 327166c3): **đối chứng XANH 135/0 · 41 đột biến · BẮT 41 · SỐNG 0 · LẠC 0**. Mình chạy riêng 5 đột biến của vòng sửa 3: BẮT 5/5.
+- Kết quả lần chạy đủ gần nhất (máy chạy, HEAD 578e0062): **đối chứng XANH 145/0 · 50 đột biến · BẮT 50 · SỐNG 0 · HỎNG 0 · LẠC 0**.
+  Thêm 1 đột biến phía client chạy TAY (bộ chỉ chép server/): BV-MAN-QR-CHO-DONG-HOAN (`choDongHoan` luôn false) → BẮT ("false / false"),
+  file trả lại nguyên bản (bản lưu ở thư mục nháp `tinh.js.truoc_DB`).
 - Chỗ vá → đột biến (khối chú thích `# ──` trong `dot_bien.py` ghi chỗ vá của từng nhóm):
   - VS-FEFO-HAN-XA-TRUOC
   - VS-LO-HET-HAN-VAN-BAN
@@ -108,9 +112,18 @@ vì phiếu B3c có ghi.
   - BV-MOT-VI-TU-CON-RONG
   - BV-SUA-TEN-TRUNG
   - BV-HIEN-LAI-TRUNG-TEN
+  - BV-PUT-404
   - VS-HIEN-LAI-XET-CA-MON-DANG-BAN
   - BV-TAY-SAU-CONG
   - VS-TAY-SAU-CONG-MOI-MA
+  - VS-HOAN-CHI-VAO-VI
+  - VS-HOAN-KHONG-XET-HUONG
+  - BV-KHONG-SDT-TAY-TRUOC
+  - BV-MAN-QR-HOAN-THAT
+  - BV-MAN-QR-SO-TIEN-SDT
+  - VS-MAN-QR-LO-SDT
+  - VS-CHE-SDT-LA-TRA-DU
+  - BV-KHONG-SDT-HAI-CONG
   - BV-DONG-PHIEN-KHI-HOAN-TAY
   - BV-TIEN-VE-SAU-HOAN-TAY
   - BV-TRU-KHO
@@ -127,6 +140,7 @@ vì phiếu B3c có ghi.
   - BV-MENU-SELLABLE-CONG-THUC
   - BV-MON-POS-KHOA
   - BV-MON-CHUA-SAN-HET-LO
+  - BV-MAN-QR-CHO-DONG-HOAN (chạy tay)
 - Đã bỏ (ghi lý do trong dot_bien.py): VS-GIU-HANG-TINH-CA-PHIEN-MINH, BV-THANH-PHAM-KHONG-AM (code thừa đã xoá), VS-TAY-HOAN-HAI-LAN (đua không tất định → **CHƯA KIỂM**; có ca hai người bấm song song trong thu_KHO3a).
 
 ## Soát độc lập (/ra-soat)
@@ -301,10 +315,86 @@ oan luồng nào; đường tiền lấy số hoàn từ p.con_lai (máy chủ),
 dòng hoàn đi vào pos_payos_su_kien sẵn có nên Đối soát vẫn thấy.
 
 
+## Vòng sửa 4 (19.11 — chủ quán đồng ý Câu 6; chat ghép main e1a89bb3 → HEAD b2828a02)
+- Commit `af6bddb4`: MỘT vị từ `dongHoanCua` (dòng hoàn của phiên = vào ví HOẶC chua_khop "HOÀN TIỀN TAY", của đường tay `tay:<phiên>` hoặc cổng cùng
+  `ma_payos`) + `daHoanDuongKia(q, p, tuTay)` dùng cho `hoanTayHetHang` (có / không SĐT), `vaoVi` (cổng có SĐT) và nhánh cổng không SĐT — đều
+  TRONG giao dịch ghi → dòng "đã có yêu cầu hoàn — KHÔNG hoàn lần hai", không cộng / không thêm yêu cầu hoàn. Phía cổng CHỈ xét dòng tay (K5: khách
+  chuyển hai lần thật qua cổng vẫn được cộng cả hai — ca K5). GET /phien/:id: `het_hang` theo dòng hoàn THẬT (`vao_vi`, `hoan_tay`) + `so_tien` +
+  `sdt` che; `cauNhaPhien` nêu số tiền + SĐT che; không có dòng hoàn → "CHƯA hoàn tự động — xem Đối soát". PUT /products/:id đọc + kiểm + ghi trong
+  MỘT giao dịch, món không có → 404. Chú thích "MỌI đường" sửa (đường cũ ghi Phát hiện).
+- Ca mới (đỏ trên 0c6b8f13/b2828a02 đúng 4 ca: màn QR số tiền + SĐT, màn QR có SĐT chưa có dòng hoàn, (c), (d)); (b) và K5 xanh cả trước lẫn sau
+  (chiều đã vá ở soát bảo mật / luồng "phải KHÔNG bị chặn"); 404 xanh cả trước lẫn sau — xem dưới.
+- Soát phần vòng 4 → **ĐẠT** (nguyên văn dưới), 4 lỗi nhẹ + 1 nghi ngờ hai cổng → sửa luôn ở commit `578e0062` (ca đỏ trước, 3 ca ĐỎ trên af6bddb4:
+  ManQr không có `choDongHoan` "null / null", SĐT lạ trả đủ "12345", hai cổng không SĐT "dòng hoàn 2"):
+  1. màn QR chờ dòng hoàn: `choDongHoan(p)` (tinh.js) — chưa có dòng hoàn → ManQr hỏi thêm tối đa `SO_LUOT_CHO_HOAN` = 4 lượt (≈ 12 s) rồi mới chốt câu;
+  2. `cheSdt` — SĐT không đúng dạng chỉ để 3 số cuối, không bao giờ trả đủ;
+  3. ca 404 bỏ chữ "(không 500)" (kho thử `sanitizeArgs` đổi undefined → null nên bản cũ cũng 404 — người soát vòng 3 nói 500 là không có thật ở đây);
+  4. chú thích vị từ: đường GHI gọi trong giao dịch, GET chỉ đọc;
+  5. nghi ngờ hai cổng (không SĐT): thêm `congKiaDaBao(tx, t)` vào nhánh không SĐT — cùng phép nhánh có SĐT đã có trong `vaoVi`.
+- `thu_KHO3a.js`: **145 đạt · 0 hỏng · 145 ca**.
+
+### Soát phần vòng 4 (diff 0c6b8f13..af6bddb4 trừ phần ghép main) — nguyên văn
+```
+ĐẠT
+
+Nói ngắn: vòng sửa 4 làm đúng cả ba yêu cầu. Bài thử KHO-3a chạy lại 142 đạt, 0 hỏng. 11 đột biến của các vế liên quan bị bắt cả 11. Mình chạy bài mới trên bản chưa vá (b2828a02, chép ra thư mục nháp) thì ĐỎ đúng 4 ca, đúng câu kết luận. Không còn lỗi nặng. Còn 4 lỗi nhẹ và 1 nghi ngờ đụng tiền (chỉ xảy ra khi hai cổng báo cùng lúc) — bạn xem có muốn sửa không.
+
+LỖI TÌM ĐƯỢC:
+1. server/utils/giuCho.js:195 + server/routes/thanh-toan.js:229-236 + client/src/pages/BanHang/ManQr.jsx:27-33 — Màn QR có thể hiện câu sai trong một khoảng ngắn.
+   Thứ tự chạy: `chotPhien` ghi phiên sang 'loi' bằng một câu riêng (giuCho.js:195). Sau đó xuLyTienVe mới chạy `docPhien` → `vaoVi` → `soHdCuaPhien` → giao dịch ghi dòng vao_vi / HOÀN TIỀN TAY. Trên Turso khoảng này cỡ vài trăm ms. Màn QR hỏi máy chủ 3 giây một lần (ManQr.jsx:13). Lần hỏi rơi vào khoảng đó thì thấy `trang_thai 'loi'` + het_hang mà chưa có dòng hoàn nào. Khi đó câu là "18.000đ CHƯA hoàn tự động — xem Đối soát", và `daXong = true` nên màn không hỏi lại nữa. Đường xác nhận tay có cùng khe này: `chotPhien('tay')` đóng phiên trước `hoanTayHetHang`.
+   Câu sai theo hướng an toàn: không hứa tiền, có bảo xem Đối soát, và lúc xem thì dòng vao_vi đã có. Nhưng nếu thu ngân không xem mà trả tiền mặt luôn thì khách được hoàn hai lần (tiền mặt + ví). Bản cũ (`vao_vi: !!p.phone`) không có khe này.
+   Cách sửa gọn: ManQr hỏi thêm vài lượt khi het_hang có cả `!vao_vi && !hoan_tay`, chưa coi là xong.
+   — K5 (trạng thái chuyển tiếp chưa liệt kê) — NHẸ (chỉ là câu hiển thị, không chuyển tiền).
+2. server/routes/thanh-toan.js:89 — SĐT được che bằng `/^(\d{3})\d+(\d{3})$/`. Không khớp thì trả SĐT ĐỦ: normalizePhone (helpers.js:153-160) chỉ bỏ khoảng trắng, `-`, `.` và đổi +84, nên SĐT còn ký tự lạ hoặc ngắn hơn 7 số sẽ lộ đủ. Màn Đơn App dùng một mẫu khác `\b(0\d{2})\d{4}(\d{3})\b` (DonApp.jsx:77): hai mẫu cho cùng một quy tắc.
+   Nên: một hàm che SĐT dùng chung, không khớp thì che hết.
+   — K4/LUAT §2 "một quy tắc một hàm" — NHẸ (người xem là nhân viên quầy).
+3. cong_cu/thu_KHO3a.js ca "A4 sửa / hiện lại món KHÔNG có → 404 KHONG_THAY (không 500)" — Ca này XANH trên bản chưa vá. Lý do: lỗi 500 mà vòng 3 báo là không có thật. `sanitizeArgs` (server/database.js:1481-1487) đổi undefined → null cho mọi câu, nên bản cũ vẫn ra 404 (UPDATE changes 0). Tên ca "(không 500)" vì vậy là khẳng định sai. Đột biến BV-PUT-404 vẫn bắt được bản mới.
+   Phần thật sự đổi là "đọc + kiểm trùng tên TRONG giao dịch" (products.js:109-116). Phần này không có ca nào khoá — phải ghi CHƯA KIỂM.
+   — K3 + K1 — NHẸ.
+4. server/routes/thanh-toan.js:15-17 (chú thích) — Ghi "Gọi TRONG giao dịch ghi". Nhưng GET /phien/:id (:86) gọi `dongHoanCua({ query }, p)` ngoài giao dịch. Chỉ là câu đọc nên không sai hành vi, nhưng chú thích nói quá; nên ghi rõ "GET chỉ đọc để hiện".
+   — K1 — NHẸ.
+
+NGHI NGỜ:
+- Quyết định "phía cổng chỉ xét dòng TAY" (thanh-toan.js:23 `laDongTay(d) !== tuTay`) có một lỗ, ở nhánh KHÔNG SĐT (:233-237). Nhánh có SĐT đi qua `vaoVi`, có `congKiaDaBao` ngay câu đầu giao dịch (:211), nên chặn được hai cổng cùng báo. Nhánh không SĐT thì không có phép này.
+  Khi hai cổng khác nhau (payOS + SePay/Tingee) báo CÙNG một khoản và tranh nhau, cả hai cùng đọc thấy phiên 'cho' → cả hai hỏng HET_HANG → mỗi bên ghi một dòng "HOÀN TIỀN TAY" khác khoá. Kết quả: hai yêu cầu hoàn tay cho cùng một khoản. Nếu không tranh nhau thì bên sau gặp PHIEN_DA_CHOT, ghi "phiên đang loi", không sao.
+  Chỉ xảy ra khi bật hai cổng (sổ quyết định 01.11 chọn một cổng). Đụng tiền nhưng hiếm. Cách vá: thêm `congKiaDaBao(tx, t)` vào vị từ của nhánh không SĐT.
+  Ngoài chuyện này, mình không thấy luồng hợp lệ nào bị chặn oan:
+  - App chuyển hai lần thật qua cùng cổng: được cộng cả hai (có ca K5).
+  - Tay xác nhận trước rồi khách chuyển thêm một khoản thật qua cổng: bị chặn, ghi CẦN XEM — chặn theo hướng an toàn.
+  - Phiên ck_tay (không có ma_payos): chỉ khớp theo khoá `tay:`.
+  - Dòng KHONG_HOAN_LAI, "tiền vào tài khoản khác", "lệch tiền": không chứa "HOÀN TIỀN TAY" nên không bị tính là dòng hoàn.
+- Có từ trước vòng 4, ngoài phạm vi: cổng ghi dòng hoàn bị "kho bận" (409) sau khi chotPhien đã đóng phiên 'loi' → cổng gửi lại thì gặp PHIEN_DA_CHOT, ghi "phiên đang loi lúc tiền về". Phiên quầy khi đó không tự hoàn ví / không có yêu cầu HOÀN TIỀN TAY, chỉ còn CẦN XEM. Nên ghi Phát hiện.
+- Đột biến chưa phủ vế `khoa = ?` của dongHoanCua (:20). Vế này chỉ tác dụng với phiên ck_tay không có ma_payos (GET het_hang). Màn ck_tay hết hàng chưa có ca.
+
+NGHIỆM THU:
+- K3: trên b2828a02 (chưa vá) ĐỎ 4 ca: màn QR số tiền + SĐT che, màn QR "có SĐT chưa có dòng vào ví", (c), (d). Mỗi ca đỏ đúng câu kết luận ("dòng hoàn 2", het_hang thiếu so_tien/sdt, vao_vi true). XANH trên cả hai bản: (b), K5 và PUT 404. (b) xanh trên gốc vì vế đó đã vá từ soát bảo mật; K5 là ca "phải không bị chặn"; PUT 404 xem lỗi 3. HEAD: 142/0.
+- Đột biến: 11/11 BẮT, đối chứng xanh 142/0 (VS-HOAN-CHI-VAO-VI, VS-HOAN-KHONG-XET-HUONG, BV-KHONG-SDT-TAY-TRUOC, BV-MAN-QR-HOAN-THAT, BV-MAN-QR-SO-TIEN-SDT, VS-MAN-QR-LO-SDT, BV-PUT-404, BV-TAY-SAU-CONG, VS-TAY-SAU-CONG-MOI-MA, BV-TIEN-VE-SAU-HOAN-TAY, BV-LUOI-HOAN-TAY).
+- K4: grep 'vao_vi' / "HOÀN TIỀN TAY" / `tay:${`. Chỉ thanh-toan.js ghi dòng hoàn: :34/:43 (tay), :225 (cổng có SĐT), :234-236 (cổng không SĐT) — cả ba đều qua daHoanDuongKia. doiSoat.js và donApp.js chỉ đọc. Không còn ai đọc `het_hang.vao_vi` cũ ngoài tinh.js. tomPhien không ra App KH, nên không đụng hợp đồng /api/kh.
+- Đường tiền: hai giao dịch là "write" (BEGIN IMMEDIATE, database.js:1691). Câu đọc vị từ nằm trong giao dịch ghi ở cả tay (:31-37) lẫn cổng (:209-217, :234). Số hoàn của phiên quầy = con_lai = t.soTien (lệch tiền đã bị tách ra trước ở :240).
+- P1: client/dist/index.html trỏ index-Cw8-emRk.js; bản này có chuỗi mới "CHƯA hoàn tự động". Bản dist khớp `--day-du` theo phiên chính.
+- B3c: câu màn Bán hàng có món, số tiền, SĐT che, và "HOÀN TIỀN TAY" khi khách không SĐT — đạt, trừ lỗi 1. A4: 404 trong giao dịch đạt; phần chạy đồng thời CHƯA KIỂM.
+- b2828a02: thu_GIAO3 46 đạt / 0 hỏng.
+- Đơn giản: ba hàm nhỏ (dongHoanCua / laDongTay / daHoanDuongKia) là gọn. Chỉ có mẫu che SĐT bị chép hai nơi (lỗi 2).
+
+CHƯA SOÁT ĐƯỢC:
+- Hai cổng tranh nhau thật và khe thời gian của lỗi 1: chỉ suy từ code, không dựng tất định.
+- Hành vi trên Turso thật.
+- Hai người cùng hiện lại món trùng tên.
+- Không chạy kiem_tra_truoc_khi_giao.js / giả lập (theo dặn).
+- Lời nhắn "Run error: SQLITE_CONSTRAINT_UNIQUE kho_phieu.don_hang_id" hiện ở cả gốc lẫn HEAD (không làm hỏng ca nào). Mình không truy nguồn.
+- Thư mục nháp …/scratchpad/sx4 (+ sx4.tar) mình dựng để chạy bản chưa vá; lệnh xoá bị chặn nên còn đó, không nằm trong kho.
+
+BÀI HỌC:
+- K1: lỗi người soát báo cũng phải tự tái hiện trên gốc rồi mới viết ca (vòng 3 nói 500, sanitizeArgs làm điều đó không xảy ra) — không thì ca "đỏ trên gốc" chỉ là danh nghĩa.
+- K5: đổi một cờ từ "suy đoán lạc quan" sang "dữ liệu thật" thì phải liệt kê cả khoảng giữa lúc trạng thái đã đổi mà dữ liệu chưa ghi. Hai câu ghi không cùng giao dịch luôn có khoảng đó.
+- K4: chọn "phía cổng không xét dòng cổng" thì phải kiểm từng nhánh còn được phép "cổng kia đã báo" che không. Nhánh có SĐT được che, nhánh không SĐT thì không.
+```
+SOÁT LẦN CUỐI: chat soát thay
+
 ## Soát bảo mật
 ### Lần 1 (HEAD trước 8e59d04b) — nguyên văn
 ```
-# Soát bảo mật KHO-3a (diff 7b8b1dbb..HEAD), chỉ đọc
+#### Soát bảo mật KHO-3a (diff 7b8b1dbb..HEAD), chỉ đọc
 
 **Kết quả:** 2 lỗ hổng sau lọc, cả hai cùng một chỗ: `hoanTayHetHang` (`server/routes/thanh-toan.js`), lưới hoàn tiền B3c khi xác nhận tay. Cả hai đều là đường tiền làm khách được hoàn (vào ví hoặc nhận hàng) hai lần cho cùng một khoản chuyển.
 
@@ -312,7 +402,7 @@ Lời nhắc bảo tách thành sub-task (bước 1 tìm, bước 2 lọc song s
 
 ---
 
-# Vuln 1: Hoàn tiền hai lần (xác nhận tay + webhook payOS): `server/routes/thanh-toan.js:15-29` (hoanTayHetHang), `:117` (chỗ gọi), `:173` (congKiaDaBao), `server/utils/congQr.js:20` (congCuaKhoa)
+#### Vuln 1: Hoàn tiền hai lần (xác nhận tay + webhook payOS): `server/routes/thanh-toan.js:15-29` (hoanTayHetHang), `:117` (chỗ gọi), `:173` (congKiaDaBao), `server/utils/congQr.js:20` (congCuaKhoa)
 
 * Severity: Medium
 * Category: business_logic / double_credit (đường tiền)
@@ -333,7 +423,7 @@ Lời nhắc bảo tách thành sub-task (bước 1 tìm, bước 2 lọc song s
   - Với SePay hoặc Tingee thì `congCuaKhoa('tay:…')='payos' ≠ t.nguon`, nên không cộng hai lần. Lỗ chỉ mở trên cổng mặc định payOS.
 * Recommendation: Cho `congKiaDaBao` (hoặc riêng `vaoVi`) coi dòng có tiền tố `tay:` là "đã hoàn / đã xác nhận" bất kể cổng. Ví dụ `congCuaKhoa` trả `'tay'` cho tiền tố `tay`, hoặc thêm điều kiện `khoa LIKE 'tay:%'` → ghi chua_khop "đã hoàn tay trước, KHÔNG cộng". Thêm ca thử: xác nhận tay HET_HANG rồi webhook payOS cùng số tiền → ví chỉ +1 lần. Đột biến: bỏ vế `tay:` thì ca phải đỏ.
 
-# Vuln 2: Hoàn vào ví rồi vẫn xác nhận tay lại được, ra đơn (khách được cả tiền lẫn hàng): `server/routes/thanh-toan.js:110-118` + `server/utils/giuCho.js:193-196`
+#### Vuln 2: Hoàn vào ví rồi vẫn xác nhận tay lại được, ra đơn (khách được cả tiền lẫn hàng): `server/routes/thanh-toan.js:110-118` + `server/utils/giuCho.js:193-196`
 
 * Severity: Medium
 * Category: business_logic / double_credit (đường tiền)
@@ -351,7 +441,7 @@ Lời nhắc bảo tách thành sub-task (bước 1 tìm, bước 2 lọc song s
 
 ---
 
-## Đã soát, KHÔNG báo (bị lọc hoặc không thấy lỗ)
+#### Đã soát, KHÔNG báo (bị lọc hoặc không thấy lỗ)
 
 - **`server/kho/banHang.js`**
   - `timMon` và `truKhoDon` dùng `product_id` đã được `taoDonGoc` tra (orders.js:416/421, cùng `is_active = 1`). Món ảo có `product_id` ≤ 0 (gói, thẻ, nạp) bị bỏ qua đúng.
@@ -379,7 +469,7 @@ Lời nhắc bảo tách thành sub-task (bước 1 tìm, bước 2 lọc song s
 - **Xác nhận tay hỏng vì kho tự hoàn vào ví:** người có quyền `xac_nhan_ck_tay` (owner / manager) "bịa" một khoản hoàn được. Đây là người được tin, phiếu B3c yêu cầu đúng hành vi này, và trước đây họ vốn đã tạo được đơn "đã thu" bằng tay. Lọc, điểm 4.
 - **Tên món mới hiển thị ra đâu:** React tự thoát ký tự, các chỗ `innerHTML` để in chỉ lấy DOM React đã vẽ. Không có XSS.
 
-## Chưa kiểm
+#### Chưa kiểm
 Mình không chạy thử hai kịch bản trên (lời nhắc cấm chạy lệnh). Kết luận dựa trên đọc code: `thanh-toan.js` dòng 15-29, 110-118, 173-235; `giuCho.js` dòng 156-198; `congQr.js` dòng 7 và 20.
 ```
 → Vòng sửa bảo mật: `vaoVi` thấy dòng `tay:<phiên>` → chua_khop, không cộng (ca App tay rồi webhook); `hoanTayHetHang` đóng phiên `loi` cùng giao
@@ -387,14 +477,14 @@ dịch (ca muộn: hoàn rồi nhập hàng xác nhận lại → 409, không đ
 
 ### Lần 2 (sau 8e59d04b) — nguyên văn
 ```
-# Soát bảo mật KHO-3a, lần 2 (diff `7b8b1dbb..HEAD`, nhánh viec/KHO-3a)
+#### Soát bảo mật KHO-3a, lần 2 (diff `7b8b1dbb..HEAD`, nhánh viec/KHO-3a)
 
-## Kết luận
+#### Kết luận
 **Không còn lỗ hổng nào đạt ngưỡng tin cậy ≥ 0.8 sau khi lọc.** Bản sửa ở 8e59d04b đóng được cả hai lỗ của lần 1 khi các bước xảy ra lần lượt. Mình chưa thấy nó mở đường mới để cộng ví hai lần hay tạo đơn từ tiền đã hoàn.
 
 Còn hai trường hợp đua (race) dưới ngưỡng, ghi ở cuối để chủ quán biết. Cả hai cần một lần bấm của nhân viên rơi đúng vào khoảng một lượt hỏi kho, nên không đạt điều kiện "concretely problematic" của bộ lọc.
 
-## Kiểm bản sửa: đi từng kịch bản (đọc trong lượt này)
+#### Kiểm bản sửa: đi từng kịch bản (đọc trong lượt này)
 
 Các file đã đọc: `server/routes/thanh-toan.js` (toàn file), `server/utils/giuCho.js` (hàm `chotPhien`, dòng 154–199), `server/routes/orders.js` (dòng 1024–1133: thứ tự `vaoGiaoDich` → `sauGhiDon` → `truKhoDon`).
 
@@ -425,7 +515,7 @@ Các file đã đọc: `server/routes/thanh-toan.js` (toàn file), `server/utils
    - Người đọc phiên cũ sau khi người kia đã đổi trạng thái: `PHIEN_DA_CHOT`.
    - Kết quả: **ĐÚNG**.
 
-## Phần còn lại của diff: không có lỗ
+#### Phần còn lại của diff: không có lỗ
 - **`server/kho/banHang.js`:** mọi câu SQL đều dùng tham số. `truKhoDon` chạy trong giao dịch đơn, thiếu hàng thì rollback cả đơn. Món ngừng bán bị `taoDonGoc` chặn từ trước (`orders.js:411–428`).
 - **`huyPhieuBan`:** cổng ghi là `trang_thai='da_duyet'`. Huỷ đơn gọi sau cổng `status='completed'`. Xoá đơn chỉ trả kho khi đơn chưa huỷ. Kho không được trả hai lần.
 - **`server/kho/duLieu.js` `huyPhieu`:** chặn huỷ phiếu bán (`PHIEU_BAN_HANG`), nên không có đường thứ hai để trả kho.
@@ -442,7 +532,7 @@ Các file đã đọc: `server/routes/thanh-toan.js` (toàn file), `server/utils
 - **`server/utils/giuCho.js` `kiemDuHang`:** đọc tồn ngay trong giao dịch ghi phiên.
 - **`client/src`:** không có `dangerouslySetInnerHTML`, cũng không thêm `fetch` trần.
 
-## Ghi chú dưới ngưỡng (đua, tin cậy khoảng 0.5, không xếp là lỗ)
+#### Ghi chú dưới ngưỡng (đua, tin cậy khoảng 0.5, không xếp là lỗ)
 - **Hai khoá không đối xứng.** `vaoVi` có kiểm dòng `tay:<phiên>`, nhưng `hoanTayHetHang` (`thanh-toan.js:16–33`) không kiểm xem cổng đã ghi dòng `vao_vi` cho phiên chưa. Nó cũng không kiểm `changes` của câu `UPDATE … SET trang_thai='loi'`.
   - Cách cộng hai lần: xác nhận tay và webhook đến gần như cùng lúc trên một phiên đang `'cho'`, và cả hai đều gặp lỗi kho. Webhook chạy `vaoGiaoDich` lọt vào khoảng giữa lúc giao dịch của bên tay rollback và lúc `chotPhien` của bên tay đặt `'loi'`. Sau đó `vaoVi` của webhook ghi xong trước khi `hoanTayHetHang` chạy. Ví bị cộng thêm `con_lai` một lần nữa.
   - Biến thể: nhân viên bấm huỷ phiên đúng vào khoảng đó. Phiên thành `'huy'`, webhook cộng ví, rồi xác nhận tay muộn hoàn tiếp hoặc tạo đơn.
@@ -462,3 +552,13 @@ SOÁT BẢO MẬT: ĐẠT
 4. `routes/backup.js` có hàm `getProductsWithSxNames` KHÔNG ai gọi (code chết sẵn) — đã xoá cùng import SX.
 5. Bước 020 trên kho MỚI (kho thử) luôn log "⏸ NÂNG CẤP 020 HOÃN — SX không trả lời" mỗi lần khởi động (production đã chạy xong nên không log). Không sửa bước cũ.
 6. Bảo đảm "trả kho MỘT lần" có hai lớp trùng nhau (cổng trạng thái đơn + `AND trang_thai = 'da_duyet'` của phiếu) — đột biến gỡ MỘT lớp sẽ SỐNG; không đưa vào dot_bien.
+7. Đường cũ tạo món đang bán KHÔNG qua vị từ trùng tên `tenTrung`: `PUT /products/price` (tên 'Từ SX'), `/batch/prices`, `/thong-tin` (products.js) và
+   `server/kho/nhapSx.js` — ít dùng; không sửa trong KHO-3a.
+8. Che SĐT có hai mẫu: máy chủ `cheSdt` (thanh-toan.js, màn QR quầy) và client `DonApp.jsx` (che trong câu lý do). Gom về một hàm chung khi chạm tới Đơn App.
+9. Cổng ghi dòng hoàn bị "kho bận" (409) SAU khi `chotPhien` đã đóng phiên 'loi' → cổng gửi lại gặp PHIEN_DA_CHOT, chỉ còn dòng CẦN XEM "phiên đang loi"
+   (không tự hoàn ví / không có yêu cầu HOÀN TIỀN TAY) — có từ trước KHO-3a, người soát vòng 4 nêu.
+10. Phiên ck_tay (không ma_payos) hết hàng: vế `khoa = 'tay:<phiên>'` của `dongHoanCua` chưa có ca riêng trên màn QR (màn ck_tay không hỏi phiên như QR).
+11. Quản lý có quyền `xac_nhan_ck_tay` xác nhận tay lúc hết hàng → máy cộng ví khách (thiết kế B3c). Tiền ví dễ đem dùng hơn một đơn — soát bảo mật lần 2 nêu
+    để chủ quán biết; Đối soát có dòng `tay:<phiên>` để đối chiếu sao kê.
+12. Đối soát: quy tắc "mỗi đơn completed đúng 1 phiếu bán" mới nằm ở bất biến I7 của giả lập, chưa có trên màn Đối soát (`doiSoat.js` là việc của GIAO-3) —
+    đề xuất việc sau.
