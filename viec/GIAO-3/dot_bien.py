@@ -42,6 +42,9 @@ DOT_BIEN = [
   ('BV-phi-tao-chuyen', 'g3', [(AH, "phi: phiDuong(j.order?.total_price ?? j.total_price)", "phi: so(j.order?.total_price ?? j.total_price)", 1)], r'✗ C3 \(K4\)'),
   ('BV-phi-bao-0', 'g3', [(GH, "t.phi ?? (bp.phi > 0 ? bp.phi : null)", "t.phi ?? bp.phi", 1)], r'✗ C3 \(K4\) báo phí'),
   ('VS-doc-lai-giao-loi-do-huy', 'g3', [(GH, "x.trang_thai === 'giao_loi' && x.xong_luc && x.tra_hang", "x.trang_thai === 'giao_loi' && x.tra_hang", 1)], r'✗ B3 thẻ giao_loi do Ahamove HUỶ'),
+  ('BV-bao-phi-khach-0', 'g3', [(GH, "    if (!(bp.phi > 0)) return loi(502, 'AHAMOVE_CHUA_BAO_PHI', 'Ahamove chưa báo được phí — bấm báo phí lại');\n", "", 1)], r'✗ C1 \(chủ quán 19.11\)'),
+  ('VS-bao-phi-khach-am', 'g3', [(GH, "if (!(bp.phi > 0)) return loi(502", "if (bp.phi < 0) return loi(502", 1)], r'✗ C1 \(chủ quán 19.11\)'),
+  ('BV-chu-thich-thuc-thu', 'g3', [(MBC, "= tiền thật vào quán (gồm nạp, trừ hoàn) — cùng số Đối soát", "= tiền mặt + chuyển khoản thật nhận", 1)], r'✗ G3 dưới ô'),
   ('VS-phi-nhan-am', 'g3', [(AH, "const phiDuong = (x) => (so(x) > 0 ?", "const phiDuong = (x) => (so(x) != null ?", 1)], r'✗ C1 phí lúc gọi'),
   ('BV-log-phi', 'g3', [(GH, "  if (d.phi_tho.total_price !== c.phi_that) logPhi(c, d);\n", "", 1)], r'✗ C3 log'),
   # ── G: thực thu ──
