@@ -9,6 +9,8 @@
   bc16e14 Merge pull request #100 from pos-tuquyduong/viec/BO-MAN-CU-1
   9cb1dbb BO-MAN-CU-1: cong chay DAT, HEAD DA KIEM 57cc4091
   ```
+- Kho mây là kho nông → `npm test` đỏ ở `thu_BH2` G1 (thiếu commit `cbbb809`). Đã `git fetch -q --unshallow origin viec/TIEN-KHOA-2` →
+  PASS 122 · FAIL 0 · CẢNH BÁO 1.
 
 ## Bước 2–3 — đọc, kế hoạch (19.11.2026)
 - Đã đọc phiếu, CLAUDE.md, KHUON_LOI.md, sổ quyết định (`:89` mọi CK qua QR; `:171` xác nhận tay tiền về muộn), code vùng sửa (file:dòng ở
