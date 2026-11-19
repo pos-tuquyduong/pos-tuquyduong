@@ -201,7 +201,7 @@ KHO-3a: 30 đạt · 100 hỏng · tổng 130 ca
 
 ## SỐ CA (số ca bài in khi chạy trên code đã vá — HEAD)
 SỐ CA cong_cu/thu_BHCKTAY1.js: 11
-SỐ CA cong_cu/thu_BH2.js: 99
+SỐ CA cong_cu/thu_BH2.js: 100
 SỐ CA cong_cu/thu_BOMANCU1.js: 67
 SỐ CA cong_cu/thu_CT1a.js: 75
 SỐ CA cong_cu/thu_DIEMMON1.js: 32
