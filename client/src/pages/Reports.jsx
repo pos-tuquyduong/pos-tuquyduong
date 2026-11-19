@@ -236,7 +236,7 @@ export default function Reports() {
                     <div className="stat-value text-success">
                       {formatPrice(report?.thuc_thu)}
                     </div>
-                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>= tiền mặt + chuyển khoản thật nhận</div>
+                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>= tiền thật vào quán (gồm nạp, trừ hoàn) — cùng số Đối soát</div>
                   </div>
                 </div>
 
