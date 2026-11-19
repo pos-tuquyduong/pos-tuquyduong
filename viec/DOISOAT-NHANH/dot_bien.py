@@ -28,6 +28,14 @@ DOT_BIEN = [
   ('VS-qua-han-thanh-mat-ket-noi', 'dsn', [(DB, "throw quaHan ? err : loiKho(err, doc ? 'doc' : 'ghi');", "throw loiKho(err, doc ? 'doc' : 'ghi');", 1)], r'✗ B1 → lỗi 503'),
   ('VS-han-mac-dinh-moi-duong', 'dsn', [(DB, "async function query(sql, params = [], han = null) {", "async function query(sql, params = [], han = { ms: 300, het: Infinity }) {", 1)], r'✗ D2 query thường'),
   # ── B2: mốc cả lượt ──
+  ('VS-ngoai-luot-co-han', 'dsn', [(DS, "  if (!l) return db.query(sql, args);", "  if (!l) return db.query(sql, args, { ms: HAN.CAU_DOI_SOAT_MS, het: Infinity });", 1)], r'✗ D2 soSach'),
+  ('VS-het-moc-dem-rot', 'dsn', [(DB, """    const ms = han ? Math.min(han.ms, han.het - Date.now()) : 0;
+    if (han && ms <= 0) throw loiQuaHan();   // hết mốc TRƯỚC khi gửi: không gửi, không tính là rớt (soát vòng 1)
+    try {
+""", """    try {
+    const ms = han ? Math.min(han.ms, han.het - Date.now()) : 0;
+    if (han && ms <= 0) throw loiQuaHan();
+""", 1)], r'✗ B2 hết mốc lượt TRƯỚC khi gửi'),
   ('VS-han-khong-moc', 'dsn', [(DB, "const ms = han ? Math.min(han.ms, han.het - Date.now()) : 0;", "const ms = han ? han.ms : 0;", 1)], r'✗ B2 lượt dài hơn hạn tổng'),
   ('VS-luot-khong-moc', 'dsn', [(DS, "{ ms: HAN.CAU_DOI_SOAT_MS, het: l.het }", "{ ms: HAN.CAU_DOI_SOAT_MS, het: Infinity }", 1)], r'✗ B2 lượt dài hơn hạn tổng'),
   ('VS-hang-so-cau', 'dsn', [(DS, "CAU_DOI_SOAT_MS: 15000,", "CAU_DOI_SOAT_MS: 20000,", 1)], r'✗ B1 HAN.CAU_DOI_SOAT_MS'),

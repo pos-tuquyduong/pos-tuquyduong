@@ -164,10 +164,17 @@ async function main() {
   ms = Date.now() - t;
   const nB2 = G.gui.length;
   await ngu(CAU * 2);
-  k('B2 lượt dài hơn hạn tổng → 503 DOI_SOAT_QUA_HAN "Đối soát quá lâu ở bước …" trong khoảng [hạn tổng − 1 câu, hạn tổng + chờ đọc lại cuối]',
-    r.loi?.code === 'DOI_SOAT_QUA_HAN' && /^Đối soát quá lâu ở bước \S+ — thử lại sau$/.test(r.loi.message) && ms >= LUOT - CAU && ms <= LUOT + db.CHO_DOC_MS[1] / RUT + 150,
+  // Sau mốc không còn chờ đọc lại (đọc lại chỉ khi còn hơn thời gian chờ) → cận trên = hạn tổng + 150 ms trễ hẹn giờ.
+  k('B2 lượt dài hơn hạn tổng → 503 DOI_SOAT_QUA_HAN "Đối soát quá lâu ở bước …" trong khoảng [hạn tổng − 1 câu, hạn tổng + 150 ms]',
+    r.loi?.code === 'DOI_SOAT_QUA_HAN' && /^Đối soát quá lâu ở bước \S+ — thử lại sau$/.test(r.loi.message) && ms >= LUOT - CAU && ms <= LUOT + 150,
     `${r.loi ? r.loi.message : r.treo ? 'treo' : 'xong không lỗi'} · ${ms} ms (hạn ${LUOT})`);
   k('B2 sau khi báo lỗi lượt không gửi thêm câu nào', G.gui.length === nB2, `${nB2} → ${G.gui.length}`);
+  datLai();
+  const rot0 = db.demKetNoi().rot;
+  const hm = await coHanNgoai(db.query("SELECT 'thu_dsn_moc' AS x", [], { ms: CAU, het: Date.now() - 1 }));
+  k('B2 hết mốc lượt TRƯỚC khi gửi → KHO_QUA_HAN ngay, không gửi câu, không đếm rớt, không dòng [KET-NOI] (soát vòng 1)', hm.loi?.code === 'KHO_QUA_HAN'
+    && soGui(/thu_dsn_moc/) === 0 && db.demKetNoi().rot === rot0 && !nhatKy.some((l) => l.startsWith('[KET-NOI]')),
+    `${J(hm.loi?.code || hm.kq)} · gửi ${soGui(/thu_dsn_moc/)} · rot ${rot0} → ${db.demKetNoi().rot} · ${J(nhatKy.filter((l) => l.startsWith('[KET-NOI]')))}`);
 
   // ─── D2: đường khác không có hạn giờ mới ───
   muc('[D2] query / run ngoài Đối soát không có hạn giờ');
@@ -176,6 +183,11 @@ async function main() {
   k('D2 query thường chậm 2 × hạn câu Đối soát → vẫn trả kết quả (không hạn giờ, không đọc lại)', d2.kq?.[0]?.x === 'thu_dsn_d2' && soGui(/thu_dsn_d2/) === 1, J(d2));
   const d2r = await coHanNgoai(db.run("UPDATE pos_settings SET value = value WHERE key = 'thu_dsn_d2'"));
   k('D2 run chậm 2 × hạn câu → vẫn xong', !!d2r.kq && soGui(/thu_dsn_d2/) === 2, J(d2r));
+  const BAN = /SUM\(o\.total\)/;   // câu "tổng bán" của soSach (Báo cáo ngày /daily, /so-sach) — cùng cửa chiDoc nhưng NGOÀI lượt Đối soát
+  datLai((sql) => (BAN.test(sql) ? CAU * 2 : undefined));
+  const ss = await coHanNgoai(ds.soSach(NGAY, NGAY));
+  k('D2 soSach (qua chiDoc, ngoài lượt Đối soát) câu chậm 2 × hạn câu → vẫn ra sổ sách, gửi 1 lần, không DOI_SOAT_QUA_HAN (soát vòng 1)',
+    !!ss.kq?.ban_hang && soGui(BAN) === 1 && !nhatKy.some((l) => /qua_han|KHO_QUA_HAN/.test(l)), J(ss.loi ? { code: ss.loi.code, message: ss.loi.message } : ss.treo ? 'treo' : soGui(BAN)));
 
   // ─── HTTP: route thật + doYeuCau ───
   const app = express();

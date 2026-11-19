@@ -31,19 +31,19 @@ treo không giữ hàng đợi nào → đọc lại gửi yêu cầu MỚI (soc
 
 Số dòng ước: database.js ~18, doiSoat.js ~40, reports.js ~3, giao diện 0, bài thử ~300. Trong ngân sách (80 + 10 + 300).
 
-## 3. Ca thử ↔ nghiệm thu (`cong_cu/thu_DOISOATNHANH.js`, hẹn giờ thử rút ÷100 — hằng số so BẰNG giá trị thật)
+## 3. Ca thử ↔ nghiệm thu (`cong_cu/thu_DOISOATNHANH.js`, hẹn giờ câu rút ÷50 (RUT); hạn tổng thử 2,5 s giữ quan hệ 3 × hạn câu + chờ đọc lại < hạn tổng; hằng số so BẰNG giá trị thật)
 | Nghiệm thu | Ca |
 |---|---|
 | A1 | lượt bình thường: dòng `bat_dau ngay <ngày>`; mỗi bước I…, D1, DEN, CK, XNT, D2, tongHop, soHoaDonNgay, soKet (ngày) / sao_ke (tuần) một dòng `buoc <ten> · <ms> ms · <n> câu`; tổng câu các bước = số câu dòng cuối; dòng cuối giữ dạng cũ; log không SĐT / mã đơn / số tiền / SQL |
 | A2 | câu treo → `[CHAM] … · đang chờ 1 câu`; câu ném lỗi → `đang chờ 0`; yêu cầu thường `đang chờ 0` |
 | B1 | câu #k treo mãi → 503 `DOI_SOAT_QUA_HAN`, lời "Đối soát quá lâu ở bước I8 — thử lại sau", log `qua_han buoc I8 cau <thứ tự câu trong lượt>`, gửi đúng 3 lần (1 + 2 đọc lại); treo lần 1 rồi trả lời → kết quả đủ, không lỗi; hằng số 15 000 |
-| B2 | mọi câu chậm 12 s (dưới hạn câu) → lượt dừng ở mốc tổng, 503, thời gian < 60 s (÷100); hằng số 50 000 < `HAN_DOI_SOAT_MS` 60 000 của màn |
+| B2 | mọi câu chậm 12 s (dưới hạn câu) → lượt dừng ở mốc tổng, 503, thời gian trong [hạn tổng − 1 câu, hạn tổng + 150 ms]; hết mốc trước khi gửi → không gửi, không đếm rớt; hằng số 50 000 < `HAN_DOI_SOAT_MS` 60 000 của màn |
 | B3 | HTTP thật: khách bỏ kết nối khi câu đang chậm → log `bo_giua <bước>`, không chạy bước sau (số câu dừng) |
 | B4 | màn DoiSoat.jsx thật + api.js thật: 503 DOI_SOAT_QUA_HAN → hiện lời máy chủ, nút "Đối soát" bấm lại được, gửi đúng 1 lần |
-| C1 | (1) kho giả một câu không trả lời: bài thử chạy chayDoiSoat với hạn ngoài 20 s ÷100 — gốc TREO → ĐỎ. (2) dữ liệu cũ + dòng lệch I1–I8 (phanLoai gọi `tra`): chạy xong / không treo. HTTP libsql remote: không có máy chủ libsql (`sqld`) → CHƯA KIỂM |
+| C1 | (1) kho giả một câu không trả lời: bài thử chạy chayDoiSoat với hạn ngoài 4 s (phiếu 20 s, rút) — gốc TREO → ĐỎ. (2) dữ liệu cũ + dòng lệch I1–I8 (phanLoai gọi `tra`): chạy xong / không treo. HTTP libsql remote: không có máy chủ libsql (`sqld`) → CHƯA KIỂM |
 | C3 | `viec/GIAO-3/do_doisoat.js --tre 0 --goc <gốc> --ra` ngày / tuần / tháng → `cmp` giống hệt (đối chứng như GIAO-3 D2) |
-| D1 | câu chậm 2 s (÷100) vẫn chờ được, không lỗi; kết quả bình thường không có `DOI_SOAT_QUA_HAN` |
-| D2 | `query` không truyền `han` không có hẹn giờ: câu chậm 20 s (÷100, quá hạn đối soát) vẫn trả kết quả; `run` / giao dịch không đổi; bộ kiểm + giả lập xanh |
+| D1 | câu chậm 0,7 × hạn câu vẫn chờ được, không lỗi; kết quả bình thường không có `DOI_SOAT_QUA_HAN` |
+| D2 | `query` không truyền `han` không có hẹn giờ: câu chậm 2 × hạn câu Đối soát vẫn trả kết quả; `run` không đổi; soSach (cùng cửa chiDoc, NGOÀI lượt) không hạn giờ; bộ kiểm + giả lập xanh |
 | E1/E2 | `npm test`, `--day-du`, `cong.js chay`; thao tác chủ quán ghi ở trang_thai |
 
 Hai người cùng bấm: hai lượt chạy chồng → mỗi lượt đếm câu của riêng mình (AsyncLocalStorage) — ca A1 chạy hai lượt song song, mỗi dòng cuối đúng

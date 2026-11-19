@@ -1596,9 +1596,9 @@ async function query(sql, params = [], han = null) {
   const cau = { sql, args: sanitizeArgs(params) };
   const doc = laCauDoc(sql);
   for (let lan = 0; ; lan++) {
+    const ms = han ? Math.min(han.ms, han.het - Date.now()) : 0;
+    if (han && ms <= 0) throw loiQuaHan();   // hết mốc TRƯỚC khi gửi: không gửi, không tính là rớt (soát vòng 1)
     try {
-      const ms = han ? Math.min(han.ms, han.het - Date.now()) : 0;
-      if (han && ms <= 0) throw loiQuaHan();
       const viec = doCau(() => db.execute(cau));
       const result = await (han ? coHan(viec, ms) : viec);
       if (lan) demRot.thu_lai_dat++;
