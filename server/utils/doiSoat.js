@@ -84,13 +84,12 @@ function quaHan(buoc, n) {
   console.warn(`[DOISOAT] qua_han buoc ${buoc} cau ${n}`);   // chỉ tên bước + thứ tự câu trong lượt (không SQL, không tham số)
   return loiDS(503, 'DOI_SOAT_QUA_HAN', `Đối soát quá lâu ở bước ${buoc} — thử lại sau`);
 }
-// Một bước của lượt: người gọi đã bỏ đi → dừng (B3); quá mốc cả lượt → 503 (B2); xong → một dòng đo (A1, chỉ tên + số).
+// Một bước của lượt: người gọi đã bỏ đi → dừng (B3); xong → một dòng đo (A1, chỉ tên + số). Mốc cả lượt (B2) do từng câu tự canh (chiDoc → het).
 async function buoc(l, ten, viec) {
   if (l.tinHieu && l.tinHieu.aborted) {
     console.warn(`[DOISOAT] bo_giua ${ten}`);
     throw loiDS(499, 'DOI_SOAT_BO_GIUA', 'Người gọi đã bỏ đi — dừng đối soát');
   }
-  if (Date.now() >= l.het) throw quaHan(ten, l.cau);
   l.buoc = ten;
   const t = Date.now(), c = l.cau;
   const kq = await viec();
