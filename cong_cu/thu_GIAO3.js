@@ -376,8 +376,8 @@ async function main() {
   const bpKhong = await goi('POST', '/giao-hang/bao-phi', { dia_chi: 'Số 3 Ngõ Thử, Hà Nội' });
   A.phi = 16000;
   const bpCo = await goi('POST', '/giao-hang/bao-phi', { dia_chi: 'Số 3 Ngõ Thử, Hà Nội' });
-  k('C1 (chủ quán 19.11) Ahamove báo phí khách 0 → 502 AHAMOVE_CHUA_BAO_PHI "Ahamove chưa báo được phí — bấm báo phí lại", không ghi báo phí; phí 16.000 → báo bình thường',
-    bpKhong.status === 502 && bpKhong.j.code === 'AHAMOVE_CHUA_BAO_PHI' && bpKhong.j.error === 'Ahamove chưa báo được phí — bấm báo phí lại'
+  k('C1 (chủ quán 19.11) Ahamove báo phí khách 0 → 502 AHAMOVE_CHUA_BAO_PHI "Ahamove chưa báo được phí — bấm Tính phí lại", không ghi báo phí; phí 16.000 → báo bình thường',
+    bpKhong.status === 502 && bpKhong.j.code === 'AHAMOVE_CHUA_BAO_PHI' && bpKhong.j.error === 'Ahamove chưa báo được phí — bấm Tính phí lại'
     && bpCo.status === 200 && bpCo.j.phi === 16000 && await soBaoPhi() === bp0 + 1, J([bpKhong.status, bpKhong.j, bpCo.status, bpCo.j.phi]));
   const vC = await moChuyen();
   const cC0 = await chuyenCua(vC.id);
