@@ -265,8 +265,13 @@ export function nhapPhim(hienTai, phim) {
 /** KHO-3a B3c: câu báo khi phiên QR thôi giữ. Hỏng vì HẾT HÀNG (máy chủ trả het_hang) — tiền khách đã chuyển, KHÔNG phải "đã huỷ": nói rõ đã hoàn vào
  *  ví khách hay phải hoàn tay. Còn lại: hết hạn / đã huỷ như cũ. */
 export function cauNhaPhien(p) {
-  if (p?.het_hang) {
-    return `⛔ Hết ${p.het_hang.mon} — KHÔNG tạo đơn. Tiền khách đã chuyển ${p.het_hang.vao_vi ? 'đã hoàn vào ví khách' : '— khách chưa có tài khoản: HOÀN TIỀN TAY cho khách'}.`;
+  const h = p?.het_hang;
+  if (h) {   // máy chủ tra dòng hoàn THẬT (vao_vi / hoan_tay) — không suy từ việc có SĐT
+    const tien = Number(h.so_tien || 0).toLocaleString('vi-VN') + 'đ';
+    const sau = h.vao_vi ? `đã hoàn vào ví khách${h.sdt ? ' ' + h.sdt : ''}: ${tien}`
+      : h.hoan_tay ? `— khách chưa có tài khoản: HOÀN TIỀN TAY ${tien} cho khách`
+        : `${tien} CHƯA hoàn tự động — xem Đối soát trước khi trả khách`;
+    return `⛔ Hết ${h.mon} — KHÔNG tạo đơn. Tiền khách đã chuyển ${sau}.`;
   }
   return p?.trang_thai === 'het_han' ? 'QR đã hết hạn — chưa nhận được tiền. Giỏ còn nguyên.' : 'Đã huỷ chuyển khoản. Giỏ còn nguyên.';
 }

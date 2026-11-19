@@ -490,6 +490,20 @@ async function main() {
     k('B3c màn QR quầy: phiên báo het_hang { món, đã vào ví } → câu "Hết Lưới K3a … đã hoàn vào ví khách", không phải "Đã huỷ"',
       xemQ.j.phien?.het_hang?.mon === 'Lưới K3a' && xemQ.j.phien?.het_hang?.vao_vi === true && /Hết Lưới K3a/.test(cau) && /hoàn vào ví khách/.test(cau)
       && !/Đã huỷ/.test(cau), `${JSON.stringify(xemQ.j.phien?.het_hang)} · ${cau}`);
+    const che2 = `${kh2.sdt.slice(0, 3)}****${kh2.sdt.slice(7)}`;
+    k('B3c màn QR quầy (vòng 4): câu nêu SỐ TIỀN đã hoàn + SĐT che giữa (như Đơn App), không lộ SĐT đủ',
+      Number(xemQ.j.phien?.het_hang?.so_tien) === Number(p2?.con_lai) && xemQ.j.phien?.het_hang?.sdt === che2 && cau.includes('18.000đ') && cau.includes(che2)
+      && !JSON.stringify(xemQ.j.phien?.het_hang || {}).includes(kh2.sdt), `${JSON.stringify(xemQ.j.phien?.het_hang)} · ${cau}`);
+    // "đã hoàn vào ví" dựa vào dòng vao_vi THẬT, không dựa việc phiên có SĐT: phiên hết hàng có SĐT mà CHƯA có dòng hoàn nào → không nói "đã hoàn"
+    const loX = await napTP(spL, 1);
+    const khX = await khach();
+    const pqX = await taoPhienQuay([mon(spL, 1)], 'payos', { customer_phone: khX.sdt, customer_name: 'Khách K3a chưa hoàn' });
+    await ghiDb("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = 'HET_HANG: Lưới K3a' WHERE id = ?", [pqX.j.phien?.id]);
+    await mat(loX);   // trả kho về như trước ca (các ca sau cần "hết" đúng lô của mình)
+    const xemX = await goi('chu', 'GET', `/pos/thanh-toan/phien/${pqX.j.phien?.id}`);
+    const cauX = typeof T.cauNhaPhien === 'function' ? T.cauNhaPhien(xemX.j.phien) : '';
+    k('B3c màn QR quầy (vòng 4): có SĐT nhưng CHƯA có dòng vào ví → het_hang.vao_vi false, câu KHÔNG nói "đã hoàn vào ví", bảo xem Đối soát',
+      xemX.j.phien?.het_hang?.vao_vi === false && !/đã hoàn/.test(cauX) && /Đối soát/.test(cauX) && !/Đã huỷ/.test(cauX), `${JSON.stringify(xemX.j.phien?.het_hang)} · ${cauX}`);
     // Quầy QR không SĐT
     const lo3 = await napTP(spL, 1);
     const pv = await taoPhienQuay([mon(spL, 1)], 'payos');
@@ -560,6 +574,49 @@ async function main() {
     const t10 = await goi('chu', 'POST', `/pos/thanh-toan/phien/${p10?.id}/xac-nhan-tay`, { ly_do: 'khách đưa sao kê (thử)' });
     k('B3c đối chứng: phiên chưa có dòng cổng → xác nhận tay hết hàng vẫn hoàn ví đúng số', la(t10, 400, 'HET_HANG')
       && (await soDu(kh10.sdt)) === Number(p10?.con_lai), `${moTa(t10)} · ví ${await soDu(kh10.sdt)} / ${p10?.con_lai}`);
+    // Vòng 4 — MỘT vị từ "dòng hoàn của phiên" (vào ví HOẶC HOÀN TIỀN TAY) cho cả hai đường. Mỗi cặp chèn sẵn dòng bên kia (tất định).
+    const chen = (khoa, ma, soTien, ketQua, lyDo) => ghiDb('INSERT INTO pos_payos_su_kien (khoa, ma_payos, so_tien, ket_qua, ly_do, du_lieu, luc) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [khoa, ma ?? null, soTien, ketQua, lyDo, '{}', '2026-11-19T09:00:00']);
+    const demHoan = async (pp) => so(`SELECT COUNT(*) FROM pos_payos_su_kien WHERE (khoa = ? OR ma_payos = ?) AND (ket_qua = 'vao_vi' OR (ket_qua = 'chua_khop' AND ly_do LIKE '%HOÀN TIỀN TAY%'))`,
+      [`tay:${pp?.id}`, pp?.ma_payos]);
+    // (b) CÓ SĐT, TAY trước: dòng `tay:` vào ví đã có → tiền về qua cổng (phiên quầy hỏng vì kho) KHÔNG cộng lần hai
+    const loB = await napTP(spL, 1);
+    const khB = await khach();
+    const pB = await phien((await taoPhienQuay([mon(spL, 1)], 'payos', { customer_phone: khB.sdt, customer_name: 'Khách K3a tay trước' })).j.phien?.id);
+    await mat(loB);
+    await chen(`tay:${pB?.id}`, pB?.ma_payos, Number(pB?.con_lai), 'vao_vi', 'đã hoàn khi xác nhận tay (thử)');
+    await webhook(pB || {});
+    k('B3c vòng 4 (b) có SĐT · tay trước → cổng KHÔNG cộng ví lần hai, đúng một dòng hoàn', (await soDu(khB.sdt)) === 0 && (await demHoan(pB)) === 1,
+      `ví ${await soDu(khB.sdt)} · dòng hoàn ${await demHoan(pB)}`);
+    // (c) KHÔNG SĐT, CỔNG trước: cổng đã ghi "HOÀN TIỀN TAY" → xác nhận tay KHÔNG thêm yêu cầu hoàn thứ hai
+    const loC = await napTP(spL, 1);
+    const pC = await phien((await taoPhienQuay([mon(spL, 1)], 'payos')).j.phien?.id);
+    await mat(loC);
+    await chen(`payos:k3a-c-${pC?.id}`, pC?.ma_payos, Number(pC?.con_lai), 'chua_khop', `Hết hàng: Lưới K3a — khách chưa có tài khoản: HOÀN TIỀN TAY ${pC?.con_lai}`);
+    const tC = await goi('chu', 'POST', `/pos/thanh-toan/phien/${pC?.id}/xac-nhan-tay`, { ly_do: 'khách đưa sao kê (thử)' });
+    const bC = await mot('SELECT ket_qua, ly_do FROM pos_payos_su_kien WHERE khoa = ?', [`tay:${pC?.id}`]);
+    k('B3c vòng 4 (c) không SĐT · cổng trước → xác nhận tay: đúng MỘT yêu cầu HOÀN TIỀN TAY, dòng tay: "KHÔNG hoàn lần hai", không hoan_tay',
+      la(tC, 400, 'HET_HANG') && (await demHoan(pC)) === 1 && /KHÔNG hoàn lần hai/.test(bC?.ly_do || '') && !tC.j.hoan?.hoan_tay,
+      `${moTa(tC)} ${JSON.stringify(tC.j.hoan)} · dòng hoàn ${await demHoan(pC)} · ${JSON.stringify(bC)}`);
+    // (d) KHÔNG SĐT, TAY trước: dòng `tay:` "HOÀN TIỀN TAY" đã có → tiền về qua cổng KHÔNG thêm yêu cầu hoàn thứ hai
+    const loD = await napTP(spL, 1);
+    const pD = await phien((await taoPhienQuay([mon(spL, 1)], 'payos')).j.phien?.id);
+    await mat(loD);
+    await chen(`tay:${pD?.id}`, pD?.ma_payos, Number(pD?.con_lai), 'chua_khop', `Hết hàng: Lưới K3a — xác nhận tay — khách chưa có tài khoản: HOÀN TIỀN TAY ${pD?.con_lai}`);
+    await webhook(pD || {});
+    const bD = await mot('SELECT ket_qua, ly_do FROM pos_payos_su_kien WHERE ma_payos = ? AND khoa NOT LIKE ? ORDER BY rowid DESC LIMIT 1', [pD?.ma_payos, 'tay:%']);
+    k('B3c vòng 4 (d) không SĐT · tay trước → cổng: đúng MỘT yêu cầu HOÀN TIỀN TAY, dòng cổng "KHÔNG hoàn lần hai"',
+      (await demHoan(pD)) === 1 && bD?.ket_qua === 'chua_khop' && /KHÔNG hoàn lần hai/.test(bD?.ly_do || ''), `dòng hoàn ${await demHoan(pD)} · ${JSON.stringify(bD)}`);
+    // K5: khách App chuyển HAI lần thật (hai báo cổng khác khoá, cùng mã) sau khi đơn hỏng vì hết hàng → CẢ HAI vào ví (vị từ chỉ chặn dòng của ĐƯỜNG KIA)
+    const loE = await napTP(spL, 1);
+    const khE = await khach();
+    await datApp(khE, [{ ma: maCua(spL), so_luong: 1 }]);
+    const pE = await phienAppMoiNhat(khE);
+    await mat(loE);
+    await webhook(pE || {});
+    await webhook(pE || {});
+    k('B3c vòng 4 K5: App chuyển hai lần thật qua cổng (khác khoá) → ví +HAI lần (không chặn oan tiền thật)', (await soDu(khE.sdt)) === 2 * Number(pE?.con_lai),
+      `ví ${await soDu(khE.sdt)} / 2 × ${pE?.con_lai}`);
     // Hai người cùng bấm xác nhận tay (song song thật) lúc hết hàng → ví +đúng số MỘT lần (khoá dòng báo `tay:<phiên>`)
     const spDua = await themSP('Đua tay K3a', 18000, { thuTu: 22 });
     await luuSP(spDua, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nlCam, luong: 0.2 }] });
@@ -714,6 +771,9 @@ async function main() {
       const thuTu = await goi('ql', 'PUT', `/pos/products/${id}`, { sort_order: 3 });
       k('A4 đối chứng K5: đổi thứ tự món đang bán đã trùng tên sẵn (dữ liệu cũ) → 200', la(thuTu, 200), moTa(thuTu));
       await ghiDb("UPDATE pos_products SET name = 'Món thử K3a đổi', is_active = 0 WHERE id = ?", [id]);
+      const khongCo = await goi('ql', 'PUT', '/pos/products/987654321', { is_active: 1 });
+      const khongCo2 = await goi('ql', 'PUT', '/pos/products/987654321', { name: 'Không có K3a' });
+      k('A4 sửa / hiện lại món KHÔNG có → 404 KHONG_THAY (không 500)', la(khongCo, 404, 'KHONG_THAY') && la(khongCo2, 404, 'KHONG_THAY'), `${moTa(khongCo)} · ${moTa(khongCo2)}`);
       const nvSua = await goi('nv', 'PUT', `/pos/products/${id}`, { is_active: 1 });
       k('A4 nhân viên sửa / hiện món → 403', nvSua.status === 403, moTa(nvSua));
       const xoa = await goi('chu', 'DELETE', `/pos/products/${id}`);

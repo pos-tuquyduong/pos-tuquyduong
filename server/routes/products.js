@@ -102,15 +102,21 @@ router.put('/:id', (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : n
   if ('is_active' in b) doi.is_active = [0, 1].includes(Number(b.is_active)) ? Number(b.is_active) : null;
   if (!Object.keys(doi).length || Object.values(doi).some((v) => v == null)) return loiMon(res, 'YEU_CAU_KHONG_HOP_LE', 'Thông tin món không hợp lệ');
   try {
-    // MỘT vị từ cho mọi đường thành "đang bán với tên X": đổi tên, HOẶC hiện lại món đang ẩn (soát vòng 2). Món đang bán chỉ đổi thứ tự / nhóm thì
-    // không xét (dữ liệu cũ có thể đã trùng — K5).
-    const cu = await queryOne('SELECT name, is_active FROM pos_products WHERE id = ?', [Number(req.params.id)]);
-    const hienLai = doi.is_active === 1 && Number(cu?.is_active) !== 1;
-    if ((doi.name || hienLai) && await tenTrung({ queryOne }, doi.name || cu?.name, Number(req.params.id))) return loiMon(res, 'TEN_TRUNG', 'Đã có món đang bán cùng tên');
-    const kq = await run(`UPDATE pos_products SET ${Object.keys(doi).map((c) => c + ' = ?').join(', ')}, updated_at = ? WHERE id = ?`,
-      [...Object.values(doi), getNow(), Number(req.params.id)]);
-    if (!kq.changes) return res.status(404).json({ error: 'Không thấy món', code: 'KHONG_THAY' });
-    res.json({ success: true, product: await queryOne('SELECT * FROM pos_products WHERE id = ?', [Number(req.params.id)]) });
+    // Vị từ tenTrung dùng ở tạo món (POST) và sửa ở đây: đổi tên, HOẶC hiện lại món đang ẩn (soát vòng 2). Món đang bán chỉ đổi thứ tự / nhóm thì
+    // không xét (dữ liệu cũ có thể đã trùng — K5). Đọc + kiểm + ghi CÙNG giao dịch như POST. Các đường cũ /price, /batch/prices, /thong-tin và
+    // kho/nhapSx.js CHƯA qua vị từ này (Phát hiện KHO-3a).
+    const id = Number(req.params.id);
+    const kq = await trongGiaoDich(async (tx) => {
+      const cu = await tx.queryOne('SELECT name, is_active FROM pos_products WHERE id = ?', [id]);
+      if (!cu) return { huy: true, khongThay: true };
+      const hienLai = doi.is_active === 1 && Number(cu.is_active) !== 1;
+      if ((doi.name || hienLai) && await tenTrung(tx, doi.name || cu.name, id)) return { huy: true, trung: true };
+      await tx.run(`UPDATE pos_products SET ${Object.keys(doi).map((c) => c + ' = ?').join(', ')}, updated_at = ? WHERE id = ?`, [...Object.values(doi), getNow(), id]);
+      return {};
+    });
+    if (kq.khongThay) return res.status(404).json({ error: 'Không thấy món', code: 'KHONG_THAY' });
+    if (kq.trung) return loiMon(res, 'TEN_TRUNG', 'Đã có món đang bán cùng tên');
+    res.json({ success: true, product: await queryOne('SELECT * FROM pos_products WHERE id = ?', [id]) });
   } catch (err) { loiGhi(res, err); }
 });
 

@@ -12,11 +12,18 @@ const { loiGhi, ghiVi, trongGiaoDich } = require('./wallets');
 const { taoPhien, chotPhien, tomPhien } = require('../utils/giuCho');
 const LOI_KHO = ['HET_HANG', 'THIEU_NGUYEN_LIEU', 'CHUA_CO_CONG_THUC'];   // KHO-3a: mã chặn bán theo kho (kho/banHang.js)
 
-/**
- * KHO-3a B3c — xác nhận tay hỏng vì kho: { vao_vi: số } hoặc { hoan_tay: số }. Một lần: câu ghi dòng báo khoá `tay:<phiên>` (ON CONFLICT DO NOTHING).
- * Hai chiều với tiền về qua cổng (soát vòng 2): cổng ĐÃ cộng ví cho phiên này (dòng vao_vi cùng ma_payos) → dòng `tay:` là chua_khop, KHÔNG cộng;
- * chiều ngược (tay trước, cổng sau) do vaoVi chặn bằng dòng `tay:`. Cả hai câu đọc nằm TRONG giao dịch ghi (khoá ghi xếp hàng hai bên).
- */
+// KHO-3a B3c — MỘT vị từ "dòng hoàn của phiên" (soát vòng 3): vào ví HOẶC yêu cầu HOÀN TIỀN TAY (khách không ví), của đường TAY (khoá `tay:<phiên>`)
+// hoặc đường CỔNG (cùng ma_payos). Hỏi "đường KIA đã hoàn chưa": tay hỏi → xét dòng cổng; cổng hỏi → CHỈ xét dòng tay (khách chuyển hai lần thật qua
+// cổng thì cả hai vẫn vào ví — K5). Gọi TRONG giao dịch ghi (BEGIN IMMEDIATE xếp hàng hai đường).
+const HOAN_TIEN_TAY = 'HOÀN TIỀN TAY';
+const KHONG_HOAN_LAI = 'đã có yêu cầu hoàn — KHÔNG hoàn lần hai';
+const dongHoanCua = (q, p) => q.query(`SELECT khoa, ket_qua FROM pos_payos_su_kien WHERE (khoa = ? OR (ma_payos IS NOT NULL AND ma_payos = ?))
+  AND (ket_qua = 'vao_vi' OR (ket_qua = 'chua_khop' AND ly_do LIKE ?))`, [`tay:${p.id}`, p.ma_payos ?? null, `%${HOAN_TIEN_TAY}%`]);
+const laDongTay = (d) => String(d.khoa).startsWith('tay:');
+const daHoanDuongKia = async (q, p, tuTay) => (await dongHoanCua(q, p)).some((d) => laDongTay(d) !== tuTay);
+
+/** KHO-3a B3c — xác nhận tay hỏng vì kho: { vao_vi: số } | { hoan_tay: số } | { da_hoan: true }. Một lần: khoá dòng báo `tay:<phiên>` (ON CONFLICT DO NOTHING);
+ *  đường cổng đã hoàn (daHoanDuongKia) → dòng `tay:` chua_khop KHONG_HOAN_LAI, không cộng, không thêm yêu cầu hoàn. */
 async function hoanTayHetHang(p, mon, nguoi) {
   const soTien = Number(p.con_lai) || 0;
   const lyDo = `Hết hàng: ${mon || 'món'} — xác nhận tay, không tạo được đơn`;
@@ -25,12 +32,12 @@ async function hoanTayHetHang(p, mon, nguoi) {
     await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",
       [`HET_HANG: ${mon || 'món'}`, p.id]);
     const ghi = (ketQua, chu) => tx.run(CAU_GHI, [`tay:${p.id}`, p.ma_payos ?? null, soTien, ketQua, chu, JSON.stringify({ phien: p.id, nguoi }), getNow()]);
-    if (p.ma_payos && await tx.queryOne("SELECT 1 AS co FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua = 'vao_vi' AND khoa <> ?", [p.ma_payos, `tay:${p.id}`])) {
-      await ghi('chua_khop', `${lyDo} — cổng đã cộng khoản này vào ví ${p.phone || ''} trước: máy KHÔNG cộng lần hai — đối chiếu sao kê`);
+    if (await daHoanDuongKia(tx, p, true)) {
+      await ghi('chua_khop', `${lyDo} — cổng ${KHONG_HOAN_LAI} — đối chiếu sao kê`);
       return { da_hoan: true };
     }
     if (!p.phone) {
-      await ghi('chua_khop', `${lyDo} — khách chưa có tài khoản: HOÀN TIỀN TAY ${soTien}`);
+      await ghi('chua_khop', `${lyDo} — khách chưa có tài khoản: ${HOAN_TIEN_TAY} ${soTien}`);
       return { hoan_tay: soTien };
     }
     if ((await ghi('vao_vi', `${lyDo} — ${LY_DO_VAO_VI} ${p.phone} (phiên #${p.id})`)).changes !== 1) return { da_hoan: true };
@@ -75,7 +82,13 @@ router.get('/phien/:id', authenticate, async (req, res) => {
     const p = await docPhien(req.params.id);
     if (!p) return loi(res, 404, 'KHONG_THAY_PHIEN', 'Không tìm thấy phiên thanh toán');
     const o = p.order_id ? await queryOne('SELECT id, code FROM pos_orders WHERE id = ?', [p.order_id]) : null;
-    res.json({ success: true, phien: tomPhien(p, o) });
+    const tom = tomPhien(p, o);
+    if (tom.het_hang) {   // KHO-3a B3c (vòng 4): màn QR quầy nói theo dòng hoàn THẬT (cùng vị từ dongHoanCua), số tiền + SĐT che giữa như Đơn App
+      const ds = await dongHoanCua({ query }, p);
+      tom.het_hang = { ...tom.het_hang, vao_vi: ds.some((d) => d.ket_qua === 'vao_vi'), hoan_tay: ds.some((d) => d.ket_qua === 'chua_khop'),
+        so_tien: Number(p.con_lai) || 0, sdt: p.phone ? String(p.phone).replace(/^(\d{3})\d+(\d{3})$/, '$1****$2') : null };
+    }
+    res.json({ success: true, phien: tom });
   } catch (err) {
     loiGhi(res, err);
   }
@@ -204,9 +217,9 @@ async function xuLyTienVe(res, t) {
           + ` — đối chiếu sao kê, khoản chưa cộng thì cộng tay vào tài khoản ${x.phone}`));
         return;
       }
-      // KHO-3a (soát bảo mật): khoản này đã được hoàn khi quản lý xác nhận tay lúc hết hàng (dòng `tay:<phiên>`) → KHÔNG cộng lần hai, CẦN XEM.
-      if (await tx.queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [`tay:${x.id}`])) {
-        await tx.run(CAU_GHI, thamSo('chua_khop', `${dau} — đã hoàn khi xác nhận tay lúc hết hàng (${soHd}) · mã GD ${maGd}: máy KHÔNG cộng lần hai — đối chiếu sao kê`));
+      // KHO-3a (soát bảo mật + vòng 3): đường tay đã hoàn khoản này lúc hết hàng (daHoanDuongKia) → KHÔNG cộng lần hai, CẦN XEM.
+      if (await daHoanDuongKia(tx, x, false)) {
+        await tx.run(CAU_GHI, thamSo('chua_khop', `${dau} — xác nhận tay ${KHONG_HOAN_LAI} (${soHd}) · mã GD ${maGd} — đối chiếu sao kê`));
         return;
       }
       const ins = await tx.run(CAU_GHI, thamSo('vao_vi', `${dau} — ${LY_DO_VAO_VI} ${x.phone} (${soHd}) · mã GD ${maGd}`));
@@ -245,11 +258,17 @@ async function xuLyTienVe(res, t) {
   }
   // Chốt hỏng: chotPhien vừa đổi phiên App sang 'loi' (đơn hỏng), hoặc phiên vừa bị huỷ / hết hạn giữa chừng → đọc lại, cùng vị từ, vào ví.
   // KHO-3a B3c (lưới an toàn): hỏng vì KHO (hàng đã giữ mà mất trước khi tiền về) → phiên QUẦY có SĐT khách cũng vào ví (cùng hàm, một lần);
-  // không SĐT (khách vãng lai, không ví) → chua_khop "HOÀN TIỀN TAY" (Đối soát CẦN XEM) + màn QR quầy báo lỗi của phiên.
+  // không SĐT (khách vãng lai, không ví) → chua_khop "HOÀN TIỀN TAY" (Đối soát CẦN XEM) + màn QR quầy báo lỗi của phiên; đường tay đã hoàn
+  // (daHoanDuongKia, đọc + ghi cùng giao dịch) → KHONG_HOAN_LAI, không thêm yêu cầu hoàn thứ hai.
   const loiKho = LOI_KHO.includes(kq.body?.code) && t.soTien > 0;
   const moi = laApp || loiKho ? await docPhien(p.id) : null;
   if (moi && moi.phone && vaoViDuoc(moi)) return vaoVi(moi);
-  if (loiKho && moi && !moi.phone) return ghi('chua_khop', `Hết hàng: ${kq.body.mon || 'món'} — khách chưa có tài khoản: HOÀN TIỀN TAY ${t.soTien}`);
+  if (loiKho && moi && !moi.phone) {
+    await trongGiaoDich(async (tx) => tx.run(CAU_GHI, thamSo('chua_khop', await daHoanDuongKia(tx, moi, false)
+      ? `Hết hàng: ${kq.body.mon || 'món'} — xác nhận tay ${KHONG_HOAN_LAI}`
+      : `Hết hàng: ${kq.body.mon || 'món'} — khách chưa có tài khoản: ${HOAN_TIEN_TAY} ${t.soTien}`)));
+    return res.json({ success: true });
+  }
   const sau = kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;
   // "Hai cổng" chỉ khi phiên do CỔNG KIA chốt và cổng này CHƯA báo gì cho phiên — cổng này báo lần nữa là khách chuyển thêm thật (phải hoàn).
   const daBao = sau ? (await query('SELECT khoa FROM pos_payos_su_kien WHERE ma_payos = ?', [t.ma])).some((x) => congCuaKhoa(x.khoa) === t.nguon) : false;

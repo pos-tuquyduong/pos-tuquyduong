@@ -31,9 +31,9 @@ const loi = (status, code, error) => ({ status, body: { error, code } });
 // res giả gom status + thân — gọi taoDon ngoài một yêu cầu HTTP của chính nó (webhook, tạo phiên).
 const gomRes = () => ({ statusCode: 200, body: undefined, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } });
 
-// KHO-3a B3c: phiên hỏng vì KHO (ly_do "<mã kho>: <món>") — tiền đã về được hoàn vào ví khách (có SĐT) hoặc phải hoàn tay; màn QR quầy báo đúng việc này.
+// KHO-3a B3c: phiên hỏng vì KHO (ly_do "<mã kho>: <món>") — chỉ nêu món; đã hoàn vào ví hay phải hoàn tay do GET /phien/:id tra dòng hoàn THẬT (thanh-toan.js).
 const MAU_HET_HANG = /^(?:HET_HANG|THIEU_NGUYEN_LIEU|CHUA_CO_CONG_THUC): (.+)$/;
-const hetHangCua = (p) => { const m = p.trang_thai === 'loi' && MAU_HET_HANG.exec(String(p.ly_do || '')); return m ? { mon: m[1], vao_vi: !!p.phone } : null; };
+const hetHangCua = (p) => { const m = p.trang_thai === 'loi' && MAU_HET_HANG.exec(String(p.ly_do || '')); return m ? { mon: m[1] } : null; };
 const tomPhien = (p, order = null) => ({
   id: p.id, cach: p.cach, trang_thai: p.trang_thai === 'cho' && p.het_han <= getNow() ? 'het_han' : p.trang_thai,
   tong: p.tong, giu_vi: p.giu_vi, giu_vi_me: p.giu_vi_me, con_lai: p.con_lai, het_han: p.het_han,

@@ -48,7 +48,7 @@ DOT_BIEN = [
     r'✗ B3b màn khách'),
   # ── B3c: lưới an toàn ──
   ('BV-LUOI-VAO-VI-QUAY', [(TT, '  const moi = laApp || loiKho ? await docPhien(p.id) : null;', '  const moi = laApp ? await docPhien(p.id) : null;', 1)], r'✗ B3c phiên QR QUẦY có SĐT'),
-  ('BV-LUOI-HOAN-TAY', [(TT, "  if (loiKho && moi && !moi.phone) return ghi(", "  if (false) return ghi(", 1)], r'✗ B3c QR quầy KHÔNG SĐT'),
+  ('BV-LUOI-HOAN-TAY', [(TT, "  if (loiKho && moi && !moi.phone) {", "  if (false) {", 1)], r'✗ B3c QR quầy KHÔNG SĐT'),
   ('BV-LUOI-TEN-MON', [(G, " + (r.body?.mon ? `: ${r.body.mon}` : '')", '', 1)], r'✗ B3c (App thấy|quầy có dòng)'),
   # ── vòng sửa 1 (soát độc lập): màn QR quầy báo hết hàng · xác nhận tay hỏng vì kho hoàn ví một lần ──
   ('BV-QR-QUAY-HET-HANG', [(G, 'order, het_hang: hetHangCua(p),', 'order, het_hang: null,', 1)], r'✗ B3c màn QR quầy'),
@@ -59,18 +59,25 @@ DOT_BIEN = [
   ('BV-SUA-TEN-TRUNG', [(P, "    if ((doi.name || hienLai) && await tenTrung(", "    if (false && await tenTrung(", 1)], r'✗ A4 sửa tên trùng'),
   # ── vòng sửa 3 (soát vòng 2): hiện lại món ẩn trùng tên · cổng đã cộng rồi mới xác nhận tay ──
   ('BV-HIEN-LAI-TRUNG-TEN', [(P, "    if ((doi.name || hienLai) && await tenTrung(", "    if ((doi.name) && await tenTrung(", 1)], r'✗ A4 hiện lại món ẩn'),
-  ('VS-HIEN-LAI-XET-CA-MON-DANG-BAN', [(P, "const hienLai = doi.is_active === 1 && Number(cu?.is_active) !== 1;", "const hienLai = doi.is_active === 1 || 'sort_order' in doi;", 1)],
+  ('BV-PUT-404', [(P, "      if (!cu) return { huy: true, khongThay: true };\n", '', 1)], r'✗ A4 sửa / hiện lại món KHÔNG có'),
+  ('VS-HIEN-LAI-XET-CA-MON-DANG-BAN', [(P, "const hienLai = doi.is_active === 1 && Number(cu.is_active) !== 1;", "const hienLai = doi.is_active === 1 || 'sort_order' in doi;", 1)],
     r'✗ A4 đối chứng K5'),
-  ('BV-TAY-SAU-CONG', [(TT, "    if (p.ma_payos && await tx.queryOne(\"SELECT 1 AS co FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua = 'vao_vi' AND khoa <> ?\"",
-    "    if (false && await tx.queryOne(\"SELECT 1 AS co FROM pos_payos_su_kien WHERE ma_payos = ? AND ket_qua = 'vao_vi' AND khoa <> ?\"", 1)], r'✗ B3c cổng đã cộng ví'),
-  ('VS-TAY-SAU-CONG-MOI-MA', [(TT, "WHERE ma_payos = ? AND ket_qua = 'vao_vi' AND khoa <> ?\", [p.ma_payos, `tay:${p.id}`]",
-    "WHERE ma_payos <> ? AND ket_qua = 'vao_vi' AND khoa <> ?\", [p.ma_payos, `tay:${p.id}`]", 1)], r'✗ B3c (đối chứng|cổng đã cộng)'),
+  ('BV-TAY-SAU-CONG', [(TT, "    if (await daHoanDuongKia(tx, p, true)) {", "    if (false) {", 1)], r'✗ B3c (cổng đã cộng ví|vòng 4 \(c\))'),
+  ('VS-TAY-SAU-CONG-MOI-MA', [(TT, "OR (ma_payos IS NOT NULL AND ma_payos = ?))", "OR (ma_payos IS NOT NULL AND ma_payos <> ?))", 1)],
+    r'✗ B3c (đối chứng|cổng đã cộng|vòng 4)'),
+  # ── vòng sửa 4 (soát vòng 3): MỘT vị từ dòng hoàn cho mọi cặp (có / không SĐT × tay / cổng trước) · màn QR theo dòng hoàn thật · PUT 404 ──
+  ('VS-HOAN-CHI-VAO-VI', [(TT, "  AND (ket_qua = 'vao_vi' OR (ket_qua = 'chua_khop' AND ly_do LIKE ?))`", "  AND (ket_qua = 'vao_vi' OR (? IS NULL))`", 1)],
+    r'✗ B3c (vòng 4 \(c\)|vòng 4 \(d\)|màn QR quầy KHÔNG SĐT)'),
+  ('VS-HOAN-KHONG-XET-HUONG', [(TT, ".some((d) => laDongTay(d) !== tuTay);", ".length > 0;", 1)], r'✗ B3c vòng 4 K5'),
+  ('BV-KHONG-SDT-TAY-TRUOC', [(TT, "thamSo('chua_khop', await daHoanDuongKia(tx, moi, false)", "thamSo('chua_khop', false", 1)], r'✗ B3c vòng 4 \(d\)'),
+  ('BV-MAN-QR-HOAN-THAT', [(TT, "vao_vi: ds.some((d) => d.ket_qua === 'vao_vi'),", "vao_vi: !!p.phone,", 1)], r'✗ B3c màn QR quầy \(vòng 4\): có SĐT nhưng'),
+  ('BV-MAN-QR-SO-TIEN-SDT', [(TT, "        so_tien: Number(p.con_lai) || 0, sdt:", "        so_tien: 0, sdt0:", 1)], r'✗ B3c màn QR quầy \(vòng 4\): câu nêu SỐ TIỀN'),
+  ('VS-MAN-QR-LO-SDT', [(TT, ".replace(/^(\\d{3})\\d+(\\d{3})$/, '$1****$2')", "", 1)], r'✗ B3c màn QR quầy \(vòng 4\): câu nêu SỐ TIỀN'),
   # ── vòng sửa 2 (soát bảo mật): hoàn tay đóng phiên · tiền về sau khi đã hoàn tay không cộng lần hai ──
   ('BV-DONG-PHIEN-KHI-HOAN-TAY', [(TT, """    await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",""",
     """    if (false) await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",""", 1)],
     r'✗ B3c xác nhận tay muộn'),
-  ('BV-TIEN-VE-SAU-HOAN-TAY', [(TT, "      if (await tx.queryOne('SELECT 1 AS co FROM pos_payos_su_kien WHERE khoa = ?', [`tay:${x.id}`])) {",
-    '      if (false) {', 1)], r'✗ B3c App: xác nhận tay'),
+  ('BV-TIEN-VE-SAU-HOAN-TAY', [(TT, "      if (await daHoanDuongKia(tx, x, false)) {", '      if (false) {', 1)], r'✗ B3c (App: xác nhận tay|vòng 4 \(b\))'),
   # ── B4 / B6 / B7: trừ trong giao dịch, một phiếu ──
   ('BV-TRU-KHO', [(O, 'const kho = await banHang.truKhoDon(tx, {', 'const kho = await (async () => ({}))(tx, {', 1)], r'✗ B(1 FEFO|4 đúng MỘT)'),
   ('BV-CHAN-TRONG-TX', [(O, '      if (kho.loi) {\n        await tx.rollback();', '      if (false) {\n        await tx.rollback();', 1)], r'✗ B(1 thiếu 1|3b POST)'),
