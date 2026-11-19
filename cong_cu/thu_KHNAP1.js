@@ -524,6 +524,9 @@ async function main() {
     // Trừ tay KIỂU CŨ (dòng 'purchase' không đơn — /deduct đã bỏ ở TIEN-KHOA-2, dòng cũ còn trên quầy) → dựng thẳng dòng sổ.
     await db.run(`INSERT INTO pos_balance_transactions (customer_phone, type, amount, thuong, balance_before, balance_after, order_id, payment_method, notes, created_by,
       created_at) VALUES (?, 'purchase', -1000, 0, 0, 0, NULL, 'cash', 'GHI-TAY-BI-MAT', 'thu', ?)`, [kh.sdt, getNow()]);
+    const dcKhongPin = await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: 2000, reason: 'GHI-TAY-BI-MAT' }, tkChu);
+    k('D0 điều chỉnh ví KHÔNG PIN chủ quán → 400 PIN_CHU_QUAN_SAI, không ghi sổ (TIEN-KHOA-2)', dcKhongPin.status === 400
+      && dcKhongPin.j.code === 'PIN_CHU_QUAN_SAI', moTa(dcKhongPin));
     await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: 2000, reason: 'GHI-TAY-BI-MAT', pin: PIN_CQ }, tkChu);
     await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: -500, reason: 'GHI-TAY-BI-MAT', pin: PIN_CQ }, tkChu);
     const oTra = await oidCua(tra.j.ma_don);
