@@ -69,3 +69,11 @@ SỐ CA cong_cu/thu_P26c.js: 161
 SỐ CA cong_cu/thu_P3.js: 101
 
 Đột biến (python3 viec/TIEN-KHOA-2/dot_bien.py): ĐỐI CHỨNG XANH · 29 đạt · 0 hỏng — TỔNG: 21 đột biến · BẮT 21 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+Vòng sửa 1 (sau soát vòng 1, commit c8a57928): đổi thu_TIENKHOA2 (A4c thêm vế lời báo không mời dùng transfer; tên A4d2) và thu_DOISOAT1 (E10 dựng
+thẳng một lần thu nợ CK CŨ 20.000 + thu tiền mặt 30.000 — giữ phủ nhánh "CK thu nợ" của Đối soát). Chạy lại:
+  --cay-goc e911762 --bai cong_cu/thu_TIENKHOA2.js → thoát 1 (A4c đỏ trên gốc: lời gốc "(cash hoặc transfer)")
+  --cay-goc e911762 --bai cong_cu/thu_DOISOAT1.js  → thoát 1 (✗ B0g, ✗ B0 ngay/tuan/thang, ✗ B3 …)
+  --so-ca e911762 → số ca KHÔNG đổi (TIENKHOA2 29 · DOISOAT1 134; các bài khác như trên), mọi bài thoát 0
+  đột biến: TỔNG 21 · BẮT 21 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh)
+  npm test -- --day-du: PASS 127 · FAIL 0 · CẢNH BÁO 1
