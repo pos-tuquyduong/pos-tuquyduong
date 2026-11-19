@@ -220,7 +220,7 @@ nhom('C · BÁNH CÓC — chỉ được siết, không được nới');
 
 // C1 — fetch trần ngoài api.js. NGƯỠNG CHỈ ĐƯỢC GIẢM.
 // Dọn xong một file thì hạ số này xuống, không bao giờ tăng.
-const NGUONG_FETCH = 22; // 31 -> 22: BO-MAN-CU-1 xoa Sales.jsx (7 fetch) + CustomerSearch.jsx (2 fetch)
+const NGUONG_FETCH = 21; // 22 -> 21: TIEN-KHOA-2 thu no Orders.jsx qua ordersApi.payDebt (31 -> 22: BO-MAN-CU-1 xoa Sales.jsx + CustomerSearch.jsx)
 {
   let n = 0;
   const theoFile = {};
@@ -518,6 +518,7 @@ chayBaiThat('cong_cu/thu_KHNAP1.js');   // KH-NAP-1: nạp trên App (dòng nạ
 chayBaiThat('cong_cu/thu_BAO1a.js');   // BAO-1a: thông báo nổi chung (xanh tự ẩn, đỏ có nút đóng), bánh cóc alert(, nút ghi khoá khi đang xử lý
 chayBaiThat('cong_cu/thu_KETNOI1.js');   // KET-NOI-1: đọc tự thử lại khi rớt kết nối kho, mã lượt bấm thu tiền (một phiên / một đơn), lỗi mạng 503 dễ hiểu, đo chậm
 chayBaiThat('cong_cu/thu_BOMANCU1.js');   // BO-MAN-CU-1: một màn Bán hàng; đường tạo đơn thẳng chỉ tiền mặt (ví / mẹ / CK / nợ qua phiên); tạm ngưng gói mọi lối
+chayBaiThat('cong_cu/thu_TIENKHOA2.js');   // TIEN-KHOA-2: bỏ trừ tay ví; điều chỉnh ví cần PIN chủ quán; chặn đổi tiền mặt → CK; thu nợ chỉ tiền mặt
 chayBaiThat('cong_cu/thu_SAOLUUDEM1.js');   // SAOLUU-DEM-1: cửa sao lưu tự động /api/pos/backup/tu-dong — khoá posk_ chỉ đọc, không lộ ở Cài đặt / tệp xuất, khôi phục giữ nguyên khoá
 chayBaiThat('cong_cu/thu_NDAPI1.js');   // ND-API-1: kho nội dung App KH /api/nd (nhà riêng server/nd/, vé riêng, CORS riêng, 409, xuất / nhập, khoá sao lưu)
 chayBaiThat('cong_cu/thu_HUY1.js');   // HUY-1: huỷ đơn hoàn toàn bộ vào tài khoản (khách lẻ: tiền mặt từ két), lý do có mã, quyền theo ngày, Đối soát, App v14

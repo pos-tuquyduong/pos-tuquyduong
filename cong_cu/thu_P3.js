@@ -69,6 +69,10 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  // TIEN-KHOA-2: /wallets/adjust cần PIN chủ quán — đặt sẵn cho bài; /wallets/deduct đã bỏ (trừ tay = điều chỉnh âm có PIN).
+  const PIN_CQ = '2468';
+  await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu', '2026-01-01T00:00:00')",
+    [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN_CQ, 4)]);
 
   // Móc B13 (chết giữa chừng): câu ghi sự kiện payOS TRONG giao dịch chạy xong thì ném một lần. Gắn TRƯỚC khi nạp route
   // (route lấy beginTransaction lúc require).
@@ -477,14 +481,14 @@ async function main() {
     const w = await goi('GET', `/pos/wallets/${f}`);
     k('F1 / F6 phiên giữ 75.000 / 100.000 → GET ví có dang_giu 75.000, kha_dung 25.000; chưa ghi dòng sổ ví nào', la(r, 200) && p.giu_vi === 75000
       && w.j.dang_giu === 75000 && w.j.kha_dung === 25000 && Number(w.j.balance) === 100000 && await soDongVi() === dong0, moTa(r) + ' ' + JSON.stringify(w.j));
-    const tru = await goi('POST', '/pos/wallets/deduct', { phone: f, amount: 30000 }, tkChu);
-    const dc = await goi('POST', '/pos/wallets/adjust', { phone: f, amount: -30000, reason: 'thử giữ' }, tkChu);
+    const tru = await goi('POST', '/pos/wallets/adjust', { phone: f, amount: -30000, reason: 'trừ tay', pin: PIN_CQ }, tkChu);
+    const dc = await goi('POST', '/pos/wallets/adjust', { phone: f, amount: -30000, reason: 'thử giữ', pin: PIN_CQ }, tkChu);
     // BO-MAN-CU-1: đường thẳng nay chặn trừ ví (VI_PHAI_QUA_PIN) → đơn trừ ví ngoài phiên dựng bằng thân taoDonGoc (khả dụng = số dư − đang giữ ở đó).
     const od = await donCuP3({ customer_phone: f, items: [mon(2)], balance_amount: 50000 });
     k('F1 đang giữ: trừ tay 30.000 / điều chỉnh −30.000 / đơn trừ 50.000 (thân taoDonGoc) → 400 SO_DU_KHONG_DU', la(tru, 400, 'SO_DU_KHONG_DU')
       && la(dc, 400, 'SO_DU_KHONG_DU') && la(od, 400, 'SO_DU_KHONG_DU'), [tru, dc, od].map(moTa).join(' / '));
     const nap = await goi('POST', '/pos/wallets/topup', { phone: f, amount: 5000 }, tkChu);
-    const tru2 = await goi('POST', '/pos/wallets/deduct', { phone: f, amount: 30000 }, tkChu);
+    const tru2 = await goi('POST', '/pos/wallets/adjust', { phone: f, amount: -30000, reason: 'trừ tay', pin: PIN_CQ }, tkChu);
     k('F1 (K5) nạp 5.000 khi đang giữ → 200; trừ đúng bằng khả dụng 30.000 → 200', la(nap, 200) && la(tru2, 200), moTa(nap) + ' / ' + moTa(tru2));
     const c = await goi('POST', `/pos/thanh-toan/phien/${p.id}/chot`, {});
     const don = c.j.order || {};
@@ -506,7 +510,7 @@ async function main() {
     const h3 = await goi('POST', `/pos/thanh-toan/phien/${p3.id}/huy`, {});
     const kd3 = (await goi('GET', `/pos/wallets/${g}`)).j.kha_dung;
     k('F3 huỷ → nhả (khả dụng 100.000); hết hạn + huỷ KHÔNG thêm dòng sổ ví nào', la(h3, 200) && kd3 === 100000 && await soDongVi() === d1, `${kd3}`);
-    const tru3 = await goi('POST', '/pos/wallets/deduct', { phone: g, amount: 100000 }, tkChu);
+    const tru3 = await goi('POST', '/pos/wallets/adjust', { phone: g, amount: -100000, reason: 'trừ tay', pin: PIN_CQ }, tkChu);
     k('F2 sau khi nhả → trừ tay đủ 100.000 → 200', la(tru3, 200), moTa(tru3));
     // F4: hai quầy cùng giữ trên một ví.
     const h = await khach(100000);
@@ -526,7 +530,7 @@ async function main() {
     const q = await khach(50000);
     const pq = (await taoPhien({ sdt: q, sl: 2, cach: 'tai_khoan', pin: PIN })).j.phien;
     await db.run('UPDATE pos_wallets SET balance = 30000 WHERE phone = ?', [q]);
-    const cong = await goi('POST', '/pos/wallets/adjust', { phone: q, amount: 10000, reason: 'bù lệch' }, tkChu);
+    const cong = await goi('POST', '/pos/wallets/adjust', { phone: q, amount: 10000, reason: 'bù lệch', pin: PIN_CQ }, tkChu);
     k('F8 số dư 30.000 < đang giữ 50.000 → điều chỉnh CỘNG 10.000 vẫn 200', !!pq && la(cong, 200), moTa(cong));
     // F9: SĐT mẹ = SĐT khách → giữ hai lần một ví → từ chối có mã.
     const f9 = await taoPhien({ sdt: q, sl: 4, cach: 'tien_mat', pin: PIN, pinMe: PIN, don: { parent_phone: q } });
@@ -542,7 +546,7 @@ async function main() {
     const sai = await taoPhien({ sdt: con, sl: 3, cach: 'tien_mat', pinMe: '1357', don: { parent_phone: me } });
     k('F5 trừ tài khoản mẹ bằng PIN của con → 400 PIN_SAI (Q4: PIN của chủ tài khoản)', la(sai, 400, 'PIN_SAI'), moTa(sai));
     const pm = await taoPhien({ sdt: con, sl: 3, cach: 'tien_mat', pinMe: '8642', don: { parent_phone: me } });
-    const trMe = await goi('POST', '/pos/wallets/deduct', { phone: me, amount: 1 }, tkChu);
+    const trMe = await goi('POST', '/pos/wallets/adjust', { phone: me, amount: -1, reason: 'trừ tay', pin: PIN_CQ }, tkChu);
     k('F5 giữ 50.000 trên ví MẸ, còn lại 25.000; đang giữ → trừ tay ví mẹ 1đ → 400', la(pm, 200) && pm.j.phien.giu_vi_me === 50000
       && pm.j.phien.con_lai === 25000 && la(trMe, 400, 'SO_DU_KHONG_DU'), moTa(pm) + ' / ' + moTa(trMe));
     const cm = await goi('POST', `/pos/thanh-toan/phien/${pm.j.phien?.id}/chot`, { cash_received: 30000 });
