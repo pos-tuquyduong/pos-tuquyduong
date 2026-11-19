@@ -42,3 +42,36 @@
 
 ## Kiểm
 (điền sau khi chạy)
+
+## Soát độc lập — vòng 1 (agent general-purpose, nguyên văn)
+```
+KHÔNG ĐẠT (lỗi tìm được đều NHẸ, không đụng tiền, điểm, ví hay bảo mật; E1/E2 đang chờ)
+
+LỖI TÌM ĐƯỢC:
+1. ke_hoach.md mục 5 liệt kê "route /so-sach" là luồng phải KHÔNG bị chặn, mục 4 ghi "soSach … NGOÀI lượt → KHÔNG hạn giờ", nhưng
+   cong_cu/thu_DOISOATNHANH.js không có ca nào cho luồng này. Ca D2 (dòng 173–178) chỉ gọi thẳng db.query / db.run, không đi qua chiDoc ngoài lượt
+   (doiSoat.js:76–77). Đột biến đổi dòng 77 thành db.query(sql, args, { ms: HAN.CAU_DOI_SOAT_MS, het: Infinity }) → /daily và /so-sach bị hạn 15 s mà
+   bài vẫn xanh. dot_bien.py không có đột biến này. Khuôn K3 (TU-CHAY-5) + K5. Sửa: thêm ca soSach chậm 2 × hạn câu → vẫn ra kết quả; đột biến VS-ngoai-luot-co-han.
+2. Hồ sơ lệch code (K1): ke_hoach.md mục 3 ghi "rút ÷100", code RUT = 50. Tên ca B2 (thu_DOISOATNHANH.js:167–168) nói cận trên "hạn tổng + chờ đọc
+   lại cuối", máy kiểm LUOT + db.CHO_DOC_MS[1] / RUT + 150 — CHO_DOC_MS không rút mà bị chia 50. Cận chặt hơn tên ca nên không xanh oan, nhưng tên ca
+   một đằng, máy kiểm một nẻo (K3).
+3. database.js:1600–1601: hết mốc lượt (han && ms <= 0) ném TRONG try → đi qua baoRot (:1614) và demRot.thu_lai_hong++ (:1616) dù chưa gửi câu nào
+   → demKetNoi tăng rot / thu_lai_hong oan, in "[KET-NOI] doc lan 1/3 KHO_QUA_HAN — het luot" dù không có lần thử. Không sai kết quả, nhiễu số đo. K4.
+
+NGHI NGỜ:
+- thu_GIAO3.js:475: điều kiện chờ startsWith('[DOISOAT]') giờ thoả ngay lúc BẮT ĐẦU lượt (dòng bat_dau) → có thể thoát chờ sớm rồi ĐỎ oan ở :476
+  (K2, thất thường). Không chạy thu_GIAO3.
+- reports.js:386–387: res.on('close') gắn SAU authenticate + checkPermission — khách bỏ trong lúc xác thực thì lượt chạy tới hết. Nhỏ, không ca.
+- thu_DOISOATNHANH.js:138 ca "B1 dừng ở bước treo … (I9)" XANH cả trên gốc (gốc treo nên không tới I9) — các ca 503 bên cạnh đã che.
+- thu_DOISOATNHANH.js:96 viết cứng t !== 'I7' thay vì BO_QUA — BO_QUA đổi thì ĐỎ oan (K2).
+- "đọc lại gửi trên socket khác" (ke_hoach §2): chưa đọc HttpClient.openStream có chờ lời hứa dùng chung không — CHƯA KIỂM.
+
+NGHIỆM THU: 12/14 mục có bằng chứng · mục thiếu: E1 (chờ), E2 (chờ báo cáo cuối)
+CHƯA SOÁT ĐƯỢC: dot_bien.py, --day-du, cong.js, thu_GIAO3, thu_KETNOI1 (không chạy); libsql HTTP thật với Turso; 'close' trên Render.
+BÀI HỌC:
+- KHOÁ: phiếu gắn hạn giờ / ngữ cảnh "chỉ trong lượt X" → bài thử phải có ca đi qua CÙNG cửa (chiDoc) mà NGOÀI lượt + đột biến "luôn gắn hạn".
+- NGUYÊN TẮC (K4): thêm dòng log mới CÙNG tiền tố với dòng bài khác dò (startsWith('[DOISOAT]')) → grep mọi chỗ dò tiền tố đó.
+- NGUYÊN TẮC (K3): rút giờ trong bài thử → hằng số không rút không được chia hệ số rút; tên ca nói đúng cận máy kiểm.
+```
+(Bản trên rút gọn phần "kết quả từng mục" — các mục 1–8 không có lỗi thêm; NGHIỆM THU dòng từng mục: A1 :104–124, A2 :198–211 + KETNOI1 :685–687,
+B1 :84, 127–145, B2 :85–89, 159–170, B3 :213–221, B4 :223–240, C1 :133, :149, C2 BV-han-cau / BV-ngu-canh-luot, C3 trang_thai, D1 :154–157, D2 một phần.)
