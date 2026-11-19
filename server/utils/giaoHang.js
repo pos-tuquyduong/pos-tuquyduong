@@ -120,9 +120,10 @@ async function taoBaoPhi(b, nguoi) {
     const d = await phanGiaiDiaChi(b || {});
     if (d.loi) return d;
     const bp = await aha.baoPhi({ lay: { ...cd.diem_lay, sdt: cd.sdt_quan }, giao: d, loaiXe });
-    // GIAO-3 (chủ quán 19.11): Ahamove báo phí 0 / không ra số → KHÔNG cho khách đơn giao phí 0 — quầy báo phí lại.
-    if (!(bp.phi > 0)) return loi(502, 'AHAMOVE_CHUA_BAO_PHI', 'Ahamove chưa báo được phí — bấm báo phí lại');
     if (bp.km > cd.km_toi_da) return loi(400, 'QUA_KHOANG_CACH', `Quá xa: ${bp.km} km (quán giao tối đa ${cd.km_toi_da} km)`);
+    // GIAO-3 (chủ quán 19.11): Ahamove báo phí 0 → KHÔNG cho khách đơn giao phí 0 — quầy bấm Tính phí lại. (Phí rỗng / chữ đã bị
+    // aha.baoPhi ném AHAMOVE_TU_CHOI trước — câu "Ahamove từ chối…".)
+    if (!(bp.phi > 0)) return loi(502, 'AHAMOVE_CHUA_BAO_PHI', 'Ahamove chưa báo được phí — bấm Tính phí lại');
     const ma = crypto.randomBytes(16).toString('hex'), hetHan = lechGiay(now, BAO_PHI_HAN_PHUT * 60);
     await run(`INSERT INTO pos_giao_bao_phi (ma, dia_chi, lat, lng, km, loai_xe, phi, het_han, nguoi_tao, tao_luc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [ma, d.dia_chi, d.lat ?? bp.lat, d.lng ?? bp.lng, bp.km, loaiXe, bp.phi, hetHan, nguoi, now]);
