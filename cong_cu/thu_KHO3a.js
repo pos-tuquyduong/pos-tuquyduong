@@ -504,6 +504,17 @@ async function main() {
     const cauX = typeof T.cauNhaPhien === 'function' ? T.cauNhaPhien(xemX.j.phien) : '';
     k('B3c màn QR quầy (vòng 4): có SĐT nhưng CHƯA có dòng vào ví → het_hang.vao_vi false, câu KHÔNG nói "đã hoàn vào ví", bảo xem Đối soát',
       xemX.j.phien?.het_hang?.vao_vi === false && !/đã hoàn/.test(cauX) && /Đối soát/.test(cauX) && !/Đã huỷ/.test(cauX), `${JSON.stringify(xemX.j.phien?.het_hang)} · ${cauX}`);
+    // Soát vòng 4 lỗi 1: phiên vừa thành 'loi' mà dòng hoàn CHƯA kịp ghi (khe giữa hai câu ghi) → màn QR CHỜ thêm (choDongHoan), không chốt câu ngay;
+    // đã có dòng hoàn (vào ví / HOÀN TIỀN TAY) → không chờ. ManQr.jsx gọi đúng vị từ này.
+    const choX = typeof T.choDongHoan === 'function' ? T.choDongHoan(xemX.j.phien) : null;
+    const choQ = typeof T.choDongHoan === 'function' ? T.choDongHoan(xemQ.j.phien) : null;
+    const manQr = fs.readFileSync(path.join(GOC, 'client', 'src', 'pages', 'BanHang', 'ManQr.jsx'), 'utf8');
+    k('B3c màn QR quầy (soát vòng 4): chưa có dòng hoàn → chờ hỏi thêm; đã vào ví → không chờ; ManQr dùng choDongHoan', choX === true && choQ === false
+      && /choDongHoan\(r\.phien\)/.test(manQr), `${choX} / ${choQ}`);
+    // Soát vòng 4 lỗi 2: SĐT không đúng dạng (dữ liệu cũ) → vẫn che, KHÔNG trả SĐT đủ
+    await ghiDb("UPDATE pos_phien_thanh_toan SET phone = '12345' WHERE id = ?", [pqX.j.phien?.id]);
+    const xemL = await goi('chu', 'GET', `/pos/thanh-toan/phien/${pqX.j.phien?.id}`);
+    k('B3c màn QR quầy (soát vòng 4): SĐT lạ "12345" → che (****345), không lộ đủ', xemL.j.phien?.het_hang?.sdt === '****345', JSON.stringify(xemL.j.phien?.het_hang));
     // Quầy QR không SĐT
     const lo3 = await napTP(spL, 1);
     const pv = await taoPhienQuay([mon(spL, 1)], 'payos');
@@ -607,6 +618,16 @@ async function main() {
     const bD = await mot('SELECT ket_qua, ly_do FROM pos_payos_su_kien WHERE ma_payos = ? AND khoa NOT LIKE ? ORDER BY rowid DESC LIMIT 1', [pD?.ma_payos, 'tay:%']);
     k('B3c vòng 4 (d) không SĐT · tay trước → cổng: đúng MỘT yêu cầu HOÀN TIỀN TAY, dòng cổng "KHÔNG hoàn lần hai"',
       (await demHoan(pD)) === 1 && bD?.ket_qua === 'chua_khop' && /KHÔNG hoàn lần hai/.test(bD?.ly_do || ''), `dòng hoàn ${await demHoan(pD)} · ${JSON.stringify(bD)}`);
+    // Soát vòng 4 (nghi ngờ): KHÔNG SĐT, CỔNG KIA (SePay) đã báo + ghi HOÀN TIỀN TAY cho cùng mã → báo payOS tới: KHÔNG thêm yêu cầu hoàn thứ hai
+    // (cùng phép congKiaDaBao như nhánh có SĐT trong vaoVi).
+    const loF = await napTP(spL, 1);
+    const pF = await phien((await taoPhienQuay([mon(spL, 1)], 'payos')).j.phien?.id);
+    await mat(loF);
+    await chen(`sepay:k3a-f-${pF?.id}`, pF?.ma_payos, Number(pF?.con_lai), 'chua_khop', `Hết hàng: Lưới K3a — khách chưa có tài khoản: HOÀN TIỀN TAY ${pF?.con_lai}`);
+    await webhook(pF || {});
+    const bF = await mot('SELECT ket_qua, ly_do FROM pos_payos_su_kien WHERE ma_payos = ? AND khoa NOT LIKE ? ORDER BY rowid DESC LIMIT 1', [pF?.ma_payos, 'sepay:%']);
+    k('B3c soát vòng 4: không SĐT · cổng kia đã báo → payOS KHÔNG thêm HOÀN TIỀN TAY (đúng MỘT yêu cầu hoàn), dòng mới CẦN XEM',
+      (await demHoan(pF)) === 1 && bF?.ket_qua === 'chua_khop' && !/HOÀN TIỀN TAY/.test(bF?.ly_do || ''), `dòng hoàn ${await demHoan(pF)} · ${JSON.stringify(bF)}`);
     // K5: khách App chuyển HAI lần thật (hai báo cổng khác khoá, cùng mã) sau khi đơn hỏng vì hết hàng → CẢ HAI vào ví (vị từ chỉ chặn dòng của ĐƯỜNG KIA)
     const loE = await napTP(spL, 1);
     const khE = await khach();
@@ -773,7 +794,7 @@ async function main() {
       await ghiDb("UPDATE pos_products SET name = 'Món thử K3a đổi', is_active = 0 WHERE id = ?", [id]);
       const khongCo = await goi('ql', 'PUT', '/pos/products/987654321', { is_active: 1 });
       const khongCo2 = await goi('ql', 'PUT', '/pos/products/987654321', { name: 'Không có K3a' });
-      k('A4 sửa / hiện lại món KHÔNG có → 404 KHONG_THAY (không 500)', la(khongCo, 404, 'KHONG_THAY') && la(khongCo2, 404, 'KHONG_THAY'), `${moTa(khongCo)} · ${moTa(khongCo2)}`);
+      k('A4 sửa / hiện lại món KHÔNG có → 404 KHONG_THAY', la(khongCo, 404, 'KHONG_THAY') && la(khongCo2, 404, 'KHONG_THAY'), `${moTa(khongCo)} · ${moTa(khongCo2)}`);
       const nvSua = await goi('nv', 'PUT', `/pos/products/${id}`, { is_active: 1 });
       k('A4 nhân viên sửa / hiện món → 403', nvSua.status === 403, moTa(nvSua));
       const xoa = await goi('chu', 'DELETE', `/pos/products/${id}`);

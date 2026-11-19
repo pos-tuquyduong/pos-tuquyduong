@@ -14,7 +14,10 @@ const LOI_KHO = ['HET_HANG', 'THIEU_NGUYEN_LIEU', 'CHUA_CO_CONG_THUC'];   // KHO
 
 // KHO-3a B3c — MỘT vị từ "dòng hoàn của phiên" (soát vòng 3): vào ví HOẶC yêu cầu HOÀN TIỀN TAY (khách không ví), của đường TAY (khoá `tay:<phiên>`)
 // hoặc đường CỔNG (cùng ma_payos). Hỏi "đường KIA đã hoàn chưa": tay hỏi → xét dòng cổng; cổng hỏi → CHỈ xét dòng tay (khách chuyển hai lần thật qua
-// cổng thì cả hai vẫn vào ví — K5). Gọi TRONG giao dịch ghi (BEGIN IMMEDIATE xếp hàng hai đường).
+// cổng thì cả hai vẫn vào ví — K5; hai CỔNG khác nhau cùng báo do congKiaDaBao chặn, ở cả nhánh có lẫn không SĐT). Đường GHI gọi nó TRONG giao dịch ghi
+// (BEGIN IMMEDIATE xếp hàng hai đường); GET /phien/:id chỉ đọc để hiện màn QR.
+// SĐT trên màn QR quầy: che giữa; không đúng dạng (dữ liệu cũ) thì chỉ để 3 số cuối — không bao giờ trả SĐT đủ.
+const cheSdt = (sdt) => { const s = String(sdt); const m = /^(\d{3})\d+(\d{3})$/.exec(s); return m ? `${m[1]}****${m[2]}` : `****${s.slice(-3)}`; };
 const HOAN_TIEN_TAY = 'HOÀN TIỀN TAY';
 const KHONG_HOAN_LAI = 'đã có yêu cầu hoàn — KHÔNG hoàn lần hai';
 const dongHoanCua = (q, p) => q.query(`SELECT khoa, ket_qua FROM pos_payos_su_kien WHERE (khoa = ? OR (ma_payos IS NOT NULL AND ma_payos = ?))
@@ -86,7 +89,7 @@ router.get('/phien/:id', authenticate, async (req, res) => {
     if (tom.het_hang) {   // KHO-3a B3c (vòng 4): màn QR quầy nói theo dòng hoàn THẬT (cùng vị từ dongHoanCua), số tiền + SĐT che giữa như Đơn App
       const ds = await dongHoanCua({ query }, p);
       tom.het_hang = { ...tom.het_hang, vao_vi: ds.some((d) => d.ket_qua === 'vao_vi'), hoan_tay: ds.some((d) => d.ket_qua === 'chua_khop'),
-        so_tien: Number(p.con_lai) || 0, sdt: p.phone ? String(p.phone).replace(/^(\d{3})\d+(\d{3})$/, '$1****$2') : null };
+        so_tien: Number(p.con_lai) || 0, sdt: p.phone ? cheSdt(p.phone) : null };
     }
     res.json({ success: true, phien: tom });
   } catch (err) {
@@ -264,9 +267,11 @@ async function xuLyTienVe(res, t) {
   const moi = laApp || loiKho ? await docPhien(p.id) : null;
   if (moi && moi.phone && vaoViDuoc(moi)) return vaoVi(moi);
   if (loiKho && moi && !moi.phone) {
-    await trongGiaoDich(async (tx) => tx.run(CAU_GHI, thamSo('chua_khop', await daHoanDuongKia(tx, moi, false)
-      ? `Hết hàng: ${kq.body.mon || 'món'} — xác nhận tay ${KHONG_HOAN_LAI}`
-      : `Hết hàng: ${kq.body.mon || 'món'} — khách chưa có tài khoản: ${HOAN_TIEN_TAY} ${t.soTien}`)));
+    await trongGiaoDich(async (tx) => tx.run(CAU_GHI, thamSo('chua_khop', await congKiaDaBao(tx, t)
+      ? `Hết hàng: ${kq.body.mon || 'món'} — có thể ${LY_DO_HAI_CONG} (cổng kia đã báo tiền cho phiên #${moi.id}): ${KHONG_HOAN_LAI} — đối chiếu sao kê`
+      : await daHoanDuongKia(tx, moi, false)
+        ? `Hết hàng: ${kq.body.mon || 'món'} — xác nhận tay ${KHONG_HOAN_LAI}`
+        : `Hết hàng: ${kq.body.mon || 'món'} — khách chưa có tài khoản: ${HOAN_TIEN_TAY} ${t.soTien}`)));
     return res.json({ success: true });
   }
   const sau = kq.body?.code === 'PHIEN_DA_CHOT' ? await queryOne('SELECT trang_thai, nguon, nguoi_xac_nhan, order_id FROM pos_phien_thanh_toan WHERE id = ?', [p.id]) : null;

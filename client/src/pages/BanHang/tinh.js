@@ -264,6 +264,10 @@ export function nhapPhim(hienTai, phim) {
 
 /** KHO-3a B3c: câu báo khi phiên QR thôi giữ. Hỏng vì HẾT HÀNG (máy chủ trả het_hang) — tiền khách đã chuyển, KHÔNG phải "đã huỷ": nói rõ đã hoàn vào
  *  ví khách hay phải hoàn tay. Còn lại: hết hạn / đã huỷ như cũ. */
+/** KHO-3a (soát vòng 4): phiên hết hàng mà máy chủ CHƯA ghi dòng hoàn (khe giữa câu đóng phiên và câu ghi hoàn) → màn QR hỏi thêm vài lượt
+ *  trước khi chốt câu (SO_LUOT_CHO_HOAN trong ManQr) — không để thu ngân đọc "CHƯA hoàn" rồi trả tiền mặt trong khi ví sắp được cộng. */
+export const choDongHoan = (p) => !!p?.het_hang && !p.het_hang.vao_vi && !p.het_hang.hoan_tay;
+
 export function cauNhaPhien(p) {
   const h = p?.het_hang;
   if (h) {   // máy chủ tra dòng hoàn THẬT (vao_vi / hoan_tay) — không suy từ việc có SĐT

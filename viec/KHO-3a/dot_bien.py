@@ -69,10 +69,14 @@ DOT_BIEN = [
   ('VS-HOAN-CHI-VAO-VI', [(TT, "  AND (ket_qua = 'vao_vi' OR (ket_qua = 'chua_khop' AND ly_do LIKE ?))`", "  AND (ket_qua = 'vao_vi' OR (? IS NULL))`", 1)],
     r'✗ B3c (vòng 4 \(c\)|vòng 4 \(d\)|màn QR quầy KHÔNG SĐT)'),
   ('VS-HOAN-KHONG-XET-HUONG', [(TT, ".some((d) => laDongTay(d) !== tuTay);", ".length > 0;", 1)], r'✗ B3c vòng 4 K5'),
-  ('BV-KHONG-SDT-TAY-TRUOC', [(TT, "thamSo('chua_khop', await daHoanDuongKia(tx, moi, false)", "thamSo('chua_khop', false", 1)], r'✗ B3c vòng 4 \(d\)'),
+  ('BV-KHONG-SDT-TAY-TRUOC', [(TT, "      : await daHoanDuongKia(tx, moi, false)", "      : false", 1)], r'✗ B3c vòng 4 \(d\)'),
   ('BV-MAN-QR-HOAN-THAT', [(TT, "vao_vi: ds.some((d) => d.ket_qua === 'vao_vi'),", "vao_vi: !!p.phone,", 1)], r'✗ B3c màn QR quầy \(vòng 4\): có SĐT nhưng'),
   ('BV-MAN-QR-SO-TIEN-SDT', [(TT, "        so_tien: Number(p.con_lai) || 0, sdt:", "        so_tien: 0, sdt0:", 1)], r'✗ B3c màn QR quầy \(vòng 4\): câu nêu SỐ TIỀN'),
-  ('VS-MAN-QR-LO-SDT', [(TT, ".replace(/^(\\d{3})\\d+(\\d{3})$/, '$1****$2')", "", 1)], r'✗ B3c màn QR quầy \(vòng 4\): câu nêu SỐ TIỀN'),
+  ('VS-MAN-QR-LO-SDT', [(TT, "return m ? `${m[1]}****${m[2]}` : `****${s.slice(-3)}`; };", "return s; };", 1)], r'✗ B3c màn QR quầy \(vòng 4\): câu nêu SỐ TIỀN'),
+  # ── soát phần vòng 4 (ĐẠT, lỗi nhẹ — sửa luôn): SĐT lạ vẫn che · màn QR chờ dòng hoàn · hai cổng nhánh không SĐT ──
+  ('VS-CHE-SDT-LA-TRA-DU', [(TT, ": `****${s.slice(-3)}`; };", ": s; };", 1)], r'✗ B3c màn QR quầy \(soát vòng 4\): SĐT lạ'),
+  # BV-MAN-QR-CHO-DONG-HOAN (client/src/pages/BanHang/tinh.js — choDongHoan luôn false): bộ này chỉ chép server/ → chạy TAY một lần, BẮT (trang_thai.md).
+  ('BV-KHONG-SDT-HAI-CONG', [(TT, "thamSo('chua_khop', await congKiaDaBao(tx, t)", "thamSo('chua_khop', false", 1)], r'✗ B3c soát vòng 4: không SĐT · cổng kia'),
   # ── vòng sửa 2 (soát bảo mật): hoàn tay đóng phiên · tiền về sau khi đã hoàn tay không cộng lần hai ──
   ('BV-DONG-PHIEN-KHI-HOAN-TAY', [(TT, """    await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",""",
     """    if (false) await tx.run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai IN ('cho', 'huy', 'loi')",""", 1)],

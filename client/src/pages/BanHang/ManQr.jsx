@@ -7,10 +7,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { thanhToanApi } from '../../utils/api';
 import TheQr from '../../components/TheQr';   // GIAO-DIEN-1 F: thẻ QR thương hiệu dùng chung
-import { cauNhaPhien, conLaiGiay, dinhDangDemNguoc, hanhDongPhien } from './tinh';
+import { cauNhaPhien, choDongHoan, conLaiGiay, dinhDangDemNguoc, hanhDongPhien } from './tinh';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const CHU_KY_HOI_MS = 3000;
+const SO_LUOT_CHO_HOAN = 4;                                  // KHO-3a: hết hàng mà chưa thấy dòng hoàn → hỏi thêm tối đa 4 lượt (≈ 12 s) rồi mới chốt câu
 const LY_DO_TOI_THIEU = 3;                                   // khớp máy chủ (thanh-toan.js)
 
 export default function ManQr({ phien, onXong, onNha }) {
@@ -21,6 +22,7 @@ export default function ManQr({ phien, onXong, onNha }) {
   const [loi, setLoi] = useState('');
   const [dang, setDang] = useState(false);
   const daXong = useRef(false);                             // chỉ báo kết quả một lần (hỏi lại và bấm tay có thể chồng nhau)
+  const luotChoHoan = useRef(0);
 
   const hoi = useCallback(async () => {
     if (daXong.current) return;
@@ -28,6 +30,7 @@ export default function ManQr({ phien, onXong, onNha }) {
       const r = await thanhToanApi.hoiPhien(phien.id);
       const viec = hanhDongPhien(r.phien?.trang_thai);
       if (viec === 'doi' || daXong.current) return;
+      if (viec !== 'xong' && choDongHoan(r.phien) && luotChoHoan.current++ < SO_LUOT_CHO_HOAN) return;   // dòng hoàn sắp ghi — hỏi lại lượt sau
       daXong.current = true;
       if (viec === 'xong') onXong(r.phien.order?.id);
       else onNha(cauNhaPhien(r.phien));   // KHO-3a B3c: hỏng vì hết hàng ≠ đã huỷ
