@@ -19,8 +19,8 @@
 | Phần | A (chọn) | B |
 |---|---|---|
 | B1 hạn mỗi câu | `query(sql, params, han)` thêm tham số MẶC ĐỊNH `null` (không truyền = như cũ, D2); `han = { ms, het }`: mỗi lần gửi `Promise.race` với hẹn giờ `min(ms, het − bây giờ)`; quá hạn = lỗi `KHO_QUA_HAN` đi CÙNG vòng đọc lại `CHO_DOC_MS` có sẵn. ~15 dòng database.js | client libsql thứ hai với `fetch` có `AbortSignal` hẹn giờ (huỷ thật yêu cầu HTTP). Phải mở client riêng, đọc cấu hình, ~30 dòng, rủi ro đổi đường kết nối |
-| B2 hạn tổng | mốc `het = t0 + HAN_LUOT_DOI_SOAT_MS` (50 s) trong lượt (AsyncLocalStorage của doiSoat.js) → mỗi lần gửi chỉ chờ phần còn lại; đầu mỗi bước kiểm mốc. Cận trên: 50 s + 0,6 s chờ đọc lại < 60 s | `Promise.race` cả lượt với hẹn giờ 50 s — bị `thu_GIAO3` rút còn 300 ms (đỏ oan), và lượt nền vẫn chạy |
-| B3 bỏ giữa | route `res.on('close')` → `AbortController`; đầu mỗi bước kiểm `tinHieu.aborted` → log `bo_giua`, ném 499 | kiểm trong chiDoc mỗi câu — nhiều chỗ hơn, phiếu chỉ đòi "bước kế tiếp" |
+| B2 hạn tổng | mốc `het = t0 + HAN.LUOT_DOI_SOAT_MS` (50 s) trong lượt (AsyncLocalStorage của doiSoat.js) → mỗi lần gửi chỉ chờ phần còn lại; đọc lại chỉ khi còn hơn thời gian chờ. Cận trên < 50 s + một khoảng chờ đọc lại < 60 s (không cần kiểm mốc ở đầu bước — câu đầu của bước tự ném) | `Promise.race` cả lượt với hẹn giờ 50 s — bị `thu_GIAO3` rút còn 300 ms (đỏ oan), và lượt nền vẫn chạy |
+| B3 bỏ giữa | route `res.on('close')` → `AbortController` ('close' sau khi trả lời xong: lượt đã xong, huỷ vô hại); đầu mỗi bước kiểm `tinHieu.aborted` → log `bo_giua`, ném 499 | kiểm trong chiDoc mỗi câu — nhiều chỗ hơn, phiếu chỉ đòi "bước kế tiếp" |
 | A1 log | hàm `buoc(l, ten, viec)` bọc mỗi bước trong vòng for có sẵn: đo ms + số câu của lượt (`l.cau`) | đếm theo demCau toàn cục — lượt chồng nhau cộng lẫn |
 | A2 đang chờ | `doCau`: `d.cho++` trước, `d.cho--` trong `finally` (đếm cả câu ném lỗi); `[CHAM]` thêm `· đang chờ <k> câu` | — |
 
@@ -36,7 +36,7 @@ Số dòng ước: database.js ~18, doiSoat.js ~40, reports.js ~3, giao diện 0
 |---|---|
 | A1 | lượt bình thường: dòng `bat_dau ngay <ngày>`; mỗi bước I…, D1, DEN, CK, XNT, D2, tongHop, soHoaDonNgay, soKet (ngày) / sao_ke (tuần) một dòng `buoc <ten> · <ms> ms · <n> câu`; tổng câu các bước = số câu dòng cuối; dòng cuối giữ dạng cũ; log không SĐT / mã đơn / số tiền / SQL |
 | A2 | câu treo → `[CHAM] … · đang chờ 1 câu`; câu ném lỗi → `đang chờ 0`; yêu cầu thường `đang chờ 0` |
-| B1 | câu #k treo mãi → 503 `DOI_SOAT_QUA_HAN`, lời "Đối soát quá lâu ở bước I8 — thử lại sau", log `qua_han buoc I8 cau 6`, gửi đúng 3 lần (1 + 2 đọc lại); treo lần 1 rồi trả lời → kết quả đủ, không lỗi; hằng số 15 000 |
+| B1 | câu #k treo mãi → 503 `DOI_SOAT_QUA_HAN`, lời "Đối soát quá lâu ở bước I8 — thử lại sau", log `qua_han buoc I8 cau <thứ tự câu trong lượt>`, gửi đúng 3 lần (1 + 2 đọc lại); treo lần 1 rồi trả lời → kết quả đủ, không lỗi; hằng số 15 000 |
 | B2 | mọi câu chậm 12 s (dưới hạn câu) → lượt dừng ở mốc tổng, 503, thời gian < 60 s (÷100); hằng số 50 000 < `HAN_DOI_SOAT_MS` 60 000 của màn |
 | B3 | HTTP thật: khách bỏ kết nối khi câu đang chậm → log `bo_giua <bước>`, không chạy bước sau (số câu dừng) |
 | B4 | màn DoiSoat.jsx thật + api.js thật: 503 DOI_SOAT_QUA_HAN → hiện lời máy chủ, nút "Đối soát" bấm lại được, gửi đúng 1 lần |
@@ -51,10 +51,18 @@ số câu của lượt.
 
 ## 4. Đường song song (K4)
 - `chiDoc` là MỘT cửa của mọi câu Đối soát (bat_bien q, phanLoai tra, phép D1/DEN/CK/XNT, tongHop/tienTheoSo, doiSoatGiao, soHoaDonNgay, soKet,
-  sao_ke) — grep `db.query\|db.queryOne` trong doiSoat.js: chỉ trong chiDoc. `soSach` (route /so-sach, reports.js:88) cũng qua chiDoc → cũng có hạn
-  câu 15 s (không lượt → bước `so_sach`, không mốc tổng).
+  sao_ke) — grep `db.query\|db.queryOne` trong doiSoat.js: chỉ trong chiDoc. `soSach` (route /so-sach VÀ Báo cáo ngày /daily, reports.js) cũng qua
+  chiDoc nhưng NGOÀI lượt → KHÔNG hạn giờ (soát kế hoạch: Báo cáo ngày là câu đọc ngoài Đối soát — Cấm).
+- `doCau` chạy cho `query`, `run` và câu trong giao dịch → "đang chờ" đếm cả câu giao dịch (đúng nghĩa: câu kho đã gửi chưa trả lời).
 - `queryOne` gọi `query` không truyền han → không đổi. `run`, giao dịch (`beginTransaction`) không đụng.
 - `doCau` dùng cho `query` và `run`: chỉ thêm đếm `cho`, không đổi giá trị trả / lỗi.
 
 ## 5. Luồng hợp lệ phải KHÔNG bị chặn (K5)
 Đối soát bình thường; câu chậm dưới hạn; hai lượt song song; route /so-sach; mọi đường bán / thu (query không han); câu treo lần đầu rồi đọc lại được.
+
+## 6. Soát kế hoạch (agent chỉ đọc) — đã nhận
+- Hạn giờ chỉ trong lượt Đối soát (soSach của /daily không hạn) — đã sửa mục 4.
+- Quá hạn không đi qua `thayKetNoiNeuBan` / `loiKho`: nhánh `quaHan` riêng trong catch của query, ném nguyên KHO_QUA_HAN (đột biến VS-qua-han-thanh-mat-ket-noi).
+- Có dùng `baoRot` cho quá hạn: dòng `[KET-NOI] doc lan k/3 KHO_QUA_HAN` + đếm `rot` — câu kho không trả lời là một kiểu rớt, nên hiện ở sức khoẻ kết nối.
+- C2: đột biến BV-han-cau / BV-ngu-canh-luot đưa lỗi treo cũ trở lại. C3 kiểm có dòng lệch thật (đỏ 82 / 142 / 1.042).
+- Đề xuất bỏ tham số `han` của query để chép vòng đọc lại vào chiDoc: KHÔNG nhận — hai vòng đọc lại là hai chỗ cùng quy tắc (LUAT §2 "một quy tắc — một hàm").
