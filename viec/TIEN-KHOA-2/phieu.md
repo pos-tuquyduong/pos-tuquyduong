@@ -53,12 +53,14 @@ Máy BO-MAN-CU-1 (kế hoạch 4386c365 mục 8) và chat bàn 39 tìm thêm **3
 - server/routes/don-mo-rong.js
 - server/routes/orders.js
 - server/utils/pinChuQuan.js
+- server/utils/doiSoat.js
 - client/src/components/ViKhach.jsx
 - client/src/pages/Orders.jsx
 - client/src/utils/api.js
 - client/dist/**
 - cong_cu/thu_TIENKHOA2.js
 - cong_cu/thu_*.js
+- cong_cu/gia_lap/kich_ban.js
 - kiem_tra_truoc_khi_giao.js
 
 ## Ngân sách
