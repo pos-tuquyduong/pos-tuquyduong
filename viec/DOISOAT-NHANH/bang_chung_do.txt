@@ -60,7 +60,14 @@ DOISOAT-NHANH: 6 đạt · 29 hỏng
   (các ca ✗ khác như bản trên)
 DOISOAT-NHANH: 7 đạt · 30 hỏng
 ```
-SỐ CA cong_cu/thu_DOISOATNHANH.js: 37
+
+### Chạy lại sau vòng sửa 2 (bài bản 4fb68b7 — thêm ca lỗi mạng sát mốc) trên cùng 3 file gốc
+```
+  ✗ B2 lỗi mạng sát mốc lượt → KHÔNG báo "thu lai", hết lượt ngay (gửi 1 lần), thu_lai_hong +1, lỗi KHO_MAT_KET_NOI (soát vòng 2)  — "KHO_MAT_KET_NOI" · gửi 3 · hỏng 0 → 1 · ["[KET-NOI] doc lan 1/3 ECONNRESET — thu lai","[KET-NOI] doc lan 2/3 ECONNRESET — thu lai","[KET-NOI] doc lan 3/3 ECONNRESET — het luot"]
+  (các ca ✗ khác như hai bản trên)
+DOISOAT-NHANH: 7 đạt · 31 hỏng
+```
+SỐ CA cong_cu/thu_DOISOATNHANH.js: 38
 
 ## cong_cu/thu_KETNOI1.js (sửa regex [CHAM] cho dạng mới — A2 phiếu duyệt đổi) trên database.js GỐC
 ```
