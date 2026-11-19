@@ -382,7 +382,10 @@ function loiDoiSoat(res, err) {
 
 router.get('/doi-soat', authenticate, checkPermission('view_reports'), async (req, res) => {
   try {
-    res.json(await doiSoat.chayDoiSoat({ kieu: req.query.kieu || 'ngay', ngay: req.query.ngay }));
+    // DOISOAT-NHANH B3: khách bỏ đi trước khi có trả lời → lượt dừng ở bước kế tiếp ('close' cũng bắn sau khi trả lời xong — bỏ qua ca đó)
+    const bo = new AbortController();
+    res.on('close', () => { if (!res.writableFinished) bo.abort(); });
+    res.json(await doiSoat.chayDoiSoat({ kieu: req.query.kieu || 'ngay', ngay: req.query.ngay, tinHieu: bo.signal }));
   } catch (err) {
     loiDoiSoat(res, err);
   }

@@ -682,9 +682,9 @@ async function main() {
     await ngu(1000);   // máy chủ làm xong (3 s) sau khi khách đã bỏ
     const dongBo = nhatKy.filter((x) => x.includes('[CHAM]'));
     giuLog = false; noiLai();
-    const mm = /^\[CHAM\] GET (\S+) · (\d+) ms · kho (\d+) câu \/ (\d+) ms · ngoài (\d+) ms$/.exec(dong[0] || '');
+    const mm = /^\[CHAM\] GET (\S+) · (\d+) ms · kho (\d+) câu \/ (\d+) ms · ngoài (\d+) ms · đang chờ (\d+) câu$/.exec(dong[0] || '');   // DOISOAT-NHANH A2
     k('F1 yêu cầu 2,15 giây (ngay TRÊN ngưỡng) → MỘT dòng [CHAM] đúng dạng; kho 1 câu; ngoài ≥ 60 ms', la(r, 200) && dong.length === 1 && !!mm && Number(mm[2]) > 2000
-      && mm[3] === '1' && Number(mm[5]) >= 60, JSON.stringify(dong));
+      && mm[3] === '1' && Number(mm[5]) >= 60 && mm[6] === '0', JSON.stringify(dong));
     k('F1 dòng [CHAM] KHÔNG có SĐT / tham số / số / mã QR trong đường dẫn', !!mm && !/0912345678|\?|2150|MAQRBIMAT/.test(dong[0]) && mm[1] === '/api/pos/thu-cham/:x/qr/:x', dong[0]);
     const msBo = Number((/ · (\d+) ms · kho/.exec(dongBo[0] || '') || [])[1]);
     k('F1 khách bỏ kết nối ở 2,3 s (Ahamove bỏ sau 5 s — D-LOI-1), máy chủ còn làm tới 3 s → vẫn MỘT dòng [CHAM], tính tới lúc khách bỏ (soát vòng 2)',
