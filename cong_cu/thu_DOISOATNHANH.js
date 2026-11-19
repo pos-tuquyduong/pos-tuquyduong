@@ -62,6 +62,7 @@ async function main() {
     const lan = G.gui.filter((x) => x.sql === sql).length;
     const l = G.luat(sql, lan);
     if (l === 'treo') return new Promise(() => {});
+    if (l === 'mang') return Promise.reject(Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }));
     if (typeof l === 'number') return ngu(l).then(() => exGoc(cau));
     return exGoc(cau);
   };
@@ -169,6 +170,13 @@ async function main() {
     r.loi?.code === 'DOI_SOAT_QUA_HAN' && /^Đối soát quá lâu ở bước \S+ — thử lại sau$/.test(r.loi.message) && ms >= LUOT - CAU && ms <= LUOT + 150,
     `${r.loi ? r.loi.message : r.treo ? 'treo' : 'xong không lỗi'} · ${ms} ms (hạn ${LUOT})`);
   k('B2 sau khi báo lỗi lượt không gửi thêm câu nào', G.gui.length === nB2, `${nB2} → ${G.gui.length}`);
+  // Lỗi MẠNG sát mốc (còn ít hơn thời gian chờ đọc lại) → không hứa "thu lai": hết lượt ngay, đếm thu_lai_hong, lỗi mất kết nối như cũ (soát vòng 2).
+  datLai((sql) => (/thu_dsn_mang/.test(sql) ? 'mang' : undefined));
+  const hong0 = db.demKetNoi().thu_lai_hong;
+  const mg = await coHanNgoai(db.query("SELECT 'thu_dsn_mang' AS x", [], { ms: CAU, het: Date.now() + db.CHO_DOC_MS[0] / 2 }));
+  k('B2 lỗi mạng sát mốc lượt → KHÔNG báo "thu lai", hết lượt ngay (gửi 1 lần), thu_lai_hong +1, lỗi KHO_MAT_KET_NOI (soát vòng 2)', mg.loi?.code === 'KHO_MAT_KET_NOI'
+    && soGui(/thu_dsn_mang/) === 1 && db.demKetNoi().thu_lai_hong === hong0 + 1 && nhatKy.some((l) => /^\[KET-NOI\] doc lan 1\/3 ECONNRESET — het luot$/.test(l))
+    && !nhatKy.some((l) => /thu lai$/.test(l)), `${J(mg.loi?.code || mg.kq)} · gửi ${soGui(/thu_dsn_mang/)} · hỏng ${hong0} → ${db.demKetNoi().thu_lai_hong} · ${J(nhatKy.filter((l) => l.startsWith('[KET-NOI]')))}`);
   datLai();
   const rot0 = db.demKetNoi().rot;
   const hm = await coHanNgoai(db.query("SELECT 'thu_dsn_moc' AS x", [], { ms: CAU, het: Date.now() - 1 }));

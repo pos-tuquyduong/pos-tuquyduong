@@ -1610,7 +1610,7 @@ async function query(sql, params = [], han = null) {
         thayKetNoiNeuBan(err);
         throw err;
       }
-      const conLuot = doc && lan < CHO_DOC_MS.length && (!quaHan || han.het - Date.now() > CHO_DOC_MS[lan]);
+      const conLuot = doc && lan < CHO_DOC_MS.length && (!han || han.het - Date.now() > CHO_DOC_MS[lan]);   // MỘT vị từ: còn lượt VÀ còn giờ, mọi loại lỗi (soát vòng 2)
       baoRot(err, doc ? 'doc' : 'ghi', lan + 1, doc ? CHO_DOC_MS.length + 1 : 1, conLuot ? 'thu lai' : doc ? 'het luot' : 'khong thu lai (cau ghi)');
       if (!conLuot) {
         if (doc) demRot.thu_lai_hong++;
