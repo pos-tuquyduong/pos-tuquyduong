@@ -645,3 +645,9 @@ BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài 
 - **BỎ** — neo đột biến bị lạc vì đổi `cu?.` → `cu.` (bộ đột biến báo HỎNG đúng như thiết kế, sửa neo).
 - Người gác chặn trong việc: G-LUAT (file luật cần đúng tên trong Phạm vi — Câu 5), B-BIMAT-CHU (tên file thu_KHO3a.js chứa SECRET → chạy qua
   chay_bai.js), B-CD-VITRI / B-PHANTICH / B-CHUONGTRINH (lệnh ghép), GIT-KEO (không kéo main — chat ghép giúp).
+
+## Cổng (node tu_chay/cong.js chay . e1a89bb3 HEAD viec/KHO-3a — gốc main e1a89bb3, HEAD fab40374, cây sạch)
+- Lần 1 (HEAD 3ab3f441): ✗ [A16] SỐ CA cong_cu/thu_BH2.js ghi 99 ≠ 100 ở head (99 là số trong cây tạm không có .git) → sửa thành 100 (fab40374).
+- Lần 2: ✓ CỔNG CHẠY ĐẠT (11 dòng CẢNH BÁO A16 "gốc in ít ca hơn head" — bài dừng sớm trên gốc vì thiếu monThu / món POS, đúng như bang_chung_do.txt ghi).
+
+HEAD ĐÃ KIỂM: fab40374
