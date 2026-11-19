@@ -38,7 +38,7 @@ export default function ViKhach({ khach, onDoi }) {
 
   if (!hasPermission('view_customer_balance') || !khach?.phone) return null;
   const ten = khach.name || khach.phone;
-  const mo = (c) => { setCua(c); setNhap({ amount: '', text: '' }); };
+  const mo = (c) => { setCua(c); setNhap({ amount: '', text: '' }); setHoiPin(false); };
 
   const moLichSu = async () => {
     mo('lichsu');

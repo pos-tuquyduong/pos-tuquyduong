@@ -5,7 +5,7 @@
  *
  *   GET  /api/pos/orders/cho-thu            bill "mang ra bàn" chưa thu — dựng dãy thẻ ở màn Bán hàng
  *   GET  /api/pos/orders/:id/nhat-ky        nhật ký một đơn — ghép cột có sẵn + bảng pos_order_log
- *   POST /api/pos/orders/:id/doi-cach-tra   tiền mặt ↔ chuyển khoản sau khi đã in bill
+ *   POST /api/pos/orders/:id/doi-cach-tra   chuyển khoản → tiền mặt sau khi đã in bill (chiều ngược bị chặn — TIEN-KHOA-2)
  */
 const express = require('express');
 const router = express.Router();
@@ -152,7 +152,7 @@ router.post('/:id/doi-cach-tra', authenticate, async (req, res) => {
               cash_received = NULL, change_amount = 0
         WHERE id = ? AND COALESCE(cash_amount, 0) = ? AND COALESCE(transfer_amount, 0) = ?
           AND status = 'completed' AND payment_status = 'paid'`,
-      [sang === 'cash' ? soTien : 0, sang === 'transfer' ? soTien : 0, pmMoi, id, tm, ck],
+      [soTien, 0, pmMoi, id, tm, ck],   // sang luôn là 'cash' (chặn sang CK ở trên)
     );
     if (kq.changes !== 1) {
       return res.status(409).json({ error: 'Bill vừa bị thay đổi bởi thao tác khác — tải lại để xem', code: 'VUA_BI_DOI' });

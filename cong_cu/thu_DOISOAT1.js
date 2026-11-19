@@ -615,14 +615,18 @@ async function main() {
     datGio(2027, 1, 10);   // CN 10.01.2027
     const h2 = await huy(dHuy2);
     const chanCk = await goi('POST', `/orders/${dNoCk}/pay-debt`, { payment_method: 'transfer', amount: 50000 });
-    const thuCk = await goi('POST', `/orders/${dNoCk}/pay-debt`, { payment_method: 'cash', amount: 50000 });
+    // Dữ liệu CŨ: đã thu CK 20.000 ngày 10.01 trước TIEN-KHOA-2 (pay-debt cũ ghi cột + nhật ký 'thu') — dựng thẳng như dòng sổ cũ.
+    await db.run("UPDATE pos_orders SET transfer_amount = COALESCE(transfer_amount, 0) + 20000, debt_amount = debt_amount - 20000, payment_status = 'partial' WHERE id = ?", [dNoCk]);
+    await db.run(`INSERT INTO pos_order_log (order_id, loai, noi_dung, chi_tiet, nguoi, luc) VALUES (?, 'thu', 'Thu Chuyển khoản 20.000đ (dữ liệu cũ)',
+      '{"cach":"transfer","so_tien":20000,"con_no":30000}', 'chu', '2027-01-10T09:00:00')`, [dNoCk]);
+    const thuCk = await goi('POST', `/orders/${dNoCk}/pay-debt`, { payment_method: 'cash', amount: 30000 });
     const n9 = await ds('chu', 'ngay', '2027-01-09'), n10 = await ds('chu', 'ngay', '2027-01-10');
     k('E8 đơn tạo 09.01, huỷ 10.01: "trả ra" 25.000 nằm ở ngày HUỶ 10.01, ngày 09.01 bán 25.000 trả ra 0',
       h2.status === 200 && n9.tien?.tien_mat?.ban === 25000 && n9.tien?.tien_mat?.tra_ra === 0 && n10.tien?.tien_mat?.tra_ra === 25000,
       `${moTa(h2)} · 09: ${JSON.stringify(n9.tien?.tien_mat)} · 10: ${JSON.stringify(n10.tien?.tien_mat)}`);
-    k('E10 nợ 09.01: thu CK → 400 THU_NO_CK_PHAI_QR (TIEN-KHOA-2); thu TIỀN MẶT 10.01 → tiền mặt thu nợ 10.01 = 50.000, CK thu nợ 10.01 = 0, CK bán 09.01 = 0',
-      chanCk.status === 400 && chanCk.code === 'THU_NO_CK_PHAI_QR' && thuCk.status === 200 && n10.tien?.tien_mat?.thu_no === 50000
-        && n10.tien?.chuyen_khoan?.thu_no === 0 && n9.tien?.chuyen_khoan?.ban === 0,
+    k('E10 nợ 09.01: thu CK → 400 THU_NO_CK_PHAI_QR (TIEN-KHOA-2); 10.01 CK cũ 20.000 + tiền mặt 30.000 → CK thu nợ 20.000, tiền mặt thu nợ 30.000, CK bán 09.01 = 0',
+      chanCk.status === 400 && chanCk.code === 'THU_NO_CK_PHAI_QR' && thuCk.status === 200 && n10.tien?.tien_mat?.thu_no === 30000
+        && n10.tien?.chuyen_khoan?.thu_no === 20000 && n9.tien?.chuyen_khoan?.ban === 0,
       `${moTa(chanCk)} / ${moTa(thuCk)} · 10 CK ${JSON.stringify(n10.tien?.chuyen_khoan)} · 10 TM ${JSON.stringify(n10.tien?.tien_mat)} · 09 CK ${JSON.stringify(n9.tien?.chuyen_khoan)}`);
     datGio(2027, 1, 12);   // thứ 3 12.01.2027
     const kT2 = await ghiDS('chu', { loai: 'ket', ky: '2027-01-11', so_tien: 100000, de_lai: 70000 });
