@@ -69,12 +69,12 @@ async function main() {
   const soGui = (mau) => G.gui.filter((x) => mau.test(x.sql)).length;
   const LA_DIEM = /NOT IN \('earn', 'redeem'\)/;   // câu "loại dòng điểm lạ" của I8 — câu #13 kho rỗng (phiếu)
 
-  // ─── Dữ liệu CŨ có dòng lệch (C1 khả năng 2): đơn trước AP_DUNG_TU, I3 lệch (pending, nợ 0), I8 lệch (điểm 5, đúng luật 0) → phanLoai gọi tra ───
+  // ─── Dữ liệu CŨ có dòng lệch (C1 khả năng 2): đơn trước AP_DUNG_TU, I3 lệch (pending, nợ 0), I8 lệch (điểm 7 — không khớp luật nào) → phanLoai gọi tra ───
   await db.run(`INSERT INTO pos_orders (code, customer_phone, total, payment_method, payment_status, status, debt_amount, created_at)
     VALUES ('DSNCU1', '0911000001', 50000, 'cash', 'pending', 'completed', 0, '2026-09-01T09:00:00'),
            ('DSNCU2', '0911000002', 80000, 'cash', 'paid', 'completed', 0, '2026-11-18T10:00:00')`);
   const idCu = (await db.queryOne("SELECT id FROM pos_orders WHERE code = 'DSNCU1'")).id;
-  await db.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, created_at) VALUES ('0911000001', 'earn', 5, ?, '2026-09-01T09:00:00')`, [idCu]);
+  await db.run(`INSERT INTO pos_point_transactions (customer_phone, type, points, order_id, created_at) VALUES ('0911000001', 'earn', 7, ?, '2026-09-01T09:00:00')`, [idCu]);
 
   // ─── H: hằng số THẬT (so bằng) rồi rút ÷RUT cho bài ───
   muc('[H] Hằng số hạn giờ');
@@ -84,7 +84,11 @@ async function main() {
   k('B1 HAN.CAU_DOI_SOAT_MS = 15000 (một lần gửi câu)', HAN.CAU_DOI_SOAT_MS === 15000, J(HAN));
   k('B2 HAN.LUOT_DOI_SOAT_MS = 50000 và nhỏ hơn hạn chờ của màn HAN_DOI_SOAT_MS (DoiSoat.jsx) = 60000; cận trên lượt (hạn + chờ đọc lại cuối) < hạn màn',
     HAN.LUOT_DOI_SOAT_MS === 50000 && hanMan === 60000 && HAN.LUOT_DOI_SOAT_MS + db.CHO_DOC_MS[db.CHO_DOC_MS.length - 1] < hanMan, `${J(HAN)} · màn ${hanMan}`);
-  const CAU = 15000 / RUT, LUOT = 50000 / RUT;
+  const tongCho = db.CHO_DOC_MS.reduce((a, b) => a + b, 0);
+  k('B1/B2 một câu treo đi đủ 1 + 2 lần đọc lại TRƯỚC khi chạm hạn tổng: 3 × 15 s + chờ đọc lại < 50 s (giá trị thật)',
+    (1 + db.CHO_DOC_MS.length) * HAN.CAU_DOI_SOAT_MS + tongCho < HAN.LUOT_DOI_SOAT_MS, `${J(HAN)} · chờ ${tongCho}`);
+  // Rút ÷RUT hạn câu; chờ đọc lại CHO_DOC_MS (0,8 s) KHÔNG rút → hạn tổng của bài chọn sao cho giữ đúng quan hệ trên (3 × 300 + 800 < 2500).
+  const CAU = 15000 / RUT, LUOT = 2500;
   if (ds.HAN) { ds.HAN.CAU_DOI_SOAT_MS = CAU; ds.HAN.LUOT_DOI_SOAT_MS = LUOT; }
 
   // ─── A1: log từng bước ───
