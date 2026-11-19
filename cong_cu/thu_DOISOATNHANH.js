@@ -140,9 +140,10 @@ async function main() {
   r = await coHanNgoai(ds.chayDoiSoat({ kieu: 'ngay', ngay: NGAY }));
   k('B1 câu treo ở bước khác (I9) → lời nêu đúng bước I9', r.loi?.code === 'DOI_SOAT_QUA_HAN' && r.loi.message === 'Đối soát quá lâu ở bước I9 — thử lại sau', r.loi?.message || 'treo');
   datLai();
-  r = await coHanNgoai(ds.chayDoiSoat({ kieu: 'ngay', ngay: NGAY }));
-  const cuLech = (r.kq?.cu || []).map((l) => l.bat_bien);
-  k('C1 (2) dữ liệu cũ có dòng lệch I3 / I8 (phanLoai gọi tra) → chạy xong, không treo, dòng cũ vào nhóm LỆCH CŨ', !!r.kq && cuLech.includes('I3') && cuLech.includes('I8'), J(r.kq?.cu || r));
+  r = await coHanNgoai(ds.chayDoiSoat({ kieu: 'thang', ngay: '2026-09-15' }));
+  const nhom = (n) => (r.kq?.[n] || []).map((l) => l.bat_bien);
+  k('C1 (2) dữ liệu cũ (tháng 9) có dòng lệch I3 / I8 (phanLoai gọi tra) → chạy xong, không treo; I8 trước mốc → LỆCH CŨ, I3 (không mốc) → LỆCH',
+    !!r.kq && nhom('cu').includes('I8') && nhom('do').includes('I3'), J(r.kq ? { do: r.kq.do, cu: r.kq.cu } : r));
 
   // ─── D1: câu chậm dưới hạn vẫn chờ được ───
   muc('[D1] Câu chậm DƯỚI hạn — không báo lỗi oan');
