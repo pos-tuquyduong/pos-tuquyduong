@@ -67,8 +67,10 @@ async function main() {
       && /adjust:/.test(vi) && /topup:/.test(vi), vi.slice(0, 80));
     const vk = sach(doc(CLIENT, 'components', 'ViKhach.jsx'));
     const goiAdjust = (vk.match(/walletsApi\.adjust\(\{[^}]*\}/) || [''])[0];
-    k('A2i ViKhach.jsx: import HoiPin, vẽ <HoiPin, gửi pin trong walletsApi.adjust, không window.prompt', /import HoiPin from '\.\/HoiPin'/.test(vk)
-      && /<HoiPin\b/.test(vk) && /\bpin\b/.test(goiAdjust) && !/prompt\(/.test(vk), goiAdjust || 'không thấy walletsApi.adjust({...})');
+    // Nhánh vẽ (K3 BAO-1a): ô PIN mở theo cờ hoiPin, và nút Xác nhận của Điều chỉnh bật cờ đó thay vì gửi thẳng.
+    k('A2i ViKhach.jsx: import HoiPin, vẽ <HoiPin mo={hoiPin…}, Xác nhận Điều chỉnh mở ô PIN, gửi pin trong walletsApi.adjust, không window.prompt',
+      /import HoiPin from '\.\/HoiPin'/.test(vk) && /<HoiPin\s+mo=\{hoiPin\b/.test(vk) && /if \(!nap\) \{ setHoiPin\(true\); return; \}/.test(vk)
+      && /\bpin\b/.test(goiAdjust) && !/prompt\(/.test(vk), goiAdjust || 'không thấy walletsApi.adjust({...})');
     const od = sach(doc(CLIENT, 'pages', 'Orders.jsx'));
     k('A4e Orders.jsx: thu nợ gọi ordersApi.payDebt với tiền mặt, không còn fetch tới pay-debt, không còn nút chọn chuyển khoản, có lời báo QR',
       /ordersApi\.payDebt\(\s*selectedOrder\.id\s*,\s*\{\s*payment_method:\s*'cash'/.test(od) && !/fetch\([^)]*pay-debt/.test(od)
