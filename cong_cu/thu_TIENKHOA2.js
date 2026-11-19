@@ -245,7 +245,8 @@ async function main() {
       async (r) => (r.j.error === LOI_THU_NO ? '' : 'lời: ' + r.j.error));
     const ct = await donNo(null, 25000, 'cho_thu');
     await caChan('A4b bill chờ thu (cho_thu) thu bằng chuyển khoản', () => thuNo(ct, 'transfer'), 400, 'THU_NO_CK_PHAI_QR');
-    await caChan('A4c cách trả lạ "the"', () => thuNo(no, 'the'), 400, 'CACH_TRA_LA');
+    await caChan('A4c cách trả lạ "the" — lời báo không còn mời dùng transfer', () => thuNo(no, 'the'), 400, 'CACH_TRA_LA',
+      async (r) => (/transfer|chuyển khoản/i.test(r.j.error || '') ? 'lời: ' + r.j.error : ''));
     const ct2 = await donNo(null, 25000, 'cho_thu');
     const tc = await thuNo(ct2, 'cash');
     k('A4f (K5) bill chờ thu thu tiền mặt → 200 paid', la(tc, 200) && (await donDb(ct2))?.payment_status === 'paid', moTa(tc));
@@ -270,7 +271,7 @@ async function main() {
     const n3 = await donNo(kh);
     const rb = await Promise.all([thuNo(n3, 'transfer'), thuNo(n3, 'cash')]);
     const o3 = await donDb(n3);
-    k('A4d2 cùng lúc một người thu CK, một người thu tiền mặt → CK 400 THU_NO_CK_PHAI_QR, tiền mặt 200; CK 0, tiền mặt 25.000', la(rb[0], 400, 'THU_NO_CK_PHAI_QR')
+    k('A4d2 gửi liền CK và tiền mặt (CK bị chặn trước khi đọc đơn — không đua) → CK 400 THU_NO_CK_PHAI_QR, tiền mặt 200; CK 0, tiền mặt 25.000', la(rb[0], 400, 'THU_NO_CK_PHAI_QR')
       && la(rb[1], 200) && Number(o3?.transfer_amount || 0) === 0 && Number(o3?.cash_amount) === 25000, `${rb.map(moTa).join(' / ')} · ${JSON.stringify(o3)?.slice(0, 80)}`);
   });
 

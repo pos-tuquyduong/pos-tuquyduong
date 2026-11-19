@@ -59,8 +59,7 @@ Lỗi trả: `409 DOI_SANG_CK_PHAI_QUA_QR` "Không đổi tiền mặt sang chuy
 
 ### A4 — thu nợ chuyển khoản
 - **A (chọn):** đầu route `pay-debt`, `payment_method === 'transfer'` → `400 THU_NO_CK_PHAI_QR` "Thu nợ chuyển khoản phải qua QR — tạm thu tiền mặt";
-  giá trị lạ khác giữ `400 CACH_TRA_LA`. Kiểm TRƯỚC khi đọc đơn (không tốn đọc, không lộ trạng thái đơn). GIỮ nguyên `cotTien` (`orders.js:1588`) — không làm trôi chuỗi mà đột biến
-  M1/M6/M8 của `thu_gia_lap.js:132-146` bám vào. ~+3 dòng.
+  giá trị lạ khác giữ `400 CACH_TRA_LA`. Kiểm TRƯỚC khi đọc đơn (không tốn đọc, không lộ trạng thái đơn). (Vòng sửa 1: ý "giữ `cotTien` vì neo đột biến M1/M6/M8" là SAI — `thu_gia_lap.js:132-145` không bám chuỗi đó; đã gọn `cotTien = "cash_amount"`.) ~+3 dòng.
 - B: chặn sau khi đọc đơn (chỉ đơn `debt`, cho phép `cho_thu`…) — phiếu ghi rõ "khác tiền mặt → 400", không phân loại đơn. Bỏ.
 - `Orders.jsx`: bỏ nút Chuyển khoản trong hộp thu nợ (`:1121-1140`), thay một dòng chữ xám "Thu nợ chuyển khoản phải qua QR — tạm thu tiền mặt";
   `handleConfirmPayDebt` gọi `ordersApi.payDebt(id, { payment_method: 'cash', amount })` thay fetch trần `:415` (−15 dòng); bỏ state `paymentMethod`
