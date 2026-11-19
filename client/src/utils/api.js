@@ -292,7 +292,6 @@ export const walletsApi = {
   },
   get: (phone) => api.get(`/wallets/${phone}`),
   topup: (data) => api.post('/wallets/topup', data),
-  deduct: (data) => api.post('/wallets/deduct', data),
   adjust: (data) => api.post('/wallets/adjust', data),
   transactions: (phone, params = {}) => {
     const query = new URLSearchParams(params).toString();
