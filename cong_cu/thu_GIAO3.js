@@ -403,8 +403,8 @@ async function main() {
   const vT = await moChuyen();
   A.phiTao = null;
   k('C3 (K4) tạo chuyến Ahamove trả total_price 0 → phi_that = phí báo 16.000 (không 0)', (await chuyenCua(vT.id))?.phi_that === 16000, String((await chuyenCua(vT.id))?.phi_that));
+  const vT0 = await moChuyen(false);   // khách đã được báo phí 16.000 lúc bán; Ahamove báo 0 / tạo chuyến 0 lúc GỌI XE
   A.phiBao = 0; A.phiTao = 0;
-  const vT0 = await moChuyen(false);
   await goi('POST', `/giao-hang/${vT0.id}/goi-xe`, {});
   A.phiBao = null; A.phiTao = null;
   const cT0 = await chuyenCua(vT0.id);
