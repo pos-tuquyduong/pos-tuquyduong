@@ -1,7 +1,8 @@
 # GIAO-3 — bằng chứng đỏ
 
-## cong_cu/thu_GIAO3.js trên code GỐC (mọi file code của 4fd64c3; bài thử bản c956a85c) — sau vòng sửa 2; số ca gốc = số ca bản vá
-Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mới (HopLyDo.jsx, 030_giao_tra_hang.js), `node cong_cu/thu_GIAO3.js`, rồi chép bản vá lại.
+## cong_cu/thu_GIAO3.js trên code GỐC (9 file code của main bc16e140 — gốc cổng sau ghép main; 2 file mới xoá; bài thử bản 2c19fbe3)
+Sau quyết định chủ quán 19.11 (chặn báo phí khách 0, câu chú thích Thực thu mới). Số ca gốc = số ca bản vá.
+Chạy: tạm đưa 9 file về `git show bc16e140:<file>`, xoá HopLyDo.jsx + 030_giao_tra_hang.js, `node cong_cu/thu_GIAO3.js`, rồi chép bản vá lại.
 
 ```
 [A] Lý do giao thất bại (D4-GHICHU phần 1)
@@ -11,7 +12,7 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ A1 lý do dài → cắt ≤ 200 ký tự, giữ nguyên dạng chữ (không đổi < >, React hiện chữ thường)  — 21 ký tự
 
 [B] Hàng trả về quán (D4-GHICHU phần 2)
-  ✗ B2 tin IN_RETURN (cùng COMPLETED, cùng điểm FAILED, cùng tài xế) → được áp: tra_hang dang_tra, vẫn giao_loi  — undefined giao_loi · ["[GIAO] tin G3AHA1 COMPLETED → bỏ qua: tin lặp · 3ms"]
+  ✗ B2 tin IN_RETURN (cùng COMPLETED, cùng điểm FAILED, cùng tài xế) → được áp: tra_hang dang_tra, vẫn giao_loi  — undefined giao_loi · ["[GIAO] tin G3AHA1 COMPLETED → bỏ qua: tin lặp · 4ms"]
   ✗ B1/B2 tin RETURNED → "Hàng đã về quán" (tra_hang da_ve) + giờ = return_time đổi sang giờ VN; vẫn giao_loi; lý do giữ (A2)  — [null,null,"Giao không thành công"]
   ✓ B2 tin RETURNED lặp (cùng sub_status) → "bỏ qua: tin lặp"
   ✗ B1 một chiều: thẻ đã về quán, tin IN_RETURN tới trễ → VẪN "đã về quán", giữ giờ  — [null,null]
@@ -26,12 +27,13 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ A3 huỷ khi đang giao: có cancel_comment → "<câu cũ>: <comment>"; không có → câu cũ  — ["Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove","Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove"]
 
 [C] Phí Ahamove không về 0 (D-PHI-1)
+  ✗ C1 (chủ quán 19.11) Ahamove báo phí khách 0 → 502 AHAMOVE_CHUA_BAO_PHI "Ahamove chưa báo được phí — bấm báo phí lại", không ghi báo phí; phí 16.000 → báo bình thường  — [200,{"success":true,"ma_bao_phi":"ad9c81eb2f0db2ba6139d4a166854aba","phi":0,"km":3,"dia_chi":"Số 3 Ngõ Thử, Hà Nội","dia_chi_ahamove":null,"het_han":"2026-11-19T16:08:05","can_xac_nhan":true,"loai_xe":"HAN-BIKE"},200,16000]
   ✗ C1 phí lúc gọi 16.000 → tin ACCEPTED total_price 0 → phi_that GIỮ 16.000, chenh giữ (không "quán dư")  — [16000,0,0,-16000,"doi_tai_xe"]
   ✗ C3 log MỘT dòng "[GIAO] phi <mã> total_price=0 …" — không SĐT tài xế / khách, không tên  — []
   ✗ C1 phí rỗng / chữ / null → phi_that vẫn 16.000  — 0
   ✓ C2 phí MỚI 21.000 (phụ phí) → cập nhật, chenh = 21.000 − phí khách
   ✗ C3 (K4) tạo chuyến Ahamove trả total_price 0 → phi_that = phí báo 16.000 (không 0)  — 0
-  ✗ C3 (K4) báo phí lúc gọi xe 0 VÀ tạo chuyến trả phí 0 → phi_that KHÔNG ghi 0 (để trống = chưa biết), chenh trống  — ["tim_xe",0,0]
+  ✗ C3 (K4) báo phí lúc gọi xe 0 VÀ tạo chuyến trả phí 0 → phi_that KHÔNG ghi 0 (để trống = chưa biết), chenh trống  — ["tim_xe",0,-16000]
   ✗ C4 Đối soát giao cộng phi_that đã giữ (chuyến lấy hàng với total_price 0 vẫn 16.000)  — 0 · 144000 / 144000
 
 [G] "Thực thu" Báo cáo Hàng ngày do máy chủ tính (F-LOI-2)
@@ -40,8 +42,8 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✓ G3 giữ nguyên các ô cũ (doanh thu / tiền mặt / chiết khấu / phí ship)
 
 [G màn] Reports.jsx: ô Thực thu hiện số máy chủ, không tự cộng trừ
-  ✗ G2 màn hiện ĐÚNG số máy chủ thuc_thu (hôm nay có đơn 30.000 + phí 16.000 tiền mặt) — không phải công thức cũ của màn  — màn " Thực thu774,000đ" · máy chủ undefined
-  ✗ G3 dưới ô có dòng "= tiền mặt + chuyển khoản thật nhận"  —  Thực thu774,000đ
+  ✗ G2 màn hiện ĐÚNG số máy chủ thuc_thu (hôm nay có đơn 30.000 + phí 16.000 tiền mặt) — không phải công thức cũ của màn  — màn " Thực thu806,000đ" · máy chủ undefined
+  ✗ G3 dưới ô có dòng "= tiền thật vào quán (gồm nạp, trừ hoàn) — cùng số Đối soát" (chủ quán 19.11)  —  Thực thu806,000đ
   ✗ G4 client/src/pages/Reports.jsx không còn tự cộng / trừ total_revenue / total_discount / total_shipping
 
 [D] Màn Đối soát không treo
@@ -51,12 +53,12 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
 
 [E] Hộp lý do của POS thay window.prompt
   ✗ E4 client/src/pages/GiaoHang: 0 chỗ window.prompt / window.confirm / alert(  — 3 chỗ
-  ✗ B1 màn: thẻ đã về quán hiện "Hàng đã về quán" + giờ (16:23) và lý do  — ORD-20261118-HD00013 kmChị Nhận Ba · 1 món🛵 TX Ba Mot · 29B3-33301Giao không thành côngGiao lỗi
-  ✗ B1 màn: thẻ đang trả về hiện "Đang trả hàng về quán", nút Đóng thẻ như cũ  — ORD-20261118-HD00133 kmChị Nhận Ba · 1 món🛵 TX Ba Mot · 29B3-33301Giao không thành côngGiao lỗi
-  ✗ A1 màn: chi tiết thẻ hiện lý do Ahamove  — Giao hàng · AhamoveTải lạiMới (0)Đang pha (1)Đợi tài xế (3)Đang giao (9)Mới · 0Đang pha · 1ORD-20261118-HD00153 kmChị Nhận Ba · 1 mónGọi tài xế lúc 18:25Gọi tài xế ngayĐợi tài xế · 3ORD-20261118-HD001
-  ✗ E1 Đóng thẻ → mở hộp lý do của POS (câu hỏi cũ), có Xác nhận / Thôi  —  Số 3 Ngõ Thử, Hà Nội · 3 km · HAN-BIKEPhí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tài khoảnTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
-  ✗ E2 lý do 2 ký tự → báo ngay dưới ô, KHÔNG gửi (thẻ vẫn giao_loi)  — hí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tài khoảnTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
-  ✗ E2 "  ab  " (2 ký tự + khoảng trắng hai đầu) → vẫn báo, không gửi  — hí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tài khoảnTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
+  ✗ B1 màn: thẻ đã về quán hiện "Hàng đã về quán" + giờ (16:23) và lý do  — ORD-20261119-HD00013 kmChị Nhận Ba · 1 món🛵 TX Ba Mot · 29B3-33301Giao không thành côngGiao lỗi
+  ✗ B1 màn: thẻ đang trả về hiện "Đang trả hàng về quán", nút Đóng thẻ như cũ  — ORD-20261119-HD00133 kmChị Nhận Ba · 1 món🛵 TX Ba Mot · 29B3-33301Giao không thành côngGiao lỗi
+  ✗ A1 màn: chi tiết thẻ hiện lý do Ahamove  — Giao hàng · AhamoveTải lạiMới (0)Đang pha (1)Đợi tài xế (3)Đang giao (9)Mới · 0Đang pha · 1ORD-20261119-HD00153 kmChị Nhận Ba · 1 mónGọi tài xế lúc 15:38Gọi tài xế ngayĐợi tài xế · 3ORD-20261119-HD001
+  ✗ E1 Đóng thẻ → mở hộp lý do của POS (câu hỏi cũ), có Xác nhận / Thôi  — : Số 3 Ngõ Thử, Hà Nội · 3 km · HAN-BIKEPhí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tiền mặtTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
+  ✗ E2 lý do 2 ký tự → báo ngay dưới ô, KHÔNG gửi (thẻ vẫn giao_loi)  — Phí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tiền mặtTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
+  ✗ E2 "  ab  " (2 ký tự + khoảng trắng hai đầu) → vẫn báo, không gửi  — Phí giao khách trả: 16.000đ · phí Ahamove 16.000đTổng đơn 46.000đ · đã trả bằng Tiền mặtTài xế: TX Ba Mot · 0977003301 · 29B3-33301Giao không thành côngĐóng thẻ
   ✗ E2 bấm Thôi → đóng hộp, không gửi, không báo lỗi  — [["loi","làm việc này · window.prompt is not a function"]]
   ✗ E3 lý do đúng 3 ký tự được gửi; máy chủ trả 409 → báo lỗi rõ (không im lặng)  — [["loi","làm việc này · window.prompt is not a function"],["loi","làm việc này · window.prompt is not a function"]]
   ✗ E1 Huỷ chuyến → hộp "Lý do huỷ chuyến Ahamove (phí huỷ nếu có quán chịu):"
@@ -64,7 +66,7 @@ Chạy: tạm đưa 9 file code về `git show 4fd64c3:<file>`, xoá 2 file mớ
   ✗ E1 Huỷ đơn giao → hộp "Lý do huỷ đơn giao:"; Thôi → đơn vẫn còn
   ✓ E2 Thôi ở huỷ đơn → đơn KHÔNG huỷ
 
-GIAO-3: 12 đạt · 34 hỏng
+GIAO-3: 12 đạt · 35 hỏng
 ```
 
-SỐ CA cong_cu/thu_GIAO3.js: 46
+SỐ CA cong_cu/thu_GIAO3.js: 47
