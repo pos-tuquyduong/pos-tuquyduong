@@ -150,12 +150,12 @@ const KICH_BAN = [
   { ten: 'ghi nợ rồi trả nợ', chay: async (c) => {
     const a = await c.thu('chu', c.donNo.id, 'cash', 20000);
     c.mong('khách nợ trả 20.000 → partial', a.status === 200 && a.data?.payment_status === 'partial', c.ma(a));
-    const b = await c.thu('chu', c.donNo.id, 'transfer', 30000);
+    const b = await c.thu('chu', c.donNo.id, 'cash', 30000);   // TIEN-KHOA-2: thu nợ chỉ tiền mặt
     c.mong('khách nợ trả nốt 30.000 → paid', b.status === 200 && b.data?.payment_status === 'paid', c.ma(b));
     const d = await c.taoDon('KB4', { customer_phone: KH.quen, customer_name: 'Khách quen', items: [c.mon(0), c.mon(3)],
       payment_method: 'debt', balance_amount: 10000, debt_amount: 30000 });
     c.mong('ví 10.000 + nợ 30.000 → partial', d.payment_status === 'partial', d.payment_status);
-    const t = await c.thu('chu', d.id, 'transfer');
+    const t = await c.thu('chu', d.id, 'cash');
     c.mong('trả đủ nợ → 200 paid', t.status === 200 && t.data?.payment_status === 'paid', c.ma(t));
   } },
   { ten: 'huỷ đơn', chay: async (c) => {
@@ -227,7 +227,7 @@ const KICH_BAN = [
   { ten: 'hai người cùng bấm thu một bill', chay: async (c) => {
     const dau = c.doLenh.length;   // LUOI-1: đo trễ trên lệnh của CHÍNH KB10 (trước đây cả phiên — trễ tắt giữa chừng vẫn đạt)
     const d = await c.taoDon('KB10', { items: [c.mon(0)], payment_method: 'cho_thu', debt_amount: 25000 });
-    const ra = await Promise.all([c.thu('chu', d.id, 'cash'), c.thu('nv', d.id, 'transfer')]);
+    const ra = await Promise.all([c.thu('chu', d.id, 'cash'), c.thu('nv', d.id, 'cash')]);   // TIEN-KHOA-2: thu nợ chỉ tiền mặt
     // Bằng chứng chồng nhau: tuần tự thì người sau ra 400 không có code (đã paid, orders.js:1245);
     // chỉ khi cả hai cùng qua phép đọc ngoài giao dịch thì người sau mới ra 409 DA_THU_ROI.
     const st = ra.map((r) => r.status).sort().join(',');
@@ -354,9 +354,13 @@ const KICH_BAN = [
         `${r1 ? c.ma(r1) : 'móc không chạy'} / ${c.ma(r2)} · ví ${truoc} → ${await c.vi(S)}`);
     };
     await buoc('nạp 100.000 chồng lên bán đơn ví 25.000', ban, () => c.nap(S, 100000), 75000);
-    await buoc('trừ tay 5.000 chồng lên nạp 10.000', () => c.nap(S, 10000), () => c.goi('chu', 'POST', '/wallets/deduct', { phone: S, amount: 5000 }), 5000);
+    // TIEN-KHOA-2: điều chỉnh ví cần PIN chủ quán — đặt sẵn; /wallets/deduct đã bỏ (trừ tay = điều chỉnh âm).
+    await c.db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'gia_lap', '2026-01-01T00:00:00')",
+      [require('bcryptjs').hashSync(PIN, 4)]);
+    await buoc('trừ tay 5.000 chồng lên nạp 10.000', () => c.nap(S, 10000),
+      () => c.goi('chu', 'POST', '/wallets/adjust', { phone: S, amount: -5000, reason: 'giả lập trừ tay', pin: PIN }), 5000);
     await buoc('điều chỉnh +5.000 chồng lên nạp 10.000', () => c.nap(S, 10000),
-      () => c.goi('chu', 'POST', '/wallets/adjust', { phone: S, amount: 5000, reason: 'giả lập' }), 15000);
+      () => c.goi('chu', 'POST', '/wallets/adjust', { phone: S, amount: 5000, reason: 'giả lập', pin: PIN }), 15000);
     await buoc('đối soát chồng lên bán đơn ví 25.000', ban, () => c.goi('chu', 'POST', `/wallets/${S}/reconcile`, {}), -25000);
     const dDuyet = (await ban()).order?.id;
     const y = await c.yeuCau(dDuyet);
@@ -365,8 +369,7 @@ const KICH_BAN = [
     await buoc('báo hỏng đền 20.000 chồng lên nạp 10.000', () => c.nap(S, 10000),
       () => c.baoHong(dHong.id, { product_code: c.sp[1].code, quantity: 1, action: 'refund', refund_amount: 20000 }), 30000);   // P26c Q3: phải có số
     // Chiều trừ: số dư bị trừ ngay trước khi lệnh trừ ghi → lệnh trừ phải thua, số dư không âm.
-    for (const [ten, lam] of [['trừ tay hết số dư', (v) => c.goi('chu', 'POST', '/wallets/deduct', { phone: S, amount: v })],
-      ['điều chỉnh âm hết số dư', (v) => c.goi('chu', 'POST', '/wallets/adjust', { phone: S, amount: -v, reason: 'giả lập' })]]) {
+    for (const [ten, lam] of [['điều chỉnh âm hết số dư', (v) => c.goi('chu', 'POST', '/wallets/adjust', { phone: S, amount: -v, reason: 'giả lập', pin: PIN })]]) {
       const v = await c.vi(S);
       const [r1, r2] = await c.chong(ban, () => lam(v));
       c.mong(`${ten} chồng lên bán đơn ví → bán 200, ${ten} 400 SO_DU_KHONG_DU, ví ${v} − 25.000 ≥ 0`, r1?.status === 200 && r2.status === 400
@@ -627,12 +630,12 @@ const KICH_BAN = [
       `${c.ma(x)} · ${no} dòng nợ`);
   } },
   // ── TACH-GL: hai phần LUOI-1 phải bỏ vì thời gian (Phát hiện 13, 14) — thêm lại sau khi chia lượt. ──
-  { ten: 'tiền mặt rồi đổi sang chuyển khoản', chay: async (c) => {
+  { ten: 'tiền mặt rồi đổi sang chuyển khoản (bị chặn)', chay: async (c) => {
     const d = await c.taoDon('KB28', { items: [c.mon(2)], payment_method: 'cash', cash_amount: 30000 });
     const r = await c.doi(d.id, 'transfer', 'khách chuyển khoản lại');
     const sau = await c.db.queryOne('SELECT cash_amount, transfer_amount FROM pos_orders WHERE id = ?', [d.id]);
-    c.mong('đơn tiền mặt 30.000 đổi sang chuyển khoản → 200, tiền mặt 0 · CK 30.000', r.status === 200 && Number(sau?.cash_amount) === 0
-      && Number(sau?.transfer_amount) === 30000, `${c.ma(r)} · ${JSON.stringify(sau)}`);
+    c.mong('đơn tiền mặt 30.000 đổi sang chuyển khoản → 409 DOI_SANG_CK_PHAI_QUA_QR, tiền mặt 30.000 · CK 0', r.status === 409 && r.code === 'DOI_SANG_CK_PHAI_QUA_QR'
+      && Number(sau?.cash_amount) === 30000 && Number(sau?.transfer_amount || 0) === 0, `${c.ma(r)} · ${JSON.stringify(sau)}`);
   } },
   // Quà % có trần: tạo bằng POST /rewards — route của màn quản trị (Settings.jsx:565), nhưng màn hình KHÔNG gửi max_discount
   // (Q1 = a, chủ quán chốt 10.10: phủ đường máy chủ qua API; màn hình thiếu ô trần = Phát hiện 1 của TACH-GL).

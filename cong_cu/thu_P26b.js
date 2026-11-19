@@ -60,6 +60,10 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  // TIEN-KHOA-2: /wallets/adjust cần PIN chủ quán — đặt sẵn cho bài; /wallets/deduct đã bỏ (trừ tay = điều chỉnh âm có PIN).
+  const PIN_CQ = '2468';
+  await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu', '2026-01-01T00:00:00')",
+    [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN_CQ, 4)]);
   // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
   const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
     + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
@@ -442,8 +446,8 @@ async function main() {
       ['duyệt hoàn', () => duyet(yc.refund_id)],
       ['từ chối hoàn', () => goi('POST', `/refunds/${yc.refund_id}/reject`, { reason: 'thử kho bận' })],
       ['nạp ví', () => goi('POST', '/wallets/topup', { phone: s3, amount: 10000, payment_method: 'cash' })],
-      ['trừ tay', () => goi('POST', '/wallets/deduct', { phone: s3, amount: 10000 })],
-      ['điều chỉnh', () => goi('POST', '/wallets/adjust', { phone: s3, amount: 10000, reason: 'thử kho bận' })],
+      ['điều chỉnh', () => goi('POST', '/wallets/adjust', { phone: s3, amount: 10000, reason: 'thử kho bận', pin: PIN_CQ })],
+      ['điều chỉnh âm (trừ tay)', () => goi('POST', '/wallets/adjust', { phone: s3, amount: -10000, reason: 'thử kho bận', pin: PIN_CQ })],
       ['đối soát', () => goi('POST', `/wallets/${s3}/reconcile`, {})],
       ['đối soát toàn bộ', () => goi('POST', '/wallets/reconcile-all', {})],
       ['báo hỏng', () => baoHong(dHong, { product_code: sp[1].code, quantity: 1, action: 'refund' })],
@@ -482,7 +486,7 @@ async function main() {
     const s2 = sdtMoi();
     await db.run('INSERT INTO pos_wallets (phone, balance, total_topup, total_spent) VALUES (?, 50000, NULL, NULL)', [s2]);
     const a = await goi('POST', '/wallets/topup', { phone: s2, amount: 10000, payment_method: 'cash' });
-    const b = await goi('POST', '/wallets/deduct', { phone: s2, amount: 5000 });
+    const b = await goi('POST', '/wallets/adjust', { phone: s2, amount: -5000, reason: 'trừ tay', pin: PIN_CQ });   // TIEN-KHOA-2: /deduct đã bỏ
     const w2 = await tho(s2);
     k('V2 ví total_topup / total_spent NULL → nạp 10.000, trừ 5.000 → hai cột 10.000 / 5.000 (không NULL)', a.status === 200 && b.status === 200
       && w2?.total_topup !== null && w2?.total_spent !== null && Number(w2.total_topup) === 10000 && Number(w2.total_spent) === 5000,

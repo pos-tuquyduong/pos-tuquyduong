@@ -376,13 +376,13 @@ async function main() {
     `${moTa(vm)} · ${viChu(await vi(sMeVM))}`);
   const sC4 = sdtMoi();
   await banNap(sC4, ID1);
-  const c4a = await goi('POST', '/wallets/deduct', { phone: sC4, amount: 21000, notes: 'trừ tay' });
+  const c4a = await goi('POST', '/wallets/adjust', { phone: sC4, amount: -21000, reason: 'trừ tay', pin: PIN });   // TIEN-KHOA-2: /deduct đã bỏ
   const vC4a = await vi(sC4);
-  const c4b = await goi('POST', '/wallets/adjust', { phone: sC4, amount: -21000, reason: 'điều chỉnh giảm' });
+  const c4b = await goi('POST', '/wallets/adjust', { phone: sC4, amount: -21000, reason: 'điều chỉnh giảm', pin: PIN });
   const vC4b = await vi(sC4);
-  const c4c = await goi('POST', '/wallets/adjust', { phone: sC4, amount: 10000, reason: 'điều chỉnh tăng' });
+  const c4c = await goi('POST', '/wallets/adjust', { phone: sC4, amount: 10000, reason: 'điều chỉnh tăng', pin: PIN });
   const vC4c = await vi(sC4);
-  k('C4 /deduct 21.000 → thưởng 4.000; /adjust −21.000 → thưởng 3.000; /adjust +10.000 → tiền nạp (thưởng giữ 3.000)',
+  k('C4 /adjust −21.000 → thưởng 4.000; /adjust −21.000 → thưởng 3.000; /adjust +10.000 → tiền nạp (thưởng giữ 3.000)',
     c4a.status === 200 && vC4a.thuong === 4000 && c4b.status === 200 && vC4b.thuong === 3000 && c4c.status === 200 && vC4c.so_du === 73000 && vC4c.thuong === 3000,
     `${viChu(vC4a)} · ${viChu(vC4b)} · ${viChu(vC4c)}`);
   const c5 = c1.order ? await goi('PUT', `/orders/${c1.order.id}/cancel`, { reason: 'thử huỷ' }) : c1;
@@ -503,7 +503,7 @@ async function main() {
     k('D2 xoá đơn nạp → 400 NAP_KHONG_HOAN', d2.status === 400 && d2.code === 'NAP_KHONG_HOAN', moTa(d2));
     k('D3 yêu cầu hoàn đơn nạp → 400 NAP_KHONG_HOAN; D4 đền bù đơn nạp → 400; đơn còn completed, ví không đổi',
       d3.status === 400 && d3.code === 'NAP_KHONG_HOAN' && d4.status === 400 && don?.status === 'completed' && sau.so_du === truoc.so_du && sau.thuong === truoc.thuong, `${moTa(d3)} · ${moTa(d4)} · ${don?.status}`);
-    const d5 = await goi('POST', '/wallets/adjust', { phone: s1, amount: -1000, reason: '' });
+    const d5 = await goi('POST', '/wallets/adjust', { phone: s1, amount: -1000, reason: '', pin: PIN });
     k('D5 điều chỉnh tay thiếu lý do → 400 (như cũ)', d5.status === 400, moTa(d5));
   }
 
@@ -742,8 +742,8 @@ async function main() {
     const [k5, c5x] = await ket();
     const doi = f1.order ? await goi('POST', `/orders/${f1.order.id}/doi-cach-tra`, { sang: 'transfer', ly_do: 'khách chuyển khoản' }) : f1;
     const [k6, c6x] = await ket(), ss6 = await soSach();
-    k('K8 đổi tiền mặt → CK trên đơn nạp: két −100.000, CK +100.000, ô tiền nạp không đổi tổng, ví không đổi',
-      doi.status === 200 && k5.rong - k6.rong === 100000 && c6x.rong - c5x.rong === 100000 && ss6.tien_vao?.trong_do_nap === ss4.tien_vao?.trong_do_nap
+    k('K8 đổi tiền mặt → CK trên đơn nạp → 409 DOI_SANG_CK_PHAI_QUA_QR (TIEN-KHOA-2): két, CK, ô tiền nạp, ví không đổi',
+      doi.status === 409 && doi.code === 'DOI_SANG_CK_PHAI_QUA_QR' && k5.rong === k6.rong && c6x.rong === c5x.rong && ss6.tien_vao?.trong_do_nap === ss4.tien_vao?.trong_do_nap
         && (await vi(sF)).so_du === 155000 - 0,
       `${moTa(doi)} · két ${k5.rong}→${k6.rong} · CK ${c5x.rong}→${c6x.rong}`);
     const sTk = await goi('GET', `/reports/so-sach?tu=${homNay}&den=${homNay}`, null, THE_NV);
