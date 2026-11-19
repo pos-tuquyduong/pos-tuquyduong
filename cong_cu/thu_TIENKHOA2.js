@@ -127,7 +127,7 @@ async function main() {
     const r = await gui();
     const sau = await vet();
     const them = await kiemThem(r);
-    k(`${ten} → ${status} ${code}, không ghi gì`, la(r, status, code) && sau === t && !them,
+    k(`${ten} → ${status}${code ? ' ' + code : ''}, không ghi gì`, la(r, status, code) && sau === t && !them,
       `${moTa(r)}${sau === t ? '' : ' · dấu vết ' + t + ' → ' + sau}${them ? ' · ' + them : ''}`);
     return r;
   };
@@ -155,8 +155,9 @@ async function main() {
     return { r: x, id: x.j.order?.id };
   };
   const donNo = async (sdt, no = 25000, cach = 'debt') => {
+    imLang();
     const r = await donCu(MAY_CHU, { ...(sdt ? { customer_phone: sdt, customer_name: 'K' } : {}), items: [mon()], payment_method: cach, debt_amount: no,
-      ...(cach === 'debt' ? { due_date: '2026-12-31' } : {}) });
+      ...(cach === 'debt' ? { due_date: '2026-12-31' } : {}) }).finally(noiLai);
     if (r.status !== 200) throw new Error('không dựng được đơn nợ cũ: HTTP ' + r.status + ' ' + JSON.stringify(r.body).slice(0, 120));
     return r.body.order.id;
   };
@@ -190,16 +191,17 @@ async function main() {
     const g = await khach(30000);
     const ph = await goi('POST', '/pos/thanh-toan/phien', { cach: 'tai_khoan', don: { customer_phone: g, customer_name: 'K', items: [mon()] }, tru_tai_khoan: true, pin: PIN_KH });
     await caChan(`A2e PIN đúng, trừ 10.000 khi 25.000 / 30.000 đang giữ cho phiên (${moTa(ph)})`, () => chinh(g, -10000, PIN_CQ), 400, 'SO_DU_KHONG_DU');
-    // A2f + K5-1: chủ quán cộng tay có PIN đúng.
+    // A2f + K5-1: chủ quán cộng tay có PIN đúng (khách riêng — không phụ thuộc kết quả các ca chặn ở trên).
+    const kh2 = await khach(50000);
     const dong0 = await soCh('SELECT COALESCE(MAX(id), 0) AS n FROM pos_balance_transactions');
-    const f = await chinh(kh, 10000, PIN_CQ, 'Bù khách thiếu tiền thối');
+    const f = await chinh(kh2, 10000, PIN_CQ, 'Bù khách thiếu tiền thối');
     const d = await db.queryOne('SELECT * FROM pos_balance_transactions WHERE id > ? ORDER BY id', [dong0]);
     const soDong = await soCh('SELECT COUNT(*) AS n FROM pos_balance_transactions WHERE id > ?', [dong0]);
-    k('A2f (K5) PIN đúng cộng +10.000 → 200, số dư 60.000, ĐÚNG MỘT dòng sổ adjust đủ người · lý do · giờ VN', la(f, 200) && (await soDu(kh)) === 60000
+    k('A2f (K5) PIN đúng cộng +10.000 → 200, số dư 60.000, ĐÚNG MỘT dòng sổ adjust đủ người · lý do · giờ VN', la(f, 200) && (await soDu(kh2)) === 60000
       && soDong === 1 && d?.type === 'adjust' && Number(d?.amount) === 10000 && d?.created_by === chu.username && d?.notes === 'Bù khách thiếu tiền thối'
-      && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(String(d?.created_at)), `${moTa(f)} · ${await soDu(kh)} · ${soDong} dòng · ${JSON.stringify(d)?.slice(0, 160)}`);
-    const tr = await chinh(kh, -20000, PIN_CQ, 'Thu lại khoản cộng nhầm');
-    k('A2f2 (K5) PIN đúng trừ −20.000 trong số khả dụng → 200, số dư 40.000', la(tr, 200) && (await soDu(kh)) === 40000, `${moTa(tr)} · ${await soDu(kh)}`);
+      && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(String(d?.created_at)), `${moTa(f)} · ${await soDu(kh2)} · ${soDong} dòng · ${JSON.stringify(d)?.slice(0, 160)}`);
+    const tr = await chinh(kh2, -20000, PIN_CQ, 'Thu lại khoản cộng nhầm');
+    k('A2f2 (K5) PIN đúng trừ −20.000 trong số khả dụng → 200, số dư 40.000', la(tr, 200) && (await soDu(kh2)) === 40000, `${moTa(tr)} · ${await soDu(kh2)}`);
     // A2h: hai người cùng bấm.
     const h = await khach(30000);
     const t1 = await vet();
@@ -212,7 +214,7 @@ async function main() {
     k('A2h2 hai người cùng trừ hết số dư 30.000 (PIN đúng cả hai) → một 200 + một 400 SO_DU_KHONG_DU, số dư 0', st === '200,400'
       && ra.some((r) => la(r, 400, 'SO_DU_KHONG_DU')) && (await soDu(h)) === 0, `${ra.map(moTa).join(' / ')} · ${await soDu(h)}`);
     const ds = await doiSoat();
-    const dc = (ds.can_xem || []).filter((l) => l.bat_bien === 'DC' && l.mo_ta.includes(kh) && l.mo_ta.includes('Bù khách thiếu tiền thối'));
+    const dc = (ds.can_xem || []).filter((l) => l.bat_bien === 'DC' && l.mo_ta.includes(kh2) && l.mo_ta.includes('Bù khách thiếu tiền thối'));
     k('A2j Đối soát hôm nay: dòng CẦN XEM "DC" cho lần điều chỉnh (SĐT + lý do + người), không ĐỎ', dc.length === 1 && dc[0].mo_ta.includes(chu.username)
       && !(ds.do || []).some((l) => l.bat_bien === 'DC'), JSON.stringify((ds.can_xem || []).filter((l) => l.bat_bien === 'DC')).slice(0, 200));
   });
@@ -242,14 +244,17 @@ async function main() {
     const ct = await donNo(null, 25000, 'cho_thu');
     await caChan('A4b bill chờ thu (cho_thu) thu bằng chuyển khoản', () => thuNo(ct, 'transfer'), 400, 'THU_NO_CK_PHAI_QR');
     await caChan('A4c cách trả lạ "the"', () => thuNo(no, 'the'), 400, 'CACH_TRA_LA');
-    const tc = await thuNo(ct, 'cash');
-    k('A4f (K5) bill chờ thu thu tiền mặt → 200 paid', la(tc, 200) && (await donDb(ct))?.payment_status === 'paid', moTa(tc));
+    const ct2 = await donNo(null, 25000, 'cho_thu');
+    const tc = await thuNo(ct2, 'cash');
+    k('A4f (K5) bill chờ thu thu tiền mặt → 200 paid', la(tc, 200) && (await donDb(ct2))?.payment_status === 'paid', moTa(tc));
     // K5-3: thu một phần rồi đủ bằng tiền mặt, điểm cộng khi đủ.
-    const d0 = await soCh('SELECT COUNT(*) AS n FROM pos_point_transactions WHERE customer_phone = ?', [kh]);
-    const p1 = await thuNo(no, 'cash', 10000);
-    const p2 = await thuNo(no, 'cash', 15000);
-    const o = await donDb(no);
-    const d1 = await soCh('SELECT COUNT(*) AS n FROM pos_point_transactions WHERE customer_phone = ?', [kh]);
+    const kh3 = await khach(0);
+    const no3 = await donNo(kh3);
+    const d0 = await soCh('SELECT COUNT(*) AS n FROM pos_point_transactions WHERE customer_phone = ?', [kh3]);
+    const p1 = await thuNo(no3, 'cash', 10000);
+    const p2 = await thuNo(no3, 'cash', 15000);
+    const o = await donDb(no3);
+    const d1 = await soCh('SELECT COUNT(*) AS n FROM pos_point_transactions WHERE customer_phone = ?', [kh3]);
     k('A4g (K5) đơn nợ cũ thu tiền mặt 10.000 rồi 15.000 → partial rồi paid, tiền mặt 25.000, nợ 0, có điểm khi đủ', la(p1, 200) && p1.j.data?.payment_status === 'partial'
       && la(p2, 200) && o?.payment_status === 'paid' && Number(o?.cash_amount) === 25000 && Number(o?.debt_amount) === 0 && d1 > d0,
     `${moTa(p1)} · ${moTa(p2)} · ${o?.payment_status} · tm ${o?.cash_amount} · nợ ${o?.debt_amount} · điểm ${d0} → ${d1}`);
