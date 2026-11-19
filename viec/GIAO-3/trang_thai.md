@@ -278,3 +278,39 @@ HEAD ĐÃ KIỂM: d8125732
 - Gốc cổng sau ghép: bc16e140 (main).
 
 HEAD ĐÃ KIỂM: f1ef0aec
+
+## Quyết định chủ quán 19.11 (trả lời câu hỏi máy — chat ghi vào QUYET_DINH_CHU_QUAN.md, máy không sửa sổ đó)
+1. Ahamove báo phí KHÁCH 0 → CHẶN: không tạo báo phí, quầy bấm Tính phí lại (không bao giờ có đơn giao phí 0 do Ahamove báo 0).
+2. Chú thích dưới ô Thực thu đổi thành "= tiền thật vào quán (gồm nạp, trừ hoàn) — cùng số Đối soát".
+
+### Đã làm
+- server/utils/giaoHang.js taoBaoPhi: sau kiểm "Quá xa", `bp.phi > 0` không đạt → 502 `AHAMOVE_CHUA_BAO_PHI` "Ahamove chưa báo được phí — bấm Tính phí lại"
+  (đúng tên nút "Tính phí" của KhungGiao.jsx; màn Bán hàng hiện nguyên câu máy chủ). Đường gọi xe (taoChuyenMoi tự hỏi aha.baoPhi) KHÔNG bị chặn — giữ
+  luật phí 0 = để trống. Phí rỗng / chữ đã bị aha.baoPhi ném AHAMOVE_TU_CHOI từ trước (câu "Ahamove từ chối — kiểm tra địa chỉ rồi thử lại").
+- client/src/pages/Reports.jsx: câu chú thích mới; build client/dist.
+- thu_GIAO3: ca "C1 (chủ quán 19.11)" (phí 0 → 502, không ghi báo phí; phí 16.000 → 200); G3 câu mới; ca C3 gọi xe phí 0 đặt phí báo 0 SAU khi tạo đơn.
+- dot_bien.py: BV-bao-phi-khach-0, VS-bao-phi-khach-am, BV-chu-thich-thuc-thu.
+
+### Số (HEAD f74d9571)
+- thu_GIAO3: 47 đạt · 0 hỏng; trên gốc (9 file của main bc16e140, 2 file mới xoá): 12 đạt · 35 hỏng = 47 — ca C1 (chủ quán 19.11) đỏ: gốc trả 200 phí 0.
+- dot_bien.py: ĐỐI CHỨNG XANH 47/47 · TỔNG 34 · BẮT 34 · SỐNG 0 · HỎNG 0 · LẠC 0.
+- `--day-du`: PASS 127 · FAIL 0 · CẢNH BÁO 1 (GET có lệnh ghi — packages.js / products.js / sync.js, có sẵn).
+- `node tu_chay/cong.js chay . bc16e140 HEAD viec/GIAO-3`: lần 1 ✗ — `thu_gia_lap.js` "data/ không đổi (pos_thu.db mtime đổi)" (không phải mã việc này: thu_gia_lap
+  xanh ở --day-du ngay trước; nghi tiến trình khác của cổng chạm data/pos_thu.db cùng lúc — ghi Phát hiện); lần 2 ✓ CỔNG CHẠY ĐẠT.
+
+### Soát độc lập phần thêm (agent, diff e4e7f8ff..ee8ca467 trước sửa nhẹ)
+ĐẠT — không lỗi NẶNG. Ca mới đỏ trên gốc, phí > 0 vẫn qua; một chỗ ghi pos_giao_bao_phi; App KH chưa có giao; gọi xe không bị chặn; câu chú thích đúng với
+soSach (rong = bán + thu nợ + nạp tay − trả ra). Điểm NHẸ đã sửa: kiểm phí đặt SAU kiểm "Quá xa"; câu báo "bấm Tính phí lại" khớp nút; chú thích code nói
+đúng phạm vi (phí 0, không phải "không ra số"). Còn lại → Phát hiện.
+
+### Phát hiện (thêm)
+- docBaoPhiDon không kiểm phí > 0: báo phí 0 ghi TRƯỚC khi triển khai vẫn dùng được trong 30 phút (đường chốt phiên boQuaHan không hạn) — chỉ có trong
+  khoảng triển khai, không sửa dữ liệu.
+- Ahamove trả total_price 0 mà total_fee > 0: baoPhi đọc `total_price ?? total_fee` → lấy 0 → nay bị chặn (quầy không báo được phí). Chưa có dữ liệu thật — đọc
+  log `[GIAO] phi` (in cả hai trường) để quyết.
+- Chưa có ca "quá xa + phí 0 → báo Quá xa" (Ahamove giả luôn trả 3 km).
+- cong.js lần 1: data/pos_thu.db bị ghi trong lúc thu_gia_lap chạy — cổng đỏ thất thường; nên truy tiến trình ghi data/ khi cổng chạy song song.
+
+CHƯA KIỂM: câu báo trên màn Bán hàng thật (điện thoại); dạng phí thật của Ahamove khi báo 0.
+
+HEAD ĐÃ KIỂM: f74d9571
