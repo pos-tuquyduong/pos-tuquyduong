@@ -234,8 +234,9 @@ export default function Reports() {
                       <TrendingUp size={14} color="#22c55e" /> Thực thu
                     </div>
                     <div className="stat-value text-success">
-                      {formatPrice((report?.order_stats?.total_revenue || 0) - (report?.order_stats?.total_discount || 0) + (report?.order_stats?.total_shipping || 0))}
+                      {formatPrice(report?.thuc_thu)}
                     </div>
+                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>= tiền mặt + chuyển khoản thật nhận</div>
                   </div>
                 </div>
 

@@ -8,6 +8,7 @@ import { api, thanhToanApi } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { baoXong, baoLoi, baoLoiTu } from './thongBaoKho.js';   // BAO-1a
 
+const HAN_DOI_SOAT_MS = 60000;   // GIAO-3 D3: quá chừng này thôi chờ — báo người dùng bấm lại / chọn kỳ ngắn hơn (không treo "Đang đối soát…")
 const KIEU = [['ngay', 'Ngày'], ['tuan', 'Tuần'], ['thang', 'Tháng']];
 const NHOM = [
   ['do', '🔴 LỆCH — cần xử lý', '#dc2626'],
@@ -33,13 +34,13 @@ export default function DoiSoat() {
   const chay = async (k = kieu, n = ngay) => {
     setDangChay(true); setLoi('');
     try {
-      const r = await api.get(`/reports/doi-soat?kieu=${k}${n ? '&ngay=' + n : ''}`);
+      const r = await api.get(`/reports/doi-soat?kieu=${k}${n ? '&ngay=' + n : ''}`, { han: HAN_DOI_SOAT_MS });
       setKq(r);
       if (!n) setNgay(r.hom_nay);
       setKet({ so_tien: r.ket?.so_dem ?? '', de_lai: r.ket?.de_lai ?? '' });
       setSaoKe({ da_so: r.sao_ke?.da_so === 1, ghi_chu: r.sao_ke?.ghi_chu || '' });
     } catch (e) {
-      setLoi(e.message || 'Không đối soát được');
+      setLoi(e.code === 'QUA_HAN' ? 'Đối soát quá lâu — thử lại hoặc chọn kỳ ngắn hơn' : e.message || 'Không đối soát được');
     } finally {
       setDangChay(false);
     }
