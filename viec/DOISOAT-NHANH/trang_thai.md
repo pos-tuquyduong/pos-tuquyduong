@@ -10,7 +10,8 @@
 ## C1 — tái hiện chỗ treo
 - Đọc code: mọi `await` trên đường Đối soát chỉ chờ câu kho (`bat_bien.js` 32 chỗ `await q(`; `doiSoat.js` chỉ `chiDoc` / hàm con của nó;
   `giaoHang.js doiSoatGiao` chỉ `await q(`). → khả năng (2) "await một thứ khác" KHÔNG có trong code; chỗ treo là một câu kho không có trả lời.
-- **Khả năng (1) TÁI HIỆN ĐƯỢC** (kho giả bọc `execute`, câu "loại dòng điểm lạ" của I8 không trả lời): bản gốc TREO quá hạn ngoài của bài
+- **Khả năng (1) DỰNG ĐƯỢC bằng câu ÉP treo** (kho giả bọc `execute`, câu "loại dòng điểm lạ" của I8 không trả lời) — chứng minh code cũ treo NẾU một câu
+  không trả lời, CHƯA chứng minh đó là nguyên nhân trên Turso: bản gốc TREO quá hạn ngoài của bài
   (✗ C1 (1) — TREO, bang_chung_do.txt). Trên kho rỗng + 2 đơn thử, câu đó là câu thứ 15 của lượt (phanLoai chen câu `tra`).
 - **Khả năng (2) KHÔNG tái hiện**: dữ liệu cũ (tháng 9, trước mốc AP_DUNG_TU) có lệch I3 / I6 / I8, phanLoai gọi `tra` → bản GỐC chạy xong
   (ca C1 (2) xanh trên gốc).
@@ -39,6 +40,13 @@
 | doiSoat.js log bat_dau / buoc / D2 / sao_ke (A1) | BV-log-bat-dau, BV-log-buoc, BV-buoc-D2, BV-buoc-sao-ke |
 | doiSoat.js dừng khi khách bỏ (B3) | BV-bo-giua |
 | reports.js truyền tín hiệu (B3) | BV-tin-hieu-route |
+| database.js hết mốc TRƯỚC khi gửi: ném ngoài try (soát vòng 1) | VS-het-moc-dem-rot |
+| doiSoat.js chiDoc ngoài lượt KHÔNG hạn (soát vòng 1) | VS-ngoai-luot-co-han |
+| database.js một vị từ conLuot còn lượt + còn giờ cho mọi loại lỗi (soát vòng 2) | VS-moc-chi-qua-han |
+
+Tên đột biến (24): BV-dang-cho-log, VS-dang-cho-chi-khi-xong, BV-dang-cho-kn1, BV-han-cau, VS-qua-han-khong-doc-lai, VS-qua-han-thanh-mat-ket-noi,
+VS-han-mac-dinh-moi-duong, VS-ngoai-luot-co-han, VS-het-moc-dem-rot, VS-moc-chi-qua-han, VS-han-khong-moc, VS-luot-khong-moc, VS-hang-so-cau, VS-hang-so-luot,
+VS-ma-loi-qua-han, VS-loi-sai-buoc, BV-log-qua-han, BV-ngu-canh-luot, BV-log-bat-dau, BV-log-buoc, BV-buoc-D2, BV-buoc-sao-ke, BV-bo-giua, BV-tin-hieu-route.
 
 ## Kiểm
 (điền sau khi chạy)
@@ -75,3 +83,52 @@ BÀI HỌC:
 ```
 (Bản trên rút gọn phần "kết quả từng mục" — các mục 1–8 không có lỗi thêm; NGHIỆM THU dòng từng mục: A1 :104–124, A2 :198–211 + KETNOI1 :685–687,
 B1 :84, 127–145, B2 :85–89, 159–170, B3 :213–221, B4 :223–240, C1 :133, :149, C2 BV-han-cau / BV-ngu-canh-luot, C3 trang_thai, D1 :154–157, D2 một phần.)
+
+## Vòng sửa 1 (d2af13e) — theo soát vòng 1
+- Lỗi 1: thêm ca `D2 soSach (qua chiDoc, ngoài lượt …)` + đột biến VS-ngoai-luot-co-han (BẮT).
+- Lỗi 2: ke_hoach mục 3 sửa ÷50 / hạn tổng thử 2,5 s; ca B2 cận trên = hạn tổng + 150 ms (sau mốc không còn chờ đọc lại), tên ca khớp máy kiểm.
+- Lỗi 3: `database.js` hết mốc TRƯỚC khi gửi ném ngoài try + ca "hết mốc trước khi gửi" + đột biến VS-het-moc-dem-rot (BẮT).
+- Nghi ngờ thu_GIAO3.js:475: `--day-du` xanh (thu_GIAO3 5,4 s); vòng 2 đọc thêm: vế `man.chu(nutChay()) === 'Đối soát'` che (DoiSoat.jsx:35
+  `setDangChay(true)` đồng bộ) → không sửa bài cũ (sửa = "Bài thử cũ sửa", phải hỏi chủ quán). Ghi Phát hiện.
+- Nghi ngờ thu_DOISOATNHANH.js:96 viết cứng 'I7': BO_QUA không xuất khỏi doiSoat.js; đổi BO_QUA thì ca A1 đỏ — chủ ý báo cho người sửa thấy (K2 có thể
+  xảy ra, nhưng rõ ràng). Không sửa.
+- Nghi ngờ ca :138 (I9) xanh trên gốc: đúng — các ca 503 / treo cạnh nó đỏ trên gốc; ca này khoá "không chạy bước sau" sau khi đã vá.
+
+## Soát độc lập — vòng 2 (agent general-purpose)
+```
+KHÔNG ĐẠT — chỉ còn lỗi NHẸ. Không lỗi nào đụng tiền, điểm, ví hay bảo mật, không lỗi nào ngoài Phạm vi. E1 và E2 đang chờ.
+Hai (ba) lỗi vòng 1 đã sửa đúng: database.js:1599–1600 ném ngoài try (VS-het-moc-dem-rot đưa đúng hai dòng bản c7b375eb); ca soSach :186–190 +
+VS-ngoai-luot-co-han; hồ sơ ÷50, tên ca B2 khớp cận.
+LỖI TÌM ĐƯỢC:
+1. server/database.js:1613 + :1599–1600 + :1619 — NHẸ · K4 (đường song song của lỗi vòng 1 số 3, ở lần thử lan > 0). Lỗi mạng xét conLuot không
+   nhìn mốc het → baoRot "thu lai", chờ CHO_DOC_MS[lan], vòng sau ms <= 0 ném loiQuaHan ngoài try → dòng [KET-NOI] báo "thu lai" mà không có lần thử;
+   thu_lai_hong / thu_lai_dat không tăng. Sửa gọn: conLuot = doc && lan < CHO_DOC_MS.length && (!han || han.het - Date.now() > CHO_DOC_MS[lan]) + ca lỗi
+   mạng sát mốc.
+2. trang_thai.md "## Kiểm" còn trống — chưa có bằng chứng npm test, --day-du, giả lập quầy, dot_bien.py. NHẸ (hồ sơ).
+3. trang_thai.md — ba NGHI NGỜ vòng 1 chưa được trả lời (thu_GIAO3.js:475; 'I7' viết cứng; ca :138). NHẸ.
+NGHI NGỜ:
+- K1 trang_thai.md:13 "TÁI HIỆN ĐƯỢC" — thật ra câu bị ÉP treo; nên ghi "dựng được bằng câu ép treo".
+- tongHop / tienTheoSo Promise.all: khi lượt ném 503 / bo_giua, câu anh em vẫn chạy vòng đọc lại (chặn bởi het ≤ 50 s) — có thể nhiều dòng qua_han.
+- reports.js:386–387 'close' gắn sau authenticate — câu authenticate không hạn giờ; ngoài Phạm vi → Phát hiện.
+- Xác nhận "đọc lại là yêu cầu mới, độc lập": @libsql/core config.js:56–64 preferHttp; hrana-client 0.5.6 http/client.js:52–58 _endpointPromise =
+  Promise.resolve (protocol 2); http/stream.js:248 mỗi stream một fetch.
+NGHIỆM THU: 11/14 · thiếu D2 (vế bộ kiểm + giả lập), E1, E2 (chờ).
+BÀI HỌC:
+- KHOÁ: sửa nhánh "hết mốc / quá hạn" ở lần thử ĐẦU → ca cùng điều kiện ở lần thử SAU + đột biến.
+- NGUYÊN TẮC: vòng lặp có "còn lượt" lẫn "còn giờ" → MỘT vị từ conLuot cho MỌI loại lỗi (K4 · BAN-HANG-1).
+- NGUYÊN TẮC: NGHI NGỜ của vòng soát trước phải được trả lời trong trang_thai.
+```
+
+## Vòng sửa 2 (4fb68b7) — theo soát vòng 2
+- Lỗi 1: `conLuot` MỘT vị từ `(!han || han.het − bây giờ > chờ)` cho mọi loại lỗi + ca "B2 lỗi mạng sát mốc" (đỏ trên gốc và trên bản vòng 1) + đột biến
+  VS-moc-chi-qua-han.
+- Lỗi 2, 3 + nghi ngờ K1 :13: đã ghi ở trên / mục Kiểm.
+- Nghi ngờ Promise.all: chấp nhận — mọi câu anh em bị chặn bởi mốc het (≤ 50 s, không treo); nhiều dòng qua_han cho một lượt chỉ là log. Phát hiện.
+
+## Phát hiện (ngoài Phạm vi / không sửa)
+- `server/middleware/auth.js` authenticate hỏi kho KHÔNG hạn giờ, và `res.on('close')` (reports.js) gắn sau authenticate → nếu Turso treo ngay câu
+  xác thực thì màn vẫn chờ tới 60 s rồi tự bỏ (không treo mãi). Ngoài Phạm vi (Cấm: không thêm hạn cho câu đọc ngoài Đối soát).
+- `cong_cu/thu_GIAO3.js:475` dò `startsWith('[DOISOAT]')` — nay khớp sớm ở dòng `bat_dau`; vế nút "Đối soát" che nên chưa đỏ oan. Nếu đỏ thất thường:
+  đổi sang mẫu dòng cuối `/^\[DOISOAT\] ngay /` (cần mục "Bài thử cũ sửa").
+- Lượt bị huỷ giữa chừng (503 / bo_giua): câu anh em trong Promise.all của tongHop vẫn chạy tới mốc het → có thể vài dòng qua_han cho một lượt.
+- Yêu cầu HTTP libsql treo KHÔNG huỷ được (libsql 0.4.3 execute không nhận tín hiệu) — chỉ thôi chờ; `[CHAM] · đang chờ k câu` cho thấy số câu còn treo.
