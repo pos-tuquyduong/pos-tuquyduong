@@ -486,9 +486,11 @@ async function main() {
     const s2 = sdtMoi();
     await db.run('INSERT INTO pos_wallets (phone, balance, total_topup, total_spent) VALUES (?, 50000, NULL, NULL)', [s2]);
     const a = await goi('POST', '/wallets/topup', { phone: s2, amount: 10000, payment_method: 'cash' });
+    const b0 = await goi('POST', '/wallets/deduct', { phone: s2, amount: 5000 });   // đã bỏ → 404, không ghi
     const b = await goi('POST', '/wallets/adjust', { phone: s2, amount: -5000, reason: 'trừ tay', pin: PIN_CQ });   // TIEN-KHOA-2: /deduct đã bỏ
     const w2 = await tho(s2);
-    k('V2 ví total_topup / total_spent NULL → nạp 10.000, trừ 5.000 → hai cột 10.000 / 5.000 (không NULL)', a.status === 200 && b.status === 200
+    k('V2 ví total_topup / total_spent NULL → nạp 10.000, trừ 5.000 → hai cột 10.000 / 5.000 (không NULL); /wallets/deduct đã bỏ → 404', b0.status === 404
+      && a.status === 200 && b.status === 200
       && w2?.total_topup !== null && w2?.total_spent !== null && Number(w2.total_topup) === 10000 && Number(w2.total_spent) === 5000,
     `${moTa(a)} / ${moTa(b)} · ${JSON.stringify(w2)}`);
     const s3 = sdtMoi(); await nap(s3, 30000);

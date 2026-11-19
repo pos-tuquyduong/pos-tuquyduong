@@ -481,11 +481,13 @@ async function main() {
     const w = await goi('GET', `/pos/wallets/${f}`);
     k('F1 / F6 phiên giữ 75.000 / 100.000 → GET ví có dang_giu 75.000, kha_dung 25.000; chưa ghi dòng sổ ví nào', la(r, 200) && p.giu_vi === 75000
       && w.j.dang_giu === 75000 && w.j.kha_dung === 25000 && Number(w.j.balance) === 100000 && await soDongVi() === dong0, moTa(r) + ' ' + JSON.stringify(w.j));
+    const truCu = await goi('POST', '/pos/wallets/deduct', { phone: f, amount: 30000 }, tkChu);   // TIEN-KHOA-2: đã bỏ → 404
     const tru = await goi('POST', '/pos/wallets/adjust', { phone: f, amount: -30000, reason: 'trừ tay', pin: PIN_CQ }, tkChu);
     const dc = await goi('POST', '/pos/wallets/adjust', { phone: f, amount: -30000, reason: 'thử giữ', pin: PIN_CQ }, tkChu);
     // BO-MAN-CU-1: đường thẳng nay chặn trừ ví (VI_PHAI_QUA_PIN) → đơn trừ ví ngoài phiên dựng bằng thân taoDonGoc (khả dụng = số dư − đang giữ ở đó).
     const od = await donCuP3({ customer_phone: f, items: [mon(2)], balance_amount: 50000 });
-    k('F1 đang giữ: trừ tay 30.000 / điều chỉnh −30.000 / đơn trừ 50.000 (thân taoDonGoc) → 400 SO_DU_KHONG_DU', la(tru, 400, 'SO_DU_KHONG_DU')
+    k('F1 đang giữ: trừ tay 30.000 / điều chỉnh −30.000 / đơn trừ 50.000 (thân taoDonGoc) → 400 SO_DU_KHONG_DU; /wallets/deduct đã bỏ → 404', la(truCu, 404)
+      && la(tru, 400, 'SO_DU_KHONG_DU')
       && la(dc, 400, 'SO_DU_KHONG_DU') && la(od, 400, 'SO_DU_KHONG_DU'), [tru, dc, od].map(moTa).join(' / '));
     const nap = await goi('POST', '/pos/wallets/topup', { phone: f, amount: 5000 }, tkChu);
     const tru2 = await goi('POST', '/pos/wallets/adjust', { phone: f, amount: -30000, reason: 'trừ tay', pin: PIN_CQ }, tkChu);

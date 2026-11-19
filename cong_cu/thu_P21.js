@@ -155,6 +155,9 @@ async function main() {
     await buoc('huỷ đơn', goi('PUT', `/orders/${dHuy.id}/cancel`, { reason: 'thử P21' }));   // refund +19.000
     await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu_p21', '2026-01-01T00:00:00')",
       [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync('2468', 4)]);   // TIEN-KHOA-2: điều chỉnh cần PIN chủ quán
+    const dcKhongPin = await goi('POST', '/wallets/adjust', { phone: sdt, amount: -3000, customer_name: 'Khách', reason: 'thử P21' });
+    k('điều chỉnh KHÔNG PIN chủ quán → 400 PIN_CHU_QUAN_SAI (TIEN-KHOA-2)', dcKhongPin.status === 400 && dcKhongPin.code === 'PIN_CHU_QUAN_SAI',
+      `HTTP ${dcKhongPin.status} · ${dcKhongPin.code}`);
     await buoc('điều chỉnh', goi('POST', '/wallets/adjust', { phone: sdt, amount: -3000, customer_name: 'Khách', reason: 'thử P21', pin: '2468' })); // adjust −3.000
     const it = await db.queryOne('SELECT product_code FROM pos_order_items WHERE order_id = ?', [dVi.id]);
     await buoc('đền bù', goi('POST', '/damages', { order_id: dVi.id, product_code: it.product_code, quantity: 1,
