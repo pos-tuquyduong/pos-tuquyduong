@@ -39,9 +39,9 @@ const J = (x) => String(JSON.stringify(x) ?? 'undefined');
 const ngu = (ms) => new Promise((ok) => setTimeout(ok, ms));
 const NGAY = '2026-11-18';
 const RUT = 50;   // hạn giờ của bài = hạn thật ÷ RUT
-const HAN_NGOAI_MS = 20000 / RUT;   // C1: "treo" = quá hạn ngoài của bài (20 s thật ÷ RUT)
+const HAN_NGOAI_MS = 4000;   // C1: "treo" = quá hạn ngoài của bài (phiếu: 20 s; bài rút còn 4 s — vẫn > hạn tổng thử 2,5 s + chờ đọc lại)
 // Bọc lời hứa bằng hạn ngoài của bài: hết hạn → { treo: true } (bản chưa vá treo mãi ở đây).
-const coHanNgoai = (p, ms = HAN_NGOAI_MS * 3) => Promise.race([p.then((kq) => ({ kq }), (loi) => ({ loi })), ngu(ms).then(() => ({ treo: true }))]);
+const coHanNgoai = (p, ms = HAN_NGOAI_MS) => Promise.race([p.then((kq) => ({ kq }), (loi) => ({ loi })), ngu(ms).then(() => ({ treo: true }))]);
 
 async function main() {
   const express = require(path.join(GOC, 'node_modules', 'express'));
@@ -130,7 +130,7 @@ async function main() {
   let r = await coHanNgoai(ds.chayDoiSoat({ kieu: 'ngay', ngay: NGAY }));
   let ms = Date.now() - t;
   const thuTu = G.gui.filter((x) => x.moi).findIndex((x) => LA_DIEM.test(x.sql)) + 1;
-  k('C1 (1) câu "loại dòng điểm lạ" (I8) không trả lời → lượt KHÔNG treo quá hạn ngoài của bài (20 s ÷50)', !r.treo, r.treo ? 'TREO' : `${ms} ms`);
+  k('C1 (1) câu "loại dòng điểm lạ" (I8) không trả lời → lượt KHÔNG treo quá hạn ngoài của bài (4 s)', !r.treo, r.treo ? 'TREO' : `${ms} ms`);
   k('B1 → lỗi 503 DOI_SOAT_QUA_HAN "Đối soát quá lâu ở bước I8 — thử lại sau"', !!r.loi && r.loi.status === 503 && r.loi.code === 'DOI_SOAT_QUA_HAN'
     && r.loi.message === 'Đối soát quá lâu ở bước I8 — thử lại sau', r.loi ? `${r.loi.status} ${r.loi.code} ${r.loi.message}` : J(r.treo || 'không lỗi'));
   k(`B1 đọc lại đúng luật KET-NOI-1: câu treo gửi đúng 1 + ${db.CHO_DOC_MS.length} lần, chờ đủ mỗi lần (≥ 3 × hạn câu)`, soGui(LA_DIEM) === 1 + db.CHO_DOC_MS.length && ms >= 3 * CAU, `${soGui(LA_DIEM)} lần · ${ms} ms`);
