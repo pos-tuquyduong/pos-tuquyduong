@@ -369,6 +369,16 @@ async function main() {
 
   // ═══ C · phí Ahamove không về 0 ═══════════════════════════════════════
   muc('[C] Phí Ahamove không về 0 (D-PHI-1)');
+  // Chủ quán 19.11: Ahamove báo phí KHÁCH 0 → không tạo báo phí (không đơn giao phí 0); phí > 0 vẫn báo bình thường (K5).
+  const soBaoPhi = async () => Number((await db.queryOne('SELECT COUNT(*) AS n FROM pos_giao_bao_phi')).n);
+  const bp0 = await soBaoPhi();
+  A.phi = 0;
+  const bpKhong = await goi('POST', '/giao-hang/bao-phi', { dia_chi: 'Số 3 Ngõ Thử, Hà Nội' });
+  A.phi = 16000;
+  const bpCo = await goi('POST', '/giao-hang/bao-phi', { dia_chi: 'Số 3 Ngõ Thử, Hà Nội' });
+  k('C1 (chủ quán 19.11) Ahamove báo phí khách 0 → 502 AHAMOVE_CHUA_BAO_PHI "Ahamove chưa báo được phí — bấm báo phí lại", không ghi báo phí; phí 16.000 → báo bình thường',
+    bpKhong.status === 502 && bpKhong.j.code === 'AHAMOVE_CHUA_BAO_PHI' && bpKhong.j.error === 'Ahamove chưa báo được phí — bấm báo phí lại'
+    && bpCo.status === 200 && bpCo.j.phi === 16000 && await soBaoPhi() === bp0 + 1, J([bpKhong.status, bpKhong.j, bpCo.status, bpCo.j.phi]));
   const vC = await moChuyen();
   const cC0 = await chuyenCua(vC.id);
   const nC = nhatKy.length;
@@ -448,7 +458,8 @@ async function main() {
     k('G2 màn hiện ĐÚNG số máy chủ thuc_thu (hôm nay có đơn 30.000 + phí 16.000 tiền mặt) — không phải công thức cũ của màn',
       tt.j.thuc_thu != null && soMan === String(tt.j.thuc_thu) && soMan !== String(tt.j.order_stats.total_revenue - tt.j.order_stats.total_discount + tt.j.order_stats.total_shipping),
       `màn "${man.chu(the())}" · máy chủ ${tt.j.thuc_thu}`);
-    k('G3 dưới ô có dòng "= tiền mặt + chuyển khoản thật nhận"', man.chu(the()).includes('= tiền mặt + chuyển khoản thật nhận'), man.chu(the()));
+    k('G3 dưới ô có dòng "= tiền thật vào quán (gồm nạp, trừ hoàn) — cùng số Đối soát" (chủ quán 19.11)',
+      man.chu(the()).includes('= tiền thật vào quán (gồm nạp, trừ hoàn) — cùng số Đối soát'), man.chu(the()));
   } catch (e) { k('G màn dựng được Reports.jsx', false, e.message); }
   const reportsSrc = fs.readFileSync(path.join(SRC, 'pages', 'Reports.jsx'), 'utf8');
   k('G4 client/src/pages/Reports.jsx không còn tự cộng / trừ total_revenue / total_discount / total_shipping', !/(total_revenue|total_discount|total_shipping)[^\n]*\)\s*[-+]/.test(reportsSrc));
