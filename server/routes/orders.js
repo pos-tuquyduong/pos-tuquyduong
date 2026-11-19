@@ -1528,6 +1528,10 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     const { id } = req.params;
     const { payment_method, amount } = req.body;
 
+    // TIEN-KHOA-2 (chủ quán 18.11): thu nợ CHỈ tiền mặt — chuyển khoản phải qua QR, đường này không mở phiên QR.
+    if (payment_method === "transfer") {
+      return res.status(400).json({ error: "Thu nợ chuyển khoản phải qua QR — tạm thu tiền mặt", code: "THU_NO_CK_PHAI_QR" });
+    }
     // Validate payment_method
     if (!payment_method || !["cash", "transfer"].includes(payment_method)) {
       return res

@@ -107,14 +107,18 @@ router.get('/:id/nhat-ky', authenticate, async (req, res) => {
 //   ② chỉ bill trả MỘT cách: toàn tiền mặt hoặc toàn chuyển khoản
 //   ③ bắt buộc lý do — ghi vào nhật ký cùng người làm
 //   ④ chống đổi hai lần: chỉ ghi khi số tiền trong sổ còn đúng như lúc đọc
-// Không cần quyền riêng: nhân viên vốn đã tự chọn tiền mặt / chuyển khoản lúc bán,
-// đường này không mở thêm khả năng nào — nhưng mọi lần đổi đều để lại dấu vết.
+// TIEN-KHOA-2 (chủ quán 19.11, chọn a): CHỈ còn chiều chuyển khoản → tiền mặt. Tiền mặt → chuyển khoản bị chặn hẳn — chuyển khoản
+// phải qua QR (máy chủ tự xác nhận); đổi sang CK bằng tay là lối "thu tiền mặt rồi ghi CK" (két hụt mà sổ vẫn khớp).
+// Mỗi lần đổi ghi nhật ký 'doi' (người, lý do) và hiện CẦN XEM ở Đối soát (utils/doiSoat.js, phép DC).
 router.post('/:id/doi-cach-tra', authenticate, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const sang = req.body?.sang;
     const lyDo = String(req.body?.ly_do || '').trim();
     if (!['cash', 'transfer'].includes(sang)) return res.status(400).json({ error: 'Cách trả chỉ nhận cash hoặc transfer', code: 'CACH_TRA_LA' });
+    if (sang === 'transfer') {
+      return res.status(409).json({ error: 'Không đổi sang chuyển khoản — chuyển khoản phải qua QR', code: 'DOI_SANG_CK_PHAI_QUA_QR' });
+    }
     if (!lyDo) return res.status(400).json({ error: 'Bắt buộc ghi lý do đổi cách trả', code: 'THIEU_LY_DO' });
     if (lyDo.length > 100) return res.status(400).json({ error: 'Lý do tối đa 100 ký tự', code: 'LY_DO_DAI' });
 
