@@ -166,6 +166,7 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // v7 (HANG-1): mọi hạng một gói 3 tháng có giá — `data[].goi[].so_thang` đòi mảng KHÔNG rỗng ở mọi hạng (gói chưa giá không hiện)
   const giaGoi = () => db.run("UPDATE pos_membership_tiers SET goi = json_array(json_object('so_thang', 3, 'gia', CAST(card_price AS INTEGER), 'bat', json('true')))");
   await giaGoi();

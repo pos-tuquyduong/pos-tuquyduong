@@ -66,13 +66,18 @@ export default function DonApp() {
         {!ds.length && <p style={{ color: '#6b7280' }}>Chưa có đơn App nào hôm nay.</p>}
         {ds.map((d) => {
           // CK-NOIDUNG-1: tiền về được cộng vào tài khoản khách thay vì tạo đơn (đơn App lỗi / huỷ / hết hạn) — báo cho quầy, không có nút.
-          if (d.tien_trinh === 'vao_vi') return (
-            <div key={d.id} style={{ border: '1px solid #f59e0b', background: '#fef3c7', borderRadius: 6, padding: '8px 10px', margin: '8px 0' }}>
-              <strong>💰 {d.so_hd || d.ma}</strong> · {d.ten_khach} · {tien(d.so_tien)} vào ví khách
-              <span style={{ color: '#9ca3af', fontSize: 12 }}> · {(d.gio || '').slice(11, 16)}</span>
-              <div style={{ fontSize: 13, marginTop: 2 }}>{d.ly_do}</div>
-            </div>
-          );
+          // KHO-3a B3c: hoàn vì HẾT HÀNG (đã giữ mà hàng mất trước khi tiền về) → đỏ, nêu món; SĐT che giữa.
+          if (d.tien_trinh === 'vao_vi') {
+            const het = /(?:HET_HANG|THIEU_NGUYEN_LIEU|CHUA_CO_CONG_THUC): ([^)]+)\)/.exec(d.ly_do || '');
+            return (
+              <div key={d.id} style={{ border: `1px solid ${het ? '#dc2626' : '#f59e0b'}`, background: het ? '#fee2e2' : '#fef3c7', borderRadius: 6, padding: '8px 10px', margin: '8px 0' }}>
+                <strong>{het ? '⛔' : '💰'} {d.so_hd || d.ma}</strong> · {d.ten_khach}
+                {het ? ` · hết ${het[1]} — đã hoàn ${tien(d.so_tien)} vào ví khách` : ` · ${tien(d.so_tien)} vào ví khách`}
+                <span style={{ color: '#9ca3af', fontSize: 12 }}> · {(d.gio || '').slice(11, 16)}</span>
+                <div style={{ fontSize: 13, marginTop: 2 }}>{String(d.ly_do || '').replace(/\b(0\d{2})\d{4}(\d{3})\b/g, '$1****$2')}</div>
+              </div>
+            );
+          }
           const [nhan, mau] = NHAN[d.tien_trinh] || [d.tien_trinh, '#6b7280'];
           return (
             <div key={d.id} style={{ borderTop: '1px solid #eee', padding: '10px 0' }}>

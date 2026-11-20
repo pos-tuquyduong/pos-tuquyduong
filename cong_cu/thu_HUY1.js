@@ -49,6 +49,7 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const { getNow, addDaysToDateString } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
 
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
@@ -399,7 +400,9 @@ async function main() {
     const g = await huy(d.id);
     k('G1 điểm đã cộng trừ lại (tổng điểm của đơn = 0)', g.status === 200 && diem > 0 && (await so('SELECT COALESCE(SUM(points), 0) FROM pos_point_transactions WHERE order_id = ?', [d.id])) === 0, `earn ${diem}`);
     k('G2 lượt mã trả lại (1 → 0)', dung === 1 && (await so("SELECT used_count FROM pos_discount_codes WHERE code = 'HUY1GIAM'")) === 0, `trước ${dung}`);
-    k('G3 hoàn kho SX: lệnh trả hàng có vân tay POS:<id>:in:0', traKho.length - kho0 === 1 && traKho[kho0][4] === `POS:${d.id}:in:0`, JSON.stringify(traKho.slice(kho0)));
+    const pb = await db.query("SELECT trang_thai FROM kho_phieu WHERE don_hang_id = ? AND su_co = 'ban_hang'", [d.id]);   // KHO-3a: trả kho POS
+    k('G3 hoàn kho (KHO-3a: kho POS): phiếu bán của đơn → huy, không lệnh SX nào', pb.length === 1 && pb[0].trang_thai === 'huy' && traKho.length === kho0,
+      JSON.stringify(pb) + ' · SX ' + (traKho.length - kho0));
     k('D-mã ví +20.000 = số khách thật trả sau giảm', (await vi(s)) === 20000, `ví ${await vi(s)}`);
     const viTruoc = await vi(s);
     const g5 = await huy(d.id);

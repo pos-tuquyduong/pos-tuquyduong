@@ -63,6 +63,7 @@ async function main() {
   const db = require(path.join(MAY_CHU, 'database.js'));
   datVN('2026-11-03T10:00:00');
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);

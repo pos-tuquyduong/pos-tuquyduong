@@ -818,6 +818,7 @@ chayBaiThat('cong_cu/thu_DOISOAT1.js');   // DOI-SOAT-1: màn Đối soát (bấ
 chayBaiThat('cong_cu/thu_KHO1.js');   // KHO-1: bảng kho, nâng cấp dữ liệu đánh số, nhập SX, đường /api/pos/kho
 chayBaiThat('cong_cu/thu_KHO2a.js');   // KHO-2a: pha chế, phiếu xuất có duyệt, thành phẩm vào kho, tồn, danh sách phiếu
 chayBaiThat('cong_cu/thu_KHO2b.js');   // KHO-2b: đặt hàng có hạn mức, nhận hàng người khác duyệt, xử lý phát sinh, tồn
+chayBaiThat('cong_cu/thu_KHO3a.js');   // KHO-3a: menu từ POS, bán trừ kho POS cùng giao dịch, giữ hàng, lưới an toàn, gỡ SX
 chayBaiThat('cong_cu/thu_KHSP1.js');   // KH-SP-1: thông tin ngắn của món (bước 005, cửa ghi, /api/kh/menu)
 chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới, hoá đơn khách chỉ còn khổ nhiệt
 chayBaiThat('cong_cu/thu_KHOIN1.js');   // KHO-IN-1: cài đặt in phiếu kho (80mm / A5 / A4, số bản), ô khổ hoá đơn mặc định ghi đúng khoá
@@ -870,21 +871,23 @@ nhom('K · KHO THỬ — Replit KHÔNG được chạm dữ liệu thật (POS-K
     const nap = () => { delete require.cache[require.resolve(p)]; return require(p); };
     const sai = [];
     try {
-      // Ca 1 — Replit, có ĐỦ biến production → PHẢI dùng file, PHẢI tắt SX
+      // KHO-3a: POS ngắt hẳn SX — ketNoiKho KHÔNG còn đưa địa chỉ SX ra (đặt đủ biến SX vẫn không có đường nào tới SX).
+      const coSX = (m) => typeof m.diaChiSX === 'function' || Object.keys(m).some((x) => /sx/i.test(x));
+      // Ca 1 — Replit, có ĐỦ biến production → PHẢI dùng file, không có SX
       dat({ REPL_ID: 'x', TURSO_DATABASE_URL: 'libsql://that', TURSO_AUTH_TOKEN: 't', SX_API_URL: 'https://that' });
       let m = nap(); let c = m.cauHinhTurso();
       if (!c.laMayThu || !String(c.cauHinh.url).startsWith('file:')) sai.push('ca 1: Replit không dùng file');
       if (c.cauHinh.authToken) sai.push('ca 1: Replit vẫn mang authToken');
-      if (m.diaChiSX() !== '') sai.push('ca 1: Replit vẫn bật SX');
-      // Ca 2 — Replit + SX_API_URL_THU → dùng đúng địa chỉ thử
+      if (coSX(m)) sai.push('ca 1: ketNoiKho vẫn đưa địa chỉ SX ra');
+      // Ca 2 — Replit + SX_API_URL_THU → vẫn không có SX
       dat({ REPL_SLUG: 'x', SX_API_URL: 'https://that', SX_API_URL_THU: 'https://thu' });
       m = nap();
-      if (m.diaChiSX() !== 'https://thu') sai.push('ca 2: không dùng SX_API_URL_THU');
-      // Ca 3 — không phải Replit → Turso + SX thật, y như trước patch
+      if (coSX(m)) sai.push('ca 2: ketNoiKho vẫn đưa địa chỉ SX thử ra');
+      // Ca 3 — không phải Replit → Turso, không có SX
       dat({ TURSO_DATABASE_URL: 'libsql://that', TURSO_AUTH_TOKEN: 't', SX_API_URL: 'https://that' });
       m = nap(); c = m.cauHinhTurso();
       if (c.laMayThu || c.cauHinh.url !== 'libsql://that' || c.cauHinh.authToken !== 't') sai.push('ca 3: production không dùng Turso');
-      if (m.diaChiSX() !== 'https://that') sai.push('ca 3: production mất SX');
+      if (coSX(m)) sai.push('ca 3: production vẫn có SX');
       // Ca 4 — không phải Replit, thiếu URL → PHẢI từ chối (B5)
       dat({});
       m = nap(); let nem = false;
@@ -900,6 +903,14 @@ nhom('K · KHO THỬ — Replit KHÔNG được chạm dữ liệu thật (POS-K
     }
     chac('ketNoiKho.js chạy đúng cả 4 ca môi trường', sai.length === 0, sai.join(' · '));
   }
+}
+
+// K4 — KHO-3a: POS ngắt hẳn SX. Kiểm MẪU NGUY HIỂM VẮNG MẶT (E13) ở mọi file server/ (bỏ chú thích): không còn lời gọi trừ / hoàn / kiểm
+// kho SX, không còn đọc danh sách món SX, không còn hỏi "SX có cấu hình không". Bán trừ kho POS: server/kho/banHang.js (bài thu_KHO3a.js).
+{
+  const mauSX = /\b(outStockFIFO|inStockReturn|checkStock|isSxConfigured|diaChiSX)\b|products-with-stock|\/api\/pos\/stock\/(out|in|return)/;
+  const conSX = liet('server', ['.js']).filter((f) => mauSX.test(boGhiChu(doc(f))));
+  chac('server/ không còn lời gọi kho / món SX (KHO-3a — bán trừ kho POS)', conSX.length === 0, 'còn: ' + conSX.join(', '));
 }
 
 // K3 — kho thử không được lọt vào git

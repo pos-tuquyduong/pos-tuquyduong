@@ -144,6 +144,7 @@ k('B5 ThuTien: chọn cách trả qua onCachTra (không còn nút "Bỏ" của t
     outStockFIFO: async () => ({ ok: true }), inStockReturn: async () => ({ ok: true }), callSxApi: async () => ({ ok: true }) };
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const app = express();
   app.use(express.json());
   app.use('/api/pos/damages', require(path.join(MAY_CHU, 'routes', 'damages.js')));
@@ -178,7 +179,9 @@ k('B5 ThuTien: chọn cách trả qua onCachTra (không còn nút "Bỏ" của t
     for (const hd of ['refund', 'none', 'return_stock']) {
       const n0 = Number((await mot('SELECT COUNT(*) AS n FROM pos_damage_logs')).n);
       const r = await goi('POST', '/pos/damages', { order_id: nap, product_code: 'NAP-1', quantity: 1, reason: 'other', action: hd, refund_amount: hd === 'refund' ? 50000 : 0 });
-      k(`D1 đơn nạp, hành động ${hd} → 400, code DON_NAP_KHONG_SU_CO, đúng câu`, r.status === 400 && r.j.code === 'DON_NAP_KHONG_SU_CO' && r.j.error === CAU, moTa(r));
+      // KHO-3a (Câu 3): "hoàn kho SX" bỏ cho MỌI đơn — chặn trước cả phép đơn nạp, vẫn 400 và không ghi gì.
+      const dungMa = hd === 'return_stock' ? r.j.code === 'HOAN_KHO_SX_DA_BO' : r.j.code === 'DON_NAP_KHONG_SU_CO' && r.j.error === CAU;
+      k(`D1 đơn nạp, hành động ${hd} → 400, code ${hd === 'return_stock' ? 'HOAN_KHO_SX_DA_BO (KHO-3a)' : 'DON_NAP_KHONG_SU_CO, đúng câu'}`, r.status === 400 && dungMa, moTa(r));
       k(`D1 đơn nạp, ${hd}: không ghi dòng log sự cố nào`, Number((await mot('SELECT COUNT(*) AS n FROM pos_damage_logs')).n) === n0);
     }
     const thuong = await donMoi('0938200002', { pid: 3, ma: 'SP-THU' });

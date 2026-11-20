@@ -55,7 +55,8 @@ async function docBangCongThuc(csdl) {
 async function docSanPham(csdl) {
   const dong = await csdl.query(`SELECT c.*, l.ten AS nguyen_lieu_ten, l.don_vi_luu, l.don_vi_hien, l.he_so_doi, p.name AS thanh_phan_ten
     FROM kho_cong_thuc c LEFT JOIN kho_nguyen_lieu l ON l.id = c.nguyen_lieu_id LEFT JOIN pos_products p ON p.id = c.thanh_phan_id ORDER BY c.id`);
-  const sp = await csdl.query(`SELECT p.id, p.code, p.name, p.category, p.price, p.is_active, COALESCE(s.kieu, 'chua_dinh_luong') AS kieu, s.nhom_id, s.han_ngay
+  const sp = await csdl.query(`SELECT p.id, p.code, p.name, p.category, p.price, p.is_active, COALESCE(s.kieu, 'chua_dinh_luong') AS kieu, s.nhom_id, s.han_ngay,
+    COALESCE(s.cho_ban_thieu, 0) AS cho_ban_thieu, p.unit, p.sort_order, p.sx_product_type, p.sx_product_id
     FROM pos_products p LEFT JOIN kho_san_pham s ON s.pos_product_id = p.id ORDER BY p.sort_order, p.name`);
   return {
     san_pham: sp.map((p) => ({ ...p, cong_thuc: dong.filter((d) => d.san_pham_id === p.id)
@@ -65,10 +66,11 @@ async function docSanPham(csdl) {
 }
 
 /** Thay kiểu + nhóm + toàn bộ dòng công thức của một món (gọi trong giao dịch, sau khi đã kiểm vòng). hanNgay undefined = giữ hạn đang có. */
-async function luuSanPham(tx, spId, kieu, nhomId, dong, luc, hanNgay) {
+async function luuSanPham(tx, spId, kieu, nhomId, dong, luc, hanNgay, choBanThieu) {
   await tx.run(`INSERT INTO kho_san_pham (pos_product_id, kieu, nhom_id, sua_luc) VALUES (?, ?, ?, ?)
     ON CONFLICT(pos_product_id) DO UPDATE SET kieu = excluded.kieu, nhom_id = excluded.nhom_id, sua_luc = excluded.sua_luc`, [spId, kieu, nhomId, luc]);
   if (hanNgay !== undefined) await tx.run('UPDATE kho_san_pham SET han_ngay = ? WHERE pos_product_id = ?', [hanNgay, spId]);
+  if (choBanThieu !== undefined) await tx.run('UPDATE kho_san_pham SET cho_ban_thieu = ? WHERE pos_product_id = ?', [choBanThieu, spId]);   // KHO-3a B8
   await tx.run('DELETE FROM kho_cong_thuc WHERE san_pham_id = ?', [spId]);
   for (const d of dong) {
     await tx.run('INSERT INTO kho_cong_thuc (san_pham_id, nguyen_lieu_id, thanh_phan_id, luong) VALUES (?, ?, ?, ?)',
@@ -155,10 +157,11 @@ async function soPhieuMoi(tx, loai, luc) {
 }
 
 /** KHO-2b: đầu phiếu DH / PN / PS. Trả id. Dòng do hàm tạo của từng loại ghi. */
-async function themPhieu(tx, { loai, tuDuyet, nguoi, luc, nccId = null, ghiChu = null, donId = null, suCo = null, thayCho = null, lyDo = null, maGui = null }) {
+async function themPhieu(tx, { loai, tuDuyet, nguoi, luc, nccId = null, ghiChu = null, donId = null, suCo = null, thayCho = null, lyDo = null, maGui = null,
+  donHangId = null }) {   // KHO-3a: donHangId = đơn bán (phiếu PS ban_hang — kho/banHang.js)
   const kq = await tx.run(`INSERT INTO kho_phieu (loai, so_phieu, trang_thai, nha_cung_cap_id, nguoi_tao, tao_luc, nguoi_duyet, duyet_luc, thay_cho_id, ly_do, ghi_chu,
-    ma_gui, don_id, su_co) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [loai, await soPhieuMoi(tx, loai, luc), tuDuyet ? 'da_duyet' : 'cho_duyet', nccId,
-    nguoi, luc, tuDuyet ? nguoi : null, tuDuyet ? luc : null, thayCho, lyDo, ghiChu, maGui, donId, suCo]);
+    ma_gui, don_id, su_co, don_hang_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [loai, await soPhieuMoi(tx, loai, luc), tuDuyet ? 'da_duyet' : 'cho_duyet', nccId,
+    nguoi, luc, tuDuyet ? nguoi : null, tuDuyet ? luc : null, thayCho, lyDo, ghiChu, maGui, donId, suCo, donHangId]);
   return Number(kq.lastInsertRowid);
 }
 
@@ -262,6 +265,10 @@ const loThanhPhamDaBiTru = (tx, id) => tx.queryOne(`SELECT 1 AS co FROM kho_phie
 
 /** Chủ quán huỷ (cũng là bước đầu của sửa). GIỮ mọi dòng — phiếu huy rơi khỏi tồn. Ghi người / giờ huỷ, giữ người đã duyệt. */
 async function huyPhieu(tx, id, lyDo, nguoi, luc) {
+  // KHO-3a (Câu 4): phiếu bán chỉ huỷ theo đơn (huỷ / xoá đơn — kho/banHang.js huyPhieuBan); sửa phiếu đã bán để KHO-3b. Sửa phiếu nào cũng qua đây trước.
+  if ((await tx.queryOne('SELECT su_co FROM kho_phieu WHERE id = ?', [id]))?.su_co === 'ban_hang') {
+    return { loi: [409, { error: 'Phiếu bán hàng chỉ đổi theo đơn — huỷ đơn để trả kho', code: 'PHIEU_BAN_HANG' }] };
+  }
   if (await loThanhPhamDaBiTru(tx, id)) {
     return { loi: [409, { error: 'Thành phẩm của phiếu này đã bị phiếu khác trừ (vd phiếu phát sinh) — huỷ / sửa phiếu đó trước', code: 'LO_DA_BI_TRU' }] };
   }
@@ -390,6 +397,8 @@ async function dsPhieu(csdl, loc, homNay) {
   for (const [cot, gt] of [['p.loai = ?', loc.loai], ['p.trang_thai = ?', loc.trang_thai], ['substr(p.tao_luc, 1, 10) >= ?', loc.tu], ['substr(p.tao_luc, 1, 10) <= ?', loc.den]]) {
     if (gt) { dk.push(cot); a.push(String(gt)); }
   }
+  // KHO-3a: một đơn một phiếu bán — mặc định ẩn để phiếu kho khác không bị đẩy khỏi 300 dòng; ?ban_hang=1 chỉ hiện phiếu bán.
+  dk.push(String(loc.ban_hang) === '1' ? "p.su_co = 'ban_hang'" : "p.su_co IS NOT 'ban_hang'");
   const ds = await csdl.query(`SELECT p.*,
     (SELECT COUNT(*) FROM kho_phieu_dong d WHERE d.phieu_id = p.id AND d.loai = 'thanh_pham') AS so_mon,
     (SELECT COUNT(*) FROM kho_phieu_dong d WHERE d.phieu_id = p.id AND d.loai = 'ket_qua') AS so_ket_qua,

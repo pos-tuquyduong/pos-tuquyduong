@@ -53,6 +53,7 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // MA-GIAM-1 (A1): MÓC chạy một lần ngay TRƯỚC câu `DELETE FROM pos_discount_codes` của route — dựng tất định cảnh "đơn vừa dùng mã"
   // chen giữa phép kiểm và câu xoá. Gắn TRƯỚC khi nạp route (discount-codes.js lấy `run` lúc nạp). Bình thường null → đi thẳng hàm gốc.
   let mocXoaMa = null;

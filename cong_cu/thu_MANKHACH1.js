@@ -52,6 +52,7 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const sx = require(path.join(GOC, 'server', 'utils', 'sxApi.js'));
   sx.checkStock = async () => ({ sufficient: true });   // SX tắt: bài chỉ đo màn khách
 
@@ -231,7 +232,9 @@ async function main() {
   // ═════════════ C/D. Nội dung rảnh + cài đặt ═════════════
   muc('C/D. Nội dung rảnh + Cài đặt → Màn khách');
   const noiDung = () => goi('GET', '/man-khach/noi-dung', undefined, null, { [H_KHOA]: g1.j.khoa });
+  await db.run("UPDATE kho_lo SET han_dung = '2000-01-01T00:00:00' WHERE san_pham_id = ?", [sps[2].id]);   // KHO-3a: "tồn 0" = hết lô còn hạn ở kho POS
   const n0 = await noiDung();
+  await db.run('UPDATE kho_lo SET han_dung = NULL WHERE san_pham_id = ?', [sps[2].id]);
   k('C1 chưa cài gì → có danh sách trang mặc định (menu, Giờ vàng, QR App)', la(n0, 200) && Array.isArray(n0.j.trang) && n0.j.trang.map((t) => t.loai).join(',') === 'menu,flash,qr_app', mt(n0) + ' ' + JSON.stringify(n0.j.trang));
   const menu = n0.j.menu || [];
   const m0 = menu.find((m) => m.ten === sps[0].name), m2 = menu.find((m) => m.ten === sps[2].name);
