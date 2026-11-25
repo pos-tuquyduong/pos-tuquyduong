@@ -1,11 +1,12 @@
 /**
  * POS-KHOTHU-v2 — MỘT nơi DUY NHẤT quyết định POS nối vào đâu (C15, C16).
  *
- *   Replit → KHO THỬ: file data/pos_thu.db · SX TẮT (trừ khi đặt SX_API_URL_THU)
- *   Render → KHO THẬT: Turso + SX production, y như trước patch
+ *   Replit → KHO THỬ: file data/pos_thu.db
+ *   Render → KHO THẬT: Turso
+ *   KHO-3a: POS ngắt hẳn SX — file này không còn đọc biến SX nào (SX_API_URL, SX_API_URL_THU).
  *
  * LUẬT: không file nào khác được đọc process.env.TURSO_DATABASE_URL hay
- * process.env.SX_API_URL. Bộ kiểm nhóm K chặn commit nếu có.
+ * process.env.SX_API_URL (sau KHO-3a: không file nào đọc). Bộ kiểm nhóm K chặn commit nếu có.
  *
  * VÌ SAO không nhận ra Replit thì nghiêng về Turso: nhận sai trên Render mà rơi
  * vào file cục bộ thì đơn bán thật ghi vào ổ đĩa tạm, MẤT khi khởi động lại.
@@ -41,10 +42,4 @@ function cauHinhTurso() {
   };
 }
 
-/** Địa chỉ SX. Chuỗi rỗng = không gọi SX (sxApi.isSxConfigured() trả false). */
-function diaChiSX() {
-  if (laMayThu()) return (process.env.SX_API_URL_THU || '').trim();
-  return process.env.SX_API_URL || '';
-}
-
-module.exports = { laMayThu, cauHinhTurso, diaChiSX, FILE_THU };
+module.exports = { laMayThu, cauHinhTurso, FILE_THU };

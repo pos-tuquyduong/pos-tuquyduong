@@ -254,6 +254,7 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   const duongSX = require.resolve(path.join(MAY_CHU, 'utils', 'sxApi.js'));
   const sxThat = require(duongSX);
@@ -263,7 +264,7 @@ async function main() {
   require.cache[duongSX].exports = { ...sxThat, isSxConfigured: () => sxBat, checkStock: async () => ({ sufficient: true }), outStockFIFO: sxOk, inStockReturn: sxOk, callSxApi: sxGoi };
   const app = express();
   app.use(express.json());
-  for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'sync', 'signup-codes', 'backup', 'discount-codes']) {
+  for (const r of ['orders', 'settings', 'packages', 'damages', 'products', 'product-groups', 'customers-v2', 'signup-codes', 'backup', 'discount-codes']) {
     app.use('/api/pos/' + (r === 'customers-v2' ? 'customers' : r), require(path.join(MAY_CHU, 'routes', r + '.js')));
   }
   app.use('/api/kh', require(path.join(MAY_CHU, 'routes', 'kh')));
@@ -326,11 +327,10 @@ async function main() {
   k('A2h dữ liệu gieo lúc khởi tạo kho (chủ, quyền, hạng, nhóm) ghi dạng T', Object.values(kSeed || {}).every((v) => DANG_T.test(String(v))), JSON.stringify(kSeed));
 
   await db.run("INSERT INTO pos_stock_pending (order_code, sx_product_type, sx_product_id, quantity, direction, status, van_tay, created_at) VALUES ('GV1DS', 'juice', 1, 1, 'out', 'pending', 'POS:GV1DS:1', ?)", [MOC]);
-  const { doSoNo } = require(path.join(MAY_CHU, 'utils', 'doSoNo.js'));
-  sxBat = true; imLang();
-  try { await doSoNo(); } finally { noiLai(); sxBat = false; }
+  // KHO-3a: SX đã ngắt — sổ nợ kho không còn đẩy sang SX (utils/doSoNo.js bỏ); dòng cũ giữ nguyên làm lịch sử.
   const kDs = await motDong("SELECT status, resolved_at AS t FROM pos_stock_pending WHERE order_code = 'GV1DS'");
-  k('A2i đẩy sổ nợ tồn sang SX (doSoNo, SX giả) → pos_stock_pending.resolved_at', kDs?.status === 'resolved' && gan(kDs?.t, MOC), JSON.stringify(kDs));
+  k('A2i (KHO-3a) sổ nợ kho SX không còn đẩy: doSoNo.js đã bỏ, dòng pending giữ nguyên', !fs.existsSync(path.join(MAY_CHU, 'utils', 'doSoNo.js'))
+    && kDs?.status === 'pending' && kDs?.t == null, JSON.stringify(kDs));
   // KHACH-APP-1 (Q4 chủ quán 07.11): bộ đệm khách SX (cacheCustomersToLocal) đã bỏ — A2j kiểm giờ ghi của bước chép lần cuối 020
   // (lúc khởi động SX giả trả rỗng → bước HOÃN; nay SX trả danh sách → chạy khung lại).
   khachSX = [{ phone: '0938000060', name: 'Khách SX mới' }, { phone: '0938111222', name: 'Khách SX đã có' }];
@@ -404,10 +404,8 @@ async function main() {
   await db.run("INSERT INTO pos_customers (phone, name, sync_status, created_at, exported_at) VALUES ('0938000013', 'X 48h+1s', 'exported', '2027-04-01T07:00:00', '2027-04-08T07:00:00'), ('0938000014', 'X 48h-1s', 'exported', '2027-04-01T07:00:00', '2027-04-08T07:00:02')");
   datVN('2027-04-10T07:00:01');
   await db.run("UPDATE pos_customers SET sync_status = 'synced' WHERE sync_status IN ('new', 'exported') AND phone NOT IN ('0938000011', '0938000012', '0938000013', '0938000014')");
-  const tt = await goi('GET', '/api/pos/sync/status');
-  const old = (tt.warnings || []).find((w) => w.type === 'old_new'), oldX = (tt.warnings || []).find((w) => w.type !== 'old_new');
-  k('C11 10.04 07:00:01 VN: khách mới tạo 24 giờ + 1 giây có cảnh báo, 24 giờ − 1 giây không; đã xuất 48 giờ ± 1 giây cũng vậy (đếm = 1 mỗi loại)',
-    old?.count === 1 && oldX?.count === 1, JSON.stringify(tt.warnings));
+  // KHO-3a: đường /sync (cảnh báo khách chưa xuất cho SX) đã bỏ cùng SX — C11 khoá việc bỏ (đường không còn), dữ liệu sync_status giữ nguyên.
+  k('C11 (KHO-3a) đường /sync chỉ phục vụ SX đã bỏ: không còn routes/sync.js', !fs.existsSync(path.join(MAY_CHU, 'routes', 'sync.js')));
 
   const { layMaKhachMoi } = require(path.join(MAY_CHU, 'utils', 'diemKhach.js'));
   await db.run("INSERT INTO pos_discount_codes (code, discount_type, discount_value, valid_to, is_active, created_at) VALUES ('GV1C2', 'fixed', 5000, '2027-01-01', 1, '2026-12-01T10:00:00')");
@@ -605,8 +603,9 @@ async function main() {
   const traVe = [];
   for (const c of cua) { const r = await goi('GET', '/api/kh' + c, null, tkE); traVe.push(`${c}:${r.status}`); di(r, c); }
   const toi = await goi('GET', '/api/kh/toi', null, tkE);
-  const coGio = ['/toi', '/menu', '/diem', '/don', '/gio-hoat-dong'].filter((c) => !gioDi.includes(c));
-  k('E1 giờ trong /api/kh (hồ sơ, hạng, menu ton_luc, điểm, đơn, giờ hoạt động — dữ liệu cũ đã nâng cấp) đúng dạng YYYY-MM-DDTHH:mm:ss; ngay_tao = giờ VN',
+  // KHO-3a: /menu không còn giờ nào (ton_luc luôn null — bỏ "tồn gần nhất của SX") → bỏ /menu khỏi danh sách cửa PHẢI có giờ; giờ lạ vẫn quét mọi cửa.
+  const coGio = ['/toi', '/diem', '/don', '/gio-hoat-dong'].filter((c) => !gioDi.includes(c));
+  k('E1 giờ trong /api/kh (hồ sơ, hạng, điểm, đơn, giờ hoạt động — dữ liệu cũ đã nâng cấp; /menu KHO-3a không còn ton_luc) đúng dạng YYYY-MM-DDTHH:mm:ss; ngay_tao = giờ VN',
     gioLa.length === 0 && coGio.length === 0 && JSON.stringify(toi).includes('2026-02-01T10:00:00'),
     gioLa.slice(0, 5).join(' | ') + (coGio.length ? ' · cửa không có giờ nào để đo: ' + coGio.join(',') + ` (đơn E ${donE})` : '') + ' · ' + traVe.join(' '));
   const hd2 = doc(path.join(GOC, 'HOP_DONG_API_KH.md'));

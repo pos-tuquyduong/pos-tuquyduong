@@ -125,12 +125,28 @@ async function main() {
     const moi = doc(path.join(SV, 'index.js')).split('\n');
     let cu = [];
     try { cu = execFileSync('git', ['show', `${MOC}:server/index.js`], { cwd: GOC, encoding: 'utf8' }).split('\n'); } catch { /* kho nông */ }
+    // KHO-3a (chủ quán 17.11: ngắt hẳn SX) bỏ ĐÚNG các khối dòng SX dưới đây khỏi index.js — trừ khỏi bản gốc trước khi so; còn lại vẫn "chỉ THÊM".
+    const BO_KHO3A = [
+      ["const syncRoutes = require('./routes/sync');", "const stockRoutes = require('./routes/stock');"],
+      ["const { doNeuDenLuc } = require('./utils/doSoNo');"],
+      ['// ═══ POS-DODNO-v1 · LOP 1: doi so no an theo hoat dong ═══════════════════', '// PHAI dat TRUOC moi duong /api/pos. Dat sau thi khong bao gio chay: yeu cau',
+        '// khop duong nao thi duong do tra loi va KHONG goi next() di tiep.', '// KHONG dung hen gio: Render Free ngu khi khong ai dung, cron se hong CAM ma',
+        '// van tuong dang chay. Lay chinh viec ban hang lam dong ho.', '// KHONG await: nguoi dung khong phai cho viec nay.', "app.use('/api/pos', (req, res, next) => {",
+        '  try { doNeuDenLuc(); } catch (e) { /* khong bao gio chan nguoi dung */ }', '  next();', '});', ''],
+      ["app.use('/api/pos/sync', syncRoutes);", "app.use('/api/pos/stock', stockRoutes);"],
+      ["app.use('/api/pos/doi-chieu', require('./routes/doi-chieu'));   // POS-DOICHIEU-v1"],
+      ["      sync: '/api/pos/sync',", "      stock: '/api/pos/stock',"],
+    ];
+    for (const khoi of BO_KHO3A) {
+      const i = cu.findIndex((_, x) => khoi.every((d, y) => cu[x + y] === d));
+      if (i >= 0) cu.splice(i, khoi.length);
+    }
     let j = 0;
     for (const d of moi) if (j < cu.length && d === cu[j]) j++;
     const iNd = moi.findIndex((d) => /app\.use\('\/api\/nd'/.test(d));
     const iCors = moi.findIndex((d) => /^app\.use\(cors\(/.test(d));
     k('A2 index.js: gắn /api/nd TRƯỚC cors chung; so với gốc chỉ THÊM dòng (mọi dòng cũ còn nguyên, đúng thứ tự)',
-      cu.length > 100 && j === cu.length && iNd >= 0 && iCors > iNd && moi.length - cu.length === 19 /* 19 = 4 dòng ND-API-1 + QC-APP-1 + 6 dòng middleware IP thật (DANG-NHAP-2 vòng 2) + 9 dòng KET-NOI-1 (nạp hàm đo, bọc fetch, đo /api/nd, gắn đo yêu cầu + móc lỗi kho, health ket_noi, bắt lỗi cuối) — so BẰNG: việc sau thêm dòng thì ghi vào đây */, `cũ ${cu.length} khớp ${j} · nd ${iNd} · cors ${iCors} · thêm ${moi.length - cu.length}`);
+      cu.length > 100 && j === cu.length && iNd >= 0 && iCors > iNd && moi.length - cu.length === 24 /* 24 = 4 dòng ND-API-1 + QC-APP-1 + 6 dòng middleware IP thật (DANG-NHAP-2 vòng 2) + 9 dòng KET-NOI-1 (nạp hàm đo, bọc fetch, đo /api/nd, gắn đo yêu cầu + móc lỗi kho, health ket_noi, bắt lỗi cuối) + 5 dòng KHO-3a (chú thích + hàm sxDaNgat + 3 đường SX trả 410) — so BẰNG: việc sau thêm dòng thì ghi vào đây */, `cũ ${cu.length} khớp ${j} · nd ${iNd} · cors ${iCors} · thêm ${moi.length - cu.length}`);
   }
 
   let A, B, C;

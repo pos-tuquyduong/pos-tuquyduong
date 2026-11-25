@@ -74,6 +74,7 @@ async function main() {
     await db.run(`INSERT INTO pos_products (code, name, category, price, is_active, sx_product_type, sx_product_id) VALUES (?, ?, ?, 25000, 1, ?, ?)`,
       [`KHSP1_${i}`, `Món thử ${i}`, loai, loai, i]);
   }
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const goi = async (method, url, body, o = {}) => {
     const headers = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';

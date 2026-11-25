@@ -381,14 +381,15 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
         {nhom !== NHOM_NAP && nhom !== NHOM_THE && dsMon.map((s) => {
           const g = coGia(s) ? giaMotLy(s) : 0;
           const het = !s.khong_quan_kho && s.stock_quantity === 0;
+          const chuaCT = !!s.chua_cong_thuc;   // KHO-3a B3: món chưa có công thức — mờ, không thêm vào giỏ
           return (
             <div key={s.id} className="bh-mon-bao">
-              <button className="bh-mon" disabled={het || !coGia(s)} onClick={() => chamMon(s)}>
+              <button className="bh-mon" disabled={het || chuaCT || !coGia(s)} onClick={() => chamMon(s)}>
                 <span className="bh-mon-ten">{s.name}</span>
                 {coGia(s)
                   ? <span>{g < s.price && <span className="bh-gia-goc">{vnd(s.price)}</span>}<span className="bh-gia">{vnd(g)}</span></span>
                   : <span className="bh-mon-ton">Chưa có giá</span>}
-                {het && <span className="bh-mon-ton">Hết hàng</span>}
+                {chuaCT ? <span className="bh-mon-ton">Chưa có công thức</span> : het && <span className="bh-mon-ton">Hết hàng</span>}
               </button>
               <NutThongTin mon={s} kieu={{ top: 6, right: 6 }} />
             </div>

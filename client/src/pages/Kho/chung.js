@@ -12,3 +12,5 @@ export const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 export const veLuu = (x, heSo) => Number(x) * (heSo || 1);
 export const raHien = (x, heSo) => Number(x) / (heSo || 1);
 export const SU_CO = { hong: 'Hỏng', do_vo: 'Đổ vỡ', het_han: 'Hết hạn', noi_bo: 'Dùng nội bộ', khac: 'Khác' };
+// KHO-3a: nhãn để ĐỌC — thêm phiếu bán (máy ghi khi bán; không có trong danh sách chọn của màn Phát sinh)
+export const TEN_SU_CO = { ...SU_CO, ban_hang: 'Bán hàng' };

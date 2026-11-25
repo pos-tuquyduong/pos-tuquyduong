@@ -134,6 +134,7 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // G10: đơn bị hoàn ĐÚNG khe giữa lúc gọi xe đọc đơn và câu giành (gắn TRƯỚC khi nạp route — module lấy hàm lúc nạp)
   let mocHoan = null;
   const qoGoc = db.queryOne;
@@ -708,7 +709,7 @@ async function main() {
     const vi0 = await soDu();
     const j3 = await huyDon(a.id, { reason: 'khách đổi ý', do_da_pha: 'dung_lai' });
     const cha = await chuyenCua(a.id);
-    const kho = await db.query("SELECT * FROM pos_stock_pending WHERE order_id = ? AND direction = 'in'", [a.id]);
+    const kho = await db.query("SELECT * FROM kho_phieu WHERE don_hang_id = ? AND su_co = 'ban_hang' AND trang_thai = 'huy'", [a.id]);   // KHO-3a: trả kho POS
     const hong1 = await db.query('SELECT * FROM pos_damage_logs WHERE order_id = ?', [a.id]);
     k('J3 + J10 quản lý huỷ đơn đang pha trả bằng tài khoản, "Dùng cho đơn khác" → hoàn ví đủ (gồm phí ship), hoàn kho như đường huỷ cũ, không ghi hàng hỏng',
       j3.status === 200 && (await soDu()) - vi0 === 85000 && cha?.trang_thai === 'huy' && cha?.do_da_pha === 'dung_lai' && kho.length === 1 && hong1.length === 0,
@@ -716,7 +717,7 @@ async function main() {
     const b = await donGiao({ sl: 3 });
     const j3b = await huyDon(b.id, { reason: 'pha nhầm', do_da_pha: 'bo_di' });
     const chb = await chuyenCua(b.id);
-    const kho2 = await db.query("SELECT * FROM pos_stock_pending WHERE order_id = ? AND direction = 'in'", [b.id]);
+    const kho2 = await db.query("SELECT * FROM kho_phieu WHERE don_hang_id = ? AND su_co = 'ban_hang' AND trang_thai = 'huy'", [b.id]);   // KHO-3a: không trả kho POS
     const hong2 = await db.query('SELECT * FROM pos_damage_logs WHERE order_id = ?', [b.id]);
     k('J3b "Bỏ đi" → ghi hàng hỏng ĐÚNG món + số lượng (lý do có số HD), KHÔNG hoàn kho (đồ đã đổ — kho giữ phần đã trừ), đánh dấu trên chuyến',
       j3b.status === 200 && chb?.do_da_pha === 'bo_di' && kho2.length === 0 && hong2.length === 1 && hong2[0].product_code === spCode && Number(hong2[0].quantity) === 3

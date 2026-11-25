@@ -273,6 +273,7 @@ async function caThat({ T, thu, k, bang }) {
     db = require(path.join(ROOT, 'server', 'database.js'));
     ({ getNow } = require(path.join(ROOT, 'server', 'utils', 'helpers.js')));
     await db.initDatabase();
+    await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   } catch (e) { noiLai(); k('R0 dựng được kho thử + máy chủ', false, e.message); return; }
   const chuoiKy = (d) => Object.keys(d).sort().map((x) => `${x}=${d[x] == null ? '' : d[x]}`).join('&');
   const hmac = (s) => crypto.createHmac('sha256', KHOA.ck).update(s).digest('hex');

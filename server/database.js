@@ -14,7 +14,7 @@
 
 const { AsyncLocalStorage } = require('async_hooks');   // KET-NOI-1 F1: đếm câu kho của từng yêu cầu
 const { createClient } = require('@libsql/client');
-const { cauHinhTurso, diaChiSX } = require('./ketNoiKho'); // POS-KHOTHU-v2
+const { cauHinhTurso } = require('./ketNoiKho'); // POS-KHOTHU-v2
 const { getNow } = require('./utils/helpers');   // GIO-VN-1: giờ ghi = giờ VN (cột DEFAULT CURRENT_TIMESTAMP là UTC — luôn truyền giờ)
 
 let db = null;
@@ -30,7 +30,7 @@ async function initDatabase() {
   db = createClient(kn.cauHinh);
 
   console.log(kn.laMayThu
-    ? `⚠️  KHO THỬ cục bộ: ${kn.cauHinh.url} · SX: ${diaChiSX() || 'TẮT'} — KHÔNG phải dữ liệu thật`
+    ? `⚠️  KHO THỬ cục bộ: ${kn.cauHinh.url} — KHÔNG phải dữ liệu thật`
     : '✅ Đã kết nối Turso database (PRODUCTION)');
 
   // Tạo bảng và seed data

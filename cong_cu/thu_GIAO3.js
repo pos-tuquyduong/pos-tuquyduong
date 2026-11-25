@@ -199,6 +199,7 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow, getToday, addDaysToDateString } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const svAha = await new Promise((ok) => { const s = dungAhamoveGia(express).listen(0, '127.0.0.1', () => ok(s)); });
   process.env.AHAMOVE_BASE_URL = `http://127.0.0.1:${svAha.address().port}`;
   const R = (f) => path.join(GOC, 'server', 'routes', f);

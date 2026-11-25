@@ -67,6 +67,7 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
   // Móc giữa "phép kiểm ngoài giao dịch" và "mở giao dịch" (khuôn thu_P20): chạy MỘT lần rồi tự gỡ. Gắn TRƯỚC khi nạp route.
   let mocTruocTx = null;
@@ -516,9 +517,11 @@ async function main() {
         [`KH1SP${i}`, `Món thử ${i}`, 900 + i]);
     }
     const ds = await db.query('SELECT id FROM pos_products WHERE is_active = 1 ORDER BY id LIMIT 4');
-    await db.run('UPDATE pos_products SET ton_gan_nhat = NULL WHERE id = ?', [ds[0].id]);
-    await db.run('UPDATE pos_products SET price = 30000, ton_gan_nhat = 3, ton_luc = ? WHERE id = ?', [getNow(), ds[1].id]);
-    await db.run('UPDATE pos_products SET price = 30000, ton_gan_nhat = 0 WHERE id = ?', [ds[2].id]);
+    // KHO-3a: con_hang theo kho POS — ds[0] chưa công thức (bỏ dòng kho), ds[1] còn lô, ds[2] lô hết hạn (tồn 0)
+    await db.run('DELETE FROM kho_san_pham WHERE pos_product_id = ?', [ds[0].id]);
+    await db.run('UPDATE pos_products SET price = 30000 WHERE id = ?', [ds[1].id]);
+    await db.run('UPDATE pos_products SET price = 30000 WHERE id = ?', [ds[2].id]);
+    await db.run("UPDATE kho_lo SET han_dung = '2000-01-01T00:00:00' WHERE san_pham_id = ?", [ds[2].id]);
     await db.run('UPDATE pos_products SET price = 0 WHERE id = ?', [ds[3].id]);
     const giaMoi = await db.query('SELECT * FROM pos_products WHERE is_active = 1');
     const r = await goi('GET', '/kh/menu', undefined, { tk: A.tk });
@@ -526,15 +529,17 @@ async function main() {
     const KHOA = ['anh', 'con_hang', 'cong_dung', 'gia', 'gia_hang', 'ma', 'mo_ta', 'nhom', 'nhu_cau', 'ten', 'thanh_phan', 'the_chat', 'ton_cu', 'ton_luc'];
     k('E5 mỗi món ĐÚNG bộ khoá danh sách trắng', la(r, 200) && data.length > 0 && data.every((x) => bang(Object.keys(x).sort(), KHOA)), data[0] ? Object.keys(data[0]).join(',') : moTa(r));
     const theo = (id) => { const p = giaMoi.find((x) => x.id === id); return data.find((x) => x.ma === `${p.sx_product_type}_${p.sx_product_id}`); };
-    k('E5 menu có món giá > 0, KHÔNG có món giá 0', !!theo(ds[0].id) && !theo(ds[3].id));
-    k('E5 con_hang: tồn 3 → true · tồn 0 → false · chưa rõ → null',
-      !!theo(ds[1].id) && theo(ds[1].id).con_hang === true && !!theo(ds[2].id) && theo(ds[2].id).con_hang === false && !!theo(ds[0].id) && theo(ds[0].id).con_hang === null,
+    k('E5 menu có món giá > 0, KHÔNG có món giá 0', !!theo(ds[1].id) && !theo(ds[3].id));
+    k('E5 con_hang (KHO-3a, kho POS): còn lô → true · lô hết hạn → false · chưa công thức → không hiện',
+      !!theo(ds[1].id) && theo(ds[1].id).con_hang === true && !!theo(ds[2].id) && theo(ds[2].id).con_hang === false && !theo(ds[0].id),
       JSON.stringify([theo(ds[1].id), theo(ds[2].id), theo(ds[0].id)]));
+    await db.run('UPDATE kho_lo SET han_dung = NULL WHERE san_pham_id = ?', [ds[2].id]);   // KHO-3a: trả lại kho cho các mục sau bán tiếp
+    await require('./gia_lap/monThu').dungMonThu(db);
     const nvR = await goi('GET', '/pos/products', undefined, { tk: tkChu });
     const dvR = await goi('GET', '/pos/products', undefined, { dichVu: true });
     const dung = Array.isArray(nvR.j) && nvR.j.length === giaMoi.length && nvR.j.every((p) => {
       const g = giaMoi.find((x) => x.sx_product_type === p.sx_product_type && String(x.sx_product_id) === String(p.sx_product_id));
-      return g && p.price === (g.price ?? null) && p.sellable === (typeof g.price === 'number' && g.price > 0) && p.unique_id === `${g.sx_product_type}_${g.sx_product_id}`;
+      return g && p.price === (g.price ?? null) && p.sellable === (typeof g.price === 'number' && g.price > 0 && p.chua_cong_thuc !== true) && p.unique_id === `${g.sx_product_type}_${g.sx_product_id}`;
     });
     k('E5 hồi quy GET /api/pos/products (JWT): giá, sellable, unique_id theo pos_products', dung, nvR.tho.slice(0, 200));
     k('E5 hồi quy GET /api/pos/products (X-Service-Key) = bản JWT', la(dvR, 200) && dvR.tho === nvR.tho, moTa(dvR));

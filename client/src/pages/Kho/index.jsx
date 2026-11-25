@@ -4,6 +4,7 @@
  * và khung Chờ duyệt) · Định mức. Mở một phiếu → XemPhieu thay cho nội dung tab.
  * KHO-2b: việc hay dùng lên trước (Nhận hàng, Phát sinh), ít dùng sau (Đặt hàng). Huy hiệu gồm cả DH / PN / PS — quản lý không đếm đơn vượt hạn
  * mức (can_chu_quan: chỉ chủ quán duyệt được).
+ * KHO-3a A7: tab "Chưa sẵn sàng bán" (chủ / quản lý) có số đếm; "Mở món" mở thẳng món ở Sản phẩm & công thức.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +20,7 @@ import NhapSx from './NhapSx';
 import NhanHang from './NhanHang';
 import PhatSinh from './PhatSinh';
 import DatHang from './DatHang';
+import ChuaSan from './ChuaSan';
 import './kho.css';
 import './inPhieuKho.css';
 
@@ -35,6 +37,7 @@ export default function Kho() {
     { ma: 'ton', ten: 'Tồn kho', hien: true },
     { ma: 'phieu', ten: 'Phiếu', hien: true },
     { ma: 'nl', ten: 'Nguyên liệu', hien: true },
+    { ma: 'cs', ten: 'Chưa sẵn sàng bán', hien: quanLy },
     { ma: 'sp', ten: 'Sản phẩm & công thức', hien: quanLy },
     { ma: 'dm', ten: 'Định mức', hien: quanLy },
     { ma: 'dh', ten: 'Đặt hàng', hien: true },
@@ -43,11 +46,16 @@ export default function Kho() {
   const [tab, setTab] = useState('pc');
   const [phieuMo, setPhieuMo] = useState(null);
   const [choDuyet, setChoDuyet] = useState([]);
+  const [soChuaSan, setSoChuaSan] = useState(0);
+  const [monMo, setMonMo] = useState(null);   // KHO-3a: id món mở từ tab Chưa sẵn sàng bán
 
   const taiChoDuyet = useCallback(() => {
     if (!quanLy) return;
     api.get('/kho/phieu?trang_thai=cho_duyet').then((r) => setChoDuyet(r.phieu.filter((p) => vaiTro === 'owner' || !p.can_chu_quan))).catch(() => {});
   }, [quanLy, vaiTro]);
+  useEffect(() => {
+    if (quanLy) api.get('/kho/mon-chua-san').then((r) => setSoChuaSan(r.so)).catch(() => {});
+  }, [quanLy]);
   useEffect(() => {
     taiChoDuyet();
     const t = setInterval(taiChoDuyet, HOI_CHO_DUYET_MS);
@@ -67,6 +75,7 @@ export default function Kho() {
             {tabs.map((t) => (
               <button key={t.ma} className={`kho-tab ${tab === t.ma ? 'on' : ''}`} onClick={() => setTab(t.ma)}>
                 {t.ten}{t.ma === 'phieu' && choDuyet.length > 0 && <span className="kho-huy-hieu">{choDuyet.length}</span>}
+                {t.ma === 'cs' && soChuaSan > 0 && <span className="kho-huy-hieu">{soChuaSan}</span>}
               </button>
             ))}
           </div>
@@ -79,7 +88,8 @@ export default function Kho() {
         {!phieuMo && tab === 'ton' && <TonKho />}
         {!phieuMo && tab === 'phieu' && <DsPhieu choDuyet={quanLy ? choDuyet : []} moPhieu={setPhieuMo} />}
         {!phieuMo && tab === 'nl' && <NguyenLieu vaiTro={vaiTro} />}
-        {!phieuMo && tab === 'sp' && <SanPham vaiTro={vaiTro} />}
+        {!phieuMo && tab === 'cs' && <ChuaSan doiSo={setSoChuaSan} moSanPham={(id) => { setMonMo(id); setTab('sp'); }} />}
+        {!phieuMo && tab === 'sp' && <SanPham vaiTro={vaiTro} moId={monMo} />}
         {!phieuMo && tab === 'dm' && <DinhMuc vaiTro={vaiTro} />}
         {!phieuMo && tab === 'sx' && <NhapSx />}
       </div>

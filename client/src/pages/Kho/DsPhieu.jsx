@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
-import { gio, TRANG_THAI, SU_CO } from './chung';
+import { gio, TRANG_THAI, TEN_SU_CO } from './chung';
 
 const LOAI = { PX: 'Xuất', PN: 'Nhập', DH: 'Đặt hàng', PS: 'Phát sinh', KK: 'Kiểm kê' };
 
@@ -12,14 +12,14 @@ function DongPhieu({ p, mo }) {
   return (
     <div className={`kho-the ${p.trang_thai === 'huy' ? 'ngung' : ''}`} onClick={() => mo(p.id)}>
       <b>{p.so_phieu} · {TRANG_THAI[p.trang_thai]}{p.ket_qua === 'tu_chot' && <span className="kho-thieu"> · tự chốt</span>}</b>
-      <div className="kho-nho">{p.mon || `${LOAI[p.loai]}${p.su_co ? ` · ${SU_CO[p.su_co]}` : ''}${p.hang ? ` · ${p.hang}` : ''}${p.can_chu_quan ? ' · cần chủ quán' : ''}`}</div>
+      <div className="kho-nho">{p.mon || `${LOAI[p.loai]}${p.su_co ? ` · ${TEN_SU_CO[p.su_co]}` : ''}${p.hang ? ` · ${p.hang}` : ''}${p.can_chu_quan ? ' · cần chủ quán' : ''}`}</div>
       <div className="kho-nho">{p.nguoi_tao} · {gio(p.tao_luc)}{p.so_lan_in > 0 && ` · đã in ${p.so_lan_in}`}</div>
     </div>
   );
 }
 
 export default function DsPhieu({ choDuyet, moPhieu }) {
-  const [loc, setLoc] = useState({ loai: '', trang_thai: '', tu: '', den: '' });
+  const [loc, setLoc] = useState({ loai: '', trang_thai: '', tu: '', den: '', ban_hang: '' });   // KHO-3a: phiếu bán ẩn mặc định
   const [ds, setDs] = useState([]);
   const [loi, setLoi] = useState('');
 
@@ -44,6 +44,7 @@ export default function DsPhieu({ choDuyet, moPhieu }) {
           <option value="">Tất cả</option>{Object.entries(TRANG_THAI).map(([ma, ten]) => <option key={ma} value={ma}>{ten}</option>)}</select>)}
         {o('Từ ngày', <input className="input" type="date" value={loc.tu} onChange={(e) => setLoc({ ...loc, tu: e.target.value })} />)}
         {o('Đến ngày', <input className="input" type="date" value={loc.den} onChange={(e) => setLoc({ ...loc, den: e.target.value })} />)}
+        <label className="kho-hang kho-nho"><input type="checkbox" checked={loc.ban_hang === '1'} onChange={(e) => setLoc({ ...loc, ban_hang: e.target.checked ? '1' : '' })} /> Chỉ phiếu bán hàng</label>
       </div>
       {loi && <div className="kho-loi">{loi}</div>}
       {!ds.length && <p className="text-gray">Không có phiếu.</p>}

@@ -1,14 +1,14 @@
 /**
  * POS System - Registrations Routes
- * Quản lý đăng ký subscription mới + Export logs + Revert
+ * Quản lý đăng ký subscription mới (KHO-3a: xuất sang SX đã bỏ — 410)
  * 
  * TURSO MIGRATION: Tất cả database calls dùng await
  */
 
 const express = require('express');
-const { query, queryOne, run } = require('../database');
-const { authenticate, checkPermission } = require('../middleware/auth');
-const { getNow, getToday, normalizePhone } = require('../utils/helpers');
+const { query, queryOne } = require('../database');
+const { authenticate } = require('../middleware/auth');
+const { getNow, normalizePhone } = require('../utils/helpers');
 const { RELATIONSHIP_VALUES } = require('../constants/relationships');
 const { taoKhach } = require('../utils/khachMoi');   // KHACH-APP-1
 const { loiGhi, trongGiaoDich } = require('./wallets');
@@ -62,154 +62,14 @@ router.get('/stats/summary', authenticate, async (req, res) => {
   }
 });
 
-/**
- * GET /api/pos/registrations/export/csv
- * Chỉ tải CSV, KHÔNG đánh dấu exported
- */
-router.get('/export/csv', authenticate, checkPermission('export_data'), async (req, res) => {
-  try {
-    const registrations = await query(`SELECT * FROM pos_registrations WHERE status = 'pending' ORDER BY created_at`);
-
-    if (registrations.length === 0) {
-      return res.status(400).json({ error: 'Không có đăng ký mới để export' });
-    }
-
-    // Tạo CSV content
-    const headers = ['Tên KH', 'SĐT', 'Ghi chú', 'SĐT Khách chính', 'Quan hệ', 'Sản phẩm', 'Số CT', 'Nhóm', 'Ngày BĐ', 'Trạng thái'];
-    const rows = registrations.map(r => [
-      r.name || '',
-      r.phone || '',
-      r.notes || '',
-      r.parent_phone || '',
-      r.relationship || '',
-      r.requested_product || '',
-      r.requested_cycles || '',
-      '',
-      '',
-      'Chờ xếp nhóm'
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${(cell + '').replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-
-    const fileName = `dang-ky-moi_${getToday()}.csv`;
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.send('\uFEFF' + csvContent);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * POST /api/pos/registrations/confirm-export
- * Xác nhận export thành công - đánh dấu exported + ghi log
- */
-router.post('/confirm-export', authenticate, checkPermission('export_data'), async (req, res) => {
-  try {
-    // Lấy danh sách pending
-    const pending = await query("SELECT id, phone, name FROM pos_registrations WHERE status = 'pending'");
-
-    if (pending.length === 0) {
-      return res.status(400).json({ error: 'Không có đăng ký nào để đánh dấu' });
-    }
-
-    const ids = pending.map(r => r.id);
-    const now = getNow();
-    const fileName = `dang-ky-moi_${getToday()}.csv`;
-
-    // Đánh dấu exported
-    const placeholders = ids.map(() => '?').join(',');
-    await run(`UPDATE pos_registrations SET status = 'exported', exported_at = ?, exported_by = ? WHERE id IN (${placeholders})`,
-      [now, req.user.username, ...ids]);
-
-    // Ghi log
-    await run(`INSERT INTO pos_export_logs (exported_at, exported_by, registration_ids, customer_count, file_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      [now, req.user.username, JSON.stringify(ids), ids.length, fileName, now]);
-
-    res.json({ 
-      success: true, 
-      count: ids.length,
-      message: `Đã đánh dấu ${ids.length} khách exported`
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * POST /api/pos/registrations/revert/:id
- * Hoàn tác 1 đăng ký từ exported về pending
- */
-router.post('/revert/:id', authenticate, checkPermission('export_data'), async (req, res) => {
-  try {
-    const reg = await queryOne('SELECT * FROM pos_registrations WHERE id = ?', [req.params.id]);
-
-    if (!reg) {
-      return res.status(404).json({ error: 'Không tìm thấy' });
-    }
-
-    if (reg.status !== 'exported') {
-      return res.status(400).json({ error: 'Chỉ có thể hoàn tác đăng ký đã exported' });
-    }
-
-    await run(`UPDATE pos_registrations SET status = 'pending', exported_at = NULL, exported_by = NULL WHERE id = ?`,
-      [req.params.id]);
-
-    res.json({ success: true, message: 'Đã hoàn tác về trạng thái chờ' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * POST /api/pos/registrations/revert-last
- * Hoàn tác lần export gần nhất
- */
-router.post('/revert-last', authenticate, checkPermission('export_data'), async (req, res) => {
-  try {
-    // Lấy log gần nhất
-    const lastLog = await queryOne('SELECT * FROM pos_export_logs ORDER BY id DESC LIMIT 1');
-
-    if (!lastLog) {
-      return res.status(400).json({ error: 'Không có lịch sử export' });
-    }
-
-    const ids = JSON.parse(lastLog.registration_ids);
-
-    // Hoàn tác các đăng ký
-    const placeholders = ids.map(() => '?').join(',');
-    await run(`UPDATE pos_registrations SET status = 'pending', exported_at = NULL, exported_by = NULL WHERE id IN (${placeholders}) AND status = 'exported'`,
-      ids);
-
-    // Xóa log
-    await run('DELETE FROM pos_export_logs WHERE id = ?', [lastLog.id]);
-
-    res.json({ 
-      success: true, 
-      count: ids.length,
-      message: `Đã hoàn tác ${ids.length} khách từ lần export lúc ${lastLog.exported_at}`
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * GET /api/pos/registrations/export-logs
- * Lịch sử export
- */
-router.get('/export-logs', authenticate, async (req, res) => {
-  try {
-    const logs = await query('SELECT * FROM pos_export_logs ORDER BY id DESC LIMIT 20');
-    res.json({ logs });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// KHO-3a C5: xuất đăng ký sang SX (CSV, đánh dấu đã xuất, hoàn tác, nhật ký xuất) chỉ phục vụ SX — SX đã ngắt → 410, không ghi gì.
+// Danh sách / tạo / sửa / xoá / thống kê đăng ký GIỮ (màn Khách, docKhach đọc đăng ký chờ như khách). Bảng pos_registrations, pos_export_logs giữ nguyên.
+const sxDaNgat = (req, res) => res.status(410).json({ error: 'Đã ngắt kết nối SX — không còn xuất đăng ký cho SX', code: 'SX_DA_NGAT' });
+router.get('/export/csv', authenticate, sxDaNgat);
+router.post('/confirm-export', authenticate, sxDaNgat);
+router.post('/revert/:id', authenticate, sxDaNgat);
+router.post('/revert-last', authenticate, sxDaNgat);
+router.get('/export-logs', authenticate, sxDaNgat);
 
 // ══════════════════════════════════════════════════════
 // ROUTES CHUNG

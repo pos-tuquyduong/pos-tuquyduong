@@ -56,6 +56,7 @@ async function main() {
   const GH = thuNap(path.join(GOC, 'server', 'utils', 'giaHang.js'));
   const HD = thuNap(path.join(GOC, 'server', 'utils', 'gioHoatDong.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
 
   const R = (f) => path.join(GOC, 'server', 'routes', f);
   const app = express();

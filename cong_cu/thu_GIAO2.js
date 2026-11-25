@@ -107,6 +107,7 @@ async function main() {
   const db = require(path.join(GOC, 'server', 'database.js'));
   const { getNow } = require(path.join(GOC, 'server', 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // Kho chậm / kho hỏng — gắn TRƯỚC khi nạp route.
   const K = { cham: 0, nem: false };
   const qoGoc = db.queryOne, runGoc = db.run;

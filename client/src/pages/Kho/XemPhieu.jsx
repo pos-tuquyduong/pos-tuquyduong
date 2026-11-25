@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
 import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
-import { so, tien, gio, TRANG_THAI, SU_CO, veLuu } from './chung';
+import { so, tien, gio, TRANG_THAI, TEN_SU_CO, veLuu } from './chung';
 import { docInPhieuKho, thuTuNutIn } from '../../utils/inPhieu';
 
 const LAM_MOI_MS = 15000;
@@ -22,7 +22,7 @@ function BangDong({ dl, kho }) {
   const p = dl.phieu;
   return (
     <>
-      <div className="kho-nho">{TEN_LOAI[p.loai]}{p.su_co && ` · ${SU_CO[p.su_co]}`}{p.ghi_chu && ` · ${p.ghi_chu}`}
+      <div className="kho-nho">{TEN_LOAI[p.loai]}{p.su_co && ` · ${TEN_SU_CO[p.su_co]}`}{p.ghi_chu && ` · ${p.ghi_chu}`}
         {p.tong_uoc_tinh != null && <span className="kho-khong-in"> · ước tính {tien(p.tong_uoc_tinh)}</span>}</div>
       {p.can_chu_quan && <div className="kho-canh kho-khong-in">Vượt hạn mức đặt hàng — chỉ chủ quán duyệt</div>}
       {dl.dong.map((d) => (
@@ -211,7 +211,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         {daDuyet && thuTuNutIn(mac.kho).map((k, i) => (
           <button key={k} className={`btn ${i === 0 ? 'btn-primary' : 'btn-outline'}`} disabled={dangGhi} onClick={() => inRa(k)}>{NHAN_NUT_IN[k]}{i === 0 && ` · mặc định${mac.ban > 1 ? ` · ${mac.ban} bản` : ''}`}</button>
         ))}
-        {chuQuan && ['cho_duyet', 'da_duyet'].includes(p.trang_thai) && !sua && (
+        {chuQuan && ['cho_duyet', 'da_duyet'].includes(p.trang_thai) && p.su_co !== 'ban_hang' && !sua && (   // KHO-3a: phiếu bán chỉ đổi theo đơn
           <>
             {(laPX || daDuyet) && <button className="btn btn-outline" onClick={() => setSua(laPX ? Object.fromEntries(dl.theo_mon.map((m) => [m.san_pham_id, String(m.so_phan)]))
               : Object.fromEntries(dl.dong.map((d) => [d.id, String(d.luong_hien)])))}>Sửa</button>}

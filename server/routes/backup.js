@@ -13,7 +13,6 @@ const { query } = require('../database');
 const { getNow, getToday } = require('../utils/helpers');
 const { docTrang, lapKeHoach, thucHien } = require('../utils/khoiPhuc');
 const { loiGhi } = require('./wallets');   // kho bận → 409 KHO_BAN, lỗi khác → 500 không lộ câu nội bộ
-const { isSxConfigured, callSxApi } = require('../utils/sxApi');
 const { chiaPhan } = require('../utils/donThu');
 const khoaTuDong = require('../utils/khoaSaoLuuPos');   // SAOLUU-DEM-1: khoá sao lưu tự động (một dòng pos_settings)
 const { kiemPinChuQuan } = require('../utils/pinChuQuan');
@@ -213,32 +212,6 @@ async function lapKeHoachBoKhoa(wb) {
 async function bangDangCo() {
   const co = new Set((await query("SELECT name FROM sqlite_master WHERE type = 'table'")).map((r) => r.name));
   return BACKUP_TABLES.filter((t) => co.has(t.name));
-}
-
-/**
- * Helper: Lấy pos_products với tên mới nhất từ SX
- */
-async function getProductsWithSxNames() {
-  const products = await query('SELECT * FROM pos_products');
-  
-  // Nếu SX online → merge tên từ SX
-  if (isSxConfigured()) {
-    try {
-      const sxProducts = await callSxApi('/api/pos/products-with-stock');
-      
-      return products.map(p => {
-        const sx = sxProducts.find(s => 
-          s.sx_product_type === p.sx_product_type && 
-          String(s.sx_product_id) === String(p.sx_product_id)
-        );
-        return sx ? { ...p, name: sx.name, code: sx.code } : p;
-      });
-    } catch (err) {
-      console.log('⚠️ SX offline, dùng tên trong POS:', err.message);
-    }
-  }
-  
-  return products;
 }
 
 /**

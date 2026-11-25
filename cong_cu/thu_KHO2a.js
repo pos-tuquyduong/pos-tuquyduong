@@ -605,8 +605,9 @@ async function main() {
   const don = await goi('chu', 'POST', '/orders', { customer_name: 'Khách KHO2a', items: [{ product_id: sp1.id, sx_product_type: sp1.sx_product_type,
     sx_product_id: sp1.sx_product_id, quantity: 1 }], payment_method: 'cash', cash_amount: 25000 });
   const donDb = await mot('SELECT total FROM pos_orders WHERE id = ?', [don.order?.id || don.order_id || don.id || 0]);
-  k('J1 đơn món làm sẵn đã có lô → 200, tổng 25.000, SX nhận 1 lệnh trừ kho như cũ, kho_phieu_dong KHÔNG thêm dòng (KHO-3 mới trừ)',
-    don.success === true && Number(donDb?.total) === 25000 && demSX.tru === truJ + 1 && (await so('SELECT COUNT(*) FROM kho_phieu_dong')) === dongJ,
+  k('J1 đơn món làm sẵn đã có lô → 200, tổng 25.000; KHO-3a: SX KHÔNG nhận lệnh nào, trừ kho POS — đúng MỘT dòng phiếu bán (1 lô)',
+    don.success === true && Number(donDb?.total) === 25000 && demSX.tru === truJ && (await so('SELECT COUNT(*) FROM kho_phieu_dong')) === dongJ + 1
+      && (await so("SELECT COUNT(*) FROM kho_phieu WHERE su_co = 'ban_hang' AND don_hang_id = ?", [don.order?.id || 0])) === 1,
     `${moTa(don)} total ${donDb?.total} · SX +${demSX.tru - truJ}`);
 
   // ═════════════════════════════════════════════════════════════════════════
