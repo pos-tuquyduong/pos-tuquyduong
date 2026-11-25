@@ -323,7 +323,7 @@ async function taoChuyenMoi(c, o, cu, khoa) {
     const giao = { ...diemGiao(c), ma_theo_doi: tn };
     const bp = await aha.baoPhi({ lay, giao, loaiXe: c.loai_xe });
     const t = await aha.taoChuyen({ lay, giao, loaiXe: c.loai_xe });
-    const phi = t.phi ?? bp.phi;
+    const phi = t.phi ?? (bp.phi > 0 ? bp.phi : null);   // GIAO-3 C: không biết phí → để trống, không ghi 0 ("quán dư" giả)
     const n = await run(`UPDATE pos_giao_chuyen SET ma_ahamove = ?, trang_thai = 'tim_xe', phi_that = ?, chenh = ? - phi_khach, loi = NULL, loi_mang = 0, doc_luc = ?,
       tai_xe_ten = NULL, tai_xe_sdt = NULL, tai_xe_bien_so = NULL WHERE ${giu}`, [t.ma, phi, phi, getNow(), c.id, khoa]);
     if (n.changes !== 1) {   // thua giành: chuyến vừa tạo không ai giữ → huỷ ngay (trừ khi máy thắng đã nhận chính chuyến này qua mã theo dõi);
@@ -375,6 +375,7 @@ const trangThaiQuan = (d) => ({ IDLE: 'tim_xe', ASSIGNING: 'tim_xe', ACCEPTED: '
 async function capNhatTuAhamove(c, d) {
   if (!d) return 'bỏ qua: Ahamove không có chuyến';
   if (d.ma !== c.ma_ahamove) return `bỏ qua: mã đọc về ${d.ma} lệch`;
+  if (c.trang_thai === 'giao_loi') return capNhatTraHang(c, d);
   if (!['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(c.trang_thai)) return `bỏ qua: thẻ ${c.trang_thai}`;
   const now = getNow();
   const doi = (g, tt) => (g.changes === 1 ? tt : `bỏ qua: thẻ vừa đổi (${c.trang_thai})`);   // trả điều đã làm — log [GIAO] in đúng giá trị này
@@ -382,7 +383,7 @@ async function capNhatTuAhamove(c, d) {
     if (d.nguoi_huy_la_quan) await ghiPhiHuy(c.id, d);   // Q9: huỷ theo lệnh của quán (kể cả lệnh mất mạng, huỷ trên app Ahamove) — một lần mỗi mã
     if (c.trang_thai === 'dang_giao') {   // huỷ khi tài xế ĐÃ lấy hàng: hàng đang ngoài đường — KHÔNG tự gọi xe mới, báo quầy
       return doi(await run(`UPDATE pos_giao_chuyen SET trang_thai = 'giao_loi', loi = ? WHERE id = ? AND trang_thai = 'dang_giao' AND ma_ahamove = ?`,
-        ['Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove', c.id, c.ma_ahamove]), 'giao_loi');
+        ['Ahamove huỷ chuyến khi tài xế đã lấy hàng — gọi tài xế / Ahamove' + (d.ly_do_huy ? ': ' + d.ly_do_huy : ''), c.id, c.ma_ahamove]), 'giao_loi');
     }
     if (!d.nguoi_huy_la_quan && !c.tu_tim_lai) {   // tài xế / Ahamove huỷ lần đầu (chưa lấy hàng) → tự tìm lại MỘT lần
       const g = await run(`UPDATE pos_giao_chuyen SET trang_thai = 'dang_goi', tu_tim_lai = 1, goi_luc = ? WHERE id = ? AND trang_thai = ?
@@ -398,6 +399,7 @@ async function capNhatTuAhamove(c, d) {
   }
   const moi = trangThaiQuan(d);
   const tx = d.tai_xe;
+  if (d.phi_tho.total_price !== c.phi_that) logPhi(c, d);
   // Một chiều, trừ: Ahamove tìm tài xế khác (doi_tai_xe → tim_xe) và đổi thẳng tài xế (doi_tai_xe → doi_tai_xe, SĐT tài xế khác).
   const doiTaiXe = moi === 'doi_tai_xe' && c.trang_thai === 'doi_tai_xe' && !!tx.sdt && tx.sdt !== c.tai_xe_sdt;
   if (!moi || !(HANG[moi] > HANG[c.trang_thai] || (c.trang_thai === 'doi_tai_xe' && moi === 'tim_xe') || doiTaiXe)) return `bỏ qua: giữ ${c.trang_thai}`;
@@ -405,14 +407,31 @@ async function capNhatTuAhamove(c, d) {
   return doi(await run(`UPDATE pos_giao_chuyen SET trang_thai = ?, tai_xe_ten = CASE WHEN ? THEN NULL ELSE COALESCE(?, tai_xe_ten) END,
     tai_xe_sdt = CASE WHEN ? THEN NULL ELSE COALESCE(?, tai_xe_sdt) END, tai_xe_bien_so = CASE WHEN ? THEN NULL WHEN ? THEN ? ELSE COALESCE(?, tai_xe_bien_so) END, co_xe_luc = CASE WHEN ? = 'doi_tai_xe' THEN COALESCE(co_xe_luc, ?) ELSE co_xe_luc END,
     lay_hang_luc = CASE WHEN ? = 'dang_giao' THEN ? ELSE lay_hang_luc END, xong_luc = CASE WHEN ? IN ('xong', 'giao_loi') THEN ? ELSE xong_luc END,
-    phi_that = COALESCE(?, phi_that), chenh = COALESCE(?, phi_that) - phi_khach, doc_luc = ?, loi = CASE WHEN ? = 'giao_loi' THEN 'Giao không thành công' ELSE loi END
+    phi_that = COALESCE(?, phi_that), chenh = COALESCE(?, phi_that) - phi_khach, doc_luc = ?, loi = CASE WHEN ? = 'giao_loi' THEN ? ELSE loi END,
+    tra_hang = CASE WHEN ? = 'giao_loi' THEN ? ELSE tra_hang END, tra_hang_luc = CASE WHEN ? = 'giao_loi' AND ? = 'da_ve' THEN ? ELSE tra_hang_luc END
     WHERE id = ? AND trang_thai = ? AND ma_ahamove = ?`,
-  [moi, veTim, tx.ten, veTim, tx.sdt, veTim, doiTaiXe ? 1 : 0, tx.bien_so, tx.bien_so, moi, now, moi, now, moi, now, d.phi, d.phi, now, moi, c.id, c.trang_thai, c.ma_ahamove]), moi);
+  [moi, veTim, tx.ten, veTim, tx.sdt, veTim, doiTaiXe ? 1 : 0, tx.bien_so, tx.bien_so, moi, now, moi, now, moi, now, d.phi, d.phi, now, moi, loiGiao(d),
+    moi, d.tra_hang, moi, d.tra_hang, d.tra_luc || now, c.id, c.trang_thai, c.ma_ahamove]), moi);
+}
+/** GIAO-3 A: câu trên thẻ giao lỗi — kèm lý do Ahamove (fail_comment) nếu có. */
+const loiGiao = (d) => 'Giao không thành công' + (d.ly_do ? ': ' + d.ly_do : '');
+/** GIAO-3 B: thẻ giao_loi chỉ còn nhận tin trả hàng (IN_RETURN → RETURNED, một chiều: đã về quán thì thôi) và lý do Ahamove gửi muộn.
+ *  KHÔNG đổi trạng thái thẻ, tiền, đơn, kho (chủ quán 02.11, Q6 06.11) — Đóng thẻ như cũ. */
+async function capNhatTraHang(c, d) {
+  const lyDo = d.trang_thai === 'COMPLETED' && d.diem_giao === 'FAILED' && d.ly_do ? loiGiao(d) : null;
+  if (!d.tra_hang && !lyDo) return 'bỏ qua: giữ giao_loi';
+  const g = await run(`UPDATE pos_giao_chuyen SET tra_hang = COALESCE(?, tra_hang), tra_hang_luc = CASE WHEN ? = 'da_ve' THEN ? ELSE tra_hang_luc END,
+    loi = COALESCE(?, loi) WHERE id = ? AND trang_thai = 'giao_loi' AND ma_ahamove = ? AND COALESCE(tra_hang, '') <> 'da_ve'`,
+  [d.tra_hang, d.tra_hang, d.tra_luc || getNow(), lyDo, c.id, c.ma_ahamove]);
+  return g.changes === 1 ? `giao_loi · ${d.tra_hang || 'lý do'}` : 'bỏ qua: hàng đã về quán';
 }
 
 /** Nhật ký tin / đọc lại (GIAO-2 B3): mã chuyến + trạng thái Ahamove → điều capNhatTuAhamove ĐÃ làm — không SĐT / tên tài xế, không địa chỉ khách.
  *  Mã từ thân tin (chưa chắc của quán) cắt 40 ký tự. */
 const logGiao = (nguon, ma, ttAha, kq, t0) => console.log(`[GIAO] ${nguon} ${String(ma).slice(0, 40)} ${ttAha} → ${kq} · ${Date.now() - t0}ms`);
+/** GIAO-3 C3: phí đọc về khác phí trên thẻ — chỉ mã chuyến + SỐ (đã qua so()), không SĐT / tên / địa chỉ; chat thử đối chiếu trường phí thật. */
+const logPhi = (c, d) => console.log(`[GIAO] phi ${String(c.ma_ahamove).slice(0, 40)} total_price=${d.phi_tho.total_price} total_fee=${d.phi_tho.total_fee}`
+  + ` · thẻ ${c.phi_that} → ${d.phi ?? 'giữ'}`);
 const logLoi = (nguon, ma, buoc, e) => console.error(`[GIAO] ${nguon} ${String(ma || '?').slice(0, 40)} lỗi ${e?.buoc || buoc}: ${e?.code || e?.name || 'LOI'}${e?.status ? ' HTTP ' + e.status : ''}`);
 const buoc = (ten) => (e) => { throw Object.assign(e, { buoc: e.buoc || ten }); };
 
@@ -426,7 +445,7 @@ async function nhanTinBao(ma) {
   if (c.trang_thai === 'dang_goi') return logGiao('tin', ma, '-', 'bỏ qua: thẻ đang gọi xe', t0);
   const d = await aha.docChuyen(ma).catch(buoc('đọc Ahamove'));
   if (!d) return logGiao('tin', ma, '-', 'bỏ qua: Ahamove không có chuyến', t0);
-  const phu = `${d.diem_giao}|${d.tai_xe.sdt || ''}`;
+  const phu = `${d.diem_giao}|${d.tai_xe.sdt || ''}${d.tra_hang ? '|' + d.tra_hang : ''}`;   // GIAO-3 B2: tin trả hàng là tin MỚI; khoá cũ không đổi
   const moi = await run('INSERT OR IGNORE INTO pos_giao_tin (ma_ahamove, trang_thai, phu, luc) VALUES (?, ?, ?, ?)', [ma, d.trang_thai, phu, getNow()]).catch(buoc('ghi kho'));
   if (moi.changes !== 1) return logGiao('tin', ma, d.trang_thai, 'bỏ qua: tin lặp', t0);
   // Cập nhật thẻ hỏng (kho chập chờn) → gỡ dòng chống lặp vừa ghi: tin gửi lại / đọc lại vẫn áp được.
@@ -465,8 +484,10 @@ async function danhSach(docLaiNgay = false) {
   const doc = () => query(`SELECT c.*, o.code, o.total, o.payment_method, o.payment_status FROM pos_giao_chuyen c JOIN pos_orders o ON o.id = c.order_id
     WHERE c.trang_thai NOT IN ('xong', 'huy', 'da_dong') ORDER BY COALESCE(c.nhan_luc, c.tao_luc), c.id`);
   let ds = await doc();
-  const can = ds.filter((x) => ['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(x.trang_thai) && (!x.doc_luc || x.doc_luc < moc))
-    .slice(0, docLaiNgay ? DOC_LAI_TAY_TOI_DA : DOC_LAI_TOI_DA);
+  // GIAO-3 B3: cả thẻ giao_loi chưa "đã về quán" (tin RETURNED có thể lỡ) — xếp SAU thẻ đang chạy trong trần mỗi lần; đã về quán / đã đóng thì thôi.
+  // Chỉ thẻ giao THẤT BẠI (có xong_luc — COMPLETED + FAILED); giao_loi do Ahamove HUỶ khi đang giao không có xong_luc, không bao giờ RETURNED.
+  const can = [...ds.filter((x) => ['tim_xe', 'doi_tai_xe', 'dang_giao'].includes(x.trang_thai)), ...ds.filter((x) => x.trang_thai === 'giao_loi' && x.xong_luc && x.tra_hang !== 'da_ve')]
+    .filter((x) => !x.doc_luc || x.doc_luc < moc).slice(0, docLaiNgay ? DOC_LAI_TAY_TOI_DA : DOC_LAI_TOI_DA);
   // Đọc SONG SONG, cả phí huỷ (một hạn HAN_DOC_LAI_MS, không cộng dồn theo số chuyến); câu giành doc_luc: hai máy / bấm dồn không đọc trùng.
   // Mỗi nhánh tự bắt lỗi của mình và ghi log đúng bước (Promise.all chỉ báo lỗi đầu) — hỏng thì giữ trạng thái cũ, lần sau đọc lại.
   const phiHuy = docLaiPhiHuy();
@@ -499,7 +520,7 @@ async function danhSach(docLaiNgay = false) {
       nhac: c.trang_thai === 'dang_pha' && !!c.nhan_luc && lechGiay(c.nhan_luc, cd.phut_nhac * 60) <= now,
       tim_lau: c.trang_thai === 'tim_xe' && !!c.goi_luc && c.goi_luc < lechGiay(now, -TIM_XE_TOI_DA_GIAY),
       treo: c.trang_thai === 'dang_goi' && (!!c.loi_mang || (!!c.goi_luc && c.goi_luc < lechGiay(now, -GOI_TREO_GIAY))),   // quầy được bấm "Gọi lại"
-      in_tem_luc: c.in_tem_luc, lan_in_tem: c.lan_in_tem,
+      in_tem_luc: c.in_tem_luc, lan_in_tem: c.lan_in_tem, tra_hang: c.tra_hang || null, tra_hang_luc: c.tra_hang_luc || null,
     };
   });
 }

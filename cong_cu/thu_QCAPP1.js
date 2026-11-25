@@ -67,6 +67,7 @@ async function main() {
   const bcrypt = require(path.join(GOC, 'node_modules', 'bcryptjs'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const guiLai = await db.initDatabase().then(() => true, () => false);
   let routeQC = null, loiNap = '';
   try { routeQC = require(path.join(MAY_CHU, 'routes', 'quang-cao.js')); } catch (e) { loiNap = e.message; }

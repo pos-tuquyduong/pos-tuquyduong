@@ -19,6 +19,7 @@ const { loiTienThat } = require('./viKhach');   // KH-NAP-1: đơn chỉ trả t
 const { congQr } = require('./congQr');   // SEPAY-1: cổng QR của phiên cach 'payos' (= QR tự xác nhận)
 const { voucherDangGiu, CACH_GIU_VOUCHER } = require('./voucherCode');   // Q16: phiên chờ chuyển khoản giữ voucher
 const { laTrungKhoa } = require('../kho/tinh');   // KET-NOI-1 B1: đụng khoá UNIQUE ma_gui (khuôn khiTrung của Kho)
+const { kiemDuHang } = require('../kho/banHang');   // KHO-3a B3b: giữ hàng = phiên 'cho' còn hạn (như ví, voucher)
 
 const HAN_PHUT = 10;
 const NOI_DUNG_TOI_DA = 9;   // cổng payOS (nội dung TQD<mã phiên>; SePay, Tingee dùng nội dung số hoá đơn, ≤ 16 ký tự) — payOS: nội dung CK ≤ 9 ký tự với tài khoản ngân hàng không liên kết (chủ quán chốt Q5) — dài hơn thì báo, không cắt
@@ -30,10 +31,13 @@ const loi = (status, code, error) => ({ status, body: { error, code } });
 // res giả gom status + thân — gọi taoDon ngoài một yêu cầu HTTP của chính nó (webhook, tạo phiên).
 const gomRes = () => ({ statusCode: 200, body: undefined, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } });
 
+// KHO-3a B3c: phiên hỏng vì KHO (ly_do "<mã kho>: <món>") — chỉ nêu món; đã hoàn vào ví hay phải hoàn tay do GET /phien/:id tra dòng hoàn THẬT (thanh-toan.js).
+const MAU_HET_HANG = /^(?:HET_HANG|THIEU_NGUYEN_LIEU|CHUA_CO_CONG_THUC): (.+)$/;
+const hetHangCua = (p) => { const m = p.trang_thai === 'loi' && MAU_HET_HANG.exec(String(p.ly_do || '')); return m ? { mon: m[1] } : null; };
 const tomPhien = (p, order = null) => ({
   id: p.id, cach: p.cach, trang_thai: p.trang_thai === 'cho' && p.het_han <= getNow() ? 'het_han' : p.trang_thai,
   tong: p.tong, giu_vi: p.giu_vi, giu_vi_me: p.giu_vi_me, con_lai: p.con_lai, het_han: p.het_han,
-  noi_dung: p.noi_dung, qr: p.qr, checkout_url: p.checkout_url, order,
+  noi_dung: p.noi_dung, qr: p.qr, checkout_url: p.checkout_url, order, het_hang: hetHangCua(p),
 });
 
 // ── KET-NOI-1 B1: mã lượt bấm (khuôn kho_phieu.ma_gui) ──
@@ -109,6 +113,10 @@ async function taoPhien(b, nguoi, { kenh = 'HD' } = {}) {
       const giuKhac = await voucherDangGiu(tx, vc.map((g) => g.code));
       if (giuKhac.length) return { huy: true, ...loi(400, 'VOUCHER_DANG_GIU', `Voucher ${giuKhac[0]}: đang được giữ cho một thanh toán chuyển khoản chưa xong`) };
     }
+    // KHO-3a B3b: đủ hàng mới giữ — đọc TRONG giao dịch ghi (khoá ghi): hai quầy / App tranh chai cuối thì bên sau thấy phiên bên trước đang giữ.
+    // Phần giữ không có cột riêng: chính dòng phiên 'cho' còn hạn là phần giữ (kho/banHang.js); huỷ / hết hạn / lỗi / chốt = nhả.
+    const thieu = await kiemDuHang(tx, don.items, { bayGio: now });
+    if (thieu) return { huy: true, status: thieu.status, body: thieu.body };
     const ins = await tx.run(`INSERT INTO pos_phien_thanh_toan (than, tong, phone, giu_vi, phone_me, giu_vi_me, con_lai, cach, het_han, nguoi_tao, tao_luc, ma_gui)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${GIO}, ?, ?, ?)`, [thanDon, tong, phone || null, giu, phoneMe, giuMe, conLai, cach, now, `+${HAN_PHUT} minutes`, nguoi, now, maGui]);
     const id = Number(ins.lastInsertRowid);
@@ -185,7 +193,7 @@ async function chotPhien(phien, nguon, them = {}) {
   // Chốt muộn hỏng (ví thiếu, giá đổi) KHÔNG khoá phiên: khách nạp thêm rồi xác nhận lại được.
   if (!muon && r.statusCode >= 400 && r.statusCode < 500 && !['PHIEN_DA_CHOT', 'KHO_BAN'].includes(r.body?.code)) {
     await run("UPDATE pos_phien_thanh_toan SET trang_thai = 'loi', ly_do = ? WHERE id = ? AND trang_thai = 'cho'",
-      [String(r.body?.code || r.body?.error || '').slice(0, 200), phien.id]);
+      [String((r.body?.code || r.body?.error || '') + (r.body?.mon ? `: ${r.body.mon}` : '')).slice(0, 200), phien.id]);   // KHO-3a B3c: lỗi kho nêu tên món
   }
   return { status: r.statusCode, body: r.body };
 }

@@ -36,3 +36,4 @@
   .gh-cot { display: none; }
   .gh-cot.gh-hien { display: flex; }
 }
+.gh-o-ly-do { width: 100%; box-sizing: border-box; margin: 8px 0; font: inherit; }

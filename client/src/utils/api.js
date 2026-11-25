@@ -84,6 +84,8 @@ const CHO_GUI_LAI_MS = [500, 1500];                         // chờ trước l�
 const MA_GUI_LAI = ['MAT_KET_NOI', 'KHO_MAT_KET_NOI'];      // lỗi mạng: GET và lời gọi đọc được gửi lại
 const MA_GUI_LAI_CO_MA = ['DANG_XU_LY', 'KHO_BAN'];         // thêm cho lời gọi mang mã lượt bấm (máy chủ chưa ghi / trả đúng bản đã ghi)
 const loiMatKetNoi = () => Object.assign(new Error(LOI_MAT_KET_NOI), { status: 0, code: 'MAT_KET_NOI' });
+// GIAO-3 D3: lời gọi có `han` (ms) hết hạn → huỷ yêu cầu, ném QUA_HAN (không gửi lại — máy chủ có thể vẫn đang chạy). Câu báo do màn gọi tự đặt.
+const loiQuaHan = () => Object.assign(new Error('Máy chủ trả lời quá lâu — thử lại sau'), { status: 0, code: 'QUA_HAN' });
 /** Gửi lại không? thuLai: 'mang' (chỉ lỗi mạng) · 'co_ma' (thêm DANG_XU_LY / KHO_BAN). */
 const nenGuiLai = (err, thuLai) => !!thuLai && (MA_GUI_LAI.includes(err?.code) || (thuLai === 'co_ma' && MA_GUI_LAI_CO_MA.includes(err?.code)));
 /** MỘT chỗ gọi fetch (request / upload / download): không có trả lời → MAT_KET_NOI, lời tiếng Việt. */
@@ -91,7 +93,7 @@ async function goiFetch(url, options) {
   try {
     return await fetch(url, options);
   } catch {
-    throw loiMatKetNoi();   // không lời gọi nào qua api.js truyền signal → mọi lỗi fetch là không có trả lời
+    throw loiMatKetNoi();   // lời gọi có hạn (signal) bị huỷ: request đổi sang QUA_HAN theo signal.aborted
   }
 }
 const MA_TRANG_PROXY = [502, 503, 504, 520, 521, 522, 523, 524];   // trang lỗi (không JSON) của Render / Cloudflare đứng trước máy chủ
@@ -165,7 +167,7 @@ class ApiClient {
   }
 
   /** KET-NOI-1: `thuLai` — GET mặc định 'mang' (đọc an toàn); POST / PUT / DELETE mặc định KHÔNG gửi lại, trừ lời gọi tự đặt (phiên có mã, tinh-thu). */
-  async request(endpoint, { thuLai, ...options } = {}) {
+  async request(endpoint, { thuLai, han, ...options } = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
@@ -179,13 +181,18 @@ class ApiClient {
     const guiLai = thuLai !== undefined ? thuLai : (options.method || 'GET') === 'GET' ? 'mang' : false;
 
     for (let lan = 0; ; lan++) {
+      const huy = han ? new AbortController() : null;
+      const hen = huy && setTimeout(() => huy.abort(), han);
       try {
-        const response = await goiFetch(url, {
-          ...options,
-          headers
-        });
-
-        const data = await readBody(response);
+        let response, data;
+        try {
+          response = await goiFetch(url, { ...options, headers, ...(huy ? { signal: huy.signal } : {}) });
+          data = await readBody(response);
+        } catch (e) {
+          throw huy?.signal.aborted ? loiQuaHan() : e;
+        } finally {
+          clearTimeout(hen);
+        }
 
         if (!response.ok) {
           this.raiseForStatus(response, data);
@@ -203,8 +210,9 @@ class ApiClient {
     }
   }
 
-  get(endpoint) {
-    return this.request(endpoint, { method: 'GET' });
+  /** tuy.han (ms): hạn chờ — hết hạn ném QUA_HAN (GIAO-3 D3). */
+  get(endpoint, tuy = {}) {
+    return this.request(endpoint, { method: 'GET', ...tuy });
   }
 
   post(endpoint, data, tuy = {}) {

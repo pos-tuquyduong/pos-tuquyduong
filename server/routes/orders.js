@@ -21,7 +21,7 @@ const {
   getToday,
   normalizePhone,
 } = require("../utils/helpers");
-const { checkStock, outStockFIFO, inStockReturn } = require("../utils/sxApi");
+const banHang = require("../kho/banHang");   // KHO-3a: bán trừ kho POS trong giao dịch đơn, trả kho khi huỷ / xoá
 const nhatKyDon = require("../utils/nhatKyDon"); // POS-NEN-v1 (P19)
 const { ghiVi, loiGhi, ghiHoan, dangGiu } = require("./wallets"); // P26b: chỗ duy nhất ghi ví — GOI-2: khoản hoàn qua ghiHoan (chung với kết thúc gói)
 const { soTienHoan, traLuotMa } = require("../utils/tienDaTra"); // P26c
@@ -177,7 +177,7 @@ router.get("/:id", authenticate, async (req, res) => {
  * Phase B: Hỗ trợ chiết khấu linh hoạt + phí ship
  * P3: thân route là hàm `taoDon` — chốt phiên thanh toán (utils/giuCho.js) đi ĐÚNG đường này, cùng mọi phép kiểm. `phien`:
  *   { chiTinh: true } → trả { total, chiTiet } trước phép đối chiếu tiền, không ghi gì (tạo phiên; UUDAI-1: tinh-thu đọc chiTiet);
- *   { chiTinh: true, tinhThu: true } → như trên, thêm: không gọi SX (checkStock) — chỉ POST /tinh-thu dùng;
+ *   { chiTinh: true, tinhThu: true } → như trên — chỉ POST /tinh-thu dùng (KHO-3a: chỉ tính tiền không kiểm / trừ kho — chế độ chỉ tính nào cũng không);
  *   { id, vaoGiaoDich(tx, now), sauGhiDon(tx, orderId, orderCode) } → chốt phiên trong giao dịch tạo đơn.
  * BO-MAN-CU-1: `taoDon` = CỬA CHẶN của mọi lối tạo đơn (route thẳng, tinh-thu, phiên giữ / chốt, App, màn khách) — chủ quán 11.11 + 17.11:
  *   - gói (mua, lấy món từ gói, gia hạn): quầy tạm ngưng ở MỌI lối → 400 GOI_TAM_DUNG;
@@ -437,28 +437,11 @@ async function taoDonGoc(req, res, phien = null) {
 
       // GOI-1 (A2): món lấy từ gói SL nguyên ≥ 1 — dòng âm cùng loại sẽ triệt tiêu phần vượt khi cộng "xin" theo loại. SO-LUONG-1: mở
       // cho MỌI món (0,5 / −1 làm tiền đơn giảm), một phép; mã GOI-1 giữ cho món từ gói. Ghi / cộng lượt dùng `sl` (số đã kiểm) — SL
-      // dạng chuỗi (" 5") mà ghi bản gốc thì nối chuỗi; `checkStock` và lời báo vẫn đọc `item.quantity` — vô hại vì đã kiểm ở trên.
+      // dạng chuỗi (" 5") mà ghi bản gốc thì nối chuỗi.
       const sl = Number(item.quantity);
       if (!soNguyenDuong(sl)) {
         return res.status(400).json({ error: `Số lượng của ${product.name} phải là số nguyên từ 1`,
           code: item.from_package ? "GOI_SL_KHONG_HOP_LE" : "SL_KHONG_HOP_LE" });
-      }
-
-      // Kiểm tra tồn kho từ SX (cả gói và lẻ đều cần)
-      try {
-        // UUDAI-1: tinh-thu không gọi SX (chỉ tính tiền); tạo đơn, phiên payOS kiểm như cũ.
-        const stockCheck = phien?.tinhThu ? { sufficient: true } : await checkStock(
-          product.sx_product_type,
-          product.sx_product_id,
-          item.quantity,
-        );
-        if (!stockCheck.sufficient) {
-          return res.status(400).json({
-            error: `Không đủ hàng: ${product.name}. Tồn kho: ${stockCheck.stock}, cần: ${item.quantity}`,
-          });
-        }
-      } catch (err) {
-        console.error("Stock check error:", err.message);
       }
 
       // POS-DOIKHACH-v1: khai "lay tu goi" thi PHAI noi ro goi nao.
@@ -1139,6 +1122,14 @@ async function taoDonGoc(req, res, phien = null) {
         );
       }
 
+      // KHO-3a: trừ kho POS (một phiếu bán) CÙNG giao dịch — mọi lối vào (quầy, phiên, App, màn khách, chốt muộn, đơn cũ của bài thử) qua đúng dòng này.
+      // Không đủ (tồn − phần giữ của phiên KHÁC) → rollback cả đơn, 400 HET_HANG / THIEU_NGUYEN_LIEU / CHUA_CO_CONG_THUC (chốt phiên: lưới B3c).
+      const kho = await banHang.truKhoDon(tx, { orderId, items: orderItems, nguoi: req.user.username, luc: now });
+      if (kho.loi) {
+        await tx.rollback();
+        return res.status(kho.loi.status).json(kho.loi.body);
+      }
+
       // NAP-1: thu đủ → cộng ví NGAY trong giao dịch này (lỗi → rollback cả đơn): toàn bộ "vào tài khoản", phần hơn "khách trả" vào ngăn thưởng.
       if (goiNap) {
         const r = await ghiVi(tx, { phone, ten: customer_name || null, loai: "topup", soTien: goiNap.vao_tk, thuong: goiNap.vao_tk - goiNap.khach_tra,
@@ -1301,37 +1292,6 @@ async function taoDonGoc(req, res, phien = null) {
     }
 
     // ========== SAU TRANSACTION: Các thao tác không quan trọng ==========
-
-    // Trừ kho SX (bên ngoài transaction vì gọi API external)
-    // Bỏ qua virtual package items (is_package_item)
-    // POS-VANTAY-v1: dung .entries() de co SO THU TU MON on dinh.
-    // So thu tu bam theo VI TRI TRONG MANG, khong bam theo bo dem tang dan —
-    // nhu vay dong item bi bo qua (goi ao) khong lam lech so thu tu cua cac
-    // dong sau, va gui lai lan nao cung ra dung van tay do.
-    for (const [sttMon, item] of orderItems.entries()) {
-      if (item.is_package_item || !item.sx_product_type) continue;
-      const vanTay = `POS:${orderId}:out:${sttMon}`;
-      try {
-        await outStockFIFO(
-          item.sx_product_type, item.sx_product_id,
-          item.quantity, `POS: ${orderCode}`, vanTay,
-        );
-      } catch (err) {
-        console.error(`⚠️ Stock out failed for ${item.product_name}: ${err.message}`);
-        try {
-          await run(
-            `INSERT INTO pos_stock_pending (
-              order_code, order_id, sx_product_type, sx_product_id,
-              product_name, quantity, direction, error_message, created_at, van_tay
-            ) VALUES (?, ?, ?, ?, ?, ?, 'out', ?, ?, ?)`,
-            [orderCode, orderId, item.sx_product_type, item.sx_product_id,
-             item.product_name, item.quantity, err.message, now, vanTay],
-          );
-        } catch (logErr) {
-          console.error("Failed to log pending stock:", logErr.message);
-        }
-      }
-    }
 
     // Tạo registration cho khách mới (không quan trọng, lỗi không ảnh hưởng đơn)
     if (is_new_customer && phone && customer_name) {
@@ -1720,7 +1680,7 @@ function docLyDoHuy(body) {
 
 /**
  * PUT /api/pos/orders/:id/cancel
- * Hủy đơn hàng - hoàn tiền vào pos_wallets + hoàn kho SX
+ * Hủy đơn hàng - hoàn tiền vào pos_wallets + trả kho POS (KHO-3a)
  * ATOMIC: Hoàn ví + cập nhật trạng thái trong 1 transaction
  */
 router.put(
@@ -1734,9 +1694,9 @@ router.put(
 
       // ========== ATOMIC TRANSACTION: Hoàn tiền + hủy đơn ==========
       // P26b: đọc đơn TRONG giao dịch; cổng DUY NHẤT là UPDATE có điều kiện `AND status = 'completed'` + kiểm số dòng đổi.
-      // Đơn đã hoàn / đã huỷ / hai người bấm huỷ cùng lúc: lệnh thua 400, ví không đổi, KHÔNG tới khối hoàn kho SX bên dưới.
+      // Đơn đã hoàn / đã huỷ / hai người bấm huỷ cùng lúc: lệnh thua 400, ví không đổi, kho KHÔNG được trả lần hai (huyPhieuBan nằm sau cổng).
       const tx = await beginTransaction();
-      let order, orderItems, huyGiao, hoan;
+      let order, huyGiao, hoan;
       try {
         order = await tx.queryOne("SELECT * FROM pos_orders WHERE id = ?", [req.params.id]);
         if (!order) {
@@ -1788,6 +1748,8 @@ router.put(
           });
         }
         if (huyGiao) await giaoHang.chotHuyGiao(tx, huyGiao, { ...order, cancelled_reason: lyDo.chu }, req.user, now);   // GIAO-1: chuyến → huy, "Bỏ đi" → hàng hỏng
+        // KHO-3a B5: trả kho đúng lô (phiếu bán → huy) — đồ đã pha bỏ đi thì giữ phiếu, ghi hao hụt. Sau cổng trạng thái đơn: một lần.
+        await banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha, nguoi: req.user.username, luc: now, lyDo: `Huỷ đơn ${order.code}: ${lyDo.chu}` });
 
         // GOI-2 (A4): gói của đơn đã kết thúc ở Báo cáo → Gói SP → tiền đã chốt theo gói, không huỷ (= không hoàn lần hai).
         if (cancelBuyPkgs.length && await goiDaKetThuc(tx, order.id)) {
@@ -1858,16 +1820,6 @@ router.put(
           [req.user.username, now, order.id],
         );
 
-        // P26d (15): món để hoàn kho SX đọc TRONG giao dịch (như xoá đơn) — đọc sau commit mà ném thì loiGhi báo 409 "chưa ghi
-        // gì" trong khi đơn ĐÃ huỷ, kho SX không được hoàn. Sau commit chỉ còn các bước đã bọc try/catch.
-        orderItems = await tx.query(
-          `SELECT oi.*, p.sx_product_type, p.sx_product_id
-          FROM pos_order_items oi
-          LEFT JOIN pos_products p ON oi.product_id = p.id
-          WHERE oi.order_id = ?`,
-          [order.id],
-        );
-
         await tx.commit();
         console.log(`✅ Hủy đơn ${order.code} - Transaction committed`);
       } catch (txErr) {
@@ -1875,36 +1827,6 @@ router.put(
         await tx.rollback();
         console.error(`❌ Hủy đơn ${order?.code || '#' + req.params.id} - Rolled back:`, txErr.message);
         throw txErr;
-      }
-
-      // Hoàn kho SX (bên ngoài transaction). GIAO-1 (Q4): đơn giao "Bỏ đi" — đồ đã pha đổ đi (ghi hàng hỏng ở trên) nên KHÔNG hoàn kho:
-      // kho giữ phần đã trừ lúc bán = trừ đúng phần hỏng.
-      for (const [sttMon, item] of (huyGiao?.doDaPha === "bo_di" ? [] : orderItems).entries()) {
-        if (item.sx_product_type && item.quantity > 0) {
-          // POS-VANTAY-v1: chieu "in" — PHAI khac chieu "out" du cung order_id,
-          // neu khong lenh tra hang bi coi la trung va kho KHONG duoc cong lai.
-          const vanTay = `POS:${order.id}:in:${sttMon}`;
-          try {
-            await inStockReturn(
-              item.sx_product_type, item.sx_product_id,
-              item.quantity, order.code, vanTay,
-            );
-          } catch (err) {
-            console.error(`⚠️ Stock return failed: ${err.message}`);
-            try {
-              await run(
-                `INSERT INTO pos_stock_pending (
-                  order_code, order_id, sx_product_type, sx_product_id,
-                  product_name, quantity, direction, error_message, created_at, van_tay
-                ) VALUES (?, ?, ?, ?, ?, ?, 'in', ?, ?, ?)`,
-                [order.code, order.id, item.sx_product_type, item.sx_product_id,
-                 item.product_name, item.quantity, err.message, now, vanTay],
-              );
-            } catch (logErr) {
-              console.error("Failed to log pending stock:", logErr.message);
-            }
-          }
-        }
       }
 
       res.json({ success: true, message: "Đã hủy đơn hàng", hoan });
@@ -1966,12 +1888,9 @@ router.delete("/:id", authenticate, async (req, res) => {
         return res.status(409).json(chanGiao.loi);
       }
 
-      // Lấy items trước khi xóa (cần cho hoàn kho SX sau)
+      // Lấy items trước khi xóa (trả lượt gói bên dưới)
       orderItems = await tx.query(
-        `SELECT oi.*, p.sx_product_type, p.sx_product_id
-        FROM pos_order_items oi
-        LEFT JOIN pos_products p ON oi.product_id = p.id
-        WHERE oi.order_id = ?`,
+        "SELECT * FROM pos_order_items WHERE order_id = ?",
         [order.id],
       );
 
@@ -1983,6 +1902,10 @@ router.delete("/:id", authenticate, async (req, res) => {
         await hoanVi(tx, order, req.user.username, now, "xóa");
         await traLuotMa(tx, order);
         await truDiemDon(tx, order, req.user.username, now, "Xoá");
+      }
+      // KHO-3a B5: xoá đơn CHƯA huỷ (mọi trạng thái khác — như đường hoàn kho SX cũ `status !== 'cancelled'`) → trả kho đúng lô; đơn đã huỷ đã trả lúc huỷ.
+      if (order.status !== "cancelled") {
+        await banHang.huyPhieuBan(tx, order.id, { nguoi: req.user.username, luc: now, lyDo: `Xoá đơn ${order.code}` });
       }
 
       // ══ GÓI SP: Hoàn lại delivered_qty hoặc xóa customer_package ══
@@ -2033,38 +1956,6 @@ router.delete("/:id", authenticate, async (req, res) => {
       await tx.rollback();
       console.error(`❌ Xóa đơn ${order?.code || '#' + req.params.id} - Rolled back:`, txErr.message);
       throw txErr;
-    }
-
-    // Hoàn kho SX (bên ngoài transaction). P26c (chủ quán chốt Câu hỏi 4 = a): xoá luôn gửi `in`, nợ kho của đơn (out / in) vẫn
-    // đẩy như mọi nợ — SX bỏ lệnh trùng vân tay (sxApi.js:155-157) nên kho SX RÒNG đúng dù SX đã làm mà báo lỗi / hết giờ.
-    if (order.status !== "cancelled") {
-      for (const [sttMon, item] of orderItems.entries()) {
-        if (item.sx_product_type && item.quantity > 0) {
-          // POS-VANTAY-v1: chieu "in" — PHAI khac chieu "out" du cung order_id,
-          // neu khong lenh tra hang bi coi la trung va kho KHONG duoc cong lai.
-          const vanTay = `POS:${order.id}:in:${sttMon}`;
-          try {
-            await inStockReturn(
-              item.sx_product_type, item.sx_product_id,
-              item.quantity, order.code, vanTay,
-            );
-          } catch (err) {
-            console.error(`⚠️ Stock return failed: ${err.message}`);
-            try {
-              await run(
-                `INSERT INTO pos_stock_pending (
-                  order_code, order_id, sx_product_type, sx_product_id,
-                  product_name, quantity, direction, error_message, created_at, van_tay
-                ) VALUES (?, ?, ?, ?, ?, ?, 'in', ?, ?, ?)`,
-                [order.code, order.id, item.sx_product_type, item.sx_product_id,
-                 item.product_name, item.quantity, err.message, now, vanTay],
-              );
-            } catch (logErr) {
-              console.error("Failed to log pending stock:", logErr.message);
-            }
-          }
-        }
-      }
     }
 
     res.json({ success: true, message: "Đã xóa đơn hàng" });

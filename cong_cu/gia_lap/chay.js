@@ -163,33 +163,13 @@ async function main() {
   // Log của máy chủ (mỗi request một dòng) không phải kết quả — tắt; kết quả in bằng viet().
   console.log = () => {}; console.warn = () => {}; console.error = () => {};
 
-  // B2 · SX giả: trả tồn, GHI mọi lệnh trừ/hoàn kho kèm vân tay, chống trùng như SX thật (sxApi.js:174).
-  // LUOI-1 B4: công tắc lỗi — kịch bản gọi ctx.batSxLoi(); MẶC ĐỊNH tắt, tự tắt trước mỗi kịch bản. Lúc lỗi: trả 503,
-  // KHÔNG nhận, ghi lần lỗi (vân tay + kịch bản) vào sxGia.hong để bất biến I7 đối chiếu sổ nợ kho.
-  const express = require(tim('express'));
-  const nhanKho = [];
-  const sxGia = { loi: false, kb: 0, hong: [], kbBat: new Set() };
-  const sx = express();
-  sx.use(express.json());
-  sx.get('/api/finished-products/check-stock', (q, r) => r.json({ sufficient: true, stock: 999 }));
-  for (const chieu of ['out', 'in']) {
-    sx.post('/api/pos/stock/' + chieu, (q, r) => {
-      const vt = q.body.van_tay || null;
-      if (sxGia.loi) { sxGia.hong.push({ chieu, van_tay: vt, kb: sxGia.kb }); return r.status(503).json({ error: 'SX giả đang lỗi' }); }
-      const lap = vt && nhanKho.some((x) => x.van_tay === vt);
-      nhanKho.push({ chieu, van_tay: vt, so_luong: q.body.quantity });
-      r.json(lap ? { success: true, da_lam_roi: true, lam_luc: 'truoc' } : { success: true });
-    });
-  }
-  sx.use((q, r) => r.status(404).json({ error: 'SX giả không có đường ' + q.path }));
-  const sxMay = await new Promise((ok) => { const s = sx.listen(0, '127.0.0.1', () => ok(s)); });
+  // B2 · KHO-3a: POS ngắt hẳn SX — không còn SX giả; bán trừ kho POS trong cùng giao dịch đơn (bất biến I7 soát phiếu bán).
 
   // A2 · kho qua ketNoiKho (nơi DUY NHẤT quyết định kết nối — P8), như cong_cu/thu_P20.js.
   const FILE_KHO = path.join(THU_MUC, 'kho.db');
   datCache(path.join(MAY_CHU, 'ketNoiKho.js'), {
     laMayThu: () => true,
     cauHinhTurso: () => ({ laMayThu: true, cauHinh: { url: 'file:' + FILE_KHO } }),
-    diaChiSX: () => `http://127.0.0.1:${sxMay.address().port}`,
     FILE_THU: FILE_KHO,
   });
   datCache(tim('dotenv'), { config: () => ({ parsed: {} }) });   // .env của máy KHÔNG bao giờ được nạp
@@ -224,7 +204,6 @@ async function main() {
   const bienGia = process.env;
   bienGia.JWT_SECRET = 'gia_lap_' + crypto.randomBytes(16).toString('hex');   // ngẫu nhiên: giả lập song song không trùng khoá
   bienGia.POS_SERVICE_API_KEY = 'khoa_dich_vu_gia_lap';
-  bienGia.SX_API_KEY = 'khoa_sx_gia_lap';
   // Cổng 0: hệ điều hành cấp cổng lúc index.js listen; bắt đúng máy chủ đó để đọc cổng THẬT. Không "mượn cổng rồi đóng"
   // (TOCTOU — soát vòng 2 bắt: giả lập song song lấy mất cổng, yêu cầu rơi sang máy khác → 401).
   bienGia.PORT = '0';
@@ -250,8 +229,7 @@ async function main() {
 
   const jwt = require(tim('jsonwebtoken'));
   const q = async (sql, a = []) => db.query(sql, a);
-  const ctx = { db, q, moc, nhanKho, doLenh, sxGia, soQuay: { thu: new Map(), doi: new Map(), tangMa: new Map(), giaoGoi: new Map() },
-    http: [], batSxLoi: () => { sxGia.loi = true; sxGia.kbBat.add(sxGia.kb); } };
+  const ctx = { db, q, moc, doLenh, soQuay: { thu: new Map(), doi: new Map(), tangMa: new Map(), giaoGoi: new Map() }, http: [] };
   const goi = async (ai, method, url, body) => {
     const headers = { 'Content-Type': 'application/json' };
     if (ai === 'dv') headers['X-Service-Key'] = bienGia.POS_SERVICE_API_KEY;
@@ -269,7 +247,10 @@ async function main() {
   const chu = await db.queryOne("SELECT id FROM pos_users WHERE role = 'owner' ORDER BY id LIMIT 1");
   const nv = await db.run(`INSERT INTO pos_users (username, password, display_name, role, is_active) VALUES ('nv_gia_lap', 'x', 'Nhân viên 2', 'staff', 1)`);
   ctx.token = { chu: jwt.sign({ userId: chu.id }, bienGia.JWT_SECRET), nv: jwt.sign({ userId: Number(nv.lastInsertRowid) }, bienGia.JWT_SECRET) };
+  const { dungMonThu } = require('./monThu.js');   // KHO-3a (Câu 1): món có kiểu + công thức + lô qua đường pha chế thật
+  await dungMonThu(db);
   await dungDuLieu(ctx);   // B4 — tự khẳng định, sai thì ném lỗi → sập
+  await dungMonThu(db);   // món dựng thêm trong dungDuLieu (món không mã SX)
 
   const lech = [];
   const daThay = new Set();
@@ -281,8 +262,6 @@ async function main() {
     if (!luot.includes(i + 1)) continue;   // TACH-GL: chỉ KB của lượt này, giữ SỐ GỐC i + 1
     daChay.push(i + 1);
     treMs = TRE_MS;   // A1: trễ bật lại TRƯỚC mỗi kịch bản
-    sxGia.loi = false;   // B4: SX giả hết lỗi trước mỗi kịch bản
-    sxGia.kb = i + 1;
     ctx.http = [];
     try { await kb.chay(ctx); } catch (e) { ctx.http.push('SẬP giữa kịch bản: ' + e.message); }
     treMs = 0;   // A1: bất biến không cộng trễ

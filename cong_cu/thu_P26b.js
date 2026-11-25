@@ -64,6 +64,7 @@ async function main() {
   const PIN_CQ = '2468';
   await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu', '2026-01-01T00:00:00')",
     [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN_CQ, 4)]);
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
   const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
     + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);
@@ -302,10 +303,10 @@ async function main() {
   {
     const d = await donTien(s2, [mon(0, 2)]);   // 2 × 25.000
     const ma = sp[0].code;
-    const a = await baoHong(d, { product_code: ma, quantity: 1, action: 'return_stock', return_to_stock: true });
+    const a = await baoHong(d, { product_code: ma, quantity: 1, action: 'none' });   // KHO-3a: "hoàn kho SX" đã bỏ — đếm số lượng bằng "chỉ ghi nhận"
     const b = await baoHong(d, { product_code: ma, quantity: 1, action: 'refund', refund_amount: 25000 });   // P26c Q3: hoàn tiền phải có số
     const c = await baoHong(d, { product_code: ma, quantity: 1, action: 'none' });
-    k('C2a món qty 2: báo return_stock 1 → 200, refund 1 → 200, none 1 → 400 VUOT_SO_LUONG',
+    k('C2a món qty 2: báo none 1 → 200, refund 1 → 200, none 1 → 400 VUOT_SO_LUONG',
       a.status === 200 && b.status === 200 && c.status === 400 && c.code === 'VUOT_SO_LUONG', `${moTa(a)} / ${moTa(b)} / ${moTa(c)}`);
   }
   {

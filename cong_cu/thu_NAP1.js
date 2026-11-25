@@ -52,6 +52,7 @@ async function main() {
   const jwt = require(path.join(GOC, 'node_modules', 'jsonwebtoken'));
   const db = require(path.join(MAY_CHU, 'database.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // VI-ME-1: máy chủ chỉ trừ tài khoản mẹ khi hồ sơ khách (pos_customers) ghi đúng mẹ — dựng quan hệ trước đơn trả tài khoản mẹ
   const datMe = (con, me) => db.run('INSERT INTO pos_customers (phone, name, parent_phone) VALUES (?, ?, ?) '
     + 'ON CONFLICT(phone) DO UPDATE SET parent_phone = excluded.parent_phone', [con, 'Con ' + con, me]);

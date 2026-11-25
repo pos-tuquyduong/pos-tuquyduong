@@ -144,6 +144,7 @@ async function main() {
   const db = require(path.join(MAY_CHU, 'database.js'));
   const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   await db.initDatabase();
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   const payosNhan = [];
   const gia = express();
   gia.use(express.json());

@@ -135,7 +135,9 @@ const DOT_BIEN = [
     ' && don.payment_status === TRANG_THAI_DUNG_MA.payment_status', '', 1, 7, 'I1'],
   ['M3 đối soát ví cộng debt_payment (lỗi P21)', 'routes/wallets.js',
     "const LOAI_TINH_VAO_VI = ['topup',", "const LOAI_TINH_VAO_VI = ['debt_payment', 'topup',", 1, 8, 'I4'],
-  ['M4 vân tay hoàn kho trùng chiều bán', 'routes/orders.js', ':in:${sttMon}', ':out:${sttMon}', 2, 5, 'I7'],
+  // KHO-3a: SX đã ngắt (không còn vân tay kho SX) — M4 cũ "vân tay hoàn kho trùng chiều bán" thay bằng lỗi cùng chỗ của kho POS: huỷ đơn không trả kho.
+  ['M4 huỷ đơn không trả kho POS (phiếu bán giữ da_duyet)', 'routes/orders.js',
+    'await banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha,', 'false && banHang.huyPhieuBan(tx, order.id, { doDaPha: huyGiao?.doDaPha,', 1, 5, 'I7'],
   ['M5 nhận điểm bỏ chiếm mã', 'routes/signup-codes.js',
     'WHERE id = ? AND diem_nhan_luc IS NULL', 'WHERE id = ?', 1, 11, 'I8'],
   ['M6 pay-debt bỏ nhật ký thu', 'routes/orders.js',
@@ -432,10 +434,16 @@ async function duLieuTay() {
   // ── LUOI-1: bất biến mới / mở rộng trên kho dữ liệu tay. [tên, bất biến, khung, SQL lệch thêm (null = bộ sạch), mẫu kết luận, ctx] ──
   console.log('\n[LUOI-1] I7 mở rộng · I8 đổi điểm · I12–I17 trên kho dữ liệu tay');
   const KHUNG = {
-    I7: ['CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, status TEXT)', 'CREATE TABLE pos_products (id INTEGER PRIMARY KEY, sx_product_type TEXT)',
-      'CREATE TABLE pos_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER)',
-      'CREATE TABLE pos_stock_pending (id INTEGER PRIMARY KEY, order_code TEXT, van_tay TEXT, status TEXT)',
-      "INSERT INTO pos_orders VALUES (1, 'D1', 'completed')", "INSERT INTO pos_products VALUES (5, 'tra')", 'INSERT INTO pos_order_items VALUES (1, 1, 5)'],
+    // KHO-3a: I7 = phiếu bán kho POS. Bộ sạch: đơn D1 bán 2 món làm sẵn #5 — lô #1 (pha chế +5), phiếu bán #11 da_duyet trừ 2 từ lô #1.
+    I7: ['CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, status TEXT)',
+      'CREATE TABLE pos_order_items (id INTEGER PRIMARY KEY, order_id INTEGER, product_id INTEGER, quantity REAL)',
+      'CREATE TABLE kho_san_pham (pos_product_id INTEGER PRIMARY KEY, kieu TEXT)',
+      'CREATE TABLE kho_phieu (id INTEGER PRIMARY KEY, loai TEXT, trang_thai TEXT, su_co TEXT, don_hang_id INTEGER, ghi_chu TEXT)',
+      'CREATE TABLE kho_phieu_dong (id INTEGER PRIMARY KEY, phieu_id INTEGER, san_pham_id INTEGER, lo_id INTEGER, so_luong REAL)',
+      'CREATE TABLE kho_lo (id INTEGER PRIMARY KEY, san_pham_id INTEGER)',
+      "INSERT INTO pos_orders VALUES (1, 'D1', 'completed')", 'INSERT INTO pos_order_items VALUES (1, 1, 5, 2)', "INSERT INTO kho_san_pham VALUES (5, 'lam_san')",
+      'INSERT INTO kho_lo VALUES (1, 5)', "INSERT INTO kho_phieu VALUES (10, 'PX', 'da_duyet', NULL, NULL, NULL)", 'INSERT INTO kho_phieu_dong VALUES (1, 10, 5, 1, 5)',
+      "INSERT INTO kho_phieu VALUES (11, 'PS', 'da_duyet', 'ban_hang', 1, 'Đơn #1')", 'INSERT INTO kho_phieu_dong VALUES (2, 11, 5, 1, -2)'],
     I8: ["CREATE TABLE pos_settings (key TEXT, value TEXT)", "INSERT INTO pos_settings VALUES ('loyalty_enabled', 'true'), ('loyalty_earn_per_amount', '10000')",
       'CREATE TABLE pos_orders (id INTEGER PRIMARY KEY, code TEXT, total REAL, customer_phone TEXT, flash_discount REAL, payment_status TEXT, created_at TEXT, status TEXT, cancelled_at TEXT,'
         + ' cash_amount REAL, transfer_amount REAL, shipping_fee REAL, balance_amount REAL, parent_balance_amount REAL)',
@@ -509,30 +517,27 @@ async function duLieuTay() {
   const truocMocThat = MOC_THAT ? `'${new Date(Date.parse(MOC_THAT + 'T00:00:00Z') - 1000).toISOString().slice(0, 19)}'` : "'(chưa có mốc)'";
   const truocMocHuy = MOC_HUY ? `'${new Date(Date.parse(MOC_HUY + 'T00:00:00Z') - 1000).toISOString().slice(0, 19)}'` : "'(chưa có mốc)'";
   const truocMoc = MOC ? `'${new Date(Date.parse(MOC + 'T00:00:00Z') - 1000).toISOString().slice(0, 19)}'` : "'(chưa có mốc)'";
-  const VT = 'POS:1:out:0';
-  const sx = (nhan, hong, bat = [5]) => ({ nhanKho: nhan.map((v) => ({ van_tay: v })), sxGia: { hong: hong.map(([v, kb]) => ({ van_tay: v, kb })), kbBat: new Set(bat) } });
-  const no = (v, tt = 'pending') => `INSERT INTO pos_stock_pending (order_code, van_tay, status) VALUES ('D1', ${v ? `'${v}'` : 'NULL'}, '${tt}')`;
   const QUAY = (tang = [], giao = []) => ({ soQuay: { tangMa: new Map(tang), giaoGoi: new Map(giao) } });
   const CA = [
-    ['I7 sạch: SX nhận đúng 1', 'I7', 'I7', [], null, sx([VT], [])],
-    ['I7 sạch: SX lỗi → đúng 1 dòng nợ chờ đẩy', 'I7', 'I7', [no(VT)], null, sx([], [[VT, 5]])],
-    ['I7 sạch: nợ đã đẩy xong + SX nhận 1', 'I7', 'I7', [no(VT, 'resolved')], null, sx([VT], [[VT, 5]])],
-    ['I7 sạch: đơn đã xoá — lỗi out + in, mỗi cái 1 dòng nợ', 'I7', 'I7', [no('POS:9:out:0'), no('POS:9:in:0')], null,
-      { ...sx([VT], [['POS:9:out:0', 5], ['POS:9:in:0', 6]], [5, 6]) }],
-    ['I7 sạch (P26c, H6): đơn huỷ rồi xoá — nợ in đã đẩy xong, SX nhận đúng 1', 'I7', 'I7', [no('POS:9:in:0', 'resolved')], null,
-      sx([VT, 'POS:9:in:0'], [['POS:9:in:0', 5]])],
-    ['I7 SX nhận vân tay lạ (không đơn, không dòng nợ)', 'I7', 'I7', [], /SX nhận vân tay lạ POS:9:in:0/, sx([VT, 'POS:9:in:0'], [])],
-    ['I7 SX nhận 2 lần (phía trên)', 'I7', 'I7', [], /SX nhận 2 lần/, sx([VT, VT], [])],
-    ['I7 SX nhận 0, không nợ (phía dưới)', 'I7', 'I7', [], /SX nhận 0 lần$/, sx([], [])],
-    ['I7 SX nhận 1 VÀ còn nợ chờ đẩy', 'I7', 'I7', [no(VT)], /nợ kho chưa xong 1 dòng/, sx([VT], [[VT, 5]])],
-    ['I7 nợ đã xong nhưng SX nhận 0 (đơn đã xoá)', 'I7', 'I7', [no('POS:9:in:0', 'resolved')], /nợ kho POS:9:in:0 đã xong 1 dòng, SX nhận 0 lần/,
-      sx([VT], [['POS:9:in:0', 5]])],
-    ['I7 SX lỗi (đơn đã xoá) mà không có dòng nợ', 'I7', 'I7', [], /sổ nợ kho có 0 dòng/, sx([VT], [['POS:9:in:0', 5]])],
-    ['I7 SX lỗi một lần mà 2 dòng nợ cùng vân tay', 'I7', 'I7', [no('POS:9:in:0'), no('POS:9:in:0')], /sổ nợ kho có 2 dòng/, sx([VT], [['POS:9:in:0', 5]])],
-    ['I7 dòng nợ không có lần SX lỗi', 'I7', 'I7', [no('POS:9:in:0')], /không có lần SX lỗi tương ứng/, sx([VT], [])],
-    ['I7 dòng nợ không vân tay', 'I7', 'I7', [no(null)], /nợ kho KHÔNG vân tay/, sx([VT], [])],
-    ['I7 dòng nợ không vân tay, SX giả cũng ghi lỗi không vân tay', 'I7', 'I7', [no(null)], /nợ kho KHÔNG vân tay/, sx([VT], [[null, 5]])],
-    ['I7 SX lỗi ở kịch bản không bật công tắc', 'I7', 'I7', [no('POS:9:in:0')], /không bật công tắc lỗi/, sx([VT], [['POS:9:in:0', 5]], [])],
+    ['I7 sạch: đơn bán ↔ đúng một phiếu bán da_duyet trừ đúng 2', 'I7', 'I7', [], null, {}],
+    ['I7 hai phiếu bán cho một đơn', 'I7', 'I7', ["INSERT INTO kho_phieu VALUES (12, 'PS', 'da_duyet', 'ban_hang', 1, NULL)"], /^đơn D1: 2 phiếu bán/, {}],
+    ['I7 đơn bán KHÔNG có phiếu bán (không trừ kho)', 'I7', 'I7', ['DELETE FROM kho_phieu_dong WHERE phieu_id = 11', 'DELETE FROM kho_phieu WHERE id = 11',
+      'UPDATE pos_order_items SET quantity = 0'], /^đơn D1: 0 phiếu bán/, {}],
+    ['I7 đơn đã huỷ mà phiếu bán vẫn da_duyet (không trả kho)', 'I7', 'I7', ["UPDATE pos_orders SET status = 'cancelled'"], /^đơn D1 \(cancelled\): phiếu bán da_duyet, phải huy$/, {}],
+    ['I7 sạch: đơn huỷ — phiếu bán huy (trả kho)', 'I7', 'I7', ["UPDATE pos_orders SET status = 'cancelled'", "UPDATE kho_phieu SET trang_thai = 'huy' WHERE id = 11"], null, {}],
+    ['I7 sạch: đơn huỷ "bỏ đi" — phiếu giữ da_duyet, ghi hao hụt', 'I7', 'I7', ["UPDATE pos_orders SET status = 'cancelled'",
+      "UPDATE kho_phieu SET ghi_chu = 'Đơn #1 · hao hụt: huỷ đơn — đồ đã pha bỏ đi' WHERE id = 11"], null, {}],
+    ['I7 đơn còn hiệu lực mà phiếu bán đã huy', 'I7', 'I7', ["UPDATE kho_phieu SET trang_thai = 'huy' WHERE id = 11"], /^đơn D1 \(completed\): phiếu bán huy, phải da_duyet$/, {}],
+    ['I7 đơn đã xoá mà phiếu bán vẫn da_duyet', 'I7', 'I7', ['DELETE FROM pos_order_items', 'DELETE FROM pos_orders'], /^phiếu bán #11 của đơn #1 không còn — vẫn da_duyet$/, {}],
+    ['I7 sạch: đơn đã xoá — phiếu bán huy', 'I7', 'I7', ['DELETE FROM pos_order_items', 'DELETE FROM pos_orders', "UPDATE kho_phieu SET trang_thai = 'huy' WHERE id = 11"], null, {}],
+    ['I7 phiếu bán trừ thiếu (1 thay vì 2)', 'I7', 'I7', ['UPDATE kho_phieu_dong SET so_luong = -1 WHERE id = 2'], /^đơn D1: món #5 bán 2, phiếu bán trừ 1$/, {}],
+    ['I7 phiếu bán trừ thừa (3 thay vì 2)', 'I7', 'I7', ['UPDATE kho_phieu_dong SET so_luong = -3 WHERE id = 2'], /^đơn D1: món #5 bán 2, phiếu bán trừ 3$/, {}],
+    ['I7 lô thành phẩm âm (bán 6 từ lô 5)', 'I7', 'I7', ['UPDATE kho_phieu_dong SET so_luong = -6 WHERE id = 2', 'UPDATE pos_order_items SET quantity = 6'],
+      /^lô thành phẩm #1 âm -1$/, {}],
+    ['I7 sạch: lô về 0 đúng ngưỡng (bán 5 từ lô 5)', 'I7', 'I7', ['UPDATE kho_phieu_dong SET so_luong = -5 WHERE id = 2', 'UPDATE pos_order_items SET quantity = 5'], null, {}],
+    ['I7 sạch: món pha tại chỗ không soát lượng thành phẩm', 'I7', 'I7', ["UPDATE kho_san_pham SET kieu = 'pha_tai_cho'", 'DELETE FROM kho_phieu_dong WHERE id = 2'], null, {}],
+    ['I7 sạch: đơn chỉ gói / thẻ (dòng ảo product_id < 0) không cần phiếu bán', 'I7', 'I7', ["INSERT INTO pos_orders VALUES (2, 'G1', 'completed')",
+      'INSERT INTO pos_order_items VALUES (2, 2, -3, 1)'], null, {}],
     ['I8 sạch: dòng đổi điểm −3 ↔ một quà giá 3', 'I8', 'I8', [], null, {}],
     ['I8 đổi trừ 2 điểm (ít hơn giá)', 'I8', 'I8', ['UPDATE pos_point_transactions SET points = -2'], /-2 điểm, 1 quà trỏ tới, quà giá 3/, {}],
     ['I8 đổi trừ 4 điểm (nhiều hơn giá)', 'I8', 'I8', ['UPDATE pos_point_transactions SET points = -4'], /-4 điểm, 1 quà trỏ tới, quà giá 3/, {}],

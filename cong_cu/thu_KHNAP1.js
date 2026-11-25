@@ -63,6 +63,7 @@ async function main() {
   const PIN_CQ = '2468';
   await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu', '2026-01-01T00:00:00')",
     [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN_CQ, 4)]);
+  await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // Soát vòng 2 (nghi ngờ 1): chen một dòng báo CÙNG khoá đúng lúc giữa phép kiểm khoá (ngoài giao dịch) và giao dịch chốt — như bản sao thứ hai của cổng
   // vừa ghi xong. chenKhoa = { khoa, ma } → ghi một lần ở lần mở giao dịch kế tiếp.
   let chenKhoa = null;

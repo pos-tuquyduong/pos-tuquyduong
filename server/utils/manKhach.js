@@ -18,7 +18,6 @@ const HAN_MA_PHUT = 10;              // mã ghép sống bao lâu; quầy mở l
 const CAM_ON_GIAY = 8;               // "Cảm ơn" hiện bao lâu sau khi chốt
 const TOI_DA_SAI = 5;                // số lần nhập sai mã / cửa sổ / IP
 const CUA_SO_SAI_PHUT = 10;
-const BO_NHO_MENU_GIAY = 20;         // menu hỏi SX có tốn kém → nhiều màn cùng đọc một bản
 const TOI_DA_TRANG = 12;
 const GIAY_TOI_THIEU = 3;
 const GIAY_TOI_DA = 120;
@@ -107,14 +106,10 @@ async function thuHoiMay(id, nguoi) {
   return { ok: true };
 }
 
-// ── Menu (dùng chung layMenuQuay, có bộ nhớ ngắn) ────────────────────────────
-let boNhoMenu = { luc: 0, ds: [] };
+// ── Menu (dùng chung layMenuQuay) — KHO-3a: bỏ bộ nhớ 20 s (chỉ có vì hỏi SX chậm); "hết" cùng một con số với quầy và App ngay lúc đó ──
 async function layMenu() {
-  if (Date.now() - boNhoMenu.luc < BO_NHO_MENU_GIAY * 1000) return boNhoMenu.ds;
-  const ds = (await layMenuQuay()).filter((p) => p.sellable)
+  return (await layMenuQuay()).filter((p) => p.sellable)
     .map((p) => ({ key: p.unique_id, ten: p.name, gia: p.price, nhom: p.category || '', het: !p.khong_quan_kho && p.stock_quantity === 0 }));
-  boNhoMenu = { luc: Date.now(), ds };
-  return ds;
 }
 
 // ── Bản hiển thị của phiên (dựng một lần khi quầy báo) ───────────────────────
