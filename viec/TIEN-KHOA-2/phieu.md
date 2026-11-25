@@ -59,6 +59,9 @@ Máy BO-MAN-CU-1 (kế hoạch 4386c365 mục 8) và chat bàn 39 tìm thêm **3
 - client/src/utils/api.js
 - client/dist/**
 - cong_cu/thu_TIENKHOA2.js
+- cong_cu/thu_P20.js
+- cong_cu/thu_P21.js
+- cong_cu/thu_P26b.js
 - cong_cu/thu_*.js
 - cong_cu/gia_lap/kich_ban.js
 - kiem_tra_truoc_khi_giao.js
