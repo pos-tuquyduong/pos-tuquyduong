@@ -189,11 +189,10 @@ async function main() {
   });
   const luoi = (q) => (M.luoiQuanLy ? M.luoiQuanLy(q) : []);
   const lien = (q) => luoi(q).map((o) => `${o.ten}:${o.nut.map((l) => l.to).join('+')}`);   // GIAO-DIEN-2: lưới 6 nhóm (mẫu chủ quán duyệt 17.11), nút = `nut`
-  thu('F6 lưới Quản lý (đủ quyền): 6 nhóm đúng tên, đúng đường dẫn', () => bang(lien(tatCa), [
-    'Món & giá:/kho+/settings?the=products+/settings?the=goiNap', 'Khách & thẻ:/customers+/settings?the=tiers+/settings?the=loyalty',
-    'Khuyến mãi:/discount-codes+/settings?the=flash+/settings?the=chuongTrinh+/settings?the=quangCao', 'Tiền & báo cáo:/reports?tab=doisoat+/refunds+/reports',
-    'Nhân viên:/settings?the=users+/settings?the=permissions',
-    'Cài đặt quán:/settings?the=gioHoatDong+/settings?the=giaoHang+/invoice-settings+/settings?the=inPhieu+/settings?the=manKhach+/settings?the=pin+/settings?the=backup+/settings?the=appKh']));
+  // `tatCa` của bài này chỉ có 4 quyền (view_reports, manage_users, approve_refund, view_customer_balance) → nút đòi quyền khác (manage_settings…) ẩn, nhóm hết nút ẩn.
+  thu('F6 lưới Quản lý (bộ quyền của bài): đúng nhóm, đúng nút, đúng đường dẫn theo quyền', () => bang(lien(tatCa), [
+    'Món & giá:/kho', 'Khách & thẻ:/customers', 'Khuyến mãi:/discount-codes', 'Tiền & báo cáo:/reports?tab=doisoat+/refunds+/reports',
+    'Nhân viên:/settings?the=users', 'Cài đặt quán:/invoice-settings']));
   thu('F7 lưới Quản lý (không quyền): chỉ còn Món, giá & công thức (/kho) + Danh sách khách (/customers) — nút cần quyền bị ẩn, nhóm không còn nút thì ẩn', () => bang(lien(quyen()), ['Món & giá:/kho', 'Khách & thẻ:/customers']));
   thu('F8 lối sang Hoàn tiền (approve_refund) theo quyền cũ; Số dư đã gộp vào Khách hàng nên không còn lối riêng', () => {
     const g = M.loiThem ? M.loiThem : () => [];
