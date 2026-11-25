@@ -1493,7 +1493,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
       return res.status(400).json({ error: "Thu nợ chuyển khoản phải qua QR — tạm thu tiền mặt", code: "THU_NO_CK_PHAI_QR" });
     }
     // Validate payment_method
-    if (!payment_method || !["cash", "transfer"].includes(payment_method)) {
+    if (payment_method !== "cash") {
       return res
         .status(400)
         .json({
@@ -1611,7 +1611,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
             order.customer_name,
             paidAmount,
             id,
-            `Thanh toán nợ đơn ${order.code} bằng ${payment_method === "cash" ? "tiền mặt" : "chuyển khoản"}`,
+            `Thanh toán nợ đơn ${order.code} bằng tiền mặt`,
             req.user.username,
             now,
           ],

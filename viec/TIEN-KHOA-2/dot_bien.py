@@ -60,6 +60,7 @@ DOT_BIEN = [
   ('BV-VIKHACH-PIN', [(V, 'reason: nhap.text, pin });', 'reason: nhap.text });', 1)], r'✗ A2i'),
   ('VS-VIKHACH-KHONG-MO', [(V, "<HoiPin mo={hoiPin && cua === 'chinh'}", '<HoiPin mo={false}', 1)], r'✗ A2i'),
   ('VS-VIKHACH-GUI-THANG', [(V, '    if (!nap) { setHoiPin(true); return; }\n', '', 1)], r'✗ A2i'),
+  ('VS-VIKHACH-KHONG-DAT-LAI', [(V, "setNhap({ amount: '', text: '' }); setHoiPin(false); };", "setNhap({ amount: '', text: '' }); };", 1)], r'✗ A2i'),
   ('BV-ORDERS-FETCH', [(OJ, GOI_NO, "await fetch(`/api/pos/orders/${selectedOrder.id}/pay-debt`, { method: 'POST', body: JSON.stringify({ payment_method: 'cash' }) });", 1)],
    r'✗ A4e'),
   ('VS-ORDERS-NUT-CK', [(OJ, '/> Thu tiền mặt\n', "/> Thu tiền mặt <button onClick={() => setPaymentMethod('transfer')}>CK</button>\n", 1)], r'✗ A4e'),

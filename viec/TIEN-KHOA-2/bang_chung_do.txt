@@ -65,7 +65,7 @@ SỐ CA cong_cu/thu_NAP1.js: 90
 SỐ CA cong_cu/thu_P20.js: 179
 SỐ CA cong_cu/thu_P21.js: 15
 SỐ CA cong_cu/thu_P26b.js: 104
-SỐ CA cong_cu/thu_P26c.js: 161
+SỐ CA cong_cu/thu_P26c.js: 159
 SỐ CA cong_cu/thu_P3.js: 101
 
 Đột biến (python3 viec/TIEN-KHOA-2/dot_bien.py): ĐỐI CHỨNG XANH · 29 đạt · 0 hỏng — TỔNG: 21 đột biến · BẮT 21 · SỐNG 0 · HỎNG 0 · LẠC 0
@@ -77,3 +77,6 @@ thẳng một lần thu nợ CK CŨ 20.000 + thu tiền mặt 30.000 — giữ p
   --so-ca e911762 → số ca KHÔNG đổi (TIENKHOA2 29 · DOISOAT1 134; các bài khác như trên), mọi bài thoát 0
   đột biến: TỔNG 21 · BẮT 21 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh)
   npm test -- --day-du: PASS 127 · FAIL 0 · CẢNH BÁO 1
+
+Ghép main 7da9ba9a (25.11): thu_P26c 161 → 159 ca (KHO-3a bỏ ca B3d / B3e, B3c đổi nghĩa) — đã sửa dòng SỐ CA. Chín bài còn lại chạy lại
+trên f5a82442: số ca không đổi (TIENKHOA2 29 · DIEMTHAT1 36 · DOISOAT1 134 · KHNAP1 66 · NAP1 90 · P20 179 · P21 15 · P26b 104 · P3 101).

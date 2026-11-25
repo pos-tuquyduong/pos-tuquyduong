@@ -59,7 +59,7 @@ Lỗi trả: `409 DOI_SANG_CK_PHAI_QUA_QR` "Không đổi tiền mặt sang chuy
 
 ### A4 — thu nợ chuyển khoản
 - **A (chọn):** đầu route `pay-debt`, `payment_method === 'transfer'` → `400 THU_NO_CK_PHAI_QR` "Thu nợ chuyển khoản phải qua QR — tạm thu tiền mặt";
-  giá trị lạ khác giữ `400 CACH_TRA_LA`. Kiểm TRƯỚC khi đọc đơn (không tốn đọc, không lộ trạng thái đơn). (Vòng sửa 1: ý "giữ `cotTien` vì neo đột biến M1/M6/M8" là SAI — `thu_gia_lap.js:132-145` không bám chuỗi đó; đã gọn `cotTien = "cash_amount"`.) ~+3 dòng.
+  giá trị lạ khác giữ `400 CACH_TRA_LA`. Kiểm TRƯỚC khi đọc đơn (không tốn đọc, không lộ trạng thái đơn). (Vòng sửa 1: ý "giữ `cotTien` vì neo đột biến M1/M6/M8" là SAI — đột biến M1 / M6 / M8 trong danh sách đột biến của `thu_gia_lap.js` không bám chuỗi đó (vòng sửa 2: bỏ số dòng — trôi sau ghép main); đã gọn `cotTien = "cash_amount"`.) ~+3 dòng.
 - B: chặn sau khi đọc đơn (chỉ đơn `debt`, cho phép `cho_thu`…) — phiếu ghi rõ "khác tiền mặt → 400", không phân loại đơn. Bỏ.
 - `Orders.jsx`: bỏ nút Chuyển khoản trong hộp thu nợ (`:1121-1140`), thay một dòng chữ xám "Thu nợ chuyển khoản phải qua QR — tạm thu tiền mặt";
   `handleConfirmPayDebt` gọi `ordersApi.payDebt(id, { payment_method: 'cash', amount })` thay fetch trần `:415` (−15 dòng); bỏ state `paymentMethod`
@@ -144,7 +144,7 @@ Bài cũ phải đổi theo (agent soát kế hoạch đếm thêm; LUAT §6.8 �
 | đổi cách trả | `BV-DOI-CK` gỡ chặn | A3a |
 | | `VS-DOI-CHAN-CA-HAI` chặn cả chiều CK → tiền mặt | A3b (K5) |
 | thu nợ | `BV-NO-CK` gỡ chặn | A4a, A4b |
-| | `VS-NO-CK-SAU-GHI` chặn sau UPDATE | A4a (nợ đã đổi) |
+| | `VS-NO-CK-CHI-KHI-CO-SO` chặn chỉ khi có `amount` (thay `VS-NO-CK-SAU-GHI` lúc viết đột biến) | A4b |
 | | `VS-NO-CHAN-CA-TIEN-MAT` chặn mọi cách | K5-3 |
 | màn | `BV-VIKHACH-PIN` `HoiPin` luôn trả null / gửi không pin | A2i |
 | | `BV-ORDERS-FETCH` đưa fetch trần trở lại | A4e |
