@@ -258,3 +258,39 @@ BÀI HỌC:
 5. `Orders.jsx`: nút Thu nợ hiện cả cho bill `cho_thu` (`debt_amount > 0`) → hai nơi thu một bill, trái DAC_TA luật 3 (có từ trước).
 6. `api.js` `balanceApi.adjust` / `topup` trỏ `/customers/:id/balance/*` — máy chủ không có route này (code chết).
 7. `don-mo-rong.js` lỗi 500 trả `err.message` (lộ lỗi nội bộ, LUAT §4; có từ trước).
+
+## Soát bảo mật (25.11, /soat-bao-mat — agent độc lập, chỉ đọc; diff `7da9ba9..beaeecff` = phần riêng của nhánh sau ghép main)
+Số lỗ hổng trước lọc: 0 · sau lọc: 0 (bước 2 không tìm được gì → không cần bước 3). Báo cáo nguyên văn:
+```
+Không tìm thấy lỗ hổng (diff 7da9ba9..HEAD của viec/TIEN-KHOA-2, chỉ đọc).
+
+Mình đã soát những chỗ sau:
+
+1. server/routes/wallets.js:184-219, POST /adjust. Route vẫn đi qua `authenticate` và `checkPermission("adjust_balance")`, giờ có thêm
+   `kiemPinChuQuan(req.body?.pin)` ở dòng 202-203. PIN được kiểm trước khi vào giao dịch ghi; sai PIN thì trả về ngay và không ghi gì. Hàm
+   server/utils/pinChuQuan.js:56-67 dùng chung với membership, backup, goi-nap và quang-cao:
+   - So băm bằng bcrypt.
+   - Sai 5 lần thì khoá 15 phút.
+   - Giữ chỗ lượt thử bằng một câu UPDATE có điều kiện và kiểm `changes`, nên gửi nhiều lượt cùng lúc cũng không đoán vượt được 5 lần.
+   - Câu trả lời lỗi chỉ có `code` và lời báo, không lộ băm PIN.
+   Vì vậy không có lỗi PIN ngắn đoán được.
+2. Gỡ POST /wallets/deduct. Lối trừ ví tay đã mất hẳn. Phía máy khách cũng bỏ `walletsApi.deduct` (client/src/utils/api.js). Không mở thêm lối nào.
+3. server/routes/don-mo-rong.js:113-168, doi-cach-tra. Chiều `sang === 'transfer'` bị chặn bằng 409 trước mọi lần đọc hay ghi. Câu UPDATE giờ ghi
+   cứng `[soTien, 0, ...]`. Chốt chống đổi hai lần (điều kiện WHERE kèm `changes !== 1`) vẫn còn, các tham số đều qua chỗ giữ chỗ `?`. Phần thay
+   đổi không tạo lối chèn SQL hay vượt quyền nào.
+4. server/routes/orders.js pay-debt, khoảng dòng 1488-1615. Chỉ nhận `payment_method === "cash"`, còn `transfer` bị trả 400 THU_NO_CK_PHAI_QR.
+   Biến `cotTien` giờ là hằng `"cash_amount"`, nên cũng hết chỗ ghép tên cột theo dữ liệu gửi lên. Dòng ghi chú sổ không còn chèn `payment_method`.
+5. server/utils/doiSoat.js:344-353, phép DC. Hai câu SELECT cố định, không có tham số người dùng. Kết quả ra qua GET /reports/doi-soat, vẫn cần
+   `authenticate` và `checkPermission('view_reports')` (server/routes/reports.js:383). SĐT và lý do điều chỉnh chỉ hiện cho người có quyền xem báo
+   cáo, đúng mục đích đối soát. Chữ hiện qua JSX `{l.mo_ta}` ở client/src/components/DoiSoat.jsx:129, React tự thoát ký tự, không dùng
+   dangerouslySetInnerHTML, nên không có XSS.
+6. Máy khách.
+   - client/src/components/ViKhach.jsx chỉ gửi PIN trong thân POST, không ghi log và không lưu lại.
+   - client/src/components/HoiPin.jsx xoá PIN sau khi xong.
+   - client/src/pages/Orders.jsx chuyển thu nợ sang `ordersApi.payDebt`, bỏ `fetch` trần và bỏ đọc token thủ công. Không lộ token.
+7. Bỏ qua. Bài thử cong_cu/thu_*.js, giả lập cong_cu/gia_lap/kich_ban.js, viec/TIEN-KHOA-2/* và bộ kiểm (chỉ hạ `NGUONG_FETCH` 22→21 và thêm một
+   bài) thuộc loại trừ "chỉ dùng để chạy thử / tài liệu", không có bề mặt tấn công.
+
+Không có phát hiện mức HIGH hay MEDIUM nào đạt độ tin cậy từ 7/10 trở lên.
+```
+SOÁT BẢO MẬT: ĐẠT
