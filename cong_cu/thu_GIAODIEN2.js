@@ -127,12 +127,12 @@ async function main() {
 
   muc('A3 · A4 · trang Quản lý một nguồn, điện thoại, ô Dọn dữ liệu thử');
   const ql_jsx = SX('pages', 'QuanLy', 'QuanLy.jsx');
-  k('A3a QuanLy.jsx vẽ từ luoiQuanLy + timMuc của menu.js (không danh sách thứ hai)', /\btimMuc\b/.test(ql_jsx) && /\bnutDuyNhat\b/.test(ql_jsx) && /from '\.\/menu'/.test(ql_jsx) && !/Giờ mở cửa|Hạng thành viên|Tài khoản nhân viên/.test(ql_jsx));
+  k('A3a QuanLy.jsx vẽ từ luoiQuanLy + timMuc của menu.js (không danh sách thứ hai)', /timMuc\(chuoi, hasPermission\)/.test(ql_jsx) && /\bnutDuyNhat\(nhom\)/.test(ql_jsx).test(ql_jsx) && /from '\.\/menu'/.test(ql_jsx) && !/Giờ mở cửa|Hạng thành viên|Tài khoản nhân viên/.test(ql_jsx));
   k('A3b có ô tìm với gợi ý "Tìm nhanh một mục cài đặt" + bắt Enter', /Tìm nhanh một mục cài đặt/.test(DOC('client', 'src', 'pages', 'QuanLy', 'QuanLy.jsx')) && /Enter/.test(ql_jsx));
   const css = DOC('client', 'src', 'index.css');
   const m768 = khoiMedia(css, '@media (max-width: 768px)');
   k('A3c index.css: lưới Quản lý 3 cột ở máy tính', /\.ql-luoi\s*\{[^}]*repeat\(3/.test(css));
-  k('A3d index.css: trong @media (max-width: 768px) lưới đổi thành danh sách 1 cột, dòng cao ≥ 52px', /\.ql-luoi\s*\{[^}]*(1fr|block)/.test(m768) && /\.ql-nut[^{]*\{[^}]*min-height:\s*(5[2-9]|[6-9]\d)px/.test(m768));
+  k('A3d index.css: trong @media (max-width: 768px) lưới đổi thành danh sách 1 cột, dòng cao ≥ 52px', /\.ql-luoi\s*\{[^}]*grid-template-columns:\s*1fr\s*;/.test(m768) && /\.ql-nut[^{]*\{[^}]*min-height:\s*(5[2-9]|[6-9]\d)px/.test(m768));
   k('A4a ô "Dọn dữ liệu thử" còn, chỉ owner, trỏ /don-thu', /Dọn dữ liệu thử/.test(ql_jsx) && /role === 'owner'/.test(ql_jsx) && /\/don-thu/.test(ql_jsx));
   k('A4b ô đó NẰM NGOÀI 6 nhóm (menu.js không có)', !/Dọn dữ liệu thử|don-thu/.test(SX('pages', 'QuanLy', 'menu.js')));
 
