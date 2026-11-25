@@ -70,7 +70,7 @@ async function main() {
     // Nhánh vẽ (K3 BAO-1a): ô PIN mở theo cờ hoiPin, và nút Xác nhận của Điều chỉnh bật cờ đó thay vì gửi thẳng.
     k('A2i ViKhach.jsx: import HoiPin, vẽ <HoiPin mo={hoiPin…}, Xác nhận Điều chỉnh mở ô PIN, mở khung đặt lại cờ PIN, gửi pin trong walletsApi.adjust, không window.prompt',
       /import HoiPin from '\.\/HoiPin'/.test(vk) && /<HoiPin\s+mo=\{hoiPin\b/.test(vk) && /if \(!nap\) \{ setHoiPin\(true\); return; \}/.test(vk)
-      && /const mo = \(c\) => \{[^}]*setHoiPin\(false\);[^}]*\};/.test(vk)   // vòng sửa 2: mở khung nào cũng đặt lại cờ PIN
+      && /const mo = \(c\) => \{[^\n]*setHoiPin\(false\);[^\n]*\};/.test(vk)   // vòng sửa 2: mở khung nào cũng đặt lại cờ PIN
       && /\bpin\b/.test(goiAdjust) && !/prompt\(/.test(vk), goiAdjust || 'không thấy walletsApi.adjust({...})');
     const od = sach(doc(CLIENT, 'pages', 'Orders.jsx'));
     k('A4e Orders.jsx: thu nợ gọi ordersApi.payDebt với tiền mặt, không còn fetch tới pay-debt, không còn nút chọn chuyển khoản, có lời báo QR',
