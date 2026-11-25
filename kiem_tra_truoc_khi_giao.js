@@ -829,6 +829,7 @@ chayBaiThat('cong_cu/thu_KHACHAPP1.js');   // KHACH-APP-1: khách MỘT nguồn 
 chayBaiThat('cong_cu/thu_QUAYUI1.js');   // QUAY-UI-1: màn Bán hàng / Lịch sử đơn theo bản mẫu đã chốt
 chayBaiThat('cong_cu/thu_VOUCHER2.js');   // VOUCHER-2: mẫu voucher, nhiều voucher một đơn + mã chung, voucher ship, không áp lên thẻ / gói / nạp, trả voucher khi huỷ
 chayBaiThat('cong_cu/thu_DANGNHAP2.js');   // DANG-NHAP-2: đăng nhập POS giới hạn 5 lần sai / 15 phút theo cặp (tên + IP), 20 lần theo IP, câu báo chung
+chayBaiThat('cong_cu/thu_GIAODIEN2.js');   // GIAO-DIEN-2: Quản lý 6 nhóm + tìm nhanh, nút mở thẳng đúng màn, gỡ chữ / trang SX, Khách hàng gọn, Hạng thành viên, chữ Thực thu
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;
