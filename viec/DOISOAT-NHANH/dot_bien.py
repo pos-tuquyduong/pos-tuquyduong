@@ -37,6 +37,7 @@ DOT_BIEN = [
     if (han && ms <= 0) throw loiQuaHan();
 """, 1)], r'✗ B2 hết mốc lượt TRƯỚC khi gửi'),
   ('VS-moc-chi-qua-han', 'dsn', [(DB, "(!han || han.het - Date.now() > CHO_DOC_MS[lan]);", "(!quaHan || han.het - Date.now() > CHO_DOC_MS[lan]);", 1)], r'✗ B2 lỗi mạng sát mốc'),
+  ('VS-mang-trong-luot-khong-doc-lai', 'dsn', [(DB, "(!han || han.het - Date.now() > CHO_DOC_MS[lan]);", "(!han || (quaHan && han.het - Date.now() > CHO_DOC_MS[lan]));", 1)], r'✗ B1 lỗi mạng trong lượt, còn nhiều giờ'),
   ('VS-han-khong-moc', 'dsn', [(DB, "const ms = han ? Math.min(han.ms, han.het - Date.now()) : 0;", "const ms = han ? han.ms : 0;", 1)], r'✗ B2 lượt dài hơn hạn tổng'),
   ('VS-luot-khong-moc', 'dsn', [(DS, "{ ms: HAN.CAU_DOI_SOAT_MS, het: l.het }", "{ ms: HAN.CAU_DOI_SOAT_MS, het: Infinity }", 1)], r'✗ B2 lượt dài hơn hạn tổng'),
   ('VS-hang-so-cau', 'dsn', [(DS, "CAU_DOI_SOAT_MS: 15000,", "CAU_DOI_SOAT_MS: 20000,", 1)], r'✗ B1 HAN.CAU_DOI_SOAT_MS'),

@@ -62,7 +62,7 @@ async function main() {
     const lan = G.gui.filter((x) => x.sql === sql).length;
     const l = G.luat(sql, lan);
     if (l === 'treo') return new Promise(() => {});
-    if (l === 'mang') return Promise.reject(Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }));
+    if (l === 'mang' || (l === 'mang1' && lan === 1)) return Promise.reject(Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }));
     if (typeof l === 'number') return ngu(l).then(() => exGoc(cau));
     return exGoc(cau);
   };
@@ -177,6 +177,13 @@ async function main() {
   k('B2 lỗi mạng sát mốc lượt → KHÔNG báo "thu lai", hết lượt ngay (gửi 1 lần), thu_lai_hong +1, lỗi KHO_MAT_KET_NOI (soát vòng 2)', mg.loi?.code === 'KHO_MAT_KET_NOI'
     && soGui(/thu_dsn_mang/) === 1 && db.demKetNoi().thu_lai_hong === hong0 + 1 && nhatKy.some((l) => /^\[KET-NOI\] doc lan 1\/3 ECONNRESET — het luot$/.test(l))
     && !nhatKy.some((l) => /thu lai$/.test(l)), `${J(mg.loi?.code || mg.kq)} · gửi ${soGui(/thu_dsn_mang/)} · hỏng ${hong0} → ${db.demKetNoi().thu_lai_hong} · ${J(nhatKy.filter((l) => l.startsWith('[KET-NOI]')))}`);
+  // Luồng hợp lệ (K5): lỗi MẠNG trong lượt Đối soát còn NHIỀU giờ → vẫn đọc lại như KET-NOI-1 (soát vòng 3).
+  datLai((sql) => (/thu_dsn_mang1/.test(sql) ? 'mang1' : undefined));
+  const dat0 = db.demKetNoi().thu_lai_dat;
+  const mg1 = await coHanNgoai(db.query("SELECT 'thu_dsn_mang1' AS x", [], { ms: CAU, het: Date.now() + LUOT }));
+  k('B1 lỗi mạng trong lượt, còn nhiều giờ → VẪN đọc lại: gửi 2 lần, ra kết quả, thu_lai_dat +1, dòng "thu lai" (soát vòng 3)', mg1.kq?.[0]?.x === 'thu_dsn_mang1'
+    && soGui(/thu_dsn_mang1/) === 2 && db.demKetNoi().thu_lai_dat === dat0 + 1 && nhatKy.some((l) => /^\[KET-NOI\] doc lan 1\/3 ECONNRESET — thu lai$/.test(l)),
+    `${J(mg1.loi?.code || mg1.kq)} · gửi ${soGui(/thu_dsn_mang1/)} · đạt ${dat0} → ${db.demKetNoi().thu_lai_dat}`);
   datLai();
   const rot0 = db.demKetNoi().rot;
   const hm = await coHanNgoai(db.query("SELECT 'thu_dsn_moc' AS x", [], { ms: CAU, het: Date.now() - 1 }));
