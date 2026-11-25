@@ -308,28 +308,9 @@ export const walletsApi = {
   }
 };
 
-// Registrations API - ĐÃ CẬP NHẬT
+// Registrations API — GIAO-DIEN-2: trang Đăng ký / Export SX đã bỏ; chỉ còn "Thêm khách" ở màn Khách hàng (máy chủ tạo khách thật trong POS)
 export const registrationsApi = {
-  list: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
-    return api.get(`/registrations${query ? '?' + query : ''}`);
-  },
-  get: (id) => api.get(`/registrations/${id}`),
   create: (data) => api.post('/registrations', data),
-  update: (id, data) => api.put(`/registrations/${id}`, data),
-  delete: (id) => api.delete(`/registrations/${id}`),
-  stats: () => api.get('/registrations/stats/summary'),
-
-  // Export 2 bước
-  exportCsv: () => api.download('/registrations/export/csv', `dang-ky-moi_${ngayVN()}.csv`),
-  confirmExport: () => api.post('/registrations/confirm-export', {}),
-
-  // Hoàn tác
-  revert: (id) => api.post(`/registrations/revert/${id}`, {}),
-  revertLast: () => api.post('/registrations/revert-last', {}),
-
-  // Logs
-  getLogs: () => api.get('/registrations/export-logs')
 };
 
 // Customers V2 API - Phase B: Thêm updateDiscount

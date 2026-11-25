@@ -11,7 +11,6 @@ import DonApp from './pages/DonApp';
 import TrangChu from './pages/BanHang';
 import Customers from './pages/Customers';
 import Orders from './pages/Orders';
-import Registrations from './pages/Registrations';
 import Reports from './pages/Reports';
 import Refunds from './pages/Refunds';
 import Settings from './pages/Settings';
@@ -64,8 +63,8 @@ function AppRoutes() {
         <Route path="customers" element={<ThanhLoi man="customers"><Customers /></ThanhLoi>} />
         <Route path="balance" element={<Navigate to="/customers" replace />} />   {/* GIAO-DIEN-1 C: Số dư gộp vào Khách hàng — link cũ không gãy */}
         <Route path="orders" element={<ThanhLoi man="orders"><Orders /></ThanhLoi>} />
-        <Route path="registrations" element={<Registrations />} />
-        <Route path="sync" element={<Navigate to="/registrations" replace />} />
+        <Route path="registrations" element={<Navigate to="/customers" replace />} />   {/* GIAO-DIEN-2: trang Đăng ký / Export SX đã bỏ — link cũ không gãy */}
+        <Route path="sync" element={<Navigate to="/customers" replace />} />
         <Route path="reports" element={<Reports />} />
         <Route path="discount-codes" element={<DiscountCodes />} />
         <Route path="refunds" element={<Refunds />} />
