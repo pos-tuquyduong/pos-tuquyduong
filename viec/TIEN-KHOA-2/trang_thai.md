@@ -315,4 +315,11 @@ SOÁT BẢO MẬT: ĐẠT
 2–4. [A6] `cong_cu/thu_P20.js`, `thu_P21.js`, `thu_P26b.js` là "file luật": Phạm vi phải ghi ĐÚNG TÊN, dòng `cong_cu/thu_*.js` không mở được.
    Đề xuất: commit "PHIEU: TIEN-KHOA-2 …" thêm ba dòng tên đó vào `## Phạm vi`.
 
-HEAD ĐÃ KIỂM: 74b60a67
+## Chat bàn 41 (26.11) — trả lời câu hỏi cổng tĩnh
+- [A7] Chat sửa tiêu đề commit 83694262 (chat bàn 40) thành "PHIEU: TIEN-KHOA-2 — …" bằng git filter-branch --msg-filter trên 7da9ba9a..HEAD: CHỈ đổi
+  tiêu đề, cây file mọi commit giữ nguyên (git diff 32e2dbc3 HEAD rỗng trước commit phiếu). Mọi mã commit trên nhánh đổi; bản cũ giữ ở nhánh cục bộ du_phong.
+  Bảng đổi mã: 83694262 → f5864142 · f5a82442 → 55c4928a · beaeecff → aa64ddfa · 74b60a67 → c71f8c19 · aa90d649 → a16d7a63 · 32e2dbc3 → eaed4ce6.
+- [A6] Commit "PHIEU: TIEN-KHOA-2 — Pham vi ghi dung ten file luat…" thêm cong_cu/thu_P20.js, thu_P21.js, thu_P26b.js vào Phạm vi.
+- Cổng tĩnh chạy lại trên HEAD mới: xem dòng dưới. Cổng chạy ĐẠT trên 74b60a67 = c71f8c19 (cùng cây file).
+
+HEAD ĐÃ KIỂM: c71f8c19
