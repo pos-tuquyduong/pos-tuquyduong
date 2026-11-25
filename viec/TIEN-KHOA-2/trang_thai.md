@@ -294,3 +294,18 @@ Mình đã soát những chỗ sau:
 Không có phát hiện mức HIGH hay MEDIUM nào đạt độ tin cậy từ 7/10 trở lên.
 ```
 SOÁT BẢO MẬT: ĐẠT
+
+## Cổng (node tu_chay/cong.js chay . 7da9ba9a <HEAD> viec/TIEN-KHOA-2 — gốc main 7da9ba9a, cây sạch)
+- Lần 1 (HEAD beaeecff): ✗ [A20] phiếu ghi "Soát bảo mật: có" mà trang_thai chưa có dòng `SOÁT BẢO MẬT: ĐẠT` → chạy /soat-bao-mat (0 lỗ hổng, 74b60a67).
+- Lần 2 (HEAD 74b60a67): ✓ CỔNG CHẠY ĐẠT.
+- (Một lần chạy trước bị dừng giữa chừng vì máy đặt giới hạn 10 phút cho lệnh nền — không có kết quả, không tính.)
+
+## Bài học (vòng 2 + vòng sửa 2)
+- KHOÁ: mỗi chỗ sửa ở vòng sửa (kể cả sửa theo Nghi ngờ ở giao diện) có một vế bài thử + một đột biến (`VS-VIKHACH-KHONG-DAT-LAI` — đã làm).
+  Đề xuất cổng: file `client/src/` đổi giữa hai lượt soát phải có đột biến mới neo vào file đó — làm sau (khung đóng băng).
+- NGUYÊN TẮC (K4): dọn nhánh chết sau khi chặn một giá trị → grep CẢ route mọi chỗ rẽ nhánh theo giá trị đó (danh sách trắng, ghi chú sổ, cột).
+- NGUYÊN TẮC (K1): hồ sơ trích tên ca / chuỗi neo thay cho số dòng file khác (trôi sau ghép main).
+- NGUYÊN TẮC (K2): vế regex mới dò một dòng JSX có `{…}` lồng nhau → dùng `[^\n]*`, không `[^}]*`; đỏ ngay sau khi thêm vế → in chuỗi thật trước.
+- BỎ: kho mây mở phiên là kho nông → `npm test` đỏ ở thu_BH2 G1; cần `git fetch --unshallow` (đã gặp ở bước 1 và lần này) — ghi để chat biết, không phải lỗi mã.
+
+HEAD ĐÃ KIỂM: 74b60a67
