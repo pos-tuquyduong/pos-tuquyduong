@@ -24,7 +24,7 @@ DOT_BIEN = [
   ('BV-dang-cho-kn1', 'kn1', [(DB, " · đang chờ ${d.cho} câu`);", "`);", 1)], r'✗ F1 yêu cầu 2,15 giây'),
   # ── B1: hạn mỗi câu (database.js) — BV đưa lỗi cũ (treo mãi) trở lại (C2) ──
   ('BV-han-cau', 'dsn', [(DB, "const result = await (han ? coHan(viec, ms) : viec);", "const result = await viec;", 1)], r'✗ C1 \(1\)'),
-  ('VS-qua-han-khong-doc-lai', 'dsn', [(DB, "(!quaHan || han.het - Date.now() > CHO_DOC_MS[lan])", "!quaHan", 1)], r'✗ B1 đọc lại đúng luật'),
+  ('VS-qua-han-khong-doc-lai', 'dsn', [(DB, "(!han || han.het - Date.now() > CHO_DOC_MS[lan]);", "(!han || han.het - Date.now() > CHO_DOC_MS[lan]) && !quaHan;", 1)], r'✗ B1 đọc lại đúng luật'),
   ('VS-qua-han-thanh-mat-ket-noi', 'dsn', [(DB, "throw quaHan ? err : loiKho(err, doc ? 'doc' : 'ghi');", "throw loiKho(err, doc ? 'doc' : 'ghi');", 1)], r'✗ B1 → lỗi 503'),
   ('VS-han-mac-dinh-moi-duong', 'dsn', [(DB, "async function query(sql, params = [], han = null) {", "async function query(sql, params = [], han = { ms: 300, het: Infinity }) {", 1)], r'✗ D2 query thường'),
   # ── B2: mốc cả lượt ──
