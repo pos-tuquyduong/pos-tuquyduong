@@ -67,7 +67,24 @@ DOISOAT-NHANH: 7 đạt · 30 hỏng
   (các ca ✗ khác như hai bản trên)
 DOISOAT-NHANH: 7 đạt · 31 hỏng
 ```
-SỐ CA cong_cu/thu_DOISOATNHANH.js: 38
+
+### Chạy lại sau vòng sửa 4 (bài bản dc8d38b — thêm ca lỗi mạng trong lượt còn nhiều giờ) trên 3 file GỐC MAIN 7da9ba9a (`git show 7da9ba9a:<file>`)
+```
+  ✗ B1 HAN.CAU_DOI_SOAT_MS = 15000 · ✗ B2 HAN.LUOT_DOI_SOAT_MS … · ✗ B1/B2 3 × 15 s + chờ < 50 s — {}
+  ✗ A1 ngay / tuan / thang (12 ca) · ✗ A1 hai lượt chồng nhau — [114,113] · mỗi lượt 57
+  ✗ C1 (1) … — TREO · ✗ B1 → 503 — true · ✗ B1 đọc lại — 1 lần · 4001 ms · ✗ B1 log qua_han — [] · ✗ B1 treo lần đầu — "treo" · ✗ B1 bước I9 — treo
+  ✓ B1 dừng ở bước treo (I9) · ✓ C1 (2) dữ liệu cũ · ✓ D1 chậm 0,7 × hạn
+  ✗ B2 lượt dài hơn hạn tổng — treo · 4001 ms · ✗ B2 không gửi thêm — 17 → 20
+  ✗ B2 lỗi mạng sát mốc — "KHO_MAT_KET_NOI" · gửi 3 · hỏng 0 → 1 · […thu lai, …thu lai, …het luot]
+  ✓ B1 lỗi mạng trong lượt, còn nhiều giờ → VẪN đọc lại (soát vòng 3)   ← luồng phải KHÔNG bị chặn: xanh trên gốc là đúng; VS-mang-trong-luot-khong-doc-lai bắt
+  ✗ B2 hết mốc lượt TRƯỚC khi gửi — [{"x":"thu_dsn_moc"}] · gửi 1
+  ✓ D2 query · ✓ D2 run · ✓ D2 soSach
+  ✗ A2 (2 ca) — dòng [CHAM] không có "đang chờ"
+  ✗ B3 (2 ca) — ["[DOISOAT] ngay 2026-11-18 · 1390ms · 57 câu"] · 13 → 58
+  ✗ B4 api.js thật — TREO (máy chủ không trả lời) · ✓ B4 DoiSoat.jsx mẫu catch / finally
+DOISOAT-NHANH: 8 đạt · 31 hỏng
+```
+SỐ CA cong_cu/thu_DOISOATNHANH.js: 39
 
 ## cong_cu/thu_KETNOI1.js (sửa regex [CHAM] cho dạng mới — A2 phiếu duyệt đổi) trên database.js GỐC
 ```
