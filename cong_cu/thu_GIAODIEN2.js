@@ -127,7 +127,7 @@ async function main() {
 
   muc('A3 · A4 · trang Quản lý một nguồn, điện thoại, ô Dọn dữ liệu thử');
   const ql_jsx = SX('pages', 'QuanLy', 'QuanLy.jsx');
-  k('A3a QuanLy.jsx vẽ từ luoiQuanLy + timMuc của menu.js (không danh sách thứ hai)', /timMuc\(chuoi, hasPermission\)/.test(ql_jsx) && /\bnutDuyNhat\(nhom\)/.test(ql_jsx).test(ql_jsx) && /from '\.\/menu'/.test(ql_jsx) && !/Giờ mở cửa|Hạng thành viên|Tài khoản nhân viên/.test(ql_jsx));
+  k('A3a QuanLy.jsx vẽ từ luoiQuanLy + timMuc của menu.js (không danh sách thứ hai)', /timMuc\(chuoi, hasPermission\)/.test(ql_jsx) && /\bnutDuyNhat\(nhom\)/.test(ql_jsx) && /from '\.\/menu'/.test(ql_jsx) && !/Giờ mở cửa|Hạng thành viên|Tài khoản nhân viên/.test(ql_jsx));
   k('A3b có ô tìm với gợi ý "Tìm nhanh một mục cài đặt" + bắt Enter', /Tìm nhanh một mục cài đặt/.test(DOC('client', 'src', 'pages', 'QuanLy', 'QuanLy.jsx')) && /Enter/.test(ql_jsx));
   const css = DOC('client', 'src', 'index.css');
   const m768 = khoiMedia(css, '@media (max-width: 768px)');
