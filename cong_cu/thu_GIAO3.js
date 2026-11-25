@@ -449,7 +449,7 @@ async function main() {
     k('G2 màn hiện ĐÚNG số máy chủ thuc_thu (hôm nay có đơn 30.000 + phí 16.000 tiền mặt) — không phải công thức cũ của màn',
       tt.j.thuc_thu != null && soMan === String(tt.j.thuc_thu) && soMan !== String(tt.j.order_stats.total_revenue - tt.j.order_stats.total_discount + tt.j.order_stats.total_shipping),
       `màn "${man.chu(the())}" · máy chủ ${tt.j.thuc_thu}`);
-    k('G3 dưới ô có dòng "= tiền mặt + chuyển khoản thật nhận"', man.chu(the()).includes('= tiền mặt + chuyển khoản thật nhận'), man.chu(the()));
+    k('G3 dưới ô có dòng "= tiền thật vào quán (gồm tiền khách nạp, đã trừ hoàn) — khớp tab Đối soát" (GIAO-DIEN-2 F1, chủ quán đồng ý 19.11)', man.chu(the()).includes('= tiền thật vào quán (gồm tiền khách nạp, đã trừ hoàn) — khớp tab Đối soát'), man.chu(the()));
   } catch (e) { k('G màn dựng được Reports.jsx', false, e.message); }
   const reportsSrc = fs.readFileSync(path.join(SRC, 'pages', 'Reports.jsx'), 'utf8');
   k('G4 client/src/pages/Reports.jsx không còn tự cộng / trừ total_revenue / total_discount / total_shipping', !/(total_revenue|total_discount|total_shipping)[^\n]*\)\s*[-+]/.test(reportsSrc));

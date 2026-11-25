@@ -40,7 +40,6 @@ const MAN_DA_RA = {
   'pages/Customers.jsx': 10,
   'pages/DonApp.jsx': 3,
   'pages/DonThu.jsx': 5,
-  'pages/Registrations.jsx': 14,
   'pages/DiscountCodes.jsx': 11,
   'pages/InvoiceSettings.jsx': 11,
   'pages/Reports.jsx': 4,
@@ -64,7 +63,6 @@ const MAN_DA_RA = {
 // Nút ghi phải khoá khi đang xử lý (D): file → cờ đang xử lý phải có và phải đi kèm disabled.
 const KHOA_NUT = {   // file → [cờ, số chỗ disabled={…cờ…} tối thiểu = số nút ghi hiện có]
   'pages/DiscountCodes.jsx': ['dangXuLy', 2],
-  'pages/Registrations.jsx': ['dangXuLy', 3],
   'pages/Reports.jsx': ['dangKetThuc', 1],
   'pages/Kho/DinhMuc.jsx': ['dang', 4],
   'pages/Kho/NguyenLieu.jsx': ['dang', 2],

@@ -188,10 +188,13 @@ async function main() {
     return d['Bán hàng'] === '/' && d['Đơn hàng'] === '/orders' && d['Khách hàng'] === '/customers' && d.Kho === '/kho' && d['Quản lý'] === '/quan-ly' && d['Hôm nay'] === '/hom-nay';
   });
   const luoi = (q) => (M.luoiQuanLy ? M.luoiQuanLy(q) : []);
-  const lien = (q) => luoi(q).map((o) => `${o.ten}:${o.loi.map((l) => l.to).join('+')}`);
-  thu('F6 lưới Quản lý (đủ quyền): 7 ô đúng tên, đúng đường dẫn', () => bang(lien(tatCa), [
-    'Sản phẩm & công thức:/kho', 'Nguyên liệu:/kho', 'Khuyến mãi & thành viên:/discount-codes+/settings', 'Con người:/settings', 'Khách và tiền:/customers+/refunds+/reports', 'Báo cáo:/reports', 'Cài đặt:/settings+/invoice-settings']));
-  thu('F7 lưới Quản lý (không quyền): chỉ còn ô Kho + Khách và tiền (/customers) — lối cần quyền bị ẩn, ô không còn lối nào thì ẩn', () => bang(lien(quyen()), ['Sản phẩm & công thức:/kho', 'Nguyên liệu:/kho', 'Khách và tiền:/customers']));
+  const lien = (q) => luoi(q).map((o) => `${o.ten}:${o.nut.map((l) => l.to).join('+')}`);   // GIAO-DIEN-2: lưới 6 nhóm (mẫu chủ quán duyệt 17.11), nút = `nut`
+  thu('F6 lưới Quản lý (đủ quyền): 6 nhóm đúng tên, đúng đường dẫn', () => bang(lien(tatCa), [
+    'Món & giá:/kho+/settings?the=products+/settings?the=goiNap', 'Khách & thẻ:/customers+/settings?the=tiers+/settings?the=loyalty',
+    'Khuyến mãi:/discount-codes+/settings?the=flash+/settings?the=chuongTrinh+/settings?the=quangCao', 'Tiền & báo cáo:/reports?tab=doisoat+/refunds+/reports',
+    'Nhân viên:/settings?the=users+/settings?the=permissions',
+    'Cài đặt quán:/settings?the=gioHoatDong+/settings?the=giaoHang+/invoice-settings+/settings?the=inPhieu+/settings?the=manKhach+/settings?the=pin+/settings?the=backup+/settings?the=appKh']));
+  thu('F7 lưới Quản lý (không quyền): chỉ còn Món, giá & công thức (/kho) + Danh sách khách (/customers) — nút cần quyền bị ẩn, nhóm không còn nút thì ẩn', () => bang(lien(quyen()), ['Món & giá:/kho', 'Khách & thẻ:/customers']));
   thu('F8 lối sang Hoàn tiền (approve_refund) theo quyền cũ; Số dư đã gộp vào Khách hàng nên không còn lối riêng', () => {
     const g = M.loiThem ? M.loiThem : () => [];
     return bang(g('orders', tatCa).map((x) => x.to), ['/refunds']) && bang(g('orders', quyen()), []) &&
