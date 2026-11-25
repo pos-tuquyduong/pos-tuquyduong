@@ -234,7 +234,7 @@ async function main() {
   // ═══ E · Hạng thành viên ═════════════════════════════════════════════════
   muc('E1 · bố cục hạng');
   k('E1a HangThe: một hạng mở để sửa (dangSua), hạng khác thu gọn + nút "Sửa", "+ Thêm hạng" ở cuối', /dangSua/.test(hang) && />Sửa</.test(hang) && /\+ Thêm hạng/.test(hang) && /· đang sửa/.test(hang));
-  k('E1b sửa hạng khác khi còn thay đổi chưa lưu → hỏi (window.confirm) như doiThe', /coDoi[^;\n]*window\.confirm|window\.confirm[^\n]*(chưa lưu)/.test(hang) && /moHangKhac|doiHang/.test(hang));
+  k('E1b sửa hạng khác khi còn thay đổi chưa lưu → hỏi (window.confirm) như doiThe', /if \(coDoi && !window\.confirm\([^\n]*chưa lưu/.test(hang) && /const moHangKhac = async \(khoa\) =>/.test(hang) && /onClick=\{\(\) => moHangKhac\(h\.khoa\)\}/.test(hang));
   k('E1c hai nút chọn "Mua ở quầy / trên App" | "Chỉ chủ quán cấp"; gói: ☐ Đang bán; "+ Thêm gói"', /Mua ở quầy \/ trên App/.test(hang) && /Chỉ chủ quán cấp/.test(hang) && /Đang bán/.test(hang) && /\+ Thêm gói/.test(hang));
   k('E1d mọi trường hạng GIỮ: tên, thứ bậc ▲▼, % giảm thường / đặc biệt, quyền lợi, làm tròn giá, xoá hạng', /Tên hạng/.test(hang) && /Lên bậc/.test(hang) && /special_discount_percent/.test(hang) && /quyen_loi/.test(hang) && /Làm tròn giá/.test(hang) && /xoa\(/.test(hang));
   k('E1e thanh dính đáy: dùng ThanhLuu sẵn có (phiếu E1) + useThayDoi, nút Lưu vẫn khoá khi đang lưu', /<ThanhLuu id="hang-the"/.test(hang) && /useThayDoi/.test(hang) && /onClick=\{batLuu\} disabled=\{dangLuu\}/.test(hang));
