@@ -308,4 +308,11 @@ SOÁT BẢO MẬT: ĐẠT
 - NGUYÊN TẮC (K2): vế regex mới dò một dòng JSX có `{…}` lồng nhau → dùng `[^\n]*`, không `[^}]*`; đỏ ngay sau khi thêm vế → in chuỗi thật trước.
 - BỎ: kho mây mở phiên là kho nông → `npm test` đỏ ở thu_BH2 G1; cần `git fetch --unshallow` (đã gặp ở bước 1 và lần này) — ghi để chat biết, không phải lỗi mã.
 
+## Câu hỏi — cổng TĨNH (cổng PR) đỏ 4 lý do, đều ở phiếu (máy không được sửa phiếu)
+`node tu_chay/cong.js tinh . 7da9ba9a aa90d649 viec/TIEN-KHOA-2`:
+1. [A7] commit `83694262` (chat bàn 40, thêm Phạm vi) có tiêu đề "PHIEU TIEN-KHOA-2: …" — thiếu dấu hai chấm sau PHIEU, nên cổng không nhận là commit
+   phiếu. Commit đã nằm trong lịch sử nhánh; máy không viết lại lịch sử → chat / chủ quán quyết cách xử lý.
+2–4. [A6] `cong_cu/thu_P20.js`, `thu_P21.js`, `thu_P26b.js` là "file luật": Phạm vi phải ghi ĐÚNG TÊN, dòng `cong_cu/thu_*.js` không mở được.
+   Đề xuất: commit "PHIEU: TIEN-KHOA-2 …" thêm ba dòng tên đó vào `## Phạm vi`.
+
 HEAD ĐÃ KIỂM: 74b60a67
