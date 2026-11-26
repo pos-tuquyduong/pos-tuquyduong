@@ -42,7 +42,7 @@ DOT_BIEN = [
   ('BV-bo-tu-xong-kiem-ke', [(K, "  await viec.tuXong(tx, { loai: cheDo, nguoi, luc });\n", '', 1)], r'✗ C3b '),
   # ── Q1: kiểm kê đếm mù ──
   ('VS-kiemke-lo-so-may', [(K, "if (cheDo !== 'bangiao') { dong.push(m); continue; }", "if (cheDo !== 'bangiao') { dong.push({ ...m, may: ton }); continue; }", 1)], r'✗ Q1a '),
-  ('VS-kiemke-thieu-so-lot', [(K, "(cheDo === 'bangiao' ? soChot : undefined)", "(cheDo === 'bangiao' ? soChot : g.goc)", 1)], r'✗ Q1[bc] '),
+  ('VS-kiemke-thieu-so-lot', [(K, "(trongDuoc ? soChot : undefined)", "(trongDuoc ? soChot : g.goc)", 1)], r'✗ Q1[bc] '),
   # ── C4 / C6 / D2: ghi chú, dòng lạ, số âm ──
   ('VS-lech-khong-ghi-chu-lot', [(K, "Math.abs(d.lech) > tinh.SAI_SO) && !d.ghi_chu) {", "Math.abs(d.lech) > tinh.SAI_SO) && false) {", 1)], r'✗ C4b '),
   ('VS-kiemke-bat-ghi-chu', [(K, "if (cheDo === 'bangiao' && (Math.abs(d.dc)", "if ((Math.abs(d.dc)", 1)], r'✗ C4a |✗ C5c '),

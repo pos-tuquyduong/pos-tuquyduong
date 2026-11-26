@@ -20,7 +20,7 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 107
+SỐ CA cong_cu/thu_KHOGON1.js: 113
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
@@ -53,3 +53,15 @@ ghi chú, C5h theo Q4, C-ma_gui so dạng phản hồi). Chạy trên code TRƯ�
 Sau soát bảo mật (commit a152c401 thêm ca Q5b, chạy trên code 2167e453 chưa vá): thoát 1 · 106 đạt · 1 hỏng
    ✗ Q5b nhân viên gửi lại mã của lần kiểm kê với chế độ bàn giao / người khác gửi mã đó → 409 MA_GUI_TRUNG, không lộ ảnh chốt  — {"success":true,"chot_id":2,"phieu_id":6,"lech":[…]}
   Sau vá (afc6b9fe): 107 đạt · 0 hỏng. Đột biến BV-bo-chan-ma-gui-khac-che-do · VS-ma-gui-chi-so-che-do: BẮT 2/2 (đối chứng 107 đạt).
+
+Vòng sửa 3 (sau soát vòng 2): bài đổi ở 909c1a65 + 25b40e2d (C3g mới, C3h, Q4d, Q4e, Q4f, C3i, C2f). Chạy trên code TRƯỚC vòng 3:
+  python3 viec/KHO-GON-1/dot_bien.py --cay-goc afc6b9fe --bai cong_cu/thu_KHOGON1.js → thoát 1
+   ✗ C2f xem phiếu KK: dòng trừ / cộng có dấu (Cam tang false, Nước cam tang true)  — [["Nước cam",null],["Cam",null]]
+   ✗ C3g bàn giao để trống hết khi máy ≠ chốt (bán sau chốt) → 400 KHO_THIEU_SO (phải gõ số thật), không kéo tồn về số chốt  — HTTP 400 · KHO_THIEU_GHI_CHU
+   ✗ C3h bàn giao để trống + có ghi chú khi máy ≠ chốt → 400 KHO_THIEU_SO, KHÔNG tạo hàng ảo (tồn giữ số máy)  — HTTP 200 · NC 14
+   ✗ C4b / C3d / C3e (kéo theo: phiếu KK hàng ảo của C3h làm mốc cũ → 409 KHO_DA_KIEM)
+   ✗ Q4e phiếu chờ đã tính vào lần chốt rồi bị chủ quán SỬA → dòng cam  — (lần chạy trên 6ca4d689^ code: HTTP 200 · 2)
+   ✗ Q4f (đếm dòng cam kéo theo Q4e)
+  Xanh trên code trước vòng 3 (ca phủ thêm, có đột biến riêng): Q4d (BV-bo-canh-bao-huy), C3i (BV-bo-dong-tp-het-lo-chot-con).
+  Trên code đã sửa (6ca4d689): 113 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG XANH · 113 đạt — TỔNG 48 · BẮT 48 (lượt đủ: 47 BẮT + 1 HỎNG do neo
+  VS-kiemke-thieu-so-lot cũ — sửa neo, chạy lại riêng: BẮT).
