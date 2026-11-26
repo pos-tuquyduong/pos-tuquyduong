@@ -361,6 +361,14 @@ async function main() {
   await trongGiaoDich((tx) => banHang.huyPhieuBan(tx, soDon, { nguoi: 'chu', luc: '2026-12-02T21:21:00', lyDo: 'khách đổi ý' }));
   const kk8 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5 }, { san_pham_id: sNC, thuc: 0 }], 'kk8', '', r8);
   k('C5f huỷ đơn xen giữa (hàng về lô cũ) → 409 KHO_TON_DOI "tải lại"', kk8.status === 409 && kk8.code === 'KHO_TON_DOI', moTa(kk8));
+  datGio('2026-12-02T21:22:00');
+  const r9 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  const nc9 = await tonSP(sNC);
+  await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }], ma_gui: 'px9' });
+  const cam9 = await tonNL(nCam);
+  const kk9 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: 0, ghi_chu: 'đếm 0' }, { san_pham_id: sNC, thuc: nc9 }], 'kk9', '', r9);
+  k('C5g nguyên liệu: đếm 0 rồi phiếu pha chế trừ thêm xen giữa (tồn mới < 0) → 409 KHO_TON_DOI, không ghi tồn âm', kk9.status === 409 && kk9.code === 'KHO_TON_DOI'
+    && gan(await tonNL(nCam), cam9), `${moTa(kk9)} · Cam ${await tonNL(nCam)}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] chỉnh tồn tay');

@@ -53,7 +53,7 @@ DOT_BIEN = [
   # ── C5: tồn đổi giữa lúc mở và lúc lưu ──
   ('VS-lech-gia-khi-vua-ban', [(K, "goc: hien - await tongDong(tx, m, 'AND p.id > ?', [moc])", "goc: hien", 1)], r'✗ C5a '),
   ('VS-anh-chot-la-so-go', [(K, "chot: gon(d.hien + d.dc)", "chot: gon(d.thuc)", 1)], r'✗ C5b '),
-  ('BV-bo-chan-ton-moi-am', [(K, "    if (d.hien + d.dc < -tinh.SAI_SO) return", "    if (false) return", 1)], r'✗ C5e '),
+  ('BV-bo-chan-ton-moi-am', [(K, "    if (d.hien + d.dc < -tinh.SAI_SO) return", "    if (false) return", 1)], r'✗ C5g '),
   ('BV-bo-kiem-huy-xen-giua', [(K, "  if (doi) return", "  if (false) return", 1)], r'✗ C5f '),
   ('BV-bo-kiem-moc-sai', [(K, " || m > await docMoc(tx) || ", " || ", 1)], r'✗ C5d '),
   ('BV-bo-chan-hai-nguoi-chot', [(K, CHAN_KK, "  if (false) return", 1)], r'✗ C-đua '),
