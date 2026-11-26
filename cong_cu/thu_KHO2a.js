@@ -616,8 +616,9 @@ async function main() {
   k('K1 bộ kiểm chạy bài này', /chayBaiThat\('cong_cu\/thu_KHO2a\.js'\)/.test(kt));
   const kd = path.join(GOC, 'client', 'src', 'pages', 'Kho');
   const idx = doc(path.join(kd, 'index.jsx'));
-  k('K2 màn Kho: PhaChe · TonKho · DsPhieu · XemPhieu · DinhMuc có; tab đầu là Pha chế', ['PhaChe', 'TonKho', 'DsPhieu', 'XemPhieu', 'DinhMuc']
-    .every((f) => fs.existsSync(path.join(kd, f + '.jsx'))) && /tabs = \[\s*\{ ma: 'pc'/.test(idx));
+  // KHO-GON-1 (chủ quán duyệt 26.11, E2): tab đầu thành "Việc hôm nay", Pha chế ngay sau
+  k('K2 màn Kho: PhaChe · TonKho · DsPhieu · XemPhieu · DinhMuc có; tab đầu Việc hôm nay, thứ hai Pha chế', ['PhaChe', 'TonKho', 'DsPhieu', 'XemPhieu', 'DinhMuc']
+    .every((f) => fs.existsSync(path.join(kd, f + '.jsx'))) && /tabs = \[\s*\{ ma: 'viec'[^}]*\},\s*\{ ma: 'pc'/.test(idx));
   const tinhSrc = doc(path.join(MAY_CHU, 'kho', 'tinh.js')).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   k('K3 tinh.js vẫn THUẦN (không require, không Date / getNow)', tinhSrc.length > 0 && !/require\(|\bDate\b|getNow/.test(tinhSrc));
 

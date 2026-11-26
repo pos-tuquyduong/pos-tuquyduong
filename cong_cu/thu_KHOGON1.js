@@ -233,11 +233,12 @@ async function main() {
   k('B3c lưu phiếu Nhận hàng có Đường → việc gọi Đường tự xong + diễn biến nhan_hang', pnD.status === 200
     && (await mot('SELECT xong_luc FROM kho_viec WHERE id = ?', [g1.viec?.id || 0]))?.xong_luc != null && (await demDB('nhan_hang')) >= 1, moTa(pnD));
   await goi('ql', 'POST', `/kho/phieu/${pnD.phieu?.id}/duyet`);
+  const pcTruoc = await demDB('pha_che');
   const px1 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 2 }], ma_gui: 'px1' });
   const px1b = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 2 }], ma_gui: 'px1' });
   const vPC = (hnChu.viec || []).find((v) => v.loai === 'phache');
   k('E1a lưu phiếu xuất pha chế → việc phache tự xong; bấm hai lần (ma_gui) → MỘT diễn biến pha_che', px1.status === 200 && px1b.phieu?.id === px1.phieu?.id
-    && (await mot('SELECT xong_luc FROM kho_viec WHERE id = ?', [vPC?.id || 0]))?.xong_luc != null && (await demDB('pha_che')) === 1, `${moTa(px1)} · ${await demDB('pha_che')}`);
+    && (await mot('SELECT xong_luc FROM kho_viec WHERE id = ?', [vPC?.id || 0]))?.xong_luc != null && (await demDB('pha_che')) === pcTruoc + 1, `${moTa(px1)} · ${pcTruoc} → ${await demDB('pha_che')}`);
   await goi('ql', 'POST', `/kho/phieu/${px1.phieu?.id}/duyet`);
   const psR = await goi('nv', 'POST', '/kho/phieu-phat-sinh', { su_co: 'hong', muc: [{ nguyen_lieu_id: nGung, luong: 0.5 }], ma_gui: 'ps1' });
   k('E1b phiếu phát sinh → diễn biến phat_sinh tô cam', psR.status === 200 && (await so("SELECT chu_y FROM kho_dien_bien WHERE loai = 'phat_sinh'")) === 1, moTa(psR));
