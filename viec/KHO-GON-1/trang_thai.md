@@ -22,6 +22,10 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
+(không còn — chủ quán trả lời Q4–Q7 ngày 26.11: Q4 (a) phiếu chờ tính như đã ghi + dòng cam khi từ chối sau chốt; Q5 (a) + siết: nhân viên chỉ
+nhận "đã chốt"; Q6 (a) giữ; Q7 chấp nhận ≈ 955 dòng.)
+
+## Câu hỏi đã trả lời (lưu lại)
 (Q1–Q3 chủ quán đã trả lời 26.11.) Soát vòng 1 bắt 3 chỗ đụng SỐ TỒN / đếm mù mà luật chưa có câu trả lời → máy DỪNG hỏi (LUAT §6.5). Các lỗi
 rõ ràng khác của vòng 1 đã sửa (mục "Vòng sửa 1" dưới). Bạn chỉ cần trả lời Q4–Q7 (mỗi câu có đề xuất sẵn):
 
@@ -90,6 +94,8 @@ BV-bo-chan-hai-nguoi-chot · VS-ql-chinh-tay-khi-tat · BV-bo-kiem-quyen-chinh-t
 VS-da-xem-vuot-id · BV-bo-tab-viec-dau · VS-vong-hoi-thu-hai.
 Vòng sửa 1 thêm (5): BV-bo-kiem-duyet-xen-giua · VS-so-gio-chat · VS-da-giao-theo-danh-sach-loc · VS-ma-gui-tra-thieu-anh · VS-ban-giao-khong-tra-may
 (bám C5h · C5i · B3d · C-ma_gui · C3f). Tổng 36 — BẮT 36.
+Vòng sửa 2: bỏ BV-bo-kiem-duyet-xen-giua, VS-ma-gui-tra-thieu-anh; thêm VS-kiemke-bat-ghi-chu (C4a/C5c) · VS-kiemke-bao-dong-lech (Q5a) ·
+VS-cho-duyet-khong-tinh (Q4a/C5h) · BV-bo-canh-bao-tu-choi (Q4b) · VS-canh-bao-moi-tu-choi (Q4c). Tổng 39 — BẮT 39.
 (Đột biến phiếu nêu "VS-tin-may-thay-cua-man" ở kế hoạch không còn: chủ quán chọn đếm mù → bỏ may_thay; thay bằng BV-bo-kiem-huy-xen-giua.)
 
 ## Phát hiện

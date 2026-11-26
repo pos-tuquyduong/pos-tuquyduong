@@ -20,7 +20,7 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 102
+SỐ CA cong_cu/thu_KHOGON1.js: 106
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
@@ -33,3 +33,19 @@ Vòng sửa 1 (sau soát vòng 1): thêm ca B3d · C-ma_gui (dạng đủ) · C3
    ✗ C5i huỷ phiếu CÙNG GIÂY với lúc mở màn → vẫn 409 KHO_TON_DOI (so giờ >=, thà tải lại thừa)  — HTTP 200 · HTTP 200
   Trên gốc 5cbfc26 bài vẫn đỏ (đường mới chưa có). Trên code đã sửa: 102 đạt · 0 hỏng (SỐ CA ở trên).
   Đột biến: ĐỐI CHỨNG XANH · 102 đạt — TỔNG 36 · BẮT 36 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+Vòng sửa 2 (chủ quán trả lời Q4–Q7, 26.11): bài đổi ở commit 5c493380 (Q4a–c, Q5a, C4a mới — kiểm kê tối lệch không ghi chú vẫn lưu, C5c bỏ
+ghi chú, C5h theo Q4, C-ma_gui so dạng phản hồi). Chạy trên code TRƯỚC vòng sửa 2 (cây 5c493380 = code 9ba1e15f + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 98 đạt · 8 hỏng
+   ✗ Q5a phản hồi lưu kiểm kê của NHÂN VIÊN chỉ "đã chốt" — không số máy, không dòng lệch / số lệch, không mã phiếu  — có phieu_id, lech, anh
+   ✗ C-ma_gui bấm lại cùng mã → trả lần đã ghi CÙNG dạng (nhân viên: vẫn chỉ "đã chốt"), không thêm phiếu
+   ✗ C5c đếm thiếu 2 + bán 1 xen giữa → tồn = thực tế (−3 so với lúc mở)  — HTTP 400 · KHO_THIEU_GHI_CHU
+   ✗ C4a kiểm kê TỐI dòng lệch KHÔNG ghi chú → vẫn lưu (Q5 — không dò được số máy); chủ / quản lý thấy dòng cam "chưa giải thích"
+   ✗ C5h quản lý duyệt phiếu chờ xen giữa lúc đếm → 200, KHÔNG lệch giả (không phiếu KK), tồn sau duyệt = số đếm  — HTTP 409 · KHO_TON_DOI
+   ✗ Q4a pha 10 ly CHỜ duyệt → kiểm kê đếm (gồm 10 ly đó) → không phiếu KK → duyệt → tồn = số đếm (không cộng đôi thành +20)  — HTTP 400
+   ✗ Q4b phiếu chờ đã tính vào lần chốt rồi bị TỪ CHỐI → dòng cam ở Diễn biến để kiểm lại
+   ✗ Q4c (K5) từ chối phiếu chờ tạo SAU lần chốt cuối → KHÔNG thêm dòng cam  — (đỏ vì đếm dòng cam phụ thuộc Q4b; đột biến VS-canh-bao-moi-tu-choi bắt riêng)
+  Trên code đã sửa (2167e453): 106 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG XANH · 106 đạt — TỔNG 39 · BẮT 39 · SỐNG 0 · HỎNG 0 · LẠC 0.
+  Bỏ 2 đột biến: BV-bo-kiem-duyet-xen-giua (vế "duyệt phiếu cũ" đã bỏ theo Q4 — duyệt phiếu chờ không còn đổi tồn để kiểm), VS-ma-gui-tra-thieu-anh
+  (nhân viên không nhận ảnh nữa; màn in từ số đã gõ). Thêm 5: VS-kiemke-bat-ghi-chu · VS-kiemke-bao-dong-lech · VS-cho-duyet-khong-tinh ·
+  BV-bo-canh-bao-tu-choi · VS-canh-bao-moi-tu-choi.
