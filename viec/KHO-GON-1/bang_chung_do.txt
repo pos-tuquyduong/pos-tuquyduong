@@ -20,7 +20,7 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 106
+SỐ CA cong_cu/thu_KHOGON1.js: 107
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
@@ -49,3 +49,7 @@ ghi chú, C5h theo Q4, C-ma_gui so dạng phản hồi). Chạy trên code TRƯ�
   Bỏ 2 đột biến: BV-bo-kiem-duyet-xen-giua (vế "duyệt phiếu cũ" đã bỏ theo Q4 — duyệt phiếu chờ không còn đổi tồn để kiểm), VS-ma-gui-tra-thieu-anh
   (nhân viên không nhận ảnh nữa; màn in từ số đã gõ). Thêm 5: VS-kiemke-bat-ghi-chu · VS-kiemke-bao-dong-lech · VS-cho-duyet-khong-tinh ·
   BV-bo-canh-bao-tu-choi · VS-canh-bao-moi-tu-choi.
+
+Sau soát bảo mật (commit a152c401 thêm ca Q5b, chạy trên code 2167e453 chưa vá): thoát 1 · 106 đạt · 1 hỏng
+   ✗ Q5b nhân viên gửi lại mã của lần kiểm kê với chế độ bàn giao / người khác gửi mã đó → 409 MA_GUI_TRUNG, không lộ ảnh chốt  — {"success":true,"chot_id":2,"phieu_id":6,"lech":[…]}
+  Sau vá (afc6b9fe): 107 đạt · 0 hỏng. Đột biến BV-bo-chan-ma-gui-khac-che-do · VS-ma-gui-chi-so-che-do: BẮT 2/2 (đối chứng 107 đạt).
