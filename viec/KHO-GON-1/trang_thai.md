@@ -22,7 +22,34 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
-(không còn — chủ quán trả lời Q4–Q7 ngày 26.11: Q4 (a) phiếu chờ tính như đã ghi + dòng cam khi từ chối sau chốt; Q5 (a) + siết: nhân viên chỉ
+Sau vòng sửa 3 (vòng cuối — LUAT §6.5) còn MỘT lỗi NẶNG đụng số tồn mà luật chưa có câu trả lời → máy DỪNG hỏi:
+
+- **Q8 · Đếm thiếu một món làm sẵn đang có phiếu pha chế CHỜ duyệt.** Ví dụ: hết Nước cam, tối nhân viên pha 10 ly (phiếu chờ quản lý duyệt —
+  sổ chưa có lô 10 ly này), đổ vỡ 1, kiểm kê đếm 9. Theo Q4 máy coi 10 ly chờ như đã có → lệch −1, nhưng chưa có lô nào để trừ → máy báo
+  "tải lại" mãi; chủ quán chỉnh tay cũng bị chặn. Quán 1 người ca tối không chốt được. Ba cách:
+  (a) **[đề xuất]** Trừ phần thiếu VÀO CHÍNH phiếu chờ: máy giảm số phần của phiếu pha chế chờ (10 → 9), ghi lý do "kiểm kê: đếm thiếu 1" trên
+  phiếu + dòng cam ở Diễn biến. Nguyên liệu của phiếu vẫn trừ đủ 10 ly (đã dùng thật — hao hụt). Quản lý duyệt → lô 9 ly, khớp thực tế.
+  (b) Ghi phần thiếu "treo" và máy tự trừ khi phiếu được duyệt — thêm một đường ghi lúc duyệt, phức tạp hơn.
+  (c) Cho chốt các dòng khác, riêng dòng đó báo "còn phiếu pha chế chờ duyệt — nhờ quản lý duyệt rồi kiểm lại dòng này" + dòng cam.
+
+Các lỗi khác của soát vòng 2 đã sửa ở vòng sửa 3 (mục dưới). Trả lời Q8 xong: máy làm phần Q8 (bài thử đỏ trước, đột biến) — chủ quán cho phép
+thêm một vòng sửa ngoài 3 vòng — rồi soát lại, cổng, báo cáo 7 mục.
+
+## Vòng sửa 3 (sau soát vòng 2)
+- kiemKe.luuKiem: bàn giao — ô trống chỉ = "đúng chốt" khi máy = chốt; máy ≠ chốt → 400 KHO_THIEU_SO "gõ số đếm thật" (hết hàng ảo; ca C3g, C3h;
+  đột biến BV-trong-khi-may-khac-chot). Màn KiemKe: dòng máy ≠ chốt bắt gõ số trước khi bấm.
+- duong.js: dòng cam "phiếu chờ bị từ chối sau lần chốt" gắn cả đường huỷ và SỬA phiếu (PX + DH/PN/PS) — ca Q4d, Q4e; đột biến BV-bo-canh-bao-huy,
+  BV-bo-canh-bao-sua. Đơn đặt hàng chờ duyệt không tính, không cảnh báo — ca Q4f; đột biến VS-dh-cho-tinh, VS-canh-bao-dh.
+- Bàn giao: thành phẩm bán hết sau chốt vẫn có dòng — ca C3i; đột biến BV-bo-dong-tp-het-lo-chot-con.
+- Phiếu KK có dấu +/− khi xem (duLieu.docPhieuNhap `tang`, XemPhieu) — ca C2f; đột biến VS-kk-khong-dau.
+- Chú thích sửa: kiemKe.js lời báo thiếu lô, KiemKe.jsx "ô trống = đúng", duong.js lời hứa "không số" chỉ cho phản hồi POST (đường đọc khác — Q6).
+- Không sửa (ghi lại): nhãn "Máy ghi" ở chỉnh tay lấy tồn đã duyệt, gốc máy chủ gồm phiếu chờ (Q4) — có phiếu chờ thì hai số khác nhau; cảnh báo
+  sau chốt không xét thứ có trong bảng kiểm (có thể ra dòng cam thừa — an toàn); hai lần bấm cùng ma_gui song song: lần sau báo lỗi khoá trùng
+  (đã ghi đúng một lần).
+- Bằng chứng: bài mới trên code trước vòng 3 (afc6b9fe) thoát 1 (✗ C2f · ✗ C3g · ✗ C3h · kéo theo C4b/C3d/C3e · ✗ Q4e · Q4f); trên code đã sửa 113 đạt · 0 hỏng.
+
+## Câu hỏi đã trả lời trước (Q4–Q7)
+(chủ quán trả lời Q4–Q7 ngày 26.11: Q4 (a) phiếu chờ tính như đã ghi + dòng cam khi từ chối sau chốt; Q5 (a) + siết: nhân viên chỉ
 nhận "đã chốt"; Q6 (a) giữ; Q7 chấp nhận ≈ 955 dòng.)
 
 ## Câu hỏi đã trả lời (lưu lại)
