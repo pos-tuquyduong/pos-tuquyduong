@@ -40,8 +40,10 @@ async function homNay(tx, { vaiTro, ca, luc }) {
   const ngay = luc.slice(0, 10);
   await sinhViec(tx, ngay, luc);
   const cd = await docCaiDat(tx);
-  const ds = (await docViec(tx, ngay)).filter((v) => tinh.viecHienCho(v, { vaiTro, soCa: cd.so_ca, ca }));
-  const daGiao = new Set(ds.filter((v) => v.nguyen_lieu_id != null && !v.xong_luc).map((v) => Number(v.nguyen_lieu_id)));
+  const tatCa = await docViec(tx, ngay);
+  const ds = tatCa.filter((v) => tinh.viecHienCho(v, { vaiTro, soCa: cd.so_ca, ca }));
+  // "đã giao" tính trên MỌI việc hôm nay — việc gọi hàng giao quản lý, nhân viên không thấy nó trong danh sách của mình
+  const daGiao = new Set(tatCa.filter((v) => v.nguyen_lieu_id != null && !v.xong_luc).map((v) => Number(v.nguyen_lieu_id)));
   const ton = await duLieu.docTon(tx, luc);
   return { ngay, bay_gio: luc, so_ca: cd.so_ca, ca: ca || null, viec: ds.map((v) => ({ ...v, qua_gio: tinh.quaGio(v, luc) })),
     duoi_nguong: tinh.boGia(ton.nguyen_lieu.filter((n) => n.dang_dung && n.duoi_toi_thieu)

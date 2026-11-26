@@ -5,6 +5,8 @@
  *   gốc = tồn hiện tại − Σ dòng phiếu da_duyet có id > moc (= tồn lúc màn mở; không tin số màn gửi), điều chỉnh = số đếm − gốc.
  *   Ly bán xen giữa (phiếu mới) không tạo lệch giả. Huỷ / duyệt phiếu CŨ sau moc_luc (đổi tồn mà không có phiếu mới) → 409 KHO_TON_DOI "tải lại".
  *   Có phiếu KK id > moc (người khác vừa kiểm / chỉnh) → 409 KHO_DA_KIEM — hai người cùng chốt không trừ hai lần.
+ *   So giờ huỷ / duyệt bằng `>=` (cùng giây với lúc đọc thì thà 409 thừa). Kết quả pha chế (ghiKetQua chèn dòng vào PX CŨ) cũng làm gốc đổi —
+ *   chấp nhận: đó là sửa sổ của phiếu đã có.
  */
 const tinh = require('./tinh');
 const duLieu = require('./duLieu');
@@ -47,10 +49,10 @@ async function docDanhSach(csdl, cheDo, luc) {
   const dong = [];
   for (const m of await dsDuocKiem(csdl)) {
     const ton = await tongDong(csdl, m);
-    if (m.san_pham_id && ton <= tinh.SAI_SO) continue;
-    if (cheDo !== 'bangiao') { dong.push(m); continue; }
     const c = chot?.theo.get(khoaCua(m));
-    dong.push({ ...m, chot: gon(c ? c.chot : ton), chua_co_chot: !c });
+    if (m.san_pham_id && ton <= tinh.SAI_SO && !(c?.chot > tinh.SAI_SO)) continue;   // thành phẩm hết lô (bàn giao: trừ khi tối qua chốt còn)
+    if (cheDo !== 'bangiao') { dong.push(m); continue; }
+    dong.push({ ...m, chot: gon(c ? c.chot : ton), may: gon(ton), chua_co_chot: !c });   // sáng THẤY số: chốt + máy (bán / đổi sau chốt → màn báo)
   }
   return { che_do: cheDo, moc, moc_luc: luc, dong, ...(cheDo === 'bangiao' && { chua_co_chot: !chot, ca_truoc_dan: chot?.ghi_chu_chung ?? null, chot_luc: chot?.luc ?? null }) };
 }
@@ -67,7 +69,7 @@ async function kiemMoc(tx, moc, mocLuc, luc) {
 
 /** Gốc (tồn lúc màn mở) + tồn hiện tại của một thứ; huỷ / duyệt phiếu cũ sau lúc mở → { loi }. */
 async function gocCua(tx, m, moc, mocLuc) {
-  const doi = await tx.queryOne(`SELECT 1 FROM kho_phieu p WHERE p.id <= ? AND (p.huy_luc > ? OR (p.trang_thai = 'da_duyet' AND p.duyet_luc > ?))
+  const doi = await tx.queryOne(`SELECT 1 FROM kho_phieu p WHERE p.id <= ? AND (p.huy_luc >= ? OR (p.trang_thai = 'da_duyet' AND p.duyet_luc >= ?))
     AND EXISTS (SELECT 1 FROM kho_phieu_dong d WHERE d.phieu_id = p.id AND d.${cotCua(m)} = ?) LIMIT 1`, [moc, mocLuc, mocLuc, maCua(m)]);
   if (doi) return loi(409, 'KHO_TON_DOI', 'Tồn vừa đổi (huỷ đơn / duyệt phiếu) — tải lại rồi kiểm lại');
   const hien = await tongDong(tx, m);
@@ -105,8 +107,11 @@ const moTaDong = (d) => `${d.ten} ${gon(d.goc)}→${gon(d.chot)}${d.ghi_chu ? ` 
 /** Lưu kiểm kê / bàn giao. dongVao = [{ nguyen_lieu_id | san_pham_id, thuc, ghi_chu }]. */
 async function luuKiem(tx, { cheDo, moc, mocLuc, dongVao, ghiChuChung, nguoi, luc, maGui }) {
   if (maGui) {
-    const co = await tx.queryOne('SELECT id, phieu_id FROM kho_chot WHERE ma_gui = ?', [maGui]);
-    if (co) return { chot_id: Number(co.id), phieu_id: co.phieu_id == null ? null : Number(co.phieu_id), lech: [], da_co: true };
+    const co = await tx.queryOne('SELECT id, phieu_id, anh FROM kho_chot WHERE ma_gui = ?', [maGui]);
+    if (co) {   // bấm lại cùng mã (mất mạng sau khi đã ghi) → CÙNG dạng với lần ghi đầu (màn dùng chung nhánh vẽ)
+      let anh = []; try { anh = JSON.parse(co.anh) || []; } catch { /* ảnh hỏng */ }
+      return { chot_id: Number(co.id), phieu_id: co.phieu_id == null ? null : Number(co.phieu_id), lech: anh.filter((a) => Math.abs(a.lech) > tinh.SAI_SO), anh, da_co: true };
+    }
   }
   if (!Array.isArray(dongVao)) return loi(400, 'DONG_SAI', 'Danh sách dòng kiểm sai');
   const duoc = new Map((await dsDuocKiem(tx)).map((m) => [khoaCua(m), m]));
@@ -124,8 +129,8 @@ async function luuKiem(tx, { cheDo, moc, mocLuc, dongVao, ghiChuChung, nguoi, lu
     const g = await gocCua(tx, m, mc.moc, mocLuc);
     if (g.loi) return g;
     const v = vao.get(khoa);
-    if (m.san_pham_id && g.goc <= tinh.SAI_SO && !v) continue;   // thành phẩm hết lô lúc màn mở — không có trên màn
     const soChot = cheDo === 'bangiao' ? (chot?.theo.get(khoa)?.chot ?? g.goc) : null;
+    if (m.san_pham_id && g.goc <= tinh.SAI_SO && !v && !(soChot > tinh.SAI_SO)) continue;   // cùng điều kiện với docDanhSach: không có trên màn
     const thuc = v?.thuc ?? (cheDo === 'bangiao' ? soChot : undefined);
     if (thuc === undefined || Number.isNaN(thuc)) return loi(400, 'KHO_THIEU_SO', `Chưa gõ số đếm: ${m.ten} — kiểm kê phải gõ đủ mọi dòng`);
     if (thuc < 0 || !Number.isFinite(thuc)) return loi(400, 'KHO_SO_AM', `Số đếm phải ≥ 0: ${m.ten}`);

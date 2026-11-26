@@ -2,6 +2,7 @@
  * KHO-GON-1 — một màn hai chế độ. Kiểm kê cuối ngày (kiemke): ĐẾM MÙ — không hiện số máy, mọi dòng phải gõ số (chủ quán 26.11 Q1); "Chốt & in"
  * → in bảng chốt có chỗ ký (khung in phiếu kho). Nhận bàn giao (bangiao): hiện "Chốt" tối qua, ô trống = đúng, dòng lệch bắt buộc ghi chú.
  * Máy chủ tự tính lệch (so với tồn lúc màn mở — moc), ghi phiếu KK đã duyệt ngay. Màn hẹp: mỗi dòng một thẻ, nút chốt dính đáy màn.
+ * Bàn giao: máy khác chốt (bán / đổi sau chốt — Q3) → hiện "máy ghi", dòng đó phải ghi chú. Tồn đổi giữa chừng (409) → tải lại mốc, GIỮ số đã gõ.
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
@@ -20,12 +21,14 @@ export default function KiemKe({ cheDo, xong }) {
   const [daChot, setDaChot] = useState(null);
   const [maGui] = useState(maGuiMoi);
 
-  useEffect(() => { api.get(`/kho/kiem-ke?che_do=${cheDo}`).then(setDl).catch((e) => setLoi(e.message)); }, [cheDo]);
+  const tai = () => api.get(`/kho/kiem-ke?che_do=${cheDo}`).then(setDl).catch((e) => setLoi(e.message));
+  useEffect(() => { tai(); }, [cheDo]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!dl) return loi ? <div className="kho-loi">{loi}</div> : <p>Đang tải…</p>;
 
   const o = (d) => nhap[khoa(d)] || { so: '', ghi: '' };
   const datO = (d, x) => setNhap({ ...nhap, [khoa(d)]: { ...o(d), ...x } });
-  const lechCua = (d) => (!laKiemKe && o(d).so !== '' ? veLuu(o(d).so, d.he_so_doi) - d.chot : 0);
+  // bàn giao: lệch so với chốt, hoặc (ô trống = đúng chốt) máy khác chốt → phải ghi chú (máy chủ cũng chặn)
+  const lechCua = (d) => { if (laKiemKe) return 0; const t = o(d).so === '' ? d.chot : veLuu(o(d).so, d.he_so_doi); return Math.abs(t - d.chot) > 1e-9 ? t - d.chot : t - d.may; };
   const thieu = laKiemKe ? dl.dong.filter((d) => o(d).so === '').length : 0;
   const lech = dl.dong.filter((d) => Math.abs(lechCua(d)) > 1e-9);
   const luu = async () => {
@@ -37,7 +40,10 @@ export default function KiemKe({ cheDo, xong }) {
       if (!laKiemKe) return xong();
       setDaChot(r);
       setTimeout(() => window.print(), 300);   // lỗi máy in không đụng sổ — đã ghi xong mới in
-    } catch (e) { baoLoiTu(laKiemKe ? 'chốt kiểm kê' : 'nhận ca', e); } finally { setDang(false); }
+    } catch (e) {
+      baoLoiTu(laKiemKe ? 'chốt kiểm kê' : 'nhận ca', e);
+      if (['KHO_DA_KIEM', 'KHO_TON_DOI', 'KHO_MOC_SAI'].includes(e.code)) await tai();   // mốc mới, số đã gõ giữ nguyên — kiểm lại dòng vừa đổi rồi bấm lại
+    } finally { setDang(false); }
   };
 
   if (daChot) {
@@ -75,7 +81,9 @@ export default function KiemKe({ cheDo, xong }) {
         return (
           <div key={khoa(d)} className={`kho-the kho-dong ${Math.abs(c) > 1e-9 ? 'kho-vang' : ''}`} style={{ cursor: 'default' }}>
             <span style={{ flex: '1 1 100%' }}><b>{d.ten}</b>
-              {!laKiemKe && <span className="kho-nho">{d.chua_co_chot ? 'Máy' : 'Chốt'} {so(raHien(d.chot, d.he_so_doi))} {d.don_vi}{Math.abs(c) > 1e-9 && ` · lệch ${c > 0 ? '+' : ''}${so(raHien(c, d.he_so_doi))}`}</span>}</span>
+              {!laKiemKe && <span className="kho-nho">{d.chua_co_chot ? 'Máy' : 'Chốt'} {so(raHien(d.chot, d.he_so_doi))} {d.don_vi}
+                {Math.abs(d.may - d.chot) > 1e-9 && ` · máy ghi ${so(raHien(d.may, d.he_so_doi))} (bán / đổi sau chốt)`}
+                {Math.abs(c) > 1e-9 && ` · lệch ${c > 0 ? '+' : ''}${so(raHien(c, d.he_so_doi))}`}</span>}</span>
             <input className="input kho-hep" type="number" min="0" step="any" inputMode="decimal" aria-label={`Thực tế ${d.ten}`}
               placeholder={laKiemKe ? 'Đếm' : String(so(raHien(d.chot, d.he_so_doi)))} value={o(d).so} onChange={(e) => datO(d, { so: e.target.value })} />
             <span className="kho-nho">{d.don_vi}</span>
