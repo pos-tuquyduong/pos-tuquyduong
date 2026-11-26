@@ -307,6 +307,10 @@ async function main() {
   const lai = await guiKK(thang === c1 ? 'nv' : 'nv2', dongKK, thang === c1 ? 'kk-a' : 'kk-b');
   k('C-ma_gui bấm lại cùng mã → trả lần đã ghi CÙNG dạng (nhân viên: vẫn chỉ "đã chốt"), không thêm phiếu', lai.status === 200 && lai.chot_id === thang.chot_id
     && (await demKK()) === 1 && JSON.stringify(Object.keys(lai).sort()) === JSON.stringify(Object.keys(thang).sort()), JSON.stringify(lai));
+  const laiBG = await goi(thang === c1 ? 'nv' : 'nv2', 'POST', '/kho/kiem-ke', { che_do: 'bangiao', moc: kk.moc, moc_luc: kk.moc_luc, dong: [], ma_gui: thang === c1 ? 'kk-a' : 'kk-b' });
+  const laiKhac = await goi(thang === c1 ? 'nv2' : 'nv', 'POST', '/kho/kiem-ke', { che_do: 'kiemke', moc: kk.moc, moc_luc: kk.moc_luc, dong: [], ma_gui: thang === c1 ? 'kk-a' : 'kk-b' });
+  k('Q5b nhân viên gửi lại mã của lần kiểm kê với chế độ bàn giao / người khác gửi mã đó → 409 MA_GUI_TRUNG, không lộ ảnh chốt', laiBG.status === 409
+    && laiBG.code === 'MA_GUI_TRUNG' && laiKhac.status === 409 && laiKhac.code === 'MA_GUI_TRUNG' && !coKhoa([laiBG, laiKhac], ['anh', 'lech', 'goc']), `${JSON.stringify(laiBG)} / ${moTa(laiKhac)}`);
   // bán sau chốt (Q3) — sáng ra thấy lệch so với chốt
   datGio('2026-12-01T22:05:00');
   const ban1 = await ban(sNC, 1);
