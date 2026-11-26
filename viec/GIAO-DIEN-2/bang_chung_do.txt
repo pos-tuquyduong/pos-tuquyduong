@@ -1,0 +1,33 @@
+# GIAO-DIEN-2 — bằng chứng đỏ
+# Gốc = 7021e39 (PHIEU: GIAO-DIEN-2, main 7da9ba9 + KHO-3a). Code vá = nhánh viec/GIAO-DIEN-2.
+
+## 1. Bài mới cong_cu/thu_GIAODIEN2.js chạy trên code CHƯA VÁ (chưa có QuanLy/locKhach.js, menu.js còn lưới 7 ô, còn Registrations.jsx / chữ SX) → ĐỎ
+Bản chạy lúc đó (đầy đủ ở viec/GIAO-DIEN-2/do_tho.txt): 36 đạt · 85 hỏng. Các dòng ✗ tiêu biểu:
+  ✗ A1b đúng 6 nhóm, đúng tên và thứ tự M1
+  ✗ A2a "pin" → chỉ PIN chủ quán
+  ✗ B1 nút "PIN chủ quán" → /settings?the=pin · quyền chi_chu_quan
+  ✗ B1a Settings.jsx đọc ?the= (useSearchParams + get('the')) và có chế độ thẻ riêng "← Quản lý"
+  ✗ C1a hết "đồng bộ", "Gói đăng ký", "Gói đang dùng", "Ghi chú SX", "hệ thống SX", cờ is_synced / is_pending
+  ✗ C2a ô chọn (DAMAGE_ACTIONS) không còn return_stock
+  ✗ C3a xoá pages/Registrations.jsx và components/CustomerInput.jsx
+  ✗ C4 mã còn chữ SX (ngoài chú thích, Kho/ và BanHang/tinh.js) = 0
+  ✗ D2b Có số dư = balance > 0 (0, âm, thiếu → không)
+  ✗ D1b hai cột từ 1024px (matchMedia), điện thoại: chi tiết toàn màn + "← Khách hàng" + Back qua ?khach=
+  ✗ E1a HangThe: một hạng mở để sửa (dangSua), hạng khác thu gọn + nút "Sửa", "+ Thêm hạng" ở cuối
+  ✗ F1 dưới ô Thực thu: "= tiền thật vào quán (gồm tiền khách nạp, đã trừ hoàn) — khớp tab Đối soát"; hết câu cũ
+  ✗ G3 có chayBaiThat('cong_cu/thu_GIAODIEN2.js')
+
+## 2. Bài cũ phải đổi vì hành vi chủ quán ĐÃ DUYỆT đổi (LUAT_XAY_APP §6.8 — sửa thường, không nới phép: vẫn so BẰNG, số ca không giảm)
+Bản MỚI của các bài này chạy trên code gốc → ĐỎ (lưới Quản lý còn 7 ô, còn Registrations / CustomerInput, còn chữ cũ ở Thực thu, PIN còn ở HangThe):
+  thu_BH2.js F6 · thu_GIAODIEN1.js D1–D5, C6 · thu_GOI1.js A4d, B6c · thu_KHACHCK1.js D1d · thu_HANG1.js G1, G1b, G1e, G1g
+  thu_BAO1a.js (bỏ 2 dòng Registrations khỏi bảng đếm) · thu_BAO1b.js A4, B3, D3f (HangThe → PinChuQuan) · thu_GIAO3.js G3
+
+SỐ CA cong_cu/thu_GIAODIEN2.js: 121
+SỐ CA cong_cu/thu_BH2.js: 100
+SỐ CA cong_cu/thu_GIAODIEN1.js: 68
+SỐ CA cong_cu/thu_GOI1.js: 115
+SỐ CA cong_cu/thu_KHACHCK1.js: 36
+SỐ CA cong_cu/thu_HANG1.js: 145
+SỐ CA cong_cu/thu_BAO1a.js: 99
+SỐ CA cong_cu/thu_BAO1b.js: 129
+SỐ CA cong_cu/thu_GIAO3.js: 46

@@ -1,6 +1,6 @@
 // Settings.jsx - HOÀN CHỈNH với Quản lý Nhân viên + Backup + HÓA ĐƠN (Phase A)
 import { useState, useEffect, Fragment } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi, api } from '../utils/api';
 import { ngayVN, hienNgayGio } from '../utils/ngayVN';
@@ -20,6 +20,7 @@ import GoiNap from './CaiDat/GoiNap';   // NAP-1: thẻ Gói nạp tiền (quy�
 import TichDiem from './CaiDat/TichDiem';   // DIEM-MON-1: công tắc tích điểm theo món / gói / hạng
 import KhoaSaoLuuPos from './CaiDat/KhoaSaoLuuPos';   // SAOLUU-DEM-1: khoá sao lưu tự động lên Google Drive (chỉ chủ quán)
 import MauVoucher from './CaiDat/MauVoucher';   // VOUCHER-2: mẫu voucher + số voucher tối đa mỗi đơn
+import PinChuQuan from './CaiDat/PinChuQuan';   // GIAO-DIEN-2: đặt / đổi PIN chủ quán (tách khỏi thẻ Hạng)
 import AppKhachHang from './CaiDat/AppKhachHang';   // ND-API-1: khoá sao lưu chỉ đọc nội dung App (chỉ chủ quán)
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
@@ -41,10 +42,22 @@ export default function Settings() {
     permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
     rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
     tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings', chuongTrinh: 'manage_promotions', giaoHang: 'manage_settings', quangCao: 'manage_settings',
+    appKh: 'chi_chu_quan', pin: 'chi_chu_quan',
   };
+  // GIAO-DIEN-2: /settings?the=<mã thẻ> mở THẲNG thẻ đó (nút ở trang Quản lý); không có ?the= → vẫn là trang Cài đặt đủ hàng nhóm / thẻ.
+  const TEN_THE = {
+    products: 'Giá bán & nhóm món', packages: 'Gói sản phẩm (tạm ngưng)', goiNap: 'Gói nạp tiền', users: 'Tài khoản nhân viên', permissions: 'Ai được làm gì',
+    backup: 'Sao lưu', loyalty: 'Điểm & quà', rewards: 'Kho quà', signup: 'Quà khách mới', flash: 'Giờ vàng', tiers: 'Hạng thành viên', gioHoatDong: 'Giờ mở cửa',
+    inPhieu: 'In phiếu kho', manKhach: 'Màn khách', chuongTrinh: 'Chương trình', giaoHang: 'Giao hàng', quangCao: 'Quảng cáo trên App', appKh: 'App khách hàng', pin: 'PIN chủ quán',
+  };
+  const [timKiem, datTimKiem] = useSearchParams();
+  const theUrl = timKiem.get('the');
+  const theHopLe = (t) => !!t && !!TAB_PERMISSION[t] && hasPermission(TAB_PERMISSION[t]);
+  const theRieng = !!theUrl;
   const firstVisibleTab = Object.keys(TAB_PERMISSION).find(t => hasPermission(TAB_PERMISSION[t])) || 'products';
 
-  const [tab, setTab] = useState(firstVisibleTab);
+  const [tab, setTab] = useState(theHopLe(theUrl) ? theUrl : firstVisibleTab);
+  useEffect(() => { if (theHopLe(theUrl) && theUrl !== tab) setTab(theUrl); }, [theUrl]);
   const [products, setProducts] = useState([]);
   const [monMoThongTin, setMonMoThongTin] = useState(null); // KH-SP-1: món đang mở ô "Thông tin món" (unique id)
   const [users, setUsers] = useState([]);
@@ -238,7 +251,7 @@ export default function Settings() {
     ]},
     { ma: 'hethong', ten: 'Hệ thống', the: [
       ['users', 'manage_users'], ['permissions', 'manage_permissions'],
-      ['backup', 'export_data'],
+      ['backup', 'export_data'], ['pin', 'chi_chu_quan'],
       ['appKh', 'chi_chu_quan'],   // ND-API-1: không vai trò nào có quyền tên này → hasPermission chỉ đúng với chủ quán
     ]},
   ];
@@ -271,11 +284,14 @@ export default function Settings() {
       const n = demThayDoi();
       if (n > 0 && !window.confirm(
         `Còn ${n} thay đổi chưa lưu ở bảng giá. Rời đi sẽ mất. Vẫn rời?`
-      )) return;
+      )) return false;
     }
-    if (t !== tab && tab !== 'products' && coChuaLuu() && !window.confirm('Còn thay đổi chưa lưu ở thẻ này. Rời đi sẽ mất. Vẫn rời?')) return;
+    if (t !== tab && tab !== 'products' && coChuaLuu() && !window.confirm('Còn thay đổi chưa lưu ở thẻ này. Rời đi sẽ mất. Vẫn rời?')) return false;
     setTab(t);
+    return true;
   };
+  // GIAO-DIEN-2: đổi thẻ ngay trong màn "thẻ riêng" (liên kết Điểm & quà → Kho quà / Quà khách mới): hỏi như doiThe rồi ghi ?the= vào đường dẫn
+  const moThe = (t) => { if (doiThe(t) !== false) datTimKiem({ the: t }, { replace: true }); };
 
   const chonNhom = (n) => {
     const ds = theXemDuoc(n);
@@ -920,9 +936,11 @@ export default function Settings() {
 
   return (
     <>
-      <header className="page-header"><h1 className="page-title">⚙️ Cài đặt</h1></header>
+      <header className="page-header"><h1 className="page-title">{theRieng ? TEN_THE[tab] || 'Cài đặt' : '⚙️ Cài đặt'}</h1></header>
       <div className="page-content">
-        <CongQr />
+        {theRieng && <div style={{ marginBottom: '0.75rem' }}><Link to="/quan-ly">← Quản lý</Link></div>}
+        {!theRieng && <CongQr />}
+        {!theRieng && (<>
 
         {/* POS-BOCUC-v1: hang chon NHOM. Hang the ben duoi chi hien the
             thuoc nhom dang chon, nen moi hang chi con 2-4 the. */}
@@ -1037,11 +1055,21 @@ export default function Settings() {
           </button>
           )}
         </div>
+        </>)}
+
+        {theRieng && ['loyalty', 'rewards', 'signup'].includes(tab) && (   // GIAO-DIEN-2: Điểm & quà gồm ba thẻ; hai thẻ kia không có nút riêng ở Quản lý
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+            {[['loyalty', '🎁 Điểm thưởng', 'manage_settings'], ['rewards', '🎫 Kho quà', 'manage_promotions'], ['signup', '🆕 Quà khách mới', 'manage_settings']]
+              .filter(([t, , q]) => t !== tab && hasPermission(q))
+              .map(([t, ten]) => <button key={t} className="btn btn-outline" onClick={() => moThe(t)}>{ten}</button>)}
+          </div>
+        )}
 
         <div className="card">
           {loading ? <div className="loading">Đang tải...</div> : tab === 'products' ? (
             /* TAB GIÁ BÁN */
             <>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 0.75rem' }}>Giá sửa ở Kho › Sản phẩm; ở đây chỉnh nhóm đặc biệt và món tặng khách mới.</p>
               {/* POS-MOTNUTLUU-v1: MOT nut luu ca gia lan tick voucher.
                   Truoc day hai nut rieng cho cung mot bang, kem mot dong giai
                   thich — go gia xong bam nham nut la mat phan vua go. */}
@@ -2080,6 +2108,8 @@ export default function Settings() {
             <CaiDatManKhach />
           ) : tab === 'chuongTrinh' ? (
             <CaiDatChuongTrinh />
+          ) : tab === 'pin' ? (
+            <PinChuQuan />
           ) : tab === 'appKh' ? (
             <AppKhachHang />
           ) : tab === 'goiNap' ? (

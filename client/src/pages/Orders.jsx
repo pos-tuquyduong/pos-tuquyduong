@@ -266,7 +266,8 @@ export default function Orders() {
     'damaged': 'Hỏng khi vận chuyển', 'wrong_product': 'Giao sai sản phẩm',
     'rejected': 'Khách từ chối nhận', 'quality': 'Chất lượng không đạt', 'other': 'Lý do khác'
   };
-  const DAMAGE_ACTIONS = { 'refund': 'Hoàn tiền', 'return_stock': 'Hoàn kho SX', 'none': 'Chỉ ghi nhận' };
+  const DAMAGE_ACTIONS = { 'refund': 'Hoàn tiền', 'none': 'Chỉ ghi nhận' };
+  const NHAN_XU_LY_CU = { ...DAMAGE_ACTIONS, 'return_stock': 'Hoàn kho (cũ)' };   // dòng báo hỏng cũ còn 'return_stock' (máy chủ KHO-3a đã bỏ): chỉ để HIỆN nhãn, không chọn được nữa
 
   // P26c (Q2): gợi ý số đền theo giá khách ĐÃ TRẢ một ly (flash / hạng); đơn có giảm cấp đơn thì máy chủ báo số tối đa.
   const giaDaTra = (it) => it?.flash_unit_price || it?.tier_unit_price || it?.unit_price || 0;
@@ -692,7 +693,7 @@ export default function Orders() {
                         <td>{d.product_code}</td>
                         <td>{d.quantity}</td>
                         <td>{DAMAGE_REASONS[d.reason] || d.reason}</td>
-                        <td>{DAMAGE_ACTIONS[d.action] || d.action}</td>
+                        <td>{NHAN_XU_LY_CU[d.action] || d.action}</td>
                         <td>{d.refund_amount > 0 ? formatPrice(d.refund_amount) : '-'}</td>
                         <td>{d.processed_by_name}</td>
                       </tr>
@@ -1161,7 +1162,7 @@ export default function Orders() {
                   {deleteOrder.balance_amount > 0 && (
                     <li>Hoàn <strong>{formatPrice(deleteOrder.balance_amount)}</strong> số dư cho {deleteOrder.customer_name}</li>
                   )}
-                  <li>Hoàn tồn kho SX (các sản phẩm trong đơn)</li>
+                  <li>Trả lại kho (các món trong đơn)</li>
                 </ul>
               </div>
 
