@@ -1534,7 +1534,8 @@ function nemLoiGhi(err) {
 }
 async function doCau(lam) {
   const d = doDo.getStore(), t = Date.now();
-  try { return await lam(); } finally { if (d) { d.cau++; d.khoMs += Date.now() - t; } }
+  if (d) d.cho++;   // DOISOAT-NHANH A2: câu đã gửi mà CHƯA trả lời (bớt trong finally — cả khi câu ném lỗi)
+  try { return await lam(); } finally { if (d) { d.cau++; d.cho--; d.khoMs += Date.now() - t; } }
 }
 
 /** Trả 503 KHO_MAT_KET_NOI nếu err là lỗi mạng đã đổi dạng (loiGhi, bắt lỗi cuối index.js). Trả true khi đã trả lời. */
@@ -1557,7 +1558,7 @@ function mocLoiKho(req, res, next) {
 const duongLog = (req) => req.originalUrl.split('?')[0].split('/').map((s, i, a) => (/\d/.test(s) || a[i - 1] === 'qr' ? ':x' : s)).join('/');
 function doYeuCau(req, res, next) {
   if (res.locals.ketNoi) return next();   // đã đo ở cửa trước (index.js gắn riêng /api/nd trước cors + gắn chung /api)
-  const d = { batDau: Date.now(), cau: 0, khoMs: 0, ngoaiMs: 0 };
+  const d = { batDau: Date.now(), cau: 0, cho: 0, khoMs: 0, ngoaiMs: 0 };
   res.locals.ketNoi = d;
   // 'close' (không 'finish'): bắn cả khi khách bỏ kết nối trước khi máy chủ trả lời — đúng ca Ahamove bỏ sau 5 giây (D-LOI-1, soát vòng 2).
   res.on('close', () => {
@@ -1565,7 +1566,7 @@ function doYeuCau(req, res, next) {
     if (tong <= NGUONG_CHAM_MS) return;
     cham.so_lan++;
     if (tong > cham.lau_nhat_ms) { cham.lau_nhat_ms = tong; cham.luc = getNow(); }
-    console.warn(`[CHAM] ${req.method} ${duongLog(req)} · ${tong} ms · kho ${d.cau} câu / ${d.khoMs} ms · ngoài ${d.ngoaiMs} ms`);
+    console.warn(`[CHAM] ${req.method} ${duongLog(req)} · ${tong} ms · kho ${d.cau} câu / ${d.khoMs} ms · ngoài ${d.ngoaiMs} ms · đang chờ ${d.cho} câu`);
   });
   doDo.run(d, next);
 }
@@ -1575,31 +1576,45 @@ const bocFetchNgoai = (fetchGoc) => async (...a) => {
   try { return await fetchGoc(...a); } finally { if (d) d.ngoaiMs += Date.now() - t; }
 };
 
+// DOISOAT-NHANH B1: hạn giờ cho câu đọc — CHỈ lượt Đối soát truyền `han` (doiSoat.js chiDoc); không truyền = như cũ. CHỈ THÔI CHỜ: libsql 0.4.3
+// execute không nhận tín hiệu huỷ nên yêu cầu HTTP treo vẫn nằm đó (dòng [CHAM] "đang chờ k câu" cho thấy); đọc lại gửi một yêu cầu MỚI.
+const loiQuaHan = () => Object.assign(new Error('Câu đọc quá hạn'), { code: 'KHO_QUA_HAN' });
+function coHan(viec, ms) {
+  let hen;
+  return Promise.race([viec, new Promise((_, loi) => { hen = setTimeout(() => loi(loiQuaHan()), ms); })]).finally(() => clearTimeout(hen));
+}
+
 /**
  * Query helper - SELECT (ASYNC). KET-NOI-1: câu đọc gặp lỗi mạng → đọc lại tối đa CHO_DOC_MS.length lần; câu ghi → không.
  * @param {string} sql - SQL query
  * @param {Array} params - Parameters
+ * @param {{ms: number, het: number}|null} han - DOISOAT-NHANH: mỗi lần gửi chờ tối đa min(ms, het − bây giờ); quá hạn → đọc lại như lỗi mạng,
+ *   hết lượt / hết mốc het → ném lỗi code KHO_QUA_HAN (không đổi thành KHO_MAT_KET_NOI, không thay kết nối)
  * @returns {Promise<Array>} - Array of rows
  */
-async function query(sql, params = []) {
+async function query(sql, params = [], han = null) {
   const cau = { sql, args: sanitizeArgs(params) };
   const doc = laCauDoc(sql);
   for (let lan = 0; ; lan++) {
+    const ms = han ? Math.min(han.ms, han.het - Date.now()) : 0;
+    if (han && ms <= 0) throw loiQuaHan();   // hết mốc TRƯỚC khi gửi: không gửi, không tính là rớt (soát vòng 1)
     try {
-      const result = await doCau(() => db.execute(cau));
+      const viec = doCau(() => db.execute(cau));
+      const result = await (han ? coHan(viec, ms) : viec);
       if (lan) demRot.thu_lai_dat++;
       return result.rows.map(row => ({ ...row }));
     } catch (err) {
-      if (!laLoiMang(err)) {
+      const quaHan = err.code === 'KHO_QUA_HAN';
+      if (!quaHan && !laLoiMang(err)) {
         console.error('Query error:', err.message);
         thayKetNoiNeuBan(err);
         throw err;
       }
-      const conLuot = doc && lan < CHO_DOC_MS.length;
+      const conLuot = doc && lan < CHO_DOC_MS.length && (!han || han.het - Date.now() > CHO_DOC_MS[lan]);   // MỘT vị từ: còn lượt VÀ còn giờ, mọi loại lỗi (soát vòng 2)
       baoRot(err, doc ? 'doc' : 'ghi', lan + 1, doc ? CHO_DOC_MS.length + 1 : 1, conLuot ? 'thu lai' : doc ? 'het luot' : 'khong thu lai (cau ghi)');
       if (!conLuot) {
         if (doc) demRot.thu_lai_hong++;
-        throw loiKho(err, doc ? 'doc' : 'ghi');
+        throw quaHan ? err : loiKho(err, doc ? 'doc' : 'ghi');
       }
       await cho(CHO_DOC_MS[lan]);
     }
