@@ -405,7 +405,7 @@ async function dsPhieu(csdl, loc, homNay) {
     (SELECT GROUP_CONCAT(sp.name || ' ×' || printf('%g', d.so_luong), ', ') FROM kho_phieu_dong d JOIN pos_products sp ON sp.id = d.san_pham_id
       WHERE d.phieu_id = p.id AND d.loai = 'thanh_pham') AS mon,
     (SELECT GROUP_CONCAT(DISTINCT COALESCE(l.ten, sp.name)) FROM kho_phieu_dong d LEFT JOIN kho_nguyen_lieu l ON l.id = d.nguyen_lieu_id
-      LEFT JOIN pos_products sp ON sp.id = d.san_pham_id WHERE d.phieu_id = p.id AND d.loai IN ('dat', 'nhap', 'phat_sinh')) AS hang
+      LEFT JOIN pos_products sp ON sp.id = d.san_pham_id WHERE d.phieu_id = p.id AND d.loai IN ('dat', 'nhap', 'phat_sinh', 'kiem_ke')) AS hang
     FROM kho_phieu p ${dk.length ? 'WHERE ' + dk.join(' AND ') : ''} ORDER BY p.id DESC LIMIT 300`, a);
   const ra = [];
   for (const p of ds) {

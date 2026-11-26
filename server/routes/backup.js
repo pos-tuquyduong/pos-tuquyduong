@@ -143,6 +143,12 @@ const BACKUP_TABLES = [
   { name: 'kho_phieu', label: 'Kho - Phiếu', key: 'id' },
   { name: 'kho_lo', label: 'Kho - Lô', key: 'id' },
   { name: 'kho_phieu_dong', label: 'Kho - Dòng phiếu', key: 'id' },
+  // KHO-GON-1 (bước 033): việc hôm nay, diễn biến, đã xem theo người, ảnh chốt kiểm kê — mẫu trước việc
+  { name: 'kho_viec_mau', label: 'Kho - Mẫu việc', key: 'id' },
+  { name: 'kho_viec', label: 'Kho - Việc theo ngày', key: 'id' },
+  { name: 'kho_dien_bien', label: 'Kho - Diễn biến', key: 'id' },
+  { name: 'kho_dien_bien_xem', label: 'Kho - Đã xem diễn biến', key: 'nguoi' },
+  { name: 'kho_chot', label: 'Kho - Chốt kiểm kê', key: 'id' },
 
   // ND-API-1 (Q-B, chủ quán 13.11): kho nội dung App KH (bước 027). `nd: true` — export-all KHÔNG ghi trang thô (ảnh / bản 1 MB vượt ô Excel
   // 32.767 ký tự) mà ghi MỘT trang TRANG_ND = tệp Xuất của /api/nd cắt nhỏ; khôi phục Excel bỏ qua (BANG_KHOI_PHUC) — dựng lại ở /admin › Nhập toàn bộ.
