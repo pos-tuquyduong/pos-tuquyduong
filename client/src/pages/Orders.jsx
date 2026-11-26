@@ -13,7 +13,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ordersApi, productsApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
-import { Eye, Printer, X, Check, CreditCard, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
+import { Eye, Printer, X, Check, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
 import InvoicePrint from '../components/InvoicePrint';
 import HopHuyDon, { hienNutHuy } from '../components/HopHuyDon';   // HUY-1
 import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
@@ -44,7 +44,6 @@ export default function Orders() {
   const [invoiceSettings, setInvoiceSettings] = useState({});
   
   // State cho xác nhận thanh toán nợ
-  const [paymentMethod, setPaymentMethod] = useState('cash');
   const [submitting, setSubmitting] = useState(false);
 
   // State cho sort
@@ -401,7 +400,6 @@ export default function Orders() {
   };
 
   const openPayDebtModal = () => {
-    setPaymentMethod('cash');
     setShowDetailModal(false);
     setShowPayDebtModal(true);
   };
@@ -412,32 +410,15 @@ export default function Orders() {
     
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('pos_token');
-      const res = await fetch(`/api/pos/orders/${selectedOrder.id}/pay-debt`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          payment_method: paymentMethod,
-          amount: selectedOrder.debt_amount
-        })
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        baoXong(`Đã thu tiền đơn ${selectedOrder.code}`);
-        setShowPayDebtModal(false);
-        setSelectedOrder(null);
-        loadOrders();
-      } else {
-        baoLoiTu('xác nhận thanh toán', data);
-      }
+      await ordersApi.payDebt(selectedOrder.id, { payment_method: 'cash', amount: selectedOrder.debt_amount });
+      baoXong(`Đã thu tiền đơn ${selectedOrder.code}`);
+      setShowPayDebtModal(false);
+      setSelectedOrder(null);
+      loadOrders();
     } catch (err) {
       console.error('Pay debt error:', err);
-      baoLoi('Chưa xác nhận thanh toán được', 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');
+      if (err?.code === 'MAT_KET_NOI') baoLoi('Chưa xác nhận thanh toán được', 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');
+      else baoLoiTu('xác nhận thanh toán', err);
     } finally {
       setSubmitting(false);
     }
@@ -1091,56 +1072,12 @@ export default function Orders() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                  Phương thức thanh toán:
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    onClick={() => setPaymentMethod('cash')}
-                    style={{
-                      flex: 1,
-                      padding: '1rem',
-                      border: '2px solid',
-                      borderColor: paymentMethod === 'cash' ? '#22c55e' : '#e2e8f0',
-                      background: paymentMethod === 'cash' ? '#f0fdf4' : 'white',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <Banknote size={24} color={paymentMethod === 'cash' ? '#22c55e' : '#666'} />
-                    <span style={{ fontWeight: paymentMethod === 'cash' ? 'bold' : 'normal' }}>
-                      Tiền mặt
-                    </span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setPaymentMethod('transfer')}
-                    style={{
-                      flex: 1,
-                      padding: '1rem',
-                      border: '2px solid',
-                      borderColor: paymentMethod === 'transfer' ? '#3b82f6' : '#e2e8f0',
-                      background: paymentMethod === 'transfer' ? '#eff6ff' : 'white',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <CreditCard size={24} color={paymentMethod === 'transfer' ? '#3b82f6' : '#666'} />
-                    <span style={{ fontWeight: paymentMethod === 'transfer' ? 'bold' : 'normal' }}>
-                      Chuyển khoản
-                    </span>
-                  </button>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', border: '2px solid #22c55e',
+                background: '#f0fdf4', borderRadius: '8px', fontWeight: 'bold' }}>
+                <Banknote size={24} color="#22c55e" /> Thu tiền mặt
               </div>
+              {/* TIEN-KHOA-2: thu nợ chỉ tiền mặt — máy chủ trả 400 THU_NO_CK_PHAI_QR cho chuyển khoản */}
+              <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem' }}>Thu nợ chuyển khoản phải qua QR — tạm thu tiền mặt</div>
             </div>
 
             {/* Footer */}

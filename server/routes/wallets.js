@@ -8,6 +8,7 @@ const { query, queryOne, beginTransaction, laLoiBan, traLoiKho } = require('../d
 const { authenticate, checkPermission } = require('../middleware/auth');
 const { getNow, normalizePhone } = require('../utils/helpers');
 const { thuongKhiTru, thuongKhiHoan } = require('../utils/viKhach');   // NAP-1: chia hai ngăn tiền nạp / thưởng nạp
+const { kiemPinChuQuan } = require('../utils/pinChuQuan');
 
 const router = express.Router();
 
@@ -176,46 +177,9 @@ router.post('/topup', authenticate, checkPermission('topup_balance'), async (req
 });
 
 /**
- * POST /api/pos/wallets/deduct
- * Trừ tiền (khi mua hàng)
- */
-// POS-ANTOAN-v1: tru so du thu cong phai co quyen `adjust_balance`.
-// Ban hang khong di qua day (orders.js tu cap nhat vi ~886) nen khoa lai
-// KHONG anh huong quay.
-router.post('/deduct', authenticate, checkPermission('adjust_balance'), async (req, res) => {
-  try {
-    const { phone, amount, customer_name, order_code, notes } = req.body;
-
-    const normalizedPhone = normalizePhone(phone);
-    if (!normalizedPhone) {
-      return res.status(400).json({ error: 'SĐT không hợp lệ' });
-    }
-
-    const deductAmount = parseInt(amount);
-    if (!deductAmount || deductAmount <= 0) {
-      return res.status(400).json({ error: 'Số tiền không hợp lệ' });
-    }
-
-    const kq = await trongGiaoDich(async (tx) => {
-      const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'purchase', soTien: -deductAmount,
-        ghiChu: notes || order_code || null, nguoi: req.user.username, cot: 'total_spent', soCot: deductAmount, khongAm: true });
-      return r.thieu ? { ...r, huy: true } : r;
-    });
-    if (kq.thieu) {
-      return res.status(400).json({ error: 'Số dư không đủ', code: 'SO_DU_KHONG_DU', balance: kq.truoc, kha_dung: kq.khaDung });
-    }
-
-    res.json({ success: true, balance: kq.sau, deducted: deductAmount });
-  } catch (err) {
-    loiGhi(res, err);
-  }
-});
-
-/**
-
-/**
  * POST /api/pos/wallets/adjust
- * Điều chỉnh số dư (chỉ owner)
+ * Điều chỉnh số dư — quyền adjust_balance + PIN chủ quán (TIEN-KHOA-2; chủ quán 11.11: trừ / sửa tiền tài khoản luôn cần PIN).
+ * Dòng sổ 'adjust' (người, lý do, giờ) hiện CẦN XEM ở Đối soát (utils/doiSoat.js, phép DC). Lối trừ tay /deduct đã bỏ (không màn nào dùng).
  */
 router.post("/adjust", authenticate, checkPermission("adjust_balance"), async (req, res) => {
   try {
@@ -234,6 +198,9 @@ router.post("/adjust", authenticate, checkPermission("adjust_balance"), async (r
     if (!reason || reason.trim().length < 3) {
       return res.status(400).json({ error: "Vui lòng nhập lý do (tối thiểu 3 ký tự)" });
     }
+    // PIN kiểm SAU phần kiểm dữ liệu (gõ sai số / lý do không tốn lượt) và NGOÀI giao dịch ghi (kiemPinChuQuan tự ghi bộ đếm sai / khoá).
+    const pin = await kiemPinChuQuan(req.body?.pin);
+    if (pin.loi) return res.status(pin.loi[0]).json({ code: pin.loi[1], error: pin.loi[2] });
 
     const kq = await trongGiaoDich(async (tx) => {
       const r = await ghiVi(tx, { phone: normalizedPhone, ten: customer_name || null, loai: 'adjust', soTien: adjustAmount,
