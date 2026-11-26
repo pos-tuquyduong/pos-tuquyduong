@@ -1248,7 +1248,10 @@ async function main() {
         r.status === 400 && r.code === 'SO_TIEN_KHONG_HOP_LE' && khongDoi(x), `${moTa(r)} · ${JSON.stringify(x)}`);
     }
     const d7 = await donNo();
-    const r7 = await goi('POST', `/orders/${d7}/pay-debt`, { payment_method: 'transfer' });
+    const r7ck = await goi('POST', `/orders/${d7}/pay-debt`, { payment_method: 'transfer' });
+    k('P7a thu nợ chuyển khoản → 400 THU_NO_CK_PHAI_QR, nợ vẫn 25.000 (TIEN-KHOA-2)', r7ck.status === 400 && r7ck.code === 'THU_NO_CK_PHAI_QR'
+      && (await anh(d7)).no === 25000, moTa(r7ck));
+    const r7 = await goi('POST', `/orders/${d7}/pay-debt`, { payment_method: 'cash' });   // TIEN-KHOA-2: thu nợ chỉ tiền mặt
     k('P7 (K5) thu nợ KHÔNG gửi amount → 200 thu đủ 25.000', r7.status === 200 && (await anh(d7)).no === 0, moTa(r7));
     const d8 = await donNo();
     const r8 = await goi('POST', `/orders/${d8}/pay-debt`, { payment_method: 'cash', amount: 10000 });

@@ -215,10 +215,12 @@ async function main() {
       && await diemDon(c3.order.id) === 25, `${moTa(c3)} / ${moTa(t3)} · ${c3.order && await diemDon(c3.order.id)}`);
 
     const c4 = await ban({ customer_phone: await coVi(10000), payment_method: 'debt', balance_amount: 10000, debt_amount: 15000 });
-    const t4a = c4.order ? await thu(c4.order.id, 5000, 'transfer') : {};
+    const t4ck = c4.order ? await thu(c4.order.id, 5000, 'transfer') : {};
+    const t4a = c4.order ? await thu(c4.order.id, 5000) : {};   // TIEN-KHOA-2: thu nợ chỉ tiền mặt (trước: chuyển khoản)
     const giua = c4.order ? await soEarn(c4.order.id) : NaN;
     const t4b = c4.order ? await thu(c4.order.id, 10000) : {};
-    k('C4 ví 10.000 + nợ 15.000 → thu chuyển khoản 5.000 (0 điểm) rồi tiền mặt 10.000 → 25 điểm', t4a.status === 200 && giua === 0
+    k('C4 ví 10.000 + nợ 15.000 → thu CK 400 THU_NO_CK_PHAI_QR; thu tiền mặt 5.000 (0 điểm) rồi tiền mặt 10.000 → 25 điểm',
+    t4ck.status === 400 && t4ck.code === 'THU_NO_CK_PHAI_QR' && t4a.status === 200 && giua === 0
       && t4b.status === 200 && t4b.data?.payment_status === 'paid' && await diemDon(c4.order.id) === 25,
     `${moTa(t4a)} · ${giua} / ${moTa(t4b)} · ${c4.order && await diemDon(c4.order.id)}`);
 

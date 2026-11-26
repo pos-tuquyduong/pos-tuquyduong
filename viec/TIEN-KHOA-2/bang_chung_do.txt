@@ -1,0 +1,85 @@
+TIEN-KHOA-2 — bằng chứng ĐỎ trên code gốc (19.11.2026)
+
+Gốc = e911762 (PHIEU: TIEN-KHOA-2; code y main bc16e14). Lệnh như cổng A11 — cả cây gốc (git archive) + bản HIỆN TẠI của từng bài:
+  python3 viec/TIEN-KHOA-2/dot_bien.py --cay-goc e911762
+
+== cong_cu/thu_TIENKHOA2.js (bài mới) — trên gốc: thoát 1 · 13 đạt · 16 hỏng
+   ✗ A1b api.js: walletsApi không còn deduct / "/wallets/deduct", vẫn còn adjust · topup
+   ✗ A2i ViKhach.jsx: import HoiPin, vẽ <HoiPin mo={hoiPin…}, Xác nhận Điều chỉnh mở ô PIN, gửi pin trong walletsApi.adjust, không window.prompt
+   ✗ A4e Orders.jsx: thu nợ gọi ordersApi.payDebt với tiền mặt, không còn fetch tới pay-debt, không còn nút chọn chuyển khoản, có lời báo QR  — payDebt false · fetch true · nút CK true · lời false
+   ✗ A1 chủ quán POST /wallets/deduct 10.000 → 404, không ghi gì  — HTTP 200 · dấu vết [0,1,50000,…] → [0,2,40000,…] · số dư 40000
+   ✗ A2c chưa đặt PIN chủ quán, điều chỉnh +10.000 có gửi PIN → 400 CHUA_CO_PIN_CHU_QUAN, không ghi gì  — HTTP 200
+   ✗ A2a thiếu PIN, điều chỉnh +10.000 → 400 PIN_CHU_QUAN_SAI, không ghi gì  — HTTP 200
+   ✗ A2a2 thiếu PIN, điều chỉnh −10.000 → 400 PIN_CHU_QUAN_SAI, không ghi gì  — HTTP 200
+   ✗ A2b sai PIN, điều chỉnh +10.000 → 400 PIN_CHU_QUAN_SAI, không ghi gì  — HTTP 200
+   ✗ A2d sai PIN 5 lần → lần 6 PIN ĐÚNG vẫn bị khoá → 423 PIN_CHU_QUAN_KHOA, không ghi gì  — HTTP 200
+   ✗ A2h1 hai lệnh KHÔNG PIN cùng lúc (trừ + cộng) → cả hai 400 PIN_CHU_QUAN_SAI, không ghi gì  — HTTP 200 / HTTP 200
+   ✗ A2j Đối soát hôm nay: dòng CẦN XEM "DC" cho lần điều chỉnh (SĐT + lý do + người), không ĐỎ  — []
+   ✗ A3a bill tiền mặt trong ngày đổi sang chuyển khoản → 409 DOI_SANG_CK_PHAI_QUA_QR, không ghi gì  — HTTP 200 (đơn thành transfer 25.000)
+   ✗ A3c Đối soát hôm nay: dòng CẦN XEM "DC" cho lần đổi CK → tiền mặt (mã đơn + lý do + người)  — []
+   ✗ A4a đơn NỢ cũ thu bằng chuyển khoản → 400 THU_NO_CK_PHAI_QR, không ghi gì  — HTTP 200
+   ✗ A4b bill chờ thu (cho_thu) thu bằng chuyển khoản → 400 THU_NO_CK_PHAI_QR, không ghi gì  — HTTP 200
+   ✗ A4d2 cùng lúc một người thu CK, một người thu tiền mặt → CK 400 THU_NO_CK_PHAI_QR, tiền mặt 200; CK 0, tiền mặt 25.000  — HTTP 200 / HTTP 400 · DA_THU_ROI
+   Xanh trên gốc (đúng ý — K5 / hồi quy, phải KHÔNG bị chặn): A2g · A2e · A2f · A2f2 · A2h2 · A3b · A4c · A4f · A4g · A4d1 · K5-4a · K5-4b · K5-5
+
+Bài cũ sửa — LUAT §6.8 (hành vi đổi theo phiếu chủ quán duyệt): bản GỐC của từng bài đỏ trên code mới (npm test lần đầu sau vá: FAIL 9 —
+thu_P20, P21, P26b, P26c, DIEMTHAT1, P3, NAP1, KHNAP1, DOISOAT1). Bản MỚI chạy trên cây gốc (LUAT §6.9: 7 bài xanh trên gốc ở lần đầu →
+thêm MỘT ca thật cho hành vi mới, commit 89640c68):
+== cong_cu/thu_DIEMTHAT1.js: thoát 1
+   ✗ C4 ví 10.000 + nợ 15.000 → thu CK 400 THU_NO_CK_PHAI_QR; thu tiền mặt 5.000 (0 điểm) rồi tiền mặt 10.000 → 25 điểm  — HTTP 200 · 0 / HTTP 400 · VUOT_QUA_NO
+== cong_cu/thu_DOISOAT1.js: thoát 1
+   ✗ B0g đổi cách trả chuyển khoản → tiền mặt cùng ngày → 200; tiền mặt → CK → 409 DOI_SANG_CK_PHAI_QUA_QR (TIEN-KHOA-2)  — HTTP 200 / HTTP 200
+   ✗ B0 ngay / tuan / thang: dữ liệu sạch → XANH; CẦN XEM chỉ ĐÚNG MỘT dòng DC của lần đổi cách trả B0g, không LỆCH CŨ  — cần xem (rỗng)
+   ✗ B3 tháng 11: CK = 170.000 (đơn CK 25.000 của B0g đã đổi sang tiền mặt — TIEN-KHOA-2)  — 195000
+   (+2 dòng: E10 thu CK 400 / thu tiền mặt)
+== cong_cu/thu_KHNAP1.js: thoát 1
+   ✗ D0 điều chỉnh ví KHÔNG PIN chủ quán → 400 PIN_CHU_QUAN_SAI, không ghi sổ (TIEN-KHOA-2)  — HTTP 200
+   ✗ D2 loai: … trừ tay + điều chỉnh ± = dieu_chinh  — (lệnh không PIN trên gốc ghi thêm một dòng)
+== cong_cu/thu_NAP1.js: thoát 1 · 89 đạt · 1 hỏng
+   ✗ K8 đổi tiền mặt → CK trên đơn nạp → 409 DOI_SANG_CK_PHAI_QUA_QR (TIEN-KHOA-2): két, CK, ô tiền nạp, ví không đổi  — HTTP 200 · két 2364100→2264100 · CK 214000→314000
+== cong_cu/thu_P20.js: thoát 1
+   ✗ pay-debt chuyển khoản → 400 THU_NO_CK_PHAI_QR (TIEN-KHOA-2: thu nợ chỉ tiền mặt)  — HTTP 200
+   ✗ pay-debt thu nốt đơn kết hợp → 200  — HTTP 400 · DA_THU_ROI
+== cong_cu/thu_P21.js: thoát 1
+   ✗ điều chỉnh KHÔNG PIN chủ quán → 400 PIN_CHU_QUAN_SAI (TIEN-KHOA-2)  — HTTP 200
+   ✗ trước đối soát: ví = … = 85.000đ  — 82000
+   ✗ sau đối soát: ví vẫn 85.000đ  — ví = 82000
+== cong_cu/thu_P26b.js: thoát 1
+   ✗ V2 ví total_topup / total_spent NULL → nạp 10.000, trừ 5.000 → hai cột 10.000 / 5.000 (không NULL); /wallets/deduct đã bỏ → 404  — HTTP 200 / HTTP 200
+== cong_cu/thu_P26c.js: thoát 1
+   ✗ P7a thu nợ chuyển khoản → 400 THU_NO_CK_PHAI_QR, nợ vẫn 25.000 (TIEN-KHOA-2)  — HTTP 200
+   ✗ P7 (K5) thu nợ KHÔNG gửi amount → 200 thu đủ 25.000  — HTTP 400 · DA_THU_ROI
+== cong_cu/thu_P3.js: thoát 1
+   ✗ F1 đang giữ: trừ tay 30.000 / điều chỉnh −30.000 / đơn trừ 50.000 → 400 SO_DU_KHONG_DU; /wallets/deduct đã bỏ → 404  — HTTP 400 · SO_DU_KHONG_DU / …
+
+Giả lập cong_cu/gia_lap/kich_ban.js (Phạm vi chủ quán thêm 19.11): KB3, KB4 thu nợ → tiền mặt; KB10 hai người cùng thu → hai lệnh tiền mặt;
+KB17 trừ tay → điều chỉnh âm có PIN chủ quán, điều chỉnh có PIN; KB28 đổi tiền mặt → CK nay mong 409 DOI_SANG_CK_PHAI_QUA_QR.
+thu_gia_lap.js (đột biến M1/M6/M8 bám KB3/KB10) xanh trong npm test sau sửa.
+
+Số ca trên code ĐÃ VÁ (python3 viec/TIEN-KHOA-2/dot_bien.py --so-ca e911762 — mọi bài thoát 0):
+SỐ CA cong_cu/thu_TIENKHOA2.js: 29
+SỐ CA cong_cu/thu_DIEMTHAT1.js: 36
+SỐ CA cong_cu/thu_DOISOAT1.js: 134
+SỐ CA cong_cu/thu_KHNAP1.js: 66
+SỐ CA cong_cu/thu_NAP1.js: 90
+SỐ CA cong_cu/thu_P20.js: 179
+SỐ CA cong_cu/thu_P21.js: 15
+SỐ CA cong_cu/thu_P26b.js: 104
+SỐ CA cong_cu/thu_P26c.js: 159
+SỐ CA cong_cu/thu_P3.js: 101
+
+Đột biến (python3 viec/TIEN-KHOA-2/dot_bien.py): ĐỐI CHỨNG XANH · 29 đạt · 0 hỏng — TỔNG: 21 đột biến · BẮT 21 · SỐNG 0 · HỎNG 0 · LẠC 0
+
+Vòng sửa 1 (sau soát vòng 1, commit c8a57928): đổi thu_TIENKHOA2 (A4c thêm vế lời báo không mời dùng transfer; tên A4d2) và thu_DOISOAT1 (E10 dựng
+thẳng một lần thu nợ CK CŨ 20.000 + thu tiền mặt 30.000 — giữ phủ nhánh "CK thu nợ" của Đối soát). Chạy lại:
+  --cay-goc e911762 --bai cong_cu/thu_TIENKHOA2.js → thoát 1 (A4c đỏ trên gốc: lời gốc "(cash hoặc transfer)")
+  --cay-goc e911762 --bai cong_cu/thu_DOISOAT1.js  → thoát 1 (✗ B0g, ✗ B0 ngay/tuan/thang, ✗ B3 …)
+  --so-ca e911762 → số ca KHÔNG đổi (TIENKHOA2 29 · DOISOAT1 134; các bài khác như trên), mọi bài thoát 0
+  đột biến: TỔNG 21 · BẮT 21 · SỐNG 0 · HỎNG 0 · LẠC 0 (đối chứng xanh)
+  npm test -- --day-du: PASS 127 · FAIL 0 · CẢNH BÁO 1
+
+Ghép main 7da9ba9a (25.11): thu_P26c 161 → 159 ca (KHO-3a bỏ ca B3d / B3e, B3c đổi nghĩa) — đã sửa dòng SỐ CA. Chín bài còn lại chạy lại
+trên f5a82442: số ca không đổi (TIENKHOA2 29 · DIEMTHAT1 36 · DOISOAT1 134 · KHNAP1 66 · NAP1 90 · P20 179 · P21 15 · P26b 104 · P3 101).
+
+# Chat bàn 41 (26.11) — ghép main 9a5defdf (PR #103 DOISOAT-NHANH): thu_DOISOATNHANH khoá danh sách bước, thêm DC (LUAT §6.7). Đỏ trên main 9a5defdf (thiếu bước DC), xanh trên nhánh.
+SỐ CA cong_cu/thu_DOISOATNHANH.js: 39

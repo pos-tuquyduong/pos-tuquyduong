@@ -59,6 +59,10 @@ async function main() {
   const db = require(path.join(MAY_CHU, 'database.js'));
   const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
   await db.initDatabase();
+  // TIEN-KHOA-2: /wallets/adjust cần PIN chủ quán — đặt sẵn cho bài; /wallets/deduct đã bỏ.
+  const PIN_CQ = '2468';
+  await db.run("INSERT OR REPLACE INTO pos_pin_chu_quan (id, pin_bam, sai, khoa_den, dat_boi, dat_luc) VALUES (1, ?, 0, NULL, 'thu', '2026-01-01T00:00:00')",
+    [require(path.join(GOC, 'node_modules', 'bcryptjs')).hashSync(PIN_CQ, 4)]);
   await require('./gia_lap/monThu').dungMonThu(db);   // KHO-3a (Câu 1): món thử có công thức + lô — bán trừ kho POS
   // Soát vòng 2 (nghi ngờ 1): chen một dòng báo CÙNG khoá đúng lúc giữa phép kiểm khoá (ngoài giao dịch) và giao dịch chốt — như bản sao thứ hai của cổng
   // vừa ghi xong. chenKhoa = { khoa, ma } → ghi một lần ở lần mở giao dịch kế tiếp.
@@ -518,9 +522,14 @@ async function main() {
     await goi('POST', '/pos/wallets/topup', { phone: kh.sdt, amount: 50000, notes: 'GHI-TAY-BI-MAT' }, tkChu);
     const tra = await dat1(kh, gio([mon(0)]), { cach_tra: 'vi', pin: '1357' });
     const traHo = await quay({ customer_phone: con.sdt, items: [monQuay(1)], payment_method: 'cash', cash_amount: 0, parent_phone: kh.sdt, parent_balance_amount: 30000 });
-    await goi('POST', '/pos/wallets/deduct', { phone: kh.sdt, amount: 1000, notes: 'GHI-TAY-BI-MAT' }, tkChu);
-    await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: 2000, reason: 'GHI-TAY-BI-MAT' }, tkChu);
-    await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: -500, reason: 'GHI-TAY-BI-MAT' }, tkChu);
+    // Trừ tay KIỂU CŨ (dòng 'purchase' không đơn — /deduct đã bỏ ở TIEN-KHOA-2, dòng cũ còn trên quầy) → dựng thẳng dòng sổ.
+    await db.run(`INSERT INTO pos_balance_transactions (customer_phone, type, amount, thuong, balance_before, balance_after, order_id, payment_method, notes, created_by,
+      created_at) VALUES (?, 'purchase', -1000, 0, 0, 0, NULL, 'cash', 'GHI-TAY-BI-MAT', 'thu', ?)`, [kh.sdt, getNow()]);
+    const dcKhongPin = await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: 2000, reason: 'GHI-TAY-BI-MAT' }, tkChu);
+    k('D0 điều chỉnh ví KHÔNG PIN chủ quán → 400 PIN_CHU_QUAN_SAI, không ghi sổ (TIEN-KHOA-2)', dcKhongPin.status === 400
+      && dcKhongPin.j.code === 'PIN_CHU_QUAN_SAI', moTa(dcKhongPin));
+    await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: 2000, reason: 'GHI-TAY-BI-MAT', pin: PIN_CQ }, tkChu);
+    await goi('POST', '/pos/wallets/adjust', { phone: kh.sdt, amount: -500, reason: 'GHI-TAY-BI-MAT', pin: PIN_CQ }, tkChu);
     const oTra = await oidCua(tra.j.ma_don);
     const hoan = await goi('PUT', `/pos/orders/${oTra}/cancel`, { reason: 'thử huỷ' }, tkChu);
     const muon = await dat1(kh, gio([mon(1)]));

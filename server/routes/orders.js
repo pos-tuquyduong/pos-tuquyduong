@@ -1479,8 +1479,8 @@ router.post("/tinh-thu", authenticate, async (req, res) => {
 });
 /**
  * POST /api/pos/orders/:id/pay-debt
- * Xác nhận thanh toán nợ cho đơn hàng
- * - Cập nhật debt_amount, cash_amount/transfer_amount
+ * Xác nhận thanh toán nợ cho đơn hàng — CHỈ tiền mặt (TIEN-KHOA-2; chuyển khoản → 400 THU_NO_CK_PHAI_QR)
+ * - Cập nhật debt_amount, cash_amount
  * - Cập nhật payment_status thành 'paid' nếu hết nợ
  */
 router.post("/:id/pay-debt", authenticate, async (req, res) => {
@@ -1488,12 +1488,16 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     const { id } = req.params;
     const { payment_method, amount } = req.body;
 
+    // TIEN-KHOA-2 (chủ quán 18.11): thu nợ CHỈ tiền mặt — chuyển khoản phải qua QR, đường này không mở phiên QR.
+    if (payment_method === "transfer") {
+      return res.status(400).json({ error: "Thu nợ chuyển khoản phải qua QR — tạm thu tiền mặt", code: "THU_NO_CK_PHAI_QR" });
+    }
     // Validate payment_method
-    if (!payment_method || !["cash", "transfer"].includes(payment_method)) {
+    if (payment_method !== "cash") {
       return res
         .status(400)
         .json({
-          error: "Phương thức thanh toán không hợp lệ (cash hoặc transfer)",
+          error: "Phương thức thanh toán không hợp lệ — thu nợ chỉ nhận tiền mặt (cash)",
           code: "CACH_TRA_LA",
         });
     }
@@ -1546,8 +1550,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
     // thấy "còn nợ 19.000đ" rồi cùng cộng tiền: đơn 19.000đ thành tiền mặt 38.000đ.
     // Đã chứng minh trên máy chủ thật với độ trễ mạng như Turso. Nay chỉ ghi khi nợ
     // trong sổ còn ĐÚNG bằng số vừa đọc, rồi kiểm số dòng bị đổi.
-    // payment_method đã được kiểm chỉ là cash|transfer ở trên → tên cột an toàn.
-    const cotTien = payment_method === "cash" ? "cash_amount" : "transfer_amount";
+    const cotTien = "cash_amount";   // TIEN-KHOA-2: thu nợ chỉ tiền mặt (transfer bị chặn ở đầu route)
     // P22-23: thu ĐỦ đơn có SĐT, không Flash → cộng điểm theo cài đặt LÚC THU. Tính NGOÀI giao dịch như LOY-1; lỗi → bỏ điểm, vẫn thu.
     let diemThu = null;
     if (newPaymentStatus === "paid" && order.customer_phone && !(Number(order.flash_discount) > 0)) {
@@ -1608,7 +1611,7 @@ router.post("/:id/pay-debt", authenticate, async (req, res) => {
             order.customer_name,
             paidAmount,
             id,
-            `Thanh toán nợ đơn ${order.code} bằng ${payment_method === "cash" ? "tiền mặt" : "chuyển khoản"}`,
+            `Thanh toán nợ đơn ${order.code} bằng tiền mặt`,
             req.user.username,
             now,
           ],

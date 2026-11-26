@@ -1,6 +1,6 @@
 /**
  * ViKhach — khu "Ví" trong ô chi tiết một khách (GIAO-DIEN-1 C), thay màn Số dư cũ: số dư · Lịch sử ví · Điều chỉnh · Nạp tay (thử).
- * Quyền như cũ: xem số dư = view_customer_balance, Điều chỉnh = adjust_balance; "Nạp tay (thử)" CHỈ chủ quán (role owner).
+ * Quyền như cũ: xem số dư = view_customer_balance, Điều chỉnh = adjust_balance + PIN chủ quán (TIEN-KHOA-2, ô HoiPin); "Nạp tay (thử)" CHỈ chủ quán.
  * Máy chủ vẫn là bên kiểm quyền thật (POST /wallets/topup + /adjust). `onDoi` = tải lại danh sách khách sau khi ví đổi.
  */
 import { useState } from 'react';
@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { hienNgayGio } from '../utils/ngayVN';
 import { X } from 'lucide-react';
 import { baoXong, baoLoiTu } from './thongBaoKho.js';   // BAO-1a
+import HoiPin from './HoiPin';
 
 const tien = (n) => (n || 0).toLocaleString() + 'đ';
 const ngayGio = (d) => (d ? hienNgayGio(d, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-');
@@ -33,28 +34,35 @@ export default function ViKhach({ khach, onDoi }) {
   const [nhap, setNhap] = useState({ amount: '', text: '' });
   const [dang, setDang] = useState(false);
   const [gd, setGd] = useState({ dang: false, ds: [] });
+  const [hoiPin, setHoiPin] = useState(false);   // Điều chỉnh: bấm Xác nhận → hỏi PIN chủ quán rồi mới gửi
 
   if (!hasPermission('view_customer_balance') || !khach?.phone) return null;
   const ten = khach.name || khach.phone;
-  const mo = (c) => { setCua(c); setNhap({ amount: '', text: '' }); };
+  const mo = (c) => { setCua(c); setNhap({ amount: '', text: '' }); setHoiPin(false); };
 
   const moLichSu = async () => {
     mo('lichsu');
     setGd({ dang: true, ds: [] });
     try { setGd({ dang: false, ds: (await walletsApi.transactions(khach.phone)).transactions || [] }); } catch { setGd({ dang: false, ds: [] }); }
   };
+  const xong = (r, viec, so) => {
+    baoXong(`${viec} ${so.toLocaleString()}đ cho ${ten}. Số dư mới: ${r.balance.toLocaleString()}đ`);
+    setCua(null);
+    onDoi?.();
+  };
+  // HoiPin: PIN sai / khoá báo ngay dưới ô (ô vẫn mở); lỗi khác ném ra → loiKhac.
+  const chinhCoPin = async (pin) => {
+    const r = await walletsApi.adjust({ phone: khach.phone, amount: parseInt(nhap.amount), customer_name: khach.name, reason: nhap.text, pin });
+    xong(r, 'Đã điều chỉnh', r.adjusted);
+  };
   const gui = async (e, nap) => {
     e.preventDefault();
+    if (!nap) { setHoiPin(true); return; }
     setDang(true);
     try {
       const so = parseInt(nhap.amount);
-      const r = nap
-        ? await walletsApi.topup({ phone: khach.phone, amount: so, customer_name: khach.name, notes: nhap.text, payment_method: 'cash' })
-        : await walletsApi.adjust({ phone: khach.phone, amount: so, customer_name: khach.name, reason: nhap.text });
-      baoXong(`${nap ? 'Đã nạp' : 'Đã điều chỉnh'} ${(nap ? so : r.adjusted).toLocaleString()}đ cho ${ten}. Số dư mới: ${r.balance.toLocaleString()}đ`);
-      setCua(null);
-      onDoi?.();
-    } catch (err) { baoLoiTu(nap ? 'nạp tiền' : 'điều chỉnh số dư', err); } finally { setDang(false); }
+      xong(await walletsApi.topup({ phone: khach.phone, amount: so, customer_name: khach.name, notes: nhap.text, payment_method: 'cash' }), 'Đã nạp', so);
+    } catch (err) { baoLoiTu('nạp tiền', err); } finally { setDang(false); }
   };
 
   const bieuMau = (nap) => (
@@ -95,6 +103,8 @@ export default function ViKhach({ khach, onDoi }) {
 
       {cua === 'nap' && <KhungModal tieuDe="💰 Nạp tay (thử)" dong={() => setCua(null)}>{bieuMau(true)}</KhungModal>}
       {cua === 'chinh' && <KhungModal tieuDe="⚖️ Điều chỉnh số dư" dong={() => setCua(null)}>{bieuMau(false)}</KhungModal>}
+      <HoiPin mo={hoiPin && cua === 'chinh'} tieuDe="Điều chỉnh số dư — gõ PIN chủ quán" ten="điều chỉnh số dư" chay={chinhCoPin}
+        loiKhac={(err) => baoLoiTu('điều chỉnh số dư', err)} dong={() => setHoiPin(false)} />
       {cua === 'lichsu' && (
         <KhungModal tieuDe={`📜 Lịch sử ví - ${ten}`} dong={() => setCua(null)} rong>
           <div className="modal-body">

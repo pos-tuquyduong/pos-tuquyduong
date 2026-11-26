@@ -191,9 +191,12 @@ async function main() {
   const lay = await goi('POST', '/orders', { customer_phone: sG, customer_name: 'Khách DS1', items: [mon(0, 1, true)], customer_package_id: cp?.id,
     payment_method: 'cash', cash_amount: 0 });
   k('B0f mua gói 300.000 rồi lấy 1 ly từ gói → 200', m1.success && lay.status === 200, `${moTa(m1)} / ${moTa(lay)}`);
-  f.doi = await taoDon({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
-  const dc = await goi('POST', `/orders/${f.doi}/doi-cach-tra`, { sang: 'transfer', ly_do: 'thử DS1' });
-  k('B0g đổi cách trả tiền mặt → chuyển khoản cùng ngày → 200', dc.status === 200, moTa(dc));
+  const fTm = await taoDon({ items: [mon(0)], payment_method: 'cash', cash_amount: 25000 });
+  const dcTm = await goi('POST', `/orders/${fTm}/doi-cach-tra`, { sang: 'transfer', ly_do: 'thử DS1' });
+  f.doi = await taoDon({ items: [mon(0)], payment_method: 'transfer', transfer_amount: 25000 });   // đơn CK kiểu cũ (thân taoDonGoc)
+  const dc = await goi('POST', `/orders/${f.doi}/doi-cach-tra`, { sang: 'cash', ly_do: 'thử DS1' });
+  k('B0g đổi cách trả chuyển khoản → tiền mặt cùng ngày → 200; tiền mặt → CK → 409 DOI_SANG_CK_PHAI_QUA_QR (TIEN-KHOA-2)', dc.status === 200
+    && dcTm.status === 409 && dcTm.code === 'DOI_SANG_CK_PHAI_QUA_QR', `${moTa(dc)} / ${moTa(dcTm)}`);
   const sDiem = sdtMoi();
   await db.run("INSERT INTO pos_point_transactions (customer_phone, type, points, reason, created_at) VALUES (?, 'earn', 10, 'thử DS1', ?)", [sDiem, '2026-11-04T09:00:00']);
   const qua = await goi('POST', '/rewards', { name: 'Quà DS1', points_cost: 3, discount_type: 'fixed', discount_value: 5000, valid_days: 30 });
@@ -208,10 +211,13 @@ async function main() {
   k('B0j tăng lượt dùng mã tay (/increment-usage) → 200 (used_count 1, chưa đơn nào áp)', tang.status === 200, moTa(tang));
   await db.run('UPDATE pos_customer_packages SET delivered_qty = delivered_qty + 2 WHERE id = ?', [cp?.id]);   // dữ liệu cũ: giao tay trước khi /deliver bị bỏ (P26c A4)
   k('B0k gói có "đã giao" lớn hơn số đơn lấy từ gói (giao tay thời trước) tồn tại', (await so('SELECT delivered_qty FROM pos_customer_packages WHERE id = ?', [cp?.id])) === 3);
+  // TIEN-KHOA-2 (chủ quán 19.11): mỗi lần đổi cách trả là MỘT dòng CẦN XEM "DC" — chủ ý, không phải nhiễu. Ngoài đúng dòng đó: không gì.
+  const maDoiB0 = await maDon(f.doi);
   for (const kieu of ['ngay', 'tuan', 'thang']) {
     const r = await ds('chu', kieu, '2026-11-04');
-    k(`B0 ${kieu}: dữ liệu sạch → XANH, và KHÔNG có dòng CẦN XEM / LỆCH CŨ nào (luồng hợp lệ không được gây nhiễu)`,
-      r.status === 200 && r.ket_qua === 'XANH' && r.can_xem.length === 0 && r.cu.length === 0,
+    k(`B0 ${kieu}: dữ liệu sạch → XANH; CẦN XEM chỉ ĐÚNG MỘT dòng DC của lần đổi cách trả B0g, không LỆCH CŨ (luồng hợp lệ không được gây nhiễu)`,
+      r.status === 200 && r.ket_qua === 'XANH' && r.can_xem.length === 1 && r.can_xem[0].bat_bien === 'DC'
+        && r.can_xem[0].mo_ta.startsWith(`đơn ${maDoiB0}: `) && r.cu.length === 0,
       tom(r) + ` · cần xem ${r.can_xem.map((l) => l.mo_ta).join(' | ')} · cũ ${r.cu.map((l) => l.mo_ta).join(' | ')}`);
   }
 
@@ -276,7 +282,7 @@ async function main() {
     const rong = (r) => r.tien?.chuyen_khoan?.rong;
     k('B1 ngày 18.11: CK theo sổ = 50.000, không lẫn ngày khác', rong(ngay) === 50000 && ngay.tu === '2026-11-18' && ngay.den === '2026-11-18', `${rong(ngay)} · ${ngay.tu}→${ngay.den}`);
     k('B2 tuần 16→22.11 (T2 00:00:00 trong, CN 23:59:59 trong, CN trước và T2 sau ngoài): CK = 95.000', rong(tuan) === 95000 && tuan.tu === '2026-11-16' && tuan.den === '2026-11-22', `${rong(tuan)} · ${tuan.tu}→${tuan.den}`);
-    k('B3 tháng 11 (31.10 23:59:59 và 01.12 00:00:00 ngoài): CK = 195.000 (170.000 + 25.000 đổi cách trả B0g)', rong(thang) === 195000 && thang.tu === '2026-11-01' && thang.den === '2026-11-30', `${rong(thang)} · ${thang.tu}→${thang.den}`);
+    k('B3 tháng 11 (31.10 23:59:59 và 01.12 00:00:00 ngoài): CK = 170.000 (đơn CK 25.000 của B0g đã đổi sang tiền mặt — TIEN-KHOA-2)', rong(thang) === 170000 && thang.tu === '2026-11-01' && thang.den === '2026-11-30', `${rong(thang)} · ${thang.tu}→${thang.den}`);
     const ky = (kieu, ngayX) => (typeof doiSoat.tinhKy === 'function' ? doiSoat.tinhKy(kieu, ngayX) : {});
     k('B3b tuần vắt tháng / năm: 01.10.2026 → 28.09–04.10; 01.01.2027 → 28.12–03.01', ky('tuan', '2026-10-01').tu === '2026-09-28' && ky('tuan', '2026-10-01').den === '2026-10-04'
       && ky('tuan', '2027-01-01').tu === '2026-12-28' && ky('tuan', '2027-01-01').den === '2027-01-03');
@@ -317,7 +323,7 @@ async function main() {
       ['I13', ["INSERT INTO pos_discount_codes (code, discount_type, discount_value, usage_limit, used_count, created_at) VALUES ('DS_I13', 'fixed', 1000, 2, 3, '2026-11-04T10:00:00')"], ["DELETE FROM pos_discount_codes WHERE code = 'DS_I13'"], /mã DS_I13: đã dùng 3\/2/, 'can_xem', L, true],
       ['I14', [`INSERT INTO pos_customer_packages (customer_phone, package_id, total_qty, delivered_qty, status, notes, created_at, updated_at) VALUES ('${sBal}', ${goiHong}, 2, 5, 'active', 'DS_I14', '2026-11-04T10:00:00', '2026-11-04T10:00:00')`], ["DELETE FROM pos_customer_packages WHERE notes = 'DS_I14'"], /gói #\d+: đã giao 5 > tổng 2/, 'can_xem', K, true],
       ['I15', ["INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at) VALUES ('0900000002', 1, 'DS_I15', 0, 888881, '2026-11-04T10:00:00', '2027-11-04T10:00:00')"], ["DELETE FROM pos_membership_purchases WHERE tier_name = 'DS_I15'"], /dòng mua thẻ #\d+ của đơn #888881 không còn/, 'do', K, true],
-      ['I16', [`UPDATE pos_orders SET cash_amount = 1 WHERE id = ${f.doi}`], [`UPDATE pos_orders SET cash_amount = 0 WHERE id = ${f.doi}`], new RegExp(`đơn ${maDoi}: nhật ký đổi sang`), 'do', K, true],
+      ['I16', [`UPDATE pos_orders SET cash_amount = 1 WHERE id = ${f.doi}`], [`UPDATE pos_orders SET cash_amount = 25000 WHERE id = ${f.doi}`], new RegExp(`đơn ${maDoi}: nhật ký đổi sang`), 'do', K, true],
       ['I17', [`INSERT INTO pos_refund_requests (order_id, customer_phone, refund_amount, status, requested_at, processed_at, reason) VALUES (${f.tm}, '${sBal}', 100, 'approved', '2026-11-04T10:00:00', '2026-11-04T10:00:00', 'DS_I17')`], ["DELETE FROM pos_refund_requests WHERE reason = 'DS_I17'"], new RegExp(`yêu cầu hoàn #\\d+ \\(đơn #${f.tm}\\)`), 'do', K, true],
       ['I18', [`UPDATE pos_wallets SET total_topup = total_topup + 9 WHERE phone = '${sBal}'`], [`UPDATE pos_wallets SET total_topup = total_topup - 9 WHERE phone = '${sBal}'`], new RegExp(`ví ${sBal}: tổng nạp`), 'do', L, true],
       ['I19', [`INSERT INTO pos_wallets (phone, balance) VALUES ('0900000003', 99999)`, `INSERT INTO pos_balance_transactions (customer_phone, type, amount, order_id, created_at, notes) VALUES ('0900000003', 'compensation', 99999, ${f.tm}, '2026-11-04T10:00:00', 'DS_I19')`],
@@ -609,14 +615,20 @@ async function main() {
       JSON.stringify(k9.ket?.moc) + ' · ' + k9.ket?.so_theo_so);
     datGio(2027, 1, 10);   // CN 10.01.2027
     const h2 = await huy(dHuy2);
-    const thuCk = await goi('POST', `/orders/${dNoCk}/pay-debt`, { payment_method: 'transfer', amount: 50000 });
+    const chanCk = await goi('POST', `/orders/${dNoCk}/pay-debt`, { payment_method: 'transfer', amount: 50000 });
+    // Dữ liệu CŨ: đã thu CK 20.000 ngày 10.01 trước TIEN-KHOA-2 (pay-debt cũ ghi cột + nhật ký 'thu') — dựng thẳng như dòng sổ cũ.
+    await db.run("UPDATE pos_orders SET transfer_amount = COALESCE(transfer_amount, 0) + 20000, debt_amount = debt_amount - 20000, payment_status = 'partial' WHERE id = ?", [dNoCk]);
+    await db.run(`INSERT INTO pos_order_log (order_id, loai, noi_dung, chi_tiet, nguoi, luc) VALUES (?, 'thu', 'Thu Chuyển khoản 20.000đ (dữ liệu cũ)',
+      '{"cach":"transfer","so_tien":20000,"con_no":30000}', 'chu', '2027-01-10T09:00:00')`, [dNoCk]);
+    const thuCk = await goi('POST', `/orders/${dNoCk}/pay-debt`, { payment_method: 'cash', amount: 30000 });
     const n9 = await ds('chu', 'ngay', '2027-01-09'), n10 = await ds('chu', 'ngay', '2027-01-10');
     k('E8 đơn tạo 09.01, huỷ 10.01: "trả ra" 25.000 nằm ở ngày HUỶ 10.01, ngày 09.01 bán 25.000 trả ra 0',
       h2.status === 200 && n9.tien?.tien_mat?.ban === 25000 && n9.tien?.tien_mat?.tra_ra === 0 && n10.tien?.tien_mat?.tra_ra === 25000,
       `${moTa(h2)} · 09: ${JSON.stringify(n9.tien?.tien_mat)} · 10: ${JSON.stringify(n10.tien?.tien_mat)}`);
-    k('E10 nợ 09.01 thu bằng CHUYỂN KHOẢN 10.01: CK thu nợ 10.01 = 50.000, tiền mặt thu nợ 10.01 = 0 (két không nhận), CK bán 09.01 = 0',
-      thuCk.status === 200 && n10.tien?.chuyen_khoan?.thu_no === 50000 && n10.tien?.tien_mat?.thu_no === 0 && n9.tien?.chuyen_khoan?.ban === 0,
-      `${moTa(thuCk)} · 10 CK ${JSON.stringify(n10.tien?.chuyen_khoan)} · 10 TM ${JSON.stringify(n10.tien?.tien_mat)} · 09 CK ${JSON.stringify(n9.tien?.chuyen_khoan)}`);
+    k('E10 nợ 09.01: thu CK → 400 THU_NO_CK_PHAI_QR (TIEN-KHOA-2); 10.01 CK cũ 20.000 + tiền mặt 30.000 → CK thu nợ 20.000, tiền mặt thu nợ 30.000, CK bán 09.01 = 0',
+      chanCk.status === 400 && chanCk.code === 'THU_NO_CK_PHAI_QR' && thuCk.status === 200 && n10.tien?.tien_mat?.thu_no === 30000
+        && n10.tien?.chuyen_khoan?.thu_no === 20000 && n9.tien?.chuyen_khoan?.ban === 0,
+      `${moTa(chanCk)} / ${moTa(thuCk)} · 10 CK ${JSON.stringify(n10.tien?.chuyen_khoan)} · 10 TM ${JSON.stringify(n10.tien?.tien_mat)} · 09 CK ${JSON.stringify(n9.tien?.chuyen_khoan)}`);
     datGio(2027, 1, 12);   // thứ 3 12.01.2027
     const kT2 = await ghiDS('chu', { loai: 'ket', ky: '2027-01-11', so_tien: 100000, de_lai: 70000 });
     const sT2 = await ghiDS('chu', { loai: 'sao_ke', ky: '2027-01-11', da_so: 1 });   // cùng ky, ghi SAU (id lớn hơn)
