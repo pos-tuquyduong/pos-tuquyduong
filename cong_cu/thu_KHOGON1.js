@@ -274,8 +274,6 @@ async function main() {
     && (await so('SELECT COUNT(*) FROM kho_chot')) === 1, moTa(thieuDong));
   const oTrong = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: camTruoc }, { san_pham_id: sNC, thuc: '' }], 'kk-trong');
   k('Q1c ô số để trống ở kiểm kê → 400 KHO_THIEU_SO', oTrong.status === 400 && oTrong.code === 'KHO_THIEU_SO', moTa(oTrong));
-  const khongGhi = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: camTruoc - 1 }, { san_pham_id: sNC, thuc: ncTruoc }], 'kk-kg');
-  k('C4a dòng lệch không ghi chú → 400 KHO_THIEU_GHI_CHU, không phiếu', khongGhi.status === 400 && khongGhi.code === 'KHO_THIEU_GHI_CHU' && (await demKK()) === 0, moTa(khongGhi));
   const la = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: camTruoc }, { san_pham_id: sNC, thuc: ncTruoc }, { nguyen_lieu_id: nGung, thuc: 1, ghi_chu: 'x' }], 'kk-la');
   k('C6b nhân viên gửi dòng không thuộc danh sách kiểm (Gừng) → 400 KHO_DONG_LA', la.status === 400 && la.code === 'KHO_DONG_LA', moTa(la));
   const mocSai = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: camTruoc }, { san_pham_id: sNC, thuc: ncTruoc }], 'kk-moc', '', { moc: 999999, moc_luc: kk.moc_luc });
@@ -287,6 +285,8 @@ async function main() {
   const dongKK = [{ nguyen_lieu_id: nCam, thuc: camTruoc - 1, ghi_chu: 'đổ 1 kg' }, { san_pham_id: sNC, thuc: ncTruoc + 2, ghi_chu: 'pha thêm chưa ghi' }];
   const [c1, c2] = await Promise.all([guiKK('nv', dongKK, 'kk-a'), guiKK('nv2', dongKK, 'kk-b')]);
   const thang = c1.status === 200 ? c1 : c2;
+  k('Q5a phản hồi lưu kiểm kê của NHÂN VIÊN chỉ "đã chốt" — không số máy, không dòng lệch / số lệch, không mã phiếu', thang.da_chot === true
+    && !coKhoa(thang, ['anh', 'lech', 'phieu_id', 'may', 'goc', 'chot', 'ton', 'dong']), JSON.stringify(thang));
   k('C-đua hai người cùng chốt → MỘT 200, người sau 409 KHO_DA_KIEM; tồn chỉ trừ MỘT lần', [c1, c2].filter((r) => r.status === 200).length === 1
     && [c1, c2].some((r) => r.code === 'KHO_DA_KIEM') && (await demKK()) === 1 && gan(await tonNL(nCam), camTruoc - 1), `${moTa(c1)} / ${moTa(c2)} · Cam ${await tonNL(nCam)}`);
   const kkP = await mot("SELECT * FROM kho_phieu WHERE loai = 'KK' ORDER BY id DESC LIMIT 1");
@@ -305,8 +305,8 @@ async function main() {
   k('C2e việc kiemke tự xong; diễn biến kiem_ke tô cam (có lệch)', (await mot('SELECT xong_luc FROM kho_viec WHERE id = ?', [vKK?.id || 0]))?.xong_luc != null
     && (await so("SELECT chu_y FROM kho_dien_bien WHERE loai = 'kiem_ke' ORDER BY id DESC LIMIT 1")) === 1);
   const lai = await guiKK(thang === c1 ? 'nv' : 'nv2', dongKK, thang === c1 ? 'kk-a' : 'kk-b');
-  k('C-ma_gui bấm lại cùng mã → trả lần đã ghi CÙNG dạng (có ảnh, lệch), không thêm phiếu', lai.status === 200 && lai.chot_id === thang.chot_id && (await demKK()) === 1
-    && Array.isArray(lai.anh) && lai.anh.length === 2 && lai.lech?.length === 2, moTa(lai) + ' ' + JSON.stringify(lai.anh));
+  k('C-ma_gui bấm lại cùng mã → trả lần đã ghi CÙNG dạng (nhân viên: vẫn chỉ "đã chốt"), không thêm phiếu', lai.status === 200 && lai.chot_id === thang.chot_id
+    && (await demKK()) === 1 && JSON.stringify(Object.keys(lai).sort()) === JSON.stringify(Object.keys(thang).sort()), JSON.stringify(lai));
   // bán sau chốt (Q3) — sáng ra thấy lệch so với chốt
   datGio('2026-12-01T22:05:00');
   const ban1 = await ban(sNC, 1);
@@ -342,10 +342,11 @@ async function main() {
   const r5 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
   const nc5 = await tonSP(sNC), cam5 = await tonNL(nCam);
   await ban(sNC, 1);
+  const kkTruoc5 = await demKK();
   const kk5 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5, ghi_chu: 'đủ, đã lau tủ' }, { san_pham_id: sNC, thuc: nc5 }], 'kk5', '', r5);
   const chot5 = await mot("SELECT anh FROM kho_chot WHERE che_do = 'kiemke' ORDER BY id DESC LIMIT 1");
   const anh5 = (() => { try { return JSON.parse(chot5?.anh || '[]'); } catch { return []; } })();
-  k('C5a bán 1 ly giữa lúc mở và lưu, đếm đúng → 200, KHÔNG phiếu KK, tồn = số sau bán, không cam', kk5.status === 200 && kk5.phieu_id == null && gan(await tonSP(sNC), nc5 - 1)
+  k('C5a bán 1 ly giữa lúc mở và lưu, đếm đúng → 200, KHÔNG phiếu KK, tồn = số sau bán, không cam', kk5.status === 200 && (await demKK()) === kkTruoc5 && gan(await tonSP(sNC), nc5 - 1)
     && (await so("SELECT chu_y FROM kho_dien_bien WHERE loai = 'kiem_ke' ORDER BY id DESC LIMIT 1")) === 0, `${moTa(kk5)} · ${JSON.stringify(kk5.lech)}`);
   k('C5b ảnh chốt = tồn SAU chốt (số sau bán), không phải số gõ', gan(anh5.find((a) => a.san_pham_id === sNC)?.chot, nc5 - 1), chot5?.anh);
   k('C4d dòng KHÔNG lệch có ghi chú → ghi chú vẫn lưu trong ảnh chốt', anh5.find((a) => a.nguyen_lieu_id === nCam)?.ghi_chu === 'đủ, đã lau tủ', chot5?.anh);
@@ -354,8 +355,11 @@ async function main() {
   const r6 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
   const nc6 = await tonSP(sNC);
   await ban(sNC, 1);
-  const kk6 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5 }, { san_pham_id: sNC, thuc: nc6 - 2, ghi_chu: 'vỡ 2 ly' }], 'kk6', '', r6);
+  const kk6 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5 }, { san_pham_id: sNC, thuc: nc6 - 2 }], 'kk6', '', r6);
   k('C5c đếm thiếu 2 + bán 1 xen giữa → tồn = thực tế (−3 so với lúc mở)', kk6.status === 200 && gan(await tonSP(sNC), nc6 - 3), `${moTa(kk6)} · ${await tonSP(sNC)} / ${nc6 - 3}`);
+  const db6 = await mot("SELECT * FROM kho_dien_bien WHERE loai = 'kiem_ke' ORDER BY id DESC LIMIT 1");
+  k('C4a kiểm kê TỐI dòng lệch KHÔNG ghi chú → vẫn lưu (Q5 — không dò được số máy); chủ / quản lý thấy dòng cam "chưa giải thích"', kk6.status === 200
+    && db6?.chu_y === 1 && /Nước cam[^;]*chưa giải thích/.test(db6?.chi_tiet || ''), db6?.chi_tiet);
   // bán hết giữa chừng: tồn mới < 0
   datGio('2026-12-02T21:20:00');
   const r7 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
@@ -387,9 +391,11 @@ async function main() {
   const nc10 = await tonSP(sNC), cam10 = await tonNL(nCam);
   datGio('2026-12-02T21:24:00');
   await goi('ql', 'POST', `/kho/phieu/${pxCho.phieu?.id}/duyet`);
-  const kk10 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam10, ghi_chu: 'x' }, { san_pham_id: sNC, thuc: nc10, ghi_chu: 'x' }], 'kk10', '', r10);
-  k('C5h quản lý duyệt phiếu CŨ (chờ duyệt) xen giữa → 409 KHO_TON_DOI "tải lại"', pxCho.phieu?.trang_thai === 'cho_duyet' && kk10.status === 409 && kk10.code === 'KHO_TON_DOI',
-    `${pxCho.phieu?.trang_thai} · ${moTa(kk10)}`);
+  const kkTruoc10 = await demKK();
+  // đếm thật gồm cả 1 ly của phiếu chờ duyệt (Cam đã dùng 0,2) — Q4: kiểm kê coi phiếu chờ như đã ghi
+  const kk10 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam10 - 0.2 }, { san_pham_id: sNC, thuc: nc10 + 1 }], 'kk10', '', r10);
+  k('C5h quản lý duyệt phiếu chờ xen giữa lúc đếm → 200, KHÔNG lệch giả (không phiếu KK), tồn sau duyệt = số đếm', pxCho.phieu?.trang_thai === 'cho_duyet'
+    && kk10.status === 200 && (await demKK()) === kkTruoc10 && gan(await tonSP(sNC), nc10 + 1) && gan(await tonNL(nCam), cam10 - 0.2), `${pxCho.phieu?.trang_thai} · ${moTa(kk10)}`);
   datGio('2026-12-02T21:25:00');
   const r11 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
   const nc11 = await tonSP(sNC), cam11 = await tonNL(nCam);
@@ -397,6 +403,37 @@ async function main() {
   const kk11 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam11, ghi_chu: 'x' }, { san_pham_id: sNC, thuc: nc11, ghi_chu: 'x' }], 'kk11', '', r11);
   k('C5i huỷ phiếu CÙNG GIÂY với lúc mở màn → vẫn 409 KHO_TON_DOI (so giờ >=, thà tải lại thừa)', huy11.status === 200 && kk11.status === 409 && kk11.code === 'KHO_TON_DOI',
     `${moTa(huy11)} · ${moTa(kk11)}`);
+
+  // Q4: phiếu CHỜ DUYỆT lúc chốt — không tính đôi khi duyệt sau; từ chối sau chốt → dòng cam
+  datGio('2026-12-02T21:26:00');
+  const px12 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 10 }], ma_gui: 'px12' });
+  datGio('2026-12-02T21:26:30');
+  const r12 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  const nc12 = await tonSP(sNC), cam12 = await tonNL(nCam);
+  const kkTruoc12 = await demKK();
+  const kk12 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam12 - 2 }, { san_pham_id: sNC, thuc: nc12 + 10 }], 'kk12', '', r12);
+  datGio('2026-12-02T21:27:00');
+  const dy12 = await goi('ql', 'POST', `/kho/phieu/${px12.phieu?.id}/duyet`);
+  k('Q4a pha 10 ly CHỜ duyệt → kiểm kê đếm (gồm 10 ly đó) → không phiếu KK → duyệt → tồn = số đếm (không cộng đôi thành +20)', px12.phieu?.trang_thai === 'cho_duyet'
+    && kk12.status === 200 && (await demKK()) === kkTruoc12 && dy12.status === 200 && gan(await tonSP(sNC), nc12 + 10) && gan(await tonNL(nCam), cam12 - 2),
+  `${moTa(kk12)} · NC ${await tonSP(sNC)} / ${nc12 + 10} · Cam ${await tonNL(nCam)} / ${cam12 - 2}`);
+  datGio('2026-12-02T21:28:00');
+  const px13 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }], ma_gui: 'px13' });
+  datGio('2026-12-02T21:28:30');
+  const r13 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  const nc13 = await tonSP(sNC), cam13 = await tonNL(nCam);
+  await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam13 - 0.2 }, { san_pham_id: sNC, thuc: nc13 + 1 }], 'kk13', '', r13);
+  datGio('2026-12-02T21:29:00');
+  const demTC = () => so("SELECT COUNT(*) FROM kho_dien_bien WHERE loai = 'tu_choi_sau_chot'");
+  const tc13 = await goi('ql', 'POST', `/kho/phieu/${px13.phieu?.id}/tu-choi`, { ly_do: 'pha nhầm' });
+  const dbTC = await mot("SELECT * FROM kho_dien_bien WHERE loai = 'tu_choi_sau_chot' ORDER BY id DESC LIMIT 1");
+  k('Q4b phiếu chờ đã tính vào lần chốt rồi bị TỪ CHỐI → dòng cam ở Diễn biến để kiểm lại', tc13.status === 200 && (await demTC()) === 1 && dbTC?.chu_y === 1
+    && new RegExp(px13.phieu?.so_phieu || '@').test(dbTC?.chi_tiet || ''), `${moTa(tc13)} · ${dbTC?.chi_tiet}`);
+  datGio('2026-12-02T21:30:00');
+  const px14 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }], ma_gui: 'px14' });
+  datGio('2026-12-02T21:31:00');
+  const tc14 = await goi('ql', 'POST', `/kho/phieu/${px14.phieu?.id}/tu-choi`, { ly_do: 'pha nhầm' });
+  k('Q4c (K5) từ chối phiếu chờ tạo SAU lần chốt cuối → KHÔNG thêm dòng cam', tc14.status === 200 && (await demTC()) === 1, moTa(tc14));
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] chỉnh tồn tay');
