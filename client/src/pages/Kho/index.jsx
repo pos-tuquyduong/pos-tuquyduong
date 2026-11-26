@@ -5,6 +5,8 @@
  * KHO-2b: việc hay dùng lên trước (Nhận hàng, Phát sinh), ít dùng sau (Đặt hàng). Huy hiệu gồm cả DH / PN / PS — quản lý không đếm đơn vượt hạn
  * mức (can_chu_quan: chỉ chủ quán duyệt được).
  * KHO-3a A7: tab "Chưa sẵn sàng bán" (chủ / quản lý) có số đếm; "Mở món" mở thẳng món ở Sản phẩm & công thức.
+ * KHO-GON-1: tab ĐẦU "Việc hôm nay" (mọi vai trò; chủ / quản lý: huy hiệu số diễn biến chưa xem — CÙNG vòng hỏi 30 s); "Làm" mở Pha chế hoặc
+ * màn Kiểm kê / Nhận bàn giao (kk / bg — không có nút tab riêng); tab "Cài đặt kho" (chủ / quản lý).
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +23,9 @@ import NhanHang from './NhanHang';
 import PhatSinh from './PhatSinh';
 import DatHang from './DatHang';
 import ChuaSan from './ChuaSan';
+import ViecHomNay from './ViecHomNay';
+import KiemKe from './KiemKe';
+import CaiDatKho from './CaiDatKho';
 import './kho.css';
 import './inPhieuKho.css';
 
@@ -31,6 +36,7 @@ export default function Kho() {
   const vaiTro = user?.role;
   const quanLy = vaiTro === 'owner' || vaiTro === 'manager';
   const tabs = [
+    { ma: 'viec', ten: 'Việc hôm nay', hien: true },
     { ma: 'pc', ten: 'Pha chế', hien: true },
     { ma: 'nh', ten: 'Nhận hàng', hien: true },
     { ma: 'ps', ten: 'Phát sinh', hien: true },
@@ -41,9 +47,11 @@ export default function Kho() {
     { ma: 'sp', ten: 'Sản phẩm & công thức', hien: quanLy },
     { ma: 'dm', ten: 'Định mức', hien: quanLy },
     { ma: 'dh', ten: 'Đặt hàng', hien: true },
+    { ma: 'caidat', ten: 'Cài đặt kho', hien: quanLy },
     { ma: 'sx', ten: 'Nhập từ SX', hien: vaiTro === 'owner' },
   ].filter((t) => t.hien);
-  const [tab, setTab] = useState('pc');
+  const [tab, setTab] = useState('viec');
+  const [soMoi, setSoMoi] = useState(0);   // KHO-GON-1: diễn biến chưa xem của người đang đăng nhập
   const [phieuMo, setPhieuMo] = useState(null);
   const [choDuyet, setChoDuyet] = useState([]);
   const [soChuaSan, setSoChuaSan] = useState(0);
@@ -52,6 +60,7 @@ export default function Kho() {
   const taiChoDuyet = useCallback(() => {
     if (!quanLy) return;
     api.get('/kho/phieu?trang_thai=cho_duyet').then((r) => setChoDuyet(r.phieu.filter((p) => vaiTro === 'owner' || !p.can_chu_quan))).catch(() => {});
+    api.get('/kho/dien-bien/so').then((r) => setSoMoi(r.chua_xem)).catch(() => {});   // huy hiệu: lỗi thì giữ số cũ, lần hỏi sau thử lại
   }, [quanLy, vaiTro]);
   useEffect(() => {
     if (quanLy) api.get('/kho/mon-chua-san').then((r) => setSoChuaSan(r.so)).catch(() => {});
@@ -76,11 +85,15 @@ export default function Kho() {
               <button key={t.ma} className={`kho-tab ${tab === t.ma ? 'on' : ''}`} onClick={() => setTab(t.ma)}>
                 {t.ten}{t.ma === 'phieu' && choDuyet.length > 0 && <span className="kho-huy-hieu">{choDuyet.length}</span>}
                 {t.ma === 'cs' && soChuaSan > 0 && <span className="kho-huy-hieu">{soChuaSan}</span>}
+                {t.ma === 'viec' && soMoi > 0 && <span className="kho-huy-hieu">{soMoi}</span>}
               </button>
             ))}
           </div>
         )}
         {phieuMo && <XemPhieu id={phieuMo} vaiTro={vaiTro} tenDangNhap={user?.username} moPhieu={setPhieuMo} dong={dongPhieu} />}
+        {!phieuMo && tab === 'viec' && <ViecHomNay vaiTro={vaiTro} moTab={setTab} doiSoMoi={setSoMoi} />}
+        {!phieuMo && (tab === 'kk' || tab === 'bg') && <KiemKe key={tab} cheDo={tab === 'kk' ? 'kiemke' : 'bangiao'} xong={() => setTab('viec')} />}
+        {!phieuMo && tab === 'caidat' && <CaiDatKho vaiTro={vaiTro} />}
         {!phieuMo && tab === 'pc' && <PhaChe moPhieu={setPhieuMo} />}
         {!phieuMo && tab === 'nh' && <NhanHang moPhieu={setPhieuMo} />}
         {!phieuMo && tab === 'ps' && <PhatSinh moPhieu={setPhieuMo} />}

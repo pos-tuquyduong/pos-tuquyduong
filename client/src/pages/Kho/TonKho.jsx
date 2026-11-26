@@ -1,10 +1,12 @@
 /**
  * KHO-2a — Tồn kho: Nguyên liệu / Thành phẩm, tab nhóm, ô tìm (gõ không dấu), sắp xếp. Dưới tồn tối thiểu → vàng; âm → đỏ;
  * lô sắp hết hạn → đỏ, quá hạn → đỏ đậm (cờ do máy chủ tính). Cột giá chỉ hiện khi máy chủ trả (nhân viên không nhận giá).
+ * KHO-GON-1: "Chỉnh tồn tay" ở từng thứ khi máy chủ báo duoc_chinh_tay (chủ quán; quản lý khi được bật) — số đang có thật + lý do → phiếu KK.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
-import { boDau, so, tien, gio } from './chung';
+import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';
+import { boDau, so, tien, gio, maGuiMoi, veLuu } from './chung';
 
 const SAP_XEP = {
   ten: (a, b) => a.ten.localeCompare(b.ten, 'vi'),
@@ -20,8 +22,24 @@ export default function TonKho() {
   const [nhom, setNhom] = useState('tat_ca');
   const [tim, setTim] = useState('');
   const [sapXep, setSapXep] = useState('ten');
+  const [chinh, setChinh] = useState(null);   // { thu, so, ly_do, ma_gui }
+  const [dang, setDang] = useState(false);
 
-  useEffect(() => { api.get('/kho/ton').then(setDl).catch((e) => setLoi(e.message)); }, []);
+  const tai = () => api.get('/kho/ton').then(setDl).catch((e) => setLoi(e.message));
+  useEffect(() => { tai(); }, []);
+  const luuChinh = async () => {
+    setDang(true);
+    try {
+      const t = chinh.thu;
+      await api.post('/kho/chinh-tay', { nguyen_lieu_id: t.id, san_pham_id: t.san_pham_id, thuc: veLuu(chinh.so, t.he_so_doi), ly_do: chinh.ly_do, moc: dl.moc, moc_luc: dl.moc_luc,
+        ma_gui: chinh.ma_gui });
+      baoXong(`Đã chỉnh tồn ${t.ten}`);
+      setChinh(null);
+      await tai();
+    } catch (e) { baoLoiTu('chỉnh tồn tay', e); } finally { setDang(false); }
+  };
+  const nutChinh = (t) => dl.duoc_chinh_tay && (
+    <button className="btn btn-sm btn-outline" onClick={() => setChinh({ thu: t, so: '', ly_do: '', ma_gui: maGuiMoi() })}>Chỉnh tồn tay</button>);
   const ds = useMemo(() => {
     if (!dl) return [];
     const t = boDau(tim.trim());
@@ -48,12 +66,24 @@ export default function TonKho() {
           <option value="ten">Theo tên</option><option value="ton">Tồn ít trước</option>{loai === 'tp' && <option value="han">Hạn gần trước</option>}
         </select>
       </div>
+      {chinh && (
+        <div className="card kho-hang" style={{ padding: '0.75rem' }}>
+          <b>Chỉnh tồn tay · {chinh.thu.ten}</b>
+          <span className="kho-nho">Máy ghi {so(chinh.thu.ton_hien ?? chinh.thu.ton)} {chinh.thu.don_vi_hien || chinh.thu.don_vi_luu || 'phần'}. Gõ số đang có thật.</span>
+          <input className="input kho-hep" type="number" min="0" step="any" inputMode="decimal" aria-label="Số đang có thật" value={chinh.so}
+            onChange={(e) => setChinh({ ...chinh, so: e.target.value })} />
+          <input className="input" placeholder="Lý do (bắt buộc)" value={chinh.ly_do} onChange={(e) => setChinh({ ...chinh, ly_do: e.target.value })} />
+          <button className="btn btn-primary" disabled={dang || chinh.so === '' || !(Number(chinh.so) >= 0) || !chinh.ly_do.trim()} onClick={luuChinh}>Lưu</button>
+          <button className="btn btn-outline" onClick={() => setChinh(null)}>Thôi</button>
+        </div>
+      )}
       <div className="kho-luoi">
         {loai === 'nl' && ds.map((n) => (
           <div key={n.id} className={`kho-the ${n.am ? 'kho-am' : n.duoi_toi_thieu ? 'kho-vang' : ''} ${n.dang_dung ? '' : 'ngung'}`}>
             <b>{n.ten}</b>
             <div>{so(n.ton_hien)} {n.don_vi_hien || n.don_vi_luu}{n.am && ' · âm'}{!n.am && n.duoi_toi_thieu && ` · dưới tối thiểu ${so(n.ton_toi_thieu)}`}</div>
             <div className="kho-nho">{n.nhom_ten || 'Chưa xếp nhóm'}{'gia_nhap' in n && ` · ${tien(n.gia_nhap)}/${n.don_vi_luu}`}</div>
+            {nutChinh(n)}
           </div>
         ))}
         {loai === 'tp' && ds.map((m) => (
@@ -66,6 +96,7 @@ export default function TonKho() {
                 {'gia_von' in l && l.gia_von != null && ` · ${tien(l.gia_von)}/phần`}
               </div>
             ))}
+            {nutChinh(m)}
           </div>
         ))}
       </div>
