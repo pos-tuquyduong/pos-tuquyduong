@@ -322,4 +322,11 @@ SOÁT BẢO MẬT: ĐẠT
 - [A6] Commit "PHIEU: TIEN-KHOA-2 — Pham vi ghi dung ten file luat…" thêm cong_cu/thu_P20.js, thu_P21.js, thu_P26b.js vào Phạm vi.
 - Cổng tĩnh chạy lại trên HEAD mới: xem dòng dưới. Cổng chạy ĐẠT trên 74b60a67 = c71f8c19 (cùng cây file).
 
-HEAD ĐÃ KIỂM: c71f8c19
+## Chat bàn 41 (26.11, sau khi PR #103 DOISOAT-NHANH gộp) — ghép main 9a5defdf
+- Xung đột server/utils/doiSoat.js: lấy bản DOISOAT-NHANH (vòng chạy có log từng bước, hạn giờ), gắn lại đúng 3 chỗ của TIEN-KHOA-2 (AP_DUNG_TU.DC, phepSuaTay,
+  ['DC', phepSuaTay] trong danh sách phép). git diff origin/main -- doiSoat.js = đúng 14 dòng thêm như bản TIEN-KHOA-2 gốc.
+- thu_DOISOATNHANH khoá danh sách bước → thêm 'DC' sau 'XNT' (LUAT §6.7), 39/0; đỏ trên main 9a5defdf. SỐ CA ghi bang_chung_do.
+- Kiểm trên 6f39911b: thu_TIENKHOA2 29/0, thu_DOISOATNHANH 39/0, thu_DOISOAT1 134/0, thu_P3 101/0; --day-du PASS 130 · FAIL 1 (thu_NDAPI1 — môi trường hộp cát
+  chat, multer; xanh trên máy và trên cổng) · CẢNH BÁO 1 (cũ). cong.js chay KHÔNG chạy được ở hộp cát chat (npm ci lỗi CDN xlsx) → dựa check `cong-chay` của PR #104.
+
+HEAD ĐÃ KIỂM: 6f39911b
