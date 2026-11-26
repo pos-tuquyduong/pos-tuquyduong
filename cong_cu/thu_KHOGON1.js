@@ -297,6 +297,10 @@ async function main() {
     && kkD.every((d) => d.loai === 'kiem_ke') && dCam[0]?.ghi_chu === 'đổ 1 kg', JSON.stringify(kkP));
   k('C2b lệch −: trừ theo lô (FEFO), tổng −1', dCam.length >= 1 && gan(dCam.reduce((t, d) => t + Number(d.so_luong), 0), -1) && dCam.every((d) => d.lo_id != null));
   k('C2c lệch +: lô thành phẩm MỚI +2, hạn = giờ chốt + 30 ngày (hạn món)', dNC && gan(dNC.so_luong, 2) && dNC.lo_phieu === kkP?.id && dNC.lo_han === '2026-12-31T21:30:00', JSON.stringify(dNC));
+  const xemKK = await goi('ql', 'GET', `/kho/phieu/${kkP?.id}`);
+  const dongXem = xemKK.dong || [];
+  k('C2f xem phiếu KK: dòng trừ / cộng có dấu (Cam tang false, Nước cam tang true)', dongXem.some((d) => d.nguyen_lieu_id === nCam && d.tang === false)
+    && dongXem.some((d) => d.san_pham_id === sNC && d.tang === true), JSON.stringify(dongXem.map((d) => [d.ten, d.tang])));
   const chot1 = await mot("SELECT * FROM kho_chot WHERE che_do = 'kiemke' ORDER BY id DESC LIMIT 1");
   const anh1 = (() => { try { return JSON.parse(chot1?.anh || '[]'); } catch { return []; } })();
   k('C2d ảnh chốt: tồn sau chốt từng thứ + ghi chú chung', gan(anh1.find((a) => a.nguyen_lieu_id === nCam)?.chot, camTruoc - 1) && gan(anh1.find((a) => a.san_pham_id === sNC)?.chot, ncTruoc + 2)
