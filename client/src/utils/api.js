@@ -1,6 +1,6 @@
 /**
  * POS Frontend - API Utils
- * Updated: Thêm registrations confirmExport, revert, getLogs
+ * Updated: registrations chỉ còn create / list / get / update / delete / stats (GIAO-DIEN-2 gỡ export SX)
  * Phase B: Thêm customersV2Api.updateDiscount
  */
 

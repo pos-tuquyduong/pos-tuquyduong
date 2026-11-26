@@ -38,7 +38,7 @@ A1 6 nhóm tên / thứ tự / nút · ẩn theo quyền (nhân viên thường 
 - Thêm khách vẫn gọi `registrationsApi.create` (máy chủ tạo khách thật).
 - Dữ liệu cũ: dòng báo hỏng `return_stock` vẫn hiện nhãn; `damageForm` mặc định không phải `return_stock`.
 - Khách không SĐT vẫn mở được chi tiết (chỉ không sửa ghi chú).
-- Số `fetch` trần trong Customers (3 chỗ cũ) KHÔNG tăng (bánh cóc).
+- Số `fetch` trần trong Customers (2 chỗ cũ) KHÔNG tăng (bánh cóc).
 
 ## Phát hiện (ghi sẵn, không sửa)
 KHO-3b dời tick "nhóm đặc biệt" + "món tặng khách mới" về Kho rồi bỏ nút B2 · "gói kiểu mới" (thẻ `packages`) · nút "Bán cho khách này" (D4 → TOPPING-1) · `CongQr` chỉ hiện ở /settings trần (chế độ thẻ riêng ẩn) · `locKhach.js` nên dời sang `utils/` · Orders.jsx:301 `return_to_stock` giờ luôn false (không đụng — phiếu cấm) · Customers.jsx vẫn > 500 dòng (không có thư mục mới trong phạm vi để tách).

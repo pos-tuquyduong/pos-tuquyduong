@@ -220,7 +220,7 @@ nhom('C · BÁNH CÓC — chỉ được siết, không được nới');
 
 // C1 — fetch trần ngoài api.js. NGƯỠNG CHỈ ĐƯỢC GIẢM.
 // Dọn xong một file thì hạ số này xuống, không bao giờ tăng.
-const NGUONG_FETCH = 21; // 22 -> 21: TIEN-KHOA-2 thu no Orders.jsx qua ordersApi.payDebt (31 -> 22: BO-MAN-CU-1 xoa Sales.jsx + CustomerSearch.jsx)
+const NGUONG_FETCH = 20; // 21 -> 20: GIAO-DIEN-2 xoa Registrations.jsx + CustomerInput.jsx; 22 -> 21: TIEN-KHOA-2 thu no Orders.jsx qua ordersApi.payDebt (31 -> 22: BO-MAN-CU-1 xoa Sales.jsx + CustomerSearch.jsx)
 {
   let n = 0;
   const theoFile = {};
