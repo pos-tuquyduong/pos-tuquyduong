@@ -4,7 +4,7 @@
  *  THỬ GIAO-4 — Ahamove báo phí 0đ / âm thì CHẶN ở "Tính phí" (502 AHAMOVE_PHI_0, không lưu báo phí, log [GIAO] phi_0);
  *  phí bình thường, báo phí cũ, gọi xe (phí 0 = "chưa biết") KHÔNG đổi.
  * ═══════════════════════════════════════════════════════════════════════════
- *  BÀI NÀY PHẢI ĐỎ TRÊN CODE CHƯA VÁ ở T1–T6, H1.   Chạy ở GỐC kho POS:   node cong_cu/thu_GIAO4.js
+ *  BÀI NÀY PHẢI ĐỎ TRÊN CODE CHƯA VÁ ở T1–T6, K4, H1.   Chạy ở GỐC kho POS:   node cong_cu/thu_GIAO4.js
  *
  *  Khuôn thu_GIAO3.js: database.js + libsql thật trên kho TẠM (chỉ thay ketNoiKho — P8); Ahamove là máy chủ GIẢ trong tiến trình
  *  (AHAMOVE_BASE_URL), khoá thử sinh ngẫu nhiên. Chỉ máy chủ — màn KhungGiao không đổi (ke_hoach.md mục 0).

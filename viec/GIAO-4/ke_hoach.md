@@ -84,7 +84,8 @@ Ahamove giả: `/v3/orders/estimates` trả `data: { distance: 3, ...A.phiBao }`
 A3 (màn): không sửa → bằng chứng là đọc dòng (mục 0) + thao tác thử tay (mục 7). A4: bảng mục 0 (chỉ `taoBaoPhi` tạo báo phí; App KH,
 màn khách không có đường).
 
-**Đỏ trên gốc `7da9ba9`:** T1–T6, H1 đỏ (gốc trả 200, có dòng báo phí, không log). K1–K7, H2 xanh cả hai phía (luồng phải KHÔNG bị chặn).
+**Đỏ trên gốc `7da9ba9`:** T1–T6, H1 đỏ (gốc trả 200, có dòng báo phí, không log); K4 cũng đỏ trên gốc (lần bấm đầu phải ra AHAMOVE_PHI_0 —
+sửa 26.11 theo bang_chung_do.txt, người soát bắt). K1–K3, K5–K7, H2 xanh cả hai phía (luồng phải KHÔNG bị chặn).
 
 ## 5. Bài thử cũ phải đổi — `cong_cu/thu_GIAO3.js`
 
