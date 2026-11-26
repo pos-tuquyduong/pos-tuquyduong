@@ -9,6 +9,8 @@
 
 ## Tiến độ
 - 26.11: bước 2 đọc xong, bước 3 viết `ke_hoach.md`, agent phụ soát 4 câu (kết quả ở ke_hoach.md mục 5c).
+- 26.11: hook dừng báo `thu_BH2.js` đỏ (G1: `fatal: bad revision 'cbbb809..HEAD'`) — kho nông, không phải lỗi code. Chạy
+  `git fetch -q --unshallow origin viec/GIAO-4` (chỉ tải lịch sử) → `npm test`: PASS 125 · FAIL 0 · CẢNH BÁO 1.
 - DỪNG ở bước 3 — phiếu "Chờ duyệt kế hoạch".
 
 ## Câu hỏi
