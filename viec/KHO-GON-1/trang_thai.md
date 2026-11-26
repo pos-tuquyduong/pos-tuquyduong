@@ -36,6 +36,10 @@ Các lỗi khác của soát vòng 2 đã sửa ở vòng sửa 3 (mục dưới
 thêm một vòng sửa ngoài 3 vòng — rồi soát lại, cổng, báo cáo 7 mục.
 
 ## Vòng sửa 3 (sau soát vòng 2)
+- Kiểm sau vòng 3 (HEAD 6ca4d689 + bằng chứng): `node cong_cu/thu_KHOGON1.js` 113 đạt · 0 hỏng · đột biến 48/48 BẮT · `npm test -- --day-du`
+  PASS 132 · FAIL 0 · CẢNH BÁO 1 (chạy một mình). Lần chạy trước đó FAIL 1 ở `thu_gia_lap.js` ("data/ không đổi") là do agent soát vòng 2 chạy
+  `cong.js chay` SONG SONG cùng lúc chạm data/pos_thu.db — chạy lại một mình xanh (K2: truy nguyên trước).
+- Soát bảo mật (ĐẠT) chạy trên 2167e453 — code đã đổi sau đó (vá Q5b, vòng 3) → soát bảo mật LẠI sau khi làm Q8.
 - kiemKe.luuKiem: bàn giao — ô trống chỉ = "đúng chốt" khi máy = chốt; máy ≠ chốt → 400 KHO_THIEU_SO "gõ số đếm thật" (hết hàng ảo; ca C3g, C3h;
   đột biến BV-trong-khi-may-khac-chot). Màn KiemKe: dòng máy ≠ chốt bắt gõ số trước khi bấm.
 - duong.js: dòng cam "phiếu chờ bị từ chối sau lần chốt" gắn cả đường huỷ và SỬA phiếu (PX + DH/PN/PS) — ca Q4d, Q4e; đột biến BV-bo-canh-bao-huy,
