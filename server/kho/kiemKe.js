@@ -111,7 +111,9 @@ const moTaDong = (d) => `${d.ten} ${gon(d.goc)}→${gon(d.chot)} (${d.ghi_chu ||
 /** Lưu kiểm kê / bàn giao. dongVao = [{ nguyen_lieu_id | san_pham_id, thuc, ghi_chu }]. */
 async function luuKiem(tx, { cheDo, moc, mocLuc, dongVao, ghiChuChung, nguoi, luc, maGui }) {
   if (maGui) {
-    const co = await tx.queryOne('SELECT id, phieu_id, anh FROM kho_chot WHERE ma_gui = ?', [maGui]);
+    const co = await tx.queryOne('SELECT id, phieu_id, anh, che_do, nguoi FROM kho_chot WHERE ma_gui = ?', [maGui]);
+    // mã của lần khác chế độ / người khác → không trả ảnh (soát bảo mật: gửi lại mã kiểm kê với che_do bangiao lộ số đếm mù)
+    if (co && (co.che_do !== cheDo || co.nguoi !== nguoi)) return loi(409, 'MA_GUI_TRUNG', 'Mã lần bấm đã dùng — tải lại màn');
     if (co) {   // bấm lại cùng mã (mất mạng sau khi đã ghi) → CÙNG dạng với lần ghi đầu (màn dùng chung nhánh vẽ)
       let anh = []; try { anh = JSON.parse(co.anh) || []; } catch { /* ảnh hỏng */ }
       return { chot_id: Number(co.id), phieu_id: co.phieu_id == null ? null : Number(co.phieu_id), lech: anh.filter((a) => Math.abs(a.lech) > tinh.SAI_SO), anh, da_co: true };

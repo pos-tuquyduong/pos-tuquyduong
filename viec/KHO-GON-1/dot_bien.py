@@ -48,6 +48,8 @@ DOT_BIEN = [
   ('VS-kiemke-bat-ghi-chu', [(K, "if (cheDo === 'bangiao' && (Math.abs(d.dc)", "if ((Math.abs(d.dc)", 1)], r'✗ C4a |✗ C5c '),
   ('VS-kiemke-bao-dong-lech', [(R, "VAI_QUAN_LY.includes(req.user.role) ? r : { chot_id: r.chot_id, da_chot: true };", "VAI_QUAN_LY.includes(req.user.role) ? r : { ...r, da_chot: true };", 1)], r'✗ Q5a '),
   ('VS-cho-duyet-khong-tinh', [(K, "\n  OR (p.trang_thai = 'cho_duyet' AND p.loai <> 'DH'))", ")", 1)], r'✗ Q4a |✗ C5h '),
+  ('BV-bo-chan-ma-gui-khac-che-do', [(K, "    if (co && (co.che_do !== cheDo || co.nguoi !== nguoi)) return", "    if (false) return", 1)], r'✗ Q5b '),
+  ('VS-ma-gui-chi-so-che-do', [(K, "(co.che_do !== cheDo || co.nguoi !== nguoi)", "(co.che_do !== cheDo)", 1)], r'✗ Q5b '),
   ('BV-bo-canh-bao-tu-choi', [(R, "  if (!r.loi) await viec.canhBaoSauChot(tx, Number(req.params.id), req.user.username, luc);   // KHO-GON-1 Q4\n", '', 1)], r'✗ Q4b '),
   ('VS-canh-bao-moi-tu-choi', [(V, " || !(await tx.queryOne('SELECT 1 FROM kho_chot WHERE luc >= ? LIMIT 1', [p.tao_luc]))", "", 1)], r'✗ Q4c '),
   ('VS-ban-giao-chi-so-may', [(K, "&& (Math.abs(d.dc) > tinh.SAI_SO || Math.abs(d.lech) > tinh.SAI_SO) && !d.ghi_chu)", "&& Math.abs(d.dc) > tinh.SAI_SO && !d.ghi_chu)", 1)], r'✗ C4b '),

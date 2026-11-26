@@ -163,3 +163,19 @@ BÀI HỌC:
 - NGUYÊN TẮC: chế độ "mù" mà còn lỗi kiểm có điều kiện theo số ẩn (400 nêu tên dòng lệch) là máy dò. Lỗi không được tiết lộ đúng thứ đang giấu. Grep mọi đường trả số ẩn đó (/ton, duoi_nguong, thân lỗi) trước khi báo "đếm mù xong".
 - NGUYÊN TẮC (K3): ca kiểm cờ phụ thuộc vai (`da_giao`, danh sách lọc) phải chạy với MỌI vai thấy cờ đó, không chỉ vai quản lý.
 - NGUYÊN TẮC: đường trả "lần đã ghi" (ma_gui) phải trả CÙNG dạng với lần ghi đầu, vì màn dùng chung một nhánh vẽ.
+
+## Soát bảo mật
+Lần 1 (26.11, HEAD 2167e453 + bằng chứng 1c… ; subagent tìm lỗ hổng + subagent lọc riêng). Trước lọc: 1 lỗ hổng · sau lọc (điểm ≥ 8): 0.
+
+Báo cáo sau lọc (nguyên văn): không còn lỗ hổng nào đạt điểm tin cậy ≥ 8.
+
+Lỗ hổng bị lọc (điểm lọc 6/10 — chép để chủ quán thấy): "Vuln 1: Blind count bypassed by replaying `ma_gui` in a different mode —
+`server/kho/kiemKe.js` (luuKiem, replay block) + `server/kho/duong.js` (POST /kiem-ke). Severity: Medium (Low given Q6a). The replay lookup
+ignores mode and user; the route trims by the request's mode, not the saved mode — staff resends the evening count's ma_gui with che_do 'bangiao'
+and receives the full snapshot (goc, lech, phieu_id)." Lý do lọc: dưới Q6 nhân viên vốn xem được số máy ở Tồn kho; chỉ thông tin, không đổi tiền / tồn;
+ma_gui là UUID không đoán được.
+Đã vá dù bị lọc (vì nó phá đúng cam kết Q5 "nhân viên chỉ nhận đã chốt"): tra ma_gui phải khớp cả che_do và người, khác → 409 MA_GUI_TRUNG
+(ca Q5b đỏ trên a152c401 trước vá: "✗ Q5b … {success, chot_id, phieu_id, lech: [...]}"; xanh sau vá; đột biến BV-bo-chan-ma-gui-khac-che-do ·
+VS-ma-gui-chi-so-che-do).
+
+SOÁT BẢO MẬT: ĐẠT
