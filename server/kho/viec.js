@@ -10,7 +10,7 @@ const loi = (http, code, error) => ({ loi: [http, { error, code }] });
 const KHOA_SO_CA = 'kho_so_ca';
 const KHOA_QL_CHINH_TAY = 'kho_ql_chinh_tay';
 const TEN_LOAI_DB = { xong_viec: 'Xong việc', mo_lai: 'Mở lại việc', them_viec: 'Thêm việc phát sinh', pha_che: 'Pha chế', nhan_hang: 'Nhận hàng',
-  phat_sinh: 'Phát sinh', kiem_ke: 'Chốt kiểm kê', nhan_ca: 'Nhận ca', chinh_tay: 'Chỉnh tồn tay' };
+  phat_sinh: 'Phát sinh', kiem_ke: 'Chốt kiểm kê', nhan_ca: 'Nhận ca', chinh_tay: 'Chỉnh tồn tay', tu_choi_sau_chot: 'Phiếu chờ bị từ chối sau lần chốt' };
 
 /** Cài đặt đọc phòng thủ (khoá kho_* chủ quán ghi được qua PUT /settings không kiểm giá trị): chỉ '2' là hai ca, chỉ '1' là quản lý được chỉnh tay. */
 async function docCaiDat(csdl) {
@@ -109,12 +109,15 @@ async function tuXong(tx, { loai = null, nguyenLieuIds = [], nguoi, luc }) {
   }
 }
 
+const dongCua = (tx, id) => tx.query(`SELECT d.nguyen_lieu_id, d.so_luong, COALESCE(l.ten, sp.name) AS ten FROM kho_phieu_dong d LEFT JOIN kho_nguyen_lieu l ON l.id = d.nguyen_lieu_id
+  LEFT JOIN pos_products sp ON sp.id = d.san_pham_id WHERE d.phieu_id = ? AND d.loai IN ('thanh_pham', 'nhap', 'phat_sinh') ORDER BY d.id`, [id]);
+const chuoiDong = (dong) => dong.map((d) => `${d.ten} ${Number(Math.abs(d.so_luong).toFixed(3))}`).join(', ');
+
 /** Sau khi TẠO phiếu xuất / nhận / phát sinh (cùng giao dịch): ghi diễn biến + tự xong việc tương ứng. DH: không gì. */
 async function sauTaoPhieu(tx, id, nguoi, luc) {
   const p = await tx.queryOne('SELECT loai, so_phieu FROM kho_phieu WHERE id = ?', [id]);
-  const dong = await tx.query(`SELECT d.nguyen_lieu_id, d.so_luong, COALESCE(l.ten, sp.name) AS ten FROM kho_phieu_dong d LEFT JOIN kho_nguyen_lieu l ON l.id = d.nguyen_lieu_id
-    LEFT JOIN pos_products sp ON sp.id = d.san_pham_id WHERE d.phieu_id = ? AND d.loai IN ('thanh_pham', 'nhap', 'phat_sinh') ORDER BY d.id`, [id]);
-  const chuoi = dong.map((d) => `${d.ten} ${Number(Math.abs(d.so_luong).toFixed(3))}`).join(', ');
+  const dong = await dongCua(tx, id);
+  const chuoi = chuoiDong(dong);
   if (p?.loai === 'PX') {
     await tuXong(tx, { loai: 'phache', nguoi, luc });
     await ghiDienBien(tx, { luc, loai: 'pha_che', chiTiet: `${p.so_phieu}: ${chuoi}`, nguoi, phieuId: id });
@@ -124,6 +127,14 @@ async function sauTaoPhieu(tx, id, nguoi, luc) {
   } else if (p?.loai === 'PS') {
     await ghiDienBien(tx, { luc, loai: 'phat_sinh', chiTiet: `${p.so_phieu}: ${chuoi}`, nguoi, chuY: true, phieuId: id });
   }
+}
+
+/** Q4: phiếu CHỜ DUYỆT (chưa từng duyệt) bị từ chối / huỷ mà đã có lần chốt kiểm kê / bàn giao từ lúc nó được tạo → lần chốt đã tính nó → dòng cam. */
+async function canhBaoSauChot(tx, id, nguoi, luc) {
+  const p = await tx.queryOne("SELECT so_phieu, tao_luc, duyet_luc, loai FROM kho_phieu WHERE id = ? AND loai <> 'DH'", [id]);
+  if (!p || p.duyet_luc || !(await tx.queryOne('SELECT 1 FROM kho_chot WHERE luc >= ? LIMIT 1', [p.tao_luc]))) return;
+  await ghiDienBien(tx, { luc, loai: 'tu_choi_sau_chot', nguoi, chuY: true, phieuId: id,
+    chiTiet: `${p.so_phieu} đã được tính vào lần chốt — kiểm lại: ${chuoiDong(await dongCua(tx, id))}` });
 }
 
 // ── Mẫu việc (chủ / quản lý) ──
@@ -194,5 +205,5 @@ async function daXem(tx, nguoi, denId) {
   return {};
 }
 
-module.exports = { docCaiDat, luuCaiDat, ghiDienBien, homNay, themViec, xongViec, moLai, tuXong, sauTaoPhieu, dsMau, themMau, suaMau, doiThuTu, xoaMau,
+module.exports = { docCaiDat, luuCaiDat, ghiDienBien, homNay, themViec, xongViec, moLai, tuXong, sauTaoPhieu, canhBaoSauChot, dsMau, themMau, suaMau, doiThuTu, xoaMau,
   soChuaXem, dienBien, daXem };

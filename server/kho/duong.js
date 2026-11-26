@@ -289,6 +289,7 @@ router.post('/phieu/:id/duyet', QUAN_LY, ghiPhieu(async (req, tx, luc) => {
 
 router.post('/phieu/:id/tu-choi', QUAN_LY, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx, luc) => {
   const r = await duLieu.tuChoiPhieu(tx, Number(req.params.id), req.user.username, lyDoCua(req), luc);
+  if (!r.loi) await viec.canhBaoSauChot(tx, Number(req.params.id), req.user.username, luc);   // KHO-GON-1 Q4
   return r.loi ? r : { id: Number(req.params.id) };
 }));
 
@@ -308,6 +309,7 @@ router.post('/phieu/:id/ket-qua', NHAN_VIEN, (req, res, next) => {
 
 router.post('/phieu/:id/huy', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx, luc) => {
   const r = await duLieu.huyPhieu(tx, Number(req.params.id), lyDoCua(req), req.user.username, luc);
+  if (!r.loi) await viec.canhBaoSauChot(tx, Number(req.params.id), req.user.username, luc);   // KHO-GON-1 Q4: huỷ phiếu còn chờ = từ chối
   return r.loi ? r : { id: Number(req.params.id) };
 }));
 
@@ -395,10 +397,13 @@ router.put('/nguong', QUAN_LY, ghiVaTra(async (req, tx) => {
 
 router.get('/kiem-ke', NHAN_VIEN, (req, res, next) => (CHE_DO.includes(req.query.che_do) ? next()
   : res.status(400).json({ error: 'Chế độ là kiemke hoặc bangiao', code: 'CHE_DO_SAI' })), doc((req) => kiemKe.docDanhSach(csdl, req.query.che_do, getNow())));
-router.post('/kiem-ke', NHAN_VIEN, ghiVaTra((req, tx, luc) => (CHE_DO.includes(req.body?.che_do)
-  ? kiemKe.luuKiem(tx, { cheDo: req.body.che_do, moc: req.body.moc, mocLuc: req.body.moc_luc, dongVao: req.body.dong, ghiChuChung: req.body.ghi_chu_chung,
-    nguoi: req.user.username, luc, maGui: maGuiCua(req) })
-  : { loi: [400, { error: 'Chế độ là kiemke hoặc bangiao', code: 'CHE_DO_SAI' }] })));
+// Kiểm kê tối của NHÂN VIÊN: phản hồi chỉ "đã chốt" — không dòng / số lệch, không mã phiếu (Q5: không dò được số máy). Chủ / quản lý nhận đủ.
+router.post('/kiem-ke', NHAN_VIEN, ghiVaTra(async (req, tx, luc) => {
+  if (!CHE_DO.includes(req.body?.che_do)) return { loi: [400, { error: 'Chế độ là kiemke hoặc bangiao', code: 'CHE_DO_SAI' }] };
+  const r = await kiemKe.luuKiem(tx, { cheDo: req.body.che_do, moc: req.body.moc, mocLuc: req.body.moc_luc, dongVao: req.body.dong, ghiChuChung: req.body.ghi_chu_chung,
+    nguoi: req.user.username, luc, maGui: maGuiCua(req) });
+  return r.loi || req.body.che_do !== 'kiemke' || VAI_QUAN_LY.includes(req.user.role) ? r : { chot_id: r.chot_id, da_chot: true };
+}));
 router.post('/chinh-tay', QUAN_LY, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiVaTra(async (req, tx, luc) => {
   if (!(await duocChinhTay(tx, req))) return { loi: [403, { error: 'Chủ quán chưa cho quản lý chỉnh tồn tay', code: 'CHI_CHU_QUAN' }] };
   return kiemKe.chinhTay(tx, { than: req.body, nguoi: req.user.username, luc, maGui: maGuiCua(req), lyDo: lyDoCua(req) });

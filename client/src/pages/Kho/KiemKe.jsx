@@ -2,6 +2,7 @@
  * KHO-GON-1 — một màn hai chế độ. Kiểm kê cuối ngày (kiemke): ĐẾM MÙ — không hiện số máy, mọi dòng phải gõ số (chủ quán 26.11 Q1); "Chốt & in"
  * → in bảng chốt có chỗ ký (khung in phiếu kho). Nhận bàn giao (bangiao): hiện "Chốt" tối qua, ô trống = đúng, dòng lệch bắt buộc ghi chú.
  * Máy chủ tự tính lệch (so với tồn lúc màn mở — moc), ghi phiếu KK đã duyệt ngay. Màn hẹp: mỗi dòng một thẻ, nút chốt dính đáy màn.
+ * Kiểm kê: máy chủ trả nhân viên chỉ "đã chốt" (Q5) — bảng in lấy từ số đã gõ trên màn.
  * Bàn giao: máy khác chốt (bán / đổi sau chốt — Q3) → hiện "máy ghi", dòng đó phải ghi chú. Tồn đổi giữa chừng (409) → tải lại mốc, GIỮ số đã gõ.
  */
 import { useEffect, useState } from 'react';
@@ -52,10 +53,9 @@ export default function KiemKe({ cheDo, xong }) {
         <div className="kho-in">
           <div className="kho-ban">
             <h3 className="card-title">Bảng chốt cuối ngày · {gio(dl.moc_luc)}</h3>
-            {daChot.anh.map((a) => (
-              <div key={khoa(a)} className="kho-dong"><span style={{ flex: 1 }}>{a.ten}</span>
-                <b>{so(raHien(a.thuc, dl.dong.find((d) => khoa(d) === khoa(a))?.he_so_doi))} {dl.dong.find((d) => khoa(d) === khoa(a))?.don_vi}</b>
-                {a.ghi_chu && <span className="kho-nho"> · {a.ghi_chu}</span>}</div>
+            {dl.dong.map((d) => (
+              <div key={khoa(d)} className="kho-dong"><span style={{ flex: 1 }}>{d.ten}</span><b>{o(d).so} {d.don_vi}</b>
+                {o(d).ghi && <span className="kho-nho"> · {o(d).ghi}</span>}</div>
             ))}
             {chung && <div className="kho-nho">Dặn ca sau: {chung}</div>}
             <div className="kho-nho" style={{ marginTop: '0.6rem' }}>Người chốt: ________ · Người nhận ca: ________</div>
@@ -72,8 +72,8 @@ export default function KiemKe({ cheDo, xong }) {
     <div className="kho-kiem">
       <div className="kho-hang"><button className="btn btn-outline btn-sm" onClick={xong}>← Việc hôm nay</button>
         <b>{laKiemKe ? 'Kiểm kê cuối ngày' : 'Nhận bàn giao'}</b></div>
-      <p className="kho-nho">{laKiemKe ? 'Đếm thực tế, gõ số cho MỌI dòng (máy không hiện số để đếm khách quan).'
-        : `So với số chốt ${dl.chua_co_chot ? '(chưa có lần chốt — so với máy)' : `lúc ${gio(dl.chot_luc)}`}. Ô trống = đúng.`} Dòng lệch phải ghi chú.</p>
+      <p className="kho-nho">{laKiemKe ? 'Đếm thực tế, gõ số cho MỌI dòng (máy không hiện số để đếm khách quan). Ghi chú dòng nào cũng được.'
+        : `So với số chốt ${dl.chua_co_chot ? '(chưa có lần chốt — so với máy)' : `lúc ${gio(dl.chot_luc)}`}. Ô trống = đúng.`} {!laKiemKe && ' Dòng lệch phải ghi chú.'}</p>
       {!laKiemKe && dl.ca_truoc_dan && <div className="kho-canh"><b>Ca trước dặn:</b> {dl.ca_truoc_dan}</div>}
       {!dl.dong.length && <p className="text-gray">Chưa có thứ nào để kiểm — tick "Kiểm hằng ngày" ở Cài đặt kho.</p>}
       {dl.dong.map((d) => {
