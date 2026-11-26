@@ -163,6 +163,7 @@ function duyet(thuMuc, ra = []) {
   k('C6 màn Bán hàng: lỗi tính giá đi qua loiTinhGia (mất kết nối → câu ngắn, không chữ kỹ thuật)', /setLoiTinh\(loiTinhGia\(e\)\)/.test(SX('pages', 'BanHang', 'BanHangMoi.jsx')));
   k('C6b (BO-MAN-CU-1) không còn pages/Sales.jsx, components/CustomerSearch.jsx', !fs.existsSync(path.join(SRC, 'pages', 'Sales.jsx'))
     && !fs.existsSync(path.join(SRC, 'components', 'CustomerSearch.jsx')));
+  k('C6c (GIAO-DIEN-2) không còn pages/Registrations.jsx (bảng đếm không liệt kê nữa)', !fs.existsSync(path.join(SRC, 'pages', 'Registrations.jsx')));
   const gan = fs.existsSync(SRC) ? duyet(SRC).filter((f) => /<ThongBao\s*\/>/.test(sach(fs.readFileSync(f, 'utf8'))) && !/ThongBao\.jsx$/.test(f)) : [];
   k('B8 chỉ MỘT file gắn <ThongBao />', gan.length === 1, gan.map((f) => path.relative(SRC, f)).join(', '));
 

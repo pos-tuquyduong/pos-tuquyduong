@@ -28,6 +28,6 @@ SỐ CA cong_cu/thu_GIAODIEN1.js: 68
 SỐ CA cong_cu/thu_GOI1.js: 115
 SỐ CA cong_cu/thu_KHACHCK1.js: 36
 SỐ CA cong_cu/thu_HANG1.js: 145
-SỐ CA cong_cu/thu_BAO1a.js: 98
+SỐ CA cong_cu/thu_BAO1a.js: 99
 SỐ CA cong_cu/thu_BAO1b.js: 129
 SỐ CA cong_cu/thu_GIAO3.js: 46
