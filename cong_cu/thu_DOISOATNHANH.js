@@ -96,9 +96,9 @@ async function main() {
   muc('[A1] Log lúc bắt đầu + mỗi bước (chỉ tên bước + số)');
   const TEN_BB = Object.keys(ds.BAT_BIEN).filter((t) => t !== 'I7');
   const BUOC = {
-    ngay: [...TEN_BB, 'D1', 'DEN', 'CK', 'XNT', 'D2', 'tongHop', 'soHoaDonNgay', 'soKet'],
-    tuan: [...TEN_BB, 'D1', 'DEN', 'CK', 'XNT', 'D2', 'tongHop', 'sao_ke'],
-    thang: [...TEN_BB, 'D1', 'DEN', 'CK', 'XNT', 'D2', 'tongHop'],
+    ngay: [...TEN_BB, 'D1', 'DEN', 'CK', 'XNT', 'DC', 'D2', 'tongHop', 'soHoaDonNgay', 'soKet'],
+    tuan: [...TEN_BB, 'D1', 'DEN', 'CK', 'XNT', 'DC', 'D2', 'tongHop', 'sao_ke'],
+    thang: [...TEN_BB, 'D1', 'DEN', 'CK', 'XNT', 'DC', 'D2', 'tongHop'],
   };
   const MAU_BUOC = /^\[DOISOAT\] buoc ([A-Za-z0-9_]+) · (\d+) ms · (\d+) câu$/;
   const MAU_CUOI = /^\[DOISOAT\] (ngay|tuan|thang) (\d{4}-\d\d-\d\d) · (\d+)ms · (\d+) câu$/;

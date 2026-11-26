@@ -370,7 +370,9 @@ async function main() {
     const sdtNo = sdtMoi(); await napVi(sdtNo, 10000);
     const dNo = await taoDon('còn nợ rồi thu nốt', {
       customer_phone: sdtNo, customer_name: 'Khách nợ 2', items: [mon()], payment_method: 'debt', balance_amount: 10000, debt_amount: 15000 });
-    const t2 = await goi('POST', `/orders/${dNo.id}/pay-debt`, { payment_method: 'transfer' });
+    const t2ck = await goi('POST', `/orders/${dNo.id}/pay-debt`, { payment_method: 'transfer' });
+    k('pay-debt chuyển khoản → 400 THU_NO_CK_PHAI_QR (TIEN-KHOA-2: thu nợ chỉ tiền mặt)', t2ck.status === 400 && t2ck.code === 'THU_NO_CK_PHAI_QR', moTa(t2ck));
+    const t2 = await goi('POST', `/orders/${dNo.id}/pay-debt`, { payment_method: 'cash' });   // TIEN-KHOA-2: thu nợ chỉ tiền mặt
     k('pay-debt thu nốt đơn kết hợp → 200', t2.status === 200, moTa(t2));
     dNo.trangThaiTien = (await db.queryOne('SELECT payment_status FROM pos_orders WHERE id = ?', [dNo.id])).payment_status;
     await phaiQua('đơn kết hợp SAU KHI thu nốt nợ', dNo);

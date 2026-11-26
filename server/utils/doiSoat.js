@@ -53,6 +53,7 @@ const AP_DUNG_TU = {
   CK: null,           // P3 — bảng mới, không có dòng cũ
   SO: null,           // CK-NOIDUNG-1 — sổ số hoá đơn mới, không có dòng cũ
   XNT: null,          // P3 — luôn CẦN XEM
+  DC: null,           // TIEN-KHOA-2 — luôn CẦN XEM
 };
 
 const so = (x) => Number(x || 0);
@@ -364,6 +365,17 @@ async function phepXacNhanTay(q) {
     mo_ta: `đơn ${r.code}: xác nhận tay chuyển khoản ${tien(r.con_lai)} bởi ${r.nguoi_xac_nhan} — ${r.ly_do} (phiên #${r.id})` }));
 }
 
+// ─── DC (TIEN-KHOA-2): tiền sửa TAY — điều chỉnh ví (PIN chủ quán, sổ ví 'adjust') và đổi cách trả của bill (nhật ký 'doi') — luôn CẦN XEM.
+async function phepSuaTay(q) {
+  const [vi, doi] = await Promise.all([
+    q("SELECT id, customer_phone, amount, notes, created_by, created_at FROM pos_balance_transactions WHERE type = 'adjust'"),
+    q("SELECT l.id, l.noi_dung, l.nguoi, l.luc, o.code FROM pos_order_log l LEFT JOIN pos_orders o ON o.id = l.order_id WHERE l.loai = 'doi'"),
+  ]);
+  return [...vi.map((r) => ({ ngay: r.created_at || null, canXem: true,
+    mo_ta: `ví ${r.customer_phone}: điều chỉnh tay ${so(r.amount) > 0 ? '+' : '-'}${tien(Math.abs(so(r.amount)))} bởi ${r.created_by} — ${r.notes} (sổ ví #${r.id})` })),
+  ...doi.map((r) => ({ ngay: r.luc || null, canXem: true, mo_ta: `đơn ${r.code}: ${r.noi_dung} — bởi ${r.nguoi} (nhật ký #${r.id})` }))];
+}
+
 // D2 = I8 cho đơn mua thẻ / gói / lấy từ gói: chỉ gắn nhãn (không viết phép mới — chủ quán chốt giữ floor(total/per))
 async function ganNhanD2(dong) {
   const ma = [...new Set(Object.values(dong).flat().filter((l) => l.bat_bien === 'I8').map((l) => /^đơn (\S+): /.exec(l.mo_ta)?.[1]).filter(Boolean))];
@@ -412,7 +424,7 @@ async function chayLuot(l, kieu, ky, boBatBien) {
       }
     });
   }
-  for (const [ten, phep] of [['D1', phepD1], ['DEN', phepDenLe], ['CK', phepTienVe], ['XNT', phepXacNhanTay]]) {
+  for (const [ten, phep] of [['D1', phepD1], ['DEN', phepDenLe], ['CK', phepTienVe], ['XNT', phepXacNhanTay], ['DC', phepSuaTay]]) {
     await buoc(l, ten, async () => {
       bangBB.push({ ten, pham_vi: 'ky', trang_thai: 'day_du' });
       for (const d of await phep(chiDoc)) {
