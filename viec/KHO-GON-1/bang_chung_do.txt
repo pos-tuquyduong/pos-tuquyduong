@@ -1,0 +1,26 @@
+KHO-GON-1 — bằng chứng ĐỎ trên code gốc (26.11.2026)
+
+Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11 — cả cây gốc (git archive) + bản HIỆN TẠI của từng bài:
+  python3 viec/KHO-GON-1/dot_bien.py --cay-goc 5cbfc26
+
+== cong_cu/thu_KHOGON1.js (bài mới) — trên gốc: thoát 1 · 9 đạt · 86 hỏng (lần chạy đầu, bản 95 ca, commit c49c02ba)
+   ✗ A1 mẫu mặc định: 1 Nhận bàn giao (bangiao, 08:00) · 2 Pha sẵn (phache) · 3 Kiểm kê & chốt (kiemke, cuối)  — HTTP 403 · DUONG_LA
+   ✗ A1c giờ hạn "25:00" → 400 GIO_SAI  — HTTP 403 · DUONG_LA
+   ✗ A1d giao cho lạ → 400 GIAO_SAI
+   ✗ A1e thêm mẫu thường 200 (id số)
+   ✗ A1f xoá việc đặc biệt (bangiao) → 409 VIEC_KHONG_XOA  — HTTP 403 · DUONG_LA
+   ✗ A1g xoá việc thường → 200, mất khỏi danh sách
+   … (+82 dòng ✗: mọi đường mới chưa có → 403 DUONG_LA; E2a/E2b/B5f/E2c/S1/K1 tĩnh đỏ)
+   Xanh trên gốc (đúng ý — ca "phải 403" / hồi quy): Nền · A1b · A2a · B4b · D1d · D1e · B5b · B6b · B2c — có đột biến gỡ chặn tương ứng
+   (BV-bo-kiem-quyen-chinh-tay, VS-ql-chinh-tay-khi-tat, VS-mo-lai-quan-ly) bắt.
+   Bản hiện tại (thêm C5g sau lượt đột biến đầu) chạy lại trên gốc: thoát 1 (✗ A1 …, như trên).
+
+== cong_cu/thu_KHO2a.js (bài cũ SỬA — LUAT §6.8: hành vi đổi theo phiếu chủ quán duyệt, E2 tab đầu "Việc hôm nay") — trên gốc: thoát 1 · 85 đạt · 1 hỏng
+   ✗ K2 màn Kho: PhaChe · TonKho · DsPhieu · XemPhieu · DinhMuc có; tab đầu Việc hôm nay, thứ hai Pha chế
+
+Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
+SỐ CA cong_cu/thu_KHO2a.js: 86
+SỐ CA cong_cu/thu_KHOGON1.js: 96
+
+Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
+đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
