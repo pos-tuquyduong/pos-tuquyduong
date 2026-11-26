@@ -20,7 +20,16 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 96
+SỐ CA cong_cu/thu_KHOGON1.js: 102
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
+
+Vòng sửa 1 (sau soát vòng 1): thêm ca B3d · C-ma_gui (dạng đủ) · C3f · C3g · C4d · C5h · C5i. Bài mới chạy trên code TRƯỚC vòng sửa:
+  python3 viec/KHO-GON-1/dot_bien.py --cay-goc 8d030468 --bai cong_cu/thu_KHOGON1.js → thoát 1 · 98 đạt · 4 hỏng
+   ✗ B3d nhân viên (không thấy việc giao ql) vẫn thấy Đường "đã giao" — không hiện lại nút  — da_giao false
+   ✗ C-ma_gui bấm lại cùng mã → trả lần đã ghi CÙNG dạng (có ảnh, lệch), không thêm phiếu  — anh undefined
+   ✗ C3f bàn giao trả cả số máy (sáng THẤY số): Nước cam máy = sau bán sau chốt  — không có may
+   ✗ C5i huỷ phiếu CÙNG GIÂY với lúc mở màn → vẫn 409 KHO_TON_DOI (so giờ >=, thà tải lại thừa)  — HTTP 200 · HTTP 200
+  Trên gốc 5cbfc26 bài vẫn đỏ (đường mới chưa có). Trên code đã sửa: 102 đạt · 0 hỏng (SỐ CA ở trên).
+  Đột biến: ĐỐI CHỨNG XANH · 102 đạt — TỔNG 36 · BẮT 36 · SỐNG 0 · HỎNG 0 · LẠC 0.

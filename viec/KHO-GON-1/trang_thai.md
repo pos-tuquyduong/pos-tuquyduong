@@ -22,7 +22,38 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
-(không còn — chủ quán đã trả lời Q1–Q3 ngày 26.11)
+(Q1–Q3 chủ quán đã trả lời 26.11.) Soát vòng 1 bắt 3 chỗ đụng SỐ TỒN / đếm mù mà luật chưa có câu trả lời → máy DỪNG hỏi (LUAT §6.5). Các lỗi
+rõ ràng khác của vòng 1 đã sửa (mục "Vòng sửa 1" dưới). Bạn chỉ cần trả lời Q4–Q7 (mỗi câu có đề xuất sẵn):
+
+- **Q4 · Phiếu chờ duyệt lúc chốt (lỗi thật, phải sửa).** Tối nhân viên pha 10 ly (phiếu pha chế CHỜ quản lý duyệt — hàng đã có thật nhưng sổ
+  chưa ghi). Kiểm kê đếm 10 ly → máy thêm 10 vào sổ. Sáng quản lý duyệt phiếu → sổ thêm 10 lần nữa = 20 ly ảo. Ba cách:
+  (a) **[đề xuất]** Kiểm kê / bàn giao / chỉnh tay coi phiếu CHỜ DUYỆT như đã ghi (đếm thật đã gồm hàng đó) — duyệt sau không cộng đôi. Nếu
+  sau đó quản lý TỪ CHỐI phiếu đó, máy ghi một dòng cam ở Diễn biến "phiếu X đã tính vào lần chốt — kiểm lại thứ này".
+  (b) Chặn chốt khi còn phiếu chờ duyệt có thứ trong bảng kiểm ("nhờ quản lý duyệt trước") — quán 1 người ca tối sẽ không chốt được.
+  (c) Bỏ duyệt phiếu pha chế / nhận hàng của nhân viên (tự ghi ngay) — đổi luật 26.10, không đề xuất.
+- **Q5 · Đếm mù bị "dò" được.** Tối đếm mù: nếu số đếm lệch mà chưa ghi chú, máy báo "Dòng lệch phải ghi chú: Nước cam" → nhân viên đổi số
+  tới khi máy hết báo = biết số máy, giấu được hao hụt. (a) **[đề xuất]** Riêng kiểm kê tối: dòng lệch KHÔNG bắt ghi chú lúc lưu — vẫn lưu,
+  tô cam "lệch, chưa giải thích" ở Diễn biến / Cần chú ý (bàn giao sáng giữ bắt buộc ghi chú vì sáng đã thấy số). (b) Giữ bắt buộc nhưng chỉ báo
+  "có dòng lệch", không nêu tên dòng — vẫn dò được bằng cách sửa từng dòng, không đề xuất.
+- **Q6 · Nhân viên vẫn thấy số tồn ở tab Tồn kho và dải cam "còn 2 kg".** (a) **[đề xuất]** Giữ — nhân viên cần xem tồn khi pha chế / gọi
+  hàng; đếm mù chỉ ở màn kiểm kê (nhân viên có thể mở Tồn kho xem trước — ghi rõ ở CHƯA KIỂM). (b) Ẩn số tồn với nhân viên ở mọi màn (đổi màn
+  Tồn kho, Pha chế, Nhận hàng — ngoài Phạm vi việc này, cần phiếu riêng).
+- **Q7 · Ngân sách.** Số dòng thật ≈ 955 (máy chủ ≈ 585 · màn ≈ 370) ≈ 2,1 lần 450 — vượt mức 1,53 lần bạn duyệt. Lý do thêm: đếm mù + bàn
+  giao hai chế độ, xử lý 409 / tải lại mốc, màn Cài đặt kho đủ 3 khu, sửa vòng 1. Đề xuất: chấp nhận (không còn chỗ cắt mà vẫn đủ nghiệm thu).
+
+Trả lời xong: máy làm vòng sửa 2 (Q4 + Q5 theo lựa chọn, bài thử đỏ trước + đột biến), soát bảo mật (bước 8b), soát lại, cổng, báo cáo 7 mục.
+
+## Vòng sửa 1 (sau soát vòng 1)
+- viec.js homNay: `da_giao` tính trên MỌI việc hôm nay (ca B3d — nhân viên). Đột biến VS-da-giao-theo-danh-sach-loc.
+- kiemKe.js: bàn giao trả cả `may` (sáng thấy số) + màn báo "máy ghi X (bán / đổi sau chốt)", dòng đó bắt ghi chú (ca C3f, C3g; đột biến
+  VS-ban-giao-khong-tra-may); thành phẩm hết lô mà tối qua chốt còn → vẫn có dòng ở bàn giao; bấm lại cùng ma_gui trả CÙNG dạng (anh, lech —
+  ca C-ma_gui; đột biến VS-ma-gui-tra-thieu-anh); so giờ huỷ / duyệt `>=` (ca C5i; đột biến VS-so-gio-chat); chú thích đầu file sửa (ghiKetQua).
+- Ca phủ thêm: C4d (dòng không lệch có ghi chú vẫn lưu), C5h (duyệt phiếu cũ xen giữa — đột biến BV-bo-kiem-duyet-xen-giua), C5f gửi ghi chú
+  (409 vì tồn đổi, không vì thiếu ghi chú).
+- KiemKe.jsx: gặp 409 KHO_DA_KIEM / KHO_TON_DOI / KHO_MOC_SAI → tải lại mốc, GIỮ số đã gõ.
+- Bằng chứng: bài mới trên code trước vòng sửa (8d030468) thoát 1 · 98 đạt · 4 hỏng (✗ B3d · ✗ C-ma_gui · ✗ C3f · ✗ C5i); trên code đã sửa 102 đạt · 0 hỏng.
+- Chưa làm (cố ý): `ghiVaTra` gần giống `ghiPhieu` (khác bước trả phiếu) — gộp sẽ đụng mọi đường phiếu cũ, để lại; phép số âm (`KHO_SO_AM`) giữ
+  dù 409 thường bắt trước — 400 là lời báo đúng cho người gõ số âm.
 
 ## Đột biến — chỗ vá → đột biến (cổng A17 / A18)
 | Chỗ vá | Đột biến | Ca bắt |
@@ -57,6 +88,8 @@ VS-kiemke-thieu-so-lot · VS-lech-khong-ghi-chu-lot · VS-ban-giao-chi-so-may ·
 VS-so-voi-may-thay-chot · VS-lech-gia-khi-vua-ban · VS-anh-chot-la-so-go · BV-bo-chan-ton-moi-am · BV-bo-kiem-huy-xen-giua · BV-bo-kiem-moc-sai ·
 BV-bo-chan-hai-nguoi-chot · VS-ql-chinh-tay-khi-tat · BV-bo-kiem-quyen-chinh-tay · VS-chinh-tay-khong-ly-do · VS-chua-xem-chung-nguoi ·
 VS-da-xem-vuot-id · BV-bo-tab-viec-dau · VS-vong-hoi-thu-hai.
+Vòng sửa 1 thêm (5): BV-bo-kiem-duyet-xen-giua · VS-so-gio-chat · VS-da-giao-theo-danh-sach-loc · VS-ma-gui-tra-thieu-anh · VS-ban-giao-khong-tra-may
+(bám C5h · C5i · B3d · C-ma_gui · C3f). Tổng 36 — BẮT 36.
 (Đột biến phiếu nêu "VS-tin-may-thay-cua-man" ở kế hoạch không còn: chủ quán chọn đếm mù → bỏ may_thay; thay bằng BV-bo-kiem-huy-xen-giua.)
 
 ## Phát hiện
