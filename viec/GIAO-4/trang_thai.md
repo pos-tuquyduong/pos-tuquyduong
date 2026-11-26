@@ -143,3 +143,47 @@ Xếp ngăn:
 - **BỎ 1** (người gác chặn cú pháp / quyền `rm -rf`): luật đã có trong skill; mình viết sai, làm lại theo hướng dẫn là qua.
 - **BỎ 2** (vế `Number.isInteger` chết): giữ có chủ ý theo tên vị từ của phiếu, đã nêu kế hoạch 5c.
 Dọn: không lời dặn nào trong KHUON_LOI.md / CLAUDE.md mà việc này có phép kiểm làm thay.
+
+## Cổng
+`node tu_chay/cong.js chay . acc88921 HEAD viec/GIAO-4` ở HEAD 3593f00f, cây sạch (mốc = merge-base với main — Bài học sự cố 3):
+✓ CỔNG CHẠY ĐẠT
+
+## Báo cáo 7 mục
+
+```
+VIỆC:        GIAO-4 — Ahamove báo phí 0đ (hoặc âm) thì CHẶN, quầy bấm Tính phí lại
+ĐÃ SỬA:      server/utils/giaoHang.js:112–115 — vị từ phiHopLe (số nguyên > 0);
+             server/utils/giaoHang.js:127–130 — trong taoBaoPhi, ngay sau aha.baoPhi, TRƯỚC km và TRƯỚC INSERT: phí ≤ 0 → log
+               "[GIAO] phi_0 total_price=… total_fee=…" + 502 { code: 'AHAMOVE_PHI_0', error: 'Ahamove báo phí 0đ — bấm Tính phí lại (nếu lặp lại, gọi Ahamove kiểm tra)' };
+             server/utils/ahamove.js:66, 76–77 — baoPhi trả thêm phi_tho { total_price, total_fee } (chỉ số, cho log); chú thích hàm;
+             kiem_tra_truoc_khi_giao.js:515 — chayBaiThat('cong_cu/thu_GIAO4.js');
+             cong_cu/thu_GIAO3.js ~397–404 — C3: báo phí 0 CHỈ lúc gọi xe (đơn dùng báo phí thường) + ca mới "Tính phí ở quầy báo 0 → 502".
+             Không đổi: đường gọi xe (giaoHang.js goiXe), client/ (màn đã hiện lời máy chủ), DB.
+BÀI THỬ:     thu_GIAO4.js trên bản chưa vá → ĐỎ 17/24 (T1–T6, K4, H1: gốc trả 200, ghi dòng báo phí phí 0/−5000, không log); sau vá → XANH 24/24.
+             thu_GIAO3.js (bản sửa) trên gốc → ĐỎ 1/47 (C3 GIAO-4); sau vá → 47/47. Bản GỐC thu_GIAO3 trên code đã vá → đỏ (bài sửa thường, §6.8–6.9).
+             Đột biến viec/GIAO-4/dot_bien.py: đối chứng XANH 24/0 · 10 đột biến · BẮT 10 · SỐNG 0 · HỎNG 0 · LẠC 0.
+             npm test -- --day-du: PASS 132 · FAIL 0 · CẢNH BÁO 1 (packages.js:196, có từ trước). Cổng chạy: ĐẠT. /ra-soat vòng 1: ĐẠT.
+             Nghiệm thu, từng mục:
+               A1 MỘT chỗ chặn, 502 AHAMOVE_PHI_0, không ghi báo phí → T1–T5 (5 ca × 2 phép), H1; đột biến VS-phi-0-lot, VS-phi-am-lot, BV-bo-chan-phi-0, VS-chan-sau-ghi, VS-ma-loi-cu
+               A2 log một dòng chỉ số → T6 (×5, so đúng chuỗi + vắng địa chỉ / SĐT); BV-bo-log-phi-0, BV-phi-tho
+               A3 màn hiện lời máy chủ, bấm lại được → không sửa màn: KhungGiao.jsx:47–53 (setLoi(e.message), finally setDangTinh(false)), :87–90 (nút hiện lại),
+                  api.js:102–111 (lấy data.error); K4 (máy chủ cho bấm lại); điện thoại: CHƯA KIỂM
+               A4 mọi đường → chỉ taoBaoPhi tạo báo phí (grep: 2 chỗ gọi baoPhi, 1 INSERT); App KH CHUA_GIAO (donApp.js:108); màn khách không có đường; ke_hoach.md mục 0
+               K5 phí 1đ → K1 (+ VS-chan-ca-1d) · 15.000đ → K2 · chỉ total_fee > 0 → K3 · báo phí cũ > 0 → K5 · gọi xe → K6 (+ VS-chan-o-aha) · đơn cũ → K7 + không đổi DB
+               Bài thử cong_cu/thu_GIAO4.js đủ ca phiếu (0 / −5000 / "0" / total_fee 0 / 1 / 15000 / chỉ total_fee 20000) + T5 (total_price 0, total_fee 20000 → chặn, chủ quán 26.11), đỏ trên gốc, 3 đột biến phiếu + 7 thêm, đối chứng xanh
+               --day-du xanh, cong.js chay ĐẠT → hai dòng trên
+ĐÃ RÀ K4:    grep "baoPhi(" server → 2 chỗ (giaoHang.js taoBaoPhi: đã chặn; goiXe: giữ nguyên có chủ ý, K6 khoá);
+             grep "INSERT INTO pos_giao_bao_phi" server → 1 chỗ (sau chỗ chặn); grep "baoPhi\|taoBaoPhi" (manKhach / man-khach / orders) → chỉ đọc báo phí đã lưu
+             hoặc trùng tên; bài cũ có Ahamove giả báo phí (thu_GIAO1/2/3) → chỉ GIAO3 C3 báo 0 ở quầy, đã sửa.
+CHƯA KIỂM:   Ahamove THẬT báo 0đ trên quầy thật (không giả được) và dạng total_price / total_fee thật của Ahamove; thao tác trên điện thoại;
+             dữ liệu thật: báo phí phí ≤ 0 lưu trước khi vá (SELECT count(*) FROM pos_giao_bao_phi WHERE phi <= 0) và đường khôi phục sao lưu nạp lại dòng
+             đó (Phát hiện); thứ tự "phí 0 trước km" không có ca khoá.
+GIT:         3593f00f GIAO-4: ra-soat DAT (chep nguyen van), phat hien, bai hoc
+             3be94015 GIAO-4: sua chu thich/ke hoach — K4 cung do tren goc (ra-soat bat)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 2 — chi tiết ở ## Bài học (đều ngoài Phạm vi → đề xuất, máy không tự làm)
+```
+
+Thử tay trên điện thoại (chủ quán): (1) Bán hàng → Giao hàng · Ahamove → nhập SĐT, tên, địa chỉ → Tính phí: phí hiện như cũ (vd 15.000đ), thu tiền được.
+(2) Ahamove báo 0đ không giả được ở quầy thật — nếu có lần thấy lời "Ahamove báo phí 0đ — bấm Tính phí lại", bấm lại; lặp lại thì gọi Ahamove.
+
+HEAD ĐÃ KIỂM: 3593f00f
