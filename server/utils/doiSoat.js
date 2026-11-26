@@ -8,6 +8,7 @@
  * ĐỎ ở mọi kỳ (không bao giờ ẩn một lệch). Ngày = sự việc MỚI NHẤT của đối tượng (lệch mới trên đơn cũ không thành "LỆCH CŨ").
  * Đổi chữ mô tả trong bat_bien.js thì cập nhật KHOA — bài thử C4 canh từng bất biến.
  */
+const { AsyncLocalStorage } = require('async_hooks');
 const db = require('../database');
 const { getToday, getNow, addDaysToDateString, chuoiSoHd } = require('./helpers');
 const { LY_DO_HAI_CONG, LY_DO_TK_KHAC, congCuaKhoa, TEN_CONG } = require('./congQr');
@@ -65,13 +66,36 @@ function loiDS(status, code, error) {
 // Mọi câu SQL của lượt chạy đi qua đây: không mở đầu SELECT / WITH, hoặc có từ khoá ghi ở bất kỳ đâu (SQLite chạy cả lệnh ghi
 // mở đầu bằng WITH) → ném lỗi. Trước khi soi, thay chú thích, chuỗi '…' và tên trong "…" / `…` / […] bằng khoảng trắng: chữ trong dữ liệu
 // không bị bắt oan, và dấu ' nằm trong một tên không nuốt được phần lệnh phía sau.
-let demCau = 0;   // GIAO-3 D4: số câu chiDoc từ lúc máy chủ chạy — log [DOISOAT] lấy hiệu (lượt chạy chồng nhau thì cộng chung)
+// DOISOAT-NHANH: mỗi lượt chayDoiSoat một ngữ cảnh { buoc, cau, het, tinHieu } — câu của lượt có hạn giờ, đếm theo lượt (hai lượt chồng nhau
+// không cộng lẫn). Ngoài lượt (soSach của Báo cáo ngày / sổ sách) KHÔNG hạn giờ — như mọi câu đọc ngoài Đối soát (phiếu D2, Cấm).
+const HAN = { CAU_DOI_SOAT_MS: 15000, LUOT_DOI_SOAT_MS: 50000 };   // một lần gửi câu · cả lượt (< HAN_DOI_SOAT_MS 60 s của màn DoiSoat.jsx)
+const luotDS = new AsyncLocalStorage();
 const TU_GHI = /\b(insert|update|delete|replace\s+into|create|drop|alter|attach|detach|pragma|vacuum|reindex)\b/i;
 function chiDoc(sql, args = []) {
   const dau = String(sql).replace(/\/\*[\s\S]*?\*\/|--[^\n]*|'(?:[^']|'')*'|"(?:[^"]|"")*"|`[^`]*`|\[[^\]]*\]/g, ' ').trim();
   if (!/^(SELECT|WITH)\b/i.test(dau) || TU_GHI.test(dau)) throw new Error('Đối soát chỉ được ĐỌC: ' + dau.slice(0, 40));
-  demCau++;
-  return db.query(sql, args);
+  const l = luotDS.getStore();
+  if (!l) return db.query(sql, args);
+  const n = ++l.cau;
+  return db.query(sql, args, { ms: HAN.CAU_DOI_SOAT_MS, het: l.het }).catch((err) => {
+    throw err.code === 'KHO_QUA_HAN' ? quaHan(l.buoc, n) : err;
+  });
+}
+function quaHan(buoc, n) {
+  console.warn(`[DOISOAT] qua_han buoc ${buoc} cau ${n}`);   // chỉ tên bước + thứ tự câu trong lượt (không SQL, không tham số)
+  return loiDS(503, 'DOI_SOAT_QUA_HAN', `Đối soát quá lâu ở bước ${buoc} — thử lại sau`);
+}
+// Một bước của lượt: người gọi đã bỏ đi → dừng (B3); xong → một dòng đo (A1, chỉ tên + số). Mốc cả lượt (B2) do từng câu tự canh (chiDoc → het).
+async function buoc(l, ten, viec) {
+  if (l.tinHieu && l.tinHieu.aborted) {
+    console.warn(`[DOISOAT] bo_giua ${ten}`);
+    throw loiDS(499, 'DOI_SOAT_BO_GIUA', 'Người gọi đã bỏ đi — dừng đối soát');
+  }
+  l.buoc = ten;
+  const t = Date.now(), c = l.cau;
+  const kq = await viec();
+  console.log(`[DOISOAT] buoc ${ten} · ${Date.now() - t} ms · ${l.cau - c} câu`);
+  return kq;
 }
 
 // ─── Kỳ ngày / tuần (thứ 2 → CN) / tháng, tính bằng lịch trên chuỗi ngày (không dính múi giờ máy) ───
@@ -352,41 +376,8 @@ async function phepSuaTay(q) {
   ...doi.map((r) => ({ ngay: r.luc || null, canXem: true, mo_ta: `đơn ${r.code}: ${r.noi_dung} — bởi ${r.nguoi} (nhật ký #${r.id})` }))];
 }
 
-async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
-  const ky = tinhKy(kieu, ngay);
-  const t0 = Date.now(), cau0 = demCau;
-  const ctx = { thuc: true };
-  const bangBB = [];
-  const dong = { do: [], can_xem: [], cu: [] };
-  const dem = { do: 0, can_xem: 0, cu: 0 };
-  const them = (nhom, l) => { dem[nhom]++; if (dong[nhom].length < TRAN_DONG) dong[nhom].push(l); };
-  const xep = (ten, moTa, ngayDong, phamVi, gop, canXemTen) => {
-    const n10 = ngayDong ? String(ngayDong).slice(0, 10) : null;
-    const troi = !gop && !n10;   // không rõ ngày: ĐỎ ở mọi kỳ
-    if (!gop && phamVi === 'ky' && n10 && (n10 < ky.tu || n10 > ky.den)) return null;
-    const apDung = AP_DUNG_TU[ten];
-    const nhom = n10 && apDung && n10 < apDung ? 'cu' : !troi && canXemTen ? 'can_xem' : 'do';
-    return { nhom, dong: { bat_bien: ten, mo_ta: moTa, ngay: n10, pham_vi: gop || phamVi === 'toan_so' ? 'toan_so' : 'ky' } };
-  };
-  for (const ten of Object.keys(boBatBien)) {
-    if (BO_QUA[ten]) { bangBB.push({ ten, trang_thai: 'bo', ly_do: BO_QUA[ten] }); continue; }
-    const dsLech = await boBatBien[ten](chiDoc, ctx);
-    const toanSo = (KHOA[ten] || []).length > 0 && KHOA[ten].every(([, phamVi]) => phamVi === 'toan_so');
-    bangBB.push({ ten, pham_vi: toanSo ? 'toan_so' : 'ky', trang_thai: RUT_GON.has(ten) ? 'rut_gon' : 'day_du' });
-    for (const p of await phanLoai(ten, dsLech, chiDoc)) {
-      const x = xep(ten, p.moTa, p.ngay, p.phamVi, p.gop, CAN_XEM.has(ten));
-      if (x) them(x.nhom, x.dong);
-    }
-  }
-  for (const [ten, phep] of [['D1', phepD1], ['DEN', phepDenLe], ['CK', phepTienVe], ['XNT', phepXacNhanTay], ['DC', phepSuaTay]]) {
-    bangBB.push({ ten, pham_vi: 'ky', trang_thai: 'day_du' });
-    for (const l of await phep(chiDoc)) {
-      const x = xep(ten, l.mo_ta, l.ngay, 'ky', false, l.canXem);
-      if (x && l.xac_nhan_tay) x.dong.xac_nhan_tay = l.xac_nhan_tay;
-      if (x) them(x.nhom, x.dong);
-    }
-  }
-  // D2 = I8 cho đơn mua thẻ / gói / lấy từ gói: chỉ gắn nhãn (không viết phép mới — chủ quán chốt giữ floor(total/per))
+// D2 = I8 cho đơn mua thẻ / gói / lấy từ gói: chỉ gắn nhãn (không viết phép mới — chủ quán chốt giữ floor(total/per))
+async function ganNhanD2(dong) {
   const ma = [...new Set(Object.values(dong).flat().filter((l) => l.bat_bien === 'I8').map((l) => /^đơn (\S+): /.exec(l.mo_ta)?.[1]).filter(Boolean))];
   for (let i = 0; i < ma.length; i += 400) {
     const phan = ma.slice(i, i + 400);
@@ -397,15 +388,62 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
       if (l.bat_bien === 'I8') { const c = /^đơn (\S+): /.exec(l.mo_ta)?.[1]; if (c && the.has(c)) l.nhan = 'D2'; }
     }
   }
+}
 
-  const kq = { ket_qua: 'XANH', kieu, ...ky, hom_nay: getToday(), bat_bien: bangBB, tien: await tongHop(ky.tu, ky.den) };
+async function chayDoiSoat({ kieu, ngay, tinHieu } = {}, boBatBien = batBien()) {
+  const ky = tinhKy(kieu, ngay);
+  const l = { buoc: '', cau: 0, het: Date.now() + HAN.LUOT_DOI_SOAT_MS, tinHieu };
+  console.log(`[DOISOAT] bat_dau ${kieu} ${ky.tu}`);
+  return luotDS.run(l, () => chayLuot(l, kieu, ky, boBatBien));
+}
+
+async function chayLuot(l, kieu, ky, boBatBien) {
+  const t0 = Date.now();
+  const ctx = { thuc: true };
+  const bangBB = [];
+  const dong = { do: [], can_xem: [], cu: [] };
+  const dem = { do: 0, can_xem: 0, cu: 0 };
+  const them = (nhom, x) => { dem[nhom]++; if (dong[nhom].length < TRAN_DONG) dong[nhom].push(x); };
+  const xep = (ten, moTa, ngayDong, phamVi, gop, canXemTen) => {
+    const n10 = ngayDong ? String(ngayDong).slice(0, 10) : null;
+    const troi = !gop && !n10;   // không rõ ngày: ĐỎ ở mọi kỳ
+    if (!gop && phamVi === 'ky' && n10 && (n10 < ky.tu || n10 > ky.den)) return null;
+    const apDung = AP_DUNG_TU[ten];
+    const nhom = n10 && apDung && n10 < apDung ? 'cu' : !troi && canXemTen ? 'can_xem' : 'do';
+    return { nhom, dong: { bat_bien: ten, mo_ta: moTa, ngay: n10, pham_vi: gop || phamVi === 'toan_so' ? 'toan_so' : 'ky' } };
+  };
+  for (const ten of Object.keys(boBatBien)) {
+    if (BO_QUA[ten]) { bangBB.push({ ten, trang_thai: 'bo', ly_do: BO_QUA[ten] }); continue; }
+    await buoc(l, ten, async () => {
+      const dsLech = await boBatBien[ten](chiDoc, ctx);
+      const toanSo = (KHOA[ten] || []).length > 0 && KHOA[ten].every(([, phamVi]) => phamVi === 'toan_so');
+      bangBB.push({ ten, pham_vi: toanSo ? 'toan_so' : 'ky', trang_thai: RUT_GON.has(ten) ? 'rut_gon' : 'day_du' });
+      for (const p of await phanLoai(ten, dsLech, chiDoc)) {
+        const x = xep(ten, p.moTa, p.ngay, p.phamVi, p.gop, CAN_XEM.has(ten));
+        if (x) them(x.nhom, x.dong);
+      }
+    });
+  }
+  for (const [ten, phep] of [['D1', phepD1], ['DEN', phepDenLe], ['CK', phepTienVe], ['XNT', phepXacNhanTay], ['DC', phepSuaTay]]) {
+    await buoc(l, ten, async () => {
+      bangBB.push({ ten, pham_vi: 'ky', trang_thai: 'day_du' });
+      for (const d of await phep(chiDoc)) {
+        const x = xep(ten, d.mo_ta, d.ngay, 'ky', false, d.canXem);
+        if (x && d.xac_nhan_tay) x.dong.xac_nhan_tay = d.xac_nhan_tay;
+        if (x) them(x.nhom, x.dong);
+      }
+    });
+  }
+  await buoc(l, 'D2', () => ganNhanD2(dong));
+
+  const kq = { ket_qua: 'XANH', kieu, ...ky, hom_nay: getToday(), bat_bien: bangBB, tien: await buoc(l, 'tongHop', () => tongHop(ky.tu, ky.den)) };
   if (kieu === 'ngay') {
-    kq.so_hd = await soHoaDonNgay(ky.tu, chiDoc);
+    kq.so_hd = await buoc(l, 'soHoaDonNgay', () => soHoaDonNgay(ky.tu, chiDoc));
     bangBB.push({ ten: 'SO', pham_vi: 'ky', trang_thai: 'day_du' });
     for (const s of kq.so_hd.filter((x) => !x.phien_id && !x.ma_don)) {
       them('do', { bat_bien: 'SO', ngay: ky.tu, pham_vi: 'ky', mo_ta: `số hoá đơn ${s.so_hd} ngày ${ky.tu}: số trống không lý do (không phiên, không đơn)` });
     }
-    kq.ket = await soKet(ky.tu);
+    kq.ket = await buoc(l, 'soKet', () => soKet(ky.tu));
     if (kq.ket.trang_thai === 'lech') {
       const c = kq.ket.chenh;
       them('do', { bat_bien: 'KET', ngay: ky.tu, pham_vi: 'ky',
@@ -413,13 +451,13 @@ async function chayDoiSoat({ kieu, ngay } = {}, boBatBien = batBien()) {
     }
   }
   if (kieu === 'tuan') {
-    kq.sao_ke = (await chiDoc('SELECT * FROM pos_doi_soat_ghi WHERE loai = ? AND ky = ? ORDER BY id DESC LIMIT 1', ['sao_ke', ky.tu]))[0] || null;
+    kq.sao_ke = (await buoc(l, 'sao_ke', () => chiDoc('SELECT * FROM pos_doi_soat_ghi WHERE loai = ? AND ky = ? ORDER BY id DESC LIMIT 1', ['sao_ke', ky.tu])))[0] || null;
   }
   if (kieu === 'thang') kq.nhac_kho = NHAC_KHO;
   kq.do = dong.do; kq.can_xem = dong.can_xem; kq.cu = dong.cu;
   kq.so_luong = dem;
   kq.ket_qua = dem.do > 0 ? 'DO' : 'XANH';
-  console.log(`[DOISOAT] ${kieu} ${ky.tu} · ${Date.now() - t0}ms · ${demCau - cau0} câu`);   // GIAO-3 D4: đo trên Render thật (F-LOI-1)
+  console.log(`[DOISOAT] ${kieu} ${ky.tu} · ${Date.now() - t0}ms · ${l.cau} câu`);   // GIAO-3 D4: đo trên Render thật (F-LOI-1); câu của RIÊNG lượt này
   return kq;
 }
 
@@ -448,4 +486,4 @@ async function ghiMoi(b, nguoi) {
 }
 // </ghi-moi>
 
-module.exports = { chayDoiSoat, ghiMoi, kiemTraGhi, tinhKy, tienTheoSo, soSach, AP_DUNG_TU, TRAN_KET, get BAT_BIEN() { return batBien(); } };
+module.exports = { chayDoiSoat, ghiMoi, HAN, kiemTraGhi, tinhKy, tienTheoSo, soSach, AP_DUNG_TU, TRAN_KET, get BAT_BIEN() { return batBien(); } };

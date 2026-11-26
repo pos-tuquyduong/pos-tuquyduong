@@ -1,0 +1,95 @@
+# DOISOAT-NHANH — bằng chứng đỏ
+
+## cong_cu/thu_DOISOATNHANH.js trên code GỐC (database.js, doiSoat.js, reports.js của 21ab0fc; bài thử bản 13e2459)
+Chạy: tạm chép 3 file gốc (bản lưu trong nháp) đè lên, `node cong_cu/thu_DOISOATNHANH.js`, rồi `git checkout -- <file>` trả bản vá.
+
+```
+[H] Hằng số hạn giờ
+  ✗ B1 HAN.CAU_DOI_SOAT_MS = 15000 (một lần gửi câu)  — {}
+  ✗ B2 HAN.LUOT_DOI_SOAT_MS = 50000 và nhỏ hơn hạn chờ của màn HAN_DOI_SOAT_MS (DoiSoat.jsx) = 60000; cận trên lượt (hạn + chờ đọc lại cuối) < hạn màn  — {} · màn 60000
+  ✗ B1/B2 một câu treo đi đủ 1 + 2 lần đọc lại TRƯỚC khi chạm hạn tổng: 3 × 15 s + chờ đọc lại < 50 s (giá trị thật)  — {} · chờ 800
+[A1] Log lúc bắt đầu + mỗi bước (chỉ tên bước + số)
+  ✗ A1 ngay: dòng đầu "[DOISOAT] bat_dau ngay 2026-11-18"  — ["[DOISOAT] ngay 2026-11-18 · 12ms · 57 câu"]
+  ✗ A1 ngay: mỗi bước đúng một dòng "buoc <ten> · <ms> ms · <n> câu", đúng thứ tự  — []
+  ✗ A1 ngay: dòng cuối giữ dạng cũ (D4 GIAO-3); tổng câu các bước = số câu dòng cuối = số câu gửi kho  — bước 0 · cuối 57 · kho 57
+  ✗ A1 ngay: mọi dòng [DOISOAT] chỉ có tên bước + số (không SĐT / mã đơn / số tiền / SQL)  — ["[DOISOAT] ngay 2026-11-18 · 12ms · 57 câu"]
+  ✗ A1 tuan: dòng đầu "[DOISOAT] bat_dau tuan 2026-11-16"  — ["[DOISOAT] tuan 2026-11-16 · 5ms · 55 câu"]
+  ✗ A1 tuan: mỗi bước đúng một dòng "buoc <ten> · <ms> ms · <n> câu", đúng thứ tự  — []
+  ✗ A1 tuan: dòng cuối giữ dạng cũ (D4 GIAO-3); tổng câu các bước = số câu dòng cuối = số câu gửi kho  — bước 0 · cuối 55 · kho 55
+  ✗ A1 tuan: mọi dòng [DOISOAT] chỉ có tên bước + số (không SĐT / mã đơn / số tiền / SQL)  — ["[DOISOAT] tuan 2026-11-16 · 5ms · 55 câu"]
+  ✗ A1 thang: dòng đầu "[DOISOAT] bat_dau thang 2026-11-01"  — ["[DOISOAT] thang 2026-11-01 · 5ms · 54 câu"]
+  ✗ A1 thang: mỗi bước đúng một dòng "buoc <ten> · <ms> ms · <n> câu", đúng thứ tự  — []
+  ✗ A1 thang: dòng cuối giữ dạng cũ (D4 GIAO-3); tổng câu các bước = số câu dòng cuối = số câu gửi kho  — bước 0 · cuối 54 · kho 54
+  ✗ A1 thang: mọi dòng [DOISOAT] chỉ có tên bước + số (không SĐT / mã đơn / số tiền / SQL)  — ["[DOISOAT] thang 2026-11-01 · 5ms · 54 câu"]
+  ✗ A1 hai người cùng bấm (hai lượt chồng nhau): mỗi dòng cuối đếm ĐÚNG số câu của lượt mình (không cộng lẫn lượt kia)  — [114,113] · mỗi lượt 57
+[C1/B1] Một câu kho không bao giờ trả lời
+  ✗ C1 (1) câu "loại dòng điểm lạ" (I8) không trả lời → lượt KHÔNG treo quá hạn ngoài của bài (4 s)  — TREO
+  ✗ B1 → lỗi 503 DOI_SOAT_QUA_HAN "Đối soát quá lâu ở bước I8 — thử lại sau"  — true
+  ✗ B1 đọc lại đúng luật KET-NOI-1: câu treo gửi đúng 1 + 2 lần, chờ đủ mỗi lần (≥ 3 × hạn câu)  — 1 lần · 4001 ms
+  ✗ B1 log "[DOISOAT] qua_han buoc I8 cau 15" (thứ tự câu trong lượt)  — []
+  ✗ B1 câu treo LẦN ĐẦU rồi đọc lại được → kết quả đủ, không lỗi, có dòng [KET-NOI] thử lại  — "treo"
+  ✗ B1 câu treo ở bước khác (I9) → lời nêu đúng bước I9  — treo
+  ✓ B1 dừng ở bước treo: không gửi câu của bước sau (I9)
+  ✓ C1 (2) dữ liệu cũ (tháng 9) có dòng lệch I3 / I8 (phanLoai gọi tra) → chạy xong, không treo; …   ← XANH trên gốc: khả năng (2) KHÔNG tái hiện
+[D1]
+  ✓ D1 câu chậm 0,7 × hạn câu (ngay dưới) → kết quả đủ, gửi 1 lần, không DOI_SOAT_QUA_HAN
+[B2] Cả lượt có hạn tổng (mỗi câu chậm dưới hạn câu)
+  ✗ B2 lượt dài hơn hạn tổng → 503 DOI_SOAT_QUA_HAN "Đối soát quá lâu ở bước …" trong khoảng [hạn tổng − 1 câu, hạn tổng + chờ đọc lại cuối]  — treo · 4001 ms (hạn 2500)
+  ✗ B2 sau khi báo lỗi lượt không gửi thêm câu nào  — 17 → 20
+[D2] (2 ca xanh — đường thường không hạn giờ, đúng như gốc)
+[A2] Dòng [CHAM] thêm "· đang chờ <k> câu"
+  ✗ A2 câu kho không trả lời, khách bỏ ở 2,2 s → MỘT dòng [CHAM] "… kho 0 câu / 0 ms · ngoài 0 ms · đang chờ 1 câu"  — ["[CHAM] GET /api/thu/treo · 2201 ms · kho 0 câu / 0 ms · ngoài 0 ms"]
+  ✗ A2 câu kho ném lỗi rồi yêu cầu chậm 2,15 s → "kho 1 câu … · đang chờ 0 câu" (đếm đúng cả khi câu ném lỗi)  — ["[CHAM] GET /api/thu/loi · 2157 ms · kho 1 câu / 0 ms · ngoài 0 ms"]
+[B3] Khách bỏ giữa chừng → lượt dừng ở bước kế tiếp
+  ✗ B3 log "[DOISOAT] bo_giua <bước>", sau đó không bước nào chạy, không dòng xong cả lượt  — ["[DOISOAT] ngay 2026-11-18 · 1387ms · 57 câu"]
+  ✗ B3 sau khi khách bỏ, lượt gửi thêm tối đa các câu của bước đang chạy (không chạy tiếp tới hết)  — 13 → 58
+[B4] Màn Đối soát: 503 DOI_SOAT_QUA_HAN → lời máy chủ, bấm lại được
+  ✗ B4 api.js thật: 503 → lỗi mang lời máy chủ "Đối soát quá lâu ở bước I8 — thử lại sau", code DOI_SOAT_QUA_HAN, gửi đúng 1 lần (không tự gửi lại)  — TREO (máy chủ không trả lời)
+  ✓ B4 DoiSoat.jsx: lỗi không phải QUA_HAN hiện e.message; finally trả nút về "Đối soát" (bấm lại được)
+
+DOISOAT-NHANH: 6 đạt · 29 hỏng
+```
+
+### Chạy lại sau vòng sửa 1 (bài bản d2af13e — thêm 2 ca: hết mốc trước khi gửi, soSach ngoài lượt) trên cùng 3 file gốc
+```
+  ✗ B2 HAN.LUOT_DOI_SOAT_MS = 50000 và nhỏ hơn hạn chờ của màn HAN_DOI_SOAT_MS (DoiSoat.jsx) = 60000; cận trên lượt (hạn + chờ đọc lại cuối) < hạn màn  — {} · màn 60000
+  ✗ B2 lượt dài hơn hạn tổng → 503 DOI_SOAT_QUA_HAN "Đối soát quá lâu ở bước …" trong khoảng [hạn tổng − 1 câu, hạn tổng + 150 ms]  — treo · 4000 ms (hạn 2500)
+  ✗ B2 sau khi báo lỗi lượt không gửi thêm câu nào  — 17 → 20
+  ✗ B2 hết mốc lượt TRƯỚC khi gửi → KHO_QUA_HAN ngay, không gửi câu, không đếm rớt, không dòng [KET-NOI] (soát vòng 1)  — [{"x":"thu_dsn_moc"}] · gửi 1 · rot 0 → 0 · []
+  ✓ D2 soSach (qua chiDoc, ngoài lượt Đối soát) câu chậm 2 × hạn câu → vẫn ra sổ sách, gửi 1 lần, không DOI_SOAT_QUA_HAN (soát vòng 1)   ← luồng phải KHÔNG bị chặn: xanh trên gốc là đúng
+  (các ca ✗ khác như bản trên)
+DOISOAT-NHANH: 7 đạt · 30 hỏng
+```
+
+### Chạy lại sau vòng sửa 2 (bài bản 4fb68b7 — thêm ca lỗi mạng sát mốc) trên cùng 3 file gốc
+```
+  ✗ B2 lỗi mạng sát mốc lượt → KHÔNG báo "thu lai", hết lượt ngay (gửi 1 lần), thu_lai_hong +1, lỗi KHO_MAT_KET_NOI (soát vòng 2)  — "KHO_MAT_KET_NOI" · gửi 3 · hỏng 0 → 1 · ["[KET-NOI] doc lan 1/3 ECONNRESET — thu lai","[KET-NOI] doc lan 2/3 ECONNRESET — thu lai","[KET-NOI] doc lan 3/3 ECONNRESET — het luot"]
+  (các ca ✗ khác như hai bản trên)
+DOISOAT-NHANH: 7 đạt · 31 hỏng
+```
+
+### Chạy lại sau vòng sửa 4 (bài bản dc8d38b — thêm ca lỗi mạng trong lượt còn nhiều giờ) trên 3 file GỐC MAIN 7da9ba9a (`git show 7da9ba9a:<file>`)
+```
+  ✗ B1 HAN.CAU_DOI_SOAT_MS = 15000 · ✗ B2 HAN.LUOT_DOI_SOAT_MS … · ✗ B1/B2 3 × 15 s + chờ < 50 s — {}
+  ✗ A1 ngay / tuan / thang (12 ca) · ✗ A1 hai lượt chồng nhau — [114,113] · mỗi lượt 57
+  ✗ C1 (1) … — TREO · ✗ B1 → 503 — true · ✗ B1 đọc lại — 1 lần · 4001 ms · ✗ B1 log qua_han — [] · ✗ B1 treo lần đầu — "treo" · ✗ B1 bước I9 — treo
+  ✓ B1 dừng ở bước treo (I9) · ✓ C1 (2) dữ liệu cũ · ✓ D1 chậm 0,7 × hạn
+  ✗ B2 lượt dài hơn hạn tổng — treo · 4001 ms · ✗ B2 không gửi thêm — 17 → 20
+  ✗ B2 lỗi mạng sát mốc — "KHO_MAT_KET_NOI" · gửi 3 · hỏng 0 → 1 · […thu lai, …thu lai, …het luot]
+  ✓ B1 lỗi mạng trong lượt, còn nhiều giờ → VẪN đọc lại (soát vòng 3)   ← luồng phải KHÔNG bị chặn: xanh trên gốc là đúng; VS-mang-trong-luot-khong-doc-lai bắt
+  ✗ B2 hết mốc lượt TRƯỚC khi gửi — [{"x":"thu_dsn_moc"}] · gửi 1
+  ✓ D2 query · ✓ D2 run · ✓ D2 soSach
+  ✗ A2 (2 ca) — dòng [CHAM] không có "đang chờ"
+  ✗ B3 (2 ca) — ["[DOISOAT] ngay 2026-11-18 · 1390ms · 57 câu"] · 13 → 58
+  ✗ B4 api.js thật — TREO (máy chủ không trả lời) · ✓ B4 DoiSoat.jsx mẫu catch / finally
+DOISOAT-NHANH: 8 đạt · 31 hỏng
+```
+SỐ CA cong_cu/thu_DOISOATNHANH.js: 39
+
+## cong_cu/thu_KETNOI1.js (sửa regex [CHAM] cho dạng mới — A2 phiếu duyệt đổi) trên database.js GỐC
+```
+  ✗ F1 yêu cầu 2,15 giây (ngay TRÊN ngưỡng) → MỘT dòng [CHAM] đúng dạng; kho 1 câu; ngoài ≥ 60 ms  — ["[CHAM] GET /api/pos/thu-cham/:x/qr/:x · 2213 ms · kho 1 câu / 0 ms · ngoài 62 ms"]
+  ✗ F1 dòng [CHAM] KHÔNG có SĐT / tham số / số / mã QR trong đường dẫn  — [CHAM] GET /api/pos/thu-cham/:x/qr/:x · 2213 ms · kho 1 câu / 0 ms · ngoài 62 ms
+KET-NOI-1: 100 đạt · 2 hỏng · tổng 102 ca
+```
+SỐ CA cong_cu/thu_KETNOI1.js: 102
