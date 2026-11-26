@@ -179,3 +179,63 @@ ma_gui là UUID không đoán được.
 VS-ma-gui-chi-so-che-do).
 
 SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập — vòng 2 (agent /ra-soat, 26.11, trên HEAD sau afc6b9fe) — chép nguyên văn
+KHÔNG ĐẠT
+
+Tóm tắt dễ hiểu: các lỗi của vòng 1 phần lớn đã sửa đúng. Bài thử 107/107 xanh, và đỏ trên gốc 5cbfc26. `--day-du` cho PASS 132 · FAIL 0, dist khớp src. Mình chạy thử 3 đột biến của bộ: đối chứng xanh, BẮT 3/3.
+
+Nhưng mình dựng ca thật (bài nháp trong scratchpad, không sửa kho) và thấy 2 lỗi NẶNG ở đường tồn:
+(1) Có phiếu pha chế chờ duyệt mà đếm ra ít hơn phiếu ghi → không ai chốt kiểm kê được, chủ quán chỉnh tay cũng không. Đây đúng là phương án (b) chủ quán đã bác ở Q4.
+(2) Lỗi vòng 1 "bàn giao để trống + ghi chú kéo tồn về số chốt" vẫn còn → tạo hàng ảo, quầy bán được.
+Ngoài ra còn 5 vế kiểm chưa có ca nào bắt (đột biến SỐNG).
+
+LỖI TÌM ĐƯỢC:
+- server/kho/kiemKe.js:101–102 (ghiKK), cùng tongDong :25–28 — NẶNG (tồn, chặn nhầm luồng hằng ngày) — K5.
+  - Tình huống: thành phẩm có phiếu PX chờ duyệt (lô chưa có, vì lô chỉ sinh khi duyệt — duLieu.js:193–205). Số đếm nhỏ hơn (lô đang có + số phiếu chờ) → điều chỉnh âm → chiaTheoLo trả lo_id null → 409 KHO_TON_DOI "…duyệt phiếu rồi tải lại".
+  - Ca thật: bán hết 10 lô → nhân viên pha 10 (chờ duyệt) → đếm 9. nhân viên: 409 hai lần liên tiếp; chủ quán chốt: 409; chủ quán `/chinh-tay` 9: 409.
+  - KiemKe.jsx:46 gặp 409 thì tải lại mốc rồi gửi lại, vẫn 409 mãi. Quán một người ca tối không chốt được khi quản lý vắng — trái Q4(a).
+  - Phụ: ở chế độ đếm mù, lỗi này cũng là "máy dò" yếu (409 chỉ hiện khi số đếm < số lô).
+  - Không ca thử nào đếm ít hơn số phiếu chờ: Q4a đếm đúng nc12+10. Đột biến bỏ phép 409 ở :102: SỐNG (107 đạt).
+- server/kho/kiemKe.js:140 (`thuc = v?.thuc ?? soChot`), cùng KiemKe.jsx:32,85 — NẶNG (tồn ảo) — K5/K4. Lỗi vòng 1 chưa sửa hết.
+  - Bàn giao khi máy ≠ chốt (bán / đổi sau chốt, Q3): màn hiện "máy ghi X (bán / đổi sau chốt) · lệch +n", gợi ý chính lý do đó làm ghi chú.
+  - Nhân viên để trống ô số + gõ ghi chú → máy chủ lấy số = số chốt → phiếu KK +n lô MỚI.
+  - Ca thật: chốt 10, máy 6, để trống + ghi chú → 200, tồn Nước cam 6 → 10 (lô mới, bán được).
+  - C3g chỉ khoá "trống, không ghi chú → 400"; C3d luôn gõ số. Chưa có ca "trống + ghi chú khi máy ≠ chốt".
+  - Sửa an toàn hơn: dòng có máy ≠ chốt thì bắt gõ số (400), không coi ô trống là "đúng chốt".
+- server/kho/duong.js:318–332 (`/phieu/:id/sua`) — NHẸ — K4. Không gọi canhBaoSauChot.
+  - PX chờ duyệt vẫn sửa được (nhánh PX không chặn chờ duyệt). Sửa = huỷ phiếu chờ + phiếu mới tự duyệt.
+  - Ca thật: chốt đếm 10 (gồm phiếu chờ), sáng chủ quán sửa phiếu còn 6 → tồn 6, dòng cam tu_choi_sau_chot = 0.
+  - Sáng bàn giao vẫn thấy lệch, nên không mất dấu hẳn. Đường sửa cũng không ghi diễn biến (E1 hứa mọi đường tạo phiếu đều ghi).
+- cong_cu/thu_KHOGON1.js + viec/KHO-GON-1/dot_bien.py — vế kiểm không có ca / đột biến (mình tự chạy, đều SỐNG, 107 đạt) — K3:
+  - (a) duong.js:312 canhBaoSauChot ở `/huy`: không ca nào huỷ phiếu CHỜ sau chốt.
+  - (b) kiemKe.js:28 `AND p.loai <> 'DH'` ở nhánh phiếu chờ — vế TỒN. Bỏ đi thì đơn đặt hàng chờ duyệt bị tính là hàng có thật, mà không ca nào phát hiện.
+  - (c) kiemKe.js:102 phép 409 thiếu lô (xem lỗi 1).
+  - (d) kiemKe.js:57 bàn giao vẫn hiện thành phẩm hết lô khi tối qua chốt còn (sửa vòng 1, không có ca).
+  - (e) viec.js:134 `loai <> 'DH'` trong canhBaoSauChot.
+- server/kho/duLieu.js:374 (docPhieuNhap `luong = Math.abs`), dùng cho phiếu KK qua XemPhieu.jsx:18 — NHẸ — K4. Phiếu KK hiện "Nước cam 4 · Cam 0,8" mà không có dấu +/−, chủ quán không biết là cộng hay trừ (ca thật: Cam −0,8 hiện 0.8).
+- Đường song song trả số cho nhân viên trong kiểm kê — NHẸ (được Q6a che), ghi để chủ quán biết. Lời hứa ở duong.js:397 ("không dòng / số lệch") chỉ đúng với phản hồi POST.
+  - `GET /phieu` + `GET /phieu/:id` (NHAN_VIEN, duong.js:272–276): nhân viên thấy phiếu KK của chính lần chốt mù, có số lệch từng dòng. Ca thật: nv xem KK 200, dòng `luong` 4 / 0.8.
+  - `GET /kiem-ke?che_do=bangiao` (NHAN_VIEN): trả `may` mọi dòng bất cứ lúc nào, kể cả 21:30 trước khi đếm.
+- Chú thích sai — NHẸ — K1: kiemKe.js:102 lời báo "duyệt phiếu rồi tải lại" trái Q4 · KiemKe.jsx:3 "ô trống = đúng" — sai khi máy ≠ chốt · duong.js:397 "không dòng / số lệch" — sai, xem mục trên.
+
+NGHI NGỜ:
+- Nhãn "Máy ghi" ở chỉnh tay (TonKho.jsx, lấy docTon = chỉ phiếu đã duyệt) khác gốc máy chủ tính (kiemKe.gocCua = gồm phiếu chờ). Có phiếu chờ: chủ quán gõ số → dc = 0 → `{phieu_id: null}`, màn vẫn báo "Đã chỉnh tồn" (kiemKe.js:189, TonKho.jsx:36). Số "máy" ở bàn giao và số ở Tồn kho cũng lệch nhau khi có phiếu chờ.
+- canhBaoSauChot (viec.js:135) so `kho_chot.luc >= tao_luc` trên mọi lần chốt, không xét thứ đó có trong bảng kiểm không → có thể ra dòng cam thừa (nguyên liệu không tick).
+- Hai yêu cầu cùng ma_gui gửi song song: UNIQUE ux_kho_chot_ma_gui (033:69) ném lỗi. ghiVaTra (duong.js:349) không trả lại lần đã ghi như ghiPhieu → lần bấm sau báo lỗi dù đã lưu. Chưa thử.
+- `/chinh-tay` tra ma_gui (kiemKe.js:175) không gắn người / loại thao tác. Chỉ chủ / QL gọi được, nên rủi ro thấp.
+
+NGHIỆM THU: 17/19 mục có bằng chứng · mục thiếu:
+- Có bằng chứng: A1 · A2 · A3 · B1 · B2 · B3 · B4 · B5 · B6 · C1 · C2 · C4 (C4a/b/d) · C5 · C6 · D1 · D2 · E2.
+- C3 chưa đạt: ô trống tạo tồn ảo khi máy ≠ chốt (lỗi 2). E1 / K5 chưa đạt: kiểm kê bị chặn khi có phiếu chờ (lỗi 1).
+- Đột biến phiếu đòi: 8/8 có (VS-tin-may-thay-cua-man thay bằng BV-bo-kiem-huy-xen-giua, đã ghi lý do).
+- Ca chủ quán đòi thêm: Q1 có · Q4 (Q4a, Q4b/Q4c) có — thiếu ca đếm ≠ số phiếu chờ và ca huỷ / sửa phiếu chờ sau chốt · Q5 có.
+- Phần "Thử" còn thiếu: kết quả `node tu_chay/cong.js chay` · 3 thao tác thử tay 390 px · mục CHƯA KIỂM cho phần chỉ có ở màn.
+
+CHƯA SOÁT ĐƯỢC: `node tu_chay/cong.js chay` (quá 10 phút, bị cắt) · chưa chạy cả bộ 41 đột biến (chỉ 3 + 7 tự dựng) · chưa chạy giao diện thật · chưa thử khôi phục sao lưu thật · chưa dựng ca PS / PN chờ duyệt lúc chốt (đọc phatSinh.js:101–137 giữ nguyên tổng).
+
+BÀI HỌC:
+- KHOÁ: mọi phép "tính phiếu chờ như đã ghi" phải có ca số đếm NHỎ HƠN phần phiếu chờ (điều chỉnh âm khi chưa có lô), cùng ca đếm bằng.
+- KHOÁ: ô trống có nghĩa "đúng X" thì phải có ca trống + ghi chú khi X ≠ số máy.
+- NGUYÊN TẮC (K4): gắn một móc sau "từ chối / huỷ phiếu" thì grep MỌI đường đổi trạng thái phiếu: tu-choi · huy · sua · huyPhieuBan. Mỗi đường một ca + một đột biến.
+- NGUYÊN TẮC: lời hứa "phản hồi không lộ số" phải kê cả đường ĐỌC song song (/phieu, /phieu/:id, chế độ khác của cùng GET).

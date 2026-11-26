@@ -1,9 +1,9 @@
 /**
  * KHO-GON-1 — một màn hai chế độ. Kiểm kê cuối ngày (kiemke): ĐẾM MÙ — không hiện số máy, mọi dòng phải gõ số (chủ quán 26.11 Q1); "Chốt & in"
- * → in bảng chốt có chỗ ký (khung in phiếu kho). Nhận bàn giao (bangiao): hiện "Chốt" tối qua, ô trống = đúng, dòng lệch bắt buộc ghi chú.
+ * → in bảng chốt có chỗ ký (khung in phiếu kho). Nhận bàn giao (bangiao): hiện "Chốt" tối qua, ô trống = đúng (chỉ khi máy = chốt), dòng lệch bắt buộc ghi chú.
  * Máy chủ tự tính lệch (so với tồn lúc màn mở — moc), ghi phiếu KK đã duyệt ngay. Màn hẹp: mỗi dòng một thẻ, nút chốt dính đáy màn.
  * Kiểm kê: máy chủ trả nhân viên chỉ "đã chốt" (Q5) — bảng in lấy từ số đã gõ trên màn.
- * Bàn giao: máy khác chốt (bán / đổi sau chốt — Q3) → hiện "máy ghi", dòng đó phải ghi chú. Tồn đổi giữa chừng (409) → tải lại mốc, GIỮ số đã gõ.
+ * Bàn giao: máy khác chốt (bán / đổi sau chốt — Q3) → hiện "máy ghi", dòng đó phải GÕ SỐ thật + ghi chú (máy chủ chặn ô trống). Tồn đổi giữa chừng (409) → tải lại mốc, GIỮ số đã gõ.
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
@@ -30,7 +30,7 @@ export default function KiemKe({ cheDo, xong }) {
   const datO = (d, x) => setNhap({ ...nhap, [khoa(d)]: { ...o(d), ...x } });
   // bàn giao: lệch so với chốt, hoặc (ô trống = đúng chốt) máy khác chốt → phải ghi chú (máy chủ cũng chặn)
   const lechCua = (d) => { if (laKiemKe) return 0; const t = o(d).so === '' ? d.chot : veLuu(o(d).so, d.he_so_doi); return Math.abs(t - d.chot) > 1e-9 ? t - d.chot : t - d.may; };
-  const thieu = laKiemKe ? dl.dong.filter((d) => o(d).so === '').length : 0;
+  const thieu = dl.dong.filter((d) => o(d).so === '' && (laKiemKe || Math.abs(d.may - d.chot) > 1e-9)).length;   // bàn giao: máy ≠ chốt thì phải gõ số
   const lech = dl.dong.filter((d) => Math.abs(lechCua(d)) > 1e-9);
   const luu = async () => {
     setDang(true);
@@ -95,7 +95,7 @@ export default function KiemKe({ cheDo, xong }) {
       <label className="kho-nho" style={{ display: 'block', marginTop: '0.5rem' }}>Ghi chú chung cho {laKiemKe ? 'ca sau' : 'ca này'}
         <input className="input" value={chung} onChange={(e) => setChung(e.target.value)} placeholder="vd: máy xay kêu, còn 1 bao đá" /></label>
       <div className="kho-chan">
-        <b>{laKiemKe ? (thieu ? `Còn ${thieu} dòng chưa gõ` : 'Đã gõ đủ') : lech.length ? `${lech.length} dòng lệch` : 'Tất cả đúng'}</b>
+        <b>{thieu ? `Còn ${thieu} dòng phải gõ số` : laKiemKe ? 'Đã gõ đủ' : lech.length ? `${lech.length} dòng lệch` : 'Tất cả đúng'}</b>
         <button className="btn btn-primary" disabled={dang || thieu > 0 || lech.some((d) => !o(d).ghi.trim())} onClick={luu}>
           {dang ? 'Đang lưu…' : laKiemKe ? 'Chốt & in' : lech.length ? 'Nhận ca' : 'Nhận ca — đúng hết'}</button>
       </div>

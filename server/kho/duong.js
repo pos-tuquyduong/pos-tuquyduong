@@ -321,14 +321,17 @@ router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
   const id = Number(req.params.id);
   const cu = await tx.queryOne('SELECT loai, trang_thai, don_id, nha_cung_cap_id, ghi_chu, su_co FROM kho_phieu WHERE id = ?', [id]);
   if (!cu || cu.loai === 'PX') {
-    return monHopLe(req.body.mon) ? duLieu.suaPhieu(tx, id, monHopLe(req.body.mon), req.user.username, lyDoCua(req), luc)
-      : { loi: [400, LOI_SO_PHAN] };
+    if (!monHopLe(req.body.mon)) return { loi: [400, LOI_SO_PHAN] };
+    const sua = await duLieu.suaPhieu(tx, id, monHopLe(req.body.mon), req.user.username, lyDoCua(req), luc);
+    if (!sua.loi) await viec.canhBaoSauChot(tx, id, req.user.username, luc);   // KHO-GON-1 Q4: sửa phiếu xuất CHỜ duyệt sau chốt
+    return sua;
   }
   if (!TAO[cu.loai]) return { loi: [400, { error: 'Loại phiếu này không sửa được', code: 'KHONG_SUA_DUOC' }] };
   if (cu.trang_thai === 'cho_duyet') return { loi: [409, { error: 'Chỉ sửa phiếu đã duyệt — phiếu chờ duyệt thì từ chối / huỷ rồi tạo lại', code: 'PHIEU_CHUA_DUYET' }] };
   // phiếu đã huỷ: huyPhieu trả 409 PHIEU_DA_XU_LY — cùng mã với phiếu xuất (LUAT §2)
   const huy = await duLieu.huyPhieu(tx, id, lyDoCua(req), req.user.username, luc);
   if (huy.loi) return huy;
+  await viec.canhBaoSauChot(tx, id, req.user.username, luc);   // KHO-GON-1 Q4: sửa = huỷ phiếu cũ
   return TAO[cu.loai](tx, { ...THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body }), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
     thayCho: id, lyDo: lyDoCua(req), ep: true });
 }));
@@ -397,7 +400,8 @@ router.put('/nguong', QUAN_LY, ghiVaTra(async (req, tx) => {
 
 router.get('/kiem-ke', NHAN_VIEN, (req, res, next) => (CHE_DO.includes(req.query.che_do) ? next()
   : res.status(400).json({ error: 'Chế độ là kiemke hoặc bangiao', code: 'CHE_DO_SAI' })), doc((req) => kiemKe.docDanhSach(csdl, req.query.che_do, getNow())));
-// Kiểm kê tối của NHÂN VIÊN: phản hồi chỉ "đã chốt" — không dòng / số lệch, không mã phiếu (Q5: không dò được số máy). Chủ / quản lý nhận đủ.
+// Kiểm kê tối của NHÂN VIÊN: phản hồi POST chỉ "đã chốt" — không dòng / số lệch, không mã phiếu (Q5: không dò được số máy lúc lưu). Chủ / quản lý
+// nhận đủ. Đường ĐỌC khác vẫn cho nhân viên thấy số (chủ quán chốt Q6: giữ): Tồn kho, phiếu KK ở tab Phiếu, bàn giao (`may`).
 router.post('/kiem-ke', NHAN_VIEN, ghiVaTra(async (req, tx, luc) => {
   if (!CHE_DO.includes(req.body?.che_do)) return { loi: [400, { error: 'Chế độ là kiemke hoặc bangiao', code: 'CHE_DO_SAI' }] };
   const r = await kiemKe.luuKiem(tx, { cheDo: req.body.che_do, moc: req.body.moc, mocLuc: req.body.moc_luc, dongVao: req.body.dong, ghiChuChung: req.body.ghi_chu_chung,

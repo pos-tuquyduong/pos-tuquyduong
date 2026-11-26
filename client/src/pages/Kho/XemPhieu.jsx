@@ -29,7 +29,7 @@ function BangDong({ dl, kho }) {
         <div key={d.id} className={`kho-dong ${d.lech || d.ngoai_don ? 'kho-vang' : ''}`}>
           {p.loai === 'DH' && <span className="kho-o">☐</span>}
           <span style={{ flex: 1 }}>{d.ten}{d.ngoai_don && ' · ngoài đơn'}{d.han_dung && <span className="kho-nho"> · hạn {gio(d.han_dung)}</span>}</span>
-          <b>{luong(d)}</b>
+          <b>{d.loai === 'kiem_ke' && (d.tang ? '+' : '−')}{luong(d)}</b>
           {d.don_gia != null && <span className="kho-nho kho-khong-in"> · {tien(d.don_gia)}</span>}
         </div>
       ))}

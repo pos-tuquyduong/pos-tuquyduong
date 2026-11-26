@@ -99,7 +99,7 @@ async function ghiKK(tx, ds, { nguoi, luc, ghiChu = null, lyDo = null, maGui = n
       continue;
     }
     for (const x of tinh.chiaTheoLo([{ khoa: 0, luong: -dc }], await duLieu.conLaiTheoLo(tx, `l.${cotCua(m)} = ?`, [maCua(m)], LO_FEFO))) {
-      if (x.lo_id == null && m.san_pham_id) return loi(409, 'KHO_TON_DOI', 'Thành phẩm không còn đủ lô (còn phiếu pha chế chờ duyệt?) — duyệt phiếu rồi tải lại');
+      if (x.lo_id == null && m.san_pham_id) return loi(409, 'KHO_TON_DOI', 'Thành phẩm không còn đủ lô — tải lại');
       await ghi(m, x.lo_id, -x.luong, nl ? nl.gia_nhap ?? null : null, gc);
     }
   }
@@ -137,8 +137,12 @@ async function luuKiem(tx, { cheDo, moc, mocLuc, dongVao, ghiChuChung, nguoi, lu
     const v = vao.get(khoa);
     const soChot = cheDo === 'bangiao' ? (chot?.theo.get(khoa)?.chot ?? g.goc) : null;
     if (m.san_pham_id && g.goc <= tinh.SAI_SO && !v && !(soChot > tinh.SAI_SO)) continue;   // cùng điều kiện với docDanhSach: không có trên màn
-    const thuc = v?.thuc ?? (cheDo === 'bangiao' ? soChot : undefined);
-    if (thuc === undefined || Number.isNaN(thuc)) return loi(400, 'KHO_THIEU_SO', `Chưa gõ số đếm: ${m.ten} — kiểm kê phải gõ đủ mọi dòng`);
+    // bàn giao: ô trống = "đúng số chốt" CHỈ khi máy cũng bằng chốt; máy ≠ chốt (bán / đổi sau chốt) → phải gõ số thật (không kéo tồn về số chốt = hàng ảo)
+    const trongDuoc = cheDo === 'bangiao' && Math.abs(soChot - g.goc) <= tinh.SAI_SO;
+    const thuc = v?.thuc ?? (trongDuoc ? soChot : undefined);
+    if (thuc === undefined || Number.isNaN(thuc)) {
+      return loi(400, 'KHO_THIEU_SO', cheDo === 'bangiao' ? `Máy khác số chốt — gõ số đếm thật: ${m.ten}` : `Chưa gõ số đếm: ${m.ten} — kiểm kê phải gõ đủ mọi dòng`);
+    }
     if (thuc < 0 || !Number.isFinite(thuc)) return loi(400, 'KHO_SO_AM', `Số đếm phải ≥ 0: ${m.ten}`);
     ds.push({ m, ten: m.ten, goc: g.goc, hien: g.hien, thuc, dc: thuc - g.goc, lech: cheDo === 'bangiao' ? thuc - soChot : thuc - g.goc, ghi_chu: v?.ghi_chu ?? null });
   }

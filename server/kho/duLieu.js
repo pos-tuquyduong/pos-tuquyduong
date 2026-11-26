@@ -376,7 +376,7 @@ async function docPhieuNhap(csdl, p, dong) {
     return { id: Number(d.id), loai: d.loai, nguyen_lieu_id: n ? Number(d.nguyen_lieu_id) : null, san_pham_id: d.san_pham_id == null ? null : Number(d.san_pham_id),
       ten: n ? n.ten : ten.get(Number(d.san_pham_id)), don_vi: n ? n.don_vi_hien || n.don_vi_luu : 'phần', luong, luong_hien: n ? doiDonVi(luong, n.he_so_doi || 1) : luong,
       don_gia: d.don_gia, han_dung: d.han_dung ?? lo.get(Number(d.lo_id))?.han_dung ?? null, lo_id: d.lo_id == null ? null : Number(d.lo_id),
-      cho_mon_id: d.cho_mon_id == null ? null : Number(d.cho_mon_id), ...(datCua && { ngoai_don: dat === undefined, lech: dat !== undefined && Math.abs(dat - luong) > SAI_SO }) };
+      cho_mon_id: d.cho_mon_id == null ? null : Number(d.cho_mon_id), ...(d.loai === 'kiem_ke' && { tang: Number(d.so_luong) > 0 }), ...(datCua && { ngoai_don: dat === undefined, lech: dat !== undefined && Math.abs(dat - luong) > SAI_SO }) };
   });
   const them = {};
   if (p.loai === 'DH') {
