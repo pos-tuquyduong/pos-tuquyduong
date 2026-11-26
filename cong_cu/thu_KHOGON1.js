@@ -229,6 +229,8 @@ async function main() {
   k('B3b giao việc gọi thêm Đường 2 lần → MỘT việc giao ql, cùng id; dải cam báo đã giao', g1.status === 200 && g1.viec?.id === g2.viec?.id && g1.viec?.giao === 'ql'
     && (await so("SELECT COUNT(*) FROM kho_viec WHERE ngay = '2026-12-01' AND nguyen_lieu_id = ?", [nDuong])) === 1
     && ((await goi('ql', 'POST', '/kho/viec/hom-nay', {})).duoi_nguong || []).find((n) => n.id === nDuong)?.da_giao === true, `${moTa(g1)} / ${moTa(g2)}`);
+  const dnNv = ((await goi('nv', 'POST', '/kho/viec/hom-nay', {})).duoi_nguong || []).find((n) => n.id === nDuong);
+  k('B3d nhân viên (không thấy việc giao ql) vẫn thấy Đường "đã giao" — không hiện lại nút', dnNv?.da_giao === true, JSON.stringify(dnNv));
   const pnD = await goi('nv', 'POST', '/kho/phieu-nhan', { dong: [{ nguyen_lieu_id: nDuong, luong: 5 }], ma_gui: 'pnD' });
   k('B3c lưu phiếu Nhận hàng có Đường → việc gọi Đường tự xong + diễn biến nhan_hang', pnD.status === 200
     && (await mot('SELECT xong_luc FROM kho_viec WHERE id = ?', [g1.viec?.id || 0]))?.xong_luc != null && (await demDB('nhan_hang')) >= 1, moTa(pnD));
@@ -303,7 +305,8 @@ async function main() {
   k('C2e việc kiemke tự xong; diễn biến kiem_ke tô cam (có lệch)', (await mot('SELECT xong_luc FROM kho_viec WHERE id = ?', [vKK?.id || 0]))?.xong_luc != null
     && (await so("SELECT chu_y FROM kho_dien_bien WHERE loai = 'kiem_ke' ORDER BY id DESC LIMIT 1")) === 1);
   const lai = await guiKK(thang === c1 ? 'nv' : 'nv2', dongKK, thang === c1 ? 'kk-a' : 'kk-b');
-  k('C-ma_gui bấm lại cùng mã → trả lần đã ghi, không thêm phiếu', lai.status === 200 && lai.chot_id === thang.chot_id && (await demKK()) === 1, moTa(lai));
+  k('C-ma_gui bấm lại cùng mã → trả lần đã ghi CÙNG dạng (có ảnh, lệch), không thêm phiếu', lai.status === 200 && lai.chot_id === thang.chot_id && (await demKK()) === 1
+    && Array.isArray(lai.anh) && lai.anh.length === 2 && lai.lech?.length === 2, moTa(lai) + ' ' + JSON.stringify(lai.anh));
   // bán sau chốt (Q3) — sáng ra thấy lệch so với chốt
   datGio('2026-12-01T22:05:00');
   const ban1 = await ban(sNC, 1);
@@ -317,6 +320,10 @@ async function main() {
   const bgCam = (bg.dong || []).find((d) => d.nguyen_lieu_id === nCam);
   k('C3c "Chốt" = số tối qua chốt (máy đã bán thêm 1 vẫn hiện số chốt), "Ca trước dặn" đúng', bg.chua_co_chot === false && gan(bgNC2?.chot, ncTruoc + 2)
     && gan(bgCam?.chot, camTruoc - 1) && bg.ca_truoc_dan === 'Tủ lạnh 2 hơi kêu', JSON.stringify(bgNC2) + ' · ' + bg.ca_truoc_dan);
+  k('C3f bàn giao trả cả số máy (sáng THẤY số): Nước cam máy = sau bán sau chốt', gan(bgNC2?.may, ncTruoc + 1), JSON.stringify(bgNC2));
+  const bgTrong = await goi('nv', 'POST', '/kho/kiem-ke', { che_do: 'bangiao', moc: bg.moc, moc_luc: bg.moc_luc, dong: [], ma_gui: 'bg-trong' });
+  k('C3g bàn giao để trống hết khi máy ≠ chốt (bán sau chốt) → 400 KHO_THIEU_GHI_CHU, không kéo tồn về số chốt', bgTrong.status === 400 && bgTrong.code === 'KHO_THIEU_GHI_CHU'
+    && gan(await tonSP(sNC), ncTruoc + 1), moTa(bgTrong));
   const bgThieu = await goi('nv', 'POST', '/kho/kiem-ke', { che_do: 'bangiao', moc: bg.moc, moc_luc: bg.moc_luc, dong: [{ san_pham_id: sNC, thuc: ncTruoc + 1 }], ma_gui: 'bg-kg' });
   k('C4b bàn giao lệch so với chốt không ghi chú → 400 KHO_THIEU_GHI_CHU', bgThieu.status === 400 && bgThieu.code === 'KHO_THIEU_GHI_CHU', moTa(bgThieu));
   const kkTruocBG = await demKK();
@@ -335,12 +342,13 @@ async function main() {
   const r5 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
   const nc5 = await tonSP(sNC), cam5 = await tonNL(nCam);
   await ban(sNC, 1);
-  const kk5 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5 }, { san_pham_id: sNC, thuc: nc5 }], 'kk5', '', r5);
+  const kk5 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5, ghi_chu: 'đủ, đã lau tủ' }, { san_pham_id: sNC, thuc: nc5 }], 'kk5', '', r5);
   const chot5 = await mot("SELECT anh FROM kho_chot WHERE che_do = 'kiemke' ORDER BY id DESC LIMIT 1");
   const anh5 = (() => { try { return JSON.parse(chot5?.anh || '[]'); } catch { return []; } })();
   k('C5a bán 1 ly giữa lúc mở và lưu, đếm đúng → 200, KHÔNG phiếu KK, tồn = số sau bán, không cam', kk5.status === 200 && kk5.phieu_id == null && gan(await tonSP(sNC), nc5 - 1)
     && (await so("SELECT chu_y FROM kho_dien_bien WHERE loai = 'kiem_ke' ORDER BY id DESC LIMIT 1")) === 0, `${moTa(kk5)} · ${JSON.stringify(kk5.lech)}`);
   k('C5b ảnh chốt = tồn SAU chốt (số sau bán), không phải số gõ', gan(anh5.find((a) => a.san_pham_id === sNC)?.chot, nc5 - 1), chot5?.anh);
+  k('C4d dòng KHÔNG lệch có ghi chú → ghi chú vẫn lưu trong ảnh chốt', anh5.find((a) => a.nguyen_lieu_id === nCam)?.ghi_chu === 'đủ, đã lau tủ', chot5?.anh);
   k('K5-1 kiểm kê không lệch → việc kiemke vẫn xong (02.12)', (await so("SELECT COUNT(*) FROM kho_viec WHERE ngay = '2026-12-02' AND loai = 'kiemke' AND xong_luc IS NOT NULL")) === 1);
   datGio('2026-12-02T21:10:00');
   const r6 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
@@ -356,10 +364,11 @@ async function main() {
   const kk7 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5 }, { san_pham_id: sNC, thuc: 0, ghi_chu: 'đếm 0' }], 'kk7', '', r7);
   k('C5e đếm 0 rồi bán hết xen giữa (tồn mới < 0) → 409 KHO_TON_DOI, không ghi', kk7.status === 409 && kk7.code === 'KHO_TON_DOI' && gan(await tonSP(sNC), 0), moTa(kk7));
   // huỷ đơn xen giữa: đổi tồn mà không có phiếu mới
+  datGio('2026-12-02T21:20:30');
   const r8 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
   datGio('2026-12-02T21:21:00');
   await trongGiaoDich((tx) => banHang.huyPhieuBan(tx, soDon, { nguoi: 'chu', luc: '2026-12-02T21:21:00', lyDo: 'khách đổi ý' }));
-  const kk8 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5 }, { san_pham_id: sNC, thuc: 0 }], 'kk8', '', r8);
+  const kk8 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam5 }, { san_pham_id: sNC, thuc: 0, ghi_chu: 'đếm 0' }], 'kk8', '', r8);
   k('C5f huỷ đơn xen giữa (hàng về lô cũ) → 409 KHO_TON_DOI "tải lại"', kk8.status === 409 && kk8.code === 'KHO_TON_DOI', moTa(kk8));
   datGio('2026-12-02T21:22:00');
   const r9 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
@@ -369,6 +378,25 @@ async function main() {
   const kk9 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: 0, ghi_chu: 'đếm 0' }, { san_pham_id: sNC, thuc: nc9 }], 'kk9', '', r9);
   k('C5g nguyên liệu: đếm 0 rồi phiếu pha chế trừ thêm xen giữa (tồn mới < 0) → 409 KHO_TON_DOI, không ghi tồn âm', kk9.status === 409 && kk9.code === 'KHO_TON_DOI'
     && gan(await tonNL(nCam), cam9), `${moTa(kk9)} · Cam ${await tonNL(nCam)}`);
+
+  // duyệt phiếu CŨ (chờ duyệt) xen giữa: đổi tồn mà không có phiếu mới
+  datGio('2026-12-02T21:23:00');
+  const pxCho = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }], ma_gui: 'px-cho' });
+  datGio('2026-12-02T21:23:30');
+  const r10 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  const nc10 = await tonSP(sNC), cam10 = await tonNL(nCam);
+  datGio('2026-12-02T21:24:00');
+  await goi('ql', 'POST', `/kho/phieu/${pxCho.phieu?.id}/duyet`);
+  const kk10 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam10, ghi_chu: 'x' }, { san_pham_id: sNC, thuc: nc10, ghi_chu: 'x' }], 'kk10', '', r10);
+  k('C5h quản lý duyệt phiếu CŨ (chờ duyệt) xen giữa → 409 KHO_TON_DOI "tải lại"', pxCho.phieu?.trang_thai === 'cho_duyet' && kk10.status === 409 && kk10.code === 'KHO_TON_DOI',
+    `${pxCho.phieu?.trang_thai} · ${moTa(kk10)}`);
+  datGio('2026-12-02T21:25:00');
+  const r11 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  const nc11 = await tonSP(sNC), cam11 = await tonNL(nCam);
+  const huy11 = await goi('chu', 'POST', `/kho/phieu/${pxCho.phieu?.id}/huy`, { ly_do: 'pha nhầm' });
+  const kk11 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam11, ghi_chu: 'x' }, { san_pham_id: sNC, thuc: nc11, ghi_chu: 'x' }], 'kk11', '', r11);
+  k('C5i huỷ phiếu CÙNG GIÂY với lúc mở màn → vẫn 409 KHO_TON_DOI (so giờ >=, thà tải lại thừa)', huy11.status === 200 && kk11.status === 409 && kk11.code === 'KHO_TON_DOI',
+    `${moTa(huy11)} · ${moTa(kk11)}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] chỉnh tồn tay');
@@ -384,6 +412,7 @@ async function main() {
   k('D1b chủ quán chỉnh tay → 200, phiếu KK MỘT dòng, ly_do, tồn = số mới', ctChu.status === 200 && (await demKK()) === kkTruocCT + 1 && ctP?.ly_do === 'đếm lại kho'
     && (await so('SELECT COUNT(*) FROM kho_phieu_dong WHERE phieu_id = ?', [ctP?.id || 0])) === 1 && gan(await tonNL(nGung), 5), moTa(ctChu));
   k('D1c diễn biến chinh_tay tô cam', (await so("SELECT chu_y FROM kho_dien_bien WHERE loai = 'chinh_tay' ORDER BY id DESC LIMIT 1")) === 1);
+  datGio('2026-12-02T22:01:00');
   const tonChu2 = await goi('chu', 'GET', '/kho/ton');
   const ctQlTat = await chinh('ql', { nguyen_lieu_id: nGung, thuc: 4, ly_do: 'x', ma_gui: 'ct2' }, tonChu2);
   k('D1d quản lý chỉnh tay khi công tắc TẮT → 403', ctQlTat.status === 403, moTa(ctQlTat));
@@ -393,6 +422,7 @@ async function main() {
   k('D1f bật công tắc → /ton quản lý duoc_chinh_tay true', (await goi('ql', 'GET', '/kho/ton')).duoc_chinh_tay === true);
   const ctQlBat = await chinh('ql', { nguyen_lieu_id: nGung, thuc: 4, ly_do: 'quản lý đếm', ma_gui: 'ct4' }, tonChu2);
   k('D1g quản lý chỉnh tay khi công tắc BẬT → 200', ctQlBat.status === 200 && gan(await tonNL(nGung), 4), moTa(ctQlBat));
+  datGio('2026-12-02T22:02:00');
   const tonChu3 = await goi('chu', 'GET', '/kho/ton');
   const ctLyDo = await chinh('chu', { nguyen_lieu_id: nGung, thuc: 3, ly_do: '  ', ma_gui: 'ct5' }, tonChu3);
   k('D1h thiếu lý do → 400 THIEU_LY_DO', ctLyDo.status === 400 && ctLyDo.code === 'THIEU_LY_DO', moTa(ctLyDo));

@@ -55,6 +55,11 @@ DOT_BIEN = [
   ('VS-anh-chot-la-so-go', [(K, "chot: gon(d.hien + d.dc)", "chot: gon(d.thuc)", 1)], r'✗ C5b '),
   ('BV-bo-chan-ton-moi-am', [(K, "    if (d.hien + d.dc < -tinh.SAI_SO) return", "    if (false) return", 1)], r'✗ C5g '),
   ('BV-bo-kiem-huy-xen-giua', [(K, "  if (doi) return", "  if (false) return", 1)], r'✗ C5f '),
+  ('BV-bo-kiem-duyet-xen-giua', [(K, " OR (p.trang_thai = 'da_duyet' AND p.duyet_luc >= ?))", " OR (0 AND p.duyet_luc >= ?))", 1)], r'✗ C5h '),
+  ('VS-so-gio-chat', [(K, "p.huy_luc >= ? OR", "p.huy_luc > ? OR", 1)], r'✗ C5i '),
+  ('VS-da-giao-theo-danh-sach-loc', [(V, "  const daGiao = new Set(tatCa.filter(", "  const daGiao = new Set(ds.filter(", 1)], r'✗ B3d '),
+  ('VS-ma-gui-tra-thieu-anh', [(K, "lech: anh.filter((a) => Math.abs(a.lech) > tinh.SAI_SO), anh, da_co: true };", "lech: [], da_co: true };", 1)], r'✗ C-ma_gui '),
+  ('VS-ban-giao-khong-tra-may', [(K, "chot: gon(c ? c.chot : ton), may: gon(ton),", "chot: gon(c ? c.chot : ton),", 1)], r'✗ C3f '),
   ('BV-bo-kiem-moc-sai', [(K, " || m > await docMoc(tx) || ", " || ", 1)], r'✗ C5d '),
   ('BV-bo-chan-hai-nguoi-chot', [(K, CHAN_KK, "  if (false) return", 1)], r'✗ C-đua '),
   # ── D1: quyền chỉnh tay ──
