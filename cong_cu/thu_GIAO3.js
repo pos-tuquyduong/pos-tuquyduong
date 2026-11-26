@@ -394,8 +394,13 @@ async function main() {
   const vT = await moChuyen();
   A.phiTao = null;
   k('C3 (K4) tạo chuyến Ahamove trả total_price 0 → phi_that = phí báo 16.000 (không 0)', (await chuyenCua(vT.id))?.phi_that === 16000, String((await chuyenCua(vT.id))?.phi_that));
+  A.phiBao = 0;   // GIAO-4: báo phí 0 ở QUẦY bị chặn (502 AHAMOVE_PHI_0) — không lưu báo phí; báo 0 lúc GỌI XE vẫn đi (ca dưới)
+  const bQ0 = await goi('POST', '/giao-hang/bao-phi', { dia_chi: 'Số 3 Ngõ Thử, Hà Nội' });
+  k('C3 (GIAO-4) Tính phí ở quầy, Ahamove báo 0 → 502 AHAMOVE_PHI_0, không mã báo phí', bQ0.status === 502 && bQ0.j.code === 'AHAMOVE_PHI_0' && !bQ0.j.ma_bao_phi,
+    J([bQ0.status, bQ0.j]));
+  A.phiBao = null;
+  const vT0 = await moChuyen(false);   // GIAO-4: đơn dùng báo phí bình thường; Ahamove báo 0 CHỈ lúc gọi xe
   A.phiBao = 0; A.phiTao = 0;
-  const vT0 = await moChuyen(false);
   await goi('POST', `/giao-hang/${vT0.id}/goi-xe`, {});
   A.phiBao = null; A.phiTao = null;
   const cT0 = await chuyenCua(vT0.id);
