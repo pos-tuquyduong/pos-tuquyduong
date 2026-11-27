@@ -19,9 +19,15 @@ CÁC BÀI CŨ ĐỔI:
   cong_cu/thu_KHAPI2.js — danh sách trắng trường món (E3) thêm nhom_ten, nhom_thu_tu (hành vi chủ quán duyệt; LUAT §6.7 + §6.8). Bản MỚI của bài chạy trên
     server GỐC 7238492 (chép cả server/ + cong_cu/ gốc, chép đè bài mới) → 99 đạt · 1 hỏng:
       ✗ E3 trường cũ y nguyên (ma,ten,nhom,gia,con_hang,ton_cu,ton_luc,gia_hang,nhu_cau,...) — thiếu nhom_ten, nhom_thu_tu   (ĐỎ trên gốc, XANH 101/0 sau vá)
-  cong_cu/thu_KHO3a.js — category 'tra' → 'tea' (A4 tạo / sửa món): bản mới chạy trên server gốc → 145 đạt · 0 hỏng (XANH trên gốc) và xanh trên code mới
-    → thuộc mục `## Bài thử cũ sửa` (bài cũ đổi mà VẪN xanh trên gốc); máy không sửa được phiếu — xem Câu hỏi trong trang_thai.md.
+  cong_cu/thu_KHO3a.js — category 'tra' → 'tea' + thêm ca A4 NHOM-MON-1 (chủ quán / chat 27.11: bản GỐC acc88921 trên code mới ĐỎ → bài sửa thường, LUAT §6.9).
+    Bản mới chạy trên server GỐC 7238492 → 145 đạt · 1 hỏng:
+      ✗ A4 NHOM-MON-1: category không có trong danh sách nhóm → 400 NHOM_KHONG_CO, không tạo món — HTTP 200   (ĐỎ trên gốc, XANH 146/0 sau vá)
+  cong_cu/thu_KH1.js — danh sách trắng E5 thêm nhom_ten, nhom_thu_tu. Bản mới trên server GỐC → 156 đạt · 1 hỏng: ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng (ĐỎ trên gốc, XANH 157/0 sau vá).
+  cong_cu/thu_KHSP1.js — KHOA_MENU_MOI thêm hai trường. Bản mới trên server GỐC: ✗ C3 mỗi món ĐÚNG bộ khoá (ĐỎ trên gốc; hai dòng ✗ D/E ENOENT là do bản chép gốc thiếu file phụ, không tính), XANH 43/0 sau vá.
+  cong_cu/gia_lap/kich_ban.js — 'khac' → 'juice' (KB24/KB25): bài thật là thu_gia_lap.js (đỏ trên code mới nếu để 'khac' — đã thấy ở --day-du 27.11).
 
 SỐ CA thu_NHOMMON1.js: 49
 SỐ CA thu_KHAPI2.js: 101
-SỐ CA thu_KHO3a.js: 145
+SỐ CA thu_KHO3a.js: 146
+SỐ CA thu_KH1.js: 157
+SỐ CA thu_KHSP1.js: 43
