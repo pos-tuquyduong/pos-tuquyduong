@@ -107,3 +107,13 @@ Nghiệm thu (đếm từng mục, có bằng chứng):
 - NGUYÊN TẮC 2 (đề xuất, K1): `trang_thai.md` phải viết lại sau mỗi lần chủ quán duyệt / đổi hướng; chữ "DỪNG", số ca cũ lừa người đọc.
 - BỎ 1: kho nông làm `thu_BH2` đỏ oan — lỗi môi trường một lần (`git fetch --unshallow`).
 - Dọn: không đề xuất xoá lời dặn nào (không có phép kiểm mới thay được lời dặn trong KHUON_LOI.md).
+
+## Kết quả cổng cuối (sau vòng sửa 1, HEAD 3ac45d88)
+GIT (`git log --oneline -2`): `3ac45d88 ANH-MON-1: hồ sơ vòng sửa 1, soát bảo mật ĐẠT, báo cáo 7 mục` · `a8439d0c ANH-MON-1: dot_bien — neo đúng sau khi thêm soMon`.
+`npm test -- --day-du`: PASS 136 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn của bộ kiểm, không phải phép của việc này).
+`node tu_chay/cong.js chay . 25adb0fa HEAD viec/ANH-MON-1` (mốc = main đã ghép; mốc `38fb4dd^` kéo thêm thay đổi NHOM-MON-1 / TOPPING-1 của main nên báo ✗ A16 oan):
+✓ CỔNG CHẠY ĐẠT
+· CẢNH BÁO A16: `cong_cu/thu_ANHMON1.js` chạy trên gốc in 43 ca ≠ 77 ca ở head — bài dừng sớm trên gốc (bảng pos_anh_mon chưa có → các mục B–F sập giữa chừng, đúng như bằng chứng đỏ), bình thường.
+Chưa ai chạy ở máy thật: trình duyệt / điện thoại (xem CHƯA KIỂM). Việc dừng ở đây, chờ chủ quán thử tay rồi ghi sổ.
+
+HEAD ĐÃ KIỂM: 3ac45d88
