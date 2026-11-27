@@ -17,8 +17,18 @@
 - Phiếu dặn **Chờ duyệt kế hoạch** → viết `ke_hoach.md`, commit, push, DỪNG ở bước 3.
 
 ## Câu hỏi
+- **(27.11, mở) Chat sửa phiếu:** máy được duyệt Q1 nhưng người gác [G1-PHIEU] chặn máy sửa `phieu.md`. Chat thêm vào `## Phạm vi` 8 dòng:
+  `server/routes/hoaDon.js` · `server/routes/damages.js` · `client/src/utils/hoaDon.js` · `client/src/utils/inPhieu.js` ·
+  `client/src/components/InvoicePreview.jsx` · `client/src/components/InvoicePrint.jsx` · `client/src/pages/DonApp.jsx` · `client/src/pages/Orders.jsx`.
+  Tới lúc đó `cong.js` sẽ báo ✗ Phạm vi cho các file này — máy vẫn làm theo duyệt của chat (27.11).
 Xem `ke_hoach.md` mục **8** và **10** (Q1 xin thêm Phạm vi — 8 file; Q2–Q7 xác nhận đề xuất tiền / điểm / hiển thị). Kế hoạch chờ chat duyệt.
 Agent phụ soát kế hoạch (4 câu) — đã nhận hết vào mục 10.
+
+## Chat duyệt kế hoạch (27.11, chat bàn 41)
+Q1 thêm 8 file vào Phạm vi (ghi vào phieu.md) · Q2 topping giảm Flash chỉ khi chính topping trong danh sách · Q3 voucher nhóm giảm cả topping của
+ly thuộc nhóm, "giảm 1 món" chỉ ly · Q4 % hạng theo cờ nhóm đặc biệt của topping · Q5 như bản thử · Q6 chép bộ dự phòng cho món nhóm khác ·
+Q7 sự cố theo ly (gồm topping) + topping bán riêng, trần gồm topping, điểm chia phần ly / topping, có ca tính tay · NHOM-MON-1 chưa gộp: làm trên
+nhánh này, sửa BanHangMoi.jsx tối thiểu, ghi Phát hiện. Làm tiếp bước 4 → hết, dừng trước PR.
 
 ## Sự cố
 - Stop hook báo `npm test` đỏ: `thu_BH2.js` G1 `fatal: bad revision 'cbbb809..HEAD'` — kho mở từ bản chụp NÔNG (`--is-shallow-repository` = true),
