@@ -117,6 +117,12 @@ async function main() {
     k('A1d chạy lần 2 không nhân đôi, không đổi', !loi2 && bang((await nhom()).map((g) => [g.ma, g.ten, g.thu_tu]), d1.map((g) => [g.ma, g.ten, g.thu_tu])), loi2 || '');
     const cat = (await db.query("SELECT category FROM pos_products WHERE sx_product_id BETWEEN 901 AND 904 ORDER BY sx_product_id")).map((r) => r.category);
     k('A1e category các món KHÔNG đổi', bang(cat, ['juice', 'tea', '', 'dacbiet']), JSON.stringify(cat));
+    await db.run("INSERT INTO pos_products (code, name, category, price, unit, sx_product_type, sx_product_id, is_active, created_at) VALUES ('NM905', 'Món mã có cách', ' cach', 1000, 'ly', 'pos', 905, 0, ?)", [getNow()]);
+    await chayBuoc();
+    const g = await db.queryOne("SELECT ma FROM pos_nhom_mon WHERE ma = ' cach'");
+    k('A1f category có khoảng trắng đầu: nhóm tạo ĐÚNG mã đó (JOIN g.ma = p.category khớp, không thành món mồ côi)', !!g, JSON.stringify(g));
+    await db.run("DELETE FROM pos_products WHERE code = 'NM905'");
+    await db.run("DELETE FROM pos_nhom_mon WHERE ma = ' cach'");
   });
 
   muc('[A2] route nhóm — quyền, sửa tên giữ mã, thứ tự, xoá');
@@ -151,10 +157,11 @@ async function main() {
     k('A2j xoá nhóm còn món → 409 NHOM_CON_MON, nhóm còn', la(xoaCon, 409, 'NHOM_CON_MON') && (await nhom()).some((x) => x.ma === 'dacbiet'), moTa(xoaCon));
     const xoaGoc = await Promise.all([goi('DELETE', '/pos/products/nhom/juice', undefined, tkChu), goi('DELETE', '/pos/products/nhom/tea', undefined, tkChu)]);
     k('A2k nhóm gốc juice / tea → 409 NHOM_GOC (kể cả khi còn món lẫn khi rỗng)', xoaGoc.every((r) => la(r, 409)) && xoaGoc.every((r) => ['NHOM_GOC', 'NHOM_CON_MON'].includes(r.j.code)), xoaGoc.map(moTa).join(' | '));
-    await db.run('UPDATE pos_products SET is_active = 0 WHERE category = ?', ['tea']);
+    const dsTea = (await db.query("SELECT id FROM pos_products WHERE category = 'tea'")).map((r) => r.id);
+    await db.run("UPDATE pos_products SET category = 'juice' WHERE category = 'tea'");   // nhóm tea RỖNG thật (kể cả món ẩn)
     const goc2 = await goi('DELETE', '/pos/products/nhom/tea', undefined, tkChu);
     k('A2l nhóm gốc RỖNG vẫn không xoá được → NHOM_GOC (phép riêng, không dựa vào "còn món")', la(goc2, 409, 'NHOM_GOC'), moTa(goc2));
-    await db.run('UPDATE pos_products SET is_active = 1 WHERE id = ?', [mT.id]);
+    for (const id of dsTea) await db.run("UPDATE pos_products SET category = 'tea' WHERE id = ?", [id]);
     const xoaRong = await goi('DELETE', '/pos/products/nhom/' + maMoi, undefined, tkChu);
     const khongCo = await goi('DELETE', '/pos/products/nhom/' + maMoi, undefined, tkChu);
     k('A2m nhóm rỗng xoá được (200); xoá lần nữa → 404 NHOM_KHONG_CO', la(xoaRong, 200) && la(khongCo, 404, 'NHOM_KHONG_CO'), moTa(xoaRong) + ' | ' + moTa(khongCo));
@@ -170,7 +177,11 @@ async function main() {
     const postOk = await goi('POST', '/pos/products', { name: 'Món tạo mới', price: 10000, category: 'tea' }, tkChu);
     const postMd = await goi('POST', '/pos/products', { name: 'Món mặc định', price: 10000 }, tkChu);
     k('A3c K5: category hợp lệ → 200; POST không gửi category vẫn → mặc định juice', la(putOk, 200) && la(postOk, 200) && la(postMd, 200) && postMd.j.product?.category === 'juice', moTa(putOk) + ' | ' + moTa(postOk) + ' | ' + moTa(postMd));
-    await goi('PUT', '/pos/products/' + mR.id, { category: '' }, tkChu).catch(() => {});
+    // K5: món đang giữ category KHÔNG có trong bảng nhóm (dữ liệu lạ, vd nhập từ SX) vẫn sửa được tên / giá khi UI gửi lại đúng category cũ
+    await db.run("UPDATE pos_products SET category = 'mocoi' WHERE id = ?", [mR.id]);
+    const suaMoCoi = await goi('PUT', '/pos/products/' + mR.id, { name: 'Món không nhóm', category: 'mocoi', sort_order: 0 }, tkChu);
+    const doiSangLa = await goi('PUT', '/pos/products/' + mR.id, { category: 'mocoi2' }, tkChu);
+    k('A3f K5: món category lạ (mồ côi) giữ nguyên category → sửa được 200; ĐỔI sang mã lạ khác → 400 NHOM_KHONG_CO', la(suaMoCoi, 200) && la(doiSangLa, 400, 'NHOM_KHONG_CO'), moTa(suaMoCoi) + ' | ' + moTa(doiSangLa));
     await db.run("UPDATE pos_products SET category = '' WHERE id = ?", [mR.id]);
     // hai người cùng bấm: xoá nhóm rỗng ‖ gán món vào nhóm đó — không bao giờ còn món mồ côi
     const m = (await goi('POST', '/pos/products/nhom', { ten: 'Nhóm đua' }, tkChu)).j.nhom.ma;
@@ -236,10 +247,10 @@ async function main() {
     k('A5i đơn App gọi món nhóm tắt App → MON_KHONG_BAN', chan.j.code === 'MON_KHONG_BAN', moTa(chan));
     await goi('PUT', '/pos/products/nhom/dacbiet', { hien_app: 1 }, tkChu);
     const qua = await goi('POST', '/kh/gio/bao-gia', gio(mL), tk);
-    k('A5j bật lại → báo giá không còn MON_KHONG_BAN', qua.j.code !== 'MON_KHONG_BAN' && qua.status < 500, moTa(qua));
+    k('A5j bật lại → báo giá không còn MON_KHONG_BAN', qua.status === 200 && qua.j.code !== 'MON_KHONG_BAN', moTa(qua));
     const tatQuay = await goi('PUT', '/pos/products/nhom/dacbiet', { hien_quay: 0 }, tkChu);
     const qua2 = await goi('POST', '/kh/gio/bao-gia', gio(mL), tk);
-    k('A5k tắt QUẦY không chặn đơn App (công tắc độc lập)', la(tatQuay, 200) && qua2.j.code !== 'MON_KHONG_BAN', moTa(qua2));
+    k('A5k tắt QUẦY không chặn đơn App (công tắc độc lập)', la(tatQuay, 200) && qua2.status === 200 && qua2.j.code !== 'MON_KHONG_BAN', moTa(qua2));
     await goi('PUT', '/pos/products/nhom/dacbiet', { hien_quay: 1 }, tkChu);
   });
 

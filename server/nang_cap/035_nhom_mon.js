@@ -19,7 +19,7 @@ module.exports.chay = async (tx) => {
     tao_luc TEXT NOT NULL
   )`);
   const co = await tx.queryOne("SELECT 1 AS co FROM sqlite_master WHERE type = 'table' AND name = 'pos_products'");
-  const la = co ? await tx.query("SELECT DISTINCT TRIM(category) AS ma FROM pos_products WHERE category IS NOT NULL AND TRIM(category) <> '' ORDER BY ma") : [];
+  const la = co ? await tx.query("SELECT DISTINCT category AS ma FROM pos_products WHERE category IS NOT NULL AND TRIM(category) <> '' ORDER BY ma") : [];
   const goc = new Set(NHOM_GOC.map(([ma]) => ma));
   const ds = [...NHOM_GOC, ...la.map((r) => [r.ma, r.ma]).filter(([ma]) => !goc.has(ma))];
   const luc = getNow();

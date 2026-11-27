@@ -118,11 +118,11 @@ router.put('/:id', (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : n
     // kho/nhapSx.js CHƯA qua vị từ này (Phát hiện KHO-3a).
     const id = Number(req.params.id);
     const kq = await trongGiaoDich(async (tx) => {
-      const cu = await tx.queryOne('SELECT name, is_active FROM pos_products WHERE id = ?', [id]);
+      const cu = await tx.queryOne('SELECT name, is_active, category FROM pos_products WHERE id = ?', [id]);
       if (!cu) return { huy: true, khongThay: true };
       const hienLai = doi.is_active === 1 && Number(cu.is_active) !== 1;
       if ((doi.name || hienLai) && await tenTrung(tx, doi.name || cu.name, id)) return { huy: true, trung: true };
-      if (doi.category !== undefined && !(await coNhom(tx, doi.category))) return { huy: true, nhomSai: true };
+      if (doi.category !== undefined && doi.category !== cu.category && !(await coNhom(tx, doi.category))) return { huy: true, nhomSai: true };
       await tx.run(`UPDATE pos_products SET ${Object.keys(doi).map((c) => c + ' = ?').join(', ')}, updated_at = ? WHERE id = ?`, [...Object.values(doi), getNow(), id]);
       return {};
     });
