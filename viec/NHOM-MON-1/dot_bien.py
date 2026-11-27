@@ -28,6 +28,7 @@ DOT_BIEN = [
   ('VS-category-tu-do-lot', [(P, "if (!(await coNhom(tx, chuNgan(b.category, 'juice')))) return", "if (!(await coNhom(tx, 'juice'))) return", 1)], r'✗ A3b '),
   ('BV-bo-loc-app', [(P, "const menuApp = () => layMenuQuay(undefined, 'app');", "const menuApp = () => layMenuQuay(undefined);", 1)], r'✗ A5c '),
   ('BV-bo-kiem-nhom-put', [(P, "if (doi.category !== undefined && doi.category !== cu.category && !(await coNhom(tx, doi.category))) return", "if (false) return", 1)], r'✗ A3a '),
+  ('VS-cong-tac-nhan-null', [(P, "[0, 1, '0', '1'].includes(b[c]) ? Number(b[c]) : null", "[0, 1].includes(Number(b[c])) ? Number(b[c]) : null", 1)], r'✗ A2g2 '),
   ('VS-put-kiem-ca-khi-khong-doi', [(P, "doi.category !== cu.category && ", "", 1)], r'✗ A3f '),
   ('VS-035-trim-ma', [(N, "SELECT DISTINCT category AS ma", "SELECT DISTINCT TRIM(category) AS ma", 1)], r'✗ A1f '),
   ('BV-bo-kiem-nhom-post', [(P, "if (!(await coNhom(tx, chuNgan(b.category, 'juice')))) return", "if (false) return", 1)], r'✗ A3b '),

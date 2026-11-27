@@ -343,7 +343,7 @@ router.put('/nhom/:ma', authenticate, checkPermission('manage_settings'), async 
   const b = req.body || {};
   const doi = {};
   if ('ten' in b) { if (!tenNhom(b.ten)) return loiNhom(res, 400, 'TEN_KHONG_HOP_LE', 'Tên nhóm từ 1 tới 40 ký tự'); doi.ten = tenNhom(b.ten); }
-  for (const c of ['hien_quay', 'hien_app']) if (c in b) doi[c] = [0, 1].includes(Number(b[c])) ? Number(b[c]) : null;
+  for (const c of ['hien_quay', 'hien_app']) if (c in b) doi[c] = [0, 1, '0', '1'].includes(b[c]) ? Number(b[c]) : null;
   if (!Object.keys(doi).length || Object.values(doi).some((v) => v == null)) return loiNhom(res, 400, 'YEU_CAU_KHONG_HOP_LE', 'Thông tin nhóm không hợp lệ');
   try {
     const kq = await trongGiaoDich(async (tx) => {

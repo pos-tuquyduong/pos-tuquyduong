@@ -147,6 +147,8 @@ async function main() {
     const cong = await goi('PUT', '/pos/products/nhom/tea', { hien_quay: 0 }, tkChu);
     const g = (await nhom()).find((x) => x.ma === 'tea');
     k('A2g công tắc: chỉ đổi hien_quay, hien_app giữ nguyên', la(cong, 200) && g.hien_quay === 0 && g.hien_app === 1, moTa(cong));
+    const xau = await Promise.all([null, '', false, 'x', 2].map((v) => goi('PUT', '/pos/products/nhom/tea', { hien_app: v }, tkChu)));
+    k('A2g2 công tắc nhận 0 / 1 / "0" / "1"; null, "", false, 2, "x" → 400 và KHÔNG tắt nhóm', xau.every((r) => la(r, 400, 'YEU_CAU_KHONG_HOP_LE')) && (await nhom()).find((x) => x.ma === 'tea').hien_app === 1, xau.map(moTa).join(' | '));
     await goi('PUT', '/pos/products/nhom/tea', { hien_quay: 1 }, tkChu);
     const thuTu = await goi('PUT', '/pos/products/nhom-thu-tu', { ma: [maMoi, 'tea', 'juice', 'dacbiet'] }, tkChu);
     k('A2h thứ tự: lưu đúng danh sách', la(thuTu, 200) && bang((await nhom()).map((x) => x.ma), [maMoi, 'tea', 'juice', 'dacbiet']), moTa(thuTu));
