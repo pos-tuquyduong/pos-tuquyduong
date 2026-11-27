@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  THỬ ANH-MON-1 — ảnh nhỏ cho món: bước 037 · tải / xoá / đọc ảnh · menu quầy + /api/kh/menu có `anh` · giao diện · hợp đồng v19
+ *  THỬ ANH-MON-1 — ảnh nhỏ cho món: bước 037 · tải / xoá / đọc ảnh · menu quầy + /api/kh/menu có `anh` · giao diện · hợp đồng v21 (sau NHOM-MON-1 v19, TOPPING-1 v20)
  * ═══════════════════════════════════════════════════════════════════════════
  *  BÀI NÀY PHẢI ĐỎ TRÊN CODE CHƯA VÁ (chưa có bảng, chưa có cửa ảnh, `anh` cứng null). Xanh ngay từ đầu = vô giá trị (K3).
  *
@@ -197,6 +197,11 @@ async function main() {
     k('D6 món không có → 404', la(r5, 404), moTa(r5));
     const r6 = await goi('PUT', '/api/pos/products/abc/anh', { tk: tkChu, kieu: 'image/jpeg', than: jpeg(2 * KB) });
     k('D7 mã món không phải số → không tải được (không 200)', r6.status !== 200, moTa(r6));
+    const hex = `/api/pos/products/0x${m1.toString(16)}/anh`;   // Number('0x9') = 9: không khoá ^\d+$ thì trỏ nhầm vào món m1
+    const r7 = await goi('PUT', hex, { tk: tkChu, kieu: 'image/jpeg', than: jpeg(2 * KB, 'hex') });
+    k('D8 PUT mã món dạng 0x… (Number() đọc được) → 404, không ghi vào món khác', la(r7, 404) && (await soHang(m1)) === truoc, moTa(r7));
+    const r8 = await goi('DELETE', hex, { tk: tkChu });
+    k('D9 DELETE mã món dạng 0x… → 404, ảnh món kia còn nguyên', la(r8, 404) && (await soHang(m1)) === truoc, `${moTa(r8)} · ${await soHang(m1)} hàng`);
   });
 
   // ═════════════════════════════════════════════════════════════════════════

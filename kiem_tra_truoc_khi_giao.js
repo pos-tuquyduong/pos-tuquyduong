@@ -825,7 +825,7 @@ chayBaiThat('cong_cu/thu_KHO3a.js');   // KHO-3a: menu từ POS, bán trừ kho 
 chayBaiThat('cong_cu/thu_NHOMMON1.js');   // NHOM-MON-1: nhóm món dùng chung (chat bàn 41 gắn khi ghép — máy NHOM-MON-1 chưa gắn)
 chayBaiThat('cong_cu/thu_TOPPING1.js');   // TOPPING-1: topping theo món, bán riêng, tiền / kho / sự cố / hoá đơn / tem / App KH
 chayBaiThat('cong_cu/thu_KHSP1.js');   // KH-SP-1: thông tin ngắn của món (bước 005, cửa ghi, /api/kh/menu)
-chayBaiThat('cong_cu/thu_ANHMON1.js');   // ANH-MON-1: ảnh nhỏ cho món (bước 037, tải / xoá / đọc ảnh, menu có anh, ô ảnh quầy, hợp đồng v19)
+chayBaiThat('cong_cu/thu_ANHMON1.js');   // ANH-MON-1: ảnh nhỏ cho món (bước 037, tải / xoá / đọc ảnh, menu có anh, ô ảnh quầy, hợp đồng v21)
 chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới, hoá đơn khách chỉ còn khổ nhiệt
 chayBaiThat('cong_cu/thu_KHOIN1.js');   // KHO-IN-1: cài đặt in phiếu kho (80mm / A5 / A4, số bản), ô khổ hoá đơn mặc định ghi đúng khoá
 chayBaiThat('cong_cu/thu_MANKHACH1.js');   // MANKHACH-1: màn khách — ghép máy, khoá riêng, QR + món lúc thu, nội dung rảnh, cài đặt, thu hồi
