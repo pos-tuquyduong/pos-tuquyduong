@@ -281,6 +281,30 @@ async function main() {
     k('H5 thẻ món (BanHangMoi.jsx) dùng AnhMon', (bh.match(/<AnhMon\b/g) || []).length >= 2, `${(bh.match(/<AnhMon\b/g) || []).length} chỗ`);
     const hd = ['pages/BanHang/ManKetThuc.jsx', 'components/HoaDon.jsx', 'components/BillPrint.jsx'].map(docCl).join('\n');
     k('H6 hoá đơn / tem KHÔNG có ảnh món', !/AnhMon|\.anh\b/.test(hd));
+    // Khoá NHÁNH VẼ (K3): dựng AnhMon.jsx thật bằng esbuild rồi vẽ ra HTML — không chỉ dò chuỗi trong mã.
+    let ve = null;
+    try {
+      const esbuild = require(path.join(GOC, 'client', 'node_modules', 'esbuild'));
+      const nguon = path.join(CLIENT, 'pages', 'BanHang', 'AnhMon.jsx');
+      const kq = esbuild.buildSync({
+        stdin: { contents: `import AnhMon from ${JSON.stringify(nguon)}; import { renderToStaticMarkup } from 'react-dom/server'; import { createElement } from 'react'; export const ve = (p) => renderToStaticMarkup(createElement(AnhMon, p));`,
+          resolveDir: path.join(GOC, 'client'), loader: 'js' },
+        bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', nodePaths: [path.join(GOC, 'client', 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'silent',
+      });
+      const mo = { exports: {} };
+      new Function('module', 'exports', 'require', kq.outputFiles[0].text)(mo, mo.exports, require);
+      ve = mo.exports.ve;
+    } catch (e) { k('H7 dựng được AnhMon.jsx để vẽ thử', false, e.message); }
+    if (ve) {
+      const coAnh = ve({ anh: '/api/pos/products/anh/5/abcdef012345', ten: 'Thanh Tân Dưỡng', kich: 48 });
+      k('H7 có ảnh: vẽ <img> đúng đường dẫn, ảnh lười, khung 48 × 48 viết sẵn', /<img[^>]*src="\/api\/pos\/products\/anh\/5\/abcdef012345"/.test(coAnh) && /loading="lazy"/.test(coAnh) && /width:48px;height:48px/.test(coAnh), coAnh.slice(0, 200));
+      const khong = ve({ anh: null, ten: 'Thanh Tân Dưỡng' });
+      k('H8 chưa có ảnh (null): KHÔNG <img>, hiện chữ viết tắt "TT", khung 44 × 44 mặc định', !/<img/.test(khong) && />TT</.test(khong) && /width:44px;height:44px/.test(khong), khong.slice(0, 200));
+      const rong = ve({ anh: '', ten: 'Cà phê' });
+      k('H9 ảnh chuỗi rỗng: KHÔNG <img>, chữ viết tắt "CP"', !/<img/.test(rong) && />CP</.test(rong), rong.slice(0, 200));
+      k('H10 cùng tên → cùng màu nền (không nhảy màu mỗi lần vẽ)', ve({ anh: null, ten: 'Ôn Dương Lộ' }) === ve({ anh: null, ten: 'Ôn Dương Lộ' }));
+    }
   });
 
   // ═════════════════════════════════════════════════════════════════════════
