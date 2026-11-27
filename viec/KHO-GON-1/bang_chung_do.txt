@@ -20,7 +20,7 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 117
+SỐ CA cong_cu/thu_KHOGON1.js: 128
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
@@ -76,3 +76,20 @@ Vòng sửa 4 (chủ quán 27.11: Q8 = (a) + B6 pha tại chỗ hết nguyên li
   Trên code đã sửa (3002c03d): 117 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG XANH · 117 đạt — TỔNG 53 · BẮT 53 (lượt đủ: 52 BẮT + 1 SỐNG
   VS-q8-giam-ca-xuat — bản đột biến viết sai, không đổi hành vi (dòng xuất lượng âm bị `so_luong > 0` loại); viết lại "giảm nguyên liệu theo tỉ lệ",
   chạy riêng: BẮT ✗ Q8a).
+
+Vòng sửa 5 (chủ quán 27.11: Q9 · Q10 · Q11 theo đề xuất + lỗi nhẹ lần soát cuối): bài đổi ở 4cef81f5 + 35517517 (Q4e2, Q8a2, Q9a, Q9b, Q11a, Q11a2,
+Q11b, Q8d, Q8e, Q10a, B6d; nền nhập thêm Cam). Chạy trên code TRƯỚC vòng 5 (cây 35517517 = code 33a9305d + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 121 đạt · 7 hỏng
+   ✗ Q4e2 sửa phiếu ghi diễn biến "Sửa phiếu" (tô cam) — số phiếu cũ → mới
+   ✗ Q8a2 phần thiếu trừ HẾT vào phiếu chờ → không tạo phiếu kiểm kê rỗng  — 3 → 4
+   ✗ Q9a phiếu đã bị kiểm kê giảm → ghi kết quả pha chế (10 ly) → 409 KQ_DA_KIEM_KE, lô giữ 9 (không ly ảo)  — HTTP 200 · NC 10
+   ✗ Q11a /ton cho người chỉnh tay trả số máy chủ DÙNG khi có phiếu chờ: Nước cam 5 (0 lô + 5 chờ duyệt)
+   ✗ Q11b gõ đúng số máy chủ dùng (5) → 200 khong_doi, không phiếu, không đổi phiếu chờ  — {"success":true,"phieu_id":27,"status":200}
+   ✗ Q8c (kéo theo Q11b: phiếu KK rỗng làm mốc cũ → 409 KHO_DA_KIEM)
+   ✗ Q10a phiếu hết hạn chờ duyệt giữ lô X + chỉnh tay đếm thiếu 1 → duyệt phiếu hết hạn sau đó 200 …  — cho_duyet · HTTP 200 · HTTP 409 · KHONG_DU_TON
+  Xanh trên code trước vòng 5 (ca phủ thêm, mỗi ca có đột biến riêng): Q9b (trên gốc bị che vì Q9a điền được kết quả) · Q11a2 · Q8d · Q8e · B6d.
+  Trên code đã sửa (1d9e9cda): 128 đạt · 0 hỏng.
+  Đột biến KHÔNG dựng được (vế phòng thủ, tương đương — không có đầu vào nào làm hành vi khác; ghi CHƯA KIỂM): giamPhieuCho `p.trang_thai = 'cho_duyet'`
+  (phần thiếu vượt lô ≤ phần phiếu chờ, vì gốc = lô + chờ) · UPDATE ly_do `AND trang_thai = 'cho_duyet'` (chỉ chọn phiếu chờ) · `d.loai = 'thanh_pham'`
+  (dòng xuất lượng âm đã bị `so_luong > 0` loại) · ghiKK `&& m.san_pham_id` (cần tồn nguyên liệu để kiểm LỚN hơn tổng lô còn thật —
+  chưa tìm ra đường tạo dữ liệu đó, không dựng được ca) · monCanChuY `p.is_active = 1` (tonMenu chỉ có món đang bán → món ngừng bán đã bị bỏ qua).
