@@ -2,7 +2,7 @@
 
 <!-- Phiếu do chat POS soạn 26.11.2026 (bàn 41, main acc88921). Máy: Claude Code · OPUS. LÀM SAU KHO-GON-1 (cùng máy, cùng vùng
      client/src/pages/Kho/ — bắt đầu từ main ĐÃ có KHO-GON-1; nếu KHO-GON-1 chưa merge thì DỪNG hỏi, đừng làm song song).
-     Việc giao diện kho + một cột / một bảng ảnh → chạy thẳng, KHÔNG chờ duyệt kế hoạch (LUAT §7); đột biến cho phần máy chủ.
+     Bổ sung 27.11: đổi LUẬT DUYỆT phiếu nhận / xuất (mục E) → "Chờ duyệt kế hoạch" (đụng số tồn + phân quyền).
      Chủ quán duyệt bản thử 26.11 14:05: https://claude.ai/artifact/YQMpwLWVCucKF6EbcHTnPv (bản 1795666795-8373) — màn Pha chế, Nhận hàng.
      Bản HTML ở viec/KHO-GON-2/ban_thu_kho.html. Chép HÀNH VI, không chép mã.
 
@@ -12,6 +12,8 @@
        - 001_kho.js 55–62: kho_cong_thuc lượng cho 1 đơn vị (REAL), thanh_phan_id = sản phẩm con (gói định lượng) → món đun nồi ĐÃ biểu diễn được
          bằng thành phần = gói, lượng = 1 / số ly mỗi nồi. Thiếu: số ly mỗi mẻ + chữ "+ 5 L nước" để màn tính theo NỒI.
        - server/index.js 81: express.json limit 5mb; multer đã dùng ở duong.js 150 (nhập SX). -->
+
+**Chờ duyệt kế hoạch:** viết `viec/KHO-GON-2/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
 ## Mục tiêu
 Nhân viên pha chế trên điện thoại không phải gõ, không phải tính: máy tick sẵn món dưới định mức, bấm − / + đổi số, thấy ngay "tối đa theo kho",
@@ -41,6 +43,29 @@ hoá đơn (tự thu nhỏ, không tốn dung lượng).
 - B4 Xem ảnh ở chi tiết phiếu (XemPhieu): người xem được phiếu thì xem được ảnh; không có đường đọc ảnh nào bỏ qua kiểm quyền phiếu.
 - B5 Ảnh KHÔNG vào sao lưu Excel hằng ngày (nặng) — kế hoạch ghi cách sao lưu ảnh (đề xuất: bỏ qua, ghi Phát hiện).
 
+**D. Thẻ nguyên liệu (chủ quán duyệt bản thử 27.11: https://claude.ai/artifact/W1ZwhRQa6zhYNaN3qkWscL bản 1795753697-ff4c, chép ở
+viec/KHO-GON-2/ban_thu_the_nguyen_lieu.html)**
+- D1 Chạm một nguyên liệu (ở Tồn kho / Nguyên liệu) → THẺ: tồn chữ to + nhãn đủ / dưới ngưỡng / hết; phần phiếu chờ duyệt (nếu có); "Dùng cho món"
+  + đủ khoảng bao nhiêu phần (dùng lại phép tính tối đa của A2); lô đang có (nhận, còn, hạn); lịch sử nhập / xuất (phiếu, người, ghi chú).
+- D2 Ba nút trên thẻ: "＋ Nhận hàng" (nhận nhanh MỘT thứ, đi CÙNG đường tạo phiếu nhận của tab Nhận hàng), "− Xuất / hao hụt" (lý do như Phát
+  sinh, CÙNG đường Phát sinh), "Chỉnh tồn" (đường chỉnh tay của KHO-GON-1; quyền như KHO-GON-1). Không viết đường ghi kho mới.
+- D3 Điều hướng: mỗi màn có nút "← <tên màn trước>" + dòng đường dẫn (Nguyên liệu › Cà phê › Nhận hàng); lưu xong tự về đúng thẻ; quay lại
+  danh sách GIỮ bộ lọc, ô tìm, vị trí cuộn. Mở thẻ từ dải "dưới ngưỡng" ở Việc hôm nay cũng quay lại đúng Việc hôm nay.
+- D4 Pha chế có một dòng nhắc: món pha tại chỗ (vd Cà Phê Đen) không cần pha trước — chỉ cần Nhận hàng nguyên liệu.
+- D5 Số lượng hiển thị làm tròn gọn (đang hiện "Táo đỏ 4.1999999 g" ở công thức Dưỡng Nhan Lộ) — một hàm định dạng chung, không đổi số lưu.
+
+**E. Luật duyệt (chủ quán chốt 27.11 — thay chốt 27.10 "nhận phải người khác duyệt")**
+- E1 **Nhận hàng (PN): AI nhận cũng cộng kho NGAY** (nhân viên, quản lý, chủ quán) — người nhận chịu trách nhiệm; phiếu ghi người nhận, vào
+  Diễn biến của KHO-GON-1 (chủ / quản lý thấy). Hiện server/kho/duLieu.js 249–250 bắt người duyệt ≠ người tạo cho MỌI phiếu → chủ quán tự
+  nhận hàng thì không ai duyệt được, kho trống (dữ liệu thật 27.11: 33 nguyên liệu tồn 0, 0 phiếu).
+- E2 **Xuất** (phiếu xuất pha chế PX, Phát sinh PS): chủ quán / quản lý trừ ngay (giữ chốt 27.10); nhân viên chờ chủ / quản lý duyệt — TRỪ KHI
+  bật công tắc mới "Nhân viên xuất kho không cần duyệt" (Cài đặt kho, chỉ chủ quán đổi, mặc định TẮT). Bật thì nhân viên xuất cũng trừ ngay +
+  Diễn biến. Đặt hàng (DH) giữ luật cũ.
+- E3 Phiếu nhận đang chờ duyệt trên dữ liệu thật (nếu có) lúc nâng cấp: giữ nguyên chờ, duyệt như cũ (không tự cộng) — kế hoạch nêu cách.
+- E4 Thử: nhân viên / quản lý / chủ quán nhận → tồn cộng ngay; nhân viên xuất → chờ (công tắc tắt) / ngay (bật); quản lý xuất → ngay; nhân viên
+  không đổi được công tắc (403); phiếu cũ chờ duyệt vẫn duyệt được; KHO-GON-1 kiểm kê / bàn giao không đổi. Đột biến: VS-nhan-van-cho-duyet ·
+  VS-cong-tac-bo-qua · VS-nv-doi-cong-tac · BV-xuat-nv-khong-duyet-khi-tat.
+
 **C. Điện thoại**
 - C1 Màn hẹp 390 px: mỗi món / nguyên liệu gói trong 1–2 dòng, ô số + nút − / + đủ to (≥ 40 px), thanh nút chính dính đáy, không tràn ngang.
   Theo bản thử.
@@ -69,7 +94,7 @@ hoá đơn (tự thu nhỏ, không tốn dung lượng).
 - kiem_tra_truoc_khi_giao.js
 
 ## Ngân sách
-~300 dòng code + ~300 dòng thử.
+~450 dòng code + ~450 dòng thử (thêm D, E 27.11).
 **Phương án đơn giản nhất đã xét:** món đun nồi = công thức thành phần gói đã có + hai trường mẻ (không thêm khái niệm "nồi" riêng); ảnh thu nhỏ ở
 máy người dùng, máy chủ chỉ kiểm và lưu.
 
