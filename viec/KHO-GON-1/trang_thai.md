@@ -22,8 +22,23 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
-(không còn — chủ quán trả lời Q12 = (a) ngày 27.11, cho phép vòng sửa 6, ngân sách ≈ 1.104 dòng; dặn KHÔNG mở rộng luật cho phiếu nhận chờ duyệt vì
-KHO-GON-2 sẽ cho nhận hàng cộng kho ngay.)
+Soát LẦN CUỐI sau vòng sửa 6 còn MỘT lỗi NẶNG ở số tồn — do CHÍNH vòng 6 gây ra (máy bỏ vế `daKiemKe` của Q9 vì tưởng Q12 đã bao trùm; sai — K3: đột
+biến sống báo THIẾU CA, không chứng minh vế thừa). Chủ quán dặn "còn lỗi tồn thì dừng hỏi" → máy DỪNG:
+
+- **Q13 · Chỉnh tay mà phần thiếu trừ HẾT vào phiếu pha chế chờ, rồi duyệt, rồi ghi kết quả pha chế → ly ảo (hỏng lại).** Người soát chạy thật: pha 5
+  (chờ) → chủ quán chỉnh tay về 4 (phiếu chờ còn 4, không phiếu KK, không kho_chot) → duyệt → nhân viên ghi kết quả 5 → tồn 4 → 5. Trước vòng 6 đường này
+  trả 409 (đúng Q9).
+  (a) **[đề xuất]** Trả lại vế Q9 (phiếu có lý do "kiểm kê: đếm thiếu" → khoá kết quả) bên cạnh Q12 — đúng như chủ quán đã duyệt ở Q9; thêm ca chạy thật
+  này + đột biến gỡ vế. Không phải luật mới.
+  (b) Cùng lượt: chỉnh tay gõ ĐÚNG số máy (không đổi gì) hiện không để lại dấu vết → không khoá kết quả. Theo tinh thần Q12 "kể cả đếm khớp" thì nên
+  khoá như kiểm kê đếm khớp. **[đề xuất]** Có — chỉnh tay luôn để lại dấu vết (cả khi không đổi) để Q12 đọc được.
+- **Xin phép vòng sửa 7** cho Q13 + 3 lỗi NHẸ cùng lượt soát (danh sách phiếu hiện "đã điền" theo Q12 chưa có ca + đột biến; ca K5 "món khác cùng
+  phiếu / món không có trong ảnh chốt vẫn ghi kết quả được" + 2 đột biến; chú thích duLieu.js / tinh.js hứa quá). Ngân sách hiện ≈ 1.125 dòng (gần
+  ≈ 1.104 đã nhận).
+
+## Câu hỏi đã trả lời (Q12, ngày 27.11)
+(chủ quán trả lời Q12 = (a), cho phép vòng sửa 6, ngân sách ≈ 1.104 dòng; dặn KHÔNG mở rộng luật cho phiếu nhận chờ duyệt vì KHO-GON-2 sẽ cho nhận hàng
+cộng kho ngay.)
 
 ## Câu hỏi đã trả lời (Q12)
 Soát LẦN CUỐI sau vòng sửa 5 còn MỘT lỗi NẶNG ở số tồn → theo LUAT §6.5 máy DỪNG hỏi (không "chat soát thay"):
@@ -489,4 +504,50 @@ VS-lech-gia-khi-vua-ban · VS-anh-chot-la-so-go · BV-bo-chan-ton-moi-am · BV-b
 VS-ban-giao-khong-tra-may · BV-bo-kiem-moc-sai · BV-bo-chan-hai-nguoi-chot · VS-ql-chinh-tay-khi-tat · BV-bo-kiem-quyen-chinh-tay ·
 VS-chinh-tay-khong-ly-do · VS-chua-xem-chung-nguoi · VS-da-xem-vuot-id · BV-bo-tab-viec-dau · VS-vong-hoi-thu-hai.
 Đã bỏ trong các vòng (vế đã bỏ / không còn ý nghĩa — ghi lý do ở bang_chung_do.txt): BV-bo-kiem-duyet-xen-giua · VS-ma-gui-tra-thieu-anh ·
-VS-q9-cho-dien-ket-qua · VS-q9-hien-cho-dien.
+VS-q9-cho-dien-ket-qua · VS-q9-hien-cho-dien. (ĐÍNH CHÍNH sau soát vòng 6: bỏ 2 đột biến Q9 cùng vế `daKiemKe` là SAI — xem Q13.)
+
+## Soát bảo mật — lần 4 (27.11, HEAD e35ed109 — sau vòng sửa 6)
+Trước lọc: 0 · sau lọc: 0. Báo cáo (nguyên văn, dòng đầu): "No vulnerabilities found."
+Người soát đã kiểm: câu SQL mới của monDaChot / dsPhieu tham số hoá, giá trị từ máy chủ; `kho_chot.anh` do máy chủ ghi, đọc bằng JSON.parse trong
+try/catch, chỉ so san_pham_id; không đổi đường / quyền — ghiKetQua chỉ chặt hơn (thêm 409), docPhieu / dsPhieu chỉ đổi trạng thái hiển thị; bỏ daKiemKe
+không làm yếu cổng về bảo mật; TonKho.jsx chỉ đổi chữ.
+
+SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập — lần cuối sau vòng sửa 6 (27.11, HEAD e35ed109) — chép nguyên văn
+KHÔNG ĐẠT
+
+Nói ngắn: vòng 6 sửa đúng các trường hợp Q12 mà bài thử có: chỉnh tay có dòng KK, kiểm kê đếm khớp, phiếu tạo sau lần chốt vẫn ghi được. Các lỗi nhẹ của lần soát trước cũng đã sửa. Nhưng khi gộp Q9 vào Q12, vòng này bỏ vế `daKiemKe`, và mình đã chạy thật thấy việc đó mở lại một đường ra ly ảo (NẶNG, tồn). Đường đó là: chỉnh tay mà phần thiếu trừ HẾT vào phiếu pha chế chờ, rồi duyệt phiếu, rồi ghi kết quả pha chế. Trên c3a60aca (trước vòng 6) đường này trả 409, trên HEAD nó trả 200.
+
+LỖI TÌM ĐƯỢC:
+- server/kho/duLieu.js:298 + :320–328 (monDaChot) cùng server/kho/kiemKe.js:96–124, 233–234 — NẶNG (tồn) — K4 + K3 (bỏ một vế chỉ vì đột biến của nó SỐNG).
+  - Vì sao lọt: monDaChot chỉ tìm hai dấu vết, là dòng KK có `san_pham_id` và dòng kho_chot. Chỉnh tay mà phần thiếu trừ hết vào phiếu chờ (giamPhieuCho) thì không để lại dấu vết nào: ghiKK trả `id` null theo Q8a2 (không tạo phiếu KK rỗng), và chinhTay không ghi kho_chot. Vế `daKiemKe` (đọc ly_do "kiểm kê: đếm thiếu") trước đây chặn đúng đường này, nay đã bỏ ở 715e4e48.
+  - Ca SOAT-A, chạy thật: lấy bài thử chép ra nháp, chèn ngay sau dòng duyệt px20 của ca Q8c. Dãy việc: nhân viên pha 5 (phiếu chờ, 0 lô). Chủ quán chỉnh tay về 4, phiếu chờ còn 4, không có phiếu KK. Quản lý duyệt, lô còn 4. Nhân viên ghi kết quả 5.
+    - HEAD: `HTTP 200 · 4 -> 5`, tức 1 ly ảo quầy bán được.
+    - Code c3a60aca (duLieu.js trước vòng 6): ✓ 409, tồn giữ 4.
+  - Hồ sơ ghi sai: trang_thai.md mục Vòng sửa 6 và bang_chung_do.txt nói "lần kiểm kê giảm phiếu chờ cũng là một lần chốt → monDaChot đã khoá, vế daKiemKe thừa". Câu đó đúng cho kiểm kê / bàn giao (có kho_chot), sai cho chỉnh tay.
+    - Việc VS-q9-hien-cho-dien SỐNG báo bài thử THIẾU CA (Q9a chỉ đi đường kiểm kê), không chứng minh code thừa.
+    - VS-q9-cho-dien-ket-qua bị bỏ khi đang HỎNG neo, chưa chạy lại lần nào.
+    - Chú thích duLieu.js:298 "(kể cả lần kiểm kê giảm phiếu chờ)" và tinh.js:203 cũng hứa quá phần đã làm (K1).
+  - Gợi ý sửa đơn giản: trả lại vế `daKiemKe(p)` bên cạnh monDaChot, hoặc cho monDaChot nhận cả phiếu đã bị giảm. Kèm thêm ca SOAT-A và đột biến gỡ vế đó.
+- server/kho/duLieu.js:435 (dsPhieu dùng ketQuaCoChot) — chưa có ca, chưa có đột biến — K3 — NHẸ. Mình tự dựng đột biến m1 (`tt === 'xx'`, tức danh sách phiếu bỏ Q12): kết quả 134 đạt · 0 hỏng, SỐNG.
+- server/kho/duLieu.js:322 (KK lọc `d.san_pham_id = ?`) và :326 (ảnh lọc theo món) — chưa có ca K5 "món khác" — K5 / K3 — NHẸ. Đây đúng là luồng bạn hỏi: chỉnh tay món A không được khoá kết quả món B trong cùng phiếu; món đã bán hết nên không có trong ảnh chốt thì vẫn phải ghi được. Hai đột biến mình tự dựng đều SỐNG (134 đạt · 0 hỏng): m3: bỏ lọc món ở câu KK · m4: `anh.length` thay cho lọc theo món, tức mọi lần chốt khoá mọi món.
+- Phần "Thử" của phiếu vẫn chưa có trong trang_thai.md — NHẸ (có thể phiên chính ghi ở bước cuối): 3 thao tác thử tay 390 px; kết quả `cong.js chay` sau vòng 6; mục CHƯA KIỂM cho phần chỉ có ở màn: nhớ ca, nút Làm, 4 gợi ý, in có chỗ ký, dấu +/− "đã tính phiếu chờ duyệt", lời "có thể lần bấm trước đã lưu".
+
+Lỗi của lần soát trước (sau vòng 5) — đã kiểm từng mục: Q12 NẶNG sửa đúng cho đường có dòng KK và đường kiểm kê / bàn giao (Q12a, Q12b BẮT); đường chỉnh tay chỉ trừ vào phiếu chờ thì hỏng lại · đính chính 2 "vế không dựng được": đã ghi; Q8f + VS-q8-giam-ca-phieu-duyet: BẮT · vế ghiKK `&& m.san_pham_id`: ghi CHƯA KIỂM theo lời dặn của chủ quán, không tính là lỗi · sửa phiếu DH / PN / PS ghi diễn biến: có ca Q4e3, BV-bo-dien-bien-sua-tao BẮT · bấm lại cùng mã chỉnh tay: đã đổi lời báo · "gồm -0,2 chờ duyệt": đã đổi thành dấu +/− · bảng đột biến: đã ghi đủ 70 tên · ngân sách: 1.103 dòng thêm + 22 dòng xoá ≈ 1.125, gần mức ≈ 1.104 chủ quán đã nhận.
+
+NGHI NGỜ:
+- Chỉnh tay gõ đúng số máy (`khong_doi`, kiemKe.js:233) không để lại dấu vết gì, nên không khoá kết quả pha chế. Q12 ghi "kể cả đếm khớp" cho kiểm kê / bàn giao. Chỉnh tay đếm khớp có tính là "lần chỉnh tay chạm món" không thì chưa rõ — mình đề xuất hỏi chủ quán.
+- So `>=` cùng giây (duLieu.js:322, 324): phiếu tạo cùng giây NGAY SAU lần chốt sẽ bị khoá oan. Rất hiếm.
+- dsPhieu (duLieu.js:433–436): với mỗi phiếu "chờ điền" chạy thêm 1 truy vấn, cộng việc đọc JSON của mọi lần chốt kể từ lúc tạo phiếu. Hiện chỉ có phiếu trong ngày nên nhẹ.
+
+NGHIỆM THU:    27/30 · mục thiếu: Q9 (đường chỉnh tay giảm phiếu chờ: hỏng lại) · Q12 (thiếu ca K5 món khác cùng phiếu / món không có trong ảnh, và thiếu ca danh sách phiếu) · "Thử" (390 px, cong.js sau vòng 6, CHƯA KIỂM phần màn). Có đủ: A1–A3 · B1–B6 · C1–C6 · D1 · D2 · E1 · E2 · 8/8 đột biến phiếu đòi · Q1 · Q4 · Q5 · Q8 · Q10 · Q11 · B6. Đã chạy: `dot_bien.py` 7 tên vòng 6: ĐỐI CHỨNG XANH 134 · BẮT 7/7 · 4 đột biến tự dựng: m2 BẮT (Q9b) · m1, m3, m4 SỐNG · SOAT-A: ĐỎ trên HEAD, XANH trên c3a60aca · dist build lại ra nháp: giống hệt client/dist → P1 đạt.
+
+CHƯA SOÁT ĐƯỢC: không chạy `npm test`, `--day-du`, `cong.js chay` (theo dặn); không chạy lại đủ 70 đột biến · bản nháp chạy SOAT-A thay xác thực bằng stub `req.user` và đặt TZ=UTC ở dòng lệnh (người gác chặn script có chữ khoá); hành vi route kho giữ nguyên · chưa chạy giao diện thật; chưa thử khôi phục sao lưu với 5 bảng mới · file nháp ở scratchpad/soat/ (chen.py, cong_cu/thu_soat.js, dot.py m1–m4).
+
+BÀI HỌC:
+- KHOÁ: đột biến SỐNG thì phải thêm ca rồi mới được xoá vế đó. Không được kết luận "vế thừa" khi chưa liệt kê đủ mọi đường tạo ra trạng thái mà vế canh: ở đây là kiểm kê · bàn giao · chỉnh tay, có dòng KK và không có dòng KK.
+- NGUYÊN TẮC (K4): luật khoá theo "đã có lần đếm" phải dựa trên MỘT dấu vết mà MỌI đường đếm đều ghi. Đường nào không ghi gì (trừ hết vào phiếu chờ, `khong_doi`) thì chính là đường song song bị lọt.
+
+## Kiểm sau vòng sửa 6 (phiên chính, 27.11)
+- `node cong_cu/thu_KHOGON1.js` 134 đạt · 0 hỏng · đột biến 70/70 BẮT (bang_chung_do.txt).

@@ -114,3 +114,6 @@ TRƯỚC vòng 6 (cây 523a701b = code c3a60aca + bài mới):
   Gộp Q9 vào Q12 (715e4e48): vế `daKiemKe` thừa — lượt đột biến đủ đầu tiên của vòng 6 cho VS-q9-hien-cho-dien SỐNG (Q12 đã khoá cùng ca) và
   VS-q9-cho-dien-ket-qua HỎNG (neo đổi). Bỏ vế + bỏ 2 đột biến đó; Q9a / Q9b nay do VS-q12-cho-dien-sau-chot / VS-q12-hien-cho-dien canh.
   Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên 4bcb39ab): ĐỐI CHỨNG XANH · 134 đạt — TỔNG 70 · BẮT 70 · SỐNG 0 · HỎNG 0 · LẠC 0.
+  ĐÍNH CHÍNH (soát lần cuối sau vòng 6): câu "vế daKiemKe thừa — Q12 bao trùm Q9" ở trên là SAI. Đúng cho kiểm kê / bàn giao (có kho_chot), sai cho
+  chỉnh tay mà phần thiếu trừ hết vào phiếu chờ (không phiếu KK, không kho_chot) — người soát chạy thật: HEAD 200 ly ảo, trước vòng 6 409. Đột biến
+  VS-q9-hien-cho-dien SỐNG là dấu hiệu THIẾU CA, không phải bằng chứng vế thừa (K3). Chờ chủ quán (Q13) để trả lại vế + ca + đột biến.
