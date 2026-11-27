@@ -146,3 +146,27 @@ khi thân gửi danh sách hoặc đổi thành topping (T05d/T05e, VS-sua-mon-k
 ghi_chu_nhanh [] (T48c, VS-topping-co-ghi-chu-o-quay); lỗi 6 → KhungChonMon lọc `sellable` (giao diện — chưa ca, thử tay); thiếu D5 → BAO_APPKH.md.
 Nghi ngờ chưa xử lý (ghi Phát hiện, không chặn): ca riêng cho item_count / nhánh đơn đã trả của App / dsQuay / InvoicePrint / dongHoaDon; T40, T41;
 đột biến lọc `cha == null` của mã giảm 1 món (topping cần thuộc nhóm của mã và đắt hơn ly mới lộ — ghi CHƯA KIỂM); hàm gom chung (để sau, không đổi hành vi).
+
+### Vòng 2 (27.11, HEAD 54014161) — KHÔNG ĐẠT
+Ba lỗi vòng 1 đã sửa đúng (thu_TOPPING1 92/0; 3 đột biến mới BẮT, đối chứng 92/0; chay_thu 186/0; dist có thay đổi vòng sửa). Không thấy lỗi tiền mới.
+LỖI TÌM ĐƯỢC:
+1. cong_cu/thu_TOPPING1.js:491 — T30b tên "topping hết → con_hang: false" nhưng chỉ kiểm `true`; không ca nào kiểm nhánh false; đổi kh/index.js:57 thành
+   `con_hang: true` vẫn xanh. K3.
+2. 7 chỗ vá không có ca đỏ khi gỡ: donApp.js:408 so_mon đơn ĐÃ trả; donApp.js:444-451 chiTietDon đơn đã trả; dongHoaDon.js:49 hoá đơn App (T45);
+   orders.js:817 lọc `cha == null` mã giảm 1 món (dựng được đột biến chắc chắn đỏ — không được ghi CHƯA KIỂM); orders.js:86 item_count;
+   manKhach.js:131, donApp.js:493 (hiển thị). T37 / T40 / T41 / T45 kế hoạch hứa chưa có; T39 đi qua /cancel không qua refunds.js. K3/K4.
+NGHI NGỜ: topping riêng gửi `from_package` 0đ khi gói không có danh sách món (lỗ cũ, gói đang tạm ngưng); chú thích đầu tienDaTra lệch; KhungChonMon sửa dòng có
+  topping vừa thành không bán được; bước 036 trên Turso bảng lớn chưa đo.
+NGHIỆM THU: 16/17 — thiếu "topping hết con_hang: false".
+ĐƠN GIẢN: luật gom dòng con vào ly ở 7 chỗ → một hàm / vị từ chung; kh/index.js:48 `p.la_topping ? []` thừa; T41 đối soát chưa có ca.
+CHƯA SOÁT ĐƯỢC: cong.js chay; npm test đầy đủ (dựa máy chính); 28 đột biến còn lại (chạy 3); giao diện thật; Turso; production; refunds.js duyệt hoàn có topping.
+BÀI HỌC: KHOÁ — người gác: tên ca chứa "→ false" / "→ 400" mà biểu thức chỉ `=== true` / 200 thì báo; tối thiểu mỗi giá trị phiếu ghi rõ có ca so BẰNG +
+  đột biến hằng số. NGUYÊN TẮC K3 — nghi ngờ vòng trước về chỗ vá chưa có ca, dựng được đột biến chắc chắn đỏ thì phải dựng, không hạ thành CHƯA KIỂM.
+  NGUYÊN TẮC K4 — tách cha / con thì MỘT vị từ "con của" dùng chung.
+
+Vòng sửa 2 (27.11): lỗi 1 → T30d (bán phần Long nhãn cuối → con_hang false) + BV-con-hang-topping; lỗi 2 → T43b (topping thuộc nhóm của mã, đắt hơn ly)
++ VS-mot-mon-chon-topping; T35b + VS-so-mon-app-da-tra; T35c + BV-chi-tiet-da-tra-gom; T45 + VS-hoa-don-app-sl; T47b + VS-item-count; T39 đổi tên cho đúng
+(/cancel). Chú thích tienDaTra.js sửa; kh/index.js bỏ vế thừa. Không làm (ghi lý do): manKhach dungHien / donApp dsQuay — chỉ hiển thị, cần ghép màn
+khách / đơn App đã trả qua payOS, CHƯA KIỂM; T37 ly từ gói + topping — quầy tạm ngưng gói (GOI_TAM_DUNG) nên không có luồng, CHƯA KIỂM; T40 đổi cách trả
+(không đụng dòng đơn) và T41 đối soát (doiSoat.js:143,385 lọc product_id < 0, dòng topping > 0) — không có code topping để canh, CHƯA KIỂM bằng ca;
+refunds.js duyệt hoàn đi soTienHoan theo tổng đơn — CHƯA KIỂM bằng ca; hàm gom chung 7 chỗ — đề xuất việc sau (không đổi hành vi).
