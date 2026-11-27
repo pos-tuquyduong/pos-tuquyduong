@@ -582,7 +582,7 @@ const KICH_BAN = [
   // KHO-3a (D4): SX đã ngắt — KB24 / KB25 cũ ("SX lỗi → nợ kho", "đẩy sổ nợ") thay bằng luật bán theo kho POS (chủ quán 17.11 18:47).
   { ten: 'kho POS: làm sẵn hết lô bị chặn, huỷ trả kho; món chưa công thức bị chặn', chay: async (c) => {
     const nl = await c.db.queryOne("SELECT id FROM kho_nguyen_lieu WHERE ten_chuan = 'nl thử'");
-    const tao = async (name) => (await c.goi('chu', 'POST', '/products', { name, category: 'khac', price: 10000, unit: 'ly' })).product?.id;
+    const tao = async (name) => (await c.goi('chu', 'POST', '/products', { name, category: 'juice', price: 10000, unit: 'ly' })).product?.id;
     const ls = await tao('KB24 làm sẵn'), chua = await tao('KB24 chưa công thức');
     const ct = await c.goi('chu', 'PUT', `/kho/san-pham/${ls}`, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nl?.id, luong: 0.001 }] });
     const px = await c.goi('chu', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: ls, so_phan: 2 }] });   // pha chế 2 phần → một lô 2
@@ -596,7 +596,7 @@ const KICH_BAN = [
   } },
   { ten: 'kho POS: pha tại chỗ thiếu nguyên liệu — TẮT chặn, chủ quán BẬT "cho bán khi thiếu" thì bán, ghi âm', chay: async (c) => {
     const nl = await c.db.queryOne("SELECT id FROM kho_nguyen_lieu WHERE ten_chuan = 'nl thử'");   // tồn âm: pha chế lô món thử đã trừ, chưa nhập
-    const id = (await c.goi('chu', 'POST', '/products', { name: 'KB25 pha tại chỗ', category: 'khac', price: 10000, unit: 'ly' })).product?.id;
+    const id = (await c.goi('chu', 'POST', '/products', { name: 'KB25 pha tại chỗ', category: 'juice', price: 10000, unit: 'ly' })).product?.id;
     const than = (bat) => ({ kieu: 'pha_tai_cho', cong_thuc: [{ nguyen_lieu_id: nl?.id, luong: 1 }], ...(bat === undefined ? {} : { cho_ban_thieu: bat }) });
     await c.goi('chu', 'PUT', `/kho/san-pham/${id}`, than());
     const ban = () => c.goi('chu', 'POST', '/orders', { items: [{ product_id: id, quantity: 1 }], payment_method: 'cash', cash_amount: 10000 });

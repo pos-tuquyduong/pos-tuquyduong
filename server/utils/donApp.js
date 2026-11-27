@@ -23,7 +23,7 @@ const crypto = require('crypto');
 const { query, queryOne, run } = require('../database');
 const { getNow, soHdCuaMa, chuoiSoHd } = require('./helpers');
 const { taoDon, LY_DO_HUY } = require('../routes/orders');
-const { layMenuQuay } = require('../routes/products');
+const { menuApp } = require('../routes/products');
 const { docCaiDat, dangMo } = require('./gioHoatDong');
 const { taoPhien, chotPhien, gomRes } = require('./giuCho');
 const { laTrungKhoa } = require('../kho/tinh');
@@ -149,9 +149,9 @@ async function kiemGio() {
   return !m.dang_mo ? thanLoi('NGOAI_GIO') : !m.nhan_don ? thanLoi('QUA_GIO_NHAN_DON') : null;
 }
 
-/** Món App → items của taoDon, theo ĐÚNG danh sách /menu thấy (layMenuQuay). Tồn chưa rõ (null) không chặn (Q7). */
+/** Món App → items của taoDon, theo ĐÚNG danh sách /menu thấy (menuApp — món của nhóm tắt "hiện trên App" → MON_KHONG_BAN). Tồn chưa rõ (null) không chặn (Q7). */
 async function dungItems(mon) {
-  const theoMa = new Map((await layMenuQuay()).map((p) => [p.unique_id, p]));
+  const theoMa = new Map((await menuApp()).map((p) => [p.unique_id, p]));
   const can = new Map();
   for (const m of mon) {
     const p = theoMa.get(m.ma);
