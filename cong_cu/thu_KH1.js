@@ -526,7 +526,7 @@ async function main() {
     const giaMoi = await db.query('SELECT * FROM pos_products WHERE is_active = 1');
     const r = await goi('GET', '/kh/menu', undefined, { tk: A.tk });
     const data = r.j.data || [];
-    const KHOA = ['anh', 'con_hang', 'cong_dung', 'gia', 'gia_hang', 'ma', 'mo_ta', 'nhom', 'nhu_cau', 'ten', 'thanh_phan', 'the_chat', 'ton_cu', 'ton_luc'];
+    const KHOA = ['anh', 'con_hang', 'cong_dung', 'gia', 'gia_hang', 'ma', 'mo_ta', 'nhom', 'nhom_ten', 'nhom_thu_tu', 'nhu_cau', 'ten', 'thanh_phan', 'the_chat', 'ton_cu', 'ton_luc'];
     k('E5 mỗi món ĐÚNG bộ khoá danh sách trắng', la(r, 200) && data.length > 0 && data.every((x) => bang(Object.keys(x).sort(), KHOA)), data[0] ? Object.keys(data[0]).join(',') : moTa(r));
     const theo = (id) => { const p = giaMoi.find((x) => x.id === id); return data.find((x) => x.ma === `${p.sx_product_type}_${p.sx_product_id}`); };
     k('E5 menu có món giá > 0, KHÔNG có món giá 0', !!theo(ds[1].id) && !theo(ds[3].id));

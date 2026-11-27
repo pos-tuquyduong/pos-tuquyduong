@@ -763,6 +763,9 @@ async function main() {
     k('A4 nhân viên tạo món → 403', nv.status === 403, moTa(nv));
     const rong = await goi('ql', 'POST', '/pos/products', { name: '  ', category: 'juice', price: 10000 });
     k('A4 tên rỗng → 400 TEN_KHONG_HOP_LE', la(rong, 400, 'TEN_KHONG_HOP_LE'), moTa(rong));
+    const nhomSai = await goi('ql', 'POST', '/pos/products', { name: 'Món nhóm sai K3a', category: 'khong_co_nhom', price: 10000 });
+    k('A4 NHOM-MON-1: category không có trong danh sách nhóm → 400 NHOM_KHONG_CO, không tạo món', la(nhomSai, 400, 'NHOM_KHONG_CO')
+      && !(await mot("SELECT 1 AS co FROM pos_products WHERE name = 'Món nhóm sai K3a'")), moTa(nhomSai));
     const tao = await goi('ql', 'POST', '/pos/products', { name: 'Món thử K3a', category: 'tea', price: 15000, unit: 'ly', sort_order: 0, is_active: 1 });
     const id = tao.j.product?.id;
     const hang = id ? await mot('SELECT * FROM pos_products WHERE id = ?', [id]) : null;
