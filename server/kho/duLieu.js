@@ -6,7 +6,7 @@
  */
 const { addDaysToDateString } = require('../utils/helpers');
 const { gonTen, chuanHoaTen, doiDonVi, laTrungKhoa, SAP_HET_HAN_NGAY, thuCuaNgay, chonDinhMuc, canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong,
-  trangThaiKetQua, trangThaiHan, bangPhieu, hanMuc, tongTien, trongHanMuc, conLaiDon, HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SAI_SO, LY_DO_KIEM_KE } = require('./tinh');
+  trangThaiKetQua, trangThaiHan, bangPhieu, hanMuc, tongTien, trongHanMuc, conLaiDon, HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SAI_SO } = require('./tinh');
 
 const soHoacNull = (x) => (x === '' || x == null || !Number.isFinite(Number(x)) ? null : Number(x));
 
@@ -295,7 +295,7 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
   if (p.trang_thai !== 'da_duyet' || p.thay_cho_id != null) {
     return { loi: [409, { error: 'Phiếu này không điền kết quả được (chưa duyệt, đã huỷ hoặc là phiếu sửa)', code: 'PHIEU_KHONG_DIEN' }] };
   }
-  if (daKiemKe(p) || await monDaChot(tx, spId, p.tao_luc)) {   // KHO-GON-1 Q9 + Q12: số thật đã được đếm / chỉnh tay — điền kết quả lúc này tính lệch HAI lần
+  if (await monDaChot(tx, spId, p.tao_luc)) {   // KHO-GON-1 Q9 + Q12: số thật đã được đếm / chỉnh tay (kể cả lần kiểm kê giảm phiếu chờ) — điền lúc này tính lệch HAI lần
     return { loi: [409, { error: 'Phiếu đã được kiểm kê chốt số — không điền kết quả pha chế nữa', code: 'KQ_DA_KIEM_KE' }] };
   }
   if (trangThaiKetQua(p.duyet_luc.slice(0, 10), luc.slice(0, 10), false, false) === 'tu_chot') {
@@ -315,9 +315,7 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
 }
 
 const ngayLam = (p) => String(p.duyet_luc || p.tao_luc).slice(0, 10);
-const daKiemKe = (p) => String(p.ly_do || '').includes(LY_DO_KIEM_KE);   // KHO-GON-1 Q9: phiếu bị kiểm kê giảm = số đã chốt, như phiếu sửa
-const ketQuaPhieu = (p, homNay, duKetQua) => (p.loai === 'PX' && p.trang_thai === 'da_duyet'
-  ? trangThaiKetQua(ngayLam(p), homNay, duKetQua, p.thay_cho_id != null || daKiemKe(p)) : null);
+const ketQuaPhieu = (p, homNay, duKetQua) => (p.loai === 'PX' && p.trang_thai === 'da_duyet' ? trangThaiKetQua(ngayLam(p), homNay, duKetQua, p.thay_cho_id != null) : null);
 
 /** KHO-GON-1 Q12 (a): món đã có lần chốt kiểm kê / bàn giao (kho_chot — kể cả đếm khớp) hoặc phiếu chỉnh tồn KK chạm món đó KỂ TỪ lúc tạo phiếu
  *  pha chế → số thật đã được đếm, kết quả pha chế của món đó coi như đã chốt. */

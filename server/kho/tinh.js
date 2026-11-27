@@ -200,7 +200,7 @@ function chuanHan(x) {
 // ── KHO-GON-1: việc hôm nay ──
 const GIAO_VIEC = ['nv', 'sang', 'toi', 'ql', 'tat_ca'];
 const CA = ['sang', 'toi'];
-const LY_DO_KIEM_KE = 'kiểm kê: đếm thiếu';   // Q8: lý do kiểm kê ghi lên phiếu pha chế chờ khi trừ phần thiếu vào nó — Q9 đọc lại để khoá kết quả pha chế
+const LY_DO_KIEM_KE = 'kiểm kê: đếm thiếu';   // Q8: lý do kiểm kê ghi lên phiếu pha chế chờ khi trừ phần thiếu vào nó (kết quả pha chế khoá theo Q12 — duLieu.monDaChot)
 /** Giờ hạn "HH:mm" (00:00–23:59) — trống → null; sai dạng → undefined (đường trả 400). */
 const chuanGio = (x) => { const s = String(x ?? '').trim(); return !s ? null : /^([01]\d|2[0-3]):[0-5]\d$/.test(s) ? s : undefined; };
 /** Quá giờ: chưa xong, có hạn, phút hiện tại (giờ VN máy chủ) ĐÃ QUA phút hạn — đúng 20:00 chưa quá, 20:01 mới quá. */

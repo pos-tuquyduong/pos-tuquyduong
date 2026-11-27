@@ -63,8 +63,6 @@ DOT_BIEN = [
   ('BV-bo-pha-het', [(V, "    mon.push({ san_pham_id: Number(p.id), ten: p.name, ly_do: `Pha tại chỗ: hết ${ten || 'nguyên liệu'}` });\n", '', 1)], r'✗ B6c '),
   ('VS-pha-het-bao-ca-con', [(V, " || t.stock_quantity > 0) continue;", ") continue;", 1)], r'✗ B6c '),
   # ── vòng sửa 5 ──
-  ('VS-q9-cho-dien-ket-qua', [('server/kho/duLieu.js', "  if (daKiemKe(p)) {", "  if (false) {", 1)], r'✗ Q9a '),
-  ('VS-q9-hien-cho-dien', [('server/kho/duLieu.js', "p.thay_cho_id != null || daKiemKe(p))", "p.thay_cho_id != null)", 1)], r'✗ Q9b '),
   ('BV-bo-tru-lo-cho-giu', [(K, "await loConThat(tx, m)", "await duLieu.conLaiTheoLo(tx, `l.${cotCua(m)} = ?`, [maCua(m)], LO_FEFO)", 1)], r'✗ Q10a '),
   ('VS-q11-khong-ton-kiem', [(R, "...(duoc && { ton_kiem: await kiemKe.tonKiemCoCho(csdl) }), ", "", 1)], r'✗ Q11a '),
   ('VS-q11-ton-kiem-cho-nv', [(R, "...(duoc && { ton_kiem:", "...(true && { ton_kiem:", 1)], r'✗ Q11a2 '),
