@@ -27,6 +27,8 @@
 .bh-mon-bao > .bh-mon { flex: 1; padding-right: 2rem; }
 .bh-mon:disabled { opacity: 0.4; cursor: not-allowed; }
 .bh-mon-ten { font-weight: 700; }
+.bh-anh { aspect-ratio: 1; flex: none; border-radius: 10px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: #475569; }
+.bh-anh img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bh-mon-ton { font-size: 0.75rem; color: var(--bh-xam); }
 .bh-gia { font-weight: 700; color: var(--bh-do); }
 .bh-gia-goc { text-decoration: line-through; color: var(--bh-xam); font-weight: 400; margin-right: 0.35rem; font-size: 0.85em; }

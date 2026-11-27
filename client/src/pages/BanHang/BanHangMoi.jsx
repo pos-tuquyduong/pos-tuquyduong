@@ -18,6 +18,7 @@ import ManPin from './ManPin';
 import ManQr from './ManQr';
 import KhungGiao from './KhungGiao';
 import ChipVoucher from './ChipVoucher';
+import AnhMon from './AnhMon';   // ANH-MON-1
 import MaGhepManKhach, { useQuayManKhach } from '../ManKhach/MaGhep';
 import { CACH_TRA_MAC_DINH, CAU_CHUA_BIET_DON, boVoucherLoi, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, loiTinhGia, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viTriMayChu, xuLyLoiPin, xuLyThuHong } from './tinh';
 import { maGuiMoi } from '../Kho/chung';   // KET-NOI-1: dùng lại bộ sinh mã lượt bấm của Kho
@@ -336,6 +337,7 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
 
   const dsNhom = [...new Set(sp.map((p) => p.category).filter(Boolean))];
   const dsMon = nhom === 'all' ? sp : sp.filter((p) => p.category === nhom);
+  const anhTheoId = useMemo(() => new Map(sp.map((p) => [p.id, p.anh])), [sp]);   // ANH-MON-1: dòng giỏ tìm ảnh theo món
   const nhomTheoMa = useMemo(() => Object.fromEntries(sp.filter((p) => p.code && p.category).map((p) => [p.code, p.category])), [sp]);
   const haiTrang = bo === 'hai-trang';
   const hienMon = !haiTrang || trang === 'mon';
@@ -385,6 +387,7 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
           return (
             <div key={s.id} className="bh-mon-bao">
               <button className="bh-mon" disabled={het || chuaCT || !coGia(s)} onClick={() => chamMon(s)}>
+                <AnhMon anh={s.anh} ten={s.name} kich={48} />
                 <span className="bh-mon-ten">{s.name}</span>
                 {coGia(s)
                   ? <span>{g < s.price && <span className="bh-gia-goc">{vnd(s.price)}</span>}<span className="bh-gia">{vnd(g)}</span></span>
@@ -419,6 +422,7 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
           const { goc, hienTai } = giaDong(d, i);
           return (
             <button key={d.key} className="bh-dong" onClick={() => moLaiDong(d)}>
+              <AnhMon anh={anhTheoId.get(d.product_id)} ten={d.product_name} kich={36} />
               <div className="bh-dong-ten"><b>{d.quantity} x {d.product_name}</b>{d.note && <div className="bh-dong-note">{d.note}</div>}{d.the && <div className="bh-dong-note">Chạm để bỏ thẻ</div>}</div>
               <div className="bh-dong-tien">
                 {hienTai < goc && <div className="bh-gia-goc">{vnd(goc * d.quantity)}</div>}

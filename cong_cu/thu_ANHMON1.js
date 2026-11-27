@@ -290,7 +290,7 @@ async function main() {
     const dau = Number((hd.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
     k('I1 PHIEN_BAN ≥ 19', dau >= 19, String(dau));
     k('I2 nhật ký có dòng v19 nhắc ANH-MON-1', /^- v19 · .*ANH-MON-1/m.test(hd));
-    k('I3 ghi nghĩa mới: `anh` = đường dẫn ảnh hoặc null (không còn "luôn null")', /ANH-MON-1/.test(hd) && !/`anh` \(luôn\s*`null`/.test(hd.replace(/\s+/g, ' ')));
+    k('I3 ghi nghĩa mới: `anh` = đường dẫn ảnh hoặc null (không còn "luôn null")', /ANH-MON-1/.test(hd) && !/`anh` \(luôn\s*`null`/.test(hd.split('## Nhật ký')[0].replace(/\s+/g, ' ')));   // nhật ký v4 là lịch sử, giữ nguyên
     k('I4 có file báo App KH', fs.existsSync(path.join(GOC, 'viec', 'ANH-MON-1', 'BAO_APPKH.md')));
   });
 

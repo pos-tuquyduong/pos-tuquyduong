@@ -1,7 +1,7 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 18
-NGAY: 2026-11-18
+PHIEN_BAN: 19
+NGAY: 2026-11-27
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1 + KH-THE-1) + HUY-1 + VOUCHER-2 + QC-APP-1 + KH-NAP-1 (utils/lichSuVi.js, routes/goi-nap.js, routes/thanh-toan.js, utils/viKhach.js, routes/quang-cao.js, nang_cap/028_quang_cao.js, routes/chuong-trinh.js, routes/tiers.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
   nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js, nang_cap/013_hang.js, nang_cap/023_quyen_loi_hang.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
@@ -220,9 +220,15 @@ Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (ch�
   `dang_bat` luôn `true` (chỉ trả chương trình đang bật VÀ trong thời gian chạy — ngày bắt đầu / kết thúc tính cả ngày đó, giờ VN). Chỉ HIỂN THỊ ("áp dụng tại
   quán"): mức ưu đãi và điều kiện KHÔNG trả ra; App KHÔNG áp chương trình lên đơn App.
 
+### Ghi chú v19 — ảnh món (`anh` trong `/menu`)
+- `anh` = đường dẫn TƯƠNG ĐỐI của ảnh món, dạng `/api/pos/products/anh/<id món>/<phiên bản>` (App ghép với địa chỉ máy chủ POS đang dùng cho `/api/kh`), hoặc `null`
+  khi món chưa có ảnh. Đọc KHÔNG cần token. Ảnh vuông 400 × 400, JPEG / PNG / WebP, ≤ 120 KB. Đường dẫn mang phiên bản nội dung: đổi ảnh → đường dẫn mới; ảnh
+  trả `Cache-Control: public, max-age=31536000, immutable` — App nhớ lâu được, KHÔNG tự ghép đường dẫn, luôn lấy từ `/menu`. Đường dẫn cũ sau khi đổi / xoá ảnh → 404
+  (`ANH_KHONG_CO`); ảnh lỗi → App hiện chữ viết tắt như khi `null`. Không cửa mới dưới `/api/kh`, không trường mới, không mã lỗi mới của `/api/kh`.
+
 ### Ghi chú v4 — thông tin ngắn của món (`/menu`)
-- Mỗi món thêm: `nhu_cau[]`, `the_chat[]` (mảng MÃ; chưa nhập → `[]`), `mo_ta`, `cong_dung`, `thanh_phan` (chữ; chưa nhập → `null`), `anh` (luôn
-  `null` — ảnh món làm sau, KH-SP-2; App giữ ô ảnh chờ). Quầy nhập ở Cài đặt → Sản phẩm; không trường nào khác của `/menu` đổi.
+- Mỗi món thêm: `nhu_cau[]`, `the_chat[]` (mảng MÃ; chưa nhập → `[]`), `mo_ta`, `cong_dung`, `thanh_phan` (chữ; chưa nhập → `null`), `anh` (từ v19, ANH-MON-1:
+  đường dẫn ảnh món hoặc `null` nếu chưa có — xem "Ghi chú v19"; trước v19 luôn `null`). Quầy nhập ở Cài đặt → Sản phẩm; không trường nào khác của `/menu` đổi.
 - Mã `nhu_cau` ∈ `ngu_ngon` (Ngủ ngon) · `dep_da` (Đẹp da) · `am_bung` (Ấm bụng) · `tinh_tao` (Tỉnh táo) · `bo_khi` (Bổ khí) · `giai_nhiet` (Giải nhiệt).
   Mã `the_chat` ∈ `binh_hoa` (Bình hoà) · `khi_hu` (Khí hư) · `duong_hu` (Dương hư) · `am_hu` (Âm hư) · `dam_thap` (Đàm thấp) · `thap_nhiet`
   (Thấp nhiệt) · `huyet_u` (Huyết ứ) · `khi_uat` (Khí uất) · `dac_bam` (Đặc bẩm). Nguồn mã: `server/utils/thongTinMon.js`; mã mới thì thêm vào
@@ -351,7 +357,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 18,
+  "phien_ban": 19,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -467,3 +473,5 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   (`POST /gio/bao-gia`, `POST /don`): món vừa hết / thiếu nguyên liệu → 400 `HET_HANG` kèm `ma`, món chưa có công thức → 400 `MON_KHONG_BAN` kèm `ma` (mã có sẵn).
   Tiền QR về đúng hạn mà món đã giữ vừa mất (lưới an toàn) → không tạo đơn, cộng ĐÚNG số tiền vào tài khoản (`tien_ve_da_cong_vi`), `thong_bao_tien_ve`
   = "Món <tên> vừa hết — quán đã hoàn <số> vào ví của bạn". Không thêm / xoá / đổi tên trường, không mã lỗi mới — App v17 chạy nguyên.
+- v19 · 27.11.2026 · ANH-MON-1: `GET /menu` — `anh` đổi nghĩa từ "luôn `null`" thành đường dẫn ảnh món (tương đối, đọc công khai, nhớ lâu theo phiên bản) hoặc `null` khi
+  chưa có ảnh. Không thêm / xoá / đổi tên trường, không cửa mới, không mã lỗi mới — App v18 đọc `anh` null / chuỗi đều chạy (chuỗi: bỏ qua cũng được).
