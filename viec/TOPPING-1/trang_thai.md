@@ -87,3 +87,19 @@ Chưa có đột biến (chờ 8 file): `diemThat.js` chia điểm phần ly / t
 - Người gác không cho `git fetch origin main` (luật GIT-KEO: chỉ kéo nhánh việc) → máy KHÔNG biết NHOM-MON-1 đã gộp chưa. Nhánh này dựng trên
   main `acc8892`; ở `acc8892` NHOM-MON-1 chưa có (BanHangMoi.jsx:337 nhóm theo `p.category`, kh/index.js:44 `nhom: p.category`). Nếu NHOM-MON-1
   gộp trước, chat cho máy biết để gộp nhánh việc từ main (máy không tự `git merge`).
+
+## Soát bảo mật
+Lần 1 (27.11, subagent độc lập chỉ đọc, đọc toàn bộ diff server/ + client/src/ từ 13a8e7b4^ tới 05b9a075 — 1423 dòng). Lỗi trước lọc: 0 · sau lọc: 0
+(không có lỗi nên không chạy bước lọc báo nhầm). Báo cáo nguyên văn:
+
+> No findings. I read the whole diff (1423 lines) and checked the surrounding code in server/routes/products.js, server/routes/orders.js and
+> server/routes/damages.js. I found no security problem in TOPPING-1 that I'm more than 80% sure can be exploited.
+> - Server computes prices itself: `dongTopping` takes the price from the database (`p.price`), `so_phan` whole 1–3, only toppings on the drink's
+>   `topping_cho_mon`, `la_topping`, on sale; standalone via `giaBanRieng` (stored price or 400). No client price / `cha` / `dong_cha_id` used.
+> - Discounts and package items: topping lines never get `from_package`; "giảm 1 món" picks only a drink; group voucher covers that drink's toppings (intended).
+> - Damages: cap per drink = drink + own topping lines (`tienDaTraTheoDong`); quantity / running totals still capped by `product_code`; topping inside a
+>   drink cannot be reported alone (`TOPPING_BAO_THEO_LY`). No double compensation path.
+> - Staff permissions: new PUT fields and `POST /:id/chep-nhom` need `authenticate` + `checkPermission('manage_settings')` like existing price routes.
+> - SQL injection: none (fixed column keys, `?` placeholders). `/api/kh`: topping keys allow-listed; order detail by token phone; no cost prices.
+> - XSS: React text only, no new `dangerouslySetInnerHTML`. No new secrets / personal data in responses or logs. No webhooks / short codes / crypto added.
+> - Not checked: no tests or exploit attempts — code reading only.
