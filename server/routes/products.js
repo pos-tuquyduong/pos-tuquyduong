@@ -34,13 +34,18 @@ async function xuLyMenu(req, res) {
 // KH-API-1: danh sách món ĐÚNG như quầy thấy — /api/kh/menu, màn khách, đơn App gọi CÙNG hàm. KHO-3a: nguồn DUY NHẤT pos_products đang bán
 // (thứ tự sort_order, giá POS); số từ kho POS (kho/banHang.js tonMenu — đã trừ phần đang giữ cho phiên chờ trả). Không bịa số: chưa công thức → null.
 // ton_cu / ton_luc giữ trường (hợp đồng /api/kh) nhưng không còn "tồn gần nhất của SX": false / null. Cột ton_gan_nhat / ton_luc giữ trong CSDL.
-async function layMenuQuay(category) {
+// NHOM-MON-1: nhóm món = pos_nhom_mon (mã = category). cho: 'quay' | 'app' → chỉ món của nhóm bật công tắc đó; KHÔNG truyền = mọi món (Cài đặt, Kho,
+// quang-cao.js cần thấy hết). Món chưa thuộc nhóm nào (category '' / mã lạ) coi như hiện cả hai chỗ — giữ hành vi cũ.
+const THU_TU_CHUA_NHOM = 9999;
+async function layMenuQuay(category, cho) {
   const ds = await query(
-    `SELECT * FROM pos_products WHERE is_active = 1${category ? ' AND category = ?' : ''} ORDER BY sort_order, name`,
+    `SELECT p.*, g.ten AS nhom_ten, g.thu_tu AS nhom_thu_tu, COALESCE(g.hien_quay, 1) AS nhom_hien_quay, COALESCE(g.hien_app, 1) AS nhom_hien_app
+     FROM pos_products p LEFT JOIN pos_nhom_mon g ON g.ma = p.category
+     WHERE p.is_active = 1${category ? ' AND p.category = ?' : ''} ORDER BY p.sort_order, p.name`,
     category ? [category] : []
   );
   const kho = await tonMenu({ query, queryOne }, getNow());
-  return ds.map((p) => {
+  return ds.filter((p) => !cho || Number(cho === 'app' ? p.nhom_hien_app : p.nhom_hien_quay) === 1).map((p) => {
     const k = kho.get(p.id) || { stock_quantity: null, khong_quan_kho: false, chua_cong_thuc: true };
     return {
       ...p,
@@ -49,6 +54,10 @@ async function layMenuQuay(category) {
       price: p.price ?? null,
       sellable: typeof p.price === 'number' && p.price > 0 && !k.chua_cong_thuc,
       is_special_group: !!p.is_special_group,
+      nhom_ten: p.nhom_ten ?? p.category ?? '',
+      nhom_thu_tu: p.nhom_thu_tu ?? THU_TU_CHUA_NHOM,
+      nhom_hien_quay: Number(p.nhom_hien_quay),
+      nhom_hien_app: Number(p.nhom_hien_app),
       ...docThongTin(p), // KH-SP-1: thông tin ngắn của món
       stock_quantity: k.stock_quantity,
       khong_quan_kho: k.khong_quan_kho,
@@ -78,6 +87,7 @@ router.post('/', authenticate, checkPermission('manage_settings'), async (req, r
   try {
     const kq = await trongGiaoDich(async (tx) => {
       if (await tenTrung(tx, ten)) return { huy: true, trung: true };
+      if (!(await coNhom(tx, chuNgan(b.category, 'juice')))) return { huy: true, nhomSai: true };
       const luc = getNow();
       const ins = await tx.run(`INSERT INTO pos_products (code, name, category, price, unit, is_active, sort_order, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [`MOI-${luc}-${Math.random().toString(36).slice(2, 8)}`, ten, chuNgan(b.category, 'juice'), gia,
@@ -86,6 +96,7 @@ router.post('/', authenticate, checkPermission('manage_settings'), async (req, r
       await tx.run('UPDATE pos_products SET code = ?, sx_product_type = ?, sx_product_id = ? WHERE id = ?', [`POS${id}`, LOAI_MON_POS, id, id]);
       return { id };
     });
+    if (kq.nhomSai) return loiMon(res, 'NHOM_KHONG_CO', 'Nhóm không có trong danh sách');
     if (kq.trung) return loiMon(res, 'TEN_TRUNG', 'Đã có món đang bán cùng tên');
     res.json({ success: true, product: await queryOne('SELECT * FROM pos_products WHERE id = ?', [kq.id]) });
   } catch (err) { loiGhi(res, err); }
@@ -111,10 +122,12 @@ router.put('/:id', (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : n
       if (!cu) return { huy: true, khongThay: true };
       const hienLai = doi.is_active === 1 && Number(cu.is_active) !== 1;
       if ((doi.name || hienLai) && await tenTrung(tx, doi.name || cu.name, id)) return { huy: true, trung: true };
+      if (doi.category !== undefined && !(await coNhom(tx, doi.category))) return { huy: true, nhomSai: true };
       await tx.run(`UPDATE pos_products SET ${Object.keys(doi).map((c) => c + ' = ?').join(', ')}, updated_at = ? WHERE id = ?`, [...Object.values(doi), getNow(), id]);
       return {};
     });
     if (kq.khongThay) return res.status(404).json({ error: 'Không thấy món', code: 'KHONG_THAY' });
+    if (kq.nhomSai) return loiMon(res, 'NHOM_KHONG_CO', 'Nhóm không có trong danh sách');
     if (kq.trung) return loiMon(res, 'TEN_TRUNG', 'Đã có món đang bán cùng tên');
     res.json({ success: true, product: await queryOne('SELECT * FROM pos_products WHERE id = ?', [id]) });
   } catch (err) { loiGhi(res, err); }
@@ -268,8 +281,100 @@ router.put('/thong-tin', authenticate, checkPermission('manage_settings'), async
   }
 });
 
+// ── NHOM-MON-1: nhóm món (pos_nhom_mon) — MỘT danh sách cho quầy, App KH, Kho. Mã nhóm = pos_products.category, KHÔNG đổi được; chỉ tên, thứ tự, hai công tắc. ──
+// Nhóm gốc: đường chép món từ SX (/price, /batch/prices, /thong-tin ở trên) gán đúng hai mã này → không xoá được (vẫn đổi tên được).
+const MA_NHOM_GOC = ['juice', 'tea'];
+const tenNhom = (v) => (typeof v === 'string' && v.trim() && [...v.trim()].length <= 40 ? v.trim().replace(/\s+/g, ' ') : null);
+const loiNhom = (res, status, code, error) => res.status(status).json({ error, code });
+/** Nhóm có thật? (dùng chung cho POST / PUT món — đọc trong CÙNG giao dịch với câu ghi món). */
+const coNhom = async (csdl, ma) => !!(await csdl.queryOne('SELECT 1 AS co FROM pos_nhom_mon WHERE ma = ?', [ma]));
+const nhomTheoMa = (csdl, ma) => csdl.queryOne('SELECT * FROM pos_nhom_mon WHERE ma = ?', [ma]);
+const tenNhomTrung = async (csdl, ten, boMa = '') => !!(await csdl.queryOne('SELECT 1 AS co FROM pos_nhom_mon WHERE ten = ? AND ma <> ?', [ten, boMa]));
+
+// Danh sách đúng thứ tự — mọi người đăng nhập đọc được (quầy vẽ tab, Kho vẽ ô chọn).
+router.get('/nhom', authenticate, async (req, res) => {
+  try {
+    res.json({ success: true, data: await query('SELECT ma, ten, thu_tu, hien_quay, hien_app FROM pos_nhom_mon ORDER BY thu_tu, id') });
+  } catch (err) { loiGhi(res, err); }
+});
+
+// Xem trước "khách thấy trên App": CÙNG hàm menuApp với /api/kh/menu và đơn App (không phép lọc thứ hai) — chỉ thêm chữ ngắn gọn để vẽ.
+router.get('/nhom/xem-truoc', authenticate, async (req, res) => {
+  try {
+    const ds = (await menuApp()).filter((p) => p.sellable);
+    res.json({ success: true, data: ds.map((p) => ({ ma: p.unique_id, ten: p.name, nhom: p.category, nhom_ten: p.nhom_ten, nhom_thu_tu: p.nhom_thu_tu })) });
+  } catch (err) { loiGhi(res, err); }
+});
+
+router.post('/nhom', authenticate, checkPermission('manage_settings'), async (req, res) => {
+  const ten = tenNhom((req.body || {}).ten);
+  if (!ten) return loiNhom(res, 400, 'TEN_KHONG_HOP_LE', 'Tên nhóm từ 1 tới 40 ký tự');
+  try {
+    const kq = await trongGiaoDich(async (tx) => {
+      if (await tenNhomTrung(tx, ten)) return { huy: true, trung: true };
+      const ma = `nm_${Math.random().toString(36).slice(2, 8)}`;
+      const max = await tx.queryOne('SELECT COALESCE(MAX(thu_tu), 0) AS m FROM pos_nhom_mon');
+      await tx.run('INSERT INTO pos_nhom_mon (ma, ten, thu_tu, tao_luc) VALUES (?, ?, ?, ?)', [ma, ten, Number(max.m) + 1, getNow()]);
+      return { nhom: await nhomTheoMa(tx, ma) };
+    });
+    if (kq.trung) return loiNhom(res, 400, 'TEN_TRUNG', 'Đã có nhóm cùng tên');
+    res.json({ success: true, nhom: kq.nhom });
+  } catch (err) { loiGhi(res, err); }
+});
+
+// Sắp xếp: gửi CẢ danh sách mã theo thứ tự mới; thiếu / thừa / trùng mã → 400, không đổi gì. TRƯỚC `/nhom/:ma` (khác đường, tránh nhầm).
+router.put('/nhom-thu-tu', authenticate, checkPermission('manage_settings'), async (req, res) => {
+  const ma = (req.body || {}).ma;
+  if (!Array.isArray(ma) || ma.some((m) => typeof m !== 'string')) return loiNhom(res, 400, 'YEU_CAU_KHONG_HOP_LE', 'Danh sách mã nhóm không hợp lệ');
+  try {
+    const kq = await trongGiaoDich(async (tx) => {
+      const co = (await tx.query('SELECT ma FROM pos_nhom_mon')).map((r) => r.ma);
+      if (new Set(ma).size !== ma.length || ma.length !== co.length || !ma.every((m) => co.includes(m))) return { huy: true, sai: true };
+      for (let i = 0; i < ma.length; i++) await tx.run('UPDATE pos_nhom_mon SET thu_tu = ? WHERE ma = ?', [i + 1, ma[i]]);
+      return {};
+    });
+    if (kq.sai) return loiNhom(res, 400, 'YEU_CAU_KHONG_HOP_LE', 'Danh sách mã nhóm phải đủ, không trùng');
+    res.json({ success: true });
+  } catch (err) { loiGhi(res, err); }
+});
+
+// Sửa tên / công tắc. Mã KHÔNG đổi (body có `ma` cũng bỏ qua).
+router.put('/nhom/:ma', authenticate, checkPermission('manage_settings'), async (req, res) => {
+  const b = req.body || {};
+  const doi = {};
+  if ('ten' in b) { if (!tenNhom(b.ten)) return loiNhom(res, 400, 'TEN_KHONG_HOP_LE', 'Tên nhóm từ 1 tới 40 ký tự'); doi.ten = tenNhom(b.ten); }
+  for (const c of ['hien_quay', 'hien_app']) if (c in b) doi[c] = [0, 1].includes(Number(b[c])) ? Number(b[c]) : null;
+  if (!Object.keys(doi).length || Object.values(doi).some((v) => v == null)) return loiNhom(res, 400, 'YEU_CAU_KHONG_HOP_LE', 'Thông tin nhóm không hợp lệ');
+  try {
+    const kq = await trongGiaoDich(async (tx) => {
+      if (!(await nhomTheoMa(tx, req.params.ma))) return { huy: true, khongCo: true };
+      if (doi.ten && await tenNhomTrung(tx, doi.ten, req.params.ma)) return { huy: true, trung: true };
+      await tx.run(`UPDATE pos_nhom_mon SET ${Object.keys(doi).map((c) => c + ' = ?').join(', ')} WHERE ma = ?`, [...Object.values(doi), req.params.ma]);
+      return { nhom: await nhomTheoMa(tx, req.params.ma) };
+    });
+    if (kq.khongCo) return loiNhom(res, 404, 'NHOM_KHONG_CO', 'Không thấy nhóm này');
+    if (kq.trung) return loiNhom(res, 400, 'TEN_TRUNG', 'Đã có nhóm cùng tên');
+    res.json({ success: true, nhom: kq.nhom });
+  } catch (err) { loiGhi(res, err); }
+});
+
+// Xoá: chỉ nhóm không phải gốc và KHÔNG còn món nào (kể cả món đang ẩn). Điều kiện "không còn món" nằm ngay trong câu xoá — đua với việc gán món vào nhóm.
+router.delete('/nhom/:ma', authenticate, checkPermission('manage_settings'), async (req, res) => {
+  try {
+    const ma = req.params.ma;
+    if (!(await nhomTheoMa({ queryOne }, ma))) return loiNhom(res, 404, 'NHOM_KHONG_CO', 'Không thấy nhóm này');
+    if (MA_NHOM_GOC.includes(ma)) return loiNhom(res, 409, 'NHOM_GOC', 'Nhóm gốc không xoá được — chỉ đổi tên hoặc tắt hiện');
+    const r = await run('DELETE FROM pos_nhom_mon WHERE ma = ? AND NOT EXISTS (SELECT 1 FROM pos_products WHERE category = ?)', [ma, ma]);
+    if (!r.changes) return loiNhom(res, 409, 'NHOM_CON_MON', 'Nhóm còn món — chuyển món sang nhóm khác trước');
+    res.json({ success: true });
+  } catch (err) { loiGhi(res, err); }
+});
+
 // KHO-3a C1: SX đã ngắt — danh sách món chỉ quản lý trong POS.
 router.post('/sync-from-sx', authenticate, (req, res) => res.status(410).json({ error: 'Đã ngắt kết nối SX — thêm / sửa món ở Kho › Sản phẩm', code: 'SX_DA_NGAT' }));
 
 module.exports = router;
 module.exports.layMenuQuay = layMenuQuay; // KH-API-1: /api/kh/menu
+const menuApp = () => layMenuQuay(undefined, 'app');
+module.exports.menuApp = menuApp;   // NHOM-MON-1: món App thấy / đặt được = nhóm bật "hiện trên App" — MỘT chỗ lọc cho /menu và đơn App
+module.exports.menuQuay = () => layMenuQuay(undefined, 'quay'); // NHOM-MON-1: món quầy thấy (màn khách)

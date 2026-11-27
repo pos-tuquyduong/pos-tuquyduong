@@ -216,8 +216,12 @@ async function main() {
     await goi('PUT', '/pos/products/nhom/dacbiet', { hien_app: 1 }, tkChu);
     m = await menuApp();
     k('A5g bật lại → món về', co(m, mL));
-    const maXep = m.map((x) => x.nhom_thu_tu);
-    k('A5h nhom_thu_tu khớp thứ tự nhóm trong bảng', bang((await nhom()).map((g) => g.ma), ['juice', 'tea', 'dacbiet']) && m.find((x) => x.ma === maMon(mJ)).nhom_thu_tu < m.find((x) => x.ma === maMon(mT)).nhom_thu_tu && maXep.length > 0);
+    const xt = await goi('GET', '/pos/products/nhom/xem-truoc', undefined, tkNv);
+    k('A2n khung "Xem trước": đúng bộ món /api/kh/menu đang trả (cùng hàm, so BẰNG), không đăng nhập → 401',
+      la(xt, 200) && bang((xt.j.data || []).map((x) => x.ma).sort(), m.map((x) => x.ma).sort()) && la(await goi('GET', '/pos/products/nhom/xem-truoc'), 401), moTa(xt));
+    const ord = (await nhom()).map((g) => g.ma);   // sau A2h: tea, juice, dacbiet — nhom_thu_tu phải đi theo BẢNG, không theo mã
+    k('A5h nhom_thu_tu khớp thứ tự nhóm trong bảng (tea < juice < dacbiet)', bang(ord, ['tea', 'juice', 'dacbiet']) && m.find((x) => x.ma === maMon(mT)).nhom_thu_tu < m.find((x) => x.ma === maMon(mJ)).nhom_thu_tu
+      && m.find((x) => x.ma === maMon(mJ)).nhom_thu_tu < m.find((x) => x.ma === maMon(mL)).nhom_thu_tu);
     // đơn App
     const sdt = '0933000111';
     await db.run("INSERT INTO pos_customers (phone, name, created_at) VALUES (?, 'Khách Thử', ?)", [sdt, getNow()]);

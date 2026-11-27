@@ -1,7 +1,7 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 18
-NGAY: 2026-11-18
+PHIEN_BAN: 19
+NGAY: 2026-11-27
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1 + KH-THE-1) + HUY-1 + VOUCHER-2 + QC-APP-1 + KH-NAP-1 (utils/lichSuVi.js, routes/goi-nap.js, routes/thanh-toan.js, utils/viKhach.js, routes/quang-cao.js, nang_cap/028_quang_cao.js, routes/chuong-trinh.js, routes/tiers.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
   nang_cap/005_thong_tin_mon.js, utils/thongTinMon.js, nang_cap/006_don_app.js, nang_cap/013_hang.js, nang_cap/023_quyen_loi_hang.js) — bài thử cong_cu/thu_HOPDONG_KH.js canh khớp code
@@ -35,7 +35,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
 | `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null` (hạng CAO NHẤT còn hạn; `het_han` null = không thời hạn — v10); `so_du_vi` xem dưới |
 | `PUT /toi` | có | `{ ten?, xung_ho?, dia_chi?, ngay_sinh? }` — ít nhất một khoá; xem "Hồ sơ" và "Ghi chú v9" | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh }` |
 | `POST /gia-han` | có | — | `token`, `het_han` — xem "Tự gia hạn" |
-| `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4" |
+| `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, nhom_ten, nhom_thu_tu, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4" |
 | `GET /diem` | có | — | `points`, `history` |
 | `GET /voucher` | có | `?all=1` lấy cả mã đã dùng / hết hạn | `data[]`, `ma_khach_moi` — mỗi dòng `data[]` thêm `mo_ta`, `nguon`, `kieu` (v15): xem "Ghi chú v15" |
 | `GET /vi` | có | `?trang=N` (20 dòng / trang) | `trang`, `con_nua`, `data[] { ngay, loai, so_tien, thuong, ma_don, ghi_chu }` — lịch sử tài khoản của chính khách; xem "Ghi chú v17" |
@@ -351,7 +351,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 18,
+  "phien_ban": 19,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -364,7 +364,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
     { "pt": "GET", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.ngay_sinh", "khach.qr", "khach.hang.id", "khach.hang.ten", "khach.hang.phan_tram", "khach.hang.phan_tram_nhom_dac_biet", "khach.hang.het_han", "khach.so_du_vi"] },
     { "pt": "PUT", "duong": "/toi", "token": true, "tra": ["khach.sdt", "khach.ten", "khach.ngay_tao", "khach.xung_ho", "khach.dia_chi", "khach.ngay_sinh"] },
     { "pt": "POST", "duong": "/gia-han", "token": true, "tra": ["token", "het_han"] },
-    { "pt": "GET", "duong": "/menu", "token": "tuy_chon", "tra": ["data[].ma", "data[].ten", "data[].nhom", "data[].gia", "data[].con_hang", "data[].ton_cu", "data[].ton_luc", "data[].gia_hang[].hang_id", "data[].gia_hang[].gia", "data[].nhu_cau", "data[].the_chat", "data[].mo_ta", "data[].cong_dung", "data[].thanh_phan", "data[].anh"] },
+    { "pt": "GET", "duong": "/menu", "token": "tuy_chon", "tra": ["data[].ma", "data[].ten", "data[].nhom", "data[].nhom_ten", "data[].nhom_thu_tu", "data[].gia", "data[].con_hang", "data[].ton_cu", "data[].ton_luc", "data[].gia_hang[].hang_id", "data[].gia_hang[].gia", "data[].nhu_cau", "data[].the_chat", "data[].mo_ta", "data[].cong_dung", "data[].thanh_phan", "data[].anh"] },
     { "pt": "GET", "duong": "/diem", "token": true, "tra": ["points", "history"] },
     { "pt": "GET", "duong": "/voucher", "token": true, "tra": ["data", "ma_khach_moi"] },
     { "pt": "GET", "duong": "/goi-nap", "token": false, "tra": ["data[].ma", "data[].ten", "data[].tra", "data[].vao"] },
@@ -467,3 +467,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   (`POST /gio/bao-gia`, `POST /don`): món vừa hết / thiếu nguyên liệu → 400 `HET_HANG` kèm `ma`, món chưa có công thức → 400 `MON_KHONG_BAN` kèm `ma` (mã có sẵn).
   Tiền QR về đúng hạn mà món đã giữ vừa mất (lưới an toàn) → không tạo đơn, cộng ĐÚNG số tiền vào tài khoản (`tien_ve_da_cong_vi`), `thong_bao_tien_ve`
   = "Món <tên> vừa hết — quán đã hoàn <số> vào ví của bạn". Không thêm / xoá / đổi tên trường, không mã lỗi mới — App v17 chạy nguyên.
+- v19 · 27.11.2026 · NHOM-MON-1: nhóm món cài ở MỘT chỗ (POS › Quản lý › Giá bán & nhóm món). `GET /menu` thêm `nhom_ten` (tên hiển thị của nhóm, chủ quán sửa được) và
+  `nhom_thu_tu` (số thứ tự nhóm, nhỏ = trước; món chưa thuộc nhóm nào = 9999); `nhom` GIỮ NGUYÊN nghĩa = mã nhóm ổn định (không bao giờ đổi). Luật lọc: `/menu` CHỈ trả món
+  của nhóm đang bật "hiện trên App"; đặt đơn / báo giá món của nhóm đang tắt → 400 `MON_KHONG_BAN` kèm `ma` (mã có sẵn). Món chưa thuộc nhóm nào vẫn hiện. App v18 chỉ đọc
+  `nhom` là chạy nguyên; App nên dùng `nhom_ten` + `nhom_thu_tu` thay vì tự đặt tên / thứ tự nhóm. Không xoá / đổi tên trường, không mã lỗi mới.
