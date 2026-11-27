@@ -75,3 +75,35 @@ BÀI HỌC (đề xuất của agent): KHOÁ — phép "mọi nơi ghi category 
 1. Sửa `phieu.md`: Phạm vi thêm `server/utils/donApp.js`, `cong_cu/thu_KH1.js`, `cong_cu/thu_KHSP1.js`, `cong_cu/gia_lap/kich_ban.js`; thêm `## Bài thử cũ sửa` ghi `cong_cu/thu_KHO3a.js`.
 2. Chạy lại `/lam-viec NHOM-MON-1 tiep`: máy làm 5 sửa nhỏ (donApp 2 dòng; thu_KH1 + thu_KHSP1 thêm 2 trường vào danh sách; kich_ban 2 dòng 'khac' → 'juice'), soát bảo mật (bước 8b), `cong.js chay`, `HEAD ĐÃ KIỂM`, báo cáo 7 mục.
 3. 3 thao tác thử tay (sau khi xong): (a) Quản lý › Giá bán & nhóm món: đổi tên "Trà" → "Trà thảo mộc", mở màn Bán hàng thấy tab đổi; (b) tắt "Hiện trên App" của một nhóm → mở App KH thấy nhóm biến; (c) Kho › Sản phẩm: ô Nhóm là ô chọn.
+
+## Soát bảo mật
+Báo cáo (agent độc lập, nguyên văn; 0 lỗi trước lọc → 0 lỗi sau lọc, không cần bước lọc báo nhầm):
+> Không tìm thấy lỗ hổng độ tin cậy cao trong các thay đổi của nhánh viec/NHOM-MON-1 (mốc 7238492d^ tới HEAD).
+> Đã đọc: diff của server/nang_cap/035_nhom_mon.js, server/routes/products.js, server/routes/kh/index.js, server/utils/donApp.js, server/utils/manKhach.js, server/routes/backup.js, + danh sách route, phần đầu products.js, grep mọi chỗ gọi layMenuQuay / menuApp / menuQuay trong server/. Chưa đọc client/src, HOP_DONG_API_KH.md và các bài thử.
+> - Quyền route /nhom*: GET /nhom và GET /nhom/xem-truoc dùng authenticate. POST /nhom, PUT /nhom-thu-tu, PUT /nhom/:ma, DELETE /nhom/:ma đều có checkPermission('manage_settings'). Không route nào bị mở.
+> - SQL ghép chuỗi: `UPDATE pos_nhom_mon SET ${...}` lấy tên cột từ đối tượng `doi` chỉ gán các khóa cố định ten / hien_quay / hien_app; giá trị luôn qua `?`. `UPDATE pos_products SET ${...}` ở PUT món cũng whitelist (name, category, unit, sort_order, is_active). Không có đường tiêm SQL.
+> - /api/kh/menu: chỉ thêm nhom_ten và nhom_thu_tu. Món nhóm tắt "hiện trên App" bị lọc bằng menuApp() trong layMenuQuay. Hai công tắc hien_quay / hien_app không được trả ra cửa khách. Không lộ giá vốn hay dữ liệu nội bộ.
+> - Đơn App không đi vòng lọc nhóm: dungItems (donApp.js:154) tra món bằng menuApp(), cùng hàm với /menu; món nhóm đã tắt bị từ chối. Giá do server tự tra.
+> - Màn khách dùng menuQuay() theo công tắc quầy; không mở thêm dữ liệu.
+> - layMenuQuay() không lọc: GET /api/pos/products (authenticateServiceOrUser) và quang-cao.js (route nhân viên) — có xác thực, hành vi không đổi.
+> - Lỗi trả { error, code } tiếng Việt, không lộ nội bộ. Đua: DELETE /nhom/:ma kiểm "không còn món" ngay trong câu xoá; PUT/POST món kiểm coNhom trong cùng giao dịch. Migration 035 chỉ tạo bảng + INSERT OR IGNORE, không có đầu vào người dùng. backup.js chỉ thêm tên bảng; dữ liệu là tên nhóm và hai công tắc, không nhạy cảm.
+
+Sau soát: vòng soát độc lập 2 (agent khác) ĐẠT, rồi sửa nhẹ thêm 1 chỗ (PUT /nhom/:ma chỉ nhận 0 / 1 / "0" / "1" — ca A2g2, đột biến VS-cong-tac-nhan-null); sửa này không đụng cửa công khai và chỉ SIẾT kiểm đầu vào, soát bảo mật không cần lặp.
+SOÁT BẢO MẬT: ĐẠT
+
+## Trạng thái cuối (28.11)
+- Chủ quán đã thêm Phạm vi (commit 7a016c34); máy đã làm nốt: donApp.js (menuApp), thu_KH1.js + thu_KHSP1.js (2 trường), kich_ban.js ('khac' → 'juice'), thu_KHO3a.js (đổi 'tra' → 'tea' + 1 ca đỏ trên gốc, KHÔNG ghi vào "Bài thử cũ sửa" theo LUAT §6.9).
+- `npm test` / `--day-du`: PASS 131 · FAIL 0 · CẢNH BÁO 1 (cảnh báo có sẵn từ trước, không thuộc việc này). thu_NHOMMON1.js 50 đạt · 0 hỏng (SỐ CA 50). dot_bien.py 22/22 BẮT, đối chứng xanh.
+- Soát độc lập: vòng 1 KHÔNG ĐẠT → vòng sửa 1 → vòng 2 ĐẠT (lỗi nhẹ: trang_thai cũ — đã dọn; PUT /nhom/:ma nhận null — đã sửa).
+- Dòng BanHangMoi.jsx đã đổi cho TOPPING-1 giữ: bỏ `TEN_NHOM` (cũ dòng 28); khối `spQuay` / `tenNhom` / `dsNhom` / `dsMon` (≈ 336–342); nhãn tab `tenNhom[n] || n` (≈ 352). `nhomTheoMa` vẫn dùng `sp` đầy đủ.
+
+## Bài học
+KHOÁ (đề xuất ngoài Phạm vi nếu không ghi "làm"):
+1. Ca "POST /kh/don bị MON_KHONG_BAN khi nhóm tắt App" + đột biến gỡ menuApp khỏi dungItems — hiện chỉ có `/kh/gio/bao-gia` (chung `kiemVaBaoGia`). Đề xuất vào thu_NHOMMON1.js ở việc sau (cần luồng QR giả như thu_CKNOIDUNG1.js).
+2. Phép kiểm trong kiem_tra_truoc_khi_giao.js: nhãn `label` của BACKUP_TABLES không chứa `: \ / ? * [ ]` (tên sheet Excel) — lỗi thật hôm nay: nhãn "Nhóm món (tab quầy / App)" làm sao lưu 500 (thu_KHO3a C3 đỏ). Đề xuất: ca đỏ = thêm nhãn có "/" vào bản sao backup.js.
+3. Phép "mọi nơi ghi category đều qua coNhom" (agent soát vòng 1): quét `INSERT INTO pos_products` — bắt kho/nhapSx.js:183 (ngoài Phạm vi, ghi ## Phát hiện).
+NGUYÊN TẮC:
+- K4: thêm ràng buộc "giá trị phải nằm trong danh sách" cho một cột → grep MỌI bài thử / giả lập đang tạo dữ liệu với giá trị tự do ('khac', 'tra' — thu_KHO3a, kich_ban.js đã đỏ) và cả UI luôn gửi lại giá trị cũ (PUT chỉ kiểm khi giá trị ĐỔI).
+- K5: ca "RỖNG" phải dựng rỗng thật (kể cả món ẩn); ca xanh kiểu "không phải lỗi X" phải kèm khẳng định dương `status === 200`.
+- K7: nhãn / tên hiển thị đi vào định dạng ngoài (sheet Excel) phải qua ký tự cấm của định dạng đó; K1: lỗi phiếu chặn (người gác) → ghi Câu hỏi sớm, gom MỘT lần (lần này 3 lần).
+BỎ: 035 TRIM so với JOIN (đã khoá bằng A1f); số dòng ngoài số liệu.
