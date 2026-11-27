@@ -40,3 +40,36 @@ Q1 có (409 NHOM_GOC, vẫn đổi tên được) · Q2 có (thêm `server/utils
 | donApp.js menuApp (chờ phạm vi — bản sao áp bản vá mong muốn) | BV-don-app-khong-loc | A5i |
 | BanHangMoi.jsx lọc nhóm tắt quầy / tên nhóm | BV-ui-bo-loc-quay · VS-ui-ten-cung | A4e · A4e |
 | SanPham.jsx ô chọn nhóm | VS-san-pham-go-tay | A3e |
+
+## Soát độc lập — vòng 1 (agent độc lập, báo cáo nguyên văn rút gọn các đoạn lặp)
+KHÔNG ĐẠT — lý do chính: A5 chưa thoả (đơn App vẫn đặt được món nhóm tắt, A5i đỏ, đã biết) và `--day-du` còn 4 phép đỏ (đều thuộc mục chờ chủ quán).
+Đã chạy lại: thu_NHOMMON1 46 đạt · 1 hỏng (A5i); dot_bien 19/19 BẮT (đối chứng chạy trên bản sao đã áp BAN_DON_APP); `--day-du` PASS 127 · FAIL 4 (thu_KH1 E5, thu_KHSP1 C3, gia_lap KB24/KB25, thu_gia_lap — đúng các mục đã biết); P1 dist KHỚP src.
+LỖI TÌM ĐƯỢC:
+1. HOP_DONG_API_KH.md (v19) + BAO_APPKH.md hứa "đặt đơn/báo giá món nhóm tắt → 400 MON_KHONG_BAN" nhưng donApp.js:26,154 chưa lọc — K1. Phải đi cùng PR với bản sửa donApp.
+2. products.js PUT /:id + SanPham.jsx: máy chủ kiểm coNhom cả khi category không đổi; UI luôn gửi lại category → món có category lạ không sửa được giá/tên — K5 (nhẹ).
+3. kho/nhapSx.js:183–184 `INSERT OR IGNORE INTO pos_products … category = m.loai` không qua coNhom → món mồ côi — K4 (ngoài Phạm vi).
+4. trang_thai.md thiếu dòng "các dòng BanHangMoi.jsx đã đổi để TOPPING-1 giữ"; chưa có npm test / cong.js chay / 3 thao tác chủ quán thử tay.
+NGHI NGỜ: 035 TRIM vs JOIN không trim; LEFT JOIN pos_nhom_mon nếu bước nâng cấp hỏng → menu 500; PUT /nhom/:ma `{hien_quay: null}` → 0; state `nhom` không reset khi nhóm đang chọn bị tắt; backup khôi phục chưa đọc khoiPhuc.js; món nhóm tắt quầy đã nằm trong giỏ vẫn thanh toán được (hợp lý, chưa có ca).
+K3: A2l chưa rỗng thật; A5j/A5k thiếu status===200; A4e/A3e/A6/A7d chỉ regex nguồn; thiếu đột biến: NHOM_GOC trong 035, tenNhomTrung ở PUT, giới hạn 40 ký tự, 404 của PUT, checkPermission từng route, authenticate /nhom*.
+NGHIỆM THU: 6/7 (thiếu A5 — đơn App).
+CHƯA SOÁT ĐƯỢC: npm test, cong.js chay, chạy giao diện thật, utils/khoiPhuc.js, dữ liệu Turso thật.
+BÀI HỌC (đề xuất của agent): KHOÁ — phép "mọi nơi ghi category đều qua coNhom"; ca K5 PUT món giữ category ngoài bảng. NGUYÊN TẮC — ca xanh kiểu "không phải lỗi X" phải kèm khẳng định dương; ca "RỖNG" dựng rỗng thật; không viết vào hợp đồng gửi chat khác hành vi chưa merge.
+
+## Vòng sửa 1 (đã làm)
+- Lỗi 2: `products.js` PUT /:id chỉ kiểm nhóm khi category ĐỔI (`doi.category !== cu.category`); ca mới A3f (đỏ khi bỏ vế đó: VS-put-kiem-ca-khi-khong-doi).
+- NGHI NGỜ TRIM: `035_nhom_mon.js` gom theo `category` nguyên văn (không TRIM) để JOIN khớp; ca mới A1f + đột biến VS-035-trim-ma.
+- K3: A2l dựng nhóm tea rỗng thật; A5j/A5k thêm `status === 200`. Số ca thu_NHOMMON1: 49 (HEAD thật 48 đạt · 1 hỏng A5i). Đột biến 21/21 BẮT.
+- Lỗi 1: sẽ tự đúng khi donApp.js được sửa (cùng PR); hiện KHÔNG merge nếu thiếu.
+- Lỗi 4: dòng BanHangMoi.jsx đã đổi cho TOPPING-1 giữ: bỏ `TEN_NHOM` (cũ dòng 28); khối `spQuay` / `tenNhom` / `dsNhom` / `dsMon` (≈ 336–342); nhãn tab `tenNhom[n] || n` (≈ 352). `nhomTheoMa` dùng `sp` đầy đủ (giữ nguyên).
+
+## Phát hiện (không sửa — ngoài Phạm vi)
+- `server/kho/nhapSx.js:183`: chèn pos_products với `category = m.loai` không qua coNhom; nếu SX có loại khác juice / tea sẽ sinh món chưa có nhóm (vẫn hiện, chủ quán không quản được nhóm đó). Đề xuất: bước 035 đã tạo nhóm cho giá trị có sẵn; việc sau thêm `INSERT OR IGNORE pos_nhom_mon` vào nhapSx.js.
+- `server/routes/quang-cao.js:104` giữ thấy mọi món (cố ý).
+- LEFT JOIN `pos_nhom_mon` ở `layMenuQuay`: nếu nâng cấp 035 hỏng, menu quầy 500 (trước đây chỉ đường kho 503). Rủi ro thấp (035 chỉ CREATE + INSERT OR IGNORE); nếu muốn chặn hẳn, bọc try/catch — chưa làm (K: không đoán).
+- Settings.jsx:1093 biểu tượng 🍵/🥤 vẫn theo mã `tea` (chỉ trang trí); tên nhóm đã theo `nhom_ten`.
+- Thanh BanHangMoi: nhóm đang chọn bị tắt ở quầy giữa phiên → màn trống tới khi bấm "Tất cả" (danh sách tải một lần).
+
+## Còn chờ chủ quán (không làm được từ máy)
+1. Sửa `phieu.md`: Phạm vi thêm `server/utils/donApp.js`, `cong_cu/thu_KH1.js`, `cong_cu/thu_KHSP1.js`, `cong_cu/gia_lap/kich_ban.js`; thêm `## Bài thử cũ sửa` ghi `cong_cu/thu_KHO3a.js`.
+2. Chạy lại `/lam-viec NHOM-MON-1 tiep`: máy làm 5 sửa nhỏ (donApp 2 dòng; thu_KH1 + thu_KHSP1 thêm 2 trường vào danh sách; kich_ban 2 dòng 'khac' → 'juice'), soát bảo mật (bước 8b), `cong.js chay`, `HEAD ĐÃ KIỂM`, báo cáo 7 mục.
+3. 3 thao tác thử tay (sau khi xong): (a) Quản lý › Giá bán & nhóm món: đổi tên "Trà" → "Trà thảo mộc", mở màn Bán hàng thấy tab đổi; (b) tắt "Hiện trên App" của một nhóm → mở App KH thấy nhóm biến; (c) Kho › Sản phẩm: ô Nhóm là ô chọn.
