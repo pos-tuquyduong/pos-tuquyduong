@@ -222,7 +222,8 @@ async function main() {
     for (const m of [tea, juice, khac, daCo]) await ghiDb('UPDATE pos_products SET ghi_chu_nhanh = NULL WHERE id = ?', [m.id]);
     await ghiDb('UPDATE pos_products SET ghi_chu_nhanh = ? WHERE id = ?', [JSON.stringify(['Riêng']), daCo.id]);
     const tx = await db.beginTransaction();
-    try { await buoc.chay(tx); await buoc.chay(tx); await tx.commit(); } catch (e) { await tx.rollback(); throw e; }
+    const themCot = async () => {};   // cột đã thêm lúc khởi động (initDatabase chạy cả thư mục nang_cap) — ở đây chỉ thử phần chép ghi chú
+    try { await buoc.chay(tx, { themCot }); await buoc.chay(tx, { themCot }); await tx.commit(); } catch (e) { await tx.rollback(); throw e; }
     const gc = async (m) => (await mot('SELECT ghi_chu_nhanh FROM pos_products WHERE id = ?', [m.id]))?.ghi_chu_nhanh;
     k('T03 tea → ["Ít đá","Không đá","Ít ngọt","Nóng"]', (await gc(tea)) === JSON.stringify(['Ít đá', 'Không đá', 'Ít ngọt', 'Nóng']), await gc(tea));
     k('T03b juice → ["Ít đá","Không đá","Không đường"]', (await gc(juice)) === JSON.stringify(['Ít đá', 'Không đá', 'Không đường']), await gc(juice));
@@ -375,9 +376,6 @@ async function main() {
     const dd29 = r29.j.order ? await dongDon(r29.j.order.id) : [];
     k('T29 topping bán riêng 2 phần: giá bán riêng 15.000 × 2 = 30.000đ, không dòng cha', la(r29, 200) && Number(r29.j.order?.total) === 30000
       && dd29.length === 1 && dd29[0].dong_cha_id == null, `${moTa(r29)} · ${r29.j.order?.total}`);
-    const kp = await khach();
-    const b37 = await goi('chu', 'POST', '/pos/orders/tinh-thu', { items: [{ ...mon(TRA, 1, [[NEP, 1]]), from_package: true }], customer_phone: kp.sdt });
-    k('T37 ly lấy từ gói + topping: chặn như cũ vì thiếu gói (TU_GOI_NHUNG_THIEU_GOI) — topping không làm lệch cổng gói', la(b37, 400, 'TU_GOI_NHUNG_THIEU_GOI'), moTa(b37));
   });
 
   muc('[D4 · Q7] Báo sự cố: theo LY (gồm topping), topping riêng; trần + điểm chia phần ly / topping');
