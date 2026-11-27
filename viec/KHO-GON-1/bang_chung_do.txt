@@ -93,3 +93,4 @@ Q11b, Q8d, Q8e, Q10a, B6d; nền nhập thêm Cam). Chạy trên code TRƯỚC v
   (phần thiếu vượt lô ≤ phần phiếu chờ, vì gốc = lô + chờ) · UPDATE ly_do `AND trang_thai = 'cho_duyet'` (chỉ chọn phiếu chờ) · `d.loai = 'thanh_pham'`
   (dòng xuất lượng âm đã bị `so_luong > 0` loại) · ghiKK `&& m.san_pham_id` (cần tồn nguyên liệu để kiểm LỚN hơn tổng lô còn thật —
   chưa tìm ra đường tạo dữ liệu đó, không dựng được ca) · monCanChuY `p.is_active = 1` (tonMenu chỉ có món đang bán → món ngừng bán đã bị bỏ qua).
+  Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên 1d9e9cda): ĐỐI CHỨNG XANH · 128 đạt — TỔNG 65 · BẮT 65 · SỐNG 0 · HỎNG 0 · LẠC 0.
