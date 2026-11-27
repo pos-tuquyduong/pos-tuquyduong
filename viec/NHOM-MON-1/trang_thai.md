@@ -107,3 +107,18 @@ NGUYÊN TẮC:
 - K5: ca "RỖNG" phải dựng rỗng thật (kể cả món ẩn); ca xanh kiểu "không phải lỗi X" phải kèm khẳng định dương `status === 200`.
 - K7: nhãn / tên hiển thị đi vào định dạng ngoài (sheet Excel) phải qua ký tự cấm của định dạng đó; K1: lỗi phiếu chặn (người gác) → ghi Câu hỏi sớm, gom MỘT lần (lần này 3 lần).
 BỎ: 035 TRIM so với JOIN (đã khoá bằng A1f); số dòng ngoài số liệu.
+
+## Cổng chạy
+✓ CỔNG CHẠY ĐẠT   (node tu_chay/cong.js chay . 7238492d^ HEAD viec/NHOM-MON-1, đứng ở d99bc66d, cây sạch)
+
+## Báo cáo 7 mục
+VIỆC:        NHOM-MON-1 — Một danh sách nhóm món dùng chung cho quầy, App KH và Kho
+ĐÃ SỬA:      server/nang_cap/035_nhom_mon.js (bảng pos_nhom_mon, một nhóm cho mỗi category có sẵn, luôn có juice + tea) · server/routes/products.js (layMenuQuay JOIN nhóm + lọc `cho`; menuApp / menuQuay; route /nhom, /nhom/xem-truoc, /nhom-thu-tu; POST/PUT món kiểm nhóm → NHOM_KHONG_CO; xoá nhóm → NHOM_CON_MON / NHOM_GOC) · server/routes/kh/index.js (/menu thêm nhom_ten, nhom_thu_tu, lọc menuApp) · server/utils/donApp.js (đơn App qua menuApp → MON_KHONG_BAN) · server/utils/manKhach.js (màn khách theo hiện ở quầy) · server/routes/backup.js (+pos_nhom_mon) · client BanHangMoi.jsx / Settings.jsx (NhomMon) / Kho/SanPham.jsx (ô chọn) + dist · HOP_DONG_API_KH.md v19 · BAO_APPKH.md
+BÀI THỬ:     thu_NHOMMON1.js trên gốc 7238492 → ĐỎ 14 đạt · 33 hỏng (A1–A5, Q3, A7a, A4e, A3e…); sau vá → XANH 50/50. Bài cũ đổi: thu_KHAPI2 (E3 đỏ trên gốc), thu_KH1 (E5 đỏ), thu_KHSP1 (C3 đỏ), thu_KHO3a (ca NHOM_KHONG_CO đỏ trên gốc), kich_ban.js. Đột biến 22/22 BẮT, đối chứng xanh. `npm test` / `--day-du` PASS 131 · FAIL 0. Cổng chạy ĐẠT.
+ĐÃ RÀ K4:    grep `layMenuQuay` trong server/ → 7 chỗ (products.js:27 quầy, kh/index.js, donApp.js, manKhach.js, quang-cao.js cố ý, products.js định nghĩa) đã xử lý; grep `category` ghi → products.js POST/PUT + 3 đường chép SX (gán juice/tea, nhóm gốc không xoá được) + database.js seed; còn kho/nhapSx.js:183 ngoài Phạm vi → ## Phát hiện.
+CHƯA KIỂM:   (1) giao diện thật — NhomMon, tab Bán hàng, ô Nhóm ở Kho chỉ build + đọc mã + regex, chưa bấm trên máy thật; (2) `POST /kh/don` thật bị chặn món nhóm tắt (chỉ thử qua /kh/gio/bao-gia — chung `kiemVaBaoGia`); (3) dữ liệu Turso thật (category lạ / có khoảng trắng); (4) nếu bước 035 hỏng trên Turso thì menu quầy 500 (LEFT JOIN) — chưa tái hiện; (5) kho/nhapSx.js:183 có thể sinh món chưa có nhóm; (6) A6 bằng máy chỉ đọc file hiện tại, không đỏ trên gốc bằng máy; (7) 3 thao tác thử tay cho chủ quán ở dưới.
+GIT:         xem dòng log cuối file khi push (git log --oneline -2)
+BÀI HỌC:     KHOÁ 3 (đề xuất, ngoài Phạm vi / việc sau) · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học
+3 thao tác chủ quán thử tay trên điện thoại: (a) Quản lý › Giá bán & nhóm món: Sửa tên "Trà" → "Trà thảo mộc", mở màn Bán hàng thấy tab đổi; (b) tắt "Hiện trên App" một nhóm → App KH hết thấy nhóm đó, đặt món nhóm đó báo "món không bán"; (c) Kho › Sản phẩm: mở một món, ô Nhóm là ô chọn.
+
+HEAD ĐÃ KIỂM: d99bc66d
