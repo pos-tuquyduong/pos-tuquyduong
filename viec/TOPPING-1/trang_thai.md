@@ -79,12 +79,29 @@ nhánh này, sửa BanHangMoi.jsx tối thiểu, ghi Phát hiện. Làm tiếp b
 | `utils/tienDaTra.js` mã giảm 1 món trừ một lần (vòng 1) | VS-den-ma-mot-mon-tru-hai-lan |
 | `routes/products.js` chỉ kiểm khi gửi (vòng 1) | VS-sua-mon-kiem-danh-sach-cu |
 | `routes/products.js` topping không ghi chú (vòng 1) | VS-topping-co-ghi-chu-o-quay |
+| `routes/kh/index.js` con_hang topping (vòng 2) | BV-con-hang-topping |
+| `orders.js` mã giảm 1 món chỉ chọn ly (vòng 2) | VS-mot-mon-chon-topping |
+| `utils/donApp.js` so_mon đơn đã trả (vòng 2) | VS-so-mon-app-da-tra |
+| `utils/donApp.js` chiTietDon gom topping (vòng 2) | BV-chi-tiet-da-tra-gom |
+| `utils/dongHoaDon.js` hoá đơn App (vòng 2) | VS-hoa-don-app-sl |
+| `orders.js` item_count (vòng 2) | VS-item-count |
+| `utils/donApp.js` topping không bán riêng → MON_KHONG_BAN (vòng 4) | BV-mon-khong-ban-topping-rieng |
+| `utils/donApp.js` danh sách trắng khoá topping (vòng 4) | BV-trang-khoa-topping |
+| `utils/donApp.js` bamGio giỏ không topping = v18 (vòng 4) | VS-bam-gio-luon-them-topping |
+| `routes/damages.js` sổ hàng hỏng gồm topping (vòng 4) | BV-hang-hong-gom-topping |
+| `utils/donApp.js` dsQuay topping (vòng 4) | BV-ds-quay-topping |
+| `utils/manKhach.js` dungHien "+ " (vòng 4) | VS-man-khach-bo-cong |
 Tên đột biến: VS-tin-gia-topping-cua-man · BV-dong-cha-id · VS-topping-ngoai-danh-sach-lot · VS-qua-3-phan-lot · VS-ban-rieng-khi-khong-gia ·
 VS-bo-giam-hang-topping · VS-voucher-bo-topping · VS-voucher-nhom-bo-topping · VS-kho-dem-tung-dong · BV-kho-mo-topping · VS-huy-khong-tra-topping ·
 BV-kiem-topping-cho-mon · BV-036-chep-ghi-chu · BV-bo-kiem-topping-app · VS-bao-gia-app-lech-dong · VS-bam-gio-bo-topping · BV-menu-app-topping ·
 BV-man-khach-loc-topping · VS-so-mon-giao-dem-topping · VS-den-bo-topping · BV-bao-theo-ly · VS-diem-den-theo-co-ly · BV-hoa-don-topping-cua ·
 VS-hoa-don-mat-phan-tram · BV-to-hoa-don-topping · BV-tem-gom-topping · VS-tem-chi-don-moi · VS-pha-che-gop-khac-topping ·
-VS-den-ma-mot-mon-tru-hai-lan · VS-sua-mon-kiem-danh-sach-cu · VS-topping-co-ghi-chu-o-quay.
+VS-den-ma-mot-mon-tru-hai-lan · VS-sua-mon-kiem-danh-sach-cu · VS-topping-co-ghi-chu-o-quay · BV-con-hang-topping · VS-mot-mon-chon-topping ·
+VS-so-mon-app-da-tra · BV-chi-tiet-da-tra-gom · VS-hoa-don-app-sl · VS-item-count · BV-mon-khong-ban-topping-rieng · BV-trang-khoa-topping ·
+VS-bam-gio-luon-them-topping · BV-hang-hong-gom-topping · BV-ds-quay-topping · VS-man-khach-bo-cong.
+Kết quả ở HEAD 0ce1e9c8: `python3 viec/TOPPING-1/dot_bien.py` → ĐỐI CHỨNG XANH 103 đạt · 0 hỏng; TỔNG 43 đột biến · BẮT 43 · SỐNG 0 · HỎNG 0 · LẠC 0.
+`npm test -- --day-du` ở HEAD 0ce1e9c8: PASS 132 · FAIL 0 · CẢNH BÁO 1 (cũ: route GET có lệnh ghi `packages.js:196` — không do việc này). Gồm mọi bài tiền
+cũ (thu_P26c, thu_VOUCHER2, thu_DIEMMON1, thu_KHO3a, thu_gia_lap, thu_HOPDONG_KH…) xanh. `bash ban_mau_pos/chay_thu.sh`: 186 đạt · 0 hỏng.
 
 ### 3 thao tác cho chủ quán thử tay (máy tính bảng + điện thoại)
 1. Kho › Sản phẩm: mở một topping → tick "Đây là topping", nhập giá bán riêng → Lưu; mở một món trà → tick topping đó + thêm nút "Ít đá" → Lưu.
@@ -170,3 +187,41 @@ Vòng sửa 2 (27.11): lỗi 1 → T30d (bán phần Long nhãn cuối → con_h
 khách / đơn App đã trả qua payOS, CHƯA KIỂM; T37 ly từ gói + topping — quầy tạm ngưng gói (GOI_TAM_DUNG) nên không có luồng, CHƯA KIỂM; T40 đổi cách trả
 (không đụng dòng đơn) và T41 đối soát (doiSoat.js:143,385 lọc product_id < 0, dòng topping > 0) — không có code topping để canh, CHƯA KIỂM bằng ca;
 refunds.js duyệt hoàn đi soTienHoan theo tổng đơn — CHƯA KIỂM bằng ca; hàm gom chung 7 chỗ — đề xuất việc sau (không đổi hành vi).
+
+### Vòng 3 (27.11, HEAD 8f83abb7) — KHÔNG ĐẠT, cả 7 lỗi NHẸ
+1. thu_TOPPING1.js T49 tên "→ 400 (MON_KHONG_BAN)" chỉ kiểm status; vế `p.la_topping && !(p.gia_ban_rieng > 0)` donApp.js:164 không ca canh. K3 — NHẸ.
+2. T34 không khoá "giỏ không topping băm y v18" (so hai lần trên cùng code); kế hoạch hứa VS-bam-gio-doi-khi-khong-topping. K3/K5 — NHẸ.
+3. T30b tên "→ false" mà kiểm `=== true`. K3 — NHẸ.
+4. donApp.js danh sách trắng khoá topping / tối đa 10 không ca. K3 — NHẸ.
+5. dsQuay (donApp.js) + dungHien (manKhach.js) ghi CHƯA KIỂM nhưng thu_KHMUA1:603 đã dựng được đơn App đã thu → dựng được ca. K3/K1 — NHẸ.
+6. trang_thai.md bảng đột biến còn 31 tên (dot_bien.py 37); chưa ghi npm test / --day-du / 37/37. K1/K4 — NHẸ.
+7. damages.js:48 damage_value = giá ly, thiếu topping (sổ hàng hỏng). Vòng 1 nêu, chưa sửa / chưa ghi. K4 — NHẸ.
+NGHI NGỜ: topping riêng `from_package` 0đ khi gói không danh sách (lỗ cũ, gói tạm ngưng); KhungChonMon sửa dòng có topping vừa thành không bán được, coTuyChon
+  tính topping chưa bán được; don-mo-rong.js:40-44 bill chờ thu liệt kê topping dòng rời (ngoài Phạm vi); ToppingMon "Chép cho cả nhóm" chép bản ĐÃ LƯU;
+  bước 036 nhảy số — chat kiểm trùng số lúc gộp.
+NGHIỆM THU: 15/17 — thiếu (a) bằng chứng bài tiền cũ xanh, (b) npm test / --day-du trong hồ sơ.
+ĐƠN GIẢN: luật gom con vào ly ở ≥ 7 chỗ → một vị từ chung (việc sau). T41 đối soát chưa ca.
+CHƯA SOÁT ĐƯỢC: cong.js chay; npm test / --day-du / thu_HOPDONG_KH; 36 đột biến còn lại; giao diện thật; Turso / production; refunds.js, đổi cách trả, đối soát.
+BÀI HỌC: KHOÁ — người gác: tên ca "→ 400 (MÃ)" / "→ false" mà biểu thức chỉ status / `=== true` → báo (lặp lần 2); ca K5 "băm / khoá không đổi" phải so với
+  công thức bản CŨ. NGUYÊN TẮC K3 — lý do CHƯA KIỂM phải kèm grep cho thấy chưa bài nào dựng được trạng thái đó. NGUYÊN TẮC K4 — thêm đột biến ở vòng sửa
+  → cập nhật MỌI bảng / danh sách / số tổng; nghi ngờ vòng trước phải sửa hoặc ghi Phát hiện, không bỏ lặng.
+
+### Vòng sửa 4 (LUAT §6.5 — hết 3 vòng, lần soát cuối chỉ lỗi NHẸ → máy tự sửa đúng các lỗi lần soát nêu)
+1 → T49 `la(…, 400, 'MON_KHONG_BAN')` + BV-mon-khong-ban-topping-rieng · 2 → `bamGio` xuất ra, T34c so với băm công thức v18 tính tay + VS-bam-gio-luon-them-topping ·
+3 → T30b đổi tên đúng biểu thức · 4 → T33c khoá lạ → YEU_CAU_KHONG_HOP_LE + BV-trang-khoa-topping (trần 10 phần tử: taoDon chặn tiếp vì món chỉ có ≤ danh
+sách của món — đột biến nới trần không làm ca nào đỏ, nên không đếm là phép; CHƯA KIỂM riêng) · 5 → T35d (đơn App trả ví + PIN, `dsQuay`) + BV-ds-quay-topping,
+T46b (`baoPhien` → `hien`) + VS-man-khach-bo-cong · 6 → bảng / danh sách 43 tên + kết quả npm test, --day-du, đột biến ghi ở trên · 7 → damages.js `gia` một
+ly gồm topping (bình quân topping / ly) + T28h + BV-hang-hong-gom-topping. Kết quả: thu_TOPPING1 103/0; đột biến 43/43; npm test -- --day-du PASS 132 FAIL 0.
+SOÁT LẦN CUỐI: chat soát thay
+
+## Soát bảo mật — lần 2 (27.11, HEAD 8f83abb7)
+Subagent độc lập chỉ đọc, toàn bộ diff server/ + client/src/ từ 13a8e7b4^, chú ý thay đổi từ 1caaf314 (tienDaTra trần đền mã giảm 1 món, products.js,
+kh/index.js, KhungChonMon). Lỗi trước lọc: 0 · sau lọc: 0. Báo cáo nguyên văn (rút gọn dòng, giữ ý):
+> No findings. Item-scope damage cap cannot over-refund: each cup group is `max(0, giaNhom - giam)`, topping rows 0 — at most what the customer paid; only
+> caller with the cap flag is damages.js:204; `tranTong` still bounded per code; topping money counted only under its cup; `conLai` counts cup rows only.
+> products.js PUT stale list harmless (layMenuQuay + dongTopping re-check). Money: prices from DB, portions 1–3, `cha` server-built, item-scope skips toppings,
+> topping rows `from_package: false`. Authorization: manage_settings on PUT + chep-nhom; App key whitelist; customer views by token phone. SQL injection: none.
+> XSS: none. Data exposure / secrets / webhooks / short codes: none new. Not checked: static read only; cancel/refund + wallet + points beyond touched lines.
+(Vòng sửa 4 sau lần soát này đổi `damages.js` chỉ cột sổ hàng hỏng `gia` — không đổi tiền đền / ví / điểm — và xuất `bamGio`; không phải soát lại theo
+luật tối đa 2 lần soát bảo mật; ghi để chat biết.)
+SOÁT BẢO MẬT: ĐẠT

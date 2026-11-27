@@ -38,7 +38,12 @@ TOPPING-1 — bằng chứng ĐỎ trên code gốc (27.11.2026)
    cong_cu/thu_BH1.js    → ✗ E8 … thiếu hàm coTuyChon · ✗ E9 · ✗ E10 · ✗ E11 · ✗ E12 · ✗ E13 — 68 đạt · 6 hỏng
    (bản GỐC các bài này chạy trên code mới: ĐỎ — npm test 27.11: KH1 E5, KHAPI2 E3, KHO1 D1, KHSP1 C3 + E1; BH1 E6 thiếu hàm ghiChuMacDinh.)
 
-SỐ CA cong_cu/thu_TOPPING1.js: 98
+   Vòng sửa 4 (soát vòng 3: thêm T49 mã lỗi, T33c, T34c, T35d, T46b, T28h; đổi tên T30b, T39), bản bài 0ce1e9c8 chạy LẠI trên cây gốc acc8892:
+   ✗ T28h — {"unit_price":45000,"damage_value":45000} · ✗ T49 — HTTP 200 · ✗ T33c — HTTP 200 · ✗ T34c · ✗ T35d (không topping) · ✗ T46b (không dòng "+")
+   TỔNG: 18 đạt · 81 hỏng · 99 ca. Trên code vá (HEAD 0ce1e9c8): TỔNG: 103 đạt · 0 hỏng · 103 ca. Đột biến 43/43 BẮT, đối chứng 103/0.
+   T28h trên code TRƯỚC vòng sửa 4: chính là đột biến BV-hang-hong-gom-topping (gỡ phần topping) → BẮT.
+
+SỐ CA cong_cu/thu_TOPPING1.js: 103
 SỐ CA ban_mau_pos/thu/thu_topping.js: 30
 SỐ CA cong_cu/thu_BH1.js: 74
 SỐ CA cong_cu/thu_KH1.js: 157
