@@ -111,6 +111,10 @@ async function main() {
   const sCamEp = await themMon('KG3', 'Cam ép');
   await goi('chu', 'PUT', `/kho/san-pham/${sCPD}`, { kieu: 'pha_tai_cho', cong_thuc: [{ nguyen_lieu_id: nCaPhe, luong: 0.02 }] });
   await goi('chu', 'PUT', `/kho/san-pham/${sCamEp}`, { kieu: 'pha_tai_cho', cong_thuc: [{ nguyen_lieu_id: nCam, luong: 0.1 }] });
+  const sCPS = await themMon('KG4', 'Cà phê sữa');   // pha tại chỗ BẬT "bán khi thiếu" — quầy vẫn bán được
+  await goi('chu', 'PUT', `/kho/san-pham/${sCPS}`, { kieu: 'pha_tai_cho', cho_ban_thieu: 1, cong_thuc: [{ nguyen_lieu_id: nCaPhe, luong: 0.02 }] });
+  const sFlan = await themMon('KG5', 'Bánh flan');   // làm sẵn, chưa có lô — monChuaSan đã báo "hết lô"
+  await goi('chu', 'PUT', `/kho/san-pham/${sFlan}`, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nCam, luong: 0.1 }] });
   const pn0 = await goi('nv', 'POST', '/kho/phieu-nhan', { dong: [{ nguyen_lieu_id: nCam, luong: 10 }, { nguyen_lieu_id: nDuong, luong: 2 }, { nguyen_lieu_id: nGung, luong: 3 }], ma_gui: 'pn0' });
   await goi('ql', 'POST', `/kho/phieu/${pn0.phieu?.id}/duyet`);
   await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 10 }], ma_gui: 'px0' });
@@ -469,6 +473,8 @@ async function main() {
   const px16 = await chotVoiCho('px16', '21:34:00', '21:34:30');
   datGio('2026-12-02T21:35:00');
   const sua16 = await goi('chu', 'POST', `/kho/phieu/${px16.phieu?.id}/sua`, { mon: [{ san_pham_id: sNC, so_phan: 1 }], ly_do: 'sửa sau chốt' });
+  k('Q4e2 sửa phiếu ghi diễn biến "Sửa phiếu" (tô cam) — số phiếu cũ → mới', (await mot("SELECT chu_y FROM kho_dien_bien WHERE loai = 'sua_phieu' ORDER BY id DESC LIMIT 1"))?.chu_y === 1
+    && new RegExp(px16.phieu?.so_phieu || '@').test((await mot("SELECT chi_tiet FROM kho_dien_bien WHERE loai = 'sua_phieu' ORDER BY id DESC LIMIT 1"))?.chi_tiet || ''));
   k('Q4e phiếu chờ đã tính vào lần chốt rồi bị chủ quán SỬA → dòng cam', sua16.status === 200 && (await demTC()) === 3, `${moTa(sua16)} · ${await demTC()}`);
   // đơn đặt hàng chờ duyệt KHÔNG phải hàng có thật — không tính vào kiểm kê, từ chối sau chốt không cảnh báo
   datGio('2026-12-02T21:36:00');
@@ -493,6 +499,7 @@ async function main() {
   datGio('2026-12-02T21:39:30');
   const r19 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
   const cam19 = await tonNL(nCam);
+  const kkTruoc19 = await demKK();
   const kk19 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: cam19 - 2 }, { san_pham_id: sNC, thuc: 9 }], 'kk19', '', r19);
   const p19 = await mot('SELECT * FROM kho_phieu WHERE id = ?', [px19.phieu?.id || 0]);
   const tp19 = await so("SELECT SUM(so_luong) FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'thanh_pham'", [px19.phieu?.id || 0]);
@@ -501,20 +508,60 @@ async function main() {
   k('Q8a hết lô, 10 ly chờ duyệt, đếm 9 → 200; phiếu chờ còn 9 phần, lý do "kiểm kê: đếm thiếu 1", nguyên liệu phiếu vẫn trừ đủ 10 ly; dòng cam', kk19.status === 200
     && p19?.trang_thai === 'cho_duyet' && gan(tp19, 9) && /kiểm kê: đếm thiếu 1/.test(p19?.ly_do || '') && gan(xuat19, -2) && db19?.chu_y === 1
     && new RegExp(px19.phieu?.so_phieu || '@').test(db19?.chi_tiet || ''), `${moTa(kk19)} · ${tp19} · ${p19?.ly_do} · ${xuat19} · ${db19?.chi_tiet}`);
+  k('Q8a2 phần thiếu trừ HẾT vào phiếu chờ → không tạo phiếu kiểm kê rỗng', (await demKK()) === kkTruoc19, `${kkTruoc19} → ${await demKK()}`);
   datGio('2026-12-02T21:40:00');
   const dy19 = await goi('ql', 'POST', `/kho/phieu/${px19.phieu?.id}/duyet`);
   k('Q8b quản lý duyệt phiếu đã giảm → lô 9 ly khớp số đếm, Cam = số đếm (không trừ đôi)', dy19.status === 200 && gan(await tonSP(sNC), 9) && gan(await tonNL(nCam), cam19 - 2),
     `${moTa(dy19)} · NC ${await tonSP(sNC)} · Cam ${await tonNL(nCam)} / ${cam19 - 2}`);
+  const kq19 = await goi('nv', 'POST', `/kho/phieu/${px19.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 10 });
+  k('Q9a phiếu đã bị kiểm kê giảm → ghi kết quả pha chế (10 ly) → 409 KQ_DA_KIEM_KE, lô giữ 9 (không ly ảo)', kq19.status === 409 && kq19.code === 'KQ_DA_KIEM_KE'
+    && gan(await tonSP(sNC), 9), `${moTa(kq19)} · NC ${await tonSP(sNC)}`);
+  const xem19 = await goi('nv', 'GET', `/kho/phieu/${px19.phieu?.id}`);
+  k('Q9b phiếu đó hiện kết quả "đã chốt" (không còn "chờ điền")', xem19.theo_mon?.[0]?.ket_qua?.trang_thai === 'da_dien' && xem19.phieu?.ket_qua === 'da_dien',
+    JSON.stringify(xem19.theo_mon?.[0]?.ket_qua));
   datGio('2026-12-02T21:41:00');
   await ban(sNC, 9);
   const px20 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 5 }], ma_gui: 'px20' });
   datGio('2026-12-02T21:41:30');
   const ton20 = await goi('chu', 'GET', '/kho/ton');
+  const tk20 = (ton20.ton_kiem || []).find((t) => t.san_pham_id === sNC);
+  k('Q11a /ton cho người chỉnh tay trả số máy chủ DÙNG khi có phiếu chờ: Nước cam 5 (0 lô + 5 chờ duyệt)', tk20 && gan(tk20.ton, 5) && gan(tk20.cho, 5), JSON.stringify(ton20.ton_kiem));
+  k('Q11a2 nhân viên không nhận ton_kiem', !('ton_kiem' in (await goi('nv', 'GET', '/kho/ton'))));
+  const kkTruoc20 = await demKK();
+  const ct20a = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: 5, ly_do: 'đúng rồi', moc: ton20.moc, moc_luc: ton20.moc_luc, ma_gui: 'ct20a' });
+  k('Q11b gõ đúng số máy chủ dùng (5) → 200 khong_doi, không phiếu, không đổi phiếu chờ', ct20a.status === 200 && ct20a.khong_doi === true && (await demKK()) === kkTruoc20
+    && gan(await so("SELECT SUM(so_luong) FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'thanh_pham'", [px20.phieu?.id || 0]), 5), JSON.stringify(ct20a));
   const ct20 = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: 4, ly_do: 'vỡ 1 ly mới pha', moc: ton20.moc, moc_luc: ton20.moc_luc, ma_gui: 'ct20' });
   k('Q8c chủ quán CHỈNH TAY món đang có phiếu chờ (5 → thật 4) → 200, phiếu chờ còn 4 phần (không bị chặn)', ct20.status === 200
     && gan(await so("SELECT SUM(so_luong) FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'thanh_pham'", [px20.phieu?.id || 0]), 4), moTa(ct20));
   datGio('2026-12-02T21:42:00');
   await goi('ql', 'POST', `/kho/phieu/${px20.phieu?.id}/duyet`);
+  // Q8d: hai phiếu chờ — trừ vào phiếu MỚI NHẤT trước
+  datGio('2026-12-02T21:43:00');
+  await ban(sNC, await tonSP(sNC));
+  const pxA = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 3 }], ma_gui: 'pxA' });
+  datGio('2026-12-02T21:43:10');
+  const pxB = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 2 }], ma_gui: 'pxB' });
+  datGio('2026-12-02T21:43:30');
+  const rAB = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  const kkAB = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: (await tonNL(nCam)) - 1 }, { san_pham_id: sNC, thuc: 4 }], 'kkAB', '', rAB);
+  const tpCua = (id) => so("SELECT SUM(so_luong) FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'thanh_pham'", [id || 0]);
+  k('Q8d hai phiếu chờ (3 cũ · 2 mới), đếm 4 → phiếu MỚI giảm 2 → 1, phiếu cũ giữ 3', kkAB.status === 200 && gan(await tpCua(pxB.phieu?.id), 1) && gan(await tpCua(pxA.phieu?.id), 3),
+    `${moTa(kkAB)} · A ${await tpCua(pxA.phieu?.id)} · B ${await tpCua(pxB.phieu?.id)}`);
+  datGio('2026-12-02T21:44:00');
+  await goi('ql', 'POST', `/kho/phieu/${pxA.phieu?.id}/duyet`);
+  await goi('ql', 'POST', `/kho/phieu/${pxB.phieu?.id}/duyet`);
+  // Q8e: phiếu chờ bị giảm về 0 phần → duyệt không lỗi, giá vốn không chia cho 0
+  await ban(sNC, await tonSP(sNC));
+  const pxC = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }], ma_gui: 'pxC' });
+  datGio('2026-12-02T21:44:30');
+  const rC = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: (await tonNL(nCam)) - 0.1 }, { san_pham_id: sNC, thuc: 0 }], 'kkC', '', rC);
+  datGio('2026-12-02T21:45:00');
+  const dyC = await goi('ql', 'POST', `/kho/phieu/${pxC.phieu?.id}/duyet`);
+  const loC = await mot('SELECT so_luong, gia_von FROM kho_lo WHERE phieu_id = ?', [pxC.phieu?.id || 0]);
+  k('Q8e phiếu chờ bị kiểm kê giảm về 0 phần → duyệt 200, lô 0, giá vốn không phải vô cực', dyC.status === 200 && gan(loC?.so_luong, 0)
+    && (loC?.gia_von == null || Number.isFinite(Number(loC.gia_von))), `${moTa(dyC)} · ${JSON.stringify(loC)}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] chỉnh tồn tay');
@@ -548,6 +595,20 @@ async function main() {
   k('D2b chỉnh tay số mới −1 → 400 KHO_SO_AM', ctAm.status === 400 && ctAm.code === 'KHO_SO_AM', moTa(ctAm));
   const ctTP = await chinh('chu', { san_pham_id: sNC, thuc: 3, ly_do: 'pha thêm', ma_gui: 'ct7' }, tonChu3);
   k('D1i chỉnh tay thành phẩm lên 3 → 200, lô mới', ctTP.status === 200 && gan(await tonSP(sNC), 3), `${moTa(ctTP)} · ${await tonSP(sNC)}`);
+  // Q10: phiếu phát sinh "hết hạn" CHỜ duyệt đã giữ lô X; chỉnh tay / kiểm kê đếm thiếu KHÔNG được trừ vào lô X
+  datGio('2026-12-02T22:03:00');
+  const pnG = await goi('nv', 'POST', '/kho/phieu-nhan', { dong: [{ nguyen_lieu_id: nGung, luong: 2, han_dung: '2026-12-02' }], ma_gui: 'pnG' });
+  await goi('ql', 'POST', `/kho/phieu/${pnG.phieu?.id}/duyet`);
+  const loX = Number((await mot('SELECT id FROM kho_lo WHERE phieu_id = ?', [pnG.phieu?.id || 0]))?.id);
+  const psX = await goi('nv', 'POST', '/kho/phieu-phat-sinh', { su_co: 'het_han', muc: [{ lo_id: loX, luong: 2 }], ma_gui: 'psX' });
+  datGio('2026-12-02T22:04:00');
+  const tonX = await goi('chu', 'GET', '/kho/ton');
+  const gungX = await tonNL(nGung);
+  const ctX = await goi('chu', 'POST', '/kho/chinh-tay', { nguyen_lieu_id: nGung, thuc: gungX - 3, ly_do: 'đếm thiếu 1', moc: tonX.moc, moc_luc: tonX.moc_luc, ma_gui: 'ctX' });
+  datGio('2026-12-02T22:05:00');
+  const dyX = await goi('ql', 'POST', `/kho/phieu/${psX.phieu?.id}/duyet`);
+  k('Q10a phiếu hết hạn chờ duyệt giữ lô X + chỉnh tay đếm thiếu 1 → duyệt phiếu hết hạn sau đó 200 (lô X không bị trừ trước), tồn = số đếm', psX.phieu?.trang_thai === 'cho_duyet'
+    && ctX.status === 200 && dyX.status === 200 && gan(await tonNL(nGung), gungX - 3), `${psX.phieu?.trang_thai} · ${moTa(ctX)} · ${moTa(dyX)} · Gừng ${await tonNL(nGung)} / ${gungX - 3}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[B5 · B6] diễn biến · đã xem · cần chú ý');
@@ -563,6 +624,9 @@ async function main() {
   const csIds = (cy.mon_chua_san || []).map((m) => m.san_pham_id);
   k('B6c Cần chú ý báo món PHA TẠI CHỖ hết nguyên liệu: "Cà phê đen — Pha tại chỗ: hết Cà phê"; Cam ép (Cam còn) KHÔNG báo', (cy.mon_chua_san || [])
     .some((m) => m.san_pham_id === sCPD && m.ly_do === 'Pha tại chỗ: hết Cà phê') && !csIds.includes(sCamEp), JSON.stringify(cy.mon_chua_san));
+  k('B6d không báo oan: Cà phê sữa (bật bán khi thiếu) không có; Bánh flan (làm sẵn) chỉ MỘT dòng, không phải lý do "Pha tại chỗ"', !csIds.includes(sCPS)
+    && (cy.mon_chua_san || []).filter((m) => m.san_pham_id === sFlan).length === 1 && !(cy.mon_chua_san || []).some((m) => m.san_pham_id === sFlan && /^Pha tại chỗ/.test(m.ly_do)),
+  JSON.stringify(cy.mon_chua_san));
   k('B6a Cần chú ý: có MỌI món của /mon-chua-san (dùng lại hàm đang có); có dòng lệch / chỉnh tay chưa xem', (msc.mon || []).every((m) => csIds.includes(m.san_pham_id))
     && (cy.dien_bien || []).some((d) => d.loai === 'chinh_tay') && (cy.dien_bien || []).some((d) => d.loai === 'kiem_ke') && (cy.dien_bien || []).every((d) => d.chu_y === 1), JSON.stringify(cy).slice(0, 200));
   const denId = Math.max(...(db1.dong || []).map((d) => d.id));
