@@ -225,3 +225,52 @@ kh/index.js, KhungChonMon). Lỗi trước lọc: 0 · sau lọc: 0. Báo cáo n
 (Vòng sửa 4 sau lần soát này đổi `damages.js` chỉ cột sổ hàng hỏng `gia` — không đổi tiền đền / ví / điểm — và xuất `bamGio`; không phải soát lại theo
 luật tối đa 2 lần soát bảo mật; ghi để chat biết.)
 SOÁT BẢO MẬT: ĐẠT
+
+## Cổng (bước 11.4)
+`node tu_chay/cong.js chay . 13a8e7b4^ HEAD viec/TOPPING-1` ở HEAD 7e532c40, cây sạch:
+· CẢNH BÁO A16: `cong_cu/thu_TOPPING1.js` chạy trên gốc in 99 ca ≠ 103 ca ở head — bài dừng sớm trên gốc thì bỏ qua (đúng: mục B / C sập sớm trên gốc, bang_chung_do.txt ghi)
+✓ CỔNG CHẠY ĐẠT
+
+## Bài học
+Sự cố của việc: (a) người gác chặn máy sửa phiếu + sửa file ngoài Phạm vi dù chat đã duyệt Q1 → một lượt dừng chờ; (b) kho mở từ bản chụp nông → thu_BH2 đỏ oan;
+(c) bài thử đặt đồng hồ giả SAU initDatabase → mốc 014 theo giờ thật, điểm không trừ (T28c đỏ oan — K2, truy nguyên rồi sửa bài); (d) dot_bien.py sót biến BO
+sau khi bỏ cờ `--bo` → lần chạy sập; (e) /ra-soat 3 vòng: lỗi tiền trần đền mã giảm 1 món (trừ hai lần khi tách topping thành dòng), chặn oan sửa món,
+ca tên một đằng kiểm một nẻo (T30b, T49), ca K5 băm so cùng code, CHƯA KIỂM hạ cấp chỗ dựng được ca.
+- KHOÁ (ngoài Phạm vi — đề xuất, máy không làm):
+  1. `tu_chay/` người gác / cổng: commit đổi `cong_cu/thu_<MÃ>.js` SAU commit bằng chứng mà `bang_chung_do.txt` không đổi → báo (A16 hiện chỉ bắt ở cổng cuối).
+  2. Phép tĩnh cho bài thử: tên ca chứa "→ 400 <MÃ>" / "→ false" mà biểu thức chỉ `status === 400` / `=== true` → báo (lặp 2 lần ở việc này: T30b, T49).
+  3. Bài thử dùng đồng hồ giả: `datGio` phải gọi TRƯỚC `initDatabase` — thêm vào khuôn bài (thu_KHO3a đặt sau, cùng rủi ro với ca điểm).
+- NGUYÊN TẮC (đề xuất thêm vào KHUON_LOI.md — ngoài Phạm vi):
+  1. K4 · Tách một món thành dòng cha / con (topping) → rà MỌI hàm chia tiền theo dòng, nhất là nhánh trừ một khoản cố định MỖI dòng (`gia[i] − giam`): khi gộp
+     con vào cha, khoản đó bị trừ hai lần (TOPPING-1 vòng 1: trần đền 22.500 thay vì 42.500). Viết MỘT vị từ "con của" dùng chung (việc này còn 7 chỗ).
+  2. K5 · Phép kiểm toàn vẹn ở route sửa đa năng chỉ kiểm ĐÚNG trường thân gửi; kiểm lại dữ liệu cũ đã lưu thì chặn oan mọi lần sửa khác (products.js vòng 1).
+  3. K3 · "CHƯA KIỂM" phải kèm grep cho thấy chưa bài nào dựng được trạng thái đó (thu_KHMUA1 đã dựng đơn App đã thu); ca K5 "khoá / băm không đổi" so với
+     công thức bản CŨ (hằng số / tính tay), không so hai lần trên cùng code.
+- BỎ: kho nông (sự cố của môi trường, skill đã có bước unshallow); dot_bien sót biến (một lần, lần chạy sập lộ ngay).
+
+## Báo cáo 7 mục
+VIỆC:        TOPPING-1 — Topping + ghi chú nhanh theo từng món; bán topping riêng; topping trên giỏ / hoá đơn / tem / kho / App KH
+ĐÃ SỬA:      bản mẫu (ban_mau_pos.html, thu/thu_topping.js 30 phép, DAC_TA mục 8) · server/nang_cap/036_topping.js (4 cột pos_products + dong_cha_id; chép ghi chú
+             tea / juice / dự phòng) · server/utils/topping.js (mới: tra giá DB, danh sách món, 1–3 phần, bán riêng, gom) · server/routes/orders.js (dòng topping
+             sau ly, voucher nhóm gồm topping, mã giảm 1 món chỉ ly, dong_cha_id, cha / so_phan ở tinh-thu, item_count) · server/kho/banHang.js (mở topping thân thô,
+             cộng cả giỏ) · server/routes/products.js (PUT cài topping / ghi chú, POST chep-nhom, menu) · server/routes/damages.js (báo theo ly, TOPPING_BAO_THEO_LY,
+             trần gồm topping, sổ hàng hỏng gồm topping) · server/utils/tienDaTra.js (trần mã giảm 1 món trừ một lần) · server/utils/diemThat.js (điểm chia phần ly /
+             topping) · server/routes/hoaDon.js + utils/dongHoaDon.js (topping_cua, so_phan, % hạng theo ly) · server/routes/kh/index.js + utils/donApp.js + manKhach.js
+             + giaoHang.js (App KH, màn khách, đơn giao) · HOP_DONG_API_KH.md v19 + BAO_APPKH.md · client: BanHang (tinh.js, KhungChonMon, BanHangMoi, css; bỏ
+             ghiChuMacDinh.js), Kho/ToppingMon.jsx + SanPham.jsx, InPhieu.jsx, InvoicePreview.jsx, InvoicePrint.jsx, utils/hoaDon.js, utils/inPhieu.js, DonApp.jsx,
+             Orders.jsx, api.js; client/dist build · kiem_tra_truoc_khi_giao.js gắn thu_TOPPING1
+BÀI THỬ:     cong_cu/thu_TOPPING1.js trên gốc ĐỎ (bản đầu 14 đạt · 69 hỏng; bản cuối trên cây acc8892 18 đạt · 81 hỏng) → sau vá 103 đạt · 0 hỏng · 103 ca.
+             5 bài cũ sửa danh sách (KH1, KHAPI2, KHSP1, KHO1, BH1) đỏ trên gốc, xanh sau vá. Bản mẫu 156 → 186 / 0. Đột biến 43/43 BẮT (đối chứng 103/0).
+             npm test -- --day-du PASS 132 FAIL 0 (CẢNH BÁO 1 cũ packages.js:196). Cổng ✓ ĐẠT. Soát bảo mật 2 lần: 0 lỗi.
+ĐÃ RÀ K4:    grep "pos_order_items" server → mọi chỗ đọc dòng đơn đã xử lý / xét (orders.js item_count, donApp tomTatDonThat + chiTietDon + dsQuay, giaoHang soMon,
+             tienDaTra, diemThat, damages, hoaDon, dongHoaDon, manKhach); nhận diện dòng con (cha / dong_cha_id) ở 7 chỗ — đề xuất gom một vị từ (việc sau).
+             Ngoài Phạm vi còn: reports.js:81 item_count, GiaoHang/index.jsx:163, quang-cao.js:104, don-mo-rong.js:40-44 (bill chờ thu) — Phát hiện.
+CHƯA KIỂM:   giao diện thật trên máy tính bảng / điện thoại (chỉ hàm thuần + bản mẫu — 3 thao tác thử tay ở trên); Turso thật + bước 036 trên dữ liệu production
+             (thời gian ALTER + bảng sao lưu pos_order_items lớn); "ly lấy từ gói + topping" (quầy tạm ngưng gói); topping riêng gửi from_package khi gói không có
+             danh sách món (lỗ cũ của cổng gói — 0đ, chưa rà); refunds.js duyệt hoàn, đổi cách trả, đối soát có topping (không ca); trần 10 phần tử topping App
+             (taoDon chặn tiếp nên không đột biến được); KhungChonMon sửa dòng có topping vừa thành không bán được; ToppingMon "Chép cho cả nhóm" chép bản ĐÃ LƯU;
+             bước 036 nhảy số (031, 032 → 036) — chat kiểm trùng số lúc gộp với nhánh khác; NHOM-MON-1 chưa gộp — BanHangMoi.jsx 507 dòng chưa tách.
+GIT:         7e532c40 TOPPING-1: ho so soat vong 3 + vong sua 4, soat bao mat lan 2 DAT, bang chung do SO CA 103
+             0ce1e9c8 TOPPING-1 vong sua 4 (soat vong 3, loi nhe): T49 ma loi, T33c khoa la, T34c bam gio v18, T35d man Don App, T46b man khach, T28h …
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học (tất cả ngoài Phạm vi → đề xuất cho chat)
+HEAD ĐÃ KIỂM: 7e532c40
