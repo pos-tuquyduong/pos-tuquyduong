@@ -1,0 +1,38 @@
+# GIAO-4 — bằng chứng đỏ trên code CHƯA vá
+# Gốc: server/ ở 8ac5ae5a (= main acc88921 ghép vào nhánh), bài thử ở 8a4d71ea / efe39b50. Chạy 26.11 trên máy mây.
+# (Cột chi tiết dài bị cắt ở 200 ký tự.)
+
+## node cong_cu/thu_GIAO4.js — thoát 1
+  ✗ T1 total_price 0 → 502 AHAMOVE_PHI_0, đúng lời phiếu  — [200,{"success":true,"ma_bao_phi":"819c791917ec08e86c256196105bda40","phi":0,"km":3,"dia_chi":"Số 4 Ngõ Thử, Hà Nội
+  ✗ T1 total_price 0 → KHÔNG ghi dòng pos_giao_bao_phi  — 0 → 1
+  ✗ T6 T1 total_price 0 → log đúng MỘT dòng "[GIAO] phi_0 total_price=0 total_fee=null", không địa chỉ / SĐT  — []
+  ✗ T2 total_price -5000 → 502 AHAMOVE_PHI_0, đúng lời phiếu  — [200,{"success":true,"ma_bao_phi":"238870522f1eafe4036bc8f3de00add0","phi":-5000,"km":3,"dia_chi":"Số 4 Ngõ Thử, H
+  ✗ T2 total_price -5000 → KHÔNG ghi dòng pos_giao_bao_phi  — 1 → 2
+  ✗ T6 T2 total_price -5000 → log đúng MỘT dòng "[GIAO] phi_0 total_price=-5000 total_fee=null", không địa chỉ / SĐT  — []
+  ✗ T3 total_price "0" (chữ) → 502 AHAMOVE_PHI_0, đúng lời phiếu  — [200,{"success":true,"ma_bao_phi":"e291e3764b9b1290b1f77a54ccbc8b6a","phi":0,"km":3,"dia_chi":"Số 4 Ngõ Thử,
+  ✗ T3 total_price "0" (chữ) → KHÔNG ghi dòng pos_giao_bao_phi  — 2 → 3
+  ✗ T6 T3 total_price "0" (chữ) → log đúng MỘT dòng "[GIAO] phi_0 total_price=0 total_fee=null", không địa chỉ / SĐT  — []
+  ✗ T4 thiếu total_price, total_fee 0 → 502 AHAMOVE_PHI_0, đúng lời phiếu  — [200,{"success":true,"ma_bao_phi":"4a541d7204abdf9bbc1be8a9039c5f1f","phi":0,"km":3,"dia_chi":"Số 4 Ng
+  ✗ T4 thiếu total_price, total_fee 0 → KHÔNG ghi dòng pos_giao_bao_phi  — 3 → 4
+  ✗ T6 T4 thiếu total_price, total_fee 0 → log đúng MỘT dòng "[GIAO] phi_0 total_price=null total_fee=0", không địa chỉ / SĐT  — []
+  ✗ T5 total_price 0, total_fee 20000 (không lấy total_fee thay — chủ quán 26.11) → 502 AHAMOVE_PHI_0, đúng lời phiếu  — [200,{"success":true,"ma_bao_phi":"a7ab405d0499ebbd303
+  ✗ T5 total_price 0, total_fee 20000 (không lấy total_fee thay — chủ quán 26.11) → KHÔNG ghi dòng pos_giao_bao_phi  — 4 → 5
+  ✗ T6 T5 total_price 0, total_fee 20000 (không lấy total_fee thay — chủ quán 26.11) → log đúng MỘT dòng "[GIAO] phi_0 total_price=0 total_fee=20000", không địa chỉ / SĐT
+  ✗ K4 chặn (0đ) rồi bấm Tính phí lại → lần 2: 200 phi 15000  — [null,200,15000]
+  ✗ H1 hai máy cùng bấm, Ahamove báo 0 → cả hai 502 AHAMOVE_PHI_0, 0 dòng mới  — [[200,null],[200,null]]
+GIAO-4: 7 đạt · 17 hỏng
+
+## node cong_cu/thu_GIAO3.js (bản mới, sửa ca C3) — thoát 1
+  ✗ C3 (GIAO-4) Tính phí ở quầy, Ahamove báo 0 → 502 AHAMOVE_PHI_0, không mã báo phí  — [200,{"success":true,"ma_bao_phi":"530de46949d21ac680c625ac44279cc3","phi":0,"km":3,"dia_chi":"Số 3 Ngõ Thử, Hà Nội","dia_chi_ahamove":null,...}]
+GIAO-3: 46 đạt · 1 hỏng
+
+## Bản GỐC thu_GIAO3.js (8ac5ae5a) trên code ĐÃ vá — đỏ → bài sửa thường (LUAT §6.8–6.9), không vào "## Bài thử cũ sửa"
+  ✗ C3 (K4) báo phí lúc gọi xe 0 VÀ tạo chuyến trả phí 0 → phi_that KHÔNG ghi 0 (để trống = chưa biết), chenh trống  — [null,null,null]
+GIAO-3: 45 đạt · 1 hỏng
+
+## Sau vá (e93e41f6)
+GIAO-4: 24 đạt · 0 hỏng
+GIAO-3: 47 đạt · 0 hỏng
+
+SỐ CA cong_cu/thu_GIAO4.js: 24
+SỐ CA cong_cu/thu_GIAO3.js: 47

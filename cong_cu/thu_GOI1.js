@@ -404,9 +404,9 @@ async function main() {
     const moKh = (kh.match(/useEffect\(\(\) => \{\s*if \(!sdtMo \|\| loading\) return;[\s\S]*?\}, \[sdtMo, loading\]\);/) || [''])[0];
     k('A4d Customers.jsx: đọc phone từ URL, tải xong danh sách thì mở đúng khách (openDetailModal) MỘT lần — xoá tham số trước khi mở',
       /const sdtMo = searchParams\.get\('phone'\)/.test(kh) && /const kh = customers\.find\(c => c\.phone === sdtMo\);/.test(moKh)
-        && /if \(kh\) openDetailModal\(kh\);/.test(moKh)
-        && /^\s*setSearchParams\(\{\}, \{ replace: true \}\);\s*$/m.test(moKh)
-        && moKh.search(/^\s*setSearchParams\(\{\}, \{ replace: true \}\);\s*$/m) < moKh.indexOf('openDetailModal'));
+        && /if \(kh\) chonKhach\(kh\);/.test(moKh)   // GIAO-DIEN-2: openDetailModal → chonKhach; hẹp thì ghi ?khach= thay ?phone= (Back về danh sách)
+        && /^\s*setSearchParams\(kh && !rong \? \{ khach: sdtMo \} : \{\}, \{ replace: true \}\);\s*$/m.test(moKh)
+        && moKh.search(/^\s*setSearchParams\(/m) < moKh.indexOf('chonKhach(kh)'));
   }
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -867,10 +867,8 @@ async function main() {
     k('B6a Settings.jsx: TÊN gói là Link tới /reports?tab=packages&goi=<mã gói> (ngoài "🔒 N KH")',
       /<Link style=\{\{ color: 'inherit' \}\} to=\{`\/reports\?tab=packages&goi=\$\{pkg\.id\}`\}>\{pkg\.name\}<\/Link>/.test(st));
     k('B6b Reports.jsx: tên khách là Link tới /customers?phone= (giữ từ GOI-1)', /to=\{`\/customers\?phone=\$\{encodeURIComponent\(kh\.customer_phone\)\}`\}/.test(rp));
-    k('B6c Customers.jsx: chi tiết khách có "Gói đang dùng: N gói · còn X túi →" là Link tới /reports?tab=packages&phone=<SĐT>, chỉ khi N > 0, số lấy từ theo-khach',
-      /\{goiDangDung\?\.so_dang_dung > 0 && \(/.test(kh) && /<Link to=\{`\/reports\?tab=packages&phone=\$\{encodeURIComponent\(selectedCustomer\.phone\)\}`\}/.test(kh)
-        && /Gói đang dùng: \{goiDangDung\.so_dang_dung\} gói · còn \{goiDangDung\.con_lai\} túi →/.test(kh)
-        && /api\.get\(`\/packages\/customer-packages\/theo-khach\?phone=\$\{encodeURIComponent\(customer\.phone\)\}`\)/.test(kh));
+    k('B6c (GIAO-DIEN-2 C1, chủ quán duyệt) Customers.jsx: dòng "Gói đang dùng" bỏ cùng gói tạm ngưng — không còn goiDangDung / theo-khach / Link /reports?tab=packages',
+      !/goiDangDung|Gói đang dùng|theo-khach|tab=packages/.test(kh));
     k('B6d Reports.jsx: ngày mua và từng lần giao là Link tới /orders?code=<mã đơn>&ngay=<ngày đơn>',
       /<Link to=\{`\/orders\?code=\$\{encodeURIComponent\(pkg\.order_code \|\| ''\)\}&ngay=\$\{ngay\(pkg\.created_at\)\}`\}/.test(rp)
         && /<Link to=\{`\/orders\?code=\$\{encodeURIComponent\(d\.order_code\)\}&ngay=\$\{ngay\(d\.created_at\)\}`\}/.test(rp));

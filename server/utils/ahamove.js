@@ -63,7 +63,7 @@ const TRA_HANG = { IN_RETURN: 'dang_tra', RETURNED: 'da_ve' };   // sub_status c
 const diem = (d) => Object.fromEntries(Object.entries({ address: d.dia_chi, lat: so(d.lat), lng: so(d.lng), name: d.ten, mobile: d.sdt,
   remarks: d.ghi_chu, tracking_number: d.ma_theo_doi }).filter(([, v]) => v != null && v !== ''));
 
-/** Báo phí một loại xe: { km, phi, dia_chi (Ahamove hiểu, nếu trả), lat, lng }. */
+/** Báo phí một loại xe: { km, phi, dia_chi (Ahamove hiểu, nếu trả), lat, lng, phi_tho }. phi có thể ≤ 0 — nơi gọi tự quyết (giaoHang.js). */
 async function baoPhi({ lay, giao, loaiXe }) {
   const j = await goi('/v3/orders/estimates', { method: 'POST',
     than: { order_time: 0, path: [diem(lay), diem(giao)], services: [{ _id: loaiXe }], payment_method: 'BALANCE' } });
@@ -73,7 +73,8 @@ async function baoPhi({ lay, giao, loaiXe }) {
   const km = so(d.distance), phi = so(d.total_price ?? d.total_fee);
   if (km == null || phi == null) throw loi('AHAMOVE_TU_CHOI', 200);
   const den = d.path?.[1] || {};
-  return { km, phi: Math.round(phi), dia_chi: den.address || null, lat: so(den.lat), lng: so(den.lng) };
+  return { km, phi: Math.round(phi), dia_chi: den.address || null, lat: so(den.lat), lng: so(den.lng),
+    phi_tho: { total_price: so(d.total_price), total_fee: so(d.total_fee) } };   // GIAO-4: chỉ số, cho log [GIAO] phi_0
 }
 
 /** Tạo chuyến — KHÔNG thu hộ (không gửi cod). Trả { ma, phi|null }. */
