@@ -31,6 +31,8 @@ K5: món không ảnh hiện chữ viết tắt; App KH bản cũ đọc `anh` n
 ## Phạm vi
 - viec/ANH-MON-1/**
 - server/routes/products.js
+- server/routes/backup.js
+- cong_cu/thu_SAOLUU2.js
 - server/routes/kh/index.js
 - server/utils/*.js
 - server/kho/duong.js
@@ -39,6 +41,7 @@ K5: món không ảnh hiện chữ viết tắt; App KH bản cũ đọc `anh` n
 - server/index.js
 - client/src/pages/Kho/SanPham.jsx
 - client/src/pages/BanHang/**
+- client/src/pages/Kho/ToppingMon.jsx
 - client/src/utils/api.js
 - client/dist/**
 - HOP_DONG_API_KH.md
