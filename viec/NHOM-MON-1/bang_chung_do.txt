@@ -22,6 +22,6 @@ CÁC BÀI CŨ ĐỔI:
   cong_cu/thu_KHO3a.js — category 'tra' → 'tea' (A4 tạo / sửa món): bản mới chạy trên server gốc → 145 đạt · 0 hỏng (XANH trên gốc) và xanh trên code mới
     → thuộc mục `## Bài thử cũ sửa` (bài cũ đổi mà VẪN xanh trên gốc); máy không sửa được phiếu — xem Câu hỏi trong trang_thai.md.
 
-SỐ CA thu_NHOMMON1.js: 47
+SỐ CA thu_NHOMMON1.js: 49
 SỐ CA thu_KHAPI2.js: 101
 SỐ CA thu_KHO3a.js: 145
