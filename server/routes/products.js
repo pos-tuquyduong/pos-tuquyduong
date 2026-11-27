@@ -434,6 +434,7 @@ router.post('/sync-from-sx', authenticate, (req, res) => res.status(410).json({ 
 
 // ── ANH-MON-1: ảnh nhỏ của món. Một ảnh / món trong CSDL; đọc công khai (đường dẫn mang phiên bản = băm nội dung → nhớ lâu an toàn). ──
 // Bộ đọc thân thô đứng SAU xác thực + quyền (không quyền thì không đọc byte nào); quá GIOI_HAN_ANH → 413 ANH_QUA_LON (MỘT chỗ chặn).
+const soMon = (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : next('route'));   // chỉ chữ số — Number('0x9') / Number('1e1') không được trỏ sang món khác (như PUT /:id)
 const docThanAnh = express.raw({ type: () => true, limit: GIOI_HAN_ANH });
 const nhanAnh = (req, res, next) => docThanAnh(req, res, (e) => {
   if (!e) return next();
@@ -442,7 +443,7 @@ const nhanAnh = (req, res, next) => docThanAnh(req, res, (e) => {
 });
 
 /** PUT /api/pos/products/:id/anh — thân = byte ảnh (JPEG / PNG / WebP thật). Tải lại = thay. */
-router.put('/:id/anh', authenticate, checkPermission('manage_settings'), nhanAnh, async (req, res) => {
+router.put('/:id/anh', soMon, authenticate, checkPermission('manage_settings'), nhanAnh, async (req, res) => {
   const id = Number(req.params.id);
   const kieu = Buffer.isBuffer(req.body) ? loaiAnh(req.body) : null;   // kiểu THẬT theo byte đầu, bỏ qua Content-Type khách khai
   if (!kieu) return res.status(400).json({ error: 'Ảnh phải là JPEG, PNG hoặc WebP thật', code: 'ANH_KHONG_HOP_LE' });
@@ -457,7 +458,7 @@ router.put('/:id/anh', authenticate, checkPermission('manage_settings'), nhanAnh
 });
 
 /** DELETE /api/pos/products/:id/anh — xoá ảnh (chưa có ảnh cũng 200: lặp lại được). */
-router.delete('/:id/anh', authenticate, checkPermission('manage_settings'), async (req, res) => {
+router.delete('/:id/anh', soMon, authenticate, checkPermission('manage_settings'), async (req, res) => {
   try {
     await run('DELETE FROM pos_anh_mon WHERE product_id = ?', [Number(req.params.id)]);
     res.json({ success: true });

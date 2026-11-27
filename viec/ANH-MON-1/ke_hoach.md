@@ -16,7 +16,7 @@ chạy chắc trên cả file SQLite thử lẫn Turso); B: multer + cột BLOB 
 - Đọc `GET /api/pos/products/anh/:id/:pb` không token, `Cache-Control: public, max-age=31536000, immutable`; `pb` không khớp bản hiện tại → 404 (không phục vụ nội dung khác dưới tên cũ). Không thêm cửa dưới `/api/kh`.
 - Ghi / xoá: `authenticate` + `checkPermission('manage_settings')` (cùng quyền sửa món), đứng TRƯỚC bộ đọc thân (không quyền thì không đọc 120 KB).
 - Menu: `layMenuQuay` thêm `anh` (đường dẫn | null) từ một câu `SELECT product_id, phien_ban` (không kéo byte ảnh); đọc lỗi → ghi log, `anh: null` (menu KHÔNG được chết vì ảnh — CLAUDE.md §5.3).
-- `monKhach`: `anh: p.anh ?? null`. `HOP_DONG_API_KH.md` v19 (nghĩa mới của `anh`), `BAO_APPKH.md`.
+- `monKhach`: `anh: p.anh ?? null`. `HOP_DONG_API_KH.md` v21 (nghĩa mới của `anh`), `BAO_APPKH.md`.
 
 **Quầy** — A: ô ảnh vuông dùng chung `AnhMon.jsx` (ảnh lười + chỗ giữ chỗ cố định `aspect-ratio`, chữ viết tắt màu khi chưa có / ảnh lỗi) gắn vào thẻ món + dòng giỏ; B: sửa cả khung chọn món. **Chọn A**.
 **Màn Sản phẩm** — thu nhỏ bằng canvas ở máy (cắt vuông giữa, 400 × 400, WebP 0,7, JPEG nếu máy không ra WebP), hằng số có tên đầu file; nút Xoá ảnh.
@@ -30,7 +30,7 @@ chạy chắc trên cả file SQLite thử lẫn Turso); B: multer + cột BLOB 
 | K5 | món không ảnh → `anh: null`, bộ khoá menu giữ nguyên (thu_KHSP1 C3); App cũ đọc `anh` null vẫn chạy; xoá ảnh chưa có → 200 (lặp lại được); kho ảnh hỏng → menu vẫn trả, `anh` null |
 | A3 / A1 (giao diện) | hằng số 400 / 0,7 một chỗ; thẻ món + dòng giỏ dùng `AnhMon`; tệp giao diện không `fetch` trần; hoá đơn / tem không nhắc `anh` |
 | A5 | `backup.js` không có `pos_anh_mon` |
-| A4 | hợp đồng v19 (bài `thu_HOPDONG_KH.js`) |
+| A4 | hợp đồng v21 (bài `thu_HOPDONG_KH.js`) |
 
 Đột biến: VS-anh-tin-duoi · VS-anh-khong-gioi-han · BV-bo-kiem-quyen-anh (phiếu) + VS-anh-webp-chi-RIFF · VS-anh-ten-co-dinh · BV-anh-menu-null · VS-anh-menu-chet-theo-anh · VS-anh-doc-khong-kiem-pb.
 
