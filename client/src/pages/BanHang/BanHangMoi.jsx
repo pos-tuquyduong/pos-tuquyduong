@@ -25,7 +25,6 @@ import { NutThongTin } from '../../components/ThongTinMon';
 import './banHang.css';
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
-const TEN_NHOM = { juice: 'Nước ép', tea: 'Trà' };          // nhóm lạ hiện đúng mã nhóm
 const NHOM_THE = 'the';                                     // QUAY-UI-1: nhóm "Thẻ thành viên" (gói thẻ cùng giỏ với món, tối đa một thẻ)
 const NHOM_NAP = 'nap';                                     // NAP-1: nhóm "Nạp tiền" (gói nạp, đơn riêng, chỉ tiền mặt / QR)
 const NHOM_TOPPING = 'topping_rieng';                       // TOPPING-1: tab "Topping" — topping có giá bán riêng
@@ -334,9 +333,14 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
   const xongQr = useCallback((id) => hoanTatRef.current(id, anhQr.current, 'chuyen_khoan', 0), []);
   const nhaQr = useCallback((thongBao) => { setQr(null); setLoi(thongBao); setLanTinhLai((n) => n + 1); }, []);
 
-  const spBan = sp.filter((p) => !p.la_topping);   // TOPPING-1: topping không nằm ở lưới món — chọn trong khung, hoặc tab "Topping" nếu bán riêng
-  const dsRieng = sp.filter((p) => p.la_topping && p.gia_ban_rieng > 0);
-  const dsNhom = [...new Set(spBan.map((p) => p.category).filter(Boolean))];
+  // NHOM-MON-1: tab theo thứ tự + tên nhóm của máy chủ (nhom_ten / nhom_thu_tu); nhóm tắt "hiện ở quầy" → không tab, không món. nhomTheoMa dùng sp ĐỦ (dòng giỏ cũ).
+  // TOPPING-1: topping không nằm ở lưới món — chọn trong khung, hoặc tab "Topping" nếu bán riêng.
+  const spQuay = useMemo(() => sp.filter((p) => p.nhom_hien_quay !== 0), [sp]);
+  const spBan = useMemo(() => spQuay.filter((p) => !p.la_topping), [spQuay]);
+  const dsRieng = spQuay.filter((p) => p.la_topping && p.gia_ban_rieng > 0);
+  const tenNhom = useMemo(() => Object.fromEntries(spBan.map((p) => [p.category, p.nhom_ten || p.category])), [spBan]);
+  const dsNhom = useMemo(() => [...new Set(spBan.map((p) => p.category).filter(Boolean))]
+    .sort((a, b) => (spBan.find((p) => p.category === a).nhom_thu_tu ?? 9999) - (spBan.find((p) => p.category === b).nhom_thu_tu ?? 9999)), [spBan]);
   const dsMon = nhom === NHOM_TOPPING ? dsRieng.map((p) => ({ ...p, price: p.gia_ban_rieng })) : nhom === 'all' ? spBan : spBan.filter((p) => p.category === nhom);
   const nhomTheoMa = useMemo(() => Object.fromEntries(sp.filter((p) => p.code && p.category).map((p) => [p.code, p.category])), [sp]);
   const haiTrang = bo === 'hai-trang';
@@ -348,7 +352,7 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
       <ThanhKhach khach={khach} hang={hang} onChon={chonKhach} onBo={boKhach} />
       <div className="bh-hang-tren">
         {['all', ...dsNhom].map((n) => (
-          <button key={n} className={`bh-tab${nhom === n ? ' bh-chon' : ''}`} onClick={() => setNhom(n)}>{n === 'all' ? 'Tất cả' : TEN_NHOM[n] || n}</button>
+          <button key={n} className={`bh-tab${nhom === n ? ' bh-chon' : ''}`} onClick={() => setNhom(n)}>{n === 'all' ? 'Tất cả' : tenNhom[n] || n}</button>
         ))}
         {dsRieng.length > 0 && <button className={`bh-tab${nhom === NHOM_TOPPING ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_TOPPING)}>Topping</button>}
         {dsGoiNap.length > 0 && <button className={`bh-tab${nhom === NHOM_NAP ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_NAP)}>Nạp tiền</button>}

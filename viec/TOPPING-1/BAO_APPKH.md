@@ -1,6 +1,6 @@
-# Thư POS → App KH: topping + ghi chú nhanh theo từng món (TOPPING-1, hợp đồng v19)
+# Thư POS → App KH: topping + ghi chú nhanh theo từng món (TOPPING-1, hợp đồng v20 — sau NHOM-MON-1 v19)
 
-Chủ quán chuyển giúp thư này sang chat App KH. Chi tiết kỹ thuật nằm trong `HOP_DONG_API_KH.md`, mục "Ghi chú v19".
+Chủ quán chuyển giúp thư này sang chat App KH. Chi tiết kỹ thuật nằm trong `HOP_DONG_API_KH.md`, mục "Ghi chú v20".
 
 ## Việc này là gì
 Quán bán topping (nếp cẩm, thạch…) kèm theo ly. Mỗi món có danh sách topping RIÊNG và các nút ghi chú nhanh RIÊNG ("Ít đá", "Ít ngọt"…), do chủ

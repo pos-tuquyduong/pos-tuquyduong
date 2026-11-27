@@ -763,12 +763,15 @@ async function main() {
     k('A4 nhân viên tạo món → 403', nv.status === 403, moTa(nv));
     const rong = await goi('ql', 'POST', '/pos/products', { name: '  ', category: 'juice', price: 10000 });
     k('A4 tên rỗng → 400 TEN_KHONG_HOP_LE', la(rong, 400, 'TEN_KHONG_HOP_LE'), moTa(rong));
-    const tao = await goi('ql', 'POST', '/pos/products', { name: 'Món thử K3a', category: 'tra', price: 15000, unit: 'ly', sort_order: 0, is_active: 1 });
+    const nhomSai = await goi('ql', 'POST', '/pos/products', { name: 'Món nhóm sai K3a', category: 'khong_co_nhom', price: 10000 });
+    k('A4 NHOM-MON-1: category không có trong danh sách nhóm → 400 NHOM_KHONG_CO, không tạo món', la(nhomSai, 400, 'NHOM_KHONG_CO')
+      && !(await mot("SELECT 1 AS co FROM pos_products WHERE name = 'Món nhóm sai K3a'")), moTa(nhomSai));
+    const tao = await goi('ql', 'POST', '/pos/products', { name: 'Món thử K3a', category: 'tea', price: 15000, unit: 'ly', sort_order: 0, is_active: 1 });
     const id = tao.j.product?.id;
     const hang = id ? await mot('SELECT * FROM pos_products WHERE id = ?', [id]) : null;
     k('A4 quản lý tạo món → khoá ("pos", id), mã POS<id>', la(tao, 200) && hang?.sx_product_type === 'pos' && Number(hang?.sx_product_id) === id && hang?.code === `POS${id}`,
       `${moTa(tao)} · ${hang && [hang.sx_product_type, hang.sx_product_id, hang.code].join('/')}`);
-    const trung = await goi('ql', 'POST', '/pos/products', { name: 'Món thử K3a', category: 'tra', price: 15000 });
+    const trung = await goi('ql', 'POST', '/pos/products', { name: 'Món thử K3a', category: 'tea', price: 15000 });
     k('A4 trùng tên món đang bán → 400 TEN_TRUNG', la(trung, 400, 'TEN_TRUNG'), moTa(trung));
     const mq = await menuQuay();
     const m = mq.find((x) => x.id === id);
@@ -780,7 +783,7 @@ async function main() {
       k('A4/A5 có công thức + sửa giá qua route giá có sẵn → bán được, đúng giá mới', la(gia, 200) && la(b, 200) && Number(b.j.order?.total) === 17000, `${moTa(gia)} · ${moTa(b)}`);
       const suaTrung = await goi('ql', 'PUT', `/pos/products/${id}`, { name: spCF.ten });
       k('A4 sửa tên trùng món đang bán → 400 TEN_TRUNG (cùng vị từ với tạo món)', la(suaTrung, 400, 'TEN_TRUNG'), moTa(suaTrung));
-      const sua = await goi('ql', 'PUT', `/pos/products/${id}`, { name: 'Món thử K3a đổi', category: 'tra', sort_order: 0, is_active: 0 });
+      const sua = await goi('ql', 'PUT', `/pos/products/${id}`, { name: 'Món thử K3a đổi', category: 'tea', sort_order: 0, is_active: 0 });
       const sau = await menuQuay();
       k('A4 sửa tên + ẩn → menu không còn món', la(sua, 200) && !sau.find((x) => x.id === id), moTa(sua));
       // Soát vòng 2: hiện lại (chỉ gửi is_active: 1) món ẩn trùng tên món đang bán → cùng vị từ TEN_TRUNG; đối chứng: đổi thứ tự món đang bán (dữ liệu cũ có thể trùng) vẫn qua

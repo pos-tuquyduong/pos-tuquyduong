@@ -10,7 +10,7 @@ const { query, queryOne, run } = require('../database');
 const { getNow } = require('./helpers');
 const { gomRes } = require('./giuCho');
 const { readFlashState } = require('./flashState');
-const { layMenuQuay } = require('../routes/products');
+const { menuQuay } = require('../routes/products');
 const { taoDon } = require('../routes/orders');
 
 const SO_CHU_SO_MA = 6;
@@ -108,8 +108,8 @@ async function thuHoiMay(id, nguoi) {
 
 // ── Menu (dùng chung layMenuQuay) — KHO-3a: bỏ bộ nhớ 20 s (chỉ có vì hỏi SX chậm); "hết" cùng một con số với quầy và App ngay lúc đó ──
 async function layMenu() {
-  // TOPPING-1: topping chỉ hiện khi bán riêng (giá bán riêng) — cùng luật menu App (routes/kh/index.js menuKhach).
-  return (await layMenuQuay()).filter((p) => p.sellable && (!p.la_topping || p.gia_ban_rieng > 0))
+  // TOPPING-1: topping chỉ hiện khi bán riêng (giá bán riêng) — cùng luật menu App (routes/kh/index.js menuKhach). NHOM-MON-1: theo "hiện ở quầy".
+  return (await menuQuay()).filter((p) => p.sellable && (!p.la_topping || p.gia_ban_rieng > 0))
     .map((p) => ({ key: p.unique_id, ten: p.name, gia: p.la_topping ? p.gia_ban_rieng : p.price, nhom: p.category || '', het: !p.khong_quan_kho && p.stock_quantity === 0 }));
 }
 

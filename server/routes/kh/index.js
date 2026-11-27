@@ -16,7 +16,7 @@ const { chuanSdt, chuanTen, chuanXungHo, chuanDiaChi, giuLuotMenu, giuLuotGiaHan
 const { layDiemKhach, layVoucherKhach, layMaKhachMoi } = require('../../utils/diemKhach');
 const { getNow, sinhQrKhongTrung, QR_TIEN_TO } = require('../../utils/helpers');
 const { nhanMaUuDai, nhanDiemMaBill } = require('../signup-codes');
-const { layMenuQuay } = require('../products');
+const { menuApp } = require('../products');
 const { bao, loiMayChu } = require('./loi');
 const { datPin } = require('../../utils/pinKhach');
 const { dangGiu } = require('../wallets');
@@ -39,7 +39,7 @@ const hoSo = (kh) => ({ sdt: kh.phone, ten: kh.name, ngay_tao: kh.created_at, xu
 const tra = (res, kq) => res.status(kq.status).json(kq.body);
 // Danh sách TRẮNG trường món (E5) — không giá vốn, không số tồn thật. ton_cu + ton_luc: mất SX thì App hiện "theo số lúc …" (CLAUDE.md §5.8).
 const monKhach = (p, dsHang) => ({
-  ma: p.unique_id, ten: p.name, nhom: p.category, gia: p.price,
+  ma: p.unique_id, ten: p.name, nhom: p.category, nhom_ten: p.nhom_ten, nhom_thu_tu: p.nhom_thu_tu, gia: p.price,
   con_hang: p.khong_quan_kho ? true : typeof p.stock_quantity === 'number' ? p.stock_quantity > 0 : null,
   ton_cu: !!p.ton_cu, ton_luc: p.ton_luc || null,
   gia_hang: giaCacHang(p.price, p.is_special_group, dsHang),
@@ -154,7 +154,7 @@ router.get('/gio-hoat-dong', async (req, res) => {
 router.get('/menu', tuyChonKhach, async (req, res) => {
   try {
     if (!req.khach && !giuLuotMenu(req.ip || '')) return bao(res, 'QUA_NHIEU_LAN');
-    const [mon, dsHang, the] = await Promise.all([layMenuQuay(), hangDangBat(), req.khach && theCuaKhach(req.khach.phone)]);
+    const [mon, dsHang, the] = await Promise.all([menuApp(), hangDangBat(), req.khach && theCuaKhach(req.khach.phone)]);
     // Hạng đã tắt mà khách còn thẻ: quầy vẫn giảm (orders.js không lọc is_active) → giá hạng đó cũng hiện cho chính khách này.
     if (the && !dsHang.some((h) => h.id === the.h.id)) dsHang.push(the.h);
     res.json({ success: true, data: menuKhach(mon, dsHang), topping_toi_da_phan: TOPPING_TOI_DA_PHAN });

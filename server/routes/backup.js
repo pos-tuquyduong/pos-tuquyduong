@@ -74,6 +74,7 @@ const BACKUP_TABLES = [
   { name: 'pos_discount_codes', label: 'Mã chiết khấu', key: 'id' },
   { name: 'pos_goi_nap', label: 'Gói nạp tiền', key: 'id' },   // NAP-1: danh mục gói — xuất được, KHÔNG khôi phục (chỉ sửa có PIN chủ quán)
   { name: 'pos_product_groups', label: 'Nhóm sản phẩm', key: 'id' },
+  { name: 'pos_nhom_mon', label: 'Nhóm món', key: 'id' },   // NHOM-MON-1
   { name: 'pos_product_group_members', label: 'Thành viên nhóm SP', key: 'id' },
 
   // ═══ POS-ANTOAN-v1 (18.09.2026) — 15 bảng TRƯỚC ĐÂY KHÔNG ĐƯỢC SAO LƯU ═══
