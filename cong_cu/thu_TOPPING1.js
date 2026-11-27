@@ -335,6 +335,16 @@ async function main() {
     const r43 = await tinhThu([mon(TRA, 1, [[NEP, 2]])], { discount_code: m43 });
     // tay: mã "giảm 1 món" 50 % chỉ trên ly trà 45.000 → 22.500; topping 20.000 không giảm → 65.000 − 22.500 = 42.500
     k('T43 mã "giảm 1 món" 50 % chỉ giảm ly (22.500), không giảm topping → 42.500đ (Q3)', Number(r43.j.total) === 42500, `${moTa(r43)} · ${r43.j.total}`);
+    // soát vòng 2: topping CŨNG thuộc nhóm của mã và ĐẮT hơn ly → mã vẫn chỉ chọn ly
+    await ghiDb("INSERT INTO pos_product_groups (id, code, name) VALUES (933, 'NHOM_TP1B', 'Nhóm thử TOPPING-1 b')");
+    for (const sp of [TRA2, NEP]) await ghiDb('INSERT INTO pos_product_group_members (group_id, sx_product_type, sx_product_id) VALUES (933, ?, ?)', [sp.sx_product_type, sp.sx_product_id]);
+    await ghiDb('UPDATE pos_products SET price = 40000 WHERE id = ?', [NEP.id]);
+    const m43b = await maChung('percent', 50, 'item', 933);
+    const t43b = await tongCua([mon(TRA2, 1, [[NEP, 1]])], { discount_code: m43b });
+    await ghiDb('UPDATE pos_products SET price = 10000 WHERE id = ?', [NEP.id]);
+    await ghiDb('DELETE FROM pos_product_group_members WHERE group_id = 933');
+    // tay: trà gừng 30.000 + nếp 40.000 = 70.000; mã 50 % chọn LY 30.000 → giảm 15.000 → 55.000 (nếu chọn topping: giảm 20.000 → 50.000)
+    k('T43b topping thuộc nhóm của mã và đắt hơn ly → mã "giảm 1 món" vẫn chọn ly: 55.000đ', t43b === 55000, String(t43b));
     const flash = async (keys, fn) => {
       for (const [key, v] of [['flash_enabled', 'true'], ['flash_start', '08:00'], ['flash_end', '11:00'], ['flash_percent', 20], ['flash_product_keys', JSON.stringify(keys)]]) await datCaiDat(key, v);
       try { return await fn(); } finally { await datCaiDat('flash_enabled', 'false'); }
@@ -430,7 +440,7 @@ async function main() {
     const g1 = await deng(42501), g2 = await deng(42500);
     k('T28g mã "giảm 1 món" + topping: đơn 42.500; đền 42.501 → VUOT_GIA (ngay trên), đền 42.500 → qua (ngay dưới)', Number(bg.j.order?.total) === 42500
       && la(g1, 400, 'VUOT_GIA') && la(g2, 200), `${bg.j.order?.total} · ${moTa(g1)} · ${moTa(g2)}`);
-    k('T39 huỷ đơn có topping (HUY-1: hoàn toàn bộ đã trả vào tài khoản) → 65.000 (ly + topping)', la(b39, 200) && la(h39, 200) && vi1 - vi0 === 65000, `${moTa(b39)} · ${moTa(h39)} · ${vi1 - vi0}`);
+    k('T39 HUỶ đơn (PUT /cancel — không phải duyệt hoàn refunds.js) có topping (HUY-1: hoàn toàn bộ đã trả vào tài khoản) → 65.000 (ly + topping)', la(b39, 200) && la(h39, 200) && vi1 - vi0 === 65000, `${moTa(b39)} · ${moTa(h39)} · ${vi1 - vi0}`);
   });
 
   muc('[C4] Hoá đơn · tem · phiếu pha chế · in lại đơn cũ');
@@ -508,6 +518,22 @@ async function main() {
     k('T49 App đặt riêng topping không bán riêng → 400 (MON_KHONG_BAN)', rieng.status === 400, moTa(rieng));
     const het = await goi(null, 'POST', '/kh/gio/bao-gia', { mon: [{ ma: maCua(TRA), so_luong: 2, topping: [{ ma: maCua(LN), so_phan: 1 }] }], cach_nhan: 'tai_quan' }, kh.tk);
     k('T49b App topping không đủ (Long nhãn còn 1, cần 2) → HET_HANG', la(het, 400, 'HET_HANG'), moTa(het));
+    // soát vòng 2: nhánh false của con_hang — bán phần Long nhãn cuối rồi đọc menu
+    const banLN = await banTM([mon(TRA, 1, [[LN, 1]])]);
+    const lnHet = ((await goi(null, 'GET', '/kh/menu')).j.data || []).find((x) => x.ma === maCua(TRA))?.topping?.find((x) => x.ma === maCua(LN));
+    k('T30d topping hết (Long nhãn bán phần cuối) → /api/kh/menu con_hang: false', la(banLN, 200) && lnHet?.con_hang === false, `${moTa(banLN)} · ${JSON.stringify(lnHet)}`);
+    // soát vòng 2: đơn ĐÃ trả của khách (đơn quầy có SĐT) — lịch sử App + chi tiết + hoá đơn App gom topping vào ly
+    const bq = await banTM([mon(TRA, 2, [[NEP, 2]])], { customer_phone: kh.sdt });
+    const xq = (await goi(null, 'GET', `/kh/don/${bq.j.order?.code}`, undefined, kh.tk)).j.don || {};
+    const dsDonKh = ((await goi(null, 'GET', '/kh/don', undefined, kh.tk)).j.data || []).find((x) => x.ma === bq.j.order?.code);
+    k('T35b đơn đã trả: so_mon = 2 ly (không đếm 4 phần topping) ở cả danh sách lẫn chi tiết', xq.so_mon === 2 && dsDonKh?.so_mon === 2, `${xq.so_mon} · ${dsDonKh?.so_mon}`);
+    k('T35c chi tiết đơn đã trả: dòng trà mang topping[{ so_phan 2, thanh_tien 40.000 }], không dòng topping rời', xq.mon?.length === 1
+      && xq.mon[0].topping?.[0]?.so_phan === 2 && xq.mon[0].topping[0].thanh_tien === 40000, JSON.stringify(xq.mon));
+    k('T45 hoá đơn App (hoa_don[]): dòng "+ Nếp cẩm TP1 x2" không kèm "sl x"', (xq.hoa_don || []).some((d) => d.trai === '+ Nếp cẩm TP1 x2'),
+      JSON.stringify((xq.hoa_don || []).filter((d) => d.loai === 'mon')));
+    const dsQ = (await goi('chu', 'GET', '/pos/orders')).j.orders || [];
+    k('T47b danh sách đơn quầy: item_count = 1 dòng (ly), không đếm dòng topping', dsQ.find((o) => o.id === bq.j.order?.id)?.item_count === 1,
+      String(dsQ.find((o) => o.id === bq.j.order?.id)?.item_count));
     const cu = await goi(null, 'POST', '/kh/gio/bao-gia', { mon: [{ ma: maCua(CAM), so_luong: 1 }], cach_nhan: 'tai_quan' }, kh.tk);
     k('T31b App bản cũ (không gửi topping) vẫn báo giá như cũ', la(cu, 200) && cu.j.tong === 20000 && !('topping' in (cu.j.dong?.[0] || {})), JSON.stringify(cu.j.dong));
     const dat = await goi(null, 'POST', '/kh/don', { ...than, khoa_gui: 'tp1-' + ngauNhien().slice(0, 16), cach_tra: 'qr', tong_da_xem: bg.j.tong }, kh.tk);
