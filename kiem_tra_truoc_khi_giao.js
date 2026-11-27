@@ -821,6 +821,7 @@ chayBaiThat('cong_cu/thu_KHO1.js');   // KHO-1: bảng kho, nâng cấp dữ li�
 chayBaiThat('cong_cu/thu_KHO2a.js');   // KHO-2a: pha chế, phiếu xuất có duyệt, thành phẩm vào kho, tồn, danh sách phiếu
 chayBaiThat('cong_cu/thu_KHO2b.js');   // KHO-2b: đặt hàng có hạn mức, nhận hàng người khác duyệt, xử lý phát sinh, tồn
 chayBaiThat('cong_cu/thu_KHO3a.js');   // KHO-3a: menu từ POS, bán trừ kho POS cùng giao dịch, giữ hàng, lưới an toàn, gỡ SX
+chayBaiThat('cong_cu/thu_TOPPING1.js');   // TOPPING-1: topping theo món, bán riêng, tiền / kho / sự cố / hoá đơn / tem / App KH
 chayBaiThat('cong_cu/thu_KHSP1.js');   // KH-SP-1: thông tin ngắn của món (bước 005, cửa ghi, /api/kh/menu)
 chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới, hoá đơn khách chỉ còn khổ nhiệt
 chayBaiThat('cong_cu/thu_KHOIN1.js');   // KHO-IN-1: cài đặt in phiếu kho (80mm / A5 / A4, số bản), ô khổ hoá đơn mặc định ghi đúng khoá

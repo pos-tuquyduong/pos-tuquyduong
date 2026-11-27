@@ -4,9 +4,8 @@
     python3 viec/TOPPING-1/dot_bien.py --liet-ke      (chỉ in danh sách)
 
 Khuôn viec/TIEN-KHOA-2/dot_bien.py: chép server/ và client/src/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink), thay chuỗi (mỗi
-chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, K3), chạy `node cong_cu/thu_TOPPING1.js --may-chu <bản sao>/server --bo C4,Q7`.
-`--bo C4,Q7`: hai mục cần 8 file chat duyệt 27.11 mà phiếu chưa ghi (trang_thai.md ## Câu hỏi) — bỏ TẠM, đối chứng xanh trên phần còn lại; chat mở
-Phạm vi xong thì bỏ cờ này và thêm đột biến cho damages.js / hoaDon / inPhieu.
+chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, K3), chạy `node cong_cu/thu_TOPPING1.js --may-chu <bản sao>/server` (bài đọc client/src
+của bản sao cạnh server). Cờ `--bo` tạm (27.11, khi 8 file chưa vào Phạm vi) đã BỎ — chạy đủ mọi mục.
 BẮT = thoát ≠ 0 VÀ có dòng `✗` khớp mẫu ĐÚNG ca phải bắt. Bài sập (thoát 2) hoặc đỏ không khớp mẫu = LẠC. Xanh trọn = SỐNG.
 Không đụng server/ thật, data/, Turso.
 """
@@ -16,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.dont_write_bytecode = True
 GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 BAI = 'cong_cu/thu_TOPPING1.js'
-BO = 'C4,Q7'
+DM, DT, HD, HDC, IP = 'server/routes/damages.js', 'server/utils/diemThat.js', 'server/routes/hoaDon.js', 'client/src/utils/hoaDon.js', 'client/src/utils/inPhieu.js'
 TP, O, K, P = 'server/utils/topping.js', 'server/routes/orders.js', 'server/kho/banHang.js', 'server/routes/products.js'
 A, KH, MK, GH, NC = 'server/utils/donApp.js', 'server/routes/kh/index.js', 'server/utils/manKhach.js', 'server/utils/giaoHang.js', 'server/nang_cap/036_topping.js'
 
@@ -60,6 +59,20 @@ DOT_BIEN = [
   ('BV-man-khach-loc-topping', [(MK, '.filter((p) => p.sellable && (!p.la_topping || p.gia_ban_rieng > 0))', '.filter((p) => p.sellable)', 1)], r'✗ T46'),
   ('VS-so-mon-giao-dem-topping', [(GH, 'const soMonDon = (dong) => (dong || []).filter((x) => x.dong_cha_id == null).reduce(',
      'const soMonDon = (dong) => (dong || []).reduce(', 1)], r'✗ T47'),
+  # ── Q7: sự cố theo ly ──
+  ('VS-den-bo-topping', [(DM, 'da_tra: d.da_tra + tatCa.filter(', 'da_tra: d.da_tra + 0 * tatCa.filter(', 1)], r'✗ T28d'),
+  ('BV-bao-theo-ly', [(DM, "AND product_code = ? AND dong_cha_id IS NULL`, [order_id, product_code]);", "AND product_code = ?`, [order_id, product_code]);", 1)],
+   r'✗ T28[be]'),
+  ('VS-diem-den-theo-co-ly', [(DT, 'if (!batDiem(x)) { m.tat += gia(x); m.coTat = true; }', 'if (!batDiem(ly)) { m.tat += gia(x); m.coTat = true; }', 1)], r'✗ T28c'),
+  # ── C4: hoá đơn / tem / pha chế ──
+  ('BV-hoa-don-topping-cua', [(HD, "...(cha >= 0 ? { topping_cua: cha,", '...(false ? { topping_cua: cha,', 1)], r'✗ T09 '),
+  ('VS-hoa-don-mat-phan-tram', [(HD, 'items.filter((m) => m.dong_cha_id == null && m.tier_unit_price != null', 'items.filter((m) => m.tier_unit_price != null', 1)],
+   r'✗ T09b'),
+  ('BV-to-hoa-don-topping', [(HDC, "ten: x.topping_cua != null ? `+ ${x.ten}", 'ten: false ? `+ ${x.ten}', 1)], r'✗ T09c'),
+  ('BV-tem-gom-topping', [(IP, '  for (const m of dongLy(don?.items)) {\n    if (!laMonPha', '  for (const m of (don?.items || []).map((x) => ({ ...x, tp: [] }))) {\n    if (!laMonPha', 1)],
+   r'✗ T10 '),
+  ('VS-tem-chi-don-moi', [(IP, ': d.dong_cha_id != null ? ds.find(', ': false ? ds.find(', 1)], r'✗ T10 tem \(in lại'),
+  ('VS-pha-che-gop-khac-topping', [(IP, "\\u0000${ghiChu}\\u0000${m.tp.join('\\u0001')}`", "\\u0000${ghiChu}`", 1)], r'✗ T44'),
 ]
 
 

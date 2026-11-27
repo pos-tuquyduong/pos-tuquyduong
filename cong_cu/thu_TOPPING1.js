@@ -69,6 +69,7 @@ async function main() {
 
   const db = require(path.join(MAY_CHU, 'database.js'));
   const { getNow } = require(path.join(MAY_CHU, 'utils', 'helpers.js'));
+  datGio('2026-11-27T08:00:00');   // TRƯỚC initDatabase: mốc bước 014_nap (truDiemHoan chỉ tính điểm ghi sau mốc) theo đồng hồ của bài, không theo giờ thật
   await db.initDatabase();
   const R = (f) => path.join(MAY_CHU, 'routes', f);
   const app = express();
@@ -114,13 +115,7 @@ async function main() {
   };
   const moTa = (r) => `HTTP ${r.status}${r.j?.code ? ' · ' + r.j.code : ''}${r.j?.error ? ' · ' + r.j.error : ''}`;
   const la = (r, status, code) => r.status === status && (code === undefined || r.j.code === code);
-  // --bo C4,Q7: bỏ qua mục (in rõ) — CHỈ cho dot_bien.py khi phần đó chờ chat mở Phạm vi (trang_thai.md ## Câu hỏi). Chạy thường không có cờ này.
-  const iBo = process.argv.indexOf('--bo');
-  const BO = iBo > 0 ? String(process.argv[iBo + 1] || '').split(',') : [];
-  const chay = async (ten, fn) => {
-    if (BO.includes(ten)) { console.log(`  · BỎ QUA mục ${ten} (--bo)`); return; }
-    try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.stack?.split('\n').slice(0, 2).join(' | ')); }
-  };
+  const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.stack?.split('\n').slice(0, 2).join(' | ')); } };
   const datCaiDat = (key, value) => ghiDb(`INSERT INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
     [key, String(value), getNow()]);
   for (const [a, b] of [['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', 1000], ['loyalty_expiry_mode', 'none'], ['flash_enabled', 'false'],
@@ -440,6 +435,10 @@ async function main() {
       const pc = P.dungPhieuPhaChe(don, {}, cfg);
       k(`T44 phiếu pha chế (${nguon}): 2 dòng, dòng trà có topping`, pc.dong.length === 2 && (pc.dong[0].topping || []).join() === '+ Nếp cẩm TP1 x2', JSON.stringify(pc.dong));
     }
+    const pc2 = P.dungPhieuPhaChe({ code: 'X', items: [{ id: 1, product_id: 5, product_code: 'TRA', product_name: 'Trà', quantity: 1 },
+      { id: 2, product_id: 6, product_code: 'NEP', product_name: 'Nếp', quantity: 1, dong_cha_id: 1 }, { id: 3, product_id: 5, product_code: 'TRA', product_name: 'Trà', quantity: 1 }] }, {}, cfg);
+    k('T44b phiếu pha chế: hai ly cùng món, một có topping một không → hai dòng riêng', pc2.dong.length === 2 && pc2.dong.filter((d) => (d.topping || []).join() === '+ Nếp').length === 1,
+      JSON.stringify(pc2.dong));
     const cu = await banTM([mon(CAM, 2)]);
     const hdCu = (await goi('chu', 'GET', `/pos/hoa-don/${cu.j.order?.id}`)).j.hoa_don;
     const toCu = H.dungHoaDon(hdCu, {});
