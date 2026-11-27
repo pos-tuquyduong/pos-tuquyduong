@@ -58,6 +58,10 @@ hàng, nhóm Menu App KH, lọc ở Kho đều đọc từ đây. Sửa tên nh�
 - server/routes/kh/quay.js
 - server/utils/manKhach.js
 - server/routes/orders.js
+- server/utils/donApp.js
+- cong_cu/thu_KH1.js
+- cong_cu/thu_KHSP1.js
+- cong_cu/gia_lap/kich_ban.js
 - server/kho/duong.js
 - server/nang_cap/035_nhom_mon.js
 - server/nang_cap/chay.js
