@@ -13,8 +13,8 @@
  * (product_id < 0) đã trả ĐỦ giá; phần còn lại của số khách trả chia theo tỉ lệ trên món thường. Đơn cũ (cờ 0) giữ y cách chia cũ.
  */
 async function tienDaTraTheoDong(tx, order, chanTren = false) {
-  const dong = await tx.query(`SELECT product_id, product_code, quantity, unit_price, flash_unit_price, tier_unit_price
-    FROM pos_order_items WHERE order_id = ? ORDER BY id`, [order.id]);
+  const dong = await tx.query(`SELECT id, product_id, product_code, quantity, unit_price, flash_unit_price, tier_unit_price, dong_cha_id
+    FROM pos_order_items WHERE order_id = ? ORDER BY id`, [order.id]);   // TOPPING-1: id + dong_cha_id để damages.js gom topping vào ly
   const gia = dong.map((d) => Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0) * Number(d.quantity));
   const du = dong.map((d) => Number(order.giam_mon_thuong) === 1 && Number(d.product_id) < 0);   // dòng không nhận giảm → đã trả đủ giá
   const tong = gia.reduce((a, b) => a + b, 0);

@@ -31,6 +31,7 @@ const { kiemTraMe } = require("../utils/viMe"); // VI-ME-1: đối chiếu mẹ�
 const { tiLeHangMon } = require("../utils/giaHang"); // KH-API-2: % hạng từng món — một hàm cho quầy và /api/kh/menu
 const { daLayTheoLoai, vuotTheoLoai, goiDaKetThuc, LOI_GOI_DA_KET_THUC } = require("../utils/goiKhach"); // GOI-1
 const { readFlashState } = require("../utils/flashState");
+const { dongTopping, giaBanRieng } = require("../utils/topping");   // TOPPING-1: luật topping một chỗ
 const { getMembershipStatus, isTierUsable, goiBanDuoc, hanSauDong } = require("../utils/membershipStatus");
 const { kiemDonCuaMa, docCauHinhNhanDiem, maBillCuaVoucher } = require("./signup-codes"); // P20b: voucher từ mã bill — cùng phép kiểm với /claim, /nhan-diem; P22-23: hệ số nhân điểm
 
@@ -82,7 +83,7 @@ router.get("/", authenticate, async (req, res) => {
 
     let sql = `
       SELECT o.*, 
-        (SELECT COUNT(*) FROM pos_order_items WHERE order_id = o.id) as item_count
+        (SELECT COUNT(*) FROM pos_order_items WHERE order_id = o.id AND dong_cha_id IS NULL) as item_count
       FROM pos_orders o WHERE 1=1
     `;
     const params = [];
@@ -478,8 +479,10 @@ async function taoDonGoc(req, res, phien = null) {
       // thang tu co cua to khai. Day la khac biet that, khong phai doi ten.
       const layTuGoi = !!item.from_package;
 
-      // Mix mode: SP từ gói → 0đ, SP lẻ → giá thường
-      const unitPrice = layTuGoi ? 0 : product.price;
+      // Mix mode: SP từ gói → 0đ, SP lẻ → giá thường. TOPPING-1: topping đứng một mình = bán riêng (giá bán riêng, không có → 400).
+      const rieng = layTuGoi ? null : giaBanRieng(product);
+      if (rieng?.loi) return res.status(rieng.loi.status).json(rieng.loi.body);
+      const unitPrice = layTuGoi ? 0 : rieng ? rieng.gia : product.price;
       const itemTotal = unitPrice * sl;
       subtotal += itemTotal;
 
@@ -498,6 +501,10 @@ async function taoDonGoc(req, res, phien = null) {
         note: item.note ? String(item.note).trim().slice(0, 200) : null,
         tich_diem: batDiem(product) ? 1 : 0,   // DIEM-MON-1: cờ món LÚC BÁN
       });
+      // TOPPING-1: topping của ly → dòng riêng ngay sau dòng cha, giá tra ở DB (không tin giá màn gửi), kiểm danh sách của món + số phần.
+      const tp = await dongTopping(queryOne, { cha: product, ds: item.topping, sl, viTri: orderItems.length - 1, batDiem });
+      if (tp.loi) return res.status(tp.loi.status).json(tp.loi.body);
+      for (const d of tp.dong) { orderItems.push(d); subtotal += d.total_price; }
     }
 
     // Mua gói → thêm line item cho gói
@@ -806,7 +813,8 @@ async function taoDonGoc(req, res, phien = null) {
 
     // Voucher giảm-1-món: tìm đúng 1 món (giá cao nhất trong nhóm được phép, có mặt trong giỏ) — tiền giảm tính ở tinhUuDai.
     if (discountCodeScope === 'item' && discountCodeId) {
-      itemScopeTargetItem = await findEligibleItemForGroup(query, discountCodeGroupId, orderItems);
+      // TOPPING-1 (chat Q3): mã "giảm 1 món" chỉ chọn LY — dòng topping không bao giờ là món được giảm.
+      itemScopeTargetItem = await findEligibleItemForGroup(query, discountCodeGroupId, orderItems.filter((it) => it.cha == null));
       if (!itemScopeTargetItem) {
         return res.status(400).json({
           error: "Đơn này chưa có món nào được áp mã này",
@@ -975,7 +983,8 @@ async function taoDonGoc(req, res, phien = null) {
         cach: uuDai.cach, cau_ghi: uuDai.cau_ghi, ma_loi: maLoi?.error || null, ma_loi_code: maLoi?.code || null,
         vouchers: dongVoucher, voucher_loi: kv.loi,
         items: orderItems.map((it) => ({ product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price,
-          tier_unit_price: it.tier_unit_price ?? null, flash_unit_price: it.flash_unit_price ?? null })) } };
+          tier_unit_price: it.tier_unit_price ?? null, flash_unit_price: it.flash_unit_price ?? null,
+          cha: it.cha ?? null, so_phan: it.so_phan ?? null })) } };   // TOPPING-1: dòng topping → chỉ số dòng cha (quầy / App ghép dòng)
     }
 
     // ─── An toàn tiền bạc: đối chiếu tổng thanh toán máy khách gửi lên với total server tự tính ───
@@ -1110,16 +1119,19 @@ async function taoDonGoc(req, res, phien = null) {
 
       // 2. Thêm chi tiết đơn hàng
       // Lưu ý: package virtual item có product_id âm (-pkg.id) — SQLite/Turso không enforce FK
+      const idDong = [];   // TOPPING-1: id dòng đã ghi theo chỉ số orderItems — dòng topping ghi dong_cha_id = id dòng cha (cha luôn đứng trước)
       for (const item of orderItems) {
-        await tx.run(
+        const ghi = await tx.run(
           `INSERT INTO pos_order_items (
             order_id, product_id, product_code, product_name,
-            quantity, unit_price, total_price, unit, notes, flash_unit_price, tier_unit_price, tich_diem
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            quantity, unit_price, total_price, unit, notes, flash_unit_price, tier_unit_price, tich_diem, dong_cha_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [orderId, item.product_id, item.product_code, item.product_name,
            item.quantity, item.unit_price, item.total_price, item.unit || 'túi', item.note || null,
-           item.flash_unit_price || null, item.tier_unit_price || null, item.tich_diem ?? null],   // DIEM-MON-1: dòng nạp không cờ (đơn nạp 0 điểm, không gộp món)
+           item.flash_unit_price || null, item.tier_unit_price || null, item.tich_diem ?? null,   // DIEM-MON-1: dòng nạp không cờ (đơn nạp 0 điểm, không gộp món)
+           item.cha != null ? idDong[item.cha] : null],
         );
+        idDong.push(Number(ghi.lastInsertRowid));
       }
 
       // KHO-3a: trừ kho POS (một phiếu bán) CÙNG giao dịch — mọi lối vào (quầy, phiên, App, màn khách, chốt muộn, đơn cũ của bài thử) qua đúng dòng này.
@@ -1448,7 +1460,8 @@ async function kiemVoucherDon(maVoucher, { orderItems, khongGiam, tienMonThuong,
         const bo = new Set(tv.map((x) => `${x.sx_product_type}_${x.sx_product_id}`));
         khop = (it) => bo.has(`${it.sx_product_type}_${it.sx_product_id}`);
       }
-      dong = mon.filter((i) => khop(orderItems[i]) && orderItems[i].total_price > 0);
+      // TOPPING-1 (chat Q3): dòng topping theo khớp của LY cha — voucher nhóm "trà" giảm cả topping của ly trà.
+      dong = mon.filter((i) => (khop(orderItems[i]) || (orderItems[i].cha != null && khop(orderItems[orderItems[i].cha]))) && orderItems[i].total_price > 0);
     }
     const sai = conDung
       || (ds.length >= toiDa ? ["VUOT_SO_VOUCHER", `Mỗi đơn dùng tối đa ${toiDa} voucher`]

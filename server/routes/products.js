@@ -12,6 +12,7 @@ const { getNow } = require('../utils/helpers');
 const { COT_THONG_TIN, chuanThongTin, docThongTin } = require('../utils/thongTinMon');
 const { trongGiaoDich, loiGhi } = require('./wallets');
 const { tonMenu } = require('../kho/banHang');
+const { TOPPING_TOI_DA_PHAN, docDs, laTopping, docGhiChuNhanh } = require('../utils/topping');   // TOPPING-1
 
 const router = express.Router();
 const LOAI_MON_POS = 'pos';   // KHO-3a A4: món tạo ở POS — khoá (LOAI_MON_POS, id) thay khoá SX, mọi chỗ khoá theo (sx_product_type, sx_product_id) chạy nguyên
@@ -40,6 +41,8 @@ async function layMenuQuay(category) {
     category ? [category] : []
   );
   const kho = await tonMenu({ query, queryOne }, getNow());
+  // TOPPING-1: topping của món = id trong topping_cho_mon CÒN là topping đang bán (bỏ cờ / ngừng bán → tự rơi khỏi danh sách).
+  const dsTopping = new Set((await query('SELECT id FROM pos_products WHERE is_active = 1 AND la_topping = 1')).map((r) => Number(r.id)));
   return ds.map((p) => {
     const k = kho.get(p.id) || { stock_quantity: null, khong_quan_kho: false, chua_cong_thuc: true };
     return {
@@ -57,6 +60,9 @@ async function layMenuQuay(category) {
       ton_luc: null,
       unit: p.unit || 'túi',
       is_active: 1,
+      la_topping: laTopping(p), gia_ban_rieng: p.gia_ban_rieng ?? null, ghi_chu_nhanh: docDs(p.ghi_chu_nhanh),
+      topping: laTopping(p) ? [] : docDs(p.topping_cho_mon).map(Number).filter((id) => dsTopping.has(id)), topping_cho_mon: undefined,
+      topping_toi_da_phan: TOPPING_TOI_DA_PHAN,
     };
   });
 }
@@ -100,23 +106,71 @@ router.put('/:id', (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : n
   if ('unit' in b) doi.unit = chuNgan(b.unit, null);
   if ('sort_order' in b) doi.sort_order = Number.isInteger(Number(b.sort_order)) ? Number(b.sort_order) : null;
   if ('is_active' in b) doi.is_active = [0, 1].includes(Number(b.is_active)) ? Number(b.is_active) : null;
-  if (!Object.keys(doi).length || Object.values(doi).some((v) => v == null)) return loiMon(res, 'YEU_CAU_KHONG_HOP_LE', 'Thông tin món không hợp lệ');
+  if (Object.values(doi).some((v) => v == null)) return loiMon(res, 'YEU_CAU_KHONG_HOP_LE', 'Thông tin món không hợp lệ');
+  // TOPPING-1 (B1–B3): cờ topping, giá bán riêng (trống = không bán riêng), ghi chú nhanh, danh sách topping của món — cùng quyền sửa món.
+  if ('la_topping' in b) {
+    if (![0, 1, true, false].includes(b.la_topping)) return loiMon(res, 'YEU_CAU_KHONG_HOP_LE', 'Cờ topping chỉ nhận 0 / 1');
+    doi.la_topping = Number(b.la_topping);
+  }
+  if ('gia_ban_rieng' in b) {
+    if (b.gia_ban_rieng !== null && b.gia_ban_rieng !== '' && !(Number.isInteger(b.gia_ban_rieng) && b.gia_ban_rieng > 0)) {
+      return loiMon(res, 'GIA_KHONG_HOP_LE', 'Giá bán riêng là số nguyên đồng > 0, để trống = không bán riêng');
+    }
+    doi.gia_ban_rieng = b.gia_ban_rieng === '' ? null : b.gia_ban_rieng;
+  }
+  if ('ghi_chu_nhanh' in b) {
+    const g = docGhiChuNhanh(b.ghi_chu_nhanh);
+    if (!g) return loiMon(res, 'GHI_CHU_KHONG_HOP_LE', 'Ghi chú nhanh: tối đa 12 nút, mỗi nút 1–30 ký tự, không trùng');
+    doi.ghi_chu_nhanh = JSON.stringify(g);
+  }
+  const dsTp = 'topping_cho_mon' in b ? b.topping_cho_mon : undefined;
+  if (dsTp !== undefined && !(Array.isArray(dsTp) && dsTp.length <= 30 && dsTp.every((x) => Number.isInteger(x) && x > 0) && new Set(dsTp).size === dsTp.length)) {
+    return loiMon(res, 'TOPPING_KHONG_HOP_LE', 'Danh sách topping không hợp lệ');
+  }
+  if (dsTp !== undefined) doi.topping_cho_mon = JSON.stringify(dsTp);
+  if (!Object.keys(doi).length) return loiMon(res, 'YEU_CAU_KHONG_HOP_LE', 'Thông tin món không hợp lệ');
   try {
     // Vị từ tenTrung dùng ở tạo món (POST) và sửa ở đây: đổi tên, HOẶC hiện lại món đang ẩn (soát vòng 2). Món đang bán chỉ đổi thứ tự / nhóm thì
     // không xét (dữ liệu cũ có thể đã trùng — K5). Đọc + kiểm + ghi CÙNG giao dịch như POST. Các đường cũ /price, /batch/prices, /thong-tin và
     // kho/nhapSx.js CHƯA qua vị từ này (Phát hiện KHO-3a).
     const id = Number(req.params.id);
     const kq = await trongGiaoDich(async (tx) => {
-      const cu = await tx.queryOne('SELECT name, is_active FROM pos_products WHERE id = ?', [id]);
+      const cu = await tx.queryOne('SELECT name, is_active, la_topping, topping_cho_mon FROM pos_products WHERE id = ?', [id]);
       if (!cu) return { huy: true, khongThay: true };
       const hienLai = doi.is_active === 1 && Number(cu.is_active) !== 1;
       if ((doi.name || hienLai) && await tenTrung(tx, doi.name || cu.name, id)) return { huy: true, trung: true };
+      // TOPPING-1: topping không có topping; mọi id trong danh sách phải là topping đang bán (không trỏ chính nó).
+      const tpMoi = dsTp !== undefined ? dsTp : docDs(cu.topping_cho_mon);
+      if (tpMoi.length && ((doi.la_topping ?? Number(cu.la_topping)) === 1 || tpMoi.includes(id)
+        || Number((await tx.queryOne(`SELECT COUNT(*) AS n FROM pos_products WHERE is_active = 1 AND la_topping = 1 AND id IN (${tpMoi.map(() => '?').join(', ')})`, tpMoi)).n) !== tpMoi.length)) {
+        return { huy: true, saiTopping: true };
+      }
       await tx.run(`UPDATE pos_products SET ${Object.keys(doi).map((c) => c + ' = ?').join(', ')}, updated_at = ? WHERE id = ?`, [...Object.values(doi), getNow(), id]);
       return {};
     });
     if (kq.khongThay) return res.status(404).json({ error: 'Không thấy món', code: 'KHONG_THAY' });
     if (kq.trung) return loiMon(res, 'TEN_TRUNG', 'Đã có món đang bán cùng tên');
-    res.json({ success: true, product: await queryOne('SELECT * FROM pos_products WHERE id = ?', [id]) });
+    if (kq.saiTopping) return loiMon(res, 'TOPPING_KHONG_HOP_LE', 'Chỉ tick được topping đang bán cho món thường (topping không có topping)');
+    res.json({ success: true, product: monDaLuu(await queryOne('SELECT * FROM pos_products WHERE id = ?', [id])) });
+  } catch (err) { loiGhi(res, err); }
+});
+
+/** TOPPING-1: dòng món trả về màn cài đặt — hai cột JSON đọc thành mảng. */
+const monDaLuu = (p) => p && { ...p, ghi_chu_nhanh: p.ghi_chu_nhanh == null ? null : docDs(p.ghi_chu_nhanh), topping_cho_mon: docDs(p.topping_cho_mon).map(Number) };
+
+/** POST /api/pos/products/:id/chep-nhom — TOPPING-1 B3: chép topping + ghi chú nhanh của món này cho mọi món thường đang bán CÙNG nhóm (một giao dịch). */
+router.post('/:id/chep-nhom', (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : next('route')), authenticate, checkPermission('manage_settings'), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const kq = await trongGiaoDich(async (tx) => {
+      const p = await tx.queryOne('SELECT * FROM pos_products WHERE id = ? AND is_active = 1', [id]);
+      if (!p || laTopping(p)) return { huy: true };
+      const r = await tx.run(`UPDATE pos_products SET topping_cho_mon = ?, ghi_chu_nhanh = ?, updated_at = ? WHERE category = ? AND is_active = 1 AND id <> ?
+        AND COALESCE(la_topping, 0) = 0`, [p.topping_cho_mon ?? null, p.ghi_chu_nhanh ?? null, getNow(), p.category, id]);
+      return { so_mon: r.changes };
+    });
+    if (kq.huy) return res.status(404).json({ error: 'Không thấy món (hoặc là topping)', code: 'KHONG_THAY' });
+    res.json({ success: true, so_mon: kq.so_mon });
   } catch (err) { loiGhi(res, err); }
 });
 
