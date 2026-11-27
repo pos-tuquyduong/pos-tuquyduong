@@ -283,3 +283,13 @@ BÀI HỌC:
 - KHOÁ: ô trống có nghĩa "đúng X" thì phải có ca trống + ghi chú khi X ≠ số máy.
 - NGUYÊN TẮC (K4): gắn một móc sau "từ chối / huỷ phiếu" thì grep MỌI đường đổi trạng thái phiếu: tu-choi · huy · sua · huyPhieuBan. Mỗi đường một ca + một đột biến.
 - NGUYÊN TẮC: lời hứa "phản hồi không lộ số" phải kê cả đường ĐỌC song song (/phieu, /phieu/:id, chế độ khác của cùng GET).
+
+## Soát bảo mật — lần 2 (27.11, HEAD sau 3002c03d — sau vá Q5b, vòng sửa 3, vòng sửa 4)
+Trước lọc: 0 · sau lọc: 0 (không có lỗ hổng nên không cần bước lọc). Báo cáo (nguyên văn, dòng đầu): "No vulnerabilities found."
+Tóm tắt người soát đã kiểm: phản hồi POST /kiem-ke của nhân viên chỉ `{ chot_id, da_chot }`; ma_gui chỉ trả lại cho cùng người + cùng chế độ (409
+MA_GUI_TRUNG); danh sách kiểm kê của nhân viên không có số; giamPhieuCho chỉ GIẢM dòng thành phẩm của phiếu PX chờ, có ly_do + dòng cam, quản lý vẫn
+duyệt sau; /chinh-tay QUAN_LY + công tắc chỉ chủ quán bật (settings.js chặn khoá kho_* với người không phải chủ); diễn biến chỉ chủ / QL; SQL tham số
+hoá; không dangerouslySetInnerHTML / fetch trần; sao lưu chỉ thêm 5 bảng. Đường đọc khác lộ số cho nhân viên (bàn giao `may`, Tồn kho, phiếu KK) —
+chủ quán đã chấp nhận Q6, không báo.
+
+SOÁT BẢO MẬT: ĐẠT
