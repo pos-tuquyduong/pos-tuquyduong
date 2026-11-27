@@ -456,3 +456,6 @@ BÀI HỌC:
 
 ## Kiểm sau vòng sửa 5 (phiên chính, 27.11)
 - `node cong_cu/thu_KHOGON1.js` 128 đạt · 0 hỏng · đột biến 65/65 BẮT (bang_chung_do.txt — có đính chính 2 vế "không dựng được").
+- `npm test -- --day-du`: PASS 132 · FAIL 0 · CẢNH BÁO 1 (chạy một mình).
+- `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1` trên HEAD 88adeb90: ✓ CỔNG CHẠY ĐẠT
+- Còn Q12 (lỗi NẶNG tồn) → DỪNG hỏi; báo cáo 7 mục + 3 thao tác thử tay ghi khi việc xong.
