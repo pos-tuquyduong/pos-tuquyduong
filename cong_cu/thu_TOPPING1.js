@@ -213,6 +213,18 @@ async function main() {
       la(c6, 200) && tra2?.topping_cho_mon === JSON.stringify([NEP.id, THACH.id, LN.id]) && tra2?.ghi_chu_nhanh === JSON.stringify(['Ít đá', 'Không đá', 'Ít ngọt'])
       && !cam?.topping_cho_mon, `${moTa(c6)} · ${JSON.stringify(tra2)}`);
     k('T06b chép nhóm cần quyền → quản lý 403', (await goi('ql', 'POST', `/pos/products/${TRA.id}/chep-nhom`, {})).status === 403);
+    // K5 (soát vòng 1): món đã tick một topping, sau đó topping bị ẩn → sửa món chỗ KHÁC (thứ tự / tên / ẩn) KHÔNG bị chặn
+    await ghiDb('UPDATE pos_products SET is_active = 0 WHERE id = ?', [LN.id]);
+    const t5d = await caiMon(TRA2, { sort_order: 5 });
+    const t5e = await caiMon(TRA2, { topping_cho_mon: [NEP.id, LN.id] });
+    await ghiDb('UPDATE pos_products SET is_active = 1 WHERE id = ?', [LN.id]);
+    k('T05d topping trong danh sách cũ đã ẩn → sửa thứ tự món vẫn 200 (không chặn oan)', la(t5d, 200), moTa(t5d));
+    k('T05e nhưng GỬI danh sách có topping đã ẩn → 400 TOPPING_KHONG_HOP_LE', la(t5e, 400, 'TOPPING_KHONG_HOP_LE'), moTa(t5e));
+    await ghiDb('UPDATE pos_products SET ghi_chu_nhanh = ? WHERE id = ?', [JSON.stringify(['Ít đá']), NEP.id]);
+    const ds2 = await goi('chu', 'GET', '/pos/products');
+    await ghiDb('UPDATE pos_products SET ghi_chu_nhanh = NULL WHERE id = ?', [NEP.id]);
+    k('T48c topping không có nút ghi chú nhanh ở quầy (dù CSDL còn dữ liệu cũ) — chạm tab Topping là vào giỏ, cùng luật App',
+      JSON.stringify((Array.isArray(ds2.j) ? ds2.j : []).find((p) => p.id === NEP.id)?.ghi_chu_nhanh) === '[]');
   });
 
   muc('[B2] Bước nâng cấp 036 — chép ghi chú THEO_NHOM cũ (K5: quầy không mất nút ghi chú ngày đầu)');
@@ -409,6 +421,15 @@ async function main() {
     const vi0 = (await mot('SELECT balance FROM pos_wallets WHERE phone = ?', [kh39.sdt]))?.balance || 0;
     const h39 = await goi('chu', 'PUT', `/pos/orders/${b39.j.order?.id}/cancel`, { reason: 'thử', ly_do_ma: 'khach_doi_y' });
     const vi1 = (await mot('SELECT balance FROM pos_wallets WHERE phone = ?', [kh39.sdt]))?.balance || 0;
+    // soát vòng 1: đơn dùng mã "giảm 1 món" — trần đền một ly có topping = số khách trả thật (không trừ khoản giảm hai lần)
+    const kg = await khach();
+    const mg = await maChung('percent', 50, 'item', 931);
+    const bg = await banTM([mon(TRA, 1, [[NEP, 2]])], { customer_phone: kg.sdt, discount_code: mg });
+    const deng = (tien) => goi('chu', 'POST', '/pos/damages', { order_id: bg.j.order?.id, product_code: TRA.code, quantity: 1, reason: 'damaged', action: 'refund', refund_amount: tien });
+    // tay: 45.000 + 2 × 10.000 = 65.000; mã giảm 1 món 50 % chỉ ly = 22.500 → khách trả 42.500
+    const g1 = await deng(42501), g2 = await deng(42500);
+    k('T28g mã "giảm 1 món" + topping: đơn 42.500; đền 42.501 → VUOT_GIA (ngay trên), đền 42.500 → qua (ngay dưới)', Number(bg.j.order?.total) === 42500
+      && la(g1, 400, 'VUOT_GIA') && la(g2, 200), `${bg.j.order?.total} · ${moTa(g1)} · ${moTa(g2)}`);
     k('T39 huỷ đơn có topping (HUY-1: hoàn toàn bộ đã trả vào tài khoản) → 65.000 (ly + topping)', la(b39, 200) && la(h39, 200) && vi1 - vi0 === 65000, `${moTa(b39)} · ${moTa(h39)} · ${vi1 - vi0}`);
   });
 
