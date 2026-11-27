@@ -1,6 +1,7 @@
-ANH-MON-1 — bằng chứng ĐỎ: bài thử cong_cu/thu_ANHMON1.js chạy trên cây CHƯA VÁ (server/ + client/src/ của commit 38fb4dd = PHIEU: ANH-MON-1)
-Lệnh: python3 viec/ANH-MON-1/dot_bien.py --goc 38fb4dd      (chép cây 38fb4dd ra thư mục tạm, chạy bài thử HIỆN TẠI bằng --may-chu)
+ANH-MON-1 — bằng chứng ĐỎ (làm lại 27.11 sau khi ghép main 25adb0fa: NHOM-MON-1 + TOPPING-1, và thêm ảnh topping + danh sách miễn sao lưu)
+Lệnh: python3 viec/ANH-MON-1/dot_bien.py --goc 25adb0fa [--bai <bài>]   (chép server/ + client/src/ của main 25adb0fa ra thư mục tạm, chạy bài thử HIỆN TẠI bằng --may-chu)
 
+═ cong_cu/thu_ANHMON1.js trên cây 25adb0fa (chưa có việc ANH-MON-1):
   ✗ A1 chủ tải JPEG 80 KB → 200  — HTTP 404
   ✗ A2 câu trả lời có `anh` là đường dẫn (chuỗi, bắt đầu "/")  — {}
   ✗ A3 đọc lại KHÔNG token → 200, đúng từng byte  — HTTP 0, 0 byte
@@ -26,10 +27,20 @@ Lệnh: python3 viec/ANH-MON-1/dot_bien.py --goc 38fb4dd      (chép cây 38fb4d
   ✗ G3 product_id UNIQUE — hai hàng cho một món bị CSDL từ chối
   ✗ H1 … H5 (SanPham.jsx thiếu hằng số / canvas / nút Xoá ảnh / api.request; chưa có AnhMon.jsx; thẻ món 0 chỗ dùng AnhMon)
   ✗ H7 dựng được AnhMon.jsx để vẽ thử  — Build failed (file chưa có)
-  10 đạt · 29 hỏng
-THOÁT 1 (trên cây 38fb4dd)
+  ✗ H11 khung chọn món: topping CÓ ảnh vẽ <img> đúng đường dẫn
+  ✗ H12 khung chọn món: topping CHƯA ảnh hiện chữ viết tắt "TD", chỉ MỘT <img>
+  ✗ H14 danh sách topping ở Kho (ToppingMon.jsx) hiện ảnh
+  11 đạt · 32 hỏng
+THOÁT 1 (trên cây 25adb0fa)
+(Ca I1–I4 về hợp đồng v21 / BAO_APPKH đọc file ở GỐC kho nên không đỏ trong lệnh --goc; đã đỏ ở lần chạy trực tiếp trên cây chưa vá lần đầu: 6 đạt · 32 hỏng.)
 
-(Ca I1–I4 về hợp đồng v19 đọc HOP_DONG_API_KH.md ở GỐC kho nên không đỏ trong lệnh --goc; đã đỏ ở lần chạy trực tiếp trên cây chưa vá:
- I1 PHIEN_BAN ≥ 19 — 18 · I2 nhật ký v19 · I3 nghĩa mới của `anh` · I4 BAO_APPKH.md — cả bốn ✗; lần đó: 6 đạt · 32 hỏng.)
+═ cong_cu/thu_SAOLUU2.js (bài CŨ sửa thêm ca D2e–D2h) trên cây 25adb0fa:
+  ✗ D2e danh sách bảng cố ý không xuất Excel là ĐÚNG [pos_anh_mon] (không nới thêm bảng khác)  — []
+  ✗ D2f bỏ pos_anh_mon khỏi danh sách miễn → phép chốt BẮT (thiếu đúng pos_anh_mon)
+  ✗ D2g danh sách miễn chỉ còn trong dòng CHÚ THÍCH → phép chốt BẮT
+  ✗ D2h bảng mới KHÁC (không có trong danh sách miễn) thiếu → vẫn BẮT, dù danh sách miễn có mặt
+  36 đạt · 4 hỏng
+THOÁT 1 (trên cây 25adb0fa)
 
-SỐ CA cong_cu/thu_ANHMON1.js: 71
+SỐ CA cong_cu/thu_ANHMON1.js: 75
+SỐ CA cong_cu/thu_SAOLUU2.js: 40
