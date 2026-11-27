@@ -79,6 +79,15 @@ DOT_BIEN = [
   ('BV-chi-tiet-da-tra-gom', [(A, '? gomTopping(await query(', '? ((x) => x.map((d) => ({ ...d, topping: [] })))(await query(', 1)], r'✗ T35c'),
   ('VS-hoa-don-app-sl', [('server/utils/dongHoaDon.js', 'm.topping ? m.ten : `${m.sl} x ${m.ten}`', '`${m.sl} x ${m.ten}`', 1)], r'✗ T45'),
   ('VS-item-count', [(O, 'WHERE order_id = o.id AND dong_cha_id IS NULL) as item_count', 'WHERE order_id = o.id) as item_count', 1)], r'✗ T47b'),
+  # ── soát vòng 3 (vòng sửa 4) ──
+  ('BV-mon-khong-ban-topping-rieng', [(A, ' || (p.la_topping && !(p.gia_ban_rieng > 0))) return thanLoi', ') return thanLoi', 1)], r'✗ T49 '),
+  ('BV-trang-khoa-topping', [(A, ' && Object.keys(t).every((x) => TRUONG_TOPPING.includes(x))))) return sai;', '))) return sai;', 1)], r'✗ T33c'),
+  ('VS-bam-gio-luon-them-topping', [(A, '...(m?.topping !== undefined ? [m.topping] : [])', 'm?.topping ?? null', 1)], r'✗ T34c'),
+  ('BV-hang-hong-gom-topping', [(DM, 'const gia = Number(dong.gia) + (Number(dong.sl) > 0 ? Math.round(Number(tpLy.tien) / Number(dong.sl)) : 0);',
+     'const gia = Number(dong.gia);', 1)], r'✗ T28h'),
+  ('BV-ds-quay-topping', [(A, '      ...(d.topping ? { topping: d.topping.map((t) => ({ ten: t.ten, so_phan: t.so_phan })) } : {}) })),',
+     '      ...(false ? { topping: d.topping.map((t) => ({ ten: t.ten, so_phan: t.so_phan })) } : {}) })),', 1)], r'✗ T35d'),
+  ('VS-man-khach-bo-cong', [(MK, 'ten: it.cha != null ? `+ ${ten}` : ten,', 'ten,', 1)], r'✗ T46b'),
   # ── C4: hoá đơn / tem / pha chế ──
   ('BV-hoa-don-topping-cua', [(HD, "...(cha >= 0 ? { topping_cua: cha,", '...(false ? { topping_cua: cha,', 1)], r'✗ T09 '),
   ('VS-hoa-don-mat-phan-tram', [(HD, 'items.filter((m) => m.dong_cha_id == null && m.tier_unit_price != null', 'items.filter((m) => m.tier_unit_price != null', 1)],

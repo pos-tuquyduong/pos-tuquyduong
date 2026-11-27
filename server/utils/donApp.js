@@ -506,4 +506,5 @@ async function doiTienTrinh(id, buoc, nguoi) {
   return r.changes === 1;
 }
 
-module.exports = { baoGiaKhach, datDon, dsDon, chiTietDon, huyDon, dsQuay, doiTienTrinh, tienTrinh, giuLuotDat, gioCanPhaChe, GIOI };
+module.exports = { baoGiaKhach, datDon, dsDon, chiTietDon, huyDon, dsQuay, doiTienTrinh, tienTrinh, giuLuotDat, gioCanPhaChe, GIOI,
+  bamGio };   // TOPPING-1: bài thử so băm giỏ không topping với công thức v18 (khoá gửi đang sống không lệch)

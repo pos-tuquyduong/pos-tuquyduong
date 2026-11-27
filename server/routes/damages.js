@@ -193,7 +193,10 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
         FROM pos_damage_logs WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
       const conLai = Number(dong.sl) - Number(da.sl);
       if (soLuong > conLai) return loi(400, `Số lượng tối đa: ${Math.max(0, conLai)}`, 'VUOT_SO_LUONG');
-      const gia = Number(dong.gia);
+      // TOPPING-1 (soát vòng 3): giá trị hàng hỏng của MỘT ly gồm topping của ly đó (bình quân topping / ly của các dòng cùng mã) — sổ hàng hỏng.
+      const tpLy = await tx.queryOne(`SELECT COALESCE(SUM(c.unit_price * c.quantity), 0) AS tien FROM pos_order_items c
+        JOIN pos_order_items p ON p.id = c.dong_cha_id WHERE p.order_id = ? AND p.product_code = ?`, [order_id, product_code]);
+      const gia = Number(dong.gia) + (Number(dong.sl) > 0 ? Math.round(Number(tpLy.tien) / Number(dong.sl)) : 0);
       const finalRefund = action === 'refund' ? soGui : 0;
       if (action === 'refund') {
         if (order.status !== 'completed') return loi(400, 'Đơn đã huỷ / đã hoàn — không đền tiền được', 'DON_KHONG_DEN_DUOC');
