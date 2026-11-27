@@ -94,3 +94,9 @@ Q11b, Q8d, Q8e, Q10a, B6d; nền nhập thêm Cam). Chạy trên code TRƯỚC v
   (dòng xuất lượng âm đã bị `so_luong > 0` loại) · ghiKK `&& m.san_pham_id` (cần tồn nguyên liệu để kiểm LỚN hơn tổng lô còn thật —
   chưa tìm ra đường tạo dữ liệu đó, không dựng được ca) · monCanChuY `p.is_active = 1` (tonMenu chỉ có món đang bán → món ngừng bán đã bị bỏ qua).
   Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên 1d9e9cda): ĐỐI CHỨNG XANH · 128 đạt — TỔNG 65 · BẮT 65 · SỐNG 0 · HỎNG 0 · LẠC 0.
+  ĐÍNH CHÍNH (soát lần cuối sau vòng 5 bắt — K1/K3): 2 trong 5 "vế phòng thủ không dựng được" ở trên là SAI — dựng được:
+   · giamPhieuCho `p.trang_thai = 'cho_duyet'`: nhân viên pha A 5 (chờ), quản lý pha B 3 (tự duyệt, mới hơn), chỉnh tay đếm 2 → bỏ vế thì B (đã duyệt)
+     bị giảm về 0, lô B âm. Chưa có ca trong bài — làm ở vòng sửa sau.
+   · ghiKK `&& m.san_pham_id`: phiếu NHẬN nguyên liệu chờ duyệt (dòng 'nhap' chưa có lô, tongDong tính nó theo Q4) rồi đếm ít hơn → bỏ vế thì 409 oan.
+     Chưa có ca — làm ở vòng sửa sau (cũng là luồng K5 "phải không bị chặn").
+   Ba vế còn lại tương đương thật (người soát đồng ý): UPDATE ly_do `AND trang_thai` · `d.loai = 'thanh_pham'` · `p.is_active = 1`.

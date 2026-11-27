@@ -22,6 +22,20 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
+Soát LẦN CUỐI sau vòng sửa 5 còn MỘT lỗi NẶNG ở số tồn → theo LUAT §6.5 máy DỪNG hỏi (không "chat soát thay"):
+
+- **Q12 · Ghi kết quả pha chế SAU khi kiểm kê / chỉnh tay / bàn giao đã chỉnh món đó (phiếu pha chế ĐÃ duyệt).** Q9 mới khoá phiếu CHỜ bị kiểm kê
+  giảm. Phiếu đã duyệt (đã có lô) cũng bị chỉnh lô theo số đếm thật; sau đó nhân viên vẫn ghi kết quả pha chế được → phần lệch bị tính HAI lần.
+  Người soát chạy thật: pha 10 (đã duyệt) → chỉnh tay về 9 → ghi kết quả 9 → tồn 8 (thật 9); hoặc kiểm kê đếm 11 → ghi kết quả 11 → tồn 12 (1 ly ảo).
+  (a) **[đề xuất]** Khoá kết quả pha chế của MÓN đó khi đã có lần chốt kiểm kê / bàn giao / chỉnh tay chạm món đó kể từ lúc phiếu được duyệt (kể cả lần
+  chốt đếm khớp, không có dòng KK) — số đếm đã là số thật, đúng tinh thần Q9. Màn kết quả hiện "đã chốt theo kiểm kê".
+  (b) Giữ cho ghi kết quả, nhưng kết quả chỉ được ghi TRƯỚC lần chốt đầu tiên (sau đó 409) — gần như (a), chỉ khác lời báo.
+- **Xin phép vòng sửa 6** cho Q12 + các lỗi NHẸ cùng lượt soát: thêm ca + đột biến cho 2 vế người soát dựng được (giamPhieuCho chỉ phiếu chờ; phiếu
+  nhận nguyên liệu chờ + đếm thiếu không bị chặn — cũng là luồng K5); ca sửa phiếu DH / PN / PS ghi diễn biến; bấm lại cùng mã chỉnh tay khi phần thiếu
+  trừ hết vào phiếu chờ (đang báo "không đổi" sai); màn chỉnh tay không hiện "gồm -0,2 chờ duyệt" (dòng xuất âm); bảng đột biến trong hồ sơ ghi đủ tên
+  vòng 3–5. Ngân sách hiện ≈ 1.104 dòng (vượt ≈ 1.050 khoảng 5%) — xin xác nhận.
+
+## Câu hỏi đã trả lời (Q9–Q11, ngày 27.11 — theo đề xuất, vòng sửa 5)
 Soát LẦN CUỐI (sau vòng sửa 4) còn 3 lỗi NẶNG ở số tồn → theo LUAT §6.5 máy DỪNG hỏi (không tự làm vòng 5). Mỗi câu có đề xuất:
 
 - **Q9 · Kết quả pha chế sau khi kiểm kê đã giảm phiếu (hệ quả của Q8).** Phiếu pha 10 ly bị kiểm kê giảm còn 9 (vỡ 1), quản lý duyệt → lô 9. Sau đó
@@ -393,3 +407,52 @@ tham số hoá; KQ_DA_KIEM_KE chỉ thêm một lần từ chối; mọi câu SQ
 màn React không dangerouslySetInnerHTML.
 
 SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập — lần cuối sau vòng sửa 5 (27.11, HEAD 8d1c886d) — chép nguyên văn
+KHÔNG ĐẠT
+
+Nói ngắn: cả 3 lỗi NẶNG của lần soát trước (Q9, Q10, Q11) đã sửa đúng như chủ quán duyệt. Các lỗi nhẹ cũng đã sửa: phiếu KK rỗng, sửa phiếu ghi diễn biến, tên nguyên liệu, chú thích. Mình chạy lại: bài thử 128 đạt · 0 hỏng; 5 đột biến mới (Q9, Q10, Q11, KK rỗng, diễn biến sửa) BẮT 5/5; dist build lại giống hệt client/dist.
+
+Nhưng mình dựng ca chạy thật (bản nháp trong scratchpad, không sửa kho) và thấy 1 lỗi NẶNG mới ở số tồn. Đây là đường song song của Q9: phiếu pha chế ĐÃ DUYỆT, rồi kiểm kê / chỉnh tay, rồi ghi kết quả pha chế → phần lệch bị tính hai lần, có thể ra ly ảo. Ngoài ra, 2 trong 5 "vế phòng thủ không dựng được" ở bang_chung_do.txt thật ra dựng được. Mình đã dựng cả hai: bản hiện tại xanh, bản đột biến đỏ.
+
+LỖI TÌM ĐƯỢC:
+- server/kho/duLieu.js:292–313 (ghiKetQua) với server/kho/kiemKe.js:96–124 (ghiKK) — NẶNG (tồn) — K4.
+  - Lỗi: Q9 chỉ khoá kết quả pha chế khi phiếu CHỜ bị kiểm kê giảm (daKiemKe đọc ly_do, duLieu.js:298, 318). Phiếu PX đã duyệt (đã có lô) cũng bị chỉnh lô theo số đếm thật, qua kiểm kê / chỉnh tay / bàn giao. Sau đó nhân viên vẫn ghi kết quả được trong ngày, và dòng ket_qua = thực − chuẩn (duLieu.js:308–309) cộng thêm lần nữa vào cùng phần lệch.
+  - Ca SOAT-1 (thêm vào bản sao thu_KHOGON1.js, chạy trên HEAD): PX 10 do quản lý duyệt → tồn 10. Chủ quán chỉnh tay về 9 (pha ra 9) → tồn 9. Nhân viên ghi kết quả 9 → HTTP 200, tồn 8, trong khi thật có 9.
+  - Ca SOAT-2: PX 10 đã duyệt. Kiểm kê tối đếm 11 → tồn 11. Ghi kết quả 11 → HTTP 200, tồn 12 → 1 ly ảo, quầy bán được tới sáng (bàn giao sáng mới bắt gõ lại số).
+  - KK chỉ có đường tạo từ KHO-GON-1, nên lỗi này do việc này đưa vào.
+  - Cần chủ quán quyết (Q12). Đề xuất: khoá kết quả pha chế của món đó khi đã có lần chốt kiểm kê / bàn giao / chỉnh tay chạm món đó từ lúc duyệt phiếu. Lý do: số đếm đã là số thật, kể cả lúc đếm khớp sổ, không có dòng KK. Đúng tinh thần Q9.
+- viec/KHO-GON-1/bang_chung_do.txt (đoạn "Đột biến KHÔNG dựng được") — lý do sai, vế chưa có khoá — K3 + K1 — NHẸ (code hiện chạy đúng).
+  - Vế giamPhieuCho `p.trang_thai = 'cho_duyet'` (kiemKe.js:133): bang_chung ghi "tương đương". Sai. Bỏ vế đó thì hàm chọn cả dòng thành phẩm của PX ĐÃ duyệt mới hơn (ORDER BY p.id DESC). Ca SOAT-3: nhân viên pha A 5 (chờ), quản lý pha B 3 (tự duyệt), chỉnh tay đếm 2. HEAD: A còn 2, B giữ 3 ✓. Đột biến: A 5, B 0, lô B âm 3 ✗. Đây đúng là vế canh tồn quan trọng nhất mà lần soát trước đã nêu.
+  - Vế ghiKK `&& m.san_pham_id` (kiemKe.js:116): bang_chung ghi "chưa tìm ra đường tạo dữ liệu". Có đường hằng ngày: phiếu nhận hàng nguyên liệu CHỜ duyệt (dòng 'nhap' chưa có lô, nhapHang.js:59, 66–71; tongDong tính nó theo Q4), rồi đếm ít hơn phần nhận. Ca SOAT-4: nhận Cam 5 (chờ), chỉnh tay Cam 1. HEAD: 200, duyệt sau → Cam 1 ✓. Đột biến: 409 KHO_TON_DOI "Thành phẩm không còn đủ lô" ✗. Đây cũng là luồng K5 "phải không bị chặn" mà bài thử chưa có ca.
+  - Ba vế còn lại tương đương thật, mình đồng ý: UPDATE ly_do `AND trang_thai`, `d.loai = 'thanh_pham'`, `p.is_active = 1`.
+- server/kho/duong.js:336–337 (sửa phiếu DH / PN / PS qua TAO → ghiSuaPhieu) — không ca, không đột biến — K3 / K4 ("mỗi chỗ gọi là chỗ vá riêng") — NHẸ. Ca Q4e2 (thu_KHOGON1.js:474–477) chỉ sửa PX. Đột biến BV-bo-dien-bien-sua (dot_bien.py:77) chỉ gỡ lời gọi ở nhánh PX (duong.js:327).
+- server/kho/kiemKe.js:218–221 cùng :119 (chỉnh tay trừ hết vào phiếu chờ, không tạo phiếu KK) — K7 — NHẸ. Tra ma_gui chỉ tìm kho_phieu KK, nên bấm lại cùng mã (mất mạng) không thấy lần đã ghi, mà tính lại. Tồn đã đổi nên dc = 0 → trả khong_doi → màn báo "Không có gì thay đổi" dù lần đầu đã giảm phiếu chờ. Không sai số, chỉ báo sai.
+- client/src/pages/Kho/TonKho.jsx (mayGhi, khối "Máy ghi … — gồm n chờ duyệt") — NHẸ. Với nguyên liệu, `cho` = tổng phiếu chờ, kể cả dòng xuất pha chế chờ (số âm) → màn có thể hiện "gồm -0,2 chờ duyệt". Số "Máy ghi" vẫn đúng.
+- Ngân sách — NHẸ. `git diff --shortstat 5cbfc26^ HEAD -- server client/src` = 1.083 dòng thêm + 21 dòng xoá ≈ 1.104, vượt mức ≈ 1.050 khoảng 5%. trang_thai.md chưa ghi lại con số sau vòng 5 (dòng 38 vẫn ghi 1.047).
+
+NGHI NGỜ:
+- trang_thai.md:123–160: bảng "chỗ vá → đột biến" dừng ở 39 tên. Các tên vòng 3–5 (VS-q9-hien-cho-dien, VS-kk-rong, BV-bo-dien-bien-sua, VS-pha-het-ca-lam-san…) không có trong hồ sơ (grep viec/KHO-GON-1/*.md, *.txt). Chưa biết cổng A17 có đòi không. `cong.js chay` mới chạy ở e61947e6, TRƯỚC vòng 5, cần chạy lại.
+- Khoá Q9 gắn theo phiếu: daKiemKe đọc chuỗi ly_do (duLieu.js:318), khoá mọi món trong phiếu dù chỉ một món bị giảm. Khớp chữ "phiếu" của Q9, nhưng là ghép nối qua câu chữ, giống kiểu regex đã bị nêu ở B6.
+- Dòng KK của nguyên liệu không có lô (lo_id null, kiemKe.js:115–117, theo khuôn có sẵn ghiKho duLieu.js:217) → Σ lô ≠ tồn nguyên liệu sau khi duyệt phiếu nhận. Không ảnh hưởng bán: banHang.js:30–31 kiểm theo tổng dòng. Chỉ lệch theo dõi hạn lô. Có từ trước, ghi để biết.
+
+NGHIỆM THU:    27/29 · mục thiếu:
+- Q9: thiếu đường PX đã duyệt (lỗi NẶNG ở trên).
+- "Thử": chưa có 3 thao tác thử tay 390 px trong trang_thai.md (grep "390" chỉ ra ke_hoach.md:206) · `cong.js chay` chưa chạy lại sau vòng 5 · CHƯA KIỂM cho phần chỉ có ở màn (nhớ ca, nút Làm, 4 gợi ý, in có chỗ ký, số "Máy ghi … gồm chờ duyệt" của Q11 chỉ kiểm phía máy chủ) chưa ghi.
+- Có đủ: A1 · A2 · A3 · B1 · B2 · B3 · B4 · B5 · B6 · C1 · C2 · C3 · C4 · C5 · C6 · D1 · D2 · E1 · E2. 8/8 đột biến phiếu đòi có trong dot_bien.py. Ca chủ quán đòi thêm: Q1 · Q4 · Q5 · Q8 · Q10 (Q10a) · Q11 (Q11a / a2 / b) · B6 (B6c / B6d).
+- Đã chạy: `node cong_cu/thu_KHOGON1.js` 128 đạt · 0 hỏng. `dot_bien.py` 5 tên mới: ĐỐI CHỨNG XANH 128, BẮT 5/5. Hai đột biến tự dựng ở loConThat — bỏ `trang_thai='cho_duyet'` và themPhieu lười ở nhánh cộng — đều BẮT (Q10a; Q5a / C2…). dist build lại ra scratchpad: `diff -rq` giống hệt → P1 đạt.
+
+CHƯA SOÁT ĐƯỢC:
+- Không chạy `npm test`, `--day-du`, `cong.js chay` (theo dặn).
+- Không chạy lại đủ 65 đột biến (chỉ 5 tên + 4 tự dựng).
+- Chưa chạy giao diện thật (390 px, in, màn chỉnh tay Q11).
+- Chưa thử khôi phục sao lưu với 5 bảng mới.
+- Chưa dựng ca bàn giao sáng + kết quả pha chế của PX duyệt buổi sáng: cùng khuôn lỗi NẶNG, mình suy ra từ code, chưa chạy.
+- Bản ca nháp ở scratchpad (thu_soat2.js — SOAT-1…4; bản đột biến ban_a … ban_d).
+
+BÀI HỌC:
+- KHOÁ: "số đếm đã là số thật" phải khoá MỌI đường sau đó so với chuẩn, không chỉ đường của phiếu bị giảm. Ghi kết quả pha chế sau kiểm kê / chỉnh tay / bàn giao chạm món đó cần ca cho cả phiếu CHỜ lẫn phiếu ĐÃ DUYỆT.
+- NGUYÊN TẮC (K3): ghi "đột biến không dựng được / tương đương" phải kèm lập luận phủ mọi trạng thái phiếu (chờ / đã duyệt, mới hơn / cũ hơn) và mọi loại phiếu chờ (PX / PN / PS), không chỉ loại đang nghĩ tới. Không thì dựng ca thử trước khi ghi.
+
+## Kiểm sau vòng sửa 5 (phiên chính, 27.11)
+- `node cong_cu/thu_KHOGON1.js` 128 đạt · 0 hỏng · đột biến 65/65 BẮT (bang_chung_do.txt — có đính chính 2 vế "không dựng được").
