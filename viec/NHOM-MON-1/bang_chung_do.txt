@@ -1,0 +1,27 @@
+BẰNG CHỨNG ĐỎ — NHOM-MON-1 (27.11.2026)
+Gốc = commit PHIEU 7238492 (server/ + client/src/ chép ra thư mục nháp), chạy:
+  node cong_cu/thu_NHOMMON1.js --may-chu <nháp>/server
+
+THU_NHOMMON1 trên bản CHƯA VÁ → 14 đạt · 33 hỏng (ĐỎ). Các ca đỏ chính (trích):
+  ✗ A1a/b/c/d bước 035 không có file (Cannot find module .../035_nhom_mon.js)
+  ✗ A2a–A2m   mọi route /pos/products/nhom* → HTTP 404
+  ✗ A3a       PUT category không có → HTTP 200 (phải 400 NHOM_KHONG_CO)
+  ✗ A3b       POST category không có → HTTP 200 (phải 400 NHOM_KHONG_CO)
+  ✗ A4a/b/c   GET /pos/products không có nhom_ten / nhom_thu_tu / nhom_hien_quay
+  ✗ A5b/c/h   /api/kh/menu không có nhom_ten, nhóm tắt App vẫn hiện
+  ✗ A5i/k     đơn App món nhóm tắt App → HTTP 200 (phải MON_KHONG_BAN)
+  ✗ Q3a       màn khách không lọc theo "hiện ở quầy"
+  ✗ A7a, A4e, A3e  tên nhóm, tab theo thứ tự, ô chọn nhóm chưa có
+Ghi chú: A6a / A6b đọc HOP_DONG_API_KH.md + BAO_APPKH.md của kho hiện tại (không phải bản sao gốc) nên xanh ở lần chạy gốc này; ở commit PHIEU thật
+cả hai file chưa có nội dung nhóm (PHIEN_BAN 18, chưa có BAO_APPKH.md) → đỏ.
+
+CÁC BÀI CŨ ĐỔI:
+  cong_cu/thu_KHAPI2.js — danh sách trắng trường món (E3) thêm nhom_ten, nhom_thu_tu (hành vi chủ quán duyệt; LUAT §6.7 + §6.8). Bản MỚI của bài chạy trên
+    server GỐC 7238492 (chép cả server/ + cong_cu/ gốc, chép đè bài mới) → 99 đạt · 1 hỏng:
+      ✗ E3 trường cũ y nguyên (ma,ten,nhom,gia,con_hang,ton_cu,ton_luc,gia_hang,nhu_cau,...) — thiếu nhom_ten, nhom_thu_tu   (ĐỎ trên gốc, XANH 101/0 sau vá)
+  cong_cu/thu_KHO3a.js — category 'tra' → 'tea' (A4 tạo / sửa món): bản mới chạy trên server gốc → 145 đạt · 0 hỏng (XANH trên gốc) và xanh trên code mới
+    → thuộc mục `## Bài thử cũ sửa` (bài cũ đổi mà VẪN xanh trên gốc); máy không sửa được phiếu — xem Câu hỏi trong trang_thai.md.
+
+SỐ CA thu_NHOMMON1.js: 47
+SỐ CA thu_KHAPI2.js: 101
+SỐ CA thu_KHO3a.js: 145
