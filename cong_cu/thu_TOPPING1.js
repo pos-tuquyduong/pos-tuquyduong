@@ -114,7 +114,13 @@ async function main() {
   };
   const moTa = (r) => `HTTP ${r.status}${r.j?.code ? ' · ' + r.j.code : ''}${r.j?.error ? ' · ' + r.j.error : ''}`;
   const la = (r, status, code) => r.status === status && (code === undefined || r.j.code === code);
-  const chay = async (ten, fn) => { try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.stack?.split('\n').slice(0, 2).join(' | ')); } };
+  // --bo C4,Q7: bỏ qua mục (in rõ) — CHỈ cho dot_bien.py khi phần đó chờ chat mở Phạm vi (trang_thai.md ## Câu hỏi). Chạy thường không có cờ này.
+  const iBo = process.argv.indexOf('--bo');
+  const BO = iBo > 0 ? String(process.argv[iBo + 1] || '').split(',') : [];
+  const chay = async (ten, fn) => {
+    if (BO.includes(ten)) { console.log(`  · BỎ QUA mục ${ten} (--bo)`); return; }
+    try { await fn(); } catch (e) { noiLai(); k(`${ten}: bài chạy hết mục`, false, e.stack?.split('\n').slice(0, 2).join(' | ')); }
+  };
   const datCaiDat = (key, value) => ghiDb(`INSERT INTO pos_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
     [key, String(value), getNow()]);
   for (const [a, b] of [['loyalty_enabled', 'true'], ['loyalty_earn_per_amount', 1000], ['loyalty_expiry_mode', 'none'], ['flash_enabled', 'false'],
