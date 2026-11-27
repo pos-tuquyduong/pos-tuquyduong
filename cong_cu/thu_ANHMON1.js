@@ -282,20 +282,22 @@ async function main() {
     const hd = ['pages/BanHang/ManKetThuc.jsx', 'components/HoaDon.jsx', 'components/BillPrint.jsx'].map(docCl).join('\n');
     k('H6 hoá đơn / tem KHÔNG có ảnh món', !/AnhMon|\.anh\b/.test(hd));
     // Khoá NHÁNH VẼ (K3): dựng AnhMon.jsx thật bằng esbuild rồi vẽ ra HTML — không chỉ dò chuỗi trong mã.
-    let ve = null;
-    try {
+    // dung(tệp, mặc định): bundle component thật + react-dom/server, trả hàm vẽ ra HTML (props → chuỗi).
+    const dung = (tep) => {
       const esbuild = require(path.join(GOC, 'client', 'node_modules', 'esbuild'));
-      const nguon = path.join(CLIENT, 'pages', 'BanHang', 'AnhMon.jsx');
+      const nguon = path.join(CLIENT, 'pages', ...tep);
       const kq = esbuild.buildSync({
-        stdin: { contents: `import AnhMon from ${JSON.stringify(nguon)}; import { renderToStaticMarkup } from 'react-dom/server'; import { createElement } from 'react'; export const ve = (p) => renderToStaticMarkup(createElement(AnhMon, p));`,
+        stdin: { contents: `import C from ${JSON.stringify(nguon)}; import { renderToStaticMarkup } from 'react-dom/server'; import { createElement } from 'react'; export const ve = (p) => renderToStaticMarkup(createElement(C, p));`,
           resolveDir: path.join(GOC, 'client'), loader: 'js' },
         bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', nodePaths: [path.join(GOC, 'client', 'node_modules')],
         define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'silent',
       });
       const mo = { exports: {} };
       new Function('module', 'exports', 'require', kq.outputFiles[0].text)(mo, mo.exports, require);
-      ve = mo.exports.ve;
-    } catch (e) { k('H7 dựng được AnhMon.jsx để vẽ thử', false, e.message); }
+      return mo.exports.ve;
+    };
+    let ve = null;
+    try { ve = dung(['BanHang', 'AnhMon.jsx']); } catch (e) { k('H7 dựng được AnhMon.jsx để vẽ thử', false, e.message); }
     if (ve) {
       const coAnh = ve({ anh: '/api/pos/products/anh/5/abcdef012345', ten: 'Thanh Tân Dưỡng', kich: 48 });
       k('H7 có ảnh: vẽ <img> đúng đường dẫn, ảnh lười, khung 48 × 48 viết sẵn', /<img[^>]*src="\/api\/pos\/products\/anh\/5\/abcdef012345"/.test(coAnh) && /loading="lazy"/.test(coAnh) && /width:48px;height:48px/.test(coAnh), coAnh.slice(0, 200));
@@ -305,6 +307,23 @@ async function main() {
       k('H9 ảnh chuỗi rỗng: KHÔNG <img>, chữ viết tắt "CP"', !/<img/.test(rong) && />CP</.test(rong), rong.slice(0, 200));
       k('H10 cùng tên → cùng màu nền (không nhảy màu mỗi lần vẽ)', ve({ anh: null, ten: 'Ôn Dương Lộ' }) === ve({ anh: null, ten: 'Ôn Dương Lộ' }));
     }
+    // Ảnh topping trong khung chọn món (TOPPING-1 + ANH-MON-1): vẽ KhungChonMon thật với 2 topping — một có ảnh, một chưa.
+    let veKhung = null;
+    try { veKhung = dung(['BanHang', 'KhungChonMon.jsx']); } catch (e) { k('H11 dựng được KhungChonMon.jsx để vẽ thử', false, e.message); }
+    if (veKhung) {
+      const html = veKhung({
+        sp: { id: 1, name: 'Thanh Tân Dưỡng', topping: [7, 8], topping_toi_da_phan: 2, ghi_chu_nhanh: [] },
+        dsTopping: [
+          { id: 7, name: 'Trân Châu', price: 5000, sellable: true, stock_quantity: 20, anh: '/api/pos/products/anh/7/0123456789ab' },
+          { id: 8, name: 'Thạch Dừa', price: 4000, sellable: true, stock_quantity: 20, anh: null },
+        ],
+        gio: [], giaHang: (x) => x.price || 0, onLuu() {}, onXoa() {}, onDong() {},
+      });
+      k('H11 khung chọn món: topping CÓ ảnh vẽ <img> đúng đường dẫn', /<img[^>]*src="\/api\/pos\/products\/anh\/7\/0123456789ab"/.test(html), html.slice(0, 160));
+      k('H12 khung chọn món: topping CHƯA ảnh hiện chữ viết tắt "TD", chỉ MỘT <img> (không vẽ ảnh cho topping không có)', />TD</.test(html) && (html.match(/<img/g) || []).length === 1, `${(html.match(/<img/g) || []).length} img`);
+      k('H13 khung chọn món: tên + giá topping vẫn hiện (ảnh không che chữ)', /Trân Châu/.test(html) && /\+5/.test(html));
+    }
+    k('H14 danh sách topping ở Kho (ToppingMon.jsx) hiện ảnh', /<AnhMon\b/.test(docCl('pages/Kho/ToppingMon.jsx')));
   });
 
   // ═════════════════════════════════════════════════════════════════════════

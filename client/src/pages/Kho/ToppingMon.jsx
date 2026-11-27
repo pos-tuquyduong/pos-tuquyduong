@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { productsApi } from '../../utils/api';
 import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';
+import AnhMon from '../BanHang/AnhMon';   // ANH-MON-1: ảnh topping (tải ở Thông tin bán của chính món topping)
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 
@@ -20,6 +21,7 @@ export function DanhSachTopping() {
       <h3 className="card-title">Topping</h3>
       {tp.map((t) => (
         <div key={t.id} className="kho-dong">
+          <AnhMon anh={t.anh} ten={t.name} kich={32} />
           <span style={{ flex: 1 }}>{t.name}</span>
           <span className="kho-nho">thêm {vnd(t.price)} · {t.gia_ban_rieng ? `bán riêng ${vnd(t.gia_ban_rieng)}` : 'không bán riêng'}</span>
           <b>{t.chua_cong_thuc ? 'chưa công thức' : t.stock_quantity == null ? '—' : t.stock_quantity > 0 ? `còn ${t.stock_quantity}` : 'Hết'}</b>

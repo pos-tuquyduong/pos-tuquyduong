@@ -5,10 +5,10 @@
  */
 import { useState } from 'react';
 import { ghepGhiChu, tpCanTrongGio } from './tinh';
+import AnhMon from './AnhMon';   // ANH-MON-1
 
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const NGUONG_CON = 5;
-const vietTat = (ten) => String(ten || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
 export default function KhungChonMon({ sp, dong, dsTopping = [], gio = [], giaHang, noi, onLuu, onXoa, onDong }) {
   const nhanMon = sp.ghi_chu_nhanh || [];
@@ -56,7 +56,7 @@ export default function KhungChonMon({ sp, dong, dsTopping = [], gio = [], giaHa
                 <div key={t.id} className="bh-tp-bao">
                   <button className={`bh-tp${n ? ' bh-chon' : ''}`} disabled={het} onClick={() => them(t)} aria-label={t.name}>
                     {n > 0 && <b className="bh-tp-so">{n}</b>}
-                    <span className="bh-tp-anh">{vietTat(t.name)}</span>
+                    <AnhMon anh={t.anh} ten={t.name} kich={40} />
                     <span className="bh-tp-ten">{t.name}</span>
                     <span className="bh-mon-ton">{het ? 'Hết' : `+${vnd(giaHang(t))}`}</span>
                     {!het && conLai < NGUONG_CON && <span className="bh-mon-ton bh-tp-con">còn {Math.max(0, conLai)} phần</span>}
