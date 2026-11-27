@@ -20,7 +20,7 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 128
+SỐ CA cong_cu/thu_KHOGON1.js: 134
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
@@ -100,3 +100,14 @@ Q11b, Q8d, Q8e, Q10a, B6d; nền nhập thêm Cam). Chạy trên code TRƯỚC v
    · ghiKK `&& m.san_pham_id`: phiếu NHẬN nguyên liệu chờ duyệt (dòng 'nhap' chưa có lô, tongDong tính nó theo Q4) rồi đếm ít hơn → bỏ vế thì 409 oan.
      Chưa có ca — làm ở vòng sửa sau (cũng là luồng K5 "phải không bị chặn").
    Ba vế còn lại tương đương thật (người soát đồng ý): UPDATE ly_do `AND trang_thai` · `d.loai = 'thanh_pham'` · `p.is_active = 1`.
+
+Vòng sửa 6 (chủ quán 27.11: Q12 = (a) + lỗi nhẹ lần soát cuối sau vòng 5): bài đổi ở 523a701b (Q8f, Q12a, Q12b, Q12c, Q12d, Q4e3). Chạy trên code
+TRƯỚC vòng 6 (cây 523a701b = code c3a60aca + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 132 đạt · 2 hỏng
+   ✗ Q12a phiếu ĐÃ duyệt, chủ quán chỉnh tay món đó → ghi kết quả pha chế → 409 KQ_DA_KIEM_KE, tồn giữ số chỉnh tay (không trừ đôi)  — HTTP 200 · NC 10 / 11
+   ✗ Q12b kiểm kê đếm KHỚP (không phiếu KK) sau khi duyệt phiếu → ghi kết quả pha chế → 409, tồn giữ (không ly ảo)  — HTTP 200 · HTTP 200 · NC 16 / 15
+  Xanh trên code trước vòng 6 (ca phủ thêm, mỗi ca có đột biến riêng): Q8f (VS-q8-giam-ca-phieu-duyet — vế người soát dựng được) · Q12c (trên gốc bị che
+  vì kết quả điền được) · Q12d (K5) · Q4e3 (đường sửa DH / PN / PS đã ghi diễn biến từ vòng 5, nay có ca + BV-bo-dien-bien-sua-tao).
+  Trên code đã sửa (169b2bd2): 134 đạt · 0 hỏng.
+  KHÔNG thêm ca "phiếu nhận nguyên liệu CHỜ duyệt + đếm thiếu" (vế ghiKK `&& m.san_pham_id`): chủ quán dặn 27.11 — KHO-GON-2 cho nhận hàng cộng kho
+  ngay, không mở rộng luật cho phiếu nhận chờ. Vế đó: CHƯA KIỂM bằng đột biến.
