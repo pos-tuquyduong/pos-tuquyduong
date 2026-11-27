@@ -21,7 +21,12 @@
    chạm thêm để tăng phần, tối đa 3), ghi chú nhanh, ô tự gõ, số ly, nút "Thêm vào giỏ · <giá>". Món không có tuỳ chỉnh: chạm là vào giỏ.
    Chạm dòng trong giỏ mở lại khung để sửa / xoá. Hai ly khác tuỳ chỉnh = hai dòng.
 8. Ghi chú nhanh và topping CÀI THEO TỪNG SẢN PHẨM (ví dụ cà phê đen không có "sữa"; cà phê không có topping; trà dưỡng nhan có thạch,
-   nếp cẩm). Topping quản lý qua kho SX (lô, hạn dùng); topping hết hàng / hết hạn hiện mờ, không chọn được.
+   nếp cẩm). Topping là món làm sẵn quản lý trong kho POS (lô, hạn dùng — chủ quán 17.11); topping hết hàng / hết hạn hiện mờ, không chọn
+   được, ở MỌI kênh (quầy, App KH). Tồn topping tính trên cả giỏ (cùng topping ở nhiều ly cộng lại).
+   TOPPING-1 (chủ quán 26.11): topping có hai giá — giá thêm vào ly và giá bán riêng (trống = không bán riêng). Topping có giá bán riêng hiện ở
+   tab "Topping", chạm là vào giỏ như một món. Giảm hạng, mã giảm và voucher (tiền và %) áp cả topping; voucher theo nhóm giảm cả topping của ly
+   thuộc nhóm, voucher "giảm 1 món" chỉ giảm ly; topping chỉ được giảm Flash khi chính topping có trong danh sách Flash. Hoá đơn: dòng
+   "+ <topping> x<phần>" dưới món; tem mỗi ly có topping + ghi chú; phiếu pha chế có topping.
 9. Tiền mặt: dãy tờ "Đúng tiền / 50.000 / 100.000 / 200.000…" (chỉ tờ lớn hơn số phải trả), mỗi tờ ghi sẵn "trả lại …"; nút "Số tiền
    khác…" mở bàn phím số (có phím 000), báo "Trả lại …" / "Còn thiếu …", nút "Đã nhận tiền" chỉ sáng khi đủ. Dùng chữ "trả lại", không "thối".
 10. Chuyển khoản: MỌI chuyển khoản (quầy và App KH) qua QR payOS, máy chủ tự xác nhận khi tiền về — không nút "đã nhận CK" cho nhân viên.

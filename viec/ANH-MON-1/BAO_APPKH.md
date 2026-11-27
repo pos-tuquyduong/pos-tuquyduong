@@ -1,4 +1,4 @@
-# Báo chat App KH — ANH-MON-1 (POS, hợp đồng `/api/kh` v19)
+# Báo chat App KH — ANH-MON-1 (POS, hợp đồng `/api/kh` v21 — sau v19 nhóm món, v20 topping)
 
 **Việc là gì:** quán đã có ảnh nhỏ cho món. `GET /api/kh/menu` — trường `anh` của mỗi món trước đây luôn `null`, từ v19 là **đường dẫn ảnh** hoặc `null` (món chưa có ảnh).
 

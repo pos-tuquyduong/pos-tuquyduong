@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
 import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
+import ToppingMon, { DanhSachTopping } from './ToppingMon';   // TOPPING-1 (B3)
 
 const KIEU = { pha_tai_cho: 'Pha tại chỗ', lam_san: 'Làm sẵn (theo lô)', chua_dinh_luong: 'Chưa định lượng' };
 const so = (x) => Number(Number(x).toFixed(3)).toLocaleString('vi-VN');
@@ -107,6 +108,7 @@ export default function SanPham({ vaiTro, moId }) {
       )}
       <div className="kho-hang"><input className="input" placeholder="Tìm món" value={tim} onChange={(e) => setTim(e.target.value)} />
         {quanLy && <button className="btn btn-primary" onClick={() => setThemMoi(true)}>+ Thêm món</button>}</div>
+      {quanLy && <DanhSachTopping />}
       {theoNhom.map((n) => (
         <div key={n.id ?? 'chua'} style={{ marginBottom: '1rem' }}>
           <h3 className="card-title">{n.ten}</h3>
@@ -129,6 +131,8 @@ function ThongTinMon({ sp, dong, onDoiAnh }) {
   const [f, setF] = useState({ name: sp?.name ?? '', category: sp?.category ?? 'juice', price: sp?.price ?? '', unit: sp?.unit ?? 'ly',
     sort_order: sp?.sort_order ?? 0, is_active: sp ? Number(sp.is_active) : 1 });
   const [dang, setDang] = useState(false);
+  const [dsNhom, setDsNhom] = useState([]);   // NHOM-MON-1: nhóm chọn từ danh sách chung (Cài đặt › Nhóm món), không gõ tay
+  useEffect(() => { api.get('/products/nhom').then((r) => setDsNhom(r.data || [])).catch((e) => baoLoiTu('tải nhóm món', e)); }, []);
   const doi = (gt) => setF({ ...f, ...gt });
   const luu = async () => {
     if (dang) return;
@@ -153,7 +157,9 @@ function ThongTinMon({ sp, dong, onDoiAnh }) {
       {sp && <AnhMonSua sp={sp} onDoi={onDoiAnh} />}
       <div className="kho-form">
         <label>Tên món<input className="input" value={f.name} onChange={(e) => doi({ name: e.target.value })} /></label>
-        <label>Nhóm (tab ở màn Bán hàng)<input className="input" value={f.category} onChange={(e) => doi({ category: e.target.value })} /></label>
+        <label>Nhóm (tab ở màn Bán hàng)<select className="input" value={f.category} onChange={(e) => doi({ category: e.target.value })}>
+          {(dsNhom.some((g) => g.ma === f.category) ? dsNhom : [...dsNhom, { ma: f.category, ten: f.category }]).map((g) => <option key={g.ma} value={g.ma}>{g.ten}</option>)}
+        </select></label>
         <label>Giá bán (đồng)<input className="input" type="number" min="0" step="1000" value={f.price ?? ''} onChange={(e) => doi({ price: e.target.value })} /></label>
         <label>Đơn vị<input className="input" value={f.unit} onChange={(e) => doi({ unit: e.target.value })} /></label>
         <label>Thứ tự<input className="input" type="number" step="1" value={f.sort_order} onChange={(e) => doi({ sort_order: e.target.value })} /></label>
@@ -203,6 +209,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
   return (
     <div>
     {quanLy && <ThongTinMon sp={sp} dong={(doi) => { if (doi) dong(true); }} onDoiAnh={() => setDaDoiAnh(true)} />}
+    {quanLy && <ToppingMon sp={sp} />}
     <div className="card" style={{ padding: '1rem' }}>
       <h3 className="card-title">{sp.name}</h3>
       <div className="kho-nho" style={{ marginBottom: '0.75rem' }}>{KIEU[sp.kieu]} · công thức cho 1 {sp.category === 'tea' ? 'gói' : 'phần'}

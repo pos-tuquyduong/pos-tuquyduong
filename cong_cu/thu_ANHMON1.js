@@ -46,7 +46,7 @@ const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.war
 
 const KB = 1024;
 const GIOI_HAN = 120 * KB;   // phiếu A2 — số cứng ở ĐÂY là cố ý: bài thử khoá đúng con số chủ quán chốt, không đọc lại từ code
-const KHOA_MENU_MOI = ['con_hang', 'gia', 'gia_hang', 'ma', 'nhom', 'ten', 'ton_cu', 'ton_luc', 'nhu_cau', 'the_chat', 'mo_ta', 'cong_dung', 'thanh_phan', 'anh'].sort();
+const KHOA_MENU_MOI = ['con_hang', 'gia', 'gia_hang', 'ma', 'nhom', 'ten', 'ton_cu', 'ton_luc', 'nhu_cau', 'the_chat', 'mo_ta', 'cong_dung', 'thanh_phan', 'anh', 'nhom_ten', 'nhom_thu_tu', 'ghi_chu_nhanh', 'topping'].sort();   // chat bàn 41 ghép main: + NHOM-MON-1 (nhom_ten, nhom_thu_tu), TOPPING-1 (ghi_chu_nhanh, topping) — LUAT §6.7
 
 // Ảnh giả: ĐÚNG byte đầu của từng kiểu, thân ngẫu nhiên (mỗi lần khác nhau trừ khi truyền hạt).
 const nho = (hat) => crypto.createHash('sha256').update(String(hat)).digest();
@@ -229,7 +229,7 @@ async function main() {
   await chay('F', async () => {
     const kh = await menuKh('tea_902');
     k('F1 món không ảnh: /api/kh/menu `anh: null` (không undefined, không "")', !!kh && kh.anh === null, JSON.stringify(kh && kh.anh));
-    k('F2 bộ khoá món trong /api/kh/menu KHÔNG đổi (14 khoá, như hợp đồng)', !!kh && JSON.stringify(Object.keys(kh).sort()) === JSON.stringify(KHOA_MENU_MOI), Object.keys(kh || {}).join(','));
+    k('F2 bộ khoá món trong /api/kh/menu KHÔNG đổi (18 khoá, như hợp đồng v21)', !!kh && JSON.stringify(Object.keys(kh).sort()) === JSON.stringify(KHOA_MENU_MOI), Object.keys(kh || {}).join(','));
     const q = await menuQuay(m2);
     k('F3 menu quầy: món không ảnh `anh: null`', !!q && q.anh === null, JSON.stringify(q && q.anh));
     const sp = await goi('GET', '/api/pos/kho/san-pham', { tk: tkChu });
@@ -313,7 +313,7 @@ async function main() {
     const hd = doc('HOP_DONG_API_KH.md');
     const dau = Number((hd.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]);
     k('I1 PHIEN_BAN ≥ 19', dau >= 19, String(dau));
-    k('I2 nhật ký có dòng v19 nhắc ANH-MON-1', /^- v19 · .*ANH-MON-1/m.test(hd));
+    k('I2 nhật ký có dòng v21 nhắc ANH-MON-1 (chat bàn 41: số kế tiếp sau NHOM v19, TOPPING v20)', /^- v21 · .*ANH-MON-1/m.test(hd));
     k('I3 ghi nghĩa mới: `anh` = đường dẫn ảnh hoặc null (không còn "luôn null")', /ANH-MON-1/.test(hd) && !/`anh` \(luôn\s*`null`/.test(hd.split('## Nhật ký')[0].replace(/\s+/g, ' ')));   // nhật ký v4 là lịch sử, giữ nguyên
     k('I4 có file báo App KH', fs.existsSync(path.join(GOC, 'viec', 'ANH-MON-1', 'BAO_APPKH.md')));
   });

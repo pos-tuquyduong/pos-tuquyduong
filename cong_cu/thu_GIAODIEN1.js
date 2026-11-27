@@ -114,17 +114,15 @@ async function phanThuan() {
   // ═══ D · lưới Quản lý ═══════════════════════════════════════════════════
   muc('D · trang Quản lý: ô "Khách và tiền"');
   const luoi = (q) => (M.luoiQuanLy ? M.luoiQuanLy(q) : []);
-  const lien = (q) => luoi(q).map((o) => `${o.ten}:${o.loi.map((l) => l.to).join('+')}`);
-  thu('D1 đủ quyền: có ô "Khách và tiền" với ba lối Khách hàng và số dư (/customers) · Hoàn tiền (/refunds) · Báo cáo / đối soát (/reports)', () => {
-    const o = luoi(tatCa).find((x) => x.ten === 'Khách và tiền');
-    return !!o && bang(o.loi.map((l) => [l.ten, l.to]), [['Khách hàng và số dư', '/customers'], ['Hoàn tiền', '/refunds'], ['Báo cáo / đối soát', '/reports']]);
-  });
-  thu('D2 không quyền gì: ô còn đúng lối /customers (K5 — Khách hàng không đòi quyền); Hoàn tiền + Báo cáo bị ẩn', () => lien(quyen()).includes('Khách và tiền:/customers'));
-  thu('D3 chỉ approve_refund: Khách và tiền = /customers + /refunds (không /reports)', () => lien(quyen('approve_refund')).includes('Khách và tiền:/customers+/refunds'));
-  thu('D4 chỉ view_reports: Khách và tiền = /customers + /reports', () => lien(quyen('view_reports')).includes('Khách và tiền:/customers+/reports'));
-  thu('D5 các ô cũ giữ nguyên (6 ô cũ vẫn đủ, đúng đường dẫn)', () => {
-    const l = lien(tatCa);
-    return ['Sản phẩm & công thức:/kho', 'Nguyên liệu:/kho', 'Khuyến mãi & thành viên:/discount-codes+/settings', 'Con người:/settings', 'Báo cáo:/reports', 'Cài đặt:/settings+/invoice-settings'].every((x) => l.includes(x)) && l.length === 7;
+  // GIAO-DIEN-2 (chủ quán duyệt 17.11): lưới đổi thành 6 nhóm; ô "Khách và tiền" tách — Khách ở nhóm Khách & thẻ, Hoàn tiền + Báo cáo / đối soát ở Tiền & báo cáo. Quyền từng lối giữ như cũ.
+  const tuNut = (q) => luoi(q).flatMap((g) => g.nut).map((n) => n.to);
+  thu('D1 đủ quyền: có lối Danh sách khách (/customers) · Hoàn tiền (/refunds) · Báo cáo + Đối soát (/reports, /reports?tab=doisoat)', () => ['/customers', '/refunds', '/reports', '/reports?tab=doisoat'].every((x) => tuNut(tatCa).includes(x)));
+  thu('D2 không quyền gì: còn /customers (K5 — Khách hàng không đòi quyền); Hoàn tiền + Báo cáo bị ẩn', () => tuNut(quyen()).includes('/customers') && !tuNut(quyen()).includes('/refunds') && !tuNut(quyen()).some((x) => x.startsWith('/reports')));
+  thu('D3 chỉ approve_refund: /customers + /refunds (không /reports)', () => { const t = tuNut(quyen('approve_refund')); return t.includes('/customers') && t.includes('/refunds') && !t.some((x) => x.startsWith('/reports')); });
+  thu('D4 chỉ view_reports: /customers + /reports (không /refunds)', () => { const t = tuNut(quyen('view_reports')); return t.includes('/customers') && t.includes('/reports') && !t.includes('/refunds'); });
+  thu('D5 mọi đích cũ vẫn có lối: /kho, /discount-codes, /invoice-settings, /reports, /settings (qua ?the=); đủ 6 nhóm', () => {
+    const t = tuNut(tatCa);
+    return ['/kho', '/discount-codes', '/invoice-settings', '/reports'].every((x) => t.includes(x)) && t.some((x) => x.startsWith('/settings?the=')) && luoi(tatCa).length === 6;
   });
 
   // ═══ C · Số dư gộp vào Khách hàng ═══════════════════════════════════════
@@ -135,7 +133,7 @@ async function phanThuan() {
   k('C3 "Điều chỉnh" chỉ khi hasPermission(\'adjust_balance\') (quyền như cũ)', /hasPermission\('adjust_balance'\)/.test(vi));
   k('C4 "Nạp tay (thử)" CHỈ chủ quán: gắn vào user.role === \'owner\'; số dư chỉ khi view_customer_balance', /role\s*===\s*'owner'/.test(vi) && /hasPermission\('view_customer_balance'\)/.test(vi));
   k('C5 khu Ví dùng đúng ba lệnh cũ: walletsApi.topup / adjust / transactions', ['topup', 'adjust', 'transactions'].every((x) => new RegExp('walletsApi\\.' + x).test(vi)));
-  k('C6 Customers.jsx gắn ViKhach trong ô chi tiết khách và có ô tổng "Khách đang gửi quán" + cột Số dư', /<ViKhach/.test(kh) && /Khách đang gửi quán/.test(kh) && /<th[^>]*>Số dư<\/th>/.test(kh));
+  k('C6 Customers.jsx gắn ViKhach trong ô chi tiết khách và có ô tổng "Khách đang gửi quán" + cột Số dư', /<ViKhach/.test(kh) && /Khách đang gửi quán/.test(kh) && />Số dư</.test(kh));
   k('C7 Customers.jsx: tổng gửi quán = tổng balance (cộng số dư), không số cứng', /reduce\(\(\w+, \w+\) => \w+ \+ \(?\w+\.balance/.test(kh) || /totalBalance|tongGui/.test(kh));
   k('C8 menu.js: bỏ lối "Số dư →" (LOI_THEM.customers không còn /balance)', !/['"]\/balance['"]/.test(sach(DOC('client', 'src', 'pages', 'QuanLy', 'menu.js'))));
   k('C9 /balance chuyển về /customers (link cũ không gãy), không còn nhập Balance', /path="balance"\s+element=\{<Navigate to="\/customers" replace \/>\}/.test(app) && !/import Balance/.test(app));

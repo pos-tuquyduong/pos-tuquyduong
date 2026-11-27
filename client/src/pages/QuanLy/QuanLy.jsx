@@ -1,31 +1,51 @@
 /**
- * Trang Quản lý (BH-2, menu 6 mục): lưới ô dẫn tới các màn đã có. Chỉ dẫn tới trang — không đổi màn nào, quyền như từng mục cũ
- * (lối cần quyền mà người dùng không có thì ẩn; máy chủ vẫn là bên kiểm quyền thật).
+ * Trang Quản lý (GIAO-DIEN-2, chủ quán duyệt mẫu 17.11): 6 nhóm, mỗi nút mở THẲNG đúng màn + ô "Tìm nhanh một mục cài đặt".
+ * MỘT nguồn dữ liệu (menu.js) cho cả máy tính (lưới 3 cột) lẫn điện thoại (danh sách, CSS @media 768 ở index.css).
+ * Chỉ dẫn tới trang — quyền mỗi nút giữ đúng quyền trước đây (nút cần quyền mà người dùng không có thì ẩn; máy chủ vẫn là bên kiểm quyền thật).
  */
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { luoiQuanLy } from './menu';
+import { timMuc, nutDuyNhat } from './menu';
 
 export default function QuanLy() {
   const { hasPermission, user } = useAuth();
+  const dieuHuong = useNavigate();
+  const [chuoi, setChuoi] = useState('');
+  const nhom = timMuc(chuoi, hasPermission);
+  const enter = (e) => {
+    if (e.key !== 'Enter') return;
+    const nut = nutDuyNhat(nhom);
+    if (nut) dieuHuong(nut.to);
+  };
   return (
     <div>
-      <header className="page-header"><h1>Quản lý</h1></header>
-      <div className="page-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
-        {luoiQuanLy(hasPermission).map((o) => (
-          <div key={o.ten} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <b>{o.ten}</b>
-            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{o.ghiChu}</span>
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: 'auto' }}>
-              {o.loi.map((l) => <Link key={l.to} to={l.to} className="btn btn-outline">{l.ten}</Link>)}
+      <header className="page-header" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+        <h1>Quản lý</h1>
+        <input type="search" className="input" style={{ maxWidth: 360, flex: '1 1 220px' }} value={chuoi} onChange={(e) => setChuoi(e.target.value)}
+          onKeyDown={enter} placeholder="Tìm nhanh một mục cài đặt" aria-label="Tìm nhanh một mục cài đặt" />
+      </header>
+      <div className="page-content">
+        {chuoi.trim() === '' && <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem' }}>Gõ: PIN, giờ mở cửa, hạng Vàng, máy in…</div>}
+        {nhom.length === 0 && <div className="text-gray" style={{ padding: '1rem 0' }}>Không có mục nào khớp "{chuoi}".</div>}
+        <div className="ql-luoi">
+          {nhom.map((g) => (
+            <div key={g.ten} className="card ql-the">
+              <div className="ql-the-ten">{g.ten}</div>
+              <div className="ql-nut-hang">
+                {g.nut.map((n) => (
+                  <Link key={n.ten} to={n.to} className="btn btn-outline ql-nut">{n.ten}<span className="ql-chevron" aria-hidden="true">›</span></Link>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-        {user?.role === 'owner' && (   // KH-SDT-1: ngoài lưới menu.js (lưới bị thu_BH2 khoá 6 ô); chỉ chủ quán
-          <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          ))}
+        </div>
+        <div style={{ fontSize: '0.8rem', color: '#64748b', margin: '1rem 0' }}>Mỗi nút mở thẳng đúng màn. Một món chỉ sửa ở MỘT chỗ.</div>
+        {user?.role === 'owner' && (   // KH-SDT-1: ngoài 6 nhóm (menu.js); chỉ chủ quán
+          <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', maxWidth: 360 }}>
             <b>Dọn dữ liệu thử</b>
             <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Chạy một lần trước khai trương</span>
-            <div style={{ marginTop: 'auto' }}><Link to="/don-thu" className="btn btn-outline">Mở</Link></div>
+            <div><Link to="/don-thu" className="btn btn-outline">Mở</Link></div>
           </div>
         )}
       </div>

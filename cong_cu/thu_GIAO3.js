@@ -394,8 +394,13 @@ async function main() {
   const vT = await moChuyen();
   A.phiTao = null;
   k('C3 (K4) tạo chuyến Ahamove trả total_price 0 → phi_that = phí báo 16.000 (không 0)', (await chuyenCua(vT.id))?.phi_that === 16000, String((await chuyenCua(vT.id))?.phi_that));
+  A.phiBao = 0;   // GIAO-4: báo phí 0 ở QUẦY bị chặn (502 AHAMOVE_PHI_0) — không lưu báo phí; báo 0 lúc GỌI XE vẫn đi (ca dưới)
+  const bQ0 = await goi('POST', '/giao-hang/bao-phi', { dia_chi: 'Số 3 Ngõ Thử, Hà Nội' });
+  k('C3 (GIAO-4) Tính phí ở quầy, Ahamove báo 0 → 502 AHAMOVE_PHI_0, không mã báo phí', bQ0.status === 502 && bQ0.j.code === 'AHAMOVE_PHI_0' && !bQ0.j.ma_bao_phi,
+    J([bQ0.status, bQ0.j]));
+  A.phiBao = null;
+  const vT0 = await moChuyen(false);   // GIAO-4: đơn dùng báo phí bình thường; Ahamove báo 0 CHỈ lúc gọi xe
   A.phiBao = 0; A.phiTao = 0;
-  const vT0 = await moChuyen(false);
   await goi('POST', `/giao-hang/${vT0.id}/goi-xe`, {});
   A.phiBao = null; A.phiTao = null;
   const cT0 = await chuyenCua(vT0.id);
@@ -449,7 +454,7 @@ async function main() {
     k('G2 màn hiện ĐÚNG số máy chủ thuc_thu (hôm nay có đơn 30.000 + phí 16.000 tiền mặt) — không phải công thức cũ của màn',
       tt.j.thuc_thu != null && soMan === String(tt.j.thuc_thu) && soMan !== String(tt.j.order_stats.total_revenue - tt.j.order_stats.total_discount + tt.j.order_stats.total_shipping),
       `màn "${man.chu(the())}" · máy chủ ${tt.j.thuc_thu}`);
-    k('G3 dưới ô có dòng "= tiền mặt + chuyển khoản thật nhận"', man.chu(the()).includes('= tiền mặt + chuyển khoản thật nhận'), man.chu(the()));
+    k('G3 dưới ô có dòng "= tiền thật vào quán (gồm tiền khách nạp, đã trừ hoàn) — khớp tab Đối soát" (GIAO-DIEN-2 F1, chủ quán đồng ý 19.11)', man.chu(the()).includes('= tiền thật vào quán (gồm tiền khách nạp, đã trừ hoàn) — khớp tab Đối soát'), man.chu(the()));
   } catch (e) { k('G màn dựng được Reports.jsx', false, e.message); }
   const reportsSrc = fs.readFileSync(path.join(SRC, 'pages', 'Reports.jsx'), 'utf8');
   k('G4 client/src/pages/Reports.jsx không còn tự cộng / trừ total_revenue / total_discount / total_shipping', !/(total_revenue|total_discount|total_shipping)[^\n]*\)\s*[-+]/.test(reportsSrc));

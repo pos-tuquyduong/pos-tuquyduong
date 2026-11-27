@@ -177,6 +177,20 @@
   .giai h4{margin:0 0 6px;font-size:.92rem}
   @media (max-width:1100px){ .cot{flex-direction:column} .cotphai{width:100%;flex:none} }
   @media (max-width:760px){ .canh{display:none} }
+  /* TOPPING-1 */
+  .lop-tp{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+  .khung-tp{background:#fff;border-radius:14px 14px 0 0;padding:14px;width:100%;max-width:520px}
+  @media (min-width:761px){ .lop-tp{align-items:center} .khung-tp{border-radius:14px} }
+  .muc-tp{font-size:.78rem;font-weight:700;color:var(--mo);margin:8px 0 6px}
+  .luoi-tp{display:flex;flex-wrap:wrap;gap:6px}
+  .o-tp{position:relative;min-width:96px;min-height:64px;border:1px solid var(--vien);border-radius:10px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .o-tp.on{border-color:#16a34a;background:#f0fdf4}.o-tp:disabled{opacity:.4}
+  .so-tp{position:absolute;top:2px;right:6px;color:#16a34a}.con-tp{color:#b45309}
+  .bot-tp{min-width:36px;border:1px solid var(--vien);border-radius:8px;background:#fff}
+  .dong-tp{font-size:.76rem;color:#475569;padding-left:12px;display:flex;justify-content:space-between}
+  .sua-tp{font-size:.72rem;border:1px dashed var(--vien);border-radius:6px;background:#fff;margin:3px 0}
+  .nhan-tp{font-size:.62rem;color:#16a34a;font-weight:700}
+  .tp-in{padding-left:8px}.tp-tem{font-size:.62rem;font-weight:700}
 </style>
 </head>
 <body>
@@ -221,8 +235,23 @@ const SP=[
   {ma:'CT5',ten:'Thanh Tân Dưỡng',gia:49500,ton:0,ic:'🥤',m:'#dc2626'},
   {ma:'NTL',ten:'Ngọc Thanh Lộ',gia:35000,ton:0,ic:'🍵',m:'#16a34a'},
   {ma:'AML',ten:'An Mi Lộ',gia:50000,ton:0,ic:'🍵',m:'#16a34a'},
+  {ma:'TDN',ten:'Trà Dưỡng Nhan',gia:45000,ton:null,ic:'🍵',m:'#16a34a',tp:['NC','TH','LN'],gc:['Ít đá','Không đá','Ít ngọt']},
 ];
-const GHICHU=['Ít đường','Không đường','Ít đá','Không đá','Ít sữa'];      // Sales.jsx dòng 36 — có sẵn, sau chuyển vào Cài đặt
+const GHICHU=['Ít đường','Không đường','Ít đá','Không đá','Ít sữa'];      // TOPPING-1: bộ dự phòng — mỗi món có danh sách riêng (gc), cài ở Kho › Sản phẩm
+// TOPPING-1: topping = món làm sẵn trong kho POS. gia = giá thêm vào ly · rieng = giá bán riêng (0 = chỉ thêm vào ly) · ton = phần còn bán được.
+const TP=[
+  {ma:'NC',ten:'Nếp cẩm',gia:10000,rieng:15000,ton:12},
+  {ma:'TH',ten:'Thạch',gia:7500,rieng:0,ton:4},
+  {ma:'LN',ten:'Long nhãn',gia:12000,rieng:0,ton:0},
+];
+const TOPPING_TOI_DA_PHAN=3;   // máy chủ trả ở menu (utils/topping.js) — màn không viết số cứng
+const tpCua=ma=>TP.find(x=>x.ma===ma);
+const gcCua=ma=>{ const s=SP.find(x=>x.ma===ma); return s&&s.gc?s.gc:s?GHICHU:[]; };
+// Giá một ly = món + Σ topping × phần. Máy chủ tự tra lại (POST /orders/tinh-thu) — số này chỉ để hiện.
+const giaLy=g=>g.gia+(g.tps||[]).reduce((s,x)=>s+tpCua(x.ma).gia*x.so,0);
+// Phần topping cả giỏ đang cần (cả dòng bán riêng), bỏ dòng `boK` (dòng đang sửa) — MỘT hàm cho lúc chọn và lúc thêm.
+const tpCan=(ma,boK)=>S.gio.reduce((s,g)=>s+(g.k===boK?0:(((g.tps||[]).find(x=>x.ma===ma)||{}).so||0)*g.sl+(g.tpRieng===ma?g.sl:0)),0);
+const khoaTp=tps=>(tps||[]).map(x=>x.ma+'x'+x.so).sort().join(',');
 const TEM_TOI_DA=40;
 // Máy in mà trạm in nhìn thấy. 'kho' quyết định phiếu nào in được ra máy nào.
 const MAY=[
@@ -281,12 +310,12 @@ const S={man:'ban',khach:null,timKH:'',quet:null,amThanh:true,loc:'tatca',chon:n
   inKhach:true,inTem:true,inPC:false,
   don:[],so:13,ve:'moi',
   ra:{},den:{},bao:null,bam:0,
-  vc:[],vcLoi:{},maKM:'',maGo:''};
+  vc:[],vcLoi:{},maKM:'',maGo:'',tab:'tatca',khungTp:null};
 let hen=null, dem=null;
 
 document.addEventListener('click',e=>{ if(e.target.closest('button,.sp,.ve,label')){ S.bam++; document.getElementById('dem').textContent=S.bam; }},true);
 
-const tongGio=()=>S.gio.reduce((s,g)=>s+g.gia*g.sl,0);
+const tongGio=()=>S.gio.reduce((s,g)=>s+giaLy(g)*g.sl,0);
 
 // ─── VOUCHER-2: MỘT mã khuyến mãi chung + nhiều voucher của khách (tối đa N). Bản mẫu GIẢ máy chủ ở tinhGiam — mã thật hỏi
 // POST /orders/tinh-thu (giam[] + voucher_loi[]), màn không tự tính tiền. Thứ tự: mã chung → voucher tiền → MỘT voucher % trên phần còn
@@ -334,12 +363,41 @@ const phut=ms=>Math.max(0,Math.floor((Date.now()-ms)/60000));
 
 // ─── giỏ: mỗi dòng có khoá riêng, nên cùng một món tách được nhiều dòng với ghi chú khác nhau ───
 function them(m){ if(S.buoc!=='chon'||S.ve!=='moi') return; const s=SP.find(x=>x.ma===m); if(s.ton===0) return;
-  const c=S.gio.find(g=>g.ma===m&&!coGhiChu(g)); c?c.sl++:S.gio.push({k:++S.khoa,ma:s.ma,ten:s.ten,gia:s.gia,sl:1,chon:[],rieng:''}); ve(); }
+  if((s.tp||[]).length){ S.khungTp={ma:m,tps:[],sl:1,sua:null}; ve(); return; }   // TOPPING-1: món có topping → khung chọn
+  const c=S.gio.find(g=>g.ma===m&&!coGhiChu(g)&&!(g.tps||[]).length); c?c.sl++:S.gio.push({k:++S.khoa,ma:s.ma,ten:s.ten,gia:s.gia,sl:1,chon:[],rieng:'',tps:[]}); ve(); }
+// ─── TOPPING-1: khung chọn topping — chạm = +1 phần (tối đa TOPPING_TOI_DA_PHAN), − bớt, hết mờ, còn < 5 hiện "còn n" ───
+const tpConKhung=ma=>tpCua(ma).ton-tpCan(ma,S.khungTp&&S.khungTp.sua);
+function tpThem(ma){ const K=S.khungTp; if(!K) return; const x=K.tps.find(y=>y.ma===ma);
+  if(x&&x.so>=TOPPING_TOI_DA_PHAN) return thongBao(`Tối đa ${TOPPING_TOI_DA_PHAN} phần mỗi topping`);
+  if(((x?x.so:0)+1)*K.sl>tpConKhung(ma)) return thongBao(`${tpCua(ma).ten} chỉ còn ${Math.max(0,tpConKhung(ma))} phần`);
+  x?x.so++:K.tps.push({ma,so:1}); ve(); }
+function tpBot(ma){ const K=S.khungTp, x=K&&K.tps.find(y=>y.ma===ma); if(!x) return; x.so--; if(!x.so) K.tps=K.tps.filter(y=>y!==x); ve(); }
+function khungSl(d){ const K=S.khungTp, n=Math.max(1,K.sl+d); const vuot=K.tps.find(x=>x.so*n>tpConKhung(x.ma));
+  if(vuot) return thongBao(`${tpCua(vuot.ma).ten} không đủ cho ${n} ly`); K.sl=n; ve(); }
+function luuKhungTp(){ const K=S.khungTp; if(!K) return; const s=SP.find(x=>x.ma===K.ma);
+  if(K.sua!=null){ const c=S.gio.find(g=>g.k===K.sua); if(c){ c.tps=K.tps.map(x=>({...x})); c.sl=K.sl; } S.khungTp=null; ve(); return; }
+  const c=S.gio.find(g=>g.ma===K.ma&&!coGhiChu(g)&&khoaTp(g.tps)===khoaTp(K.tps));   // cùng món + cùng topping → gộp số ly; khác → dòng riêng
+  c?c.sl+=K.sl:S.gio.push({k:++S.khoa,ma:s.ma,ten:s.ten,gia:s.gia,sl:K.sl,chon:[],rieng:'',tps:K.tps.map(x=>({...x}))});
+  S.khungTp=null; ve(); }
+function suaTp(k){ const c=S.gio.find(g=>g.k===k); if(!c) return; S.khungTp={ma:c.ma,tps:c.tps.map(x=>({...x})),sl:c.sl,sua:k}; ve(); }
+function xoaDongTp(){ const K=S.khungTp; if(K&&K.sua!=null) S.gio=S.gio.filter(g=>g.k!==K.sua); S.khungTp=null; ve(); }
+// Tab "Topping": chỉ topping có giá bán riêng; chạm là vào giỏ như một món.
+function themRieng(ma){ if(S.buoc!=='chon'||S.ve!=='moi') return; const x=tpCua(ma); if(!x.rieng||tpCan(ma)>=x.ton) return;
+  const c=S.gio.find(g=>g.tpRieng===ma); c?c.sl++:S.gio.push({k:++S.khoa,ma:'TP-'+ma,ten:`${x.ten} (phần riêng)`,gia:x.rieng,sl:1,chon:[],rieng:'',tps:[],tpRieng:ma}); ve(); }
+function khungTopping(){ const K=S.khungTp; if(!K) return ''; const s=SP.find(x=>x.ma===K.ma);
+  return `<div class="lop-tp" id="khung-tp"><div class="khung-tp"><div style="display:flex;justify-content:space-between"><b>${s.ten}</b><button onclick="S.khungTp=null;ve()">✕</button></div>
+    <div class="muc-tp">Topping · chạm thêm để tăng phần (tối đa ${TOPPING_TOI_DA_PHAN})</div>
+    <div class="luoi-tp">${s.tp.map(ma=>{ const x=tpCua(ma), c=K.tps.find(y=>y.ma===ma), het=x.ton<=0, con=tpConKhung(ma)-(c?c.so*K.sl:0);
+      return `<button class="o-tp${c?' on':''}" ${het?'disabled':''} onclick="tpThem('${ma}')">${c?`<b class="so-tp">${c.so}</b>`:''}<span>${x.ten}</span><small>${het?'Hết':'+'+t(x.gia)}</small>${!het&&con<5?`<small class="con-tp">còn ${Math.max(0,con)} phần</small>`:''}</button>${c?`<button class="bot-tp" onclick="tpBot('${ma}')">−</button>`:''}`; }).join('')}</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:8px"><button onclick="khungSl(-1)">−</button><b>${K.sl}</b><button onclick="khungSl(1)">＋</button>
+      <button class="nut" style="flex:1" onclick="luuKhungTp()">${K.sua!=null?'Lưu':'Thêm vào giỏ'} · ${t(giaLy({gia:s.gia,tps:K.tps})*K.sl)}</button>
+      ${K.sua!=null?'<button class="nut xam" onclick="xoaDongTp()">Xoá</button>':''}</div></div></div>`; }
+const dongTpGio=g=>(g.tps||[]).map(x=>`<div class="dong-tp">+ ${tpCua(x.ma).ten}${x.so>1?' ×'+x.so:''} <span>${t(tpCua(x.ma).gia*x.so*g.sl)}</span></div>`).join('');
 function doi(k,d){ const c=S.gio.find(g=>g.k===k); c.sl+=d; if(c.sl<1) S.gio=S.gio.filter(g=>g!==c); ve(); }
 function lat(k,gc){ const c=S.gio.find(g=>g.k===k); const i=c.chon.indexOf(gc); i>=0?c.chon.splice(i,1):c.chon.push(gc); ve(); }
 function goRieng(k,v){ const c=S.gio.find(g=>g.k===k); if(c) c.rieng=v.replace(/\s+/g,' ').slice(0,200); }   // 200 = máy chủ cắt ở orders.js dòng 363
 function tach(k){ const c=S.gio.find(g=>g.k===k); if(c.sl<2) return; c.sl--;
-  S.gio.splice(S.gio.indexOf(c)+1,0,{...c,k:++S.khoa,sl:1,chon:[],rieng:''}); S.moGC=S.khoa; ve(); }
+  S.gio.splice(S.gio.indexOf(c)+1,0,{...c,k:++S.khoa,sl:1,chon:[],rieng:'',tps:(c.tps||[]).map(x=>({...x}))}); S.moGC=S.khoa; ve(); }   // ly tách giữ topping
 
 // ─── bước 1: chọn cách trả → bước 2: xem trước ───
 function xemTruoc(kieu,dua){ if(kieu==='cash'&&!(dua>=phaiTra())) return;   // tiền mặt thiếu thì không cho đi tiếp
@@ -351,7 +409,8 @@ function quayLai(){ S.buoc='chon'; S.kieu=null; ve(); }
 
 function temCua(d){
   const tong=soLy(d.mon); let i=0; const ra=[];
-  d.mon.forEach(g=>{ for(let j=0;j<g.sl;j++){ i++; ra.push({so:d.so,i,tong,ten:g.ten,chon:chonCua(g),rieng:g.rieng,luc:d.tao,app:d.nguon==='app'}); } });
+  d.mon.forEach(g=>{ for(let j=0;j<g.sl;j++){ i++; ra.push({so:d.so,i,tong,ten:g.ten,chon:chonCua(g),rieng:g.rieng,luc:d.tao,app:d.nguon==='app',
+    tp:(g.tps||[]).map(x=>`+ ${tpCua(x.ma).ten}${x.so>1?' x'+x.so:''}`)}); } });   // TOPPING-1: mỗi ly một tem, topping in trên tem của ly
   return ra;
 }
 
@@ -501,7 +560,7 @@ function billGiay(d,loai,lan){
     <div style="text-align:center;font-weight:800">PHIẾU PHA CHẾ</div>
     <div class="to">${so3(d.so)}</div><div style="text-align:center;font-size:.6rem;color:#64748b">${gio(d.tao)} · ${soLy(d.mon)} ly</div>
     <div class="kc"></div>
-    ${d.mon.map(g=>`<div class="d"><b>${g.sl} × ${g.ten}</b></div>${chonCua(g)?`<div class="gc" style="color:#b91c1c;font-weight:700">↳ ${chonCua(g)}</div>`:''}${g.rieng?`<div class="gc" style="color:#fff;background:#b91c1c;font-weight:700;font-style:normal;border-radius:3px;margin:1px 0 1px 8px;padding:0 4px">✎ ${g.rieng}</div>`:''}`).join('')}
+    ${d.mon.map(g=>`<div class="d"><b>${g.sl} × ${g.ten}</b></div>${(g.tps||[]).map(x=>`<div class="gc tp-in">+ ${tpCua(x.ma).ten} x${x.so}</div>`).join('')}${chonCua(g)?`<div class="gc" style="color:#b91c1c;font-weight:700">↳ ${chonCua(g)}</div>`:''}${g.rieng?`<div class="gc" style="color:#fff;background:#b91c1c;font-weight:700;font-style:normal;border-radius:3px;margin:1px 0 1px 8px;padding:0 4px">✎ ${g.rieng}</div>`:''}`).join('')}
   </div>`;
   const tt = d.tt==='da'
     ? `<div style="text-align:center;font-weight:800;color:#16a34a;margin-top:4px">ĐÃ THANH TOÁN</div>
@@ -514,7 +573,7 @@ function billGiay(d,loai,lan){
     <div class="to">${so3(d.so)}</div>
     <div style="text-align:center;font-size:.6rem;color:#64748b">ORD-20260921-${String(d.so).padStart(3,'0')} · ${gio(d.tao)}</div>
     <div class="kc"></div>
-    ${d.mon.map(g=>`<div class="d"><span>${g.ten} ×${g.sl}</span><span>${t(g.gia*g.sl)}</span></div>${chonCua(g)?`<div class="gc">${chonCua(g)}</div>`:''}${g.rieng?`<div class="gc">✎ ${g.rieng}</div>`:''}`).join('')}
+    ${d.mon.map(g=>`<div class="d"><span>${g.ten} ×${g.sl}</span><span>${t(g.gia*g.sl)}</span></div>${(g.tps||[]).map(x=>`<div class="d tp-in"><span>+ ${tpCua(x.ma).ten}${x.so>1?' x'+x.so:''}</span><span>${t(tpCua(x.ma).gia*x.so*g.sl)}</span></div>`).join('')}${chonCua(g)?`<div class="gc">${chonCua(g)}</div>`:''}${g.rieng?`<div class="gc">✎ ${g.rieng}</div>`:''}`).join('')}
     <div class="kc"></div>
     ${(d.giam||[]).map(x=>`<div class="d"><span>${x.nhan}</span><span>−${t(x.tien)}</span></div>`).join('')}
     ${d.phiGiao?`<div class="d"><span>Phí giao</span><span>${t(d.phiGiao)}</span></div>${d.giamShip?`<div class="d"><span>Giảm phí giao</span><span>−${t(d.giamShip)}</span></div>`:''}`:''}
@@ -533,7 +592,7 @@ function billGiay(d,loai,lan){
 }
 function temGiay(x){ return `<div class="tem">
   <div class="h"><b>${so3(x.so)}</b><span>${x.i}/${x.tong}</span></div>
-  <div class="ten">${x.ten}</div>
+  <div class="ten">${x.ten}</div>${(x.tp||[]).map(s=>`<div class="tp-tem">${s}</div>`).join('')}
   <div class="tc">${x.chon||(x.rieng?'':'<span style="color:#94a3b8;font-weight:400">— bình thường —</span>')}
     ${x.rieng?`<div class="rg">✎ ${x.rieng.length>TEM_TOI_DA?x.rieng.slice(0,TEM_TOI_DA-1)+'…':x.rieng}</div>`:''}</div>
   <div class="ch"><span>${gio(x.luc)}</span><span>${x.lan>1?'<b style="color:#1f2937">IN LẠI '+x.lan+'</b>':x.app?'📱 APP':'Tứ Quý Đường'}</span></div></div>`; }
@@ -574,8 +633,9 @@ function khungChon(){
     ${!co?'<div class="rong">Chạm món bên trái để bắt đầu</div>':S.gio.map(g=>`<div class="dong">
       <div class="t1"><span><b style="color:var(--lam)">${g.ma}</b> ${g.ten}</span>
         <span style="display:flex;gap:6px;align-items:center"><button onclick="doi(${g.k},-1)">−</button><b>${g.sl}</b>
-        <button onclick="doi(${g.k},1)">＋</button><b style="min-width:62px;text-align:right">${t(g.gia*g.sl)}</b></span></div>
-      <div class="ghichu">${GHICHU.map(x=>`<button class="${g.chon.includes(x)?'on':''}" onclick="lat(${g.k},'${x}')">${x}</button>`).join('')}
+        <button onclick="doi(${g.k},1)">＋</button><b style="min-width:62px;text-align:right">${t(giaLy(g)*g.sl)}</b></span></div>
+      ${dongTpGio(g)}${(((SP.find(x=>x.ma===g.ma)||{}).tp)||[]).length?`<button class="sua-tp" onclick="suaTp(${g.k})">✎ topping</button>`:''}
+      <div class="ghichu">${gcCua(g.ma).map(x=>`<button class="${g.chon.includes(x)?'on':''}" onclick="lat(${g.k},'${x}')">${x}</button>`).join('')}
         ${S.moGC===g.k||g.rieng?'':`<button class="dacbiet" onclick="S.moGC=${g.k};ve()">✎ ghi chú khác</button>`}
         ${g.sl>1?`<button class="tach" onclick="tach(${g.k})" title="Tách 1 ly ra để ghi chú riêng">＋ tách ly</button>`:''}</div>
       ${S.moGC===g.k||g.rieng?`<div class="o-rieng">
@@ -815,10 +875,12 @@ function ve(){
     <div class="dau"><h1>🛒 Bán hàng</h1><span style="color:#b45309;font-size:.85rem">Thứ Hai, 21/9/2026</span></div>
     <div class="cot">
       <div class="trai">
-        <div class="tabs"><div class="on">Tất cả</div><div>🍵 Trà · 28</div><div>☕ Cà phê</div><div>🥤 Nước ép · hết</div></div>
-        <div class="luoi">${SP.map(s=>{const bg=s.ton===null?'<span class="bg bs">Có sẵn</span>':s.ton>0?`<span class="bg bc">${s.ton}</span>`:'<span class="bg b0">Hết</span>';
+        <div class="tabs"><div class="${S.tab==='tatca'?'on':''}" style="cursor:pointer" onclick="S.tab='tatca';ve()">Tất cả</div><div>🍵 Trà · 28</div><div>☕ Cà phê</div><div>🥤 Nước ép · hết</div>${TP.some(x=>x.rieng)?`<div class="${S.tab==='tp'?'on':''}" style="cursor:pointer" onclick="S.tab='tp';ve()">Topping</div>`:''}</div>
+        <div class="luoi">${S.tab==='tp'?TP.filter(x=>x.rieng).map(x=>{ const het=tpCan(x.ma)>=x.ton;
+          return `<div class="sp tp-rieng ${het?'het':''}" onclick="themRieng('${x.ma}')"><span class="bg ${het?'b0':'bc'}">${het?'Hết':x.ton-tpCan(x.ma)}</span><div class="ic">🍡</div>
+            <div class="tn">${x.ten} (phần riêng)</div><div class="gi">${t(x.rieng)}</div></div>`; }).join(''):SP.map(s=>{const bg=s.ton===null?'<span class="bg bs">Có sẵn</span>':s.ton>0?`<span class="bg bc">${s.ton}</span>`:'<span class="bg b0">Hết</span>';
           return `<div class="sp ${s.ton===0?'het':''}" onclick="them('${s.ma}')">${bg}<div class="ic">${s.ic}</div>
-            <div class="ma" style="color:${s.m}">${s.ma}</div><div class="tn">${s.ten}</div><div class="gi">${t(s.gia)}</div></div>`;}).join('')}</div>
+            ${(s.tp||[]).length?'<span class="nhan-tp">+ topping</span>':''}<div class="ma" style="color:${s.m}">${s.ma}</div><div class="tn">${s.ten}</div><div class="gi">${t(s.gia)}</div></div>`;}).join('')}</div>
       </div>
       <div class="cotphai">
         <div class="dai">
@@ -831,7 +893,7 @@ function ve(){
           :S.ve!=='moi'?(cur.nguon==='app'?khungApp(cur):khungVe(cur)):S.buoc==='xem'?khungXem():khungChon()}</div>
       </div>
     </div>
-    ${veQuet()}
+    ${veQuet()}${khungTopping()}
     ${S.bao?`<div class="toast"><span>🖨 ${S.bao.chu}</span>${S.bao.hoan?`<button class="ho" onclick="hoan()">HOÀN TÁC</button><span class="den">${S.bao.con}s</span>`:''}</div>`:''}`;
   veKhay();
 }

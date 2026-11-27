@@ -32,7 +32,8 @@ const dem = (s, re) => (s.match(re) || []).length;
 
 // Thẻ Cài đặt trong pages/CaiDat/ → [số lời GỌI baoXong/baoLoi/baoLoiTu tối thiểu, số <LoiO tối thiểu]
 const THE = {
-  'HangThe': [7, 7], 'GoiNap': [5, 5], 'TichDiem': [3, 2], 'ChuongTrinh': [10, 4], 'GioHoatDong': [4, 3],
+  // GIAO-DIEN-2 B4: phần PIN chủ quán (2 lời gọi báo + 1 LoiO) dời sang PinChuQuan.jsx → HangThe còn [5, 6], PinChuQuan [3, 1] (tổng không giảm)
+  'HangThe': [5, 6], 'PinChuQuan': [3, 1], 'GoiNap': [5, 5], 'TichDiem': [3, 2], 'ChuongTrinh': [10, 4], 'GioHoatDong': [4, 3],
   'GiaoHang': [8, 4], 'ManKhach': [7, 4], 'InPhieu': [3, 1], 'CongQr': [1, 1],
 };
 const THE_CO_THANH_LUU = ['HangThe', 'GioHoatDong', 'InPhieu', 'ManKhach', 'GiaoHang', 'GoiNap', 'ChuongTrinh'];
@@ -119,7 +120,7 @@ const CD = (t) => SX('pages', 'CaiDat', t + '.jsx');
   k('D3c HangThe: Lưu hạng và Xoá hạng đều đi qua HoiPin (hangApi.luu / hangApi.xoa nằm trong hàm gọi từ HoiPin)', /hangApi\.luu\(\{[\s\S]{0,700}pin\b/.test(ht) && /viec: async \((\w+)\) => \{ await hangApi\.xoa\(h\.id, \1\)/.test(ht));
   k('D3d GoiNap: dùng <HoiPin, hết ô PIN đầu thẻ', /<HoiPin\b/.test(gn) && !/PIN chủ quán để thêm/.test(gn));
   k('D3e GoiNap: nút Lưu / Bật / Tắt không mờ vì thiếu PIN', !/disabled=\{[^}]*\bpin\b/i.test(gn));
-  k('D3f HangThe: PIN chủ quán đặt / đổi báo lỗi NGAY DƯỚI các ô PIN', /datPin[\s\S]{0,700}setLoiPin\(/.test(ht) && /<LoiO loi=\{loiPin\}/.test(ht));
+  k('D3f HangThe: PIN chủ quán đặt / đổi báo lỗi NGAY DƯỚI các ô PIN', /datPin[\s\S]{0,700}setLoiPin\(/.test(CD('PinChuQuan')) && /<LoiO loi=\{loiPin\}/.test(CD('PinChuQuan')));
   k('D3g luồng hợp lệ: Giờ hoạt động / In phiếu / Màn khách / Giao hàng Lưu KHÔNG hỏi PIN', ['GioHoatDong', 'InPhieu', 'ManKhach', 'GiaoHang'].every((t) => !/HoiPin/.test(CD(t))));
 
   muc('B · phép kiểm ô phía quầy chạy thật (ngay trên / ngay dưới ngưỡng)');

@@ -83,10 +83,26 @@ async function tienHoanTinhDiem(tx, d, tienDiem) {
   const so = await tx.queryOne(`SELECT COALESCE(SUM(amount), 0) AS n, COALESCE(SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END), 0) AS hoan
     FROM pos_balance_transactions WHERE order_id = ? AND type IN ('refund', 'compensation')`, [d.id]);
   const hoan = Number(so?.hoan || 0), den = Number(so?.n || 0) - hoan;
-  const dong = await tx.query('SELECT product_id, product_code, tich_diem FROM pos_order_items WHERE order_id = ?', [d.id]);
-  const tat = new Set(dong.filter((x) => !batDiem(x)).map((x) => x.product_code));
-  const denTat = tat.size ? Number((await tx.queryOne(`SELECT COALESCE(SUM(refund_amount), 0) AS n FROM pos_damage_logs
-    WHERE order_id = ? AND action = 'refund' AND product_code IN (${[...tat].map(() => '?').join(', ')})`, [d.id, ...tat]))?.n || 0) : 0;
+  const dong = await tx.query(`SELECT id, product_id, product_code, tich_diem, dong_cha_id, quantity, unit_price, flash_unit_price, tier_unit_price
+    FROM pos_order_items WHERE order_id = ?`, [d.id]);
+  // TOPPING-1 (chat Q7): lần đền gắn theo mã của dòng LY; ly có topping → tiền đền chia theo giá dòng ly / topping, mỗi phần theo cờ điểm của chính
+  // dòng đó. Mã không topping (mọi đơn cũ): mọi dòng cùng mã một cờ → phần tắt = cả hoặc không, y như trước.
+  const gia = (x) => Number(x.flash_unit_price || x.tier_unit_price || x.unit_price || 0) * Number(x.quantity);
+  const theoMa = new Map();   // mã → { tat, tong, coTat }
+  for (const ly of dong.filter((x) => x.dong_cha_id == null)) {
+    const m = theoMa.get(ly.product_code) || { tat: 0, tong: 0, coTat: false };
+    for (const x of [ly, ...dong.filter((c) => c.dong_cha_id != null && Number(c.dong_cha_id) === Number(ly.id))]) {
+      m.tong += gia(x);
+      if (!batDiem(x)) { m.tat += gia(x); m.coTat = true; }
+    }
+    theoMa.set(ly.product_code, m);
+  }
+  let denTat = 0;
+  for (const l of await tx.query(`SELECT product_code, COALESCE(SUM(refund_amount), 0) AS n FROM pos_damage_logs WHERE order_id = ? AND action = 'refund'
+    GROUP BY product_code`, [d.id])) {
+    const m = theoMa.get(l.product_code);
+    if (m) denTat += m.tong > 0 ? Math.round((Number(l.n) * m.tat) / m.tong) : m.coTat ? Number(l.n) : 0;
+  }
   const goi = dong.find((x) => Number(x.product_id) < 0 && Number(x.product_id) > ID_THE_TU);
   const denBat = den - Math.min(den, denTat);
   const conTra = tienTraDon(d) - den;   // Q4 = a: duyệt hoàn trả phần CÒN LẠI sau đền (soTienHoan) → quy theo phần còn lại
