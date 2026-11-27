@@ -94,7 +94,7 @@ def ban_sao(thay):
 
 
 def lenh(tmp):
-  return ['node', os.path.join(GOC, BAI), '--may-chu', os.path.join(tmp, 'server'), '--bo', BO]
+  return ['node', os.path.join(GOC, BAI), '--may-chu', os.path.join(tmp, 'server')]
 
 
 def sach(ra):
@@ -143,7 +143,7 @@ if __name__ == '__main__':
   if chon and len(ds) != len(chon):
     sys.exit('tên không có trong danh sách: ' + ', '.join(set(chon) - {d[0] for d in ds}))
   ok, dong = doi_chung()
-  print(f'ĐỐI CHỨNG (bản chưa đột biến, --bo {BO}): {"XANH" if ok else "ĐỎ"} · {dong}')
+  print(f'ĐỐI CHỨNG (bản chưa đột biến): {"XANH" if ok else "ĐỎ"} · {dong}')
   if not ok:
     sys.exit('đối chứng đỏ — không chạy đột biến (K3)')
   with ThreadPoolExecutor(max_workers=3) as ex:
