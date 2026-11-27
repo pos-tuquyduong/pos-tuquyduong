@@ -472,7 +472,7 @@ async function main() {
     const cu = await goi(null, 'POST', '/kh/gio/bao-gia', { mon: [{ ma: maCua(CAM), so_luong: 1 }], cach_nhan: 'tai_quan' }, kh.tk);
     k('T31b App bản cũ (không gửi topping) vẫn báo giá như cũ', la(cu, 200) && cu.j.tong === 20000 && !('topping' in (cu.j.dong?.[0] || {})), JSON.stringify(cu.j.dong));
     const dat = await goi(null, 'POST', '/kh/don', { ...than, khoa_gui: 'tp1-' + ngauNhien().slice(0, 16), cach_tra: 'qr', tong_da_xem: bg.j.tong }, kh.tk);
-    const maDon = dat.j.don?.ma;
+    const maDon = dat.j.ma_don;
     const xem = maDon ? await goi(null, 'GET', `/kh/don/${maDon}`, undefined, kh.tk) : { j: {} };
     const ct = xem.j.don || {};
     k('T35 lịch sử App (đơn chờ trả): so_mon = 3 ly (không đếm topping), dòng trà mang topping', la(dat, 200) && ct.so_mon === 3
@@ -480,10 +480,10 @@ async function main() {
     const khoa = 'tp1-' + ngauNhien().slice(0, 16);
     const lan1 = await goi(null, 'POST', '/kh/don', { mon: [{ ma: maCua(CAM), so_luong: 1 }], cach_nhan: 'tai_quan', khoa_gui: khoa, cach_tra: 'qr', tong_da_xem: 20000 }, kh.tk);
     const lan2 = await goi(null, 'POST', '/kh/don', { mon: [{ ma: maCua(CAM), so_luong: 1 }], cach_nhan: 'tai_quan', khoa_gui: khoa, cach_tra: 'qr', tong_da_xem: 20000 }, kh.tk);
-    k('T34 giỏ không topping gửi lại cùng khoá → cùng đơn (băm giỏ không đổi)', la(lan1, 200) && la(lan2, 200) && !!lan1.j.don?.ma && lan1.j.don.ma === lan2.j.don?.ma, `${moTa(lan1)} · ${moTa(lan2)}`);
+    k('T34 giỏ không topping gửi lại cùng khoá → cùng đơn (băm giỏ không đổi)', la(lan1, 200) && la(lan2, 200) && !!lan1.j.ma_don && lan1.j.ma_don === lan2.j.ma_don && lan2.j.trung === true, `${moTa(lan1)} · ${moTa(lan2)}`);
     const lan3 = await goi(null, 'POST', '/kh/don', { mon: [{ ma: maCua(TRA), so_luong: 1 }], cach_nhan: 'tai_quan', khoa_gui: khoa + 'x', cach_tra: 'qr', tong_da_xem: 45000 }, kh.tk);
     const lan4 = await goi(null, 'POST', '/kh/don', { mon: [{ ma: maCua(TRA), so_luong: 1, topping: [{ ma: maCua(NEP), so_phan: 1 }] }], cach_nhan: 'tai_quan', khoa_gui: khoa + 'x', cach_tra: 'qr', tong_da_xem: 55000 }, kh.tk);
-    k('T34b cùng khoá nhưng giỏ khác topping → KHÔNG trả lại đơn cũ', la(lan3, 200) && !!lan3.j.don?.ma && lan4.j.don?.ma !== lan3.j.don.ma, `${moTa(lan3)} · ${moTa(lan4)}`);
+    k('T34b cùng khoá nhưng giỏ khác topping → KHÔNG trả lại đơn cũ', la(lan3, 200) && !!lan3.j.ma_don && lan4.j.ma_don !== lan3.j.ma_don, `${moTa(lan3)} · ${moTa(lan4)}`);
   });
 
   muc('[K4] Đường song song: màn khách · đơn giao · sao lưu');
