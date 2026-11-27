@@ -1,0 +1,38 @@
+TOPPING-1 — bằng chứng ĐỎ trên code gốc (27.11.2026)
+
+1) cong_cu/thu_TOPPING1.js — chạy trên cây gốc (commit 48caccf2: chỉ thêm bài thử, server/ client/ chưa đổi):
+   node cong_cu/thu_TOPPING1.js
+   ... (trích)
+   ✗ B2: bài chạy hết mục  — Error: Cannot find module '.../server/nang_cap/036_topping.js'
+   ✗ T12 1 ly trà + 2 phần nếp cẩm × 2 ly = 45.000×2 + 10.000×2×2 = 130.000đ  — 90000
+   ✗ T14 topping không thuộc danh sách của món (Cam không cài topping) → TOPPING_KHONG_CHO_MON  — HTTP 200
+   ✗ T18 khách Vàng 10 %: trà 45.000 + thạch 7.505 → giảm 4.500 + 751 = 5.251, tổng 47.254đ  — HTTP 200 · 40500 · 4500
+   ✗ T19 voucher 20.000đ + voucher 10 % trên 130.000 (gồm topping) → 20.000 + 11.000, tổng 99.000đ  — HTTP 200 · 63000
+   ✗ T24 hai dòng cùng topping tổng 7 > tồn 6 → HET_HANG (ngay trên)  — HTTP 200
+   ✗ T28d đền ly thứ hai đủ 55.000 (gồm topping) → qua  — HTTP 400 · VUOT_GIA · Tiền đền tối đa: 45,000đ
+   ✗ T09 dữ liệu hoá đơn: dòng topping trỏ ly (topping_cua) ...
+   ✗ T31 đơn App có topping = đơn quầy cùng giỏ (150.000đ)  — HTTP 200 · 110000 · 110000
+   TỔNG: 14 đạt · 69 hỏng · 83 ca
+   (sau đó bỏ ca T37 — quầy đang tạm ngưng gói, GOI_TAM_DUNG: luồng "ly từ gói + topping" không có ở quầy → CHƯA KIỂM.)
+
+   Sau vá (HEAD c6cf0705): TỔNG: 76 đạt · 10 hỏng · 86 ca — 10 ca còn đỏ đều thuộc 8 file chờ chat ghi vào Phạm vi (T09, T09c, T10 ×2, T44 ×2,
+   T28b–T28e). Đột biến chạy `--bo C4,Q7`: đối chứng 70 đạt · 0 hỏng; 19/19 BẮT.
+
+3) Bài thử cũ phải đổi vì hành vi chủ quán duyệt đổi (LUAT §6.7 / §6.8) — bản MỚI chạy trên cây gốc acc8892 (git archive + chép bài mới vào):
+   cong_cu/thu_KH1.js    → ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng — 156 đạt · 1 hỏng
+   cong_cu/thu_KHAPI2.js → ✗ E3 trường cũ y nguyên (…) — 100 đạt · 1 hỏng
+   cong_cu/thu_KHSP1.js  → ✗ C3 mỗi món ĐÚNG bộ khoá: 8 cũ + 5 mới + anh, không trường nào khác — 42 đạt · 1 hỏng
+   cong_cu/thu_KHO1.js   → ✗ D1 pos_products KHÔNG thêm cột — 111 đạt · 1 hỏng
+   cong_cu/thu_BH1.js    → ✗ E8 … thiếu hàm coTuyChon · ✗ E9 · ✗ E10 · ✗ E11 · ✗ E12 · ✗ E13 — 68 đạt · 6 hỏng
+   (bản GỐC các bài này chạy trên code mới: ĐỎ — npm test 27.11: KH1 E5, KHAPI2 E3, KHO1 D1, KHSP1 C3 + E1; BH1 E6 thiếu hàm ghiChuMacDinh.)
+
+SỐ CA cong_cu/thu_TOPPING1.js: 86
+SỐ CA ban_mau_pos/thu/thu_topping.js: 30
+SỐ CA cong_cu/thu_BH1.js: 74
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_KHSP1.js: 43
+SỐ CA cong_cu/thu_KHO1.js: 112
+
+2) ban_mau_pos/thu/thu_topping.js — trên bản mẫu gốc (chưa sửa ban_mau_pos.html): eval `A={…tpThem…}` → ReferenceError
+   (hàm topping chưa có) → chay_thu.sh tính SẬP = hỏng. Sau sửa: 30 đạt · 0 hỏng; cả bộ 156 → 186 đạt · 0 hỏng.
