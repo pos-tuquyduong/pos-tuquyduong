@@ -19,3 +19,5 @@ acc8892 Merge pull request #104 from pos-tuquyduong/viec/TIEN-KHOA-2
 Q1 có (409 NHOM_GOC, vẫn đổi tên được) · Q2 có (thêm `server/utils/donApp.js` vào Phạm vi) · Q3 có (màn khách theo "hiện ở quầy").
 ## Câu hỏi
 - Người gác [G1-PHIEU] chặn máy sửa `phieu.md` → chủ quán tự thêm dòng `- server/utils/donApp.js` vào `## Phạm vi` (sau dòng `server/utils/manKhach.js`). Máy làm phần sửa `donApp.js` ở MỘT commit riêng, cuối cùng.
+- Người gác [G5-NGOAIPV] chặn thêm 2 bài thử NGOÀI Phạm vi khoá danh sách trắng trường món (LUAT §6.7 cho sửa, nhưng cổng máy chặn): `cong_cu/thu_KH1.js:529` (E5, mảng KHOA) và `cong_cu/thu_KHSP1.js:45` (`COT_MOI`, C3). Cần thêm 2 trường `nhom_ten`, `nhom_thu_tu` vào đúng hai danh sách đó (vẫn so BẰNG). Chủ quán thêm hai file vào `## Phạm vi` cùng dòng `server/utils/donApp.js`; máy làm ở commit cuối.
+- Ở thu_KHSP1.js: `COT_MOI` (không phải KHOA_MENU_CU) là chỗ thêm. Chưa sửa vì bị chặn.
