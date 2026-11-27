@@ -122,3 +122,9 @@ BÀI HỌC:     KHOÁ 3 (đề xuất, ngoài Phạm vi / việc sau) · NGUYÊN
 3 thao tác chủ quán thử tay trên điện thoại: (a) Quản lý › Giá bán & nhóm món: Sửa tên "Trà" → "Trà thảo mộc", mở màn Bán hàng thấy tab đổi; (b) tắt "Hiện trên App" một nhóm → App KH hết thấy nhóm đó, đặt món nhóm đó báo "món không bán"; (c) Kho › Sản phẩm: mở một món, ô Nhóm là ô chọn.
 
 HEAD ĐÃ KIỂM: d99bc66d
+
+## Ghép main 0795f2a1 (chat bàn 41, 27.11)
+- GitHub báo xung đột với main (GIAO-DIEN-2 đã gộp): Settings.jsx giữ cả dòng chữ GIAO-DIEN-2 lẫn <NhomMon>; dist build lại.
+- --day-du trên cây ghép: PASS 132 · FAIL 1 (thu_NDAPI1 — môi trường chat, đã biết). Cổng chạy: kiểm PR cong-chay.
+
+HEAD ĐÃ KIỂM: 7e98646b
