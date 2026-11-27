@@ -274,3 +274,10 @@ GIT:         7e532c40 TOPPING-1: ho so soat vong 3 + vong sua 4, soat bao mat la
              0ce1e9c8 TOPPING-1 vong sua 4 (soat vong 3, loi nhe): T49 ma loi, T33c khoa la, T34c bam gio v18, T35d man Don App, T46b man khach, T28h …
 BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 3 · BỎ 2 — chi tiết ở ## Bài học (tất cả ngoài Phạm vi → đề xuất cho chat)
 HEAD ĐÃ KIỂM: 7e532c40
+
+## Ghép NHOM-MON-1 (chat bàn 41, 27.11)
+- Ghép viec/NHOM-MON-1 3dd6f4a3 (PR #107) vào nhánh: xung đột 8 file (products.js, manKhach.js, BanHangMoi.jsx giữ cả lọc nhóm lẫn topping; thu_KH1 / thu_KHAPI2 / thu_KHSP1 thêm cả hai bộ trường; HOP_DONG_API_KH.md NHOM v19 + TOPPING v20; dist build lại).
+- thu_TOPPING1: topping / món "banh" giờ phải thuộc nhóm có thật (NHOM_KHONG_CO) → tạo nhóm qua POST /pos/products/nhom; 103/0.
+- --day-du trên cây ghép: PASS 130 · FAIL 2 (thu_TOPPING1 trước khi sửa bài — nay 103/0; thu_NDAPI1 môi trường chat). Cổng chạy: dựa vào kiểm PR cong-chay.
+
+HEAD ĐÃ KIỂM: 3939072f
