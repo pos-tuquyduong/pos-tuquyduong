@@ -92,7 +92,9 @@ function bangThieu(nguon, backupSrc) {
   backupSrc = backupSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');   // dòng `// { name: 'x' }` không được tính là có
   const i = backupSrc.indexOf('BACKUP_TABLES');
   const ds = i < 0 ? '' : backupSrc.slice(i, backupSrc.indexOf('];', i));
-  return { tao: [...tao], thieu: [...tao].filter((t) => !new RegExp(`name:\\s*'${t}'`).test(ds)) };
+  // ANH-MON-1: bảng cố ý không xuất Excel (danh sách tên viết thẳng trong backup.js; dòng chú thích đã bị bỏ ở trên)
+  const mien = new Set((backupSrc.match(/BANG_KHONG_XUAT_EXCEL\s*=\s*\[([^\]]*)\]/) || [, ''])[1].match(/'(\w+)'/g)?.map((x) => x.slice(1, -1)) || []);
+  return { tao: [...tao], mien: [...mien], thieu: [...tao].filter((t) => !mien.has(t) && !new RegExp(`name:\\s*'${t}'`).test(ds)) };
 }
 
 async function main() {
@@ -107,6 +109,13 @@ async function main() {
   const thuc = bangThieu(nguonBang, backupSrc);
   k(`D2c mọi bảng database.js + nang_cap/ đều trong BACKUP_TABLES (${thuc.tao.length} bảng; bỏ qua _sao_luu_*)`,
     thuc.tao.length > 30 && thuc.tao.includes('kho_lo') && thuc.tao.includes('pos_nang_cap') && !thuc.thieu.length, 'thiếu: ' + thuc.thieu.join(', '));
+  k('D2e danh sách bảng cố ý không xuất Excel là ĐÚNG [pos_anh_mon] (không nới thêm bảng khác)', JSON.stringify(thuc.mien) === '["pos_anh_mon"]' && thuc.tao.includes('pos_anh_mon'), JSON.stringify(thuc.mien));
+  k('D2f bỏ pos_anh_mon khỏi danh sách miễn → phép chốt BẮT (thiếu đúng pos_anh_mon)',
+    JSON.stringify(bangThieu(nguonBang, backupSrc.replace("BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon']", 'BANG_KHONG_XUAT_EXCEL = []')).thieu) === '["pos_anh_mon"]');
+  k('D2g danh sách miễn chỉ còn trong dòng CHÚ THÍCH → phép chốt BẮT',
+    JSON.stringify(bangThieu(nguonBang, backupSrc.replace("const BANG_KHONG_XUAT_EXCEL", "// const BANG_KHONG_XUAT_EXCEL")).thieu) === '["pos_anh_mon"]');
+  k('D2h bảng mới KHÁC (không có trong danh sách miễn) thiếu → vẫn BẮT, dù danh sách miễn có mặt',
+    JSON.stringify(bangThieu([...nguonBang, '`CREATE TABLE IF NOT EXISTS bang_moi_thu (id INTEGER)`'], backupSrc).thieu) === '["bang_moi_thu"]' && thuc.mien.length === 1);
   k('D2a phép chốt BẮT được bảng bị bỏ khỏi BACKUP_TABLES (bản sao backup.js không có kho_lo)',
     JSON.stringify(bangThieu(nguonBang, backupSrc.replace(/\{ name: 'kho_lo'[^}]*\},?/, '')).thieu) === '["kho_lo"]');
   k('D2b phép chốt BẮT được bảng mới ở một bước nâng cấp quên thêm vào sao lưu (file nháp 999 trong bộ nhớ, không ghi vào kho)',

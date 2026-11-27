@@ -154,6 +154,10 @@ const BACKUP_TABLES = [
   { name: 'nd_khoa_sao_luu', label: 'Nội dung App - Khoá sao lưu', key: 'id', nd: true },   // chỉ băm khoá — không ra file
   { name: 'nd_lan_sai', label: 'Nội dung App - Lần sai', key: 'khoa', nd: true }
 ];
+// ANH-MON-1 (chủ quán 27.11): bảng CỐ Ý không xuất Excel — ảnh món là base64 ~160.000 ký tự / ảnh, một ô Excel chứa tối đa 32.767 ký tự (xuất sẽ cắt cụt).
+// Phép chốt "đủ bảng" (cong_cu/thu_SAOLUU2.js D2c) miễn ĐÚNG các bảng ở đây; thêm bảng vào danh sách này phải có lý do ghi cạnh và hỏi chủ quán.
+// Ảnh chỉ nằm trong CSDL (Turso) — sao lưu ảnh riêng là việc khác (Phát hiện ANH-MON-1).
+const BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon'];
 const TRANG_ND = 'Nội dung App (JSON)';
 const BANG_KHOI_PHUC = BACKUP_TABLES.filter((t) => !t.nd);   // một chỗ lọc cho xem trước + khôi phục: trang mang nhãn bảng nd_* cũng không vào nd_*
 
