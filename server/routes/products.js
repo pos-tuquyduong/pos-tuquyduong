@@ -60,7 +60,7 @@ async function layMenuQuay(category) {
       ton_luc: null,
       unit: p.unit || 'túi',
       is_active: 1,
-      la_topping: laTopping(p), gia_ban_rieng: p.gia_ban_rieng ?? null, ghi_chu_nhanh: docDs(p.ghi_chu_nhanh),
+      la_topping: laTopping(p), gia_ban_rieng: p.gia_ban_rieng ?? null, ghi_chu_nhanh: laTopping(p) ? [] : docDs(p.ghi_chu_nhanh),   // topping không ghi chú (cùng App)
       topping: laTopping(p) ? [] : docDs(p.topping_cho_mon).map(Number).filter((id) => dsTopping.has(id)), topping_cho_mon: undefined,
       topping_toi_da_phan: TOPPING_TOI_DA_PHAN,
     };
@@ -140,7 +140,8 @@ router.put('/:id', (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : n
       const hienLai = doi.is_active === 1 && Number(cu.is_active) !== 1;
       if ((doi.name || hienLai) && await tenTrung(tx, doi.name || cu.name, id)) return { huy: true, trung: true };
       // TOPPING-1: topping không có topping; mọi id trong danh sách phải là topping đang bán (không trỏ chính nó).
-      const tpMoi = dsTp !== undefined ? dsTp : docDs(cu.topping_cho_mon);
+      // Soát vòng 1 (K5): chỉ kiểm khi thân GỬI danh sách, hoặc đổi món thành topping — danh sách cũ có topping đã ẩn không chặn các lần sửa khác.
+      const tpMoi = dsTp !== undefined ? dsTp : doi.la_topping === 1 ? docDs(cu.topping_cho_mon) : [];
       if (tpMoi.length && ((doi.la_topping ?? Number(cu.la_topping)) === 1 || tpMoi.includes(id)
         || Number((await tx.queryOne(`SELECT COUNT(*) AS n FROM pos_products WHERE is_active = 1 AND la_topping = 1 AND id IN (${tpMoi.map(() => '?').join(', ')})`, tpMoi)).n) !== tpMoi.length)) {
         return { huy: true, saiTopping: true };

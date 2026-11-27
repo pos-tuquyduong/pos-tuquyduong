@@ -24,7 +24,10 @@ async function tienDaTraTheoDong(tx, order, chanTren = false) {
     ? await tx.queryOne('SELECT discount_scope FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [order.discount_code]) : null;
   if (ma?.discount_scope === 'item') {
     const giam = Number(order.discount || 0) - Number(order.flash_discount || 0) - Number(order.tier_discount || 0);
-    return dong.map((d, i) => ({ ...d, da_tra: du[i] ? gia[i] : Math.max(0, gia[i] - giam) }));
+    // TOPPING-1 (soát vòng 1): ly có topping là MỘT món nhiều dòng → trừ khoản giảm MỘT lần trên cả nhóm (ly + topping của nó), dồn vào dòng ly;
+    // dòng topping 0 (damages.js gộp con vào cha). Đơn không topping: y cách cũ.
+    const giaNhom = (d, i) => gia[i] + dong.reduce((s, c, j) => s + (c.dong_cha_id != null && Number(c.dong_cha_id) === Number(d.id) ? gia[j] : 0), 0);
+    return dong.map((d, i) => ({ ...d, da_tra: du[i] ? gia[i] : d.dong_cha_id != null ? 0 : Math.max(0, giaNhom(d, i) - giam) }));
   }
   const tongMon = tong - tongDu;
   return dong.map((d, i) => ({ ...d, da_tra: du[i] ? gia[i] : tongMon > 0 ? Math.floor((gia[i] * Math.max(0, tra)) / tongMon) : 0 }));

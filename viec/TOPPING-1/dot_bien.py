@@ -64,6 +64,12 @@ DOT_BIEN = [
   ('BV-bao-theo-ly', [(DM, "AND product_code = ? AND dong_cha_id IS NULL`, [order_id, product_code]);", "AND product_code = ?`, [order_id, product_code]);", 1)],
    r'✗ T28[be]'),
   ('VS-diem-den-theo-co-ly', [(DT, 'if (!batDiem(x)) { m.tat += gia(x); m.coTat = true; }', 'if (!batDiem(ly)) { m.tat += gia(x); m.coTat = true; }', 1)], r'✗ T28c'),
+  # ── soát vòng 1 ──
+  ('VS-den-ma-mot-mon-tru-hai-lan', [('server/utils/tienDaTra.js', ': d.dong_cha_id != null ? 0 : Math.max(0, giaNhom(d, i) - giam) }));',
+     ': Math.max(0, gia[i] - giam) }));', 1)], r'✗ T28g'),
+  ('VS-sua-mon-kiem-danh-sach-cu', [(P, "dsTp !== undefined ? dsTp : doi.la_topping === 1 ? docDs(cu.topping_cho_mon) : [];",
+     'dsTp !== undefined ? dsTp : docDs(cu.topping_cho_mon);', 1)], r'✗ T05d'),
+  ('VS-topping-co-ghi-chu-o-quay', [(P, 'ghi_chu_nhanh: laTopping(p) ? [] : docDs(p.ghi_chu_nhanh),', 'ghi_chu_nhanh: docDs(p.ghi_chu_nhanh),', 1)], r'✗ T48c'),
   # ── C4: hoá đơn / tem / pha chế ──
   ('BV-hoa-don-topping-cua', [(HD, "...(cha >= 0 ? { topping_cua: cha,", '...(false ? { topping_cua: cha,', 1)], r'✗ T09 '),
   ('VS-hoa-don-mat-phan-tram', [(HD, 'items.filter((m) => m.dong_cha_id == null && m.tier_unit_price != null', 'items.filter((m) => m.tier_unit_price != null', 1)],

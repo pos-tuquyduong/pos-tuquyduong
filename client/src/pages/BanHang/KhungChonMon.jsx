@@ -19,7 +19,7 @@ export default function KhungChonMon({ sp, dong, dsTopping = [], gio = [], giaHa
   const [chon, setChon] = useState(() => (dong?.topping || []).map((t) => ({ ...t })));
   const [bao, setBao] = useState('');
 
-  const tps = dsTopping.filter((t) => (sp.topping || []).includes(t.id));
+  const tps = dsTopping.filter((t) => (sp.topping || []).includes(t.id) && t.sellable !== false);   // chưa giá / chưa công thức → không hiện (cùng App)
   const con = (t) => (t.khong_quan_kho ? Infinity : Number(t.stock_quantity ?? Infinity)) - tpCanTrongGio(gio, t.id, dong?.key);
   const phanCua = (t) => chon.find((x) => x.product_id === t.id)?.so_phan || 0;
   const them = (t) => {
