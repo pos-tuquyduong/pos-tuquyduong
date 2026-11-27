@@ -74,7 +74,7 @@ DOT_BIEN = [
   ('VS-kk-rong', [(K, "  let id = null;\n", "  let id = await duLieu.themPhieu(tx, { loai: 'KK', tuDuyet: true, nguoi, luc, ghiChu, lyDo, maGui });\n", 1)], r'✗ Q8a2 '),
   ('BV-bo-dien-bien-sua', [(R, "    if (!sua.loi) await viec.ghiSuaPhieu(tx, id, sua.id, req.user.username, lyDoCua(req), luc);   // KHO-GON-1: đường sửa cũng ghi diễn biến\n", '', 1)], r'✗ Q4e2 '),
   # ── vòng sửa 6 ──
-  ('VS-q12-cho-dien-sau-chot', [('server/kho/duLieu.js', "  if (daKiemKe(p) || await monDaChot(tx, spId, p.tao_luc)) {", "  if (daKiemKe(p)) {", 1)], r'✗ Q12[ab] '),
+  ('VS-q12-cho-dien-sau-chot', [('server/kho/duLieu.js', "  if (await monDaChot(tx, spId, p.tao_luc)) {", "  if (false) {", 1)], r'✗ Q12[ab] '),
   ('VS-q12-chi-chinh-tay', [('server/kho/duLieu.js', "  for (const c of await csdl.query('SELECT anh FROM kho_chot WHERE luc >= ?', [tuLuc])) {", "  for (const c of []) {", 1)], r'✗ Q12b '),
   ('VS-q12-chi-kiem-ke', [('server/kho/duLieu.js', "AND d.san_pham_id = ? AND p.tao_luc >= ? LIMIT 1`, [spId, tuLuc])) return true;", "AND d.san_pham_id = ? AND p.tao_luc >= ? LIMIT 1`, [spId, tuLuc])) return false;", 1)], r'✗ Q12a '),
   ('VS-q12-khoa-ca-truoc', [('server/kho/duLieu.js', "LIMIT 1`, [spId, tuLuc])) return true;", "LIMIT 1`, [spId, ''])) return true;", 1), ('server/kho/duLieu.js', "WHERE luc >= ?', [tuLuc])", "WHERE luc >= ?', [''])", 1)], r'✗ Q12d '),
