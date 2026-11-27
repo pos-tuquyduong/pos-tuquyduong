@@ -42,5 +42,12 @@ THOÁT 1 (trên cây 25adb0fa)
   36 đạt · 4 hỏng
 THOÁT 1 (trên cây 25adb0fa)
 
-SỐ CA cong_cu/thu_ANHMON1.js: 75
+═ Vòng sửa 1 (soát độc lập /ra-soat bắt K4: PUT / DELETE /:id/anh không khoá ^\d+$, Number('0x9') = 9 trỏ sang món khác).
+  Ca D8 D9 thêm vào thu_ANHMON1.js (commit "vòng sửa 1 — ca D8 D9") CHẠY TRÊN products.js CHƯA khoá → ĐỎ:
+  ✗ D8 PUT mã món dạng 0x… (Number() đọc được) → 404, không ghi vào món khác  — HTTP 200
+  ✗ D9 DELETE mã món dạng 0x… → 404, ảnh món kia còn nguyên  — HTTP 200 · 0 hàng      (ảnh của món khác BỊ XOÁ)
+  75 đạt · 2 hỏng
+  Sau khoá `soMon` (products.js): 77 đạt · 0 hỏng. Đột biến BV-anh-id-khong-khoa-so / BV-anh-xoa-id-khong-khoa-so bắt đúng D8 / D9.
+
+SỐ CA cong_cu/thu_ANHMON1.js: 77
 SỐ CA cong_cu/thu_SAOLUU2.js: 40
