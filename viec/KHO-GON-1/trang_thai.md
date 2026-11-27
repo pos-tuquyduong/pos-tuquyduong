@@ -22,7 +22,24 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
-(không còn — chủ quán trả lời Q8 = (a) ngày 27.11 và cho phép vòng sửa 4 chỉ cho Q8 + B6 pha tại chỗ hết nguyên liệu.)
+Soát LẦN CUỐI (sau vòng sửa 4) còn 3 lỗi NẶNG ở số tồn → theo LUAT §6.5 máy DỪNG hỏi (không tự làm vòng 5). Mỗi câu có đề xuất:
+
+- **Q9 · Kết quả pha chế sau khi kiểm kê đã giảm phiếu (hệ quả của Q8).** Phiếu pha 10 ly bị kiểm kê giảm còn 9 (vỡ 1), quản lý duyệt → lô 9. Sau đó
+  nhân viên ghi "kết quả pha chế" = 10 ly thật đã pha → máy cộng +1 vào lô (so với 9) → lô 10, có 1 ly ảo bán được.
+  (a) **[đề xuất]** Phiếu đã bị kiểm kê giảm → kết quả pha chế coi như ĐÃ CHỐT (không điền nữa, giống "qua ngày tự chốt") — số thật đã được đếm.
+  (b) Kết quả pha chế so với số phần GỐC (10) thay vì số đã giảm (9).
+- **Q10 · Phiếu phát sinh "hết hạn" chờ duyệt đã chọn sẵn lô + kiểm kê đếm thiếu.** Kiểm kê trừ phần thiếu theo lô hạn gần trước → có thể trừ vào
+  ĐÚNG lô mà phiếu hết hạn đang giữ → sáng quản lý duyệt phiếu hết hạn thì lô đó âm → phiếu không duyệt được nữa.
+  (a) **[đề xuất]** Khi kiểm kê trừ theo lô, coi phần các phiếu chờ đã giữ trên lô là đã ra (bớt khỏi lô trước), chỉ trừ vào phần lô còn thật.
+- **Q11 · Màn "Chỉnh tồn tay" hiện số khác số máy chủ dùng.** Màn hiện "Máy ghi 0" (chỉ phiếu đã duyệt) nhưng máy chủ tính cả phiếu chờ (Q4) là 5 →
+  chủ quán gõ theo số trên màn có thể vô tình giảm phiếu pha chế chờ của nhân viên, hoặc gõ 5 thì máy không đổi gì mà vẫn báo "Đã chỉnh".
+  (a) **[đề xuất]** Màn hiện ĐÚNG số máy chủ dùng ("Máy ghi 5 — gồm 5 phần chờ duyệt"); không đổi gì thì báo "Không có gì thay đổi".
+- **Xin phép vòng sửa 5** cho Q9–Q11 + các lỗi NHẸ cùng lượt soát (9 vế kiểm chưa có đột biến, chú thích đầu kiemKe.js, phiếu KK rỗng khi phần thiếu
+  trừ hết vào phiếu chờ, đường sửa phiếu chưa ghi diễn biến, tên nguyên liệu lấy từ câu báo lỗi bằng regex). Ngân sách sau vòng 4 ≈ 1.047 dòng
+  (vượt ≈ 955 khoảng 10% vì Q8 + B6) — xin xác nhận.
+
+## Câu hỏi đã trả lời (Q8, ngày 27.11)
+(chủ quán trả lời Q8 = (a) và cho phép vòng sửa 4 chỉ cho Q8 + B6 pha tại chỗ hết nguyên liệu.)
 
 ## Vòng sửa 4 (chủ quán cho phép 27.11 — chỉ Q8 + B6)
 - kiemKe.giamPhieuCho (gọi từ ghiKK — MỘT chỗ cho kiểm kê, bàn giao, chỉnh tay): phần thiếu của thành phẩm vượt số lô → giảm số phần dòng thành phẩm
@@ -293,3 +310,66 @@ hoá; không dangerouslySetInnerHTML / fetch trần; sao lưu chỉ thêm 5 bả
 chủ quán đã chấp nhận Q6, không báo.
 
 SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập — lần cuối (sau vòng sửa 4, 27.11) — chép nguyên văn
+KHÔNG ĐẠT
+
+Nói ngắn: phần vá của vòng 3 và vòng 4 chạy đúng cho các ca đã có bài thử. Bài thử ra 117 đạt · 0 hỏng, `npm test` PASS 128 · FAIL 0, và dist khớp src. Nhưng mình đọc code thì thấy 3 lỗi NẶNG ở đường tồn: hai lỗi do Q8 / Q4 gặp những đường cũ chưa ai rà, một lỗi do màn chỉnh tay hiện số khác số máy chủ dùng. Ngoài ra mình tự dựng 9 đột biến cho các vế mới của Q8 / B6: cả 9 đều SỐNG.
+
+LỖI TÌM ĐƯỢC:
+- server/kho/kiemKe.js:118–131 (giamPhieuCho) cùng server/kho/duLieu.js:301–306 (ghiKetQua) và duong.js:296 (POST /phieu/:id/ket-qua, NHAN_VIEN) — **giảm phiếu chờ làm lệch mốc "kết quả pha chế" → tồn ảo**. Khuôn K4. NẶNG (tồn).
+  - Diễn biến: giamPhieuCho hạ so_luong dòng thành phẩm 10 → 9. Quản lý duyệt cùng ngày (đúng ca Q8b) → lô 9.
+  - Sau đó nhân viên ghi kết quả pha chế là số ly thật đã pha ra = 10. ghiKetQua ghi dòng ket_qua `thuc − d.so_luong` = 10 − 9 = +1 vào cùng lô.
+  - Kết quả: lô thành 10 trong khi thật có 9 ly (1 ly đã vỡ). Quầy bán được ly ảo. lechQuaNguong(9, 10) còn báo "lệch" sai.
+  - Không ca thử nào đi qua đường này. Chủ quán chốt Q8 "lô 9 ly, khớp thực tế" nhưng không nói gì về kết quả pha chế → cần chủ quán quyết.
+  - Hai cách sửa: chặn ket-qua khi phiếu có ly_do "kiểm kê: đếm thiếu", hoặc lấy số gốc làm mốc.
+  - Mình đọc code để kết luận. Chưa dựng được ca chạy vì người gác chặn file thử nháp có chữ JWT_SECRET.
+- server/kho/kiemKe.js:26–28 (tongDong tính dòng CHỜ DUYỆT, theo Q4) cùng :102 (ghiKK trừ theo conLaiTheoLo + LO_FEFO, kể cả lô quá hạn), đối chiếu phatSinh.js:22–26, 49–52 (PS "hết hạn" chọn sẵn lo_id) và phatSinh.js:120–123 (duyệt PS: lô chọn sẵn thành âm → 409 KHONG_DU_TON) — **kiểm kê trừ vào chính lô mà phiếu phát sinh chờ duyệt đã giữ → phiếu đó không bao giờ duyệt được**. Khuôn K4. NẶNG (tồn).
+  - Ví dụ: lô X quá hạn còn 2. Nhân viên báo huỷ 2 ly hết hạn ở lô X (PS chờ duyệt, đã đổ bỏ). Lô Y còn 5, vỡ 1, kiểm kê đếm 4.
+  - gốc = 7 − 2 = 5 → dc = −1. FEFO chọn lô X trước (hạn sớm nhất) → X còn 1.
+  - Sáng quản lý duyệt PS (−2 ở lô X) → X = −1 → 409 mãi. Áp cho cả nguyên liệu.
+  - Không ca thử nào có "PS chờ duyệt có lô + đếm thiếu".
+  - Cách sửa: khi trừ lô ở ghiKK, bớt phần các dòng chờ duyệt đã gắn lo_id.
+  - Kết luận từ đọc code, chưa chạy ca (cùng lý do trên).
+- client/src/pages/Kho/TonKho.jsx (khối chinh: "Máy ghi {ton_hien ?? ton}") so với duLieu.js:435 (docTon: thành phẩm = Σ lô đã duyệt), kiemKe.js:26–28 (gốc gồm phiếu chờ), :220 (dc = 0 → `{ phieu_id: null }`) và TonKho.jsx luuChinh (vẫn báo "Đã chỉnh tồn") — **màn chỉnh tay hiện một số, máy chủ tính theo số khác; từ Q8 lệch này đổi tồn thật**. Khuôn K4 / K5. NẶNG (tồn).
+  - Vòng 3 ghi "không sửa" lúc lệch này chỉ gây 409. Từ vòng 4 nó âm thầm giảm phiếu pha chế chờ của nhân viên.
+  - Ca Q8c là ví dụ: màn hiện "Máy ghi 0 phần", máy chủ coi gốc là 5.
+  - Chủ quán gõ 5 ("đúng số thật") → không đổi gì nhưng màn báo "Đã chỉnh tồn", Tồn kho vẫn 0. Gõ tiếp số lớn hơn → +lô → sau khi duyệt thành hàng ảo.
+  - Gõ số nhỏ hơn (nghĩ theo số 0 đang hiện) → phiếu chờ bị giảm ngoài ý muốn.
+  - Cách sửa: /ton trả thêm số gốc mà máy chủ dùng; dc = 0 thì màn báo "không đổi".
+- cong_cu/thu_KHOGON1.js + viec/KHO-GON-1/dot_bien.py — **vế kiểm của vòng 4 chưa có ca / đột biến**. Mình dựng trên bản sao ở scratchpad, cả 9 SỐNG, bài vẫn 117 đạt. Khuôn K3. NHẸ (code hiện đúng, chỉ thiếu khoá):
+  - kiemKe.js:120 bỏ `p.trang_thai = 'cho_duyet'` → kiểm kê được phép giảm cả phiếu ĐÃ duyệt. Đây là vế canh tồn quan trọng nhất.
+  - kiemKe.js:120 đổi `ORDER BY p.id DESC` → không ca nào có hai phiếu chờ, nên lời hứa "mới nhất trước" không được kiểm.
+  - kiemKe.js:128 bỏ `AND trang_thai = 'cho_duyet'`.
+  - kiemKe.js:120 bỏ `d.loai = 'thanh_pham'`.
+  - kiemKe.js:103 bỏ `&& m.san_pham_id`.
+  - duLieu.js:202 bỏ `Number(d.so_luong) > 0 &&` → không ca nào giảm phiếu về 0 phần, nên phép chia cho 0 không được kiểm.
+  - viec.js:198 bỏ `|| t.khong_quan_kho` → món bật "bán khi thiếu" bị báo oan, không ca bắt.
+  - viec.js:196 bỏ `s.kieu = 'pha_tai_cho'`.
+  - viec.js:196 bỏ `p.is_active = 1`.
+- server/kho/kiemKe.js:4–6 (chú thích đầu file) — còn ghi "gốc = tồn − Σ dòng phiếu **da_duyet**" và "Huỷ / **duyệt** phiếu CŨ sau moc_luc → 409". Thật ra tongDong gồm cả phiếu chờ, và gocCua (:76) chỉ xét huy_luc. Dòng 9 nói ngược với dòng 6. Khuôn K1. NHẸ.
+- server/kho/kiemKe.js:88 (ghiKK) — khi toàn bộ phần thiếu trừ vào phiếu chờ (ca Q8a: hết lô), máy vẫn tạo phiếu KK đã duyệt mà KHÔNG có dòng nào. Tab Phiếu hiện một phiếu kiểm kê trống. Khuôn K7. NHẸ.
+- server/kho/duong.js /phieu/:id/sua — đường sửa (PX qua suaPhieu, DH/PN/PS qua TAO) vẫn không ghi diễn biến, trong khi E1 / B5 hứa mọi đường tạo phiếu đều ghi. Soát vòng 2 đã nêu; vòng 3 chỉ thêm canhBaoSauChot. Khuôn K4. NHẸ.
+- server/kho/viec.js:199–200 — tên nguyên liệu lấy bằng regex từ câu báo lỗi `/^Thiếu nguyên liệu: (.+) cho /`. Khuôn K7. NHẸ. Hai file dính nhau qua câu chữ: đổi câu báo ở banHang.js là mất tên, không bài thử nào đỏ · `.+` tham → tên món có chữ " cho " thì tách sai · mỗi món hết hàng gọi thêm một lần docKhaNang đầy đủ, ngoài 2 lần đã có.
+
+NGHI NGỜ:
+- Ngân sách: diffstat của server + client/src ≈ 1.047 dòng, vượt mức Q7 ≈ 955 khoảng 10% sau Q8 + B6. trang_thai.md chưa giải thích lại.
+- Phiếu PS chờ duyệt thành phẩm KHÔNG chọn lô, cùng phiếu PX chờ, cùng đếm thiếu: thứ tự duyệt (PS trước PX) có thể ra 409 tạm. Chưa dựng ca.
+- giamPhieuCho có thể giảm phiếu chờ tạo SAU lúc màn mở (id > moc). Mình không thấy sai số, nhưng chưa có ca.
+- Nhiều đường đọc vẫn cho nhân viên thấy số tồn (Tồn kho, phiếu KK, bàn giao `may`). Chủ quán đã chấp nhận ở Q6, ghi lại để biết.
+
+NGHIỆM THU:    22/26 mục có bằng chứng · mục thiếu: E1 (đường kết quả pha chế lệch sau Q8, lỗi 1) · Q4 (ca PS chờ có lô + đếm thiếu, lỗi 2) · Q8 (đường kết quả pha chế + chỉnh tay theo số màn) · "Thử" (chưa có kết quả `cong.js chay`, 3 thao tác thử tay 390 px, mục CHƯA KIỂM cho phần chỉ có ở màn)
+  - Có: A1 · A2 · A3 · B1 · B2 · B3 · B4 · B5 · B6 · C1 · C2 · C3 · C4 · C5 · C6 · D1 · D2 · E2 · Q1 · Q5 · B6 pha tại chỗ; E1 / Q4 / Q8 một phần.
+  - Đột biến phiếu đòi: 8/8 có. Đã chạy: `node cong_cu/thu_KHOGON1.js` 117 đạt · 0 hỏng; `npm test` PASS 128 · FAIL 0 · CẢNH BÁO 1; dist build lại trùng client/dist → P1 đạt.
+
+CHƯA SOÁT ĐƯỢC: không chạy `node tu_chay/cong.js chay` (theo dặn) và `--day-du` · hai lỗi NẶNG đầu kết luận từ đọc code, chưa dựng ca chạy (người gác chặn file thử nháp) · không chạy lại đủ 53 đột biến · chưa chạy giao diện thật · chưa thử khôi phục sao lưu với 5 bảng mới.
+
+BÀI HỌC:
+- KHOÁ: phép nào SỬA số lượng của một phiếu chờ (giamPhieuCho) phải rà MỌI đường đọc lại số đó sau khi duyệt: ket_qua (mốc chuẩn), giá vốn, sửa phiếu, từ chối. Mỗi đường một ca.
+- KHOÁ: luật "phiếu chờ tính như đã ghi" phải đúng ở MỨC LÔ, không chỉ ở số tổng: dòng chờ đã gắn lo_id (PS hết hạn) phải được bớt khỏi lô trước khi điều chỉnh trừ FEFO. Cần ca "PS chờ có lô + đếm thiếu → duyệt PS 200".
+- NGUYÊN TẮC: màn nhập "số thật" phải hiện ĐÚNG số gốc máy chủ sẽ dùng để tính lệch. Hai số khác nhau mà điều chỉnh = 0 thì báo "không đổi", không báo "đã chỉnh".
+
+## Kiểm sau vòng sửa 4 (phiên chính, 27.11, HEAD 3002c03d + tài liệu)
+- `npm test -- --day-du`: PASS 132 · FAIL 0 · CẢNH BÁO 1 (chạy một mình).
+- Đột biến: 53/53 BẮT (bang_chung_do.txt).
+- Theo LUAT §6.5: lần soát cuối còn lỗi NẶNG (tồn) → KHÔNG "chat soát thay", DỪNG với `## Câu hỏi` Q9–Q11. Báo cáo 7 mục ghi khi việc xong.
