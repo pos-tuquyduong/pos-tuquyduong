@@ -109,6 +109,10 @@ async function datDiemLay(b) {
   } catch (e) { return loiAhamove(e); }
 }
 
+/** GIAO-4: phí báo cho KHÁCH chỉ nhận số nguyên > 0 — Ahamove báo 0 / âm (lỗi bên Ahamove) không thành "miễn phí giao" (chủ quán 19.11).
+ *  Chỉ đường "Tính phí" — đường gọi xe giữ quy tắc riêng (phí 0 = chưa biết, GIAO-3 C). */
+const phiHopLe = (phi) => Number.isInteger(phi) && phi > 0;
+
 /** "Tính phí": giờ nhận đơn → địa chỉ → Ahamove báo phí → quá km thì chặn → lưu báo phí (đơn dùng mã này). */
 async function taoBaoPhi(b, nguoi) {
   if (!aha.daCai()) return loiAhamove({ code: 'AHAMOVE_CHUA_CAI' });
@@ -120,6 +124,10 @@ async function taoBaoPhi(b, nguoi) {
     const d = await phanGiaiDiaChi(b || {});
     if (d.loi) return d;
     const bp = await aha.baoPhi({ lay: { ...cd.diem_lay, sdt: cd.sdt_quan }, giao: d, loaiXe });
+    if (!phiHopLe(bp.phi)) {   // TRƯỚC khi lưu báo phí: không dòng pos_giao_bao_phi nào mang phí ≤ 0
+      console.warn(`[GIAO] phi_0 total_price=${bp.phi_tho.total_price} total_fee=${bp.phi_tho.total_fee}`);
+      return loi(502, 'AHAMOVE_PHI_0', 'Ahamove báo phí 0đ — bấm Tính phí lại (nếu lặp lại, gọi Ahamove kiểm tra)');
+    }
     if (bp.km > cd.km_toi_da) return loi(400, 'QUA_KHOANG_CACH', `Quá xa: ${bp.km} km (quán giao tối đa ${cd.km_toi_da} km)`);
     const ma = crypto.randomBytes(16).toString('hex'), hetHan = lechGiay(now, BAO_PHI_HAN_PHUT * 60);
     await run(`INSERT INTO pos_giao_bao_phi (ma, dia_chi, lat, lng, km, loai_xe, phi, het_han, nguoi_tao, tao_luc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
