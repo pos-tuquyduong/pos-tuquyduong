@@ -372,4 +372,5 @@ BÀI HỌC:
 ## Kiểm sau vòng sửa 4 (phiên chính, 27.11, HEAD 3002c03d + tài liệu)
 - `npm test -- --day-du`: PASS 132 · FAIL 0 · CẢNH BÁO 1 (chạy một mình).
 - Đột biến: 53/53 BẮT (bang_chung_do.txt).
+- `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1` (HEAD lúc chạy = e61947e6 — sau soát bảo mật lần 2; code giống HEAD hiện tại, chỉ khác tài liệu): ✓ CỔNG CHẠY ĐẠT
 - Theo LUAT §6.5: lần soát cuối còn lỗi NẶNG (tồn) → KHÔNG "chat soát thay", DỪNG với `## Câu hỏi` Q9–Q11. Báo cáo 7 mục ghi khi việc xong.
