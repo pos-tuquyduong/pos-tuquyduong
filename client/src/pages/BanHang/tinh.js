@@ -3,8 +3,6 @@
  * Bài thử: cong_cu/thu_BH1.js, cong_cu/thu_BH2.js. Tiền luôn do máy chủ quyết; ở đây chỉ để hiển thị và dựng thân yêu cầu.
  */
 
-export { ghiChuMacDinh } from './ghiChuMacDinh.js';
-
 export const KHOA_KIEU = 'pos_man_ban_hang_kieu';
 export const KIEU_MAN = ['tudong', 'dienthoai', 'maytinhbang'];
 export const NGUONG_DIEN_THOAI = 600;                       // hẹp HƠN số này (px) → hai trang Món ↔ Giỏ
@@ -78,14 +76,29 @@ export function tinhGio(gio, ctx = {}) {
   const flashChay = !!(flash && flash.is_flash_now && flash.percent);
   const giaFlash = (m) => (flashChay && flash.product_keys?.includes(khoaMon(m))
     ? Math.round(m.unit_price * (1 - flash.percent / 100)) : null);
-  const tamTinh = gio.reduce((s, m) => s + m.quantity * m.unit_price, 0);
-  const giamFlash = gio.reduce((s, m) => { const g = giaFlash(m); return g == null ? s : s + (m.unit_price - g) * m.quantity; }, 0);
+  const det = datDong(gio);   // TOPPING-1: topping là dòng riêng như máy chủ ghi (Flash / hạng theo chính topping)
+  const tamTinh = det.reduce((s, m) => s + m.quantity * m.unit_price, 0);
+  const giamFlash = det.reduce((s, m) => { const g = giaFlash(m); return g == null ? s : s + (m.unit_price - g) * m.quantity; }, 0);
   const giaHangMon = (m) => (giamFlash > 0 || m.goi_nap_id || m.the ? m.unit_price : giaHang(m.unit_price, phanTramHang(hang, m.is_special_group)).hang);   // đơn dính Flash / gói nạp (NAP-1) / dòng thẻ (QUAY-UI-1: máy chủ không giảm giá thẻ) → hạng không cộng
-  const giamHang = gio.reduce((s, m) => s + (m.unit_price - giaHangMon(m)) * m.quantity, 0);
+  const giamHang = det.reduce((s, m) => s + (m.unit_price - giaHangMon(m)) * m.quantity, 0);
   const tong = Math.max(0, tamTinh - giamFlash - giamHang);
-  const dong = gio.map((m) => ({ ...m, giaHang: giaHangMon(m), giaFlash: giaFlash(m) }));
+  const dong = gio.map((m) => ({ ...m, giaHang: giaHangMon(m), giaFlash: giaFlash(m),
+    topping: (m.topping || []).map((t) => ({ ...t, giaHang: giaHangMon(t) })) }));
   return { tamTinh, giamFlash, giamHang, tong, dong };
 }
+
+// ── TOPPING-1: topping + ghi chú nhanh theo từng món (cài ở Kho › Sản phẩm; máy chủ tự tra giá, ở đây chỉ hiện) ──
+/** Dòng giỏ → các dòng máy chủ sẽ ghi: dòng món, rồi mỗi topping một dòng (số lượng = phần × số ly). */
+export const datDong = (gio) => gio.flatMap((m) => [m, ...(m.topping || []).map((t) => ({ ...t, quantity: t.so_phan * m.quantity }))]);
+/** Món có tuỳ chọn (topping hoặc ghi chú nhanh) → mở khung; không có → chạm là vào giỏ (DAC_TA 2410 mục 7). */
+export const coTuyChon = (sp) => !!(sp?.topping?.length || sp?.ghi_chu_nhanh?.length);
+/** Khoá gộp dòng: cùng món + cùng topping (cùng phần) + cùng ghi chú → gộp số ly; khác → dòng riêng. */
+export const khoaGop = (m) => `${m.product_id}|${(m.topping || []).map((t) => `${t.product_id}x${t.so_phan}`).sort().join(',')}|${m.note || ''}`;
+/** Phần topping `tpId` cả giỏ đang cần (topping trong ly × số ly + dòng bán riêng), bỏ dòng `boKey` (dòng đang sửa). */
+export const tpCanTrongGio = (gio, tpId, boKey) => gio.reduce((s, m) => (m.key === boKey ? s
+  : s + ((m.topping || []).find((t) => t.product_id === tpId)?.so_phan || 0) * m.quantity + (m.product_id === tpId ? m.quantity : 0)), 0);
+/** Số dòng máy chủ trả cho giỏ (món + topping + thẻ) — so với `items` của tinh-thu để biết số đã về đúng giỏ chưa. */
+export const soDongMayChu = (gio) => gio.reduce((s, m) => s + 1 + (m.the ? 0 : m.topping?.length || 0), 0);
 
 /** Món có giá bán dùng được? 0 / âm / thiếu / chữ → "Chưa có giá", không chạm được. */
 export const coGia = (sp) => typeof sp?.price === 'number' && sp.price > 0;
@@ -118,7 +131,9 @@ export function khoaTinh(gio, khach, ma, giao = null, vouchers = []) {
   for (const m of gio) soLuong[m.product_id] = (soLuong[m.product_id] || 0) + m.quantity;
   const mon = Object.keys(soLuong).sort((a, b) => a - b).map((id) => [Number(id), soLuong[id]]);
   const the = layThe(gio);   // QUAY-UI-1: cùng hạng khác số tháng = giá khác → đổi khoá
+  const tp = gio.filter((m) => m.topping?.length).map((m) => [m.product_id, m.quantity, (m.topping || []).map((t) => [t.product_id, t.so_phan])]);   // TOPPING-1
   return JSON.stringify({ sdt: khach?.phone || null, mon, ma: chuanMa(ma), ...(giao ? { giao: giao.ma_bao_phi } : {}), ...(the ? { the: [the.the.tier_id, the.the.so_thang] } : {}),
+    ...(tp.length ? { tp } : {}),   // chỉ khi có — giỏ không topping giữ khoá cũ
     ...(vouchers.length ? { vc: vouchers } : {}) });   // NAP-1: gói nạp nằm trong `mon` (product_id −2000000 − mã gói). VOUCHER-2: chọn / bỏ voucher → hỏi lại
 }
 /** VOUCHER-2: voucher máy chủ báo không dùng được (tinh-thu voucher_loi[]) → bỏ khỏi danh sách chọn (đơn KHÔNG gửi voucher hỏng — POST sẽ 400)
@@ -147,9 +162,11 @@ export const dsGoiThe = (dsHang) => dsHang.filter((t) => t.cach_co === 'ban').fl
 export const hangChiCap = (dsHang) => dsHang.filter((t) => t.cach_co === 'chi_cap');
 /** Máy chủ đẩy dòng thẻ CUỐI `items` (orders.js) — vị trí dòng máy chủ ứng với từng dòng giỏ (món theo thứ tự giỏ, thẻ sau cùng). */
 export function viTriMayChu(gio) {
-  const soMon = gio.filter((m) => !m.the).length;
+  const viTriMon = [];
+  let vt = 0;
+  for (const m of gio) if (!m.the) { viTriMon.push(vt); vt += 1 + (m.topping?.length || 0); }   // TOPPING-1: dòng topping đứng ngay sau dòng món
   let mon = 0, the = 0;
-  return gio.map((m) => (m.the ? soMon + the++ : mon++));
+  return gio.map((m) => (m.the ? vt + the++ : viTriMon[mon++]));
 }
 /** Dòng giỏ cho một gói thẻ. Giá chỉ để hiện — thân gửi máy chủ KHÔNG mang giá (thanTinhThu). */
 export const dongThe = (tier, goi) => ({ key: `the_${tier.id}_${goi.so_thang}`, product_id: -1000000 - tier.id,
@@ -182,6 +199,8 @@ export function thanTinhThu(gio, khach, ma, giao = null, vouchers = []) {
       quantity: m.quantity,
       from_package: false,
       note: m.note ? String(m.note).trim().slice(0, GHI_CHU_TOI_DA) : null,
+      ...(m.topping?.length ? { topping: m.topping.map((t) => ({ product_id: t.product_id, sx_product_type: t.sx_product_type, sx_product_id: t.sx_product_id,
+        so_phan: t.so_phan })) } : {}),   // TOPPING-1: không gửi giá — máy chủ tự tra
     })),
     discount_code: chuanMa(ma) || null,
     ...(vouchers.length ? { vouchers } : {}),   // VOUCHER-2: chỉ khi có chọn — giỏ không voucher gửi thân y cũ

@@ -47,7 +47,8 @@ function Tem({ t }) {
         <span style={{ fontSize: '10pt', fontWeight: 'bold' }}>{t.stt}</span>
       </div>
       <div style={{ fontSize: '9.5pt', fontWeight: 'bold' }}>{t.ten}</div>
-      {t.ghiChu && <div style={{ fontWeight: 'bold', whiteSpace: 'pre-line' }}>{t.ghiChu}</div>}
+      {(t.topping || []).map((x) => <div key={x} style={{ fontWeight: 'bold' }}>{x}</div>)}{/* TOPPING-1: "+ Nếp cẩm x2" */}
+      {t.ghiChu &&<div style={{ fontWeight: 'bold', whiteSpace: 'pre-line' }}>{t.ghiChu}</div>}
       <div>{[t.khach, t.gio].filter(Boolean).join(' · ')}{t.inLai && nhanInLai(t.chuInLai)}</div>
       {t.chan && <div style={{ fontSize: '6.5pt', textAlign: 'center' }}>{t.chan}</div>}
     </div>
@@ -61,7 +62,7 @@ function PhieuPhaChe({ p, kho }) {
       <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '1.5mm', marginBottom: '1.5mm' }}>{p.ma} · {p.gio}</div>
       {p.dong.map((d, i) => (
         <div key={i} style={{ marginBottom: '1mm' }}>
-          <b>{d.sl} × {d.ten}</b>{d.ghiChu && <div style={{ paddingLeft: '4mm', whiteSpace: 'pre-line' }}>— {d.ghiChu}</div>}
+          <b>{d.sl} × {d.ten}</b>{(d.topping || []).map((x) => <div key={x} style={{ paddingLeft: '4mm' }}>{x}</div>)}{d.ghiChu &&<div style={{ paddingLeft: '4mm', whiteSpace: 'pre-line' }}>— {d.ghiChu}</div>}
         </div>
       ))}
     </div>
