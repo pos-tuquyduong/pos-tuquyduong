@@ -22,6 +22,19 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
+(không còn — chủ quán trả lời Q8 = (a) ngày 27.11 và cho phép vòng sửa 4 chỉ cho Q8 + B6 pha tại chỗ hết nguyên liệu.)
+
+## Vòng sửa 4 (chủ quán cho phép 27.11 — chỉ Q8 + B6)
+- kiemKe.giamPhieuCho (gọi từ ghiKK — MỘT chỗ cho kiểm kê, bàn giao, chỉnh tay): phần thiếu của thành phẩm vượt số lô → giảm số phần dòng thành phẩm
+  của phiếu PX CHỜ duyệt (mới nhất trước), ly_do "kiểm kê: đếm thiếu n", dòng cam `giam_phieu_cho`; dòng xuất nguyên liệu giữ nguyên. Không đủ phiếu
+  chờ để trừ → vẫn 409. duLieu.ghiKho: không chia giá vốn cho 0 khi phiếu bị giảm về 0 phần. Ca Q8a–c; đột biến BV-bo-giam-phieu-cho ·
+  VS-q8-khong-ly-do · VS-q8-giam-ca-xuat.
+- viec.monCanChuY: "Cần chú ý" = monChuaSan + món PHA TẠI CHỖ tonMenu ra 0 phần (không bật bán khi thiếu), lý do "Pha tại chỗ: hết <tên>" — tên lấy từ
+  lời báo của chính kiemDuHang (banHang.js chỉ đọc, không chép công thức). Ca B6c (Cà phê đen báo, Cam ép không); đột biến BV-bo-pha-het ·
+  VS-pha-het-bao-ca-con.
+- Bằng chứng: bài mới trên code trước vòng 4 (fa1392f4) 113 đạt · 4 hỏng (✗ Q8a · Q8b · Q8c · B6c); sau vá 117 đạt · 0 hỏng; đột biến 53/53.
+
+## Câu hỏi đã trả lời (Q8)
 Sau vòng sửa 3 (vòng cuối — LUAT §6.5) còn MỘT lỗi NẶNG đụng số tồn mà luật chưa có câu trả lời → máy DỪNG hỏi:
 
 - **Q8 · Đếm thiếu một món làm sẵn đang có phiếu pha chế CHỜ duyệt.** Ví dụ: hết Nước cam, tối nhân viên pha 10 ly (phiếu chờ quản lý duyệt —

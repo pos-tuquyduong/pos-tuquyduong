@@ -20,7 +20,7 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 113
+SỐ CA cong_cu/thu_KHOGON1.js: 117
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
@@ -65,3 +65,14 @@ Vòng sửa 3 (sau soát vòng 2): bài đổi ở 909c1a65 + 25b40e2d (C3g mớ
   Xanh trên code trước vòng 3 (ca phủ thêm, có đột biến riêng): Q4d (BV-bo-canh-bao-huy), C3i (BV-bo-dong-tp-het-lo-chot-con).
   Trên code đã sửa (6ca4d689): 113 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG XANH · 113 đạt — TỔNG 48 · BẮT 48 (lượt đủ: 47 BẮT + 1 HỎNG do neo
   VS-kiemke-thieu-so-lot cũ — sửa neo, chạy lại riêng: BẮT).
+
+Vòng sửa 4 (chủ quán 27.11: Q8 = (a) + B6 pha tại chỗ hết nguyên liệu): bài đổi ở 612a0a41 (Q8a, Q8b, Q8c, B6c; B6a đổi thành "có MỌI món của
+/mon-chua-san"). Chạy trên code TRƯỚC vòng 4 (cây 612a0a41 = code fa1392f4 + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 113 đạt · 4 hỏng
+   ✗ Q8a hết lô, 10 ly chờ duyệt, đếm 9 → 200; phiếu chờ còn 9 phần, lý do "kiểm kê: đếm thiếu 1", nguyên liệu phiếu vẫn trừ đủ 10 ly; dòng cam  — HTTP 409 · KHO_TON_DOI
+   ✗ Q8b quản lý duyệt phiếu đã giảm → lô 9 ly khớp số đếm, Cam = số đếm (không trừ đôi)  — HTTP 200 · NC 10
+   ✗ Q8c chủ quán CHỈNH TAY món đang có phiếu chờ (5 → thật 4) → 200, phiếu chờ còn 4 phần (không bị chặn)  — HTTP 409 · KHO_TON_DOI
+   ✗ B6c Cần chú ý báo món PHA TẠI CHỖ hết nguyên liệu: "Cà phê đen — Pha tại chỗ: hết Cà phê"; Cam ép (Cam còn) KHÔNG báo
+  Trên code đã sửa (3002c03d): 117 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG XANH · 117 đạt — TỔNG 53 · BẮT 53 (lượt đủ: 52 BẮT + 1 SỐNG
+  VS-q8-giam-ca-xuat — bản đột biến viết sai, không đổi hành vi (dòng xuất lượng âm bị `so_luong > 0` loại); viết lại "giảm nguyên liệu theo tỉ lệ",
+  chạy riêng: BẮT ✗ Q8a).

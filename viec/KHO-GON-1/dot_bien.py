@@ -59,7 +59,7 @@ DOT_BIEN = [
   ('VS-kk-khong-dau', [('server/kho/duLieu.js', "...(d.loai === 'kiem_ke' && { tang: Number(d.so_luong) > 0 }), ", '', 1)], r'✗ C2f '),
   ('BV-bo-giam-phieu-cho', [(K, "if (thieuLo > tinh.SAI_SO && (await giamPhieuCho(tx, m, thieuLo, { nguoi, luc })) > tinh.SAI_SO) {", "if (thieuLo > tinh.SAI_SO) {", 1)], r'✗ Q8[ac] '),
   ('VS-q8-khong-ly-do', [(K, "    await tx.run(\"UPDATE kho_phieu SET ly_do = ? WHERE id = ? AND trang_thai = 'cho_duyet'\", [d.ly_do ? `${d.ly_do} · ${lyDo}` : lyDo, d.phieu_id]);\n", '', 1)], r'✗ Q8a '),
-  ('VS-q8-giam-ca-xuat', [(K, "WHERE p.trang_thai = 'cho_duyet' AND p.loai = 'PX' AND d.loai = 'thanh_pham' AND d.san_pham_id = ?", "WHERE p.trang_thai = 'cho_duyet' AND p.loai = 'PX' AND d.loai IN ('thanh_pham', 'xuat') AND (d.san_pham_id = ? OR d.cho_mon_id = d.cho_mon_id)", 1)], r'✗ Q8[ab] '),
+  ('VS-q8-giam-ca-xuat', [(K, "    if (!kq.changes) continue;\n", "    if (!kq.changes) continue;\n    await tx.run(\"UPDATE kho_phieu_dong SET so_luong = so_luong * ? WHERE phieu_id = ? AND loai = 'xuat'\", [1 - bot / Number(d.so_luong), d.phieu_id]);\n", 1)], r'✗ Q8[ab] '),
   ('BV-bo-pha-het', [(V, "    mon.push({ san_pham_id: Number(p.id), ten: p.name, ly_do: `Pha tại chỗ: hết ${ten || 'nguyên liệu'}` });\n", '', 1)], r'✗ B6c '),
   ('VS-pha-het-bao-ca-con', [(V, " || t.stock_quantity > 0) continue;", ") continue;", 1)], r'✗ B6c '),
   ('BV-bo-canh-bao-tu-choi', [(R, "  if (!r.loi) await viec.canhBaoSauChot(tx, Number(req.params.id), req.user.username, luc);   // KHO-GON-1 Q4\n", '', 1)], r'✗ Q4b '),
