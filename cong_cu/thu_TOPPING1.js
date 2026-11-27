@@ -151,12 +151,15 @@ async function main() {
   const caiMon = (sp, than, ai = 'chu') => goi(ai, 'PUT', `/pos/products/${sp.id}`, than);
   const maCua = (sp) => `${sp.sx_product_type}_${sp.sx_product_id}`;
 
+  // Ghép NHOM-MON-1 (chat bàn 41): category phải là mã nhóm có thật (NHOM_KHONG_CO) → tạo nhóm "Topping TP1" qua cửa thật, topping dùng mã đó.
+  const nhomTp = await goi('chu', 'POST', '/pos/products/nhom', { ten: 'Topping TP1' });
+  const MA_TP = nhomTp.j.nhom?.ma || 'topping';
   const TRA = await taoMon('Trà Dưỡng Nhan TP1', 45000);
   const TRA2 = await taoMon('Trà Gừng TP1', 30000);
   const CAM = await taoMon('Nước Cam TP1', 20000, 'juice');
-  const NEP = await taoMon('Nếp cẩm TP1', 10000, 'topping');
-  const THACH = await taoMon('Thạch TP1', 7505, 'topping');   // giá lẻ: 10 % ra 750,5 → làm tròn
-  const LN = await taoMon('Long nhãn TP1', 12000, 'topping');
+  const NEP = await taoMon('Nếp cẩm TP1', 10000, MA_TP);
+  const THACH = await taoMon('Thạch TP1', 7505, MA_TP);   // giá lẻ: 10 % ra 750,5 → làm tròn
+  const LN = await taoMon('Long nhãn TP1', 12000, MA_TP);
   for (const m of [TRA, TRA2, CAM]) await luuKho(m, { kieu: 'pha_tai_cho', cong_thuc: [{ nguyen_lieu_id: nlTra, luong: 0.01 }] });
   for (const t of [NEP, THACH, LN]) await luuKho(t, { kieu: 'lam_san', cong_thuc: [{ nguyen_lieu_id: nlNep, luong: 0.05 }] });
   const loNep = await phieuNen('PX', { sp: NEP.id, sl: 40 });
@@ -230,7 +233,7 @@ async function main() {
   muc('[B2] Bước nâng cấp 036 — chép ghi chú THEO_NHOM cũ (K5: quầy không mất nút ghi chú ngày đầu)');
   await chay('B2', async () => {
     const buoc = require(path.join(MAY_CHU, 'nang_cap', '036_topping.js'));
-    const tea = await taoMon('Trà nâng cấp TP1', 20000, 'tea'), juice = await taoMon('Ép nâng cấp TP1', 20000, 'juice'), khac = await taoMon('Bánh nâng cấp TP1', 20000, 'banh');
+    const tea = await taoMon('Trà nâng cấp TP1', 20000, 'tea'), juice = await taoMon('Ép nâng cấp TP1', 20000, 'juice'), khac = await taoMon('Bánh nâng cấp TP1', 20000, (await goi('chu', 'POST', '/pos/products/nhom', { ten: 'Bánh TP1' })).j.nhom?.ma || 'banh');   // ghép NHOM-MON-1: nhóm phải có thật
     const daCo = await taoMon('Trà có sẵn TP1', 20000, 'tea');
     for (const m of [tea, juice, khac, daCo]) await ghiDb('UPDATE pos_products SET ghi_chu_nhanh = NULL WHERE id = ?', [m.id]);
     await ghiDb('UPDATE pos_products SET ghi_chu_nhanh = ? WHERE id = ?', [JSON.stringify(['Riêng']), daCo.id]);
