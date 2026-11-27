@@ -129,9 +129,9 @@ async function main() {
     k('A5 Cache-Control dài (≥ 1 năm, immutable)', /max-age=(\d+)/.test(cc) && Number(cc.match(/max-age=(\d+)/)[1]) >= 31536000 && /immutable/.test(cc), cc);
     k('A6 nosniff (không để trình duyệt đoán kiểu)', !!(d.h.get && /nosniff/i.test(d.h.get('x-content-type-options') || '')));
     const kh = await menuKh('juice_901');
-    k('A7 /api/kh/menu: `anh` = đường dẫn ảnh', !!kh && kh.anh === duongA, JSON.stringify(kh && kh.anh));
+    k('A7 /api/kh/menu: `anh` = đường dẫn ảnh', !!kh && typeof duongA === 'string' && kh.anh === duongA, JSON.stringify(kh && kh.anh));
     const q = await menuQuay(m1);
-    k('A8 menu quầy: `anh` = đường dẫn ảnh', !!q && q.anh === duongA, JSON.stringify(q && q.anh));
+    k('A8 menu quầy: `anh` = đường dẫn ảnh', !!q && typeof duongA === 'string' && q.anh === duongA, JSON.stringify(q && q.anh));
     k('A9 menu KHÔNG chứa byte / base64 ảnh (không nhúng, không lộ cột)', !JSON.stringify(kh || {}).includes('du_lieu') && JSON.stringify([kh, q]).length < 6000);
     const hang = await db.queryOne('SELECT kieu, co, phien_ban FROM pos_anh_mon WHERE product_id = ?', [m1]).catch(() => null);
     k('A10 CSDL: kiểu image/jpeg, cỡ 81920 byte', !!hang && hang.kieu === 'image/jpeg' && Number(hang.co) === 80 * KB, JSON.stringify(hang));
@@ -236,7 +236,7 @@ async function main() {
     k('F4 Kho › Sản phẩm: mỗi món có khoá `anh` (null khi chưa có)', la(sp, 200) && (sp.j.san_pham || []).length > 0 && (sp.j.san_pham || []).every((p) => 'anh' in p), moTa(sp));
     const a = await tai(m1, jpeg(10 * KB, 'kho'));
     const sp2 = await goi('GET', '/api/pos/kho/san-pham', { tk: tkChu });
-    k('F5 Kho › Sản phẩm: món có ảnh trả đúng đường dẫn', (sp2.j.san_pham || []).find((p) => p.id === m1)?.anh === a.j.anh);
+    k('F5 Kho › Sản phẩm: món có ảnh trả đúng đường dẫn', (sp2.j.san_pham || []).find((p) => p.id === m1)?.anh === a.j.anh && typeof a.j.anh === 'string');
     await db.run('ALTER TABLE pos_anh_mon RENAME TO pos_anh_mon_hong');   // giả lập bước 037 hỏng / bảng mất
     const q2 = await goi('GET', '/api/kh/menu');
     const q3 = await goi('GET', '/api/pos/products', { tk: tkChu });
@@ -254,10 +254,11 @@ async function main() {
     k('G1 pos_anh_mon có đủ cột product_id, kieu, du_lieu, co, phien_ban, sua_luc', ['co', 'du_lieu', 'kieu', 'phien_ban', 'product_id', 'sua_luc'].every((c) => cot.includes(c)), cot.join(','));
     const so = (await db.query('SELECT so FROM pos_nang_cap ORDER BY so')).map((r) => r.so);
     k('G2 pos_nang_cap ghi bước 37', so.includes(37), JSON.stringify(so));
+    const coBang = !!(await db.queryOne("SELECT 1 AS co FROM sqlite_master WHERE type = 'table' AND name = 'pos_anh_mon'"));
     let trung = false;
     try { imLang(); await db.run("INSERT INTO pos_anh_mon (product_id, kieu, du_lieu, co, phien_ban, sua_luc) VALUES (?, 'image/png', 'x', 1, 'a', 'b')", [m1]);
       await db.run("INSERT INTO pos_anh_mon (product_id, kieu, du_lieu, co, phien_ban, sua_luc) VALUES (?, 'image/png', 'x', 1, 'a', 'b')", [m1]); } catch { trung = true; } finally { noiLai(); }
-    k('G3 product_id UNIQUE — hai hàng cho một món bị CSDL từ chối', trung);
+    k('G3 product_id UNIQUE — hai hàng cho một món bị CSDL từ chối', coBang && trung);
     await db.run('DELETE FROM pos_anh_mon WHERE product_id = ?', [m1]).catch(() => {});
     const { chayNangCap } = require(path.join(MAY_CHU, 'nang_cap', 'chay.js'));
     imLang();
