@@ -564,6 +564,46 @@ async function main() {
   const loC = await mot('SELECT so_luong, gia_von FROM kho_lo WHERE phieu_id = ?', [pxC.phieu?.id || 0]);
   k('Q8e phiếu chờ bị kiểm kê giảm về 0 phần → duyệt 200, lô 0, giá vốn không phải vô cực', dyC.status === 200 && gan(loC?.so_luong, 0)
     && (loC?.gia_von == null || Number.isFinite(Number(loC.gia_von))), `${moTa(dyC)} · ${JSON.stringify(loC)}`);
+  // Q8f: chỉ giảm phiếu CHỜ — phiếu đã duyệt mới hơn giữ nguyên số phần
+  datGio('2026-12-02T21:45:10');
+  const pxF1 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 5 }], ma_gui: 'pxF1' });
+  datGio('2026-12-02T21:45:20');
+  const pxF2 = await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 3 }], ma_gui: 'pxF2' });
+  datGio('2026-12-02T21:45:30');
+  const tonF = await goi('chu', 'GET', '/kho/ton');
+  const ctF = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: 2, ly_do: 'đếm lại', moc: tonF.moc, moc_luc: tonF.moc_luc, ma_gui: 'ctF' });
+  k('Q8f chờ 5 (cũ) + đã duyệt 3 (mới hơn), chỉnh tay về 2 → trừ hết lô 3 rồi phiếu CHỜ 5 → 2; phiếu ĐÃ duyệt giữ 3 phần', pxF2.phieu?.trang_thai === 'da_duyet'
+    && ctF.status === 200 && gan(await tpCua(pxF1.phieu?.id), 2) && gan(await tpCua(pxF2.phieu?.id), 3), `${moTa(ctF)} · chờ ${await tpCua(pxF1.phieu?.id)} · duyệt ${await tpCua(pxF2.phieu?.id)}`);
+  datGio('2026-12-02T21:45:40');
+  await goi('ql', 'POST', `/kho/phieu/${pxF1.phieu?.id}/duyet`);
+  // Q12 (a): kết quả pha chế bị khoá theo MÓN khi đã có lần chốt / chỉnh tay chạm món đó kể từ lúc tạo phiếu
+  datGio('2026-12-02T21:46:00');
+  const px21 = await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 10 }], ma_gui: 'px21' });
+  datGio('2026-12-02T21:46:30');
+  const ton21 = await goi('chu', 'GET', '/kho/ton');
+  const nc21 = await tonSP(sNC);
+  await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: nc21 - 1, ly_do: 'pha ra thiếu 1', moc: ton21.moc, moc_luc: ton21.moc_luc, ma_gui: 'ct21' });
+  datGio('2026-12-02T21:47:00');
+  const kq21 = await goi('nv', 'POST', `/kho/phieu/${px21.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 9 });
+  k('Q12a phiếu ĐÃ duyệt, chủ quán chỉnh tay món đó → ghi kết quả pha chế → 409 KQ_DA_KIEM_KE, tồn giữ số chỉnh tay (không trừ đôi)', px21.phieu?.trang_thai === 'da_duyet'
+    && kq21.status === 409 && kq21.code === 'KQ_DA_KIEM_KE' && gan(await tonSP(sNC), nc21 - 1), `${moTa(kq21)} · NC ${await tonSP(sNC)} / ${nc21 - 1}`);
+  datGio('2026-12-02T21:48:00');
+  const px22 = await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 5 }], ma_gui: 'px22' });
+  datGio('2026-12-02T21:48:30');
+  const r22 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  const kk22 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: await tonNL(nCam) }, { san_pham_id: sNC, thuc: await tonSP(sNC) }], 'kk22', '', r22);
+  datGio('2026-12-02T21:48:40');
+  const nc22 = await tonSP(sNC);
+  const kq22 = await goi('nv', 'POST', `/kho/phieu/${px22.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 6 });
+  k('Q12b kiểm kê đếm KHỚP (không phiếu KK) sau khi duyệt phiếu → ghi kết quả pha chế → 409, tồn giữ (không ly ảo)', kk22.status === 200 && kq22.status === 409
+    && kq22.code === 'KQ_DA_KIEM_KE' && gan(await tonSP(sNC), nc22), `${moTa(kk22)} · ${moTa(kq22)} · NC ${await tonSP(sNC)} / ${nc22}`);
+  const xem22 = await goi('nv', 'GET', `/kho/phieu/${px22.phieu?.id}`);
+  k('Q12c phiếu đó hiện kết quả món "đã chốt" (không còn "chờ điền")', xem22.theo_mon?.[0]?.ket_qua?.trang_thai === 'da_dien', JSON.stringify(xem22.theo_mon?.[0]?.ket_qua));
+  datGio('2026-12-02T21:49:00');
+  const px23 = await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 2 }], ma_gui: 'px23' });
+  const nc23 = await tonSP(sNC);
+  const kq23 = await goi('nv', 'POST', `/kho/phieu/${px23.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 1 });
+  k('Q12d (K5) phiếu tạo SAU lần chốt cuối → ghi kết quả pha chế bình thường (200, tồn −1)', kq23.status === 200 && gan(await tonSP(sNC), nc23 - 1), `${moTa(kq23)} · ${await tonSP(sNC)}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] chỉnh tồn tay');
@@ -611,6 +651,11 @@ async function main() {
   const dyX = await goi('ql', 'POST', `/kho/phieu/${psX.phieu?.id}/duyet`);
   k('Q10a phiếu hết hạn chờ duyệt giữ lô X + chỉnh tay đếm thiếu 1 → duyệt phiếu hết hạn sau đó 200 (lô X không bị trừ trước), tồn = số đếm', psX.phieu?.trang_thai === 'cho_duyet'
     && ctX.status === 200 && dyX.status === 200 && gan(await tonNL(nGung), gungX - 3), `${psX.phieu?.trang_thai} · ${moTa(ctX)} · ${moTa(dyX)} · Gừng ${await tonNL(nGung)} / ${gungX - 3}`);
+  datGio('2026-12-02T22:06:00');
+  const demSua = () => so("SELECT COUNT(*) FROM kho_dien_bien WHERE loai = 'sua_phieu'");
+  const suaTruoc = await demSua();
+  const suaPS = await goi('chu', 'POST', `/kho/phieu/${psR.phieu?.id}/sua`, { muc: [{ nguyen_lieu_id: nGung, luong: 0.4 }], ly_do: 'cân lại' });
+  k('Q4e3 sửa phiếu PHÁT SINH (đường DH / PN / PS) cũng ghi diễn biến "Sửa phiếu"', suaPS.status === 200 && (await demSua()) === suaTruoc + 1, `${moTa(suaPS)} · ${suaTruoc} → ${await demSua()}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[B5 · B6] diễn biến · đã xem · cần chú ý');
