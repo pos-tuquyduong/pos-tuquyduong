@@ -181,10 +181,14 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
       if (!order) return loi(404, 'Không tìm thấy đơn hàng');
       // QUAY-UI-1 D: đơn có dòng nạp (product_id ≤ ID_NAP_TU) không xử lý sự cố — MỌI hành động (kể cả "chỉ ghi nhận" / hoàn kho)
       if (await laDonNap(tx, order.id)) return loi(400, LOI_DON_NAP, 'DON_NAP_KHONG_SU_CO');
+      // TOPPING-1 (chat Q7): báo theo LY (dòng không cha — gồm topping của ly đó) hoặc topping bán riêng; dòng topping trong ly không chọn riêng.
       const dong = await tx.queryOne(`SELECT MIN(product_name) AS ten, COALESCE(SUM(quantity), 0) AS sl,
           COALESCE(MAX(unit_price), 0) AS gia, COUNT(*) AS n
-        FROM pos_order_items WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
-      if (!Number(dong.n)) return loi(400, 'Sản phẩm không có trong đơn hàng');
+        FROM pos_order_items WHERE order_id = ? AND product_code = ? AND dong_cha_id IS NULL`, [order_id, product_code]);
+      if (!Number(dong.n)) {
+        const laCon = await tx.queryOne('SELECT 1 AS co FROM pos_order_items WHERE order_id = ? AND product_code = ? LIMIT 1', [order_id, product_code]);
+        return laCon ? loi(400, 'Topping trong ly báo cùng ly — chọn dòng món của ly đó', 'TOPPING_BAO_THEO_LY') : loi(400, 'Sản phẩm không có trong đơn hàng');
+      }
       const da = await tx.queryOne(`SELECT COALESCE(SUM(quantity), 0) AS sl, COALESCE(SUM(refund_amount), 0) AS tien
         FROM pos_damage_logs WHERE order_id = ? AND product_code = ?`, [order_id, product_code]);
       const conLai = Number(dong.sl) - Number(da.sl);
@@ -196,7 +200,10 @@ router.post('/', authenticate, checkPermission('manage_orders'), async (req, res
         if (order.payment_status !== 'paid') return loi(400, 'Đơn chưa thu đủ — thu tiền đơn trước rồi mới đền', 'DON_CHUA_THU');
         if (!(soGui > 0)) return loi(400, 'Hoàn tiền phải có số tiền lớn hơn 0 — không hoàn thì chọn "Chỉ ghi nhận"', 'TIEN_DEN_PHAI_LON_HON_0');
         // P26c (Q2): trần theo số khách ĐÃ TRẢ cho các dòng cùng mã (sau flash / hạng / giảm đơn), không theo giá gốc.
-        const tra = (await tienDaTraTheoDong(tx, order, true)).filter((d) => d.product_code === product_code);
+        // TOPPING-1 (Q7): đã trả của một ly = dòng ly + mọi dòng topping trỏ về nó.
+        const tatCa = await tienDaTraTheoDong(tx, order, true);
+        const tra = tatCa.filter((d) => d.product_code === product_code && d.dong_cha_id == null).map((d) => ({ ...d,
+          da_tra: d.da_tra + tatCa.filter((c) => c.dong_cha_id != null && Number(c.dong_cha_id) === Number(d.id)).reduce((t, c) => t + c.da_tra, 0) }));
         // Q4: gói / thẻ trả trước (product_id < 0, orders.js:376, :397) không đền qua báo sự cố — hoàn chỉ qua Huỷ / Xoá đơn có quyền.
         if (tra.some((d) => Number(d.product_id) < 0)) {
           return loi(400, 'Gói / thẻ trả trước không đền qua báo sự cố — dùng Huỷ đơn (cần quyền hoàn gói)', 'GOI_THE_KHONG_DEN');

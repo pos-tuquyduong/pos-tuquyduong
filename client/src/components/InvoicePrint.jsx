@@ -177,7 +177,7 @@ export default function InvoicePrint({
     },
     items: (order.items || []).map(item => ({
       code: item.product_code,
-      name: item.product_name,
+      name: item.cha != null || item.dong_cha_id != null ? `+ ${item.product_name}` : item.product_name,   // TOPPING-1: dòng topping dưới ly (bản in dự phòng)
       unit: item.unit || '',
       qty: item.quantity,
       price: item.unit_price,
