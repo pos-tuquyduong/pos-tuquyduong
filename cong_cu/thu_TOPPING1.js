@@ -369,7 +369,7 @@ async function main() {
     k('T25b huỷ phiên → nhả, đơn quầy qua', la(await banTM([mon(TRA, 1, [[THACH, 1]])]), 200));
     // hai đơn cùng lúc tranh phần cuối
     const con = Math.floor(await conLoSP(THACH.id));
-    const [a, b] = await Promise.all([banTM([mon(TRA, 1, [[THACH, con]])]), banTM([mon(TRA2, 1, [[THACH, con]])])]);
+    const [a, b] = await Promise.all([banTM([mon(TRA, con, [[THACH, 1]])]), banTM([mon(TRA2, con, [[THACH, 1]])])]);   // mỗi đơn cần đủ `con` phần
     k(`T36 hai đơn cùng lúc tranh ${con} phần cuối → đúng một đơn qua, một HET_HANG`, [a, b].filter((x) => x.status === 200).length === 1
       && [a, b].some((x) => la(x, 400, 'HET_HANG')), `${moTa(a)} · ${moTa(b)}`);
     const r29 = await banTM([mon(NEP, 2)]);
@@ -494,10 +494,10 @@ async function main() {
     k('T46 màn khách: menu không liệt kê topping không bán riêng (Thạch)', !!nd && !ten.includes('Thạch TP1'), ten.slice(0, 200));
     const tep = await goi('chu', 'GET', '/pos/backup/export/pos_order_items', undefined, null, true);
     let cot = [];
-    try { const wb = XLSX.read(tep.buf); cot = Object.keys(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])[0] || {}); } catch { cot = []; }
+    const tieuDe = (buf) => { try { const wb = XLSX.read(buf); return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 })[0] || []; } catch { return []; } };
+    cot = tieuDe(tep.buf);
     const tepSp = await goi('chu', 'GET', '/pos/backup/export/pos_products', undefined, null, true);
-    let cotSp = [];
-    try { const wb = XLSX.read(tepSp.buf); cotSp = Object.keys(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]).find((r) => r.la_topping !== undefined) || {}); } catch { cotSp = []; }
+    const cotSp = tieuDe(tepSp.buf);
     k('T04 sao lưu mang cột mới (dong_cha_id; la_topping, gia_ban_rieng, topping_cho_mon, ghi_chu_nhanh)', cot.includes('dong_cha_id')
       && ['la_topping', 'topping_cho_mon', 'ghi_chu_nhanh'].every((c) => cotSp.includes(c)), JSON.stringify(cot) + ' ' + JSON.stringify(cotSp));
     const gh = require(path.join(MAY_CHU, 'utils', 'giaoHang.js'));
