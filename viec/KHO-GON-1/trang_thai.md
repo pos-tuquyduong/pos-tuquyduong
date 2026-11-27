@@ -374,3 +374,22 @@ BÀI HỌC:
 - Đột biến: 53/53 BẮT (bang_chung_do.txt).
 - `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1` (HEAD lúc chạy = e61947e6 — sau soát bảo mật lần 2; code giống HEAD hiện tại, chỉ khác tài liệu): ✓ CỔNG CHẠY ĐẠT
 - Theo LUAT §6.5: lần soát cuối còn lỗi NẶNG (tồn) → KHÔNG "chat soát thay", DỪNG với `## Câu hỏi` Q9–Q11. Báo cáo 7 mục ghi khi việc xong.
+
+## Vòng sửa 5 (chủ quán cho phép 27.11 — Q9 · Q10 · Q11 theo đề xuất + lỗi nhẹ lần soát cuối)
+- Q9 duLieu.ghiKetQua: phiếu có ly_do chứa `tinh.LY_DO_KIEM_KE` → 409 KQ_DA_KIEM_KE; ketQuaPhieu coi như "đã chốt" (ca Q9a, Q9b).
+- Q10 kiemKe.loConThat: lô còn thật = còn theo sổ − phần phiếu chờ đã giữ trên lô; ghiKK trừ trên đó (ca Q10a).
+- Q11 GET /ton: `ton_kiem` (số máy chủ dùng, gồm phiếu chờ) CHỈ cho người được chỉnh tay; chỉnh tay không đổi → `khong_doi`, màn báo "Không có gì
+  thay đổi"; màn hiện "Máy ghi X — gồm n chờ duyệt" (ca Q11a, Q11a2, Q11b).
+- Nhẹ: phiếu KK tạo khi có dòng đầu (không phiếu rỗng — Q8a2); đường sửa phiếu ghi diễn biến "Sửa phiếu" (Q4e2); tên nguyên liệu cắt đúng đuôi
+  ` cho <tên món>` (B6c đỏ nếu câu báo đổi); chú thích đầu kiemKe.js sửa; ca + đột biến cho vế mới (Q8d mới nhất trước, Q8e chia 0, B6d bán khi thiếu /
+  làm sẵn). Vế phòng thủ không dựng được đột biến: ghi ở bang_chung_do.txt.
+- Bằng chứng: bài mới trên code trước vòng 5 (33a9305d) 121 đạt · 7 hỏng; sau vá 128 đạt · 0 hỏng; đột biến 65/65 BẮT.
+
+## Soát bảo mật — lần 3 (27.11, HEAD 8d1c886d — sau vòng sửa 5)
+Trước lọc: 0 · sau lọc: 0 (không có lỗ hổng nên không cần bước lọc). Báo cáo (nguyên văn, dòng đầu): "No vulnerabilities found."
+Người soát đã kiểm: `ton_kiem` chỉ khi duocChinhTay (chủ quán; quản lý khi công tắc bật) — nhân viên không nhận, chỉ id + lượng, không giá; phản hồi
+POST /kiem-ke của nhân viên vẫn chỉ `{ chot_id, da_chot }`; /chinh-tay QUAN_LY + duocChinhTay → 403 CHI_CHU_QUAN; /phieu/:id/sua vẫn CHU_QUAN, ghiSuaPhieu
+tham số hoá; KQ_DA_KIEM_KE chỉ thêm một lần từ chối; mọi câu SQL mới dùng `?`, tên cột chỉ từ cotCua (hai tên cố định); monCanChuY chỉ hiển thị;
+màn React không dangerouslySetInnerHTML.
+
+SOÁT BẢO MẬT: ĐẠT
