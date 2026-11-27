@@ -159,8 +159,8 @@ async function main() {
     k('B9 WebP thật → 200', la(r7, 200) && !!r7.j.anh, moTa(r7));
     const d7 = r7.j.anh ? await goi('GET', r7.j.anh) : { h: new Map(), status: 0 };
     k('B10 đọc lại WebP: Content-Type image/webp', d7.status === 200 && d7.h.get('content-type') === 'image/webp', String(d7.h.get('content-type')));
-    const r8 = await tai(m2, Buffer.from([0xff, 0xd8, 0xfe, 1, 2, 3, 4, 5]));
-    k('B11 byte đầu FFD8FE (không phải FFD8FF) → 400 (so đủ ba byte, không chỉ hai)', la(r8, 400, 'ANH_KHONG_HOP_LE'), moTa(r8));
+    const r8 = await tai(m2, Buffer.concat([Buffer.from([0xff, 0xd8, 0xfe]), dem(40, 'fe')]));
+    k('B11 43 byte, byte đầu FFD8FE (không phải FFD8FF) → 400 (so đủ ba byte, không chỉ hai)', la(r8, 400, 'ANH_KHONG_HOP_LE'), moTa(r8));
     await xoa(m2);
   });
 
@@ -275,7 +275,7 @@ async function main() {
     const bh = docCl('pages/BanHang/BanHangMoi.jsx');
     const am = docCl('pages/BanHang/AnhMon.jsx');
     k('H1 SanPham.jsx: hằng số có tên 400 × 400 và chất lượng 0,7 MỘT chỗ', /CO_ANH\s*=\s*400\b/.test(sp) && /CHAT_LUONG_ANH\s*=\s*0\.7\b/.test(sp));
-    k('H2 SanPham.jsx: cắt vuông giữa, WebP rồi JPEG, có nút Xoá ảnh', /toBlob/.test(sp) && /image\/webp/.test(sp) && /image\/jpeg/.test(sp) && /Xoá ảnh/.test(sp));
+    k('H2 SanPham.jsx: cắt vuông giữa, WebP rồi JPEG, có nút Xoá ảnh', /toBlob/.test(sp) && /image\/webp/.test(sp) && /image\/jpeg/.test(sp) && />Xoá ảnh<\/button>/.test(sp) && /api\.delete\(`\/products\/\$\{sp\.id\}\/anh`\)/.test(sp));
     k('H3 SanPham.jsx: tải qua api.request (không fetch trần)', /\/anh/.test(sp) && !/\bfetch\s*\(/.test(sp));
     k('H4 AnhMon.jsx: ảnh lười, chỗ giữ chỗ cố định, chữ viết tắt khi chưa có / lỗi', /loading="lazy"/.test(am) && /aspect-ratio|aspectRatio/.test(am + docCl('pages/BanHang/banHang.css')) && /onError/.test(am));
     k('H5 thẻ món (BanHangMoi.jsx) dùng AnhMon', (bh.match(/<AnhMon\b/g) || []).length >= 2, `${(bh.match(/<AnhMon\b/g) || []).length} chỗ`);
