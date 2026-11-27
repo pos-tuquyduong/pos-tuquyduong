@@ -6,7 +6,7 @@
  */
 const { addDaysToDateString } = require('../utils/helpers');
 const { gonTen, chuanHoaTen, doiDonVi, laTrungKhoa, SAP_HET_HAN_NGAY, thuCuaNgay, chonDinhMuc, canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong,
-  trangThaiKetQua, trangThaiHan, bangPhieu, hanMuc, tongTien, trongHanMuc, conLaiDon, HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SAI_SO } = require('./tinh');
+  trangThaiKetQua, trangThaiHan, bangPhieu, hanMuc, tongTien, trongHanMuc, conLaiDon, HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SAI_SO, LY_DO_KIEM_KE } = require('./tinh');
 
 const soHoacNull = (x) => (x === '' || x == null || !Number.isFinite(Number(x)) ? null : Number(x));
 
@@ -295,6 +295,9 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
   if (p.trang_thai !== 'da_duyet' || p.thay_cho_id != null) {
     return { loi: [409, { error: 'Phiếu này không điền kết quả được (chưa duyệt, đã huỷ hoặc là phiếu sửa)', code: 'PHIEU_KHONG_DIEN' }] };
   }
+  if (daKiemKe(p)) {   // KHO-GON-1 Q9: số thật đã được kiểm kê đếm (phiếu bị giảm) — điền kết quả lúc này sẽ cộng lại phần đã mất
+    return { loi: [409, { error: 'Phiếu đã được kiểm kê chốt số — không điền kết quả pha chế nữa', code: 'KQ_DA_KIEM_KE' }] };
+  }
   if (trangThaiKetQua(p.duyet_luc.slice(0, 10), luc.slice(0, 10), false, false) === 'tu_chot') {
     return { loi: [409, { error: 'Đã qua ngày — kết quả tự chốt đúng chuẩn. Sai thì chủ quán sửa phiếu', code: 'DA_TU_CHOT' }] };
   }
@@ -312,7 +315,9 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
 }
 
 const ngayLam = (p) => String(p.duyet_luc || p.tao_luc).slice(0, 10);
-const ketQuaPhieu = (p, homNay, duKetQua) => (p.loai === 'PX' && p.trang_thai === 'da_duyet' ? trangThaiKetQua(ngayLam(p), homNay, duKetQua, p.thay_cho_id != null) : null);
+const daKiemKe = (p) => String(p.ly_do || '').includes(LY_DO_KIEM_KE);   // KHO-GON-1 Q9: phiếu bị kiểm kê giảm = số đã chốt, như phiếu sửa
+const ketQuaPhieu = (p, homNay, duKetQua) => (p.loai === 'PX' && p.trang_thai === 'da_duyet'
+  ? trangThaiKetQua(ngayLam(p), homNay, duKetQua, p.thay_cho_id != null || daKiemKe(p)) : null);
 
 /** Một phiếu đầy đủ (màn xem + in): bảng tổng (tồn hiện tại, cờ âm) + bảng theo món (lô, hạn, kết quả, lệch). */
 async function docPhieu(csdl, id, homNay) {

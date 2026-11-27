@@ -324,6 +324,7 @@ router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
     if (!monHopLe(req.body.mon)) return { loi: [400, LOI_SO_PHAN] };
     const sua = await duLieu.suaPhieu(tx, id, monHopLe(req.body.mon), req.user.username, lyDoCua(req), luc);
     if (!sua.loi) await viec.canhBaoSauChot(tx, id, req.user.username, luc);   // KHO-GON-1 Q4: sửa phiếu xuất CHỜ duyệt sau chốt
+    if (!sua.loi) await viec.ghiSuaPhieu(tx, id, sua.id, req.user.username, lyDoCua(req), luc);   // KHO-GON-1: đường sửa cũng ghi diễn biến
     return sua;
   }
   if (!TAO[cu.loai]) return { loi: [400, { error: 'Loại phiếu này không sửa được', code: 'KHONG_SUA_DUOC' }] };
@@ -332,8 +333,10 @@ router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
   const huy = await duLieu.huyPhieu(tx, id, lyDoCua(req), req.user.username, luc);
   if (huy.loi) return huy;
   await viec.canhBaoSauChot(tx, id, req.user.username, luc);   // KHO-GON-1 Q4: sửa = huỷ phiếu cũ
-  return TAO[cu.loai](tx, { ...THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body }), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
+  const moi = await TAO[cu.loai](tx, { ...THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body }), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
     thayCho: id, lyDo: lyDoCua(req), ep: true });
+  if (!moi.loi) await viec.ghiSuaPhieu(tx, id, moi.id, req.user.username, lyDoCua(req), luc);
+  return moi;
 }));
 
 router.get('/mon-chua-san', QUAN_LY, doc(() => banHang.monChuaSan(csdl, getNow())));   // KHO-3a A7
@@ -342,7 +345,9 @@ router.get('/mon-chua-san', QUAN_LY, doc(() => banHang.monChuaSan(csdl, getNow()
 router.get('/ton', NHAN_VIEN, doc(async (req) => {
   const luc = getNow();
   const r = await duLieu.docTon(csdl, luc);
-  return { ...(anGia(req) ? tinh.boGia(r) : r), duoc_chinh_tay: await duocChinhTay(csdl, req), moc: await kiemKe.docMoc(csdl), moc_luc: luc };
+  const duoc = await duocChinhTay(csdl, req);
+  // Q11: người chỉnh tay thấy ĐÚNG số máy chủ dùng (gồm phiếu chờ — Q4) cho thứ đang có phiếu chờ; nhân viên không nhận
+  return { ...(anGia(req) ? tinh.boGia(r) : r), duoc_chinh_tay: duoc, ...(duoc && { ton_kiem: await kiemKe.tonKiemCoCho(csdl) }), moc: await kiemKe.docMoc(csdl), moc_luc: luc };
 }));
 
 // ═════════════════════════════ KHO-GON-1 — việc hôm nay · kiểm kê · bàn giao · chỉnh tay · diễn biến ═════════════════════════════

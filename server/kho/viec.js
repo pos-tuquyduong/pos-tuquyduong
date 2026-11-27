@@ -11,7 +11,7 @@ const loi = (http, code, error) => ({ loi: [http, { error, code }] });
 const KHOA_SO_CA = 'kho_so_ca';
 const KHOA_QL_CHINH_TAY = 'kho_ql_chinh_tay';
 const TEN_LOAI_DB = { xong_viec: 'Xong việc', mo_lai: 'Mở lại việc', them_viec: 'Thêm việc phát sinh', pha_che: 'Pha chế', nhan_hang: 'Nhận hàng',
-  phat_sinh: 'Phát sinh', giam_phieu_cho: 'Kiểm kê giảm phiếu pha chế chờ', kiem_ke: 'Chốt kiểm kê', nhan_ca: 'Nhận ca', chinh_tay: 'Chỉnh tồn tay', tu_choi_sau_chot: 'Phiếu chờ bị từ chối sau lần chốt' };
+  phat_sinh: 'Phát sinh', giam_phieu_cho: 'Kiểm kê giảm phiếu pha chế chờ', kiem_ke: 'Chốt kiểm kê', nhan_ca: 'Nhận ca', chinh_tay: 'Chỉnh tồn tay', tu_choi_sau_chot: 'Phiếu chờ bị từ chối sau lần chốt', sua_phieu: 'Sửa phiếu' };
 
 /** Cài đặt đọc phòng thủ (khoá kho_* chủ quán ghi được qua PUT /settings không kiểm giá trị): chỉ '2' là hai ca, chỉ '1' là quản lý được chỉnh tay. */
 async function docCaiDat(csdl) {
@@ -138,6 +138,12 @@ async function canhBaoSauChot(tx, id, nguoi, luc) {
     chiTiet: `${p.so_phieu} đã được tính vào lần chốt — kiểm lại: ${chuoiDong(await dongCua(tx, id))}` });
 }
 
+/** Chủ quán sửa phiếu (= huỷ cũ + phiếu mới thay_cho) → một dòng cam "Sửa phiếu cũ → mới (lý do)". */
+async function ghiSuaPhieu(tx, cuId, moiId, nguoi, lyDo, luc) {
+  const so = new Map((await tx.query('SELECT id, so_phieu FROM kho_phieu WHERE id IN (?, ?)', [cuId, moiId])).map((p) => [Number(p.id), p.so_phieu]));
+  await ghiDienBien(tx, { luc, loai: 'sua_phieu', nguoi, chuY: true, phieuId: Number(moiId), chiTiet: `${so.get(Number(cuId))} → ${so.get(Number(moiId))} (${lyDo})` });
+}
+
 // ── Mẫu việc (chủ / quản lý) ──
 const dsMau = (csdl) => csdl.query('SELECT * FROM kho_viec_mau ORDER BY thu_tu, id');
 
@@ -197,7 +203,9 @@ async function monCanChuY(csdl, luc) {
     const t = menu.get(Number(p.id));
     if (!t || t.chua_cong_thuc || t.khong_quan_kho || t.stock_quantity > 0) continue;
     const thieu = await banHang.kiemDuHang(csdl, [{ product_id: Number(p.id), quantity: 1 }], { bayGio: luc });
-    const ten = /^Thiếu nguyên liệu: (.+) cho /.exec(thieu?.body?.error || '')?.[1];
+    // lời báo của banHang.xetDu: `Thiếu nguyên liệu: <tên> cho <tên món>` — cắt đúng đuôi tên món (tên có chữ " cho " vẫn đúng); đổi câu báo → B6c đỏ
+    const loi = String(thieu?.body?.error || ''), dau = 'Thiếu nguyên liệu: ', duoi = ` cho ${p.name}`;
+    const ten = loi.startsWith(dau) && loi.endsWith(duoi) ? loi.slice(dau.length, -duoi.length) : null;
     mon.push({ san_pham_id: Number(p.id), ten: p.name, ly_do: `Pha tại chỗ: hết ${ten || 'nguyên liệu'}` });
   }
   return mon;
@@ -224,4 +232,4 @@ async function daXem(tx, nguoi, denId) {
 }
 
 module.exports = { docCaiDat, luuCaiDat, ghiDienBien, homNay, themViec, xongViec, moLai, tuXong, sauTaoPhieu, canhBaoSauChot, dsMau, themMau, suaMau, doiThuTu, xoaMau,
-  soChuaXem, dienBien, daXem, monCanChuY };
+  soChuaXem, dienBien, daXem, monCanChuY, ghiSuaPhieu };

@@ -31,12 +31,18 @@ export default function TonKho() {
     setDang(true);
     try {
       const t = chinh.thu;
-      await api.post('/kho/chinh-tay', { nguyen_lieu_id: t.id, san_pham_id: t.san_pham_id, thuc: veLuu(chinh.so, t.he_so_doi), ly_do: chinh.ly_do, moc: dl.moc, moc_luc: dl.moc_luc,
-        ma_gui: chinh.ma_gui });
-      baoXong(`Đã chỉnh tồn ${t.ten}`);
+      const kq = await api.post('/kho/chinh-tay', { nguyen_lieu_id: t.id, san_pham_id: t.san_pham_id, thuc: veLuu(chinh.so, t.he_so_doi), ly_do: chinh.ly_do, moc: dl.moc,
+        moc_luc: dl.moc_luc, ma_gui: chinh.ma_gui });
+      baoXong(kq.khong_doi ? `Không có gì thay đổi — ${t.ten} đã đúng số đó` : `Đã chỉnh tồn ${t.ten}`);
       setChinh(null);
       await tai();
     } catch (e) { baoLoiTu('chỉnh tồn tay', e); } finally { setDang(false); }
+  };
+  // Q11: số máy chủ DÙNG để tính lệch — có phiếu chờ thì lấy ton_kiem (đơn vị lưu → hiện), không thì tồn đang hiện
+  const mayGhi = (t) => {
+    const k = (dl.ton_kiem || []).find((x) => (t.id ? x.nguyen_lieu_id === t.id : x.san_pham_id === t.san_pham_id));
+    const he = t.he_so_doi || 1;
+    return k ? { so: k.ton / he, cho: k.cho / he } : { so: t.ton_hien ?? t.ton, cho: 0 };
   };
   const nutChinh = (t) => dl.duoc_chinh_tay && (
     <button className="btn btn-sm btn-outline" onClick={() => setChinh({ thu: t, so: '', ly_do: '', ma_gui: maGuiMoi() })}>Chỉnh tồn tay</button>);
@@ -69,7 +75,8 @@ export default function TonKho() {
       {chinh && (
         <div className="card kho-hang" style={{ padding: '0.75rem' }}>
           <b>Chỉnh tồn tay · {chinh.thu.ten}</b>
-          <span className="kho-nho">Máy ghi {so(chinh.thu.ton_hien ?? chinh.thu.ton)} {chinh.thu.don_vi_hien || chinh.thu.don_vi_luu || 'phần'}. Gõ số đang có thật.</span>
+          <span className="kho-nho">Máy ghi {so(mayGhi(chinh.thu).so)} {chinh.thu.don_vi_hien || chinh.thu.don_vi_luu || 'phần'}
+            {mayGhi(chinh.thu).cho ? ` — gồm ${so(mayGhi(chinh.thu).cho)} chờ duyệt` : ''}. Gõ số đang có thật.</span>
           <input className="input kho-hep" type="number" min="0" step="any" inputMode="decimal" aria-label="Số đang có thật" value={chinh.so}
             onChange={(e) => setChinh({ ...chinh, so: e.target.value })} />
           <input className="input" placeholder="Lý do (bắt buộc)" value={chinh.ly_do} onChange={(e) => setChinh({ ...chinh, ly_do: e.target.value })} />

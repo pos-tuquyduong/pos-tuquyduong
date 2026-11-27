@@ -2,8 +2,8 @@
  * KHO-GON-1 — kiểm kê tối (đếm MÙ — chủ quán 26.11 Q1), nhận bàn giao sáng (so với số tối qua chốt), chỉnh tồn tay. MỘT hàm điều chỉnh cho cả ba:
  * phiếu KK đã duyệt ngay (cộng → lô mới; trừ → lô FEFO kể cả lô quá hạn, khuôn phatSinh.js), không lệch → không phiếu.
  * Tồn đổi giữa lúc mở và lúc lưu (C5): màn mở nhận `moc` = id phiếu lớn nhất + `moc_luc` = giờ đọc. Lúc lưu, máy chủ TỰ tính
- *   gốc = tồn hiện tại − Σ dòng phiếu da_duyet có id > moc (= tồn lúc màn mở; không tin số màn gửi), điều chỉnh = số đếm − gốc.
- *   Ly bán xen giữa (phiếu mới) không tạo lệch giả. Huỷ / duyệt phiếu CŨ sau moc_luc (đổi tồn mà không có phiếu mới) → 409 KHO_TON_DOI "tải lại".
+ *   gốc = tồn để kiểm hiện tại − Σ dòng phiếu (đã duyệt + chờ duyệt, xem dưới) có id > moc (= tồn lúc màn mở; không tin số màn gửi),
+ *   điều chỉnh = số đếm − gốc. Ly bán xen giữa (phiếu mới) không tạo lệch giả.
  *   Có phiếu KK id > moc (người khác vừa kiểm / chỉnh) → 409 KHO_DA_KIEM — hai người cùng chốt không trừ hai lần.
  *   Phiếu CHỜ DUYỆT (pha chế / nhận hàng / phát sinh của nhân viên) tính NHƯ ĐÃ GHI (chủ quán 26.11 Q4): hàng đó đã có thật lúc đếm — duyệt
  *   sau không cộng đôi; bị từ chối sau lần chốt → viec.canhBaoSauChot ghi dòng cam. Vì vậy chỉ HUỶ / TỪ CHỐI phiếu cũ sau lúc mở mới đổi gốc → 409.
@@ -83,23 +83,36 @@ async function gocCua(tx, m, moc, mocLuc) {
 /** Số đếm: '' / null → undefined (để trống); không phải số → NaN. */
 const docSo = (x) => (x === '' || x == null ? undefined : Number(x));
 
-/** Ghi MỘT phiếu KK cho các dòng điều chỉnh [{ m, dc, ghiChu }] (dc ≠ 0). Trả id phiếu hoặc { loi }. */
+/** Lô còn THẬT để trừ: còn lại theo sổ đã duyệt − phần các phiếu CHỜ duyệt đã giữ trên lô (vd phát sinh "hết hạn" chọn sẵn lô — Q10: lô đó coi như đã ra). */
+async function loConThat(tx, m) {
+  const giu = new Map((await tx.query(`SELECT d.lo_id, SUM(d.so_luong) AS n FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id
+    WHERE p.trang_thai = 'cho_duyet' AND p.loai <> 'DH' AND d.lo_id IS NOT NULL AND d.${cotCua(m)} = ? GROUP BY d.lo_id`, [maCua(m)])).map((x) => [Number(x.lo_id), Number(x.n)]));
+  return (await duLieu.conLaiTheoLo(tx, `l.${cotCua(m)} = ?`, [maCua(m)], LO_FEFO))
+    .map((l) => ({ ...l, con: Number(l.con) + (giu.get(Number(l.id)) || 0) })).filter((l) => l.con > tinh.SAI_SO);
+}
+
+/** Ghi MỘT phiếu KK cho các dòng điều chỉnh [{ m, dc, ghiChu }] (dc ≠ 0) — phiếu tạo khi có dòng đầu tiên (phần thiếu trừ hết vào phiếu chờ → không
+ *  phiếu KK rỗng). Trả { id } (id null = không có dòng) hoặc { loi }. */
 async function ghiKK(tx, ds, { nguoi, luc, ghiChu = null, lyDo = null, maGui = null }) {
-  const id = await duLieu.themPhieu(tx, { loai: 'KK', tuDuyet: true, nguoi, luc, ghiChu, lyDo, maGui });
-  const ghi = (m, loId, so, donGia, gc) => tx.run(`INSERT INTO kho_phieu_dong (phieu_id, ${cotCua(m)}, lo_id, so_luong, don_gia, ghi_chu, loai, nguoi, luc)
-    VALUES (?, ?, ?, ?, ?, ?, 'kiem_ke', ?, ?)`, [id, maCua(m), loId, so, donGia, gc, nguoi, luc]);
+  let id = null;
+  const ghi = async (m, loId, so, donGia, gc) => {
+    if (id == null) id = await duLieu.themPhieu(tx, { loai: 'KK', tuDuyet: true, nguoi, luc, ghiChu, lyDo, maGui });
+    await tx.run(`INSERT INTO kho_phieu_dong (phieu_id, ${cotCua(m)}, lo_id, so_luong, don_gia, ghi_chu, loai, nguoi, luc)
+      VALUES (?, ?, ?, ?, ?, ?, 'kiem_ke', ?, ?)`, [id, maCua(m), loId, so, donGia, gc, nguoi, luc]);
+  };
   for (const { m, dc, ghiChu: gc } of ds) {
     const nl = m.nguyen_lieu_id ? await tx.queryOne('SELECT han_ngay, gia_nhap FROM kho_nguyen_lieu WHERE id = ?', [maCua(m)]) : null;
     if (dc > 0) {
       const han = nl ? nl.han_ngay : (await tx.queryOne('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [maCua(m)]))?.han_ngay;
       const gia = nl ? nl.gia_nhap : (await tx.queryOne('SELECT gia_von FROM kho_lo WHERE san_pham_id = ? ORDER BY id DESC LIMIT 1', [maCua(m)]))?.gia_von;
+      if (id == null) id = await duLieu.themPhieu(tx, { loai: 'KK', tuDuyet: true, nguoi, luc, ghiChu, lyDo, maGui });
       const lo = await tx.run(`INSERT INTO kho_lo (${cotCua(m)}, so_luong, han_dung, gia_von, phieu_id, tao_luc) VALUES (?, ?, ?, ?, ?, ?)`,
         [maCua(m), dc, duLieu.hanLo(luc, han), gia ?? null, id, luc]);
       await ghi(m, Number(lo.lastInsertRowid), dc, gia ?? null, gc);
       continue;
     }
     let thieuLo = 0;
-    for (const x of tinh.chiaTheoLo([{ khoa: 0, luong: -dc }], await duLieu.conLaiTheoLo(tx, `l.${cotCua(m)} = ?`, [maCua(m)], LO_FEFO))) {
+    for (const x of tinh.chiaTheoLo([{ khoa: 0, luong: -dc }], await loConThat(tx, m))) {
       if (x.lo_id == null && m.san_pham_id) { thieuLo += x.luong; continue; }
       await ghi(m, x.lo_id, -x.luong, nl ? nl.gia_nhap ?? null : null, gc);
     }
@@ -124,7 +137,7 @@ async function giamPhieuCho(tx, m, thieu, { nguoi, luc }) {
     const bot = Math.min(con, Number(d.so_luong));
     const kq = await tx.run("UPDATE kho_phieu_dong SET so_luong = so_luong - ? WHERE id = ? AND so_luong >= ? - 1e-9", [bot, d.id, bot]);
     if (!kq.changes) continue;
-    const lyDo = `kiểm kê: đếm thiếu ${gon(bot)}`;
+    const lyDo = `${tinh.LY_DO_KIEM_KE} ${gon(bot)}`;
     await tx.run("UPDATE kho_phieu SET ly_do = ? WHERE id = ? AND trang_thai = 'cho_duyet'", [d.ly_do ? `${d.ly_do} · ${lyDo}` : lyDo, d.phieu_id]);
     await viec.ghiDienBien(tx, { luc, loai: 'giam_phieu_cho', nguoi, chuY: true, phieuId: Number(d.phieu_id),
       chiTiet: `${d.so_phieu}: ${m.ten || ''} ${gon(d.so_luong)} → ${gon(Number(d.so_luong) - bot)} phần (${lyDo}) — nguyên liệu giữ theo phiếu gốc` });
@@ -217,11 +230,23 @@ async function chinhTay(tx, { than, nguoi, luc, maGui, lyDo }) {
   if (g.loi) return g;
   const dc = thuc - g.goc;
   if (g.hien + dc < -tinh.SAI_SO) return loi(409, 'KHO_TON_DOI', 'Tồn vừa đổi — tải lại');
-  if (Math.abs(dc) <= tinh.SAI_SO) return { phieu_id: null };
+  if (Math.abs(dc) <= tinh.SAI_SO) return { phieu_id: null, khong_doi: true };   // Q11: màn báo "Không có gì thay đổi"
   const r = await ghiKK(tx, [{ m: { ...m, ten: co.ten }, dc, ghiChu: lyDo }], { nguoi, luc, lyDo, maGui, ghiChu: 'Chỉnh tồn tay' });
   if (r.loi) return r;
   await viec.ghiDienBien(tx, { luc, loai: 'chinh_tay', nguoi, chuY: true, phieuId: r.id, chiTiet: `${co.ten} ${gon(g.goc)} → ${gon(thuc)} (${lyDo})` });
   return { phieu_id: r.id };
 }
 
-module.exports = { docDanhSach, docMoc, luuKiem, chinhTay };
+/** Q11: số máy chủ DÙNG khi chỉnh tay (gồm phiếu chờ — Q4) cho những thứ đang có phiếu chờ: [{ nguyen_lieu_id | san_pham_id, ton, cho }]. */
+async function tonKiemCoCho(csdl) {
+  const ra = [];
+  for (const x of await csdl.query(`SELECT DISTINCT d.nguyen_lieu_id, d.san_pham_id FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id
+    WHERE p.trang_thai = 'cho_duyet' AND p.loai <> 'DH'`)) {
+    const m = { nguyen_lieu_id: x.nguyen_lieu_id == null ? null : Number(x.nguyen_lieu_id), san_pham_id: x.nguyen_lieu_id == null ? Number(x.san_pham_id) : null };
+    const ton = await tongDong(csdl, m);
+    ra.push({ [cotCua(m)]: maCua(m), ton: gon(ton), cho: gon(ton - await tongDong(csdl, m, "AND p.trang_thai <> 'cho_duyet'")) });
+  }
+  return ra;
+}
+
+module.exports = { docDanhSach, docMoc, luuKiem, chinhTay, tonKiemCoCho };
