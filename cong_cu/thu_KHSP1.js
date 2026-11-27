@@ -43,7 +43,7 @@ const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.war
 
 const COT_MOI = ['nhu_cau', 'the_chat', 'mo_ta', 'cong_dung', 'thanh_phan'];
 const KHOA_MENU_CU = ['con_hang', 'gia', 'gia_hang', 'ma', 'nhom', 'ten', 'ton_cu', 'ton_luc'];
-const KHOA_MENU_MOI = [...KHOA_MENU_CU, ...COT_MOI, 'anh'].sort();
+const KHOA_MENU_MOI = [...KHOA_MENU_CU, ...COT_MOI, 'anh', 'ghi_chu_nhanh', 'topping'].sort();   // TOPPING-1 (LUAT §6.7): ghi_chu_nhanh, topping
 
 async function main() {
   imLang();
