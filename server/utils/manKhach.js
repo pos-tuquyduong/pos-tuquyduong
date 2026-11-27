@@ -108,8 +108,9 @@ async function thuHoiMay(id, nguoi) {
 
 // ── Menu (dùng chung layMenuQuay) — KHO-3a: bỏ bộ nhớ 20 s (chỉ có vì hỏi SX chậm); "hết" cùng một con số với quầy và App ngay lúc đó ──
 async function layMenu() {
-  return (await menuQuay()).filter((p) => p.sellable)
-    .map((p) => ({ key: p.unique_id, ten: p.name, gia: p.price, nhom: p.category || '', het: !p.khong_quan_kho && p.stock_quantity === 0 }));
+  // TOPPING-1: topping chỉ hiện khi bán riêng (giá bán riêng) — cùng luật menu App (routes/kh/index.js menuKhach). NHOM-MON-1: theo "hiện ở quầy".
+  return (await menuQuay()).filter((p) => p.sellable && (!p.la_topping || p.gia_ban_rieng > 0))
+    .map((p) => ({ key: p.unique_id, ten: p.name, gia: p.la_topping ? p.gia_ban_rieng : p.price, nhom: p.category || '', het: !p.khong_quan_kho && p.stock_quantity === 0 }));
 }
 
 // ── Bản hiển thị của phiên (dựng một lần khi quầy báo) ───────────────────────
@@ -126,7 +127,8 @@ async function dungHien(phien, nguoi) {
     const menu = new Map((await layMenu()).map((m) => [m.key, m.ten]));
     hien.mon = ct.items.map((it) => {
       const p = sp.get(it.product_id);
-      return { ten: menu.get(`${p?.sx_product_type}_${p?.sx_product_id}`) || p?.name || 'Món', so_luong: it.quantity, thanh_tien: Math.round(it.unit_price * it.quantity) };
+      const ten = menu.get(`${p?.sx_product_type}_${p?.sx_product_id}`) || p?.name || 'Món';
+      return { ten: it.cha != null ? `+ ${ten}` : ten, so_luong: it.quantity, thanh_tien: Math.round(it.unit_price * it.quantity) };   // TOPPING-1: dòng topping ngay dưới ly
     });
     hien.tam_tinh = Math.round(ct.subtotal);
     for (const [ten, tien] of [['Giờ vàng', ct.flash_discount], [ct.customer_tier ? `Hạng ${ct.customer_tier}` : 'Hạng thành viên', ct.tier_discount],

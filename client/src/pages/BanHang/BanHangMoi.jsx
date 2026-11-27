@@ -3,7 +3,7 @@
  * BH-2: giá do MÁY CHỦ tính (POST /orders/tinh-thu, gọi lại chỉ khi nội dung tính tiền đổi); thu tiền qua MỘT đường phiên thanh toán
  * (/thanh-toan/phien → chốt | QR payOS) với PIN + giữ tiền; xong sang màn kết thúc in hoá đơn HD-1. Giá hạng ở lưới món chỉ để hiển thị.
  * GIAO-1: "Giao hàng · Ahamove" (KhungGiao) — phí ship máy chủ lấy từ báo phí; chưa gắn phí thì khối thu tiền ẩn. Nút "Giao hàng" mở màn 4 cột.
- * Chưa làm (việc khác): topping, đổi điểm, combo.
+ * TOPPING-1: topping + ghi chú nhanh theo từng món (KhungChonMon), tab "Topping" bán riêng, dòng topping con trong giỏ. Chưa làm: đổi điểm, combo.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Settings as IconCaiDat, ShoppingCart, ArrowLeft, Bike } from 'lucide-react';
@@ -19,7 +19,7 @@ import ManQr from './ManQr';
 import KhungGiao from './KhungGiao';
 import ChipVoucher from './ChipVoucher';
 import MaGhepManKhach, { useQuayManKhach } from '../ManKhach/MaGhep';
-import { CACH_TRA_MAC_DINH, CAU_CHUA_BIET_DON, boVoucherLoi, chiaTra, coGia, coSoMayChu, dongThe, dsGoiThe, giaHang, hangChiCap, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, loiTinhGia, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viTriMayChu, xuLyLoiPin, xuLyThuHong } from './tinh';
+import { CACH_TRA_MAC_DINH, CAU_CHUA_BIET_DON, boVoucherLoi, chiaTra, coGia, coSoMayChu, coTuyChon, khoaGop, soDongMayChu, tpCanTrongGio, dongThe, dsGoiThe, giaHang, hangChiCap, khoaTinh, kiemTraNap, kiemTraThe, kiemTraThem, layGoiNap, layThe, loiTinhGia, phanTramHang, tachTrang, thanPhien, thanTinhThu, tinhGio, viTriMayChu, xuLyLoiPin, xuLyThuHong } from './tinh';
 import { maGuiMoi } from '../Kho/chung';   // KET-NOI-1: dùng lại bộ sinh mã lượt bấm của Kho
 import { NutThongTin } from '../../components/ThongTinMon';
 import './banHang.css';
@@ -27,6 +27,7 @@ import './banHang.css';
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const NHOM_THE = 'the';                                     // QUAY-UI-1: nhóm "Thẻ thành viên" (gói thẻ cùng giỏ với món, tối đa một thẻ)
 const NHOM_NAP = 'nap';                                     // NAP-1: nhóm "Nạp tiền" (gói nạp, đơn riêng, chỉ tiền mặt / QR)
+const NHOM_TOPPING = 'topping_rieng';                       // TOPPING-1: tab "Topping" — topping có giá bán riêng
 const ID_NAP_TU = -2000000;                                 // khoá dòng giỏ của gói nạp — cùng dải máy chủ dùng (utils/viKhach.js)
 const CHU_KY_FLASH_MS = 60000;                              // làm mới Flash mỗi 60 giây
 const DO_TRE_TINH_MS = 250;                                 // gom các lần chạm liên tiếp thành một lần hỏi máy chủ
@@ -175,11 +176,11 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
   const dungTK = cachTra === 'tai_khoan';                  // chỉ khi nhân viên bấm "Trừ tài khoản"
   const { soDuDung, soDuMeDung, phaiTra } = chiaTra({ tong: coSo ? tong : 0, khach, dungTK: dungTK && !chiTienThat, dungMe: dungMe && dungTK && !chiTienThat });
   const soLy = gio.reduce((s, m) => s + m.quantity, 0);
-  const dongMayChu = coSo && mayChu.items?.length === gio.length ? viTriMayChu(gio).map((v) => mayChu.items[v]) : null;   // giá từng dòng do máy chủ trả, xếp theo dòng giỏ (thẻ nằm cuối bên máy chủ)
+  const dongMayChu = coSo && mayChu.items?.length === soDongMayChu(gio);   // số từng dòng máy chủ đã về đúng giỏ (thẻ nằm cuối bên máy chủ; topping ngay sau món)
 
-  const giaMotLy = (s) => {
+  const giaMotLy = (s) => {   // sản phẩm (price) hoặc topping trong ly (unit_price) — chỉ để hiện
     const dacBiet = !!s.is_special_group;
-    return giaHang(s.price, phanTramHang(hang, dacBiet)).hang;
+    return giaHang(s.price ?? s.unit_price, phanTramHang(hang, dacBiet)).hang;
   };
 
   // ── Giỏ ──
@@ -191,24 +192,23 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
     if (xong) { if (!daIn) return; batDauDonMoi(); }        // chạm món sau khi đã In = đơn mới
     setLoi('');
     if (layGoiNap(gio)) { setLoi('Giỏ đang là gói nạp — thu xong hoặc xoá giỏ rồi mới thêm món'); return; }
-    const soDangCo = gio.filter((m) => m.product_id === s.id).reduce((t, m) => t + m.quantity, 0);
-    const e = kiemTraThem(s, soDangCo, 1);
+    const e = kiemTraThem(s, tpCanTrongGio(gio, s.id), 1);   // TOPPING-1: topping bán riêng tính cả phần đã nằm trong các ly
     if (e) { setLoi(e); return; }
-    setKhung({ sp: s });
+    if (coTuyChon(s)) setKhung({ sp: s }); else themVaoGio(s, { note: '', quantity: 1, topping: [] });   // không tuỳ chọn → chạm là vào giỏ
   };
-  const luuKhung = ({ note, quantity }) => {
+  const themVaoGio = (s, { note, quantity, topping }) => setGio((g) => {
+    const moi = { key: maDong.current++, product_id: s.id, sx_product_type: s.sx_product_type, sx_product_id: s.sx_product_id, product_name: s.name,
+      unit_price: s.la_topping ? s.gia_ban_rieng : s.price, quantity, note, nhom: s.category, is_special_group: !!s.is_special_group, topping };
+    const trung = g.find((m) => !m.the && khoaGop(m) === khoaGop(moi));   // cùng món + topping + ghi chú → gộp số ly; khác → dòng riêng
+    return trung ? g.map((m) => (m === trung ? { ...m, quantity: m.quantity + quantity } : m)) : [...g, moi];
+  });
+  const luuKhung = ({ note, quantity, topping }) => {
     const { sp: s, dong } = khung;
-    const soKhac = gio.filter((m) => m.product_id === s.id && m.key !== dong?.key).reduce((t, m) => t + m.quantity, 0);
-    const e = kiemTraThem(s, soKhac, quantity);
+    const e = kiemTraThem(s, tpCanTrongGio(gio, s.id, dong?.key), quantity);
     if (e) { setLoi(e); return; }
     setKhung(null);
-    if (dong) { setGio((g) => g.map((m) => (m.key === dong.key ? { ...m, note, quantity } : m))); return; }
-    setGio((g) => {
-      const trung = g.find((m) => m.product_id === s.id && (m.note || '') === note);       // hai ly khác ghi chú = hai dòng
-      if (trung) return g.map((m) => (m === trung ? { ...m, quantity: m.quantity + quantity } : m));
-      return [...g, { key: maDong.current++, product_id: s.id, sx_product_type: s.sx_product_type, sx_product_id: s.sx_product_id,
-        product_name: s.name, unit_price: s.price, quantity, note, nhom: s.category, is_special_group: !!s.is_special_group }];
-    });
+    if (dong) { setGio((g) => g.map((m) => (m.key === dong.key ? { ...m, note, quantity, topping } : m))); return; }
+    themVaoGio(s, { note, quantity, topping });
   };
   const chamNap = (g) => {
     if (xong) { if (!daIn) return; batDauDonMoi(); return; }  // đơn mới chưa có khách — chọn khách rồi chạm gói
@@ -226,7 +226,7 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
   };
   const moLaiDong = (d) => {
     if (d.the) { setGio((g) => g.filter((m) => m.key !== d.key)); return; }   // chạm dòng thẻ = bỏ thẻ
-    const s = sp.find((x) => x.id === d.product_id); if (s) setKhung({ sp: s, dong: d });
+    const s = sp.find((x) => x.id === d.product_id); if (s) setKhung({ sp: s.la_topping ? { ...s, price: s.gia_ban_rieng } : s, dong: d });
   };
 
   // ── Thu tiền: MỘT đường phiên cho mọi cách ──
@@ -334,11 +334,14 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
   const nhaQr = useCallback((thongBao) => { setQr(null); setLoi(thongBao); setLanTinhLai((n) => n + 1); }, []);
 
   // NHOM-MON-1: tab theo thứ tự + tên nhóm của máy chủ (nhom_ten / nhom_thu_tu); nhóm tắt "hiện ở quầy" → không tab, không món. nhomTheoMa dùng sp ĐỦ (dòng giỏ cũ).
+  // TOPPING-1: topping không nằm ở lưới món — chọn trong khung, hoặc tab "Topping" nếu bán riêng.
   const spQuay = useMemo(() => sp.filter((p) => p.nhom_hien_quay !== 0), [sp]);
-  const tenNhom = useMemo(() => Object.fromEntries(spQuay.map((p) => [p.category, p.nhom_ten || p.category])), [spQuay]);
-  const dsNhom = useMemo(() => [...new Set(spQuay.map((p) => p.category).filter(Boolean))]
-    .sort((a, b) => (spQuay.find((p) => p.category === a).nhom_thu_tu ?? 9999) - (spQuay.find((p) => p.category === b).nhom_thu_tu ?? 9999)), [spQuay]);
-  const dsMon = nhom === 'all' ? spQuay : spQuay.filter((p) => p.category === nhom);
+  const spBan = useMemo(() => spQuay.filter((p) => !p.la_topping), [spQuay]);
+  const dsRieng = spQuay.filter((p) => p.la_topping && p.gia_ban_rieng > 0);
+  const tenNhom = useMemo(() => Object.fromEntries(spBan.map((p) => [p.category, p.nhom_ten || p.category])), [spBan]);
+  const dsNhom = useMemo(() => [...new Set(spBan.map((p) => p.category).filter(Boolean))]
+    .sort((a, b) => (spBan.find((p) => p.category === a).nhom_thu_tu ?? 9999) - (spBan.find((p) => p.category === b).nhom_thu_tu ?? 9999)), [spBan]);
+  const dsMon = nhom === NHOM_TOPPING ? dsRieng.map((p) => ({ ...p, price: p.gia_ban_rieng })) : nhom === 'all' ? spBan : spBan.filter((p) => p.category === nhom);
   const nhomTheoMa = useMemo(() => Object.fromEntries(sp.filter((p) => p.code && p.category).map((p) => [p.code, p.category])), [sp]);
   const haiTrang = bo === 'hai-trang';
   const hienMon = !haiTrang || trang === 'mon';
@@ -351,6 +354,7 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
         {['all', ...dsNhom].map((n) => (
           <button key={n} className={`bh-tab${nhom === n ? ' bh-chon' : ''}`} onClick={() => setNhom(n)}>{n === 'all' ? 'Tất cả' : tenNhom[n] || n}</button>
         ))}
+        {dsRieng.length > 0 && <button className={`bh-tab${nhom === NHOM_TOPPING ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_TOPPING)}>Topping</button>}
         {dsGoiNap.length > 0 && <button className={`bh-tab${nhom === NHOM_NAP ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_NAP)}>Nạp tiền</button>}
         {(dsGoiThe(dsHang).length > 0 || hangChiCap(dsHang).length > 0) && <button className={`bh-tab${nhom === NHOM_THE ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_THE)}>Thẻ thành viên</button>}
       </div>
@@ -402,8 +406,8 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
     </div>
   );
 
-  const giaDong = (d, i) => {
-    const m = dongMayChu?.[i];
+  const giaDong = (d, i, tp = 0) => {   // tp = 1, 2… → dòng topping thứ tp của dòng giỏ i (máy chủ ghi ngay sau dòng món)
+    const m = dongMayChu ? mayChu.items[viTriMayChu(gio)[i] + tp] : null;
     const hienTai = m ? (m.flash_unit_price ?? m.tier_unit_price ?? m.unit_price) : d.giaHang;
     return { goc: m ? m.unit_price : d.unit_price, hienTai };
   };
@@ -422,10 +426,12 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
           const { goc, hienTai } = giaDong(d, i);
           return (
             <button key={d.key} className="bh-dong" onClick={() => moLaiDong(d)}>
-              <div className="bh-dong-ten"><b>{d.quantity} x {d.product_name}</b>{d.note && <div className="bh-dong-note">{d.note}</div>}{d.the && <div className="bh-dong-note">Chạm để bỏ thẻ</div>}</div>
+              <div className="bh-dong-ten"><b>{d.quantity} x {d.product_name}</b>
+                {d.topping.map((t, k) => <div key={t.product_id} className="bh-dong-tp">+ {t.name}{t.so_phan > 1 ? ` ×${t.so_phan}` : ''} <span>{vnd(giaDong(t, i, k + 1).hienTai * t.so_phan * d.quantity)}</span></div>)}
+                {d.note && <div className="bh-dong-note">{d.note}</div>}{d.the && <div className="bh-dong-note">Chạm để bỏ thẻ</div>}</div>
               <div className="bh-dong-tien">
-                {hienTai < goc && <div className="bh-gia-goc">{vnd(goc * d.quantity)}</div>}
-                <b>{vnd(hienTai * d.quantity)}</b>
+                {hienTai < goc && <div className="bh-gia-goc">{vnd(goc * d.quantity + d.topping.reduce((s, t, k) => s + giaDong(t, i, k + 1).goc * t.so_phan * d.quantity, 0))}</div>}
+                <b>{vnd(hienTai * d.quantity + d.topping.reduce((s, t, k) => s + giaDong(t, i, k + 1).hienTai * t.so_phan * d.quantity, 0))}</b>
               </div>
             </button>
           );
@@ -492,7 +498,7 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
           </button>
         </div>
       )}
-      {khung && <KhungChonMon sp={khung.sp} dong={khung.dong} giaMotLy={giaMotLy(khung.sp)} noi={!haiTrang}
+      {khung && <KhungChonMon sp={khung.sp} dong={khung.dong} dsTopping={sp.filter((p) => p.la_topping)} gio={gio} giaHang={giaMotLy} noi={!haiTrang}
         onLuu={luuKhung} onXoa={() => { setGio((g) => g.filter((m) => m.key !== khung.dong.key)); setKhung(null); }} onDong={() => setKhung(null)} />}
       {hoiPin && (
         <ManPin tieuDe={hoiPin.kieu === 'dat' ? 'Đặt PIN cho tài khoản' : buocPin[hoiPin.i] === 'me' ? `PIN của ${khach?.parent_name || 'tài khoản mẹ'}` : `PIN của ${khach?.name || 'khách'}`}

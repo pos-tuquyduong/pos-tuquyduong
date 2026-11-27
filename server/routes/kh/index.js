@@ -23,6 +23,7 @@ const { dangGiu } = require('../wallets');
 const { getMembershipStatus, isTierUsable, goiBanDuoc } = require('../../utils/membershipStatus');
 const { readFlashState } = require('../../utils/flashState');
 const { tiLeHangMon, giaCacHang } = require('../../utils/giaHang');
+const { TOPPING_TOI_DA_PHAN } = require('../../utils/topping');   // TOPPING-1
 const { docCaiDat, khungHangNgay, traGioHoatDong } = require('../../utils/gioHoatDong');
 const donApp = require('../../utils/donApp');
 const quangCao = require('../quang-cao');   // QC-APP-1: dòng quảng cáo hôm nay (cùng file với Cài đặt quầy)
@@ -44,7 +45,20 @@ const monKhach = (p, dsHang) => ({
   gia_hang: giaCacHang(p.price, p.is_special_group, dsHang),
   // KH-SP-1: thông tin ngắn nhập ở màn Sản phẩm POS; chưa nhập → [] / null. Ảnh món làm sau (KH-SP-2).
   nhu_cau: p.nhu_cau, the_chat: p.the_chat, mo_ta: p.mo_ta, cong_dung: p.cong_dung, thanh_phan: p.thanh_phan, anh: null,
+  ghi_chu_nhanh: p.ghi_chu_nhanh || [],   // TOPPING-1 (layMenuQuay đã trả [] cho topping)
 });
+/**
+ * TOPPING-1 — menu App: món thường thêm topping[] (đúng danh sách cài cho món, topping đang bán) + ghi_chu_nhanh[]; topping KHÔNG hiện như món,
+ * trừ topping có giá bán riêng: hiện như một món nhóm 'topping', giá = giá bán riêng (đơn App đặt riêng đi đúng đường bán riêng của quầy).
+ */
+function menuKhach(mon, dsHang) {
+  const theoId = new Map(mon.map((p) => [Number(p.id), p]));
+  const tp = (t) => ({ ma: t.unique_id, ten: t.name, gia: t.price, gia_hang: giaCacHang(t.price, t.is_special_group, dsHang),
+    con_hang: t.khong_quan_kho ? true : typeof t.stock_quantity === 'number' ? t.stock_quantity > 0 : null });
+  return mon.filter((p) => p.sellable && (!p.la_topping || p.gia_ban_rieng > 0)).map((p) => (p.la_topping
+    ? { ...monKhach({ ...p, price: p.gia_ban_rieng }, dsHang), nhom: 'topping', topping: [] }
+    : { ...monKhach(p, dsHang), topping: p.topping.map((id) => theoId.get(id)).filter((t) => t && t.sellable).map(tp) }));
+}
 // Hạng đang bật — cùng thứ tự GET /api/pos/tiers (thứ bậc).
 const hangDangBat = () => query('SELECT * FROM pos_membership_tiers WHERE is_active = 1 ORDER BY sort_order ASC, id ASC');
 const phanTram = (h) => ({ phan_tram: tiLeHangMon(h, false), phan_tram_nhom_dac_biet: tiLeHangMon(h, true) });
@@ -143,7 +157,7 @@ router.get('/menu', tuyChonKhach, async (req, res) => {
     const [mon, dsHang, the] = await Promise.all([menuApp(), hangDangBat(), req.khach && theCuaKhach(req.khach.phone)]);
     // Hạng đã tắt mà khách còn thẻ: quầy vẫn giảm (orders.js không lọc is_active) → giá hạng đó cũng hiện cho chính khách này.
     if (the && !dsHang.some((h) => h.id === the.h.id)) dsHang.push(the.h);
-    res.json({ success: true, data: mon.filter((p) => p.sellable).map((p) => monKhach(p, dsHang)) });
+    res.json({ success: true, data: menuKhach(mon, dsHang), topping_toi_da_phan: TOPPING_TOI_DA_PHAN });
   } catch (err) {
     loiMayChu(res, err, 'kh menu');
   }

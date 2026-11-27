@@ -93,3 +93,17 @@
 .bh-giao input { width: 100%; min-height: 44px; border: 1.5px solid var(--bh-vien); border-radius: 8px; padding: 0 0.75rem; font-size: 1rem; }
 .bh-giao .bh-nut.bh-lon { width: 100%; margin: 0.2rem 0 0; }
 .bh-loi-nho { color: var(--bh-do); font-size: 0.85rem; }
+/* TOPPING-1: ô topping trong khung chọn món, dòng topping con trong giỏ */
+.bh-muc-nho { font-size: 0.85rem; font-weight: 700; color: var(--bh-xam); }
+.bh-tp-luoi { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.bh-tp-bao { position: relative; display: flex; align-items: stretch; gap: 0.25rem; }
+.bh-tp { position: relative; min-width: 96px; min-height: 72px; border: 1.5px solid var(--bh-vien); border-radius: 10px; background: #fff; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0.35rem 0.5rem; cursor: pointer; }
+.bh-tp.bh-chon { border-color: #16a34a; background: #f0fdf4; }
+.bh-tp:disabled { opacity: 0.4; cursor: not-allowed; }
+.bh-tp-so { position: absolute; top: 2px; right: 6px; color: #16a34a; }
+.bh-tp-anh { width: 30px; height: 30px; border-radius: 8px; background: #fde68a; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; }
+.bh-tp-ten { font-size: 0.85rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.bh-tp-con { color: #b45309; }
+.bh-tp-bot { min-width: 40px; min-height: 44px; border: 1.5px solid var(--bh-vien); border-radius: 8px; background: #fff; font-size: 1.2rem; cursor: pointer; }
+.bh-dong-tp { font-size: 0.8rem; color: var(--bh-xam); padding-left: 0.6rem; display: flex; justify-content: space-between; gap: 0.5rem; }

@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
 import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
+import ToppingMon, { DanhSachTopping } from './ToppingMon';   // TOPPING-1 (B3)
 
 const KIEU = { pha_tai_cho: 'Pha tại chỗ', lam_san: 'Làm sẵn (theo lô)', chua_dinh_luong: 'Chưa định lượng' };
 const so = (x) => Number(Number(x).toFixed(3)).toLocaleString('vi-VN');
@@ -53,6 +54,7 @@ export default function SanPham({ vaiTro, moId }) {
       )}
       <div className="kho-hang"><input className="input" placeholder="Tìm món" value={tim} onChange={(e) => setTim(e.target.value)} />
         {quanLy && <button className="btn btn-primary" onClick={() => setThemMoi(true)}>+ Thêm món</button>}</div>
+      {quanLy && <DanhSachTopping />}
       {theoNhom.map((n) => (
         <div key={n.id ?? 'chua'} style={{ marginBottom: '1rem' }}>
           <h3 className="card-title">{n.ten}</h3>
@@ -151,6 +153,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
   return (
     <div>
     {quanLy && <ThongTinMon sp={sp} dong={(doi) => { if (doi) dong(true); }} />}
+    {quanLy && <ToppingMon sp={sp} />}
     <div className="card" style={{ padding: '1rem' }}>
       <h3 className="card-title">{sp.name}</h3>
       <div className="kho-nho" style={{ marginBottom: '0.75rem' }}>{KIEU[sp.kieu]} · công thức cho 1 {sp.category === 'tea' ? 'gói' : 'phần'}

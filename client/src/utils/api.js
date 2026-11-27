@@ -390,7 +390,8 @@ export const productsApi = {
   updatePrice: (id, price) => api.put(`/products/${id}/price`, { price }),
   toggle: (id) => api.put(`/products/${id}/toggle`, {}),
   updatePricesBatch: (products) => api.put('/products/batch/prices', { products }),
-  updateThongTin: (data) => api.put('/products/thong-tin', data)
+  updateThongTin: (data) => api.put('/products/thong-tin', data),
+  chepNhom: (id) => api.post(`/products/${id}/chep-nhom`, {})   // TOPPING-1: chép topping + ghi chú nhanh cho cả nhóm
 };
 
 // POS-DODNO-v1 · So no kho

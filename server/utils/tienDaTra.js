@@ -8,13 +8,14 @@
  * nên gồm cả giảm cấp đơn (mã, giảm tay). Làm tròn xuống: tổng các dòng không bao giờ vượt số khách trả.
  * `chanTren` (trần đền — damages.js): đơn có mã giảm 1 MÓN thì không biết món nào được giảm (giảm không ghi xuống dòng) →
  * MỌI dòng "đã trả = giá dòng − toàn bộ giảm của mã" — không bao giờ đền quá (chủ quán chốt Câu hỏi 2, 12.10; làm đúng cần cột
- * giảm theo dòng → P26d).
+ * giảm theo dòng → P26d). TOPPING-1: ly có topping là MỘT món nhiều dòng → "giá dòng" = ly + topping của nó (trừ giảm MỘT lần, dồn vào dòng ly;
+ * dòng topping 0).
  * VOUCHER-2 (Q7, chủ quán 12.11): đơn có cờ `giam_mon_thuong` = 1 (từ VOUCHER-2) — mã / voucher chỉ giảm món thường → dòng gói / thẻ / nạp
  * (product_id < 0) đã trả ĐỦ giá; phần còn lại của số khách trả chia theo tỉ lệ trên món thường. Đơn cũ (cờ 0) giữ y cách chia cũ.
  */
 async function tienDaTraTheoDong(tx, order, chanTren = false) {
-  const dong = await tx.query(`SELECT product_id, product_code, quantity, unit_price, flash_unit_price, tier_unit_price
-    FROM pos_order_items WHERE order_id = ? ORDER BY id`, [order.id]);
+  const dong = await tx.query(`SELECT id, product_id, product_code, quantity, unit_price, flash_unit_price, tier_unit_price, dong_cha_id
+    FROM pos_order_items WHERE order_id = ? ORDER BY id`, [order.id]);   // TOPPING-1: id + dong_cha_id để damages.js gom topping vào ly
   const gia = dong.map((d) => Number(d.flash_unit_price || d.tier_unit_price || d.unit_price || 0) * Number(d.quantity));
   const du = dong.map((d) => Number(order.giam_mon_thuong) === 1 && Number(d.product_id) < 0);   // dòng không nhận giảm → đã trả đủ giá
   const tong = gia.reduce((a, b) => a + b, 0);
@@ -24,7 +25,10 @@ async function tienDaTraTheoDong(tx, order, chanTren = false) {
     ? await tx.queryOne('SELECT discount_scope FROM pos_discount_codes WHERE UPPER(code) = UPPER(?)', [order.discount_code]) : null;
   if (ma?.discount_scope === 'item') {
     const giam = Number(order.discount || 0) - Number(order.flash_discount || 0) - Number(order.tier_discount || 0);
-    return dong.map((d, i) => ({ ...d, da_tra: du[i] ? gia[i] : Math.max(0, gia[i] - giam) }));
+    // TOPPING-1 (soát vòng 1): ly có topping là MỘT món nhiều dòng → trừ khoản giảm MỘT lần trên cả nhóm (ly + topping của nó), dồn vào dòng ly;
+    // dòng topping 0 (damages.js gộp con vào cha). Đơn không topping: y cách cũ.
+    const giaNhom = (d, i) => gia[i] + dong.reduce((s, c, j) => s + (c.dong_cha_id != null && Number(c.dong_cha_id) === Number(d.id) ? gia[j] : 0), 0);
+    return dong.map((d, i) => ({ ...d, da_tra: du[i] ? gia[i] : d.dong_cha_id != null ? 0 : Math.max(0, giaNhom(d, i) - giam) }));
   }
   const tongMon = tong - tongDu;
   return dong.map((d, i) => ({ ...d, da_tra: du[i] ? gia[i] : tongMon > 0 ? Math.floor((gia[i] * Math.max(0, tra)) / tongMon) : 0 }));

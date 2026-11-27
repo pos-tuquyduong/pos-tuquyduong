@@ -103,7 +103,8 @@ async function dungHoaDon(o) {
   const tongDon = so(o.total);
   // % hạng THẬT đã giảm lúc bán, suy từ giá đã lưu của từng dòng (không lấy % hiện tại của hạng: hạng có thể đã đổi, món nhóm đặc biệt bỏ qua thẻ).
   // Mọi dòng có giảm cùng một % → số đó; các dòng khác % hoặc không dòng nào giảm → null (bill chỉ in tên hạng, không kèm %).
-  const phanTramDong = items.filter((m) => m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map((m) => Math.round((so(m.unit_price) - so(m.tier_unit_price)) * 100 / so(m.unit_price)));
+  // TOPPING-1: % hạng suy từ dòng LY (dòng topping làm tròn riêng có thể lệch 1 % — không làm mất % trên bill).
+  const phanTramDong = items.filter((m) => m.dong_cha_id == null && m.tier_unit_price != null && so(m.tier_unit_price) < so(m.unit_price)).map((m) => Math.round((so(m.unit_price) - so(m.tier_unit_price)) * 100 / so(m.unit_price)));
   const phanTramHang = phanTramDong.length && phanTramDong.every((p) => p === phanTramDong[0]) ? phanTramDong[0] : null;
   const { giamHang, giamFlash, giamMa } = tinhGiam(o);
   // VOUCHER-2: từng voucher món của đơn (grant đã tiêu) + giảm phí giao (giam_ship; cột shipping_fee là phần khách trả) — CHỈ THÊM để xem.
@@ -129,9 +130,12 @@ async function dungHoaDon(o) {
       const sl = so(m.quantity);
       const goc = so(m.unit_price);
       const hang = m.tier_unit_price != null && so(m.tier_unit_price) < goc ? so(m.tier_unit_price) : null;
+      // TOPPING-1: dòng topping → topping_cua = vị trí dòng ly trong mon[], so_phan = phần / ly (số lượng ÷ số ly của cha). Dòng thường không có hai khoá này.
+      const cha = m.dong_cha_id != null ? items.findIndex((x) => Number(x.id) === Number(m.dong_cha_id)) : -1;
       return {
         so_luong: sl, ten: m.product_name, ghi_chu: m.notes || '', gia_goc: goc, gia_hang: hang,
         thanh_tien_goc: goc * sl, thanh_tien: (hang ?? goc) * sl,
+        ...(cha >= 0 ? { topping_cua: cha, so_phan: Math.round(sl / Math.max(1, so(items[cha].quantity))) } : {}),
       };
     }),
     tien: { gia_goc: gocTong, giam_hang: giamHang, giam_flash: giamFlash, giam_ma: giamMa, ma_giam: o.discount_code || null,

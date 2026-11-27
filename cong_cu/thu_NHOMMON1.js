@@ -279,8 +279,9 @@ async function main() {
     k('A7b K5: món cũ category juice bán như cũ (đơn 200)', la(don, 200), moTa(don));
     const nhomUuDai = await db.queryOne("SELECT name FROM sqlite_master WHERE name IN ('pos_product_groups', 'kho_nhom_cong_thuc')").catch(() => null);
     k('A7c pos_product_groups / kho_nhom_cong_thuc còn nguyên (không bị đụng)', !!nhomUuDai);
-    const ghiChu = fs.readFileSync(path.join(CLIENT, 'pages', 'BanHang', 'ghiChuMacDinh.js'), 'utf8');
-    k('A7d ghi chú nhanh vẫn theo MÃ nhóm (tea / juice)', /tea:\s*\[/.test(ghiChu) && /juice:\s*\[/.test(ghiChu));
+    // Ghép TOPPING-1 (chat bàn 41): ghiChuMacDinh.js đã bỏ — ghi chú nhanh nay theo TỪNG món; bước 036 chép bộ cũ theo MÃ nhóm (tea / juice).
+    const ghiChu = fs.readFileSync(path.join(GOC, 'server', 'nang_cap', '036_topping.js'), 'utf8');
+    k('A7d ghi chú nhanh chép theo MÃ nhóm (tea / juice) — đổi tên nhóm không ảnh hưởng', /tea:\s*\[/.test(ghiChu) && /juice:\s*\[/.test(ghiChu) && /THEO_NHOM\[p\.category\]/.test(ghiChu));
   });
 
   muc('[A4 giao diện · A6] màn Bán hàng + hợp đồng + báo App KH');
@@ -288,11 +289,14 @@ async function main() {
     const bh = fs.readFileSync(path.join(CLIENT, 'pages', 'BanHang', 'BanHangMoi.jsx'), 'utf8');
     k('A4e BanHangMoi bỏ TEN_NHOM viết cứng; tên tab = nhom_ten; thứ tự tab theo nhom_thu_tu; nhóm tắt quầy bị lọc khỏi tab + món (khoá đúng biểu thức, không chỉ có chữ)',
       !/TEN_NHOM/.test(bh) && /spQuay = useMemo\(\(\) => sp\.filter\(\(p\) => p\.nhom_hien_quay !== 0\), \[sp\]\)/.test(bh)
-      && /Object\.fromEntries\(spQuay\.map\(\(p\) => \[p\.category, p\.nhom_ten \|\| p\.category\]\)\)/.test(bh)
-      && /\.sort\(\(a, b\) => \(spQuay\.find\(\(p\) => p\.category === a\)\.nhom_thu_tu \?\? 9999\) - \(spQuay\.find\(\(p\) => p\.category === b\)\.nhom_thu_tu \?\? 9999\)\)/.test(bh)
-      && /const dsMon = nhom === 'all' \? spQuay : spQuay\.filter/.test(bh) && /tenNhom\[n\] \|\| n/.test(bh));
+      // Ghép TOPPING-1: lưới món = spBan (spQuay bỏ topping) — cùng biểu thức lọc nhóm, cùng tên / thứ tự.
+      && /spBan = useMemo\(\(\) => spQuay\.filter\(\(p\) => !p\.la_topping\), \[spQuay\]\)/.test(bh)
+      && /Object\.fromEntries\(spBan\.map\(\(p\) => \[p\.category, p\.nhom_ten \|\| p\.category\]\)\)/.test(bh)
+      && /\.sort\(\(a, b\) => \(spBan\.find\(\(p\) => p\.category === a\)\.nhom_thu_tu \?\? 9999\) - \(spBan\.find\(\(p\) => p\.category === b\)\.nhom_thu_tu \?\? 9999\)\)/.test(bh)
+      && /nhom === 'all' \? spBan : spBan\.filter/.test(bh) && /tenNhom\[n\] \|\| n/.test(bh));
     const hd = fs.readFileSync(path.join(GOC, 'HOP_DONG_API_KH.md'), 'utf8');
-    k('A6a hợp đồng: PHIEN_BAN 19, nhom_ten + nhom_thu_tu', /PHIEN_BAN:\s*19\b/.test(hd) && /nhom_ten/.test(hd) && /nhom_thu_tu/.test(hd));
+    // Ghép TOPPING-1: việc sau lấy số kế tiếp (v20…) — khoá dòng nhật ký v19 của việc này + PHIEN_BAN không lùi.
+    k('A6a hợp đồng: nhật ký v19 NHOM-MON-1, PHIEN_BAN ≥ 19, nhom_ten + nhom_thu_tu', /^- v19 · [^\n]*NHOM-MON-1/m.test(hd) && Number((hd.match(/^PHIEN_BAN:\s*(\d+)/m) || [])[1]) >= 19 && /nhom_ten/.test(hd) && /nhom_thu_tu/.test(hd));
     k('A6b có BAO_APPKH.md nhắc nhom_ten + nhom_thu_tu', (() => { try { const t = fs.readFileSync(path.join(GOC, 'viec', 'NHOM-MON-1', 'BAO_APPKH.md'), 'utf8'); return /nhom_ten/.test(t) && /nhom_thu_tu/.test(t); } catch { return false; } })());
     const sanpham = fs.readFileSync(path.join(CLIENT, 'pages', 'Kho', 'SanPham.jsx'), 'utf8');
     k('A3e SanPham.jsx: ô Nhóm là ô chọn (select), không còn ô gõ tay', /<select[^>]*>[\s\S]{0,400}nhom/i.test(sanpham) && !/Nhóm \(tab ở màn Bán hàng\)<input/.test(sanpham));

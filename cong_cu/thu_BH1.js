@@ -137,8 +137,31 @@ async function main() {
   thu('E3 đang có 4 + thêm 1 với tồn 5 → được (ngay dưới)', () => f('kiemTraThem')(sanPham(), 4, 1) === null);
   thu('E4 đang có 5 + thêm 1 với tồn 5 → không đủ hàng (ngay trên)', () => /Không đủ hàng/.test(f('kiemTraThem')(sanPham(), 5, 1) || ''));
   thu('E5 khong_quan_kho: bỏ qua tồn', () => f('kiemTraThem')(sanPham({ khong_quan_kho: true, stock_quantity: 0 }), 99, 3) === null);
-  thu('E6 ghiChuMacDinh: nhóm tea, juice có danh sách; nhóm lạ có danh sách dự phòng', () =>
-    ['tea', 'juice', 'nhom_la'].every((n) => Array.isArray(f('ghiChuMacDinh')(n)) && f('ghiChuMacDinh')(n).length > 0));
+  // TOPPING-1 (chủ quán duyệt bỏ ghiChuMacDinh.js — ghi chú nhanh + topping cài theo TỪNG món): E6 cũ thử bộ viết cứng theo nhóm, nay thay bằng E8–E13.
+  thu('E8 coTuyChon: món có topping hoặc ghi chú nhanh → mở khung; không có cả hai → chạm là vào giỏ', () =>
+    f('coTuyChon')({ topping: [3] }) && f('coTuyChon')({ ghi_chu_nhanh: ['Ít đá'] }) && !f('coTuyChon')({ topping: [], ghi_chu_nhanh: [] }) && !f('coTuyChon')({}));
+  const tpA = (so_phan) => ({ product_id: 9, sx_product_type: 'pos', sx_product_id: 9, unit_price: 10000, so_phan });
+  thu('E9 khoaGop: cùng món + cùng topping (khác thứ tự) + cùng ghi chú → cùng khoá; khác phần / ghi chú → khác', () => {
+    const g = f('khoaGop'), b = { product_id: 5, note: 'Ít đá' };
+    return g({ ...b, topping: [tpA(2), { ...tpA(1), product_id: 8 }] }) === g({ ...b, topping: [{ ...tpA(1), product_id: 8 }, tpA(2)] })
+      && g({ ...b, topping: [tpA(2)] }) !== g({ ...b, topping: [tpA(1)] }) && g({ ...b, topping: [] }) !== g({ ...b, note: '', topping: [] });
+  });
+  thu('E10 tinhGio: 2 ly 45.000 + 2 phần topping 10.000 → 130.000 (tính tay); hạng 10 % giảm cả topping → 117.000', () =>
+    f('tinhGio')([{ product_id: 5, unit_price: 45000, quantity: 2, topping: [tpA(2)] }], {}).tong === 130000
+    && f('tinhGio')([{ product_id: 5, unit_price: 45000, quantity: 2, topping: [tpA(2)] }], { hang: { usable: true, discount_percent: 10 } }).tong === 117000);
+  thu('E11 tpCanTrongGio: topping trong ly × số ly + dòng bán riêng, bỏ dòng đang sửa', () => {
+    const gio = [{ key: 1, product_id: 5, quantity: 2, topping: [tpA(3)] }, { key: 2, product_id: 9, quantity: 1 }, { key: 3, product_id: 6, quantity: 1, topping: [tpA(1)] }];
+    return f('tpCanTrongGio')(gio, 9) === 8 && f('tpCanTrongGio')(gio, 9, 1) === 2;
+  });
+  thu('E12 viTriMayChu / soDongMayChu: dòng topping máy chủ ghi ngay sau món, thẻ cuối', () => {
+    const gio = [{ product_id: 5, quantity: 1, topping: [tpA(1), { ...tpA(1), product_id: 8 }] }, { the: { tier_id: 1 } }, { product_id: 6, quantity: 1 }];
+    return bang(f('viTriMayChu')(gio), [0, 4, 3]) && f('soDongMayChu')(gio) === 5;
+  });
+  thu('E13 thanTinhThu gửi topping { product_id, khoá SX, so_phan } — KHÔNG gửi giá; dòng không topping không có khoá topping', () => {
+    const t = f('thanTinhThu')([{ product_id: 5, sx_product_type: 'pos', sx_product_id: 5, quantity: 2, unit_price: 45000, topping: [tpA(2)] },
+      { product_id: 6, sx_product_type: 'pos', sx_product_id: 6, quantity: 1, unit_price: 20000 }], null, '');
+    return bang(t.items[0].topping, [{ product_id: 9, sx_product_type: 'pos', sx_product_id: 9, so_phan: 2 }]) && !('topping' in t.items[1]);
+  });
   thu('E7 ghép ghi chú: bật / tắt từng nhãn + ô tự gõ, bỏ trùng, cắt 200 ký tự', () => {
     const g = f('ghepGhiChu');
     return g(['Ít đá', 'Ít ngọt'], ' ít đá ') === 'Ít đá, Ít ngọt' && g([], '') === '' && g(['a'], 'x'.repeat(300)).length === 200;
