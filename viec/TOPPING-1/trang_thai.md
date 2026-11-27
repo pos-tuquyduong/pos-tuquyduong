@@ -281,3 +281,10 @@ HEAD ĐÃ KIỂM: 7e532c40
 - --day-du trên cây ghép: PASS 130 · FAIL 2 (thu_TOPPING1 trước khi sửa bài — nay 103/0; thu_NDAPI1 môi trường chat). Cổng chạy: dựa vào kiểm PR cong-chay.
 
 HEAD ĐÃ KIỂM: 3939072f
+
+## Ghép lại sau khi NHOM-MON-1 ghép main 0795f2a1 (chat bàn 41, 27.11 chiều)
+- Ghép viec/NHOM-MON-1 11d3d490: chỉ dist, build lại.
+- thu_NHOMMON1 (bài của NHOM-MON-1) đỏ 3 ca vì code đã ghép: A7d (ghiChuMacDinh.js bỏ → khoá bộ chép theo mã ở 036), A4e (lưới = spBan), A6a (PHIEN_BAN ≥ 19 + dòng nhật ký v19). Sửa 3 ca, 50/0. Gắn thu_NHOMMON1 vào bộ kiểm (máy NHOM-MON-1 chưa gắn — bộ kiểm không canh bài này).
+- --day-du: PASS 134 · FAIL 1 (thu_NDAPI1 môi trường chat).
+
+HEAD ĐÃ KIỂM: 161f810c
