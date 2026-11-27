@@ -1042,6 +1042,7 @@ export default function Settings() {
           {loading ? <div className="loading">Đang tải...</div> : tab === 'products' ? (
             /* TAB GIÁ BÁN */
             <>
+              <NhomMon duocSua={hasPermission('manage_settings')} />
               {/* POS-MOTNUTLUU-v1: MOT nut luu ca gia lan tick voucher.
                   Truoc day hai nut rieng cho cung mot bang, kem mot dong giai
                   thich — go gia xong bam nham nut la mat phan vua go. */}
@@ -1101,7 +1102,7 @@ export default function Settings() {
                           color: p.category === 'tea' ? '#f59e0b' : '#22c55e',
                           fontSize: '0.85rem'
                         }}>
-                          {p.category === 'juice' ? 'Nước ép' : 'Trà'}
+                          {p.nhom_ten || p.category}
                         </span>
                       </td>
                       <td>
@@ -2359,5 +2360,70 @@ export default function Settings() {
         }
       `}</style>
     </>
+  );
+}
+
+// NHOM-MON-1: Cài đặt › Giá bán & nhóm món — MỘT danh sách nhóm cho quầy, App KH, Kho. Mã nhóm không đổi; chỉ tên, thứ tự, hai công tắc. Máy chủ chặn (409) xoá nhóm còn món / nhóm gốc.
+function NhomMon({ duocSua }) {
+  const [ds, setDs] = useState(null);
+  const [tenMoi, setTenMoi] = useState('');
+  const [suaMa, setSuaMa] = useState(null);
+  const [tenSua, setTenSua] = useState('');
+  const [xem, setXem] = useState([]);
+  const [dang, setDang] = useState(false);
+  const tai = async () => {
+    try {
+      const [n, x] = await Promise.all([api.get('/products/nhom'), api.get('/products/nhom/xem-truoc')]);
+      setDs(n.data || []); setXem(x.data || []);
+    } catch (e) { baoLoiTu('tải nhóm món', e); }
+  };
+  useEffect(() => { tai(); }, []);
+  const lam = async (viec, fn) => {
+    if (dang) return;
+    setDang(true);
+    try { await fn(); await tai(); } catch (e) { baoLoiTu(viec, e); } finally { setDang(false); }
+  };
+  const doiViTri = (i, d) => { const m = ds.map((g) => g.ma); [m[i], m[i + d]] = [m[i + d], m[i]]; return lam('đổi thứ tự', () => api.put('/products/nhom-thu-tu', { ma: m })); };
+  const nhomTrenApp = [...new Map(xem.map((x) => [x.nhom, x])).values()].sort((a, b) => a.nhom_thu_tu - b.nhom_thu_tu);
+  if (!ds) return null;
+  return (
+    <div className="card" style={{ marginBottom: '1rem', background: '#fafafa' }}>
+      <div className="card-title">Nhóm món</div>
+      <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 0.5rem' }}>Tên và thứ tự ở đây đổi cho cả quầy, App khách hàng và Kho. Mã nhóm giữ nguyên nên ghi chú nhanh, voucher, đơn cũ không đổi.</p>
+      <table className="table">
+        <thead><tr><th>Nhóm</th><th>Hiện ở quầy</th><th>Hiện trên App</th>{duocSua && <th></th>}</tr></thead>
+        <tbody>
+          {ds.map((g, i) => (
+            <tr key={g.ma}>
+              <td>{suaMa === g.ma
+                ? <input className="input" value={tenSua} maxLength={40} onChange={(e) => setTenSua(e.target.value)} />
+                : <strong>{g.ten}</strong>}</td>
+              <td><input type="checkbox" checked={!!g.hien_quay} disabled={!duocSua || dang} onChange={(e) => lam('đổi hiện ở quầy', () => api.put(`/products/nhom/${g.ma}`, { hien_quay: e.target.checked ? 1 : 0 }))} /></td>
+              <td><input type="checkbox" checked={!!g.hien_app} disabled={!duocSua || dang} onChange={(e) => lam('đổi hiện trên App', () => api.put(`/products/nhom/${g.ma}`, { hien_app: e.target.checked ? 1 : 0 }))} /></td>
+              {duocSua && (
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  <button className="btn btn-outline" disabled={dang || i === 0} onClick={() => doiViTri(i, -1)}>Lên</button>{' '}
+                  <button className="btn btn-outline" disabled={dang || i === ds.length - 1} onClick={() => doiViTri(i, 1)}>Xuống</button>{' '}
+                  {suaMa === g.ma
+                    ? <button className="btn btn-primary" disabled={dang} onClick={() => lam('sửa tên nhóm', async () => { await api.put(`/products/nhom/${g.ma}`, { ten: tenSua }); setSuaMa(null); })}>Lưu tên</button>
+                    : <button className="btn btn-outline" disabled={dang} onClick={() => { setSuaMa(g.ma); setTenSua(g.ten); }}>Sửa tên</button>}{' '}
+                  <button className="btn btn-outline" disabled={dang} onClick={() => { if (window.confirm(`Xoá nhóm "${g.ten}"? Chỉ xoá được nhóm không còn món.`)) lam('xoá nhóm', () => api.delete(`/products/nhom/${g.ma}`)); }}><Trash2 size={14} /></button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {duocSua && (
+        <div className="flex gap-1 mt-1">
+          <input className="input" placeholder="Tên nhóm mới" value={tenMoi} maxLength={40} onChange={(e) => setTenMoi(e.target.value)} />
+          <button className="btn btn-primary" disabled={dang || !tenMoi.trim()} onClick={() => lam('thêm nhóm', async () => { await api.post('/products/nhom', { ten: tenMoi }); setTenMoi(''); })}><Plus size={16} /> Thêm nhóm</button>
+        </div>
+      )}
+      <div style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
+        <strong>Xem trước: khách thấy trên App</strong>
+        <div>{nhomTrenApp.length ? nhomTrenApp.map((n) => `${n.nhom_ten} (${xem.filter((x) => x.nhom === n.nhom).length} món)`).join(' · ') : 'Chưa có món nào hiện trên App'}</div>
+      </div>
+    </div>
   );
 }

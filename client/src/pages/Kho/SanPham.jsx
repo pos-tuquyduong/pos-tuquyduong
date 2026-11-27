@@ -75,6 +75,8 @@ function ThongTinMon({ sp, dong }) {
   const [f, setF] = useState({ name: sp?.name ?? '', category: sp?.category ?? 'juice', price: sp?.price ?? '', unit: sp?.unit ?? 'ly',
     sort_order: sp?.sort_order ?? 0, is_active: sp ? Number(sp.is_active) : 1 });
   const [dang, setDang] = useState(false);
+  const [dsNhom, setDsNhom] = useState([]);   // NHOM-MON-1: nhóm chọn từ danh sách chung (Cài đặt › Nhóm món), không gõ tay
+  useEffect(() => { api.get('/products/nhom').then((r) => setDsNhom(r.data || [])).catch((e) => baoLoiTu('tải nhóm món', e)); }, []);
   const doi = (gt) => setF({ ...f, ...gt });
   const luu = async () => {
     if (dang) return;
@@ -98,7 +100,9 @@ function ThongTinMon({ sp, dong }) {
       <h3 className="card-title">{sp ? 'Thông tin bán' : 'Thêm món'}</h3>
       <div className="kho-form">
         <label>Tên món<input className="input" value={f.name} onChange={(e) => doi({ name: e.target.value })} /></label>
-        <label>Nhóm (tab ở màn Bán hàng)<input className="input" value={f.category} onChange={(e) => doi({ category: e.target.value })} /></label>
+        <label>Nhóm (tab ở màn Bán hàng)<select className="input" value={f.category} onChange={(e) => doi({ category: e.target.value })}>
+          {(dsNhom.some((g) => g.ma === f.category) ? dsNhom : [...dsNhom, { ma: f.category, ten: f.category }]).map((g) => <option key={g.ma} value={g.ma}>{g.ten}</option>)}
+        </select></label>
         <label>Giá bán (đồng)<input className="input" type="number" min="0" step="1000" value={f.price ?? ''} onChange={(e) => doi({ price: e.target.value })} /></label>
         <label>Đơn vị<input className="input" value={f.unit} onChange={(e) => doi({ unit: e.target.value })} /></label>
         <label>Thứ tự<input className="input" type="number" step="1" value={f.sort_order} onChange={(e) => doi({ sort_order: e.target.value })} /></label>
