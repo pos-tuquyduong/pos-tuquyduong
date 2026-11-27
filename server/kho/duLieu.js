@@ -196,10 +196,10 @@ async function ghiKho(tx, phieuId, lucLam, luc) {
   const nlIds = [...new Set(xuat.map((d) => Number(d.nguyen_lieu_id)))];
   const gia = theoId(nlIds.length ? await tx.query(`SELECT id, gia_nhap FROM kho_nguyen_lieu WHERE id IN (${dauHoi(nlIds)})`, nlIds) : []);
   const giaCua = (d) => gia.get(Number(d.nguyen_lieu_id))?.gia_nhap ?? null;
-  for (const d of dong.filter((x) => x.loai === 'thanh_pham')) {
+  for (const d of dong.filter((x) => x.loai === 'thanh_pham')) {   // KHO-GON-1 Q8: kiểm kê có thể giảm phiếu chờ về 0 phần — không chia giá vốn cho 0
     const sp = await tx.queryOne('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [d.san_pham_id]);
     const cua = xuat.filter((x) => Number(x.cho_mon_id) === Number(d.san_pham_id));
-    const giaVon = cua.length && cua.every((x) => giaCua(x) != null) ? Math.round(cua.reduce((t, x) => t - x.so_luong * giaCua(x), 0) / d.so_luong) : null;
+    const giaVon = Number(d.so_luong) > 0 && cua.length && cua.every((x) => giaCua(x) != null) ? Math.round(cua.reduce((t, x) => t - x.so_luong * giaCua(x), 0) / d.so_luong) : null;
     const lo = await tx.run('INSERT INTO kho_lo (san_pham_id, so_luong, han_dung, gia_von, phieu_id, tao_luc) VALUES (?, ?, ?, ?, ?, ?)',
       [d.san_pham_id, d.so_luong, hanLo(lucLam, sp?.han_ngay), giaVon, phieuId, luc]);
     await tx.run('UPDATE kho_phieu_dong SET lo_id = ? WHERE id = ?', [Number(lo.lastInsertRowid), d.id]);

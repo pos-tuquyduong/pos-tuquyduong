@@ -5,12 +5,13 @@
  */
 const tinh = require('./tinh');
 const duLieu = require('./duLieu');
+const banHang = require('./banHang');   // chỉ ĐỌC (Cấm sửa): monChuaSan · tonMenu · kiemDuHang
 
 const loi = (http, code, error) => ({ loi: [http, { error, code }] });
 const KHOA_SO_CA = 'kho_so_ca';
 const KHOA_QL_CHINH_TAY = 'kho_ql_chinh_tay';
 const TEN_LOAI_DB = { xong_viec: 'Xong việc', mo_lai: 'Mở lại việc', them_viec: 'Thêm việc phát sinh', pha_che: 'Pha chế', nhan_hang: 'Nhận hàng',
-  phat_sinh: 'Phát sinh', kiem_ke: 'Chốt kiểm kê', nhan_ca: 'Nhận ca', chinh_tay: 'Chỉnh tồn tay', tu_choi_sau_chot: 'Phiếu chờ bị từ chối sau lần chốt' };
+  phat_sinh: 'Phát sinh', giam_phieu_cho: 'Kiểm kê giảm phiếu pha chế chờ', kiem_ke: 'Chốt kiểm kê', nhan_ca: 'Nhận ca', chinh_tay: 'Chỉnh tồn tay', tu_choi_sau_chot: 'Phiếu chờ bị từ chối sau lần chốt' };
 
 /** Cài đặt đọc phòng thủ (khoá kho_* chủ quán ghi được qua PUT /settings không kiểm giá trị): chỉ '2' là hai ca, chỉ '1' là quản lý được chỉnh tay. */
 async function docCaiDat(csdl) {
@@ -185,16 +186,33 @@ async function xoaMau(tx, id) {
   return {};
 }
 
+/**
+ * B6 "Cần chú ý": món quầy không bán được = monChuaSan (chưa công thức / làm sẵn hết lô) + món PHA TẠI CHỖ hết nguyên liệu (tonMenu ra 0 phần, không bật
+ * "bán khi thiếu") — tên nguyên liệu lấy từ lời báo của CHÍNH phép kiểm bán (kiemDuHang, 1 ly) — không chép công thức.
+ */
+async function monCanChuY(csdl, luc) {
+  const mon = (await banHang.monChuaSan(csdl, luc)).mon;
+  const menu = await banHang.tonMenu(csdl, luc);
+  for (const p of await csdl.query("SELECT p.id, p.name FROM kho_san_pham s JOIN pos_products p ON p.id = s.pos_product_id WHERE s.kieu = 'pha_tai_cho' AND p.is_active = 1 ORDER BY p.sort_order, p.name")) {
+    const t = menu.get(Number(p.id));
+    if (!t || t.chua_cong_thuc || t.khong_quan_kho || t.stock_quantity > 0) continue;
+    const thieu = await banHang.kiemDuHang(csdl, [{ product_id: Number(p.id), quantity: 1 }], { bayGio: luc });
+    const ten = /^Thiếu nguyên liệu: (.+) cho /.exec(thieu?.body?.error || '')?.[1];
+    mon.push({ san_pham_id: Number(p.id), ten: p.name, ly_do: `Pha tại chỗ: hết ${ten || 'nguyên liệu'}` });
+  }
+  return mon;
+}
+
 // ── Diễn biến · đã xem (theo NGƯỜI) ──
 const denIdCua = async (csdl, nguoi) => Number((await csdl.queryOne('SELECT den_id FROM kho_dien_bien_xem WHERE nguoi = ?', [nguoi]))?.den_id || 0);
 const soChuaXem = async (csdl, nguoi, ngay) => Number((await csdl.queryOne('SELECT COUNT(*) AS n FROM kho_dien_bien WHERE ngay = ? AND id > ?',
   [ngay, await denIdCua(csdl, nguoi)])).n);
 
-async function dienBien(csdl, nguoi, ngay, monChuaSan) {
+async function dienBien(csdl, nguoi, ngay, monChuaSan) {   // monChuaSan = monCanChuY (đường truyền vào)
   const den = await denIdCua(csdl, nguoi);
   return { ngay, den_id: den, dong: await csdl.query('SELECT * FROM kho_dien_bien WHERE ngay = ? ORDER BY id DESC', [ngay]),
     chua_xem: await soChuaXem(csdl, nguoi, ngay),
-    can_chu_y: { mon_chua_san: monChuaSan.mon, dien_bien: await csdl.query('SELECT * FROM kho_dien_bien WHERE chu_y = 1 AND id > ? ORDER BY id DESC LIMIT 50', [den]) } };
+    can_chu_y: { mon_chua_san: monChuaSan, dien_bien: await csdl.query('SELECT * FROM kho_dien_bien WHERE chu_y = 1 AND id > ? ORDER BY id DESC LIMIT 50', [den]) } };
 }
 
 /** Đã xem tới den_id (không quá id lớn nhất lúc bấm — dòng tới sau vẫn là chưa xem). */
@@ -206,4 +224,4 @@ async function daXem(tx, nguoi, denId) {
 }
 
 module.exports = { docCaiDat, luuCaiDat, ghiDienBien, homNay, themViec, xongViec, moLai, tuXong, sauTaoPhieu, canhBaoSauChot, dsMau, themMau, suaMau, doiThuTu, xoaMau,
-  soChuaXem, dienBien, daXem };
+  soChuaXem, dienBien, daXem, monCanChuY };

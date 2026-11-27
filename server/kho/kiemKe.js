@@ -98,12 +98,39 @@ async function ghiKK(tx, ds, { nguoi, luc, ghiChu = null, lyDo = null, maGui = n
       await ghi(m, Number(lo.lastInsertRowid), dc, gia ?? null, gc);
       continue;
     }
+    let thieuLo = 0;
     for (const x of tinh.chiaTheoLo([{ khoa: 0, luong: -dc }], await duLieu.conLaiTheoLo(tx, `l.${cotCua(m)} = ?`, [maCua(m)], LO_FEFO))) {
-      if (x.lo_id == null && m.san_pham_id) return loi(409, 'KHO_TON_DOI', 'Thành phẩm không còn đủ lô — tải lại');
+      if (x.lo_id == null && m.san_pham_id) { thieuLo += x.luong; continue; }
       await ghi(m, x.lo_id, -x.luong, nl ? nl.gia_nhap ?? null : null, gc);
+    }
+    if (thieuLo > tinh.SAI_SO && (await giamPhieuCho(tx, m, thieuLo, { nguoi, luc })) > tinh.SAI_SO) {
+      return loi(409, 'KHO_TON_DOI', 'Thành phẩm không còn đủ lô — tải lại');
     }
   }
   return { id };
+}
+
+/**
+ * Q8 (chủ quán 27.11, cách a): phần thiếu của thành phẩm vượt số lô = phần của phiếu pha chế CHỜ duyệt (chưa có lô — tongDong đã tính nó, Q4) →
+ * trừ vào CHÍNH phiếu chờ: giảm số phần dòng thành phẩm (mới nhất trước), ly_do "kiểm kê: đếm thiếu n", dòng cam. Dòng xuất nguyên liệu GIỮ nguyên
+ * (đã dùng thật — hao hụt). Trả phần thiếu chưa trừ được (> 0 → chỗ gọi 409).
+ */
+async function giamPhieuCho(tx, m, thieu, { nguoi, luc }) {
+  const ds = await tx.query(`SELECT d.id, d.so_luong, p.id AS phieu_id, p.so_phieu, p.ly_do FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id
+    WHERE p.trang_thai = 'cho_duyet' AND p.loai = 'PX' AND d.loai = 'thanh_pham' AND d.san_pham_id = ? AND d.so_luong > 0 ORDER BY p.id DESC, d.id DESC`, [maCua(m)]);
+  let con = thieu;
+  for (const d of ds) {
+    if (con <= tinh.SAI_SO) break;
+    const bot = Math.min(con, Number(d.so_luong));
+    const kq = await tx.run("UPDATE kho_phieu_dong SET so_luong = so_luong - ? WHERE id = ? AND so_luong >= ? - 1e-9", [bot, d.id, bot]);
+    if (!kq.changes) continue;
+    const lyDo = `kiểm kê: đếm thiếu ${gon(bot)}`;
+    await tx.run("UPDATE kho_phieu SET ly_do = ? WHERE id = ? AND trang_thai = 'cho_duyet'", [d.ly_do ? `${d.ly_do} · ${lyDo}` : lyDo, d.phieu_id]);
+    await viec.ghiDienBien(tx, { luc, loai: 'giam_phieu_cho', nguoi, chuY: true, phieuId: Number(d.phieu_id),
+      chiTiet: `${d.so_phieu}: ${m.ten || ''} ${gon(d.so_luong)} → ${gon(Number(d.so_luong) - bot)} phần (${lyDo}) — nguyên liệu giữ theo phiếu gốc` });
+    con -= bot;
+  }
+  return con;
 }
 
 const moTaDong = (d) => `${d.ten} ${gon(d.goc)}→${gon(d.chot)} (${d.ghi_chu || 'chưa giải thích'})`;
@@ -191,7 +218,7 @@ async function chinhTay(tx, { than, nguoi, luc, maGui, lyDo }) {
   const dc = thuc - g.goc;
   if (g.hien + dc < -tinh.SAI_SO) return loi(409, 'KHO_TON_DOI', 'Tồn vừa đổi — tải lại');
   if (Math.abs(dc) <= tinh.SAI_SO) return { phieu_id: null };
-  const r = await ghiKK(tx, [{ m, dc, ghiChu: lyDo }], { nguoi, luc, lyDo, maGui, ghiChu: 'Chỉnh tồn tay' });
+  const r = await ghiKK(tx, [{ m: { ...m, ten: co.ten }, dc, ghiChu: lyDo }], { nguoi, luc, lyDo, maGui, ghiChu: 'Chỉnh tồn tay' });
   if (r.loi) return r;
   await viec.ghiDienBien(tx, { luc, loai: 'chinh_tay', nguoi, chuY: true, phieuId: r.id, chiTiet: `${co.ten} ${gon(g.goc)} → ${gon(thuc)} (${lyDo})` });
   return { phieu_id: r.id };

@@ -415,7 +415,7 @@ router.post('/chinh-tay', QUAN_LY, (req, res, next) => (lyDoCua(req) ? next() : 
 
 router.get('/dien-bien', QUAN_LY, doc(async (req) => {
   const luc = getNow();
-  return viec.dienBien(csdl, req.user.username, luc.slice(0, 10), await banHang.monChuaSan(csdl, luc));
+  return viec.dienBien(csdl, req.user.username, luc.slice(0, 10), await viec.monCanChuY(csdl, luc));
 }));
 router.get('/dien-bien/so', QUAN_LY, doc(async (req) => ({ chua_xem: await viec.soChuaXem(csdl, req.user.username, getNow().slice(0, 10)) })));
 router.post('/dien-bien/da-xem', QUAN_LY, ghiVaTra((req, tx) => viec.daXem(tx, req.user.username, req.body?.den_id)));
