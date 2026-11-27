@@ -17,18 +17,9 @@
 - Phiếu dặn **Chờ duyệt kế hoạch** → viết `ke_hoach.md`, commit, push, DỪNG ở bước 3.
 
 ## Câu hỏi
-- **(27.11, mở) Chat sửa phiếu:** máy được duyệt Q1 nhưng người gác [G1-PHIEU] chặn máy sửa `phieu.md`. Chat thêm vào `## Phạm vi` 8 dòng:
-  `server/routes/hoaDon.js` · `server/routes/damages.js` · `client/src/utils/hoaDon.js` · `client/src/utils/inPhieu.js` ·
-  `client/src/components/InvoicePreview.jsx` · `client/src/components/InvoicePrint.jsx` · `client/src/pages/DonApp.jsx` · `client/src/pages/Orders.jsx`.
-  Tới lúc đó `cong.js` sẽ báo ✗ Phạm vi cho các file này — máy vẫn làm theo duyệt của chat (27.11).
-  **Cập nhật:** người gác [G5-NGOAIPV] chặn cả việc SỬA 8 file đó khi phiếu chưa ghi → máy làm hết phần trong Phạm vi, để lại các phần cần 8
-  file (báo sự cố Q7 ở `damages.js`; dữ liệu hoá đơn `routes/hoaDon.js`; tờ hoá đơn `utils/hoaDon.js` + `InvoicePreview.jsx` + `InvoicePrint.jsx`;
-  tem / phiếu pha chế `utils/inPhieu.js`; màn Đơn App `DonApp.jsx`; Lịch sử đơn `Orders.jsx`). Chat sửa phiếu xong → `/lam-viec TOPPING-1 tiep`.
-  Việc còn lại khi mở: (1) 8 file trên; (2) đột biến cho damages.js / diemThat.js (Q7) + hoá đơn / tem, bỏ `--bo C4,Q7` trong dot_bien.py;
-  (3) thêm `chayBaiThat('cong_cu/thu_TOPPING1.js')` vào `kiem_tra_truoc_khi_giao.js` (chưa thêm vì bài còn 10 ca đỏ đúng phần chờ — thêm bây giờ
-  là làm cổng đỏ); (4) `/ra-soat`, `/soat-bao-mat`, `cong.js chay`, báo cáo 7 mục. Bước 8–11 CHƯA chạy.
-Xem `ke_hoach.md` mục **8** và **10** (Q1 xin thêm Phạm vi — 8 file; Q2–Q7 xác nhận đề xuất tiền / điểm / hiển thị). Kế hoạch chờ chat duyệt.
-Agent phụ soát kế hoạch (4 câu) — đã nhận hết vào mục 10.
+- (ĐÃ ĐÓNG 27.11) Xin chat ghi 8 file vào Phạm vi — người gác [G1-PHIEU] chặn máy sửa phiếu, [G5-NGOAIPV] chặn sửa file ngoài Phạm vi. Chat ghi
+  ở commit 80f4fe87; máy làm tiếp phần cần 8 file ở `/lam-viec TOPPING-1 tiep`.
+- Kế hoạch: Q1–Q7 chat duyệt 27.11 (mục dưới). Agent phụ soát kế hoạch (4 câu) — đã nhận vào `ke_hoach.md` mục 10.
 
 ## Chat duyệt kế hoạch (27.11, chat bàn 41)
 Q1 thêm 8 file vào Phạm vi (ghi vào phieu.md) · Q2 topping giảm Flash chỉ khi chính topping trong danh sách · Q3 voucher nhóm giảm cả topping của
@@ -47,9 +38,14 @@ nhánh này, sửa BanHangMoi.jsx tối thiểu, ghi Phát hiện. Làm tiếp b
   (thêm cột đọc), `utils/diemThat.js` (Q7 phần điểm), `routes/kh/index.js`, `utils/donApp.js`, `utils/manKhach.js`, `utils/giaoHang.js`; hợp đồng v19.
 - Quầy: `BanHang/tinh.js`, `KhungChonMon.jsx`, `BanHangMoi.jsx`, `banHang.css`, bỏ `ghiChuMacDinh.js`; `Kho/SanPham.jsx` + `Kho/ToppingMon.jsx` (mới);
   `components/InPhieu.jsx` (vẽ dòng topping khi dữ liệu tem có); `utils/api.js`; `client/dist` đã build.
-- CHỜ 8 file (Câu hỏi): ca T09, T09c, T10 ×2, T44 ×2 (hoá đơn / tem / pha chế) và T28b–T28e (sự cố Q7) còn ĐỎ — đúng phần chưa làm được.
+- Sau khi chat mở Phạm vi (tiep): `routes/damages.js` (Q7 báo theo ly, trần gồm topping, TOPPING_BAO_THEO_LY), `routes/hoaDon.js` (topping_cua,
+  so_phan; % hạng theo dòng ly), `utils/dongHoaDon.js`, `client/src/utils/hoaDon.js`, `InvoicePreview.jsx`, `InvoicePrint.jsx`, `utils/inPhieu.js` (tem +
+  phiếu pha chế gom topping, đọc cả đơn vừa tạo lẫn đơn in lại), `DonApp.jsx`, `Orders.jsx`; `thu_TOPPING1.js` gắn vào `kiem_tra_truoc_khi_giao.js`;
+  bỏ cờ `--bo` (bài thử + dot_bien.py). `BAO_APPKH.md` (thư lời thường cho App KH).
+- Vòng sửa 1 (sau `/ra-soat` KHÔNG ĐẠT): `utils/tienDaTra.js` trần đền đơn mã "giảm 1 món" trừ một lần trên cả ly + topping (T28g); `routes/products.js`
+  chỉ kiểm danh sách topping khi thân gửi (T05d/T05e); topping không có ghi chú nhanh ở quầy (T48c); `KhungChonMon.jsx` không hiện topping chưa bán được.
 
-### Chỗ vá → đột biến (`viec/TOPPING-1/dot_bien.py`, chạy `--bo C4,Q7`)
+### Chỗ vá → đột biến (`viec/TOPPING-1/dot_bien.py`, đủ mọi mục, không còn `--bo`)
 | Chỗ vá | Đột biến |
 |---|---|
 | `utils/topping.js` dongTopping — giá DB | VS-tin-gia-topping-cua-man |
@@ -71,11 +67,30 @@ nhánh này, sửa BanHangMoi.jsx tối thiểu, ghi Phát hiện. Làm tiếp b
 | `routes/kh/index.js` menuKhach | BV-menu-app-topping |
 | `utils/manKhach.js` layMenu | BV-man-khach-loc-topping |
 | `utils/giaoHang.js` soMonDon | VS-so-mon-giao-dem-topping |
+| `routes/damages.js` trần ly gồm topping | VS-den-bo-topping |
+| `routes/damages.js` chỉ báo theo ly | BV-bao-theo-ly |
+| `utils/diemThat.js` điểm chia phần ly / topping | VS-diem-den-theo-co-ly |
+| `routes/hoaDon.js` topping_cua | BV-hoa-don-topping-cua |
+| `routes/hoaDon.js` % hạng theo dòng ly | VS-hoa-don-mat-phan-tram |
+| `client/src/utils/hoaDon.js` dòng "+ topping" | BV-to-hoa-don-topping |
+| `client/src/utils/inPhieu.js` tem gom topping | BV-tem-gom-topping |
+| `client/src/utils/inPhieu.js` đọc dong_cha_id (in lại) | VS-tem-chi-don-moi |
+| `client/src/utils/inPhieu.js` phiếu pha chế khác topping | VS-pha-che-gop-khac-topping |
+| `utils/tienDaTra.js` mã giảm 1 món trừ một lần (vòng 1) | VS-den-ma-mot-mon-tru-hai-lan |
+| `routes/products.js` chỉ kiểm khi gửi (vòng 1) | VS-sua-mon-kiem-danh-sach-cu |
+| `routes/products.js` topping không ghi chú (vòng 1) | VS-topping-co-ghi-chu-o-quay |
 Tên đột biến: VS-tin-gia-topping-cua-man · BV-dong-cha-id · VS-topping-ngoai-danh-sach-lot · VS-qua-3-phan-lot · VS-ban-rieng-khi-khong-gia ·
 VS-bo-giam-hang-topping · VS-voucher-bo-topping · VS-voucher-nhom-bo-topping · VS-kho-dem-tung-dong · BV-kho-mo-topping · VS-huy-khong-tra-topping ·
 BV-kiem-topping-cho-mon · BV-036-chep-ghi-chu · BV-bo-kiem-topping-app · VS-bao-gia-app-lech-dong · VS-bam-gio-bo-topping · BV-menu-app-topping ·
-BV-man-khach-loc-topping · VS-so-mon-giao-dem-topping.
-Chưa có đột biến (chờ 8 file): `diemThat.js` chia điểm phần ly / topping (ca T28c cần damages.js) — thêm khi mở Phạm vi.
+BV-man-khach-loc-topping · VS-so-mon-giao-dem-topping · VS-den-bo-topping · BV-bao-theo-ly · VS-diem-den-theo-co-ly · BV-hoa-don-topping-cua ·
+VS-hoa-don-mat-phan-tram · BV-to-hoa-don-topping · BV-tem-gom-topping · VS-tem-chi-don-moi · VS-pha-che-gop-khac-topping ·
+VS-den-ma-mot-mon-tru-hai-lan · VS-sua-mon-kiem-danh-sach-cu · VS-topping-co-ghi-chu-o-quay.
+
+### 3 thao tác cho chủ quán thử tay (máy tính bảng + điện thoại)
+1. Kho › Sản phẩm: mở một topping → tick "Đây là topping", nhập giá bán riêng → Lưu; mở một món trà → tick topping đó + thêm nút "Ít đá" → Lưu.
+2. Bán hàng: chạm món trà → khung hiện topping + "Ít đá"; chạm topping 2 lần (thấy số 2), chọn 2 ly → "Thêm vào giỏ"; giỏ có dòng "+ topping ×2".
+   Chạm món không cài gì → vào giỏ ngay. Tab "Topping" → chạm là vào giỏ.
+3. Thu tiền → hoá đơn có dòng "+ <topping> x2" dưới món; tem mỗi ly có dòng topping; Lịch sử đơn mở đơn đó → dòng topping thụt dưới ly.
 
 ## Phát hiện
 - CLAUDE.md §3 và §9 ghi bản mẫu "119 phép"; thực tế trước việc này đã là 156 (nay 186). Chat sửa số ở CLAUDE.md (máy không sửa).
@@ -103,3 +118,31 @@ Lần 1 (27.11, subagent độc lập chỉ đọc, đọc toàn bộ diff serve
 > - SQL injection: none (fixed column keys, `?` placeholders). `/api/kh`: topping keys allow-listed; order detail by token phone; no cost prices.
 > - XSS: React text only, no new `dangerouslySetInnerHTML`. No new secrets / personal data in responses or logs. No webhooks / short codes / crypto added.
 > - Not checked: no tests or exploit attempts — code reading only.
+
+## Soát độc lập (/ra-soat)
+### Vòng 1 (27.11, HEAD 1caaf314) — KHÔNG ĐẠT
+LỖI TÌM ĐƯỢC:
+1. server/utils/tienDaTra.js:25-27 + server/routes/damages.js:206-207 — lỗi TIỀN: đơn có mã "giảm 1 món" trừ khoản giảm vào TỪNG dòng; tách topping
+   thành dòng rồi gộp lại vào ly → trừ hai lần (trà 45.000 + nếp 20.000, mã 50 % = 22.500 → trần 22.500 thay vì 42.500). Chỉ hụt trần. K4 + K3 (không ca).
+2. server/routes/products.js:333-337 — chặn nhầm: thân không gửi `topping_cho_mon` vẫn kiểm danh sách cũ → món có topping đã ẩn bị 400 mọi lần sửa
+   (đổi tên / nhóm / thứ tự / ẩn món); chép nhóm lan lỗi. K5.
+3. viec/TOPPING-1/bang_chung_do.txt:31 — SỐ CA 86 trong khi HEAD 88; dòng cũ "76 đạt · 10 hỏng", "--bo 19/19" — A16 sẽ đỏ. K1/K7.
+4. viec/TOPPING-1/trang_thai.md — nhiều câu cũ (chayBaiThat "chưa thêm", "--bo", "chưa có đột biến diemThat", "Bước 8–11 chưa chạy"); chưa ghi npm test /
+   --day-du / cong.js / 3 thao tác thử tay. K1.
+5. Ghi chú nhanh hiện ở topping — quầy không giấu như App (products.js:288, tinh.js:83) → tab Topping mở khung. Nhẹ. K4.
+6. client/src/pages/BanHang/KhungChonMon.jsx:31 — không lọc topping chưa bán được (App lọc `sellable`). Nhẹ. K4.
+NGHI NGỜ: không ca / đột biến cho orders.js:86 item_count, donApp.js tomTatDonThat / chiTietDon nhánh ĐÃ trả, dsQuay, manKhach "+ ", giaoHang "+ ",
+  dongHoaDon.js (T45), InvoicePrint.jsx; T43 có thể xanh khi gỡ lọc `cha == null` ở orders.js:817; kế hoạch hứa T40, T41, T45, T39 (duyệt hoàn) chưa có;
+  "ly từ gói + topping" CHƯA KIỂM; topping riêng gửi from_package bỏ qua giaBanRieng (cổng gói cũ chưa rà); sổ hàng hỏng chỉ ghi giá ly; số cứng 30 ở ToppingMon.jsx.
+NGHIỆM THU: 13/17 — thiếu: D5 BAO_APPKH.md; kết quả đột biến ở HEAD; npm test / --day-du / cong.js chay; 3 thao tác thử tay.
+CHƯA SOÁT ĐƯỢC: đột biến, npm test đầy đủ, cong.js (chỉ đọc); giao diện thật; Turso thật + dữ liệu production cho bước 036; bài tiền cũ khác; đối soát (T41 thiếu).
+BÀI HỌC: KHOÁ — ca "đền ly có topping trên đơn mã giảm 1 món" + ca "sửa món có topping đã ẩn → 200"; người gác: đổi thu_<MÃ>.js sau commit bằng chứng
+  → chạy lại SỐ CA (A16 bắt ở cổng; nên bắt sớm ở pre-commit). NGUYÊN TẮC K4: tách một khoản thành nhiều dòng con rồi gộp lại → rà mọi nhánh hàm chia
+  tiền theo dòng, nhất là nhánh trừ khoản cố định mỗi dòng. NGUYÊN TẮC K5: phép kiểm toàn vẹn ở route sửa đa năng chỉ kiểm ĐÚNG trường thân gửi.
+  ĐƠN GIẢN: luật "gom dòng con vào cha" viết ở 6 chỗ — có thể giữ một hàm ở client/src/utils rồi máy chủ import() như dongHoaDon.js.
+
+Vòng sửa 1 (27.11): lỗi 1 → tienDaTra.js trừ giảm MỘT lần trên nhóm ly + topping (T28g, VS-den-ma-mot-mon-tru-hai-lan); lỗi 2 → products.js chỉ kiểm
+khi thân gửi danh sách hoặc đổi thành topping (T05d/T05e, VS-sua-mon-kiem-danh-sach-cu); lỗi 3, 4 → sửa hồ sơ; lỗi 5 → menu quầy topping
+ghi_chu_nhanh [] (T48c, VS-topping-co-ghi-chu-o-quay); lỗi 6 → KhungChonMon lọc `sellable` (giao diện — chưa ca, thử tay); thiếu D5 → BAO_APPKH.md.
+Nghi ngờ chưa xử lý (ghi Phát hiện, không chặn): ca riêng cho item_count / nhánh đơn đã trả của App / dsQuay / InvoicePrint / dongHoaDon; T40, T41;
+đột biến lọc `cha == null` của mã giảm 1 món (topping cần thuộc nhóm của mã và đắt hơn ly mới lộ — ghi CHƯA KIỂM); hàm gom chung (để sau, không đổi hành vi).

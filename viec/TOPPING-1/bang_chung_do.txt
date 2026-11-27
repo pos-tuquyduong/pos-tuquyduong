@@ -15,8 +15,15 @@ TOPPING-1 — bằng chứng ĐỎ trên code gốc (27.11.2026)
    TỔNG: 14 đạt · 69 hỏng · 83 ca
    (sau đó bỏ ca T37 — quầy đang tạm ngưng gói, GOI_TAM_DUNG: luồng "ly từ gói + topping" không có ở quầy → CHƯA KIỂM.)
 
-   Sau vá (HEAD c6cf0705): TỔNG: 76 đạt · 10 hỏng · 86 ca — 10 ca còn đỏ đều thuộc 8 file chờ chat ghi vào Phạm vi (T09, T09c, T10 ×2, T44 ×2,
-   T28b–T28e). Đột biến chạy `--bo C4,Q7`: đối chứng 70 đạt · 0 hỏng; 19/19 BẮT.
+   (Lịch sử: lần 27.11 trước khi mở Phạm vi, HEAD c6cf0705 — 76 đạt · 10 hỏng · 86 ca, đột biến tạm `--bo C4,Q7` 19/19. Đã cũ.)
+
+   Bản bài HIỆN TẠI (sau thêm T44b, T09d, T05d/T05e, T28g, T48c) chạy LẠI trên cây gốc acc8892 (git archive + chép bài vào), 27.11:
+   ✗ T28g mã "giảm 1 món" + topping: đơn 42.500; đền 42.501 → VUOT_GIA … — 22500 · HTTP 400 · VUOT_GIA · Tiền đền tối đa: 22,500đ …
+   ✗ T09d topping nhóm đặc biệt giảm % riêng (20 %: 8.000), ly 10 % … — 40500 · [40500] · 10
+   TỔNG: 16 đạt · 72 hỏng · 88 ca   (mục B / C sập sớm trên gốc nên in ít ca hơn trên code vá)
+   Ca vòng sửa 1 chạy trên code TRƯỚC vòng sửa (commit 7b87c0c9, đã có tính năng): ✗ T05d (HTTP 400 TOPPING_KHONG_HOP_LE) · ✗ T48c · ✗ T28g
+   (Tiền đền tối đa: 22,500đ) — TỔNG: 89 đạt · 3 hỏng · 92 ca.
+   Sau vá (HEAD e17f9486): TỔNG: 92 đạt · 0 hỏng · 92 ca. Đột biến (không cờ bỏ qua): đối chứng 92 đạt · 0 hỏng; 31/31 BẮT.
 
 3) Bài thử cũ phải đổi vì hành vi chủ quán duyệt đổi (LUAT §6.7 / §6.8) — bản MỚI chạy trên cây gốc acc8892 (git archive + chép bài mới vào):
    cong_cu/thu_KH1.js    → ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng — 156 đạt · 1 hỏng
@@ -26,7 +33,7 @@ TOPPING-1 — bằng chứng ĐỎ trên code gốc (27.11.2026)
    cong_cu/thu_BH1.js    → ✗ E8 … thiếu hàm coTuyChon · ✗ E9 · ✗ E10 · ✗ E11 · ✗ E12 · ✗ E13 — 68 đạt · 6 hỏng
    (bản GỐC các bài này chạy trên code mới: ĐỎ — npm test 27.11: KH1 E5, KHAPI2 E3, KHO1 D1, KHSP1 C3 + E1; BH1 E6 thiếu hàm ghiChuMacDinh.)
 
-SỐ CA cong_cu/thu_TOPPING1.js: 86
+SỐ CA cong_cu/thu_TOPPING1.js: 92
 SỐ CA ban_mau_pos/thu/thu_topping.js: 30
 SỐ CA cong_cu/thu_BH1.js: 74
 SỐ CA cong_cu/thu_KH1.js: 157
