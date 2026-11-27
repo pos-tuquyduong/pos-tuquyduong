@@ -50,6 +50,15 @@ SỐ CA cong_cu/thu_KH1.js: 157
 SỐ CA cong_cu/thu_KHAPI2.js: 101
 SỐ CA cong_cu/thu_KHSP1.js: 43
 SỐ CA cong_cu/thu_KHO1.js: 112
+SỐ CA cong_cu/thu_NHOMMON1.js: 50
 
 2) ban_mau_pos/thu/thu_topping.js — trên bản mẫu gốc (chưa sửa ban_mau_pos.html): eval `A={…tpThem…}` → ReferenceError
    (hàm topping chưa có) → chay_thu.sh tính SẬP = hỏng. Sau sửa: 30 đạt · 0 hỏng; cả bộ 156 → 186 đạt · 0 hỏng.
+
+4) cong_cu/thu_NHOMMON1.js — bài của NHOM-MON-1 (PR #107, đã merge main aa9eff80) phải sửa 3 ca vì TOPPING-1 đổi hành vi
+   (ghiChuMacDinh.js bỏ → ghi chú theo từng món, bước 036 chép bộ cũ theo mã nhóm; lưới món = spBan; hợp đồng lên v20). Chạy lại 27.11 (chat bàn 41):
+   Bản bài MỚI chạy trên cây gốc main aa9eff80 (git archive + chép bài vào):
+   ✗ A7: bài chạy hết mục — ENOENT .../server/nang_cap/036_topping.js (ca A7d) · ✗ A4e (không có spBan)
+   TỔNG: 48 đạt · 2 hỏng (50 ca). Trên code vá (HEAD afa6ea1b): 50 đạt · 0 hỏng.
+   Bản GỐC bài (main) chạy trên code mới: ĐỎ — ✗ A7 (ENOENT ghiChuMacDinh.js) · ✗ A4e · ✗ A6a (PHIEN_BAN 19) — 47 đạt · 3 hỏng
+   → bài sửa thường (LUAT §6.8), không thuộc "## Bài thử cũ sửa".
