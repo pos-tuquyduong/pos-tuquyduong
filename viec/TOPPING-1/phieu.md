@@ -88,6 +88,14 @@ Quầy chọn topping và ghi chú ngay lúc chạm món, đúng danh sách cài
 - ban_mau_pos/chay_thu.sh
 - server/routes/orders.js
 - server/routes/products.js
+- server/routes/hoaDon.js
+- server/routes/damages.js
+- client/src/utils/hoaDon.js
+- client/src/utils/inPhieu.js
+- client/src/components/InvoicePreview.jsx
+- client/src/components/InvoicePrint.jsx
+- client/src/pages/DonApp.jsx
+- client/src/pages/Orders.jsx
 - server/routes/kh/index.js
 - server/utils/donApp.js
 - server/utils/giuCho.js
