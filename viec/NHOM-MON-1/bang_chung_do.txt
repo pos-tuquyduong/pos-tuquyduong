@@ -26,7 +26,7 @@ CÁC BÀI CŨ ĐỔI:
   cong_cu/thu_KHSP1.js — KHOA_MENU_MOI thêm hai trường. Bản mới trên server GỐC: ✗ C3 mỗi món ĐÚNG bộ khoá (ĐỎ trên gốc; hai dòng ✗ D/E ENOENT là do bản chép gốc thiếu file phụ, không tính), XANH 43/0 sau vá.
   cong_cu/gia_lap/kich_ban.js — 'khac' → 'juice' (KB24/KB25): bài thật là thu_gia_lap.js (đỏ trên code mới nếu để 'khac' — đã thấy ở --day-du 27.11).
 
-SỐ CA thu_NHOMMON1.js: 49
+SỐ CA thu_NHOMMON1.js: 50
 SỐ CA thu_KHAPI2.js: 101
 SỐ CA thu_KHO3a.js: 146
 SỐ CA thu_KH1.js: 157

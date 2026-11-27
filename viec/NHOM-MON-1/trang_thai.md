@@ -25,7 +25,9 @@ Q1 có (409 NHOM_GOC, vẫn đổi tên được) · Q2 có (thêm `server/utils
 - Bài cũ `thu_KHO3a.js` đã đổi category 'tra' → 'tea' (trong Phạm vi) nhưng vẫn XANH trên gốc → phiếu cần mục `## Bài thử cũ sửa` ghi `cong_cu/thu_KHO3a.js` (cổng A11). Máy không sửa được phiếu.
 - Tóm lại chủ quán cần sửa `phieu.md` (người gác chặn máy): (1) thêm vào `## Phạm vi`: `server/utils/donApp.js`, `cong_cu/thu_KH1.js`, `cong_cu/thu_KHSP1.js`, `cong_cu/gia_lap/kich_ban.js`; (2) thêm mục `## Bài thử cũ sửa` với `cong_cu/thu_KHO3a.js`. Rồi chạy `/lam-viec NHOM-MON-1 tiep` — máy làm nốt 5 sửa nhỏ (đã có chỗ sửa cụ thể ở trên).
 
-## Chỗ vá → đột biến (dot_bien.py — 19/19 BẮT, đối chứng bản sao chưa đột biến 47 đạt · 0 hỏng)
+> LỊCH SỬ: các mục `## Câu hỏi` và `## Còn chờ chủ quán` bên dưới là của ngày 27.11 — ĐÃ XONG sau commit 7a016c34 (chủ quán thêm Phạm vi). Số liệu mới nhất ở mục `## Trạng thái cuối` cuối file.
+
+## Chỗ vá → đột biến (dot_bien.py — lúc đó 19/19 BẮT; nay 22/22, xem Trạng thái cuối)
 | Chỗ vá | Đột biến | Ca bắt |
 |---|---|---|
 | products.js `layMenuQuay(..., cho)` lọc app theo hien_app | VS-loc-app-theo-quay · VS-hai-cong-tac-chung · VS-nhom-chua-co-bi-an | A5a · A5a · A5f |
@@ -37,7 +39,7 @@ Q1 có (409 NHOM_GOC, vẫn đổi tên được) · Q2 có (thêm `server/utils
 | products.js POST / PUT món kiểm nhóm | VS-category-tu-do-lot · BV-bo-kiem-nhom-post · BV-bo-kiem-nhom-put | A3b · A3b · A3a |
 | 035_nhom_mon.js INSERT OR IGNORE | VS-035-chen-khong-bo-qua | A1d |
 | kh/index.js nhom_ten / nhom_thu_tu | VS-menu-bo-nhom-ten | A5b |
-| donApp.js menuApp (chờ phạm vi — bản sao áp bản vá mong muốn) | BV-don-app-khong-loc | A5i |
+| donApp.js menuApp (đã sửa thật sau khi chủ quán thêm Phạm vi) | BV-don-app-khong-loc | A5i |
 | BanHangMoi.jsx lọc nhóm tắt quầy / tên nhóm | BV-ui-bo-loc-quay · VS-ui-ten-cung | A4e · A4e |
 | SanPham.jsx ô chọn nhóm | VS-san-pham-go-tay | A3e |
 
@@ -59,7 +61,7 @@ BÀI HỌC (đề xuất của agent): KHOÁ — phép "mọi nơi ghi category 
 - Lỗi 2: `products.js` PUT /:id chỉ kiểm nhóm khi category ĐỔI (`doi.category !== cu.category`); ca mới A3f (đỏ khi bỏ vế đó: VS-put-kiem-ca-khi-khong-doi).
 - NGHI NGỜ TRIM: `035_nhom_mon.js` gom theo `category` nguyên văn (không TRIM) để JOIN khớp; ca mới A1f + đột biến VS-035-trim-ma.
 - K3: A2l dựng nhóm tea rỗng thật; A5j/A5k thêm `status === 200`. Số ca thu_NHOMMON1: 49 (HEAD thật 48 đạt · 1 hỏng A5i). Đột biến 21/21 BẮT.
-- Lỗi 1: sẽ tự đúng khi donApp.js được sửa (cùng PR); hiện KHÔNG merge nếu thiếu.
+- Lỗi 1: ĐÃ SỬA ở vòng sau — `server/utils/donApp.js` dùng `menuApp()` (commit 3a2e29ff); hợp đồng v19 nay đúng với code.
 - Lỗi 4: dòng BanHangMoi.jsx đã đổi cho TOPPING-1 giữ: bỏ `TEN_NHOM` (cũ dòng 28); khối `spQuay` / `tenNhom` / `dsNhom` / `dsMon` (≈ 336–342); nhãn tab `tenNhom[n] || n` (≈ 352). `nhomTheoMa` dùng `sp` đầy đủ (giữ nguyên).
 
 ## Phát hiện (không sửa — ngoài Phạm vi)
