@@ -295,7 +295,7 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
   if (p.trang_thai !== 'da_duyet' || p.thay_cho_id != null) {
     return { loi: [409, { error: 'Phiếu này không điền kết quả được (chưa duyệt, đã huỷ hoặc là phiếu sửa)', code: 'PHIEU_KHONG_DIEN' }] };
   }
-  if (daKiemKe(p)) {   // KHO-GON-1 Q9: số thật đã được kiểm kê đếm (phiếu bị giảm) — điền kết quả lúc này sẽ cộng lại phần đã mất
+  if (daKiemKe(p) || await monDaChot(tx, spId, p.tao_luc)) {   // KHO-GON-1 Q9 + Q12: số thật đã được đếm / chỉnh tay — điền kết quả lúc này tính lệch HAI lần
     return { loi: [409, { error: 'Phiếu đã được kiểm kê chốt số — không điền kết quả pha chế nữa', code: 'KQ_DA_KIEM_KE' }] };
   }
   if (trangThaiKetQua(p.duyet_luc.slice(0, 10), luc.slice(0, 10), false, false) === 'tu_chot') {
@@ -319,6 +319,24 @@ const daKiemKe = (p) => String(p.ly_do || '').includes(LY_DO_KIEM_KE);   // KHO-
 const ketQuaPhieu = (p, homNay, duKetQua) => (p.loai === 'PX' && p.trang_thai === 'da_duyet'
   ? trangThaiKetQua(ngayLam(p), homNay, duKetQua, p.thay_cho_id != null || daKiemKe(p)) : null);
 
+/** KHO-GON-1 Q12 (a): món đã có lần chốt kiểm kê / bàn giao (kho_chot — kể cả đếm khớp) hoặc phiếu chỉnh tồn KK chạm món đó KỂ TỪ lúc tạo phiếu
+ *  pha chế → số thật đã được đếm, kết quả pha chế của món đó coi như đã chốt. */
+async function monDaChot(csdl, spId, tuLuc) {
+  if (await csdl.queryOne(`SELECT 1 FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id WHERE p.loai = 'KK' AND p.trang_thai = 'da_duyet'
+    AND d.san_pham_id = ? AND p.tao_luc >= ? LIMIT 1`, [spId, tuLuc])) return true;
+  for (const c of await csdl.query('SELECT anh FROM kho_chot WHERE luc >= ?', [tuLuc])) {
+    let anh = []; try { anh = JSON.parse(c.anh) || []; } catch { /* ảnh hỏng: bỏ qua lần chốt này */ }
+    if (anh.some((a) => Number(a.san_pham_id) === Number(spId))) return true;
+  }
+  return false;
+}
+/** Trạng thái kết quả "chờ điền" mà mọi món (spIds) đã được chốt (Q12) → "đã điền". */
+const ketQuaCoChot = async (csdl, p, tt, spIds) => {
+  if (tt !== 'cho_dien' || !spIds.length) return tt;
+  for (const id of spIds) if (!(await monDaChot(csdl, id, p.tao_luc))) return tt;
+  return 'da_dien';
+};
+
 /** Một phiếu đầy đủ (màn xem + in): bảng tổng (tồn hiện tại, cờ âm) + bảng theo món (lô, hạn, kết quả, lệch). */
 async function docPhieu(csdl, id, homNay) {
   const p = await csdl.queryOne(`SELECT p.*, (SELECT t.id FROM kho_phieu t WHERE t.thay_cho_id = p.id ORDER BY t.id DESC LIMIT 1) AS thay_bang_id
@@ -337,14 +355,15 @@ async function docPhieu(csdl, id, homNay) {
   const theo_mon = [];
   for (const m of b.theo_mon) {
     const d = kqDong.find((x) => Number(x.san_pham_id) === m.san_pham_id);
-    const tt = ketQuaPhieu(p, homNay, !!d);
+    const tt = await ketQuaCoChot(csdl, p, ketQuaPhieu(p, homNay, !!d), [m.san_pham_id]);
     const soThuc = d ? m.so_phan + Number(d.so_luong) : null;
     theo_mon.push({ ...m, han_dung: lo.get(m.lo_id)?.han_dung ?? null, gia_von: lo.get(m.lo_id)?.gia_von ?? null,
       ket_qua: tt && { trang_thai: tt, so_thuc: soThuc, ghi_chu: d?.ghi_chu ?? null, nguoi: d?.nguoi ?? null, luc: d?.luc ?? null,
         lech: d ? lechQuaNguong(m.so_phan, soThuc, await lechCuaMon(csdl, m.san_pham_id)) : false } });
   }
   const tong = b.tong.map((t) => ({ ...t, ton: Number(nl.get(t.nguyen_lieu_id)?.ton ?? 0), am: Number(nl.get(t.nguyen_lieu_id)?.ton ?? 0) < -1e-9 }));
-  return { phieu: { ...p, ket_qua: ketQuaPhieu(p, homNay, kqDong.length >= b.theo_mon.length) }, tong, theo_mon };
+  const ketQua = theo_mon.every((m) => m.ket_qua?.trang_thai === 'da_dien') && theo_mon.length ? 'da_dien' : ketQuaPhieu(p, homNay, kqDong.length >= b.theo_mon.length);
+  return { phieu: { ...p, ket_qua: ketQua }, tong, theo_mon };
 }
 
 /** KHO-2b: chuỗi id của một đơn và các đơn nó thay (sửa đơn = đơn mới thay_cho_id) — phiếu nhận của đơn cũ vẫn tính. */
@@ -414,7 +433,9 @@ async function dsPhieu(csdl, loc, homNay) {
     FROM kho_phieu p ${dk.length ? 'WHERE ' + dk.join(' AND ') : ''} ORDER BY p.id DESC LIMIT 300`, a);
   const ra = [];
   for (const p of ds) {
-    ra.push({ ...p, ket_qua: ketQuaPhieu(p, homNay, Number(p.so_ket_qua) >= Number(p.so_mon)),
+    const tt = ketQuaPhieu(p, homNay, Number(p.so_ket_qua) >= Number(p.so_mon));
+    ra.push({ ...p, ket_qua: tt === 'cho_dien' ? await ketQuaCoChot(csdl, p, tt, (await csdl.query("SELECT san_pham_id FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'thanh_pham'",
+      [p.id])).map((x) => Number(x.san_pham_id))) : tt,   // KHO-GON-1 Q12
       can_chu_quan: p.loai === 'DH' && p.trang_thai === 'cho_duyet' && await dhCanChuQuan(csdl, p.id) });
   }
   return { phieu: ra };
