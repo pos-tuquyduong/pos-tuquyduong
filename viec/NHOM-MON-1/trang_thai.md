@@ -24,3 +24,19 @@ Q1 có (409 NHOM_GOC, vẫn đổi tên được) · Q2 có (thêm `server/utils
 - Giả lập quầy (`--day-du`, cong_cu/gia_lap/chay.js KB24 / thu_gia_lap.js) đỏ vì `cong_cu/gia_lap/kich_ban.js:585` và `:599` tạo món bằng `POST /products` với `category: 'khac'` — mã nhóm không có → máy chủ giờ trả 400 NHOM_KHONG_CO (đúng nghiệm thu A3). Cần sửa hai dòng này `'khac'` → `'juice'` (ngoài Phạm vi, bị chặn). Chủ quán thêm `cong_cu/gia_lap/kich_ban.js` vào Phạm vi.
 - Bài cũ `thu_KHO3a.js` đã đổi category 'tra' → 'tea' (trong Phạm vi) nhưng vẫn XANH trên gốc → phiếu cần mục `## Bài thử cũ sửa` ghi `cong_cu/thu_KHO3a.js` (cổng A11). Máy không sửa được phiếu.
 - Tóm lại chủ quán cần sửa `phieu.md` (người gác chặn máy): (1) thêm vào `## Phạm vi`: `server/utils/donApp.js`, `cong_cu/thu_KH1.js`, `cong_cu/thu_KHSP1.js`, `cong_cu/gia_lap/kich_ban.js`; (2) thêm mục `## Bài thử cũ sửa` với `cong_cu/thu_KHO3a.js`. Rồi chạy `/lam-viec NHOM-MON-1 tiep` — máy làm nốt 5 sửa nhỏ (đã có chỗ sửa cụ thể ở trên).
+
+## Chỗ vá → đột biến (dot_bien.py — 19/19 BẮT, đối chứng bản sao chưa đột biến 47 đạt · 0 hỏng)
+| Chỗ vá | Đột biến | Ca bắt |
+|---|---|---|
+| products.js `layMenuQuay(..., cho)` lọc app theo hien_app | VS-loc-app-theo-quay · VS-hai-cong-tac-chung · VS-nhom-chua-co-bi-an | A5a · A5a · A5f |
+| products.js `menuApp` | BV-bo-loc-app | A5c |
+| products.js `menuQuay` (màn khách) | VS-man-khach-theo-app | Q3a |
+| products.js PUT /nhom/:ma (mã không đổi) | VS-doi-ma-khi-sua-ten | A2f |
+| products.js DELETE /nhom/:ma còn món / nhóm gốc | VS-xoa-nhom-con-mon · BV-bo-chan-nhom-goc | A2j · A2l |
+| products.js PUT /nhom-thu-tu | VS-thu-tu-khong-doi · BV-bo-kiem-danh-sach-thu-tu | A2h · A2i |
+| products.js POST / PUT món kiểm nhóm | VS-category-tu-do-lot · BV-bo-kiem-nhom-post · BV-bo-kiem-nhom-put | A3b · A3b · A3a |
+| 035_nhom_mon.js INSERT OR IGNORE | VS-035-chen-khong-bo-qua | A1d |
+| kh/index.js nhom_ten / nhom_thu_tu | VS-menu-bo-nhom-ten | A5b |
+| donApp.js menuApp (chờ phạm vi — bản sao áp bản vá mong muốn) | BV-don-app-khong-loc | A5i |
+| BanHangMoi.jsx lọc nhóm tắt quầy / tên nhóm | BV-ui-bo-loc-quay · VS-ui-ten-cung | A4e · A4e |
+| SanPham.jsx ô chọn nhóm | VS-san-pham-go-tay | A3e |
