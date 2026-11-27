@@ -22,6 +22,10 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
+(không còn — chủ quán trả lời Q12 = (a) ngày 27.11, cho phép vòng sửa 6, ngân sách ≈ 1.104 dòng; dặn KHÔNG mở rộng luật cho phiếu nhận chờ duyệt vì
+KHO-GON-2 sẽ cho nhận hàng cộng kho ngay.)
+
+## Câu hỏi đã trả lời (Q12)
 Soát LẦN CUỐI sau vòng sửa 5 còn MỘT lỗi NẶNG ở số tồn → theo LUAT §6.5 máy DỪNG hỏi (không "chat soát thay"):
 
 - **Q12 · Ghi kết quả pha chế SAU khi kiểm kê / chỉnh tay / bàn giao đã chỉnh món đó (phiếu pha chế ĐÃ duyệt).** Q9 mới khoá phiếu CHỜ bị kiểm kê
@@ -459,3 +463,30 @@ BÀI HỌC:
 - `npm test -- --day-du`: PASS 132 · FAIL 0 · CẢNH BÁO 1 (chạy một mình).
 - `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1` trên HEAD 88adeb90: ✓ CỔNG CHẠY ĐẠT
 - Còn Q12 (lỗi NẶNG tồn) → DỪNG hỏi; báo cáo 7 mục + 3 thao tác thử tay ghi khi việc xong.
+
+## Vòng sửa 6 (chủ quán cho phép 27.11 — Q12 (a) + lỗi nhẹ lần soát cuối sau vòng 5)
+- Q12 duLieu.monDaChot: món đã có lần chốt kiểm kê / bàn giao (kho_chot, kể cả đếm khớp) hoặc phiếu KK chỉnh tay chạm món đó KỂ TỪ lúc tạo phiếu pha chế
+  → ghiKetQua 409 KQ_DA_KIEM_KE; docPhieu từng món + cả phiếu + dsPhieu hiện "đã điền" (ca Q12a chỉnh tay · Q12b kiểm kê khớp · Q12c hiển thị · Q12d K5
+  phiếu tạo SAU lần chốt vẫn điền được). Mốc so là lúc TẠO phiếu (không phải lúc duyệt): kiểm kê lúc phiếu còn chờ cũng đã đếm hàng đó (Q4).
+- Q9 gộp vào Q12: vế `daKiemKe` (đọc ly_do) bỏ — lần kiểm kê giảm phiếu chờ cũng là một lần chốt kể từ lúc tạo phiếu → monDaChot đã khoá (Q9a, Q9b vẫn
+  xanh). MỘT luật, một hàm; bỏ 2 đột biến của vế đã bỏ.
+- Nhẹ: ca Q8f (giamPhieuCho chỉ phiếu CHỜ; đột biến VS-q8-giam-ca-phieu-duyet) · ca Q4e3 (sửa phiếu phát sinh ghi diễn biến; BV-bo-dien-bien-sua-tao) ·
+  màn chỉnh tay hiện "đã tính phiếu chờ duyệt +x / −x" (không còn "gồm -0,2") · bấm lại cùng mã chỉnh tay báo "đã đúng số đó (có thể lần bấm trước đã
+  lưu)". KHÔNG thêm ca phiếu nhận chờ + đếm thiếu (chủ quán dặn) → vế ghiKK `&& m.san_pham_id` CHƯA KIỂM bằng đột biến.
+- Bằng chứng: bài mới trên code trước vòng 6 (c3a60aca) 132 đạt · 2 hỏng (✗ Q12a · ✗ Q12b); sau vá 134 đạt · 0 hỏng.
+
+## Danh sách đủ tên đột biến (cuối, 70 — `python3 viec/KHO-GON-1/dot_bien.py --liet-ke`)
+VS-sinh-viec-2-lan · BV-bo-not-exists · VS-ca-toi-thay-viec-sang · VS-nv-thay-viec-ql · VS-qua-gio-lech-1 · VS-xong-hai-lan · VS-mo-lai-quan-ly ·
+BV-bo-chan-viec-ngoai-phan · BV-bo-tu-xong-goi-hang · BV-bo-tu-xong-pha-che · BV-bo-tu-xong-kiem-ke · VS-kiemke-lo-so-may · VS-kiemke-thieu-so-lot ·
+VS-lech-khong-ghi-chu-lot · VS-kiemke-bat-ghi-chu · VS-kiemke-bao-dong-lech · VS-cho-duyet-khong-tinh · BV-bo-chan-ma-gui-khac-che-do ·
+VS-ma-gui-chi-so-che-do · BV-trong-khi-may-khac-chot · BV-bo-canh-bao-huy · BV-bo-canh-bao-sua · VS-dh-cho-tinh · VS-canh-bao-dh ·
+BV-bo-dong-tp-het-lo-chot-con · VS-kk-khong-dau · BV-bo-giam-phieu-cho · VS-q8-khong-ly-do · VS-q8-giam-ca-xuat · BV-bo-pha-het · VS-pha-het-bao-ca-con ·
+BV-bo-tru-lo-cho-giu · VS-q11-khong-ton-kiem · VS-q11-ton-kiem-cho-nv · VS-q11-bao-da-chinh · VS-q8-giam-cu-truoc · VS-gia-von-chia-0 ·
+VS-pha-het-ca-ban-khi-thieu · VS-pha-het-ca-lam-san · VS-kk-rong · BV-bo-dien-bien-sua · VS-q12-cho-dien-sau-chot · VS-q12-chi-chinh-tay ·
+VS-q12-chi-kiem-ke · VS-q12-khoa-ca-truoc · VS-q12-hien-cho-dien · VS-q8-giam-ca-phieu-duyet · BV-bo-dien-bien-sua-tao · BV-bo-canh-bao-tu-choi ·
+VS-canh-bao-moi-tu-choi · VS-ban-giao-chi-so-may · VS-nv-kiem-ke-ngoai-danh-sach · VS-kiem-ke-so-am-lot · VS-so-voi-may-thay-chot ·
+VS-lech-gia-khi-vua-ban · VS-anh-chot-la-so-go · BV-bo-chan-ton-moi-am · BV-bo-kiem-huy-xen-giua · VS-so-gio-chat · VS-da-giao-theo-danh-sach-loc ·
+VS-ban-giao-khong-tra-may · BV-bo-kiem-moc-sai · BV-bo-chan-hai-nguoi-chot · VS-ql-chinh-tay-khi-tat · BV-bo-kiem-quyen-chinh-tay ·
+VS-chinh-tay-khong-ly-do · VS-chua-xem-chung-nguoi · VS-da-xem-vuot-id · BV-bo-tab-viec-dau · VS-vong-hoi-thu-hai.
+Đã bỏ trong các vòng (vế đã bỏ / không còn ý nghĩa — ghi lý do ở bang_chung_do.txt): BV-bo-kiem-duyet-xen-giua · VS-ma-gui-tra-thieu-anh ·
+VS-q9-cho-dien-ket-qua · VS-q9-hien-cho-dien.
