@@ -14,3 +14,8 @@ acc8892 Merge pull request #104 from pos-tuquyduong/viec/TIEN-KHOA-2
 - Q1: chặn xoá nhóm gốc juice/tea (409 NHOM_GOC)? Đề xuất: có.
 - Q2: thêm `server/utils/donApp.js` vào Phạm vi (đổi 1–2 dòng để đơn App lọc nhóm qua cùng hàm)? Đề xuất: có.
 - Q3: màn khách lọc theo "hiện ở quầy"? Đề xuất: có.
+
+## Chủ quán duyệt kế hoạch (27.11)
+Q1 có (409 NHOM_GOC, vẫn đổi tên được) · Q2 có (thêm `server/utils/donApp.js` vào Phạm vi) · Q3 có (màn khách theo "hiện ở quầy").
+## Câu hỏi
+- Người gác [G1-PHIEU] chặn máy sửa `phieu.md` → chủ quán tự thêm dòng `- server/utils/donApp.js` vào `## Phạm vi` (sau dòng `server/utils/manKhach.js`). Máy làm phần sửa `donApp.js` ở MỘT commit riêng, cuối cùng.
