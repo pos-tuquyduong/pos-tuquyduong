@@ -422,6 +422,19 @@ async function main() {
     k('T09 dữ liệu hoá đơn: dòng topping trỏ ly (topping_cua), so_phan 2, giá gốc + giá hạng như món', m.length === 3 && m[1]?.topping_cua === 0 && m[1]?.so_phan === 2
       && m[1]?.thanh_tien_goc === 40000 && m[1]?.thanh_tien === 36000 && m[0]?.thanh_tien === 81000, JSON.stringify(m.map((x) => [x.ten, x.topping_cua, x.so_phan, x.thanh_tien])));
     k('T09b % hạng trên bill vẫn hiện (dòng topping không làm mất %)', hd?.khach?.phan_tram === 10, String(hd?.khach?.phan_tram));
+    // Q4: % hạng của topping theo cờ nhóm đặc biệt của CHÍNH topping. Hạng thử 10 % / đặc biệt 20 %, nếp cẩm nhóm đặc biệt.
+    const bac = Number((await ghiDb(`INSERT INTO pos_membership_tiers (name, card_price, discount_percent, special_discount_percent, sort_order, is_active, cach_co, goi)
+      VALUES ('Bạc TP1', 0, 10, 20, 40, 1, 'ban', '[]')`)).lastInsertRowid);
+    const kb = await khach();
+    await ghiDb(`INSERT INTO pos_membership_purchases (customer_phone, tier_id, tier_name, price_paid, order_id, purchased_at, expires_at)
+      VALUES (?, ?, 'Bạc TP1', 0, NULL, ?, '2099-12-31T00:00:00')`, [kb.sdt, bac, getNow()]);
+    await ghiDb('UPDATE pos_products SET is_special_group = 1 WHERE id = ?', [NEP.id]);
+    const bd = await banTM([mon(TRA, 1, [[NEP, 1]])], { customer_phone: kb.sdt });
+    await ghiDb('UPDATE pos_products SET is_special_group = 0 WHERE id = ?', [NEP.id]);
+    const hdd = (await goi('chu', 'GET', `/pos/hoa-don/${bd.j.order?.id}`)).j.hoa_don;
+    // tay: trà 45.000 × 90 % = 40.500; nếp 10.000 × 80 % = 8.000 → 48.500; bill in "10 %" theo ly
+    k('T09d topping nhóm đặc biệt giảm % riêng (20 %: 8.000), ly 10 %; tổng 48.500; bill vẫn in % hạng của ly (10)', Number(bd.j.order?.total) === 48500
+      && hdd?.mon?.[1]?.thanh_tien === 8000 && hdd?.khach?.phan_tram === 10, `${bd.j.order?.total} · ${JSON.stringify(hdd?.mon?.map((x) => x.thanh_tien))} · ${hdd?.khach?.phan_tram}`);
     const H = await import(pathToFileURL(path.join(KHACH_SRC, 'utils', 'hoaDon.js')).href);
     const to = H.dungHoaDon(hd, {});
     const dongTp = to.mon.find((x) => x.topping);

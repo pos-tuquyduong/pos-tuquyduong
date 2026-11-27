@@ -67,7 +67,7 @@ DOT_BIEN = [
   # ── C4: hoá đơn / tem / pha chế ──
   ('BV-hoa-don-topping-cua', [(HD, "...(cha >= 0 ? { topping_cua: cha,", '...(false ? { topping_cua: cha,', 1)], r'✗ T09 '),
   ('VS-hoa-don-mat-phan-tram', [(HD, 'items.filter((m) => m.dong_cha_id == null && m.tier_unit_price != null', 'items.filter((m) => m.tier_unit_price != null', 1)],
-   r'✗ T09b'),
+   r'✗ T09d'),
   ('BV-to-hoa-don-topping', [(HDC, "ten: x.topping_cua != null ? `+ ${x.ten}", 'ten: false ? `+ ${x.ten}', 1)], r'✗ T09c'),
   ('BV-tem-gom-topping', [(IP, '  for (const m of dongLy(don?.items)) {\n    if (!laMonPha', '  for (const m of (don?.items || []).map((x) => ({ ...x, tp: [] }))) {\n    if (!laMonPha', 1)],
    r'✗ T10 '),
