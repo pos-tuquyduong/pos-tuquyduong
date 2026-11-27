@@ -113,3 +113,4 @@ TRƯỚC vòng 6 (cây 523a701b = code c3a60aca + bài mới):
   ngay, không mở rộng luật cho phiếu nhận chờ. Vế đó: CHƯA KIỂM bằng đột biến.
   Gộp Q9 vào Q12 (715e4e48): vế `daKiemKe` thừa — lượt đột biến đủ đầu tiên của vòng 6 cho VS-q9-hien-cho-dien SỐNG (Q12 đã khoá cùng ca) và
   VS-q9-cho-dien-ket-qua HỎNG (neo đổi). Bỏ vế + bỏ 2 đột biến đó; Q9a / Q9b nay do VS-q12-cho-dien-sau-chot / VS-q12-hien-cho-dien canh.
+  Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên 4bcb39ab): ĐỐI CHỨNG XANH · 134 đạt — TỔNG 70 · BẮT 70 · SỐNG 0 · HỎNG 0 · LẠC 0.
