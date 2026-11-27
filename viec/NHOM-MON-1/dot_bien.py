@@ -28,6 +28,8 @@ DOT_BIEN = [
   ('VS-category-tu-do-lot', [(P, "if (!(await coNhom(tx, chuNgan(b.category, 'juice')))) return", "if (!(await coNhom(tx, 'juice'))) return", 1)], r'✗ A3b '),
   ('BV-bo-loc-app', [(P, "const menuApp = () => layMenuQuay(undefined, 'app');", "const menuApp = () => layMenuQuay(undefined);", 1)], r'✗ A5c '),
   ('BV-bo-kiem-nhom-put', [(P, "if (doi.category !== undefined && !(await coNhom(tx, doi.category))) return", "if (false) return", 1)], r'✗ A3a '),
+  ('VS-put-kiem-ca-khi-khong-doi', [(P, "doi.category !== cu.category && ", "", 1)], r'✗ A3f '),
+  ('VS-035-trim-ma', [(N, "SELECT DISTINCT category AS ma", "SELECT DISTINCT TRIM(category) AS ma", 1)], r'✗ A1f '),
   ('BV-bo-kiem-nhom-post', [(P, "if (!(await coNhom(tx, chuNgan(b.category, 'juice')))) return", "if (false) return", 1)], r'✗ A3b '),
   ('VS-man-khach-theo-app', [(P, "layMenuQuay(undefined, 'quay')", "layMenuQuay(undefined, 'app')", 1)], r'✗ Q3a '),
   ('VS-hai-cong-tac-chung', [(P, "COALESCE(g.hien_app, 1) AS nhom_hien_app", "COALESCE(g.hien_quay, 1) AS nhom_hien_app", 1)], r'✗ A5a '),
