@@ -35,10 +35,16 @@ DOT_BIEN = [
   ('VS-anh-413-xoa-anh-cu', [(P, "  if (e.type === 'entity.too.large') return res.status(413)",
      "  if (e.type === 'entity.too.large') run('DELETE FROM pos_anh_mon WHERE product_id = ?', [Number(req.params.id)]);\n  if (e.type === 'entity.too.large') return res.status(413)", 1)], r'✗ C3 '),
   # ── quyền ──
-  ('BV-bo-kiem-quyen-anh', [(P, "router.put('/:id/anh', authenticate, checkPermission('manage_settings'), nhanAnh,", "router.put('/:id/anh', nhanAnh,", 1)], r'✗ D[12] '),
-  ('BV-bo-kiem-quyen-xoa-anh', [(P, "router.delete('/:id/anh', authenticate, checkPermission('manage_settings'),", "router.delete('/:id/anh',", 1)], r'✗ D[34] '),
-  ('VS-anh-quyen-chi-xac-thuc', [(P, "router.put('/:id/anh', authenticate, checkPermission('manage_settings'), nhanAnh,", "router.put('/:id/anh', authenticate, nhanAnh,", 1)], r'✗ D1 '),
+  ('BV-bo-kiem-quyen-anh', [(P, "router.put('/:id/anh', soMon, authenticate, checkPermission('manage_settings'), nhanAnh,", "router.put('/:id/anh', soMon, nhanAnh,", 1)], r'✗ D[12] '),
+  ('BV-bo-kiem-quyen-xoa-anh', [(P, "router.delete('/:id/anh', soMon, authenticate, checkPermission('manage_settings'),", "router.delete('/:id/anh', soMon,", 1)], r'✗ D[34] '),
+  ('VS-anh-quyen-chi-xac-thuc', [(P, "router.put('/:id/anh', soMon, authenticate, checkPermission('manage_settings'), nhanAnh,", "router.put('/:id/anh', soMon, authenticate, nhanAnh,", 1)], r'✗ D1 '),
   # ── một ảnh / món, phiên bản đường dẫn ──
+  # ── vòng sửa 1: khoá id chỉ chữ số + các vế của đường đọc công khai ──
+  ('BV-anh-id-khong-khoa-so', [(P, "router.put('/:id/anh', soMon, authenticate,", "router.put('/:id/anh', authenticate,", 1)], r'✗ D8 '),
+  ('BV-anh-xoa-id-khong-khoa-so', [(P, "router.delete('/:id/anh', soMon, authenticate,", "router.delete('/:id/anh', authenticate,", 1)], r'✗ D9 '),
+  ('VS-anh-doc-can-dang-nhap', [(P, "router.get('/anh/:id/:phienBan', async", "router.get('/anh/:id/:phienBan', authenticate, async", 1)], r'✗ A3 '),
+  ('VS-anh-cache-ngan', [(A, 'max-age=31536000', 'max-age=60', 1)], r'✗ A5 '),
+  ('VS-anh-bo-nosniff', [(P, ", 'X-Content-Type-Options': 'nosniff'", '', 1)], r'✗ A6 '),
   ('VS-anh-ten-co-dinh', [(P, ".digest('hex').slice(0, DO_DAI_PHIEN_BAN);", ".digest('hex').slice(0, 0) + 'abcdef012345';", 1)], r'✗ E2 '),
   ('VS-anh-doc-khong-kiem-pb', [(P, "WHERE product_id = ? AND phien_ban = ?', [Number(id), phienBan]", "WHERE product_id = ?', [Number(id)]", 1)], r'✗ E3 '),
   ('VS-anh-them-hang-moi', [(P, " ON CONFLICT(product_id) DO UPDATE SET", " ON CONFLICT(product_id) DO NOTHING -- ", 1)], r'✗ E[1-7] '),
