@@ -19,8 +19,10 @@ P, K, D = 'server/routes/products.js', 'server/routes/kh/index.js', 'server/kho/
 A, T = 'server/utils/anhMon.js', 'server/nd/tinh.js'
 BH, AM = 'client/src/pages/BanHang/BanHangMoi.jsx', 'client/src/pages/BanHang/AnhMon.jsx'
 SP = 'client/src/pages/Kho/SanPham.jsx'
+KM, TM, BK = 'client/src/pages/BanHang/KhungChonMon.jsx', 'client/src/pages/Kho/ToppingMon.jsx', 'server/routes/backup.js'
+SL = 'cong_cu/thu_SAOLUU2.js'   # đột biến backup.js chạy bài của SAOLUU-2 (tuple có phần tử thứ 4 = bài thử)
 
-# (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
+# (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗ [, bài thử — mặc định BAI])
 DOT_BIEN = [
   # ── kiểm kiểu THẬT bằng byte ──
   ('VS-anh-tin-duoi', [(P, "const kieu = Buffer.isBuffer(req.body) ? loaiAnh(req.body) : null;",
@@ -52,6 +54,13 @@ DOT_BIEN = [
   ('VS-AnhMon-luon-chu', [(AM, 'const coAnh = !!anh && hong !== anh;', 'const coAnh = false;', 1)], r'✗ H7 '),
   ('VS-AnhMon-khong-lazy', [(AM, ' loading="lazy"', '', 1)], r'✗ H4 '),
   ('BV-SanPham-bo-xoa-anh', [(SP, "{anh && <button className=\"btn btn-outline\" disabled={dang} onClick={xoa}>Xoá ảnh</button>}\n", '', 1)], r'✗ H2 '),
+  ('BV-topping-khung-khong-anh', [(KM, '<AnhMon anh={t.anh} ten={t.name} kich={40} />', '<span>{t.name[0]}</span>', 1)], r'✗ H1[12] '),
+  ('VS-topping-khung-anh-sai-truong', [(KM, '<AnhMon anh={t.anh} ten={t.name} kich={40} />', '<AnhMon anh={sp.anh} ten={t.name} kich={40} />', 1)], r'✗ H1[12] '),
+  ('BV-topping-kho-khong-anh', [(TM, '          <AnhMon anh={t.anh} ten={t.name} kich={32} />\n', '', 1)], r'✗ H14 '),
+  # ── A5: bảng ảnh cố ý không xuất Excel (bài thử của SAOLUU-2 — D2c / D2e) ──
+  ('BV-saoluu-bo-danh-sach-mien', [(BK, "const BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon'];", 'const BANG_KHONG_XUAT_EXCEL = [];', 1)], r'✗ D2[ce] ', SL),
+  ('VS-saoluu-mien-them-bang-khac', [(BK, "const BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon'];", "const BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon', 'kho_lo'];", 1)], r'✗ D2e ', SL),
+  ('VS-saoluu-mien-chi-trong-chu-thich', [(BK, "const BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon'];", "// const BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon'];", 1)], r'✗ D2[ce] ', SL),
   ('VS-SanPham-chat-luong-1', [(SP, 'const CHAT_LUONG_ANH = 0.7;', 'const CHAT_LUONG_ANH = 1;', 1)], r'✗ H1 '),
 ]
 
@@ -77,20 +86,20 @@ def ban_sao(thay, goc_sha=None):
   return tmp, None
 
 
-def lenh(tmp):
-  return ['node', os.path.join(GOC, BAI), '--may-chu', os.path.join(tmp, 'server')]
+def lenh(tmp, bai=BAI):
+  return ['node', os.path.join(GOC, bai), '--may-chu', os.path.join(tmp, 'server')]
 
 
 def sach(ra):
   return re.sub(r'\x1b\[[0-9;]*m', '', ra)
 
 
-def chay(ten, thay, mau):
+def chay(ten, thay, mau, bai=BAI):
   tmp, loi = ban_sao(thay)
   try:
     if loi:
       return ten, 'HỎNG', loi
-    r = subprocess.run(lenh(tmp), cwd=GOC, capture_output=True, text=True, timeout=300)
+    r = subprocess.run(lenh(tmp, bai), cwd=GOC, capture_output=True, text=True, timeout=300)
     ra = sach((r.stdout or '') + (r.stderr or ''))
     hong = [l.strip() for l in ra.splitlines() if '✗' in l]
     if r.returncode == 2 or 'Bài thử sập' in ra:
@@ -105,10 +114,10 @@ def chay(ten, thay, mau):
     shutil.rmtree(tmp, ignore_errors=True)
 
 
-def doi_chung():
+def doi_chung(bai=BAI):
   tmp, _ = ban_sao([])
   try:
-    r = subprocess.run(lenh(tmp), cwd=GOC, capture_output=True, text=True, timeout=300)
+    r = subprocess.run(lenh(tmp, bai), cwd=GOC, capture_output=True, text=True, timeout=300)
     ra = sach((r.stdout or '') + (r.stderr or ''))
     m = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
     return r.returncode == 0 and m is not None and m.group(2) == '0', (m.group(0) if m else ra[-200:])
@@ -120,10 +129,11 @@ if __name__ == '__main__':
   if '--help' in sys.argv or '-h' in sys.argv:
     print(__doc__); sys.exit(0)
   if '--goc' in sys.argv:
-    sha = sys.argv[sys.argv.index('--goc') + 1]
+    sha = sys.argv[sys.argv.index('--goc') + 1]   # [--bai cong_cu/thu_X.js] đổi bài thử (mặc định thu_ANHMON1)
+    bai = sys.argv[sys.argv.index('--bai') + 1] if '--bai' in sys.argv else BAI
     tmp, loi = ban_sao([], sha)
     try:
-      r = subprocess.run(lenh(tmp), cwd=GOC, capture_output=True, text=True, timeout=300)
+      r = subprocess.run(lenh(tmp, bai), cwd=GOC, capture_output=True, text=True, timeout=300)
       ra = sach((r.stdout or '') + (r.stderr or ''))
       for l in ra.splitlines():
         if '✗' in l or re.search(r'\d+ đạt · \d+ hỏng', l): print(l.rstrip()[:200])
@@ -138,10 +148,11 @@ if __name__ == '__main__':
   ds = [d for d in DOT_BIEN if not chon or d[0] in chon]
   if chon and len(ds) != len(chon):
     sys.exit('tên không có trong danh sách: ' + ', '.join(set(chon) - {d[0] for d in ds}))
-  ok, dong = doi_chung()
-  print(f'ĐỐI CHỨNG (bản chưa đột biến): {"XANH" if ok else "ĐỎ"} · {dong}')
-  if not ok:
-    sys.exit('đối chứng đỏ — không chạy đột biến (K3)')
+  for b in dict.fromkeys(d[3] if len(d) > 3 else BAI for d in ds):
+    ok, dong = doi_chung(b)
+    print(f'ĐỐI CHỨNG {b} (bản chưa đột biến): {"XANH" if ok else "ĐỎ"} · {dong}')
+    if not ok:
+      sys.exit('đối chứng đỏ — không chạy đột biến (K3)')
   with ThreadPoolExecutor(max_workers=4) as ex:
     kq = list(ex.map(lambda d: chay(*d), ds))
   for ten, tt, ghi in kq: print(f'{tt:5} {ten} — {ghi}')

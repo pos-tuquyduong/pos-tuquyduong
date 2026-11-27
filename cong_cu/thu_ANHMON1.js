@@ -265,7 +265,8 @@ async function main() {
     const lai = await chayNangCap({ beginTransaction: db.beginTransaction, query: db.query });
     noiLai();
     k('G4 chạy lại bước nâng cấp: không hỏng', lai.hong === null, String(lai.hong));
-    k('G5 backup.js (Excel hằng ngày) KHÔNG có bảng ảnh', !/pos_anh_mon/.test(doc('server/routes/backup.js')));
+    { const bk = doc('server/routes/backup.js');
+      k('G5 backup.js: bảng ảnh KHÔNG trong BACKUP_TABLES (Excel hằng ngày) và có tên trong BANG_KHONG_XUAT_EXCEL', !/name:\s*'pos_anh_mon'/.test(bk) && /BANG_KHONG_XUAT_EXCEL\s*=\s*\['pos_anh_mon'\]/.test(bk)); }
   });
 
   // ═════════════════════════════════════════════════════════════════════════
