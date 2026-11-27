@@ -536,6 +536,8 @@ async function main() {
     && gan(await so("SELECT SUM(so_luong) FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'thanh_pham'", [px20.phieu?.id || 0]), 4), moTa(ct20));
   datGio('2026-12-02T21:42:00');
   await goi('ql', 'POST', `/kho/phieu/${px20.phieu?.id}/duyet`);
+  const pnCam = await goi('nv', 'POST', '/kho/phieu-nhan', { dong: [{ nguyen_lieu_id: nCam, luong: 10 }], ma_gui: 'pnCam' });   // nền: thêm Cam cho các ca sau
+  await goi('ql', 'POST', `/kho/phieu/${pnCam.phieu?.id}/duyet`);
   // Q8d: hai phiếu chờ — trừ vào phiếu MỚI NHẤT trước
   datGio('2026-12-02T21:43:00');
   await ban(sNC, await tonSP(sNC));
