@@ -70,6 +70,15 @@ DOT_BIEN = [
   ('VS-sua-mon-kiem-danh-sach-cu', [(P, "dsTp !== undefined ? dsTp : doi.la_topping === 1 ? docDs(cu.topping_cho_mon) : [];",
      'dsTp !== undefined ? dsTp : docDs(cu.topping_cho_mon);', 1)], r'✗ T05d'),
   ('VS-topping-co-ghi-chu-o-quay', [(P, 'ghi_chu_nhanh: laTopping(p) ? [] : docDs(p.ghi_chu_nhanh),', 'ghi_chu_nhanh: docDs(p.ghi_chu_nhanh),', 1)], r'✗ T48c'),
+  # ── soát vòng 2 ──
+  ('BV-con-hang-topping', [(KH, "    con_hang: t.khong_quan_kho ? true : typeof t.stock_quantity === 'number' ? t.stock_quantity > 0 : null });",
+     '    con_hang: true });', 1)], r'✗ T30d'),
+  ('VS-mot-mon-chon-topping', [(O, 'findEligibleItemForGroup(query, discountCodeGroupId, orderItems.filter((it) => it.cha == null));',
+     'findEligibleItemForGroup(query, discountCodeGroupId, orderItems);', 1)], r'✗ T43b'),
+  ('VS-so-mon-app-da-tra', [(A, 'AND dong_cha_id IS NULL GROUP BY order_id', 'GROUP BY order_id', 1)], r'✗ T35b'),
+  ('BV-chi-tiet-da-tra-gom', [(A, '? gomTopping(await query(', '? ((x) => x.map((d) => ({ ...d, topping: [] })))(await query(', 1)], r'✗ T35c'),
+  ('VS-hoa-don-app-sl', [('server/utils/dongHoaDon.js', 'm.topping ? m.ten : `${m.sl} x ${m.ten}`', '`${m.sl} x ${m.ten}`', 1)], r'✗ T45'),
+  ('VS-item-count', [(O, 'WHERE order_id = o.id AND dong_cha_id IS NULL) as item_count', 'WHERE order_id = o.id) as item_count', 1)], r'✗ T47b'),
   # ── C4: hoá đơn / tem / pha chế ──
   ('BV-hoa-don-topping-cua', [(HD, "...(cha >= 0 ? { topping_cua: cha,", '...(false ? { topping_cua: cha,', 1)], r'✗ T09 '),
   ('VS-hoa-don-mat-phan-tram', [(HD, 'items.filter((m) => m.dong_cha_id == null && m.tier_unit_price != null', 'items.filter((m) => m.tier_unit_price != null', 1)],

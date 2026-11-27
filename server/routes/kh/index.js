@@ -45,7 +45,7 @@ const monKhach = (p, dsHang) => ({
   gia_hang: giaCacHang(p.price, p.is_special_group, dsHang),
   // KH-SP-1: thông tin ngắn nhập ở màn Sản phẩm POS; chưa nhập → [] / null. Ảnh món làm sau (KH-SP-2).
   nhu_cau: p.nhu_cau, the_chat: p.the_chat, mo_ta: p.mo_ta, cong_dung: p.cong_dung, thanh_phan: p.thanh_phan, anh: null,
-  ghi_chu_nhanh: p.la_topping ? [] : p.ghi_chu_nhanh || [],   // TOPPING-1
+  ghi_chu_nhanh: p.ghi_chu_nhanh || [],   // TOPPING-1 (layMenuQuay đã trả [] cho topping)
 });
 /**
  * TOPPING-1 — menu App: món thường thêm topping[] (đúng danh sách cài cho món, topping đang bán) + ghi_chu_nhanh[]; topping KHÔNG hiện như món,

@@ -8,7 +8,8 @@
  * nên gồm cả giảm cấp đơn (mã, giảm tay). Làm tròn xuống: tổng các dòng không bao giờ vượt số khách trả.
  * `chanTren` (trần đền — damages.js): đơn có mã giảm 1 MÓN thì không biết món nào được giảm (giảm không ghi xuống dòng) →
  * MỌI dòng "đã trả = giá dòng − toàn bộ giảm của mã" — không bao giờ đền quá (chủ quán chốt Câu hỏi 2, 12.10; làm đúng cần cột
- * giảm theo dòng → P26d).
+ * giảm theo dòng → P26d). TOPPING-1: ly có topping là MỘT món nhiều dòng → "giá dòng" = ly + topping của nó (trừ giảm MỘT lần, dồn vào dòng ly;
+ * dòng topping 0).
  * VOUCHER-2 (Q7, chủ quán 12.11): đơn có cờ `giam_mon_thuong` = 1 (từ VOUCHER-2) — mã / voucher chỉ giảm món thường → dòng gói / thẻ / nạp
  * (product_id < 0) đã trả ĐỦ giá; phần còn lại của số khách trả chia theo tỉ lệ trên món thường. Đơn cũ (cờ 0) giữ y cách chia cũ.
  */
