@@ -288,3 +288,8 @@ HEAD ĐÃ KIỂM: 3939072f
 - --day-du: PASS 134 · FAIL 1 (thu_NDAPI1 môi trường chat).
 
 HEAD ĐÃ KIỂM: 161f810c
+
+## Update branch (chat bàn 41, 27.11 tối)
+- PR #108 giữ base.sha cũ 0795f2a1 sau khi #107 gộp → cổng tính nhầm file NHOM-MON-1 là của việc này. Chat gọi API update-branch: ghép main aa9eff80 (merge #107) — cây chỉ thêm 6 dòng trang_thai của NHOM-MON-1, không đổi code so với 161f810c đã kiểm (--day-du PASS 134 · FAIL 1 NDAPI1 môi trường) + 3bfc51fe (SỐ CA thu_NHOMMON1, phiên chat khác).
+
+HEAD ĐÃ KIỂM: f5d9b452
