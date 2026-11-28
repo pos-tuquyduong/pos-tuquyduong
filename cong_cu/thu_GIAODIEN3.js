@@ -124,8 +124,9 @@ async function main() {
   k('T3c maximum-scale (nếu có) ≥ 2 — người dùng phóng to được', vpMap['maximum-scale'] === undefined || Number(vpMap['maximum-scale']) >= 2, vp);
 
   muc('A3 · lớp `.table-responsive` (5 chỗ dùng: DoiSoat, DiscountCodes, Reports) phải có CSS cuộn ngang — bảng 600 px ở điện thoại không thò ra ngoài thẻ');
-  k('T5a `.table-responsive` có overflow-x: auto ở điện thoại 390 px và máy tính 1280 px', giaTri(luat, '.table-responsive', 'overflow-x', RONG.dienThoai) === 'auto' && giaTri(luat, '.table-responsive', 'overflow-x', RONG.mayTinh) === 'auto',
-    `${giaTri(luat, '.table-responsive', 'overflow-x', 390)} / ${giaTri(luat, '.table-responsive', 'overflow-x', 1280)}`);
+  const cuonNgang = (w) => giaTri(luat, '.table-responsive', 'overflow-x', w) === 'auto' && !['hidden', 'visible', 'clip'].includes(giaTri(luat, '.table-responsive', 'overflow', w));   // viết tắt `overflow` đặt SAU cũng tính (như T1e)
+  k('T5a `.table-responsive` có overflow-x: auto ở điện thoại 390 px và máy tính 1280 px, không bị `overflow: hidden/visible` viết tắt đè', cuonNgang(RONG.dienThoai) && cuonNgang(RONG.mayTinh),
+    `${giaTri(luat, '.table-responsive', 'overflow-x', 390)} / ${giaTri(luat, '.table-responsive', 'overflow-x', 1280)} · overflow: ${giaTri(luat, '.table-responsive', 'overflow', 390)}`);
   k('T5b bảng vẫn 600 px ở điện thoại (quy tắc cũ `.table { min-width: 600px }` trong @media 768 không đổi) và 100% bề ngang ở máy tính',
     giaTri(luat, '.table', 'min-width', RONG.dienThoai) === '600px' && giaTri(luat, '.table', 'min-width', RONG.mayTinh) === undefined && giaTri(luat, '.table', 'width', RONG.mayTinh) === '100%');
 

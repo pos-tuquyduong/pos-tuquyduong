@@ -50,6 +50,7 @@ DOT_BIEN = [
   ('BV-bo-table-responsive', [(CSS, TR, '', 1)], r'✗ T5a '),
   ('VS-table-responsive-hidden', [(CSS, TR, '.table-responsive { overflow-x: hidden; }', 1)], r'✗ T5a '),
   ('VS-table-responsive-chi-dien-thoai', [(CSS, TR, '@media (max-width: 768px) { .table-responsive { overflow-x: auto; } }', 1)], r'✗ T5a '),
+  ('VS-table-responsive-overflow-viet-tat', [(CSS, TR, TR + '\n.table-responsive { overflow: hidden; }', 1)], r'✗ T5a '),
   ('VS-bang-het-600px', [(CSS, '  .table { min-width: 600px; }', '  .table { min-width: 0; }', 1)], r'✗ T5b '),
   ('BV-mat-margin-left-0-dien-thoai', [(CSS, M768, '  .main-content { padding-bottom: 80px; }', 1)], r'✗ T1d '),
   ('VS-giau-tran-overflow-viet-tat', [(CSS, MC, '.main-content { flex: 1; margin-left: 240px; min-width: 0; overflow: hidden; }', 1)], r'✗ T1e '),
