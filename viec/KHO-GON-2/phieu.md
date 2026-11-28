@@ -13,6 +13,17 @@
          bằng thành phần = gói, lượng = 1 / số ly mỗi nồi. Thiếu: số ly mỗi mẻ + chữ "+ 5 L nước" để màn tính theo NỒI.
        - server/index.js 81: express.json limit 5mb; multer đã dùng ở duong.js 150 (nhập SX). -->
 
+<!-- BỔ SUNG 28.11 (chat bàn 42, main aa9785f5 — ĐÃ CÓ KHO-GON-1 #110, ANH-MON-1 #109, TOPPING-1 #108, NHOM-MON-1 #107; chat đã ghép main vào nhánh):
+     - KHO-GON-1 chủ quán chốt Q13 / Q14: khoá kết quả pha chế MỘT luật theo MÓN + giờ (duLieu.js chotCham / monDaChot); chỉnh tay luôn để dấu vết
+       kho_chot 'chinhtay'. E1 (nhận cộng ngay) KHÔNG được làm lệch luật đó; dòng cam "phiếu chờ bị từ chối sau lần chốt" (viec.js canhBaoSauChot)
+       vế nguyên liệu của phiếu nhận chờ — KHO-GON-1 để CHƯA KIỂM theo dặn chủ quán; sau E1 phiếu nhận không còn chờ → kế hoạch ghi rõ còn cần hay bỏ.
+     - Ảnh (B2–B5): DÙNG LẠI phần của ANH-MON-1 — kiểu ảnh theo byte đầu `loaiAnh` (server/nd/tinh.js, qua server/utils/anhMon.js), cách thu nhỏ ở máy
+       (`thuNhoAnh` trong client/src/pages/Kho/SanPham.jsx — gom ra một chỗ dùng chung nếu cần, KHÔNG chép), lưu base64 trong CSDL như pos_anh_mon.
+     - B5: bảng ảnh phiếu vào `BANG_KHONG_XUAT_EXCEL` (server/routes/backup.js) — cùng lý do chủ quán đã duyệt cho ảnh món 27.11 (ô Excel tối đa 32.767
+       ký tự); ghi lý do cạnh dòng; kế hoạch nêu để chủ quán xác nhận khi duyệt. cong_cu/thu_SAOLUU2.js đang so ĐÚNG chuỗi `['pos_anh_mon']` (dòng ~114–116)
+       → sửa đúng các dòng đó theo LUAT §6.7 (vẫn so bằng).
+     - Bước nâng cấp: 034 còn trống (main có 033 · 035–037) — giữ tên 034_kho_me_anh.js. -->
+
 **Chờ duyệt kế hoạch:** viết `viec/KHO-GON-2/ke_hoach.md`, commit, push, rồi DỪNG ở bước 3 của `/lam-viec`.
 
 ## Mục tiêu
@@ -84,6 +95,10 @@ viec/KHO-GON-2/ban_thu_the_nguyen_lieu.html)**
 - server/nang_cap/034_kho_me_anh.js
 - server/nang_cap/chay.js
 - server/utils/chuanHoaGio.js
+- server/utils/anhMon.js
+- server/routes/backup.js
+- cong_cu/thu_SAOLUU2.js
+- cong_cu/thu_ANHMON1.js
 - client/src/pages/Kho/**
 - client/dist/**
 - cong_cu/thu_KHOGON2.js
