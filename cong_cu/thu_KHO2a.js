@@ -249,6 +249,11 @@ async function main() {
   k('E1 Đường chỉ có lô hết hạn → vẫn ghi dòng không lô, lô hết hạn không bị trừ, tồn 0', gan(t1.nl(n3).ton, 0) && t1.nl(n3).am === false
     && (await so('SELECT COUNT(*) FROM kho_phieu_dong WHERE phieu_id = ? AND nguyen_lieu_id = ? AND lo_id IS NULL', [c1id || 0, n3])) === 1
     && (await so('SELECT COUNT(*) FROM kho_phieu_dong WHERE lo_id = ? AND phieu_id = ?', [loDuongHet, c1id || 0])) === 0, JSON.stringify(t1.nl(n3)));
+  // KHO-GON-2 Q1 (LUAT §6.9 — ca đỏ trên gốc): Đường giờ 0, tạo phiếu Siro 1 phần (cần 0.1) → CHẶN, không phiếu, tồn không âm (gốc: ghi, tồn −0.1)
+  const pxTruocE1b = await demPX();
+  const e1b = await px('ql', [{ san_pham_id: s3, so_phan: 1 }], 'g-e1b');
+  k('E1b tạo phiếu khi kho thiếu (Đường 0, cần 0.1) → 409 THIEU_NGUYEN_LIEU, không thêm phiếu, tồn Đường vẫn 0', e1b.status === 409 && e1b.code === 'THIEU_NGUYEN_LIEU'
+    && (await demPX()) === pxTruocE1b && gan((await tonQL()).nl(n3).ton, 0), moTa(e1b));
   const loS1 = await mot('SELECT * FROM kho_lo WHERE phieu_id = ? AND san_pham_id = ?', [c1id || 0, s1]);
   const loS2 = await mot('SELECT * FROM kho_lo WHERE phieu_id = ? AND san_pham_id = ?', [c1id || 0, s2]);
   k('E3 mỗi món một lô: Nước cam 10 phần hạn = giờ làm + 2 ngày (2026-11-09T06:00:00); Trà kỷ tử chưa có hạn → lô không hạn, vẫn vào',
