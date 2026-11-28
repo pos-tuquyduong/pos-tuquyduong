@@ -266,15 +266,20 @@ export default function Orders() {
     'damaged': 'Hỏng khi vận chuyển', 'wrong_product': 'Giao sai sản phẩm',
     'rejected': 'Khách từ chối nhận', 'quality': 'Chất lượng không đạt', 'other': 'Lý do khác'
   };
-  const DAMAGE_ACTIONS = { 'refund': 'Hoàn tiền', 'return_stock': 'Hoàn kho SX', 'none': 'Chỉ ghi nhận' };
+  const DAMAGE_ACTIONS = { 'refund': 'Hoàn tiền', 'none': 'Chỉ ghi nhận' };
+  const NHAN_XU_LY_CU = { ...DAMAGE_ACTIONS, 'return_stock': 'Hoàn kho (cũ)' };   // dòng báo hỏng cũ còn 'return_stock' (máy chủ KHO-3a đã bỏ): chỉ để HIỆN nhãn, không chọn được nữa
 
   // P26c (Q2): gợi ý số đền theo giá khách ĐÃ TRẢ một ly (flash / hạng); đơn có giảm cấp đơn thì máy chủ báo số tối đa.
-  const giaDaTra = (it) => it?.flash_unit_price || it?.tier_unit_price || it?.unit_price || 0;
+  // TOPPING-1 (Q7): báo sự cố theo LY — `gia_ly` = giá một ly gồm topping của ly đó; dòng topping trong ly không chọn riêng (máy chủ chặn TOPPING_BAO_THEO_LY).
+  const giaDaTra = (it) => it?.gia_ly ?? (it?.flash_unit_price || it?.tier_unit_price || it?.unit_price || 0);
 
   const openDamageModal = (order) => {
-    const firstItem = order.items?.[0];
+    const ds = order.items || [];
+    const ly = ds.filter((i) => i.dong_cha_id == null).map((i) => ({ ...i, gia_ly: Math.round(giaDaTra(i)
+      + ds.filter((c) => c.dong_cha_id != null && Number(c.dong_cha_id) === Number(i.id)).reduce((s, c) => s + giaDaTra(c) * c.quantity / Math.max(1, i.quantity), 0)) }));
+    const firstItem = ly[0];
     setDamageForm({
-      order_id: order.id, order_code: order.code, items: order.items || [],
+      order_id: order.id, order_code: order.code, items: ly,
       product_code: firstItem?.product_code || '', quantity: 1, max_qty: firstItem?.quantity || 1,
       reason: 'damaged', reason_note: '', action: 'refund', 
       refund_amount: giaDaTra(firstItem)
@@ -692,7 +697,7 @@ export default function Orders() {
                         <td>{d.product_code}</td>
                         <td>{d.quantity}</td>
                         <td>{DAMAGE_REASONS[d.reason] || d.reason}</td>
-                        <td>{DAMAGE_ACTIONS[d.action] || d.action}</td>
+                        <td>{NHAN_XU_LY_CU[d.action] || d.action}</td>
                         <td>{d.refund_amount > 0 ? formatPrice(d.refund_amount) : '-'}</td>
                         <td>{d.processed_by_name}</td>
                       </tr>
@@ -802,8 +807,10 @@ export default function Orders() {
                     {(selectedOrder.items || []).map((item, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '8px 4px' }}>
-                          <div style={{ fontWeight: '500' }}>{item.product_code}</div>
-                          <div style={{ fontSize: '0.8rem', color: '#666' }}>{item.product_name}</div>
+                          {item.dong_cha_id != null
+                            ? <div style={{ paddingLeft: '0.75rem', fontSize: '0.85rem', color: '#555' }}>+ {item.product_name}</div>   /* TOPPING-1: topping dưới ly */
+                            : <><div style={{ fontWeight: '500' }}>{item.product_code}</div>
+                              <div style={{ fontSize: '0.8rem', color: '#666' }}>{item.product_name}</div></>}
                         </td>
                         <td style={{ textAlign: 'center', padding: '8px 4px' }}>{item.quantity}</td>
                         <td style={{ textAlign: 'right', padding: '8px 4px' }}>{formatPrice(item.unit_price)}</td>
@@ -1161,7 +1168,7 @@ export default function Orders() {
                   {deleteOrder.balance_amount > 0 && (
                     <li>Hoàn <strong>{formatPrice(deleteOrder.balance_amount)}</strong> số dư cho {deleteOrder.customer_name}</li>
                   )}
-                  <li>Hoàn tồn kho SX (các sản phẩm trong đơn)</li>
+                  <li>Trả lại kho (các món trong đơn)</li>
                 </ul>
               </div>
 

@@ -23,7 +23,7 @@ const crypto = require('crypto');
 const { query, queryOne, run } = require('../database');
 const { getNow, soHdCuaMa, chuoiSoHd } = require('./helpers');
 const { taoDon, LY_DO_HUY } = require('../routes/orders');
-const { layMenuQuay } = require('../routes/products');
+const { menuApp } = require('../routes/products');
 const { docCaiDat, dangMo } = require('./gioHoatDong');
 const { taoPhien, chotPhien, gomRes } = require('./giuCho');
 const { laTrungKhoa } = require('../kho/tinh');
@@ -33,11 +33,13 @@ const { dungThanhToan, tinhGiam } = require('../routes/hoaDon');
 const { tien } = require('./nhatKyDon');
 const { laDongThe } = require('./membershipStatus');
 const { ID_NAP_TU, tenDongNap } = require('./viKhach');
+const { gomTopping } = require('./topping');   // TOPPING-1
+const maDong = (d) => (d.sx_product_type != null ? `${d.sx_product_type}_${d.sx_product_id}` : null);
 const laDongNap = (productId) => Number(productId) <= ID_NAP_TU;   // KH-NAP-1: dải dòng nạp của taoDon (viKhach.js)
 
 const NGUOI = 'app_kh';
 const GIOI = {
-  MON_TOI_DA: 50, SL_TOI_DA: 99, GHI_CHU_TOI_DA: 200,
+  MON_TOI_DA: 50, SL_TOI_DA: 99, GHI_CHU_TOI_DA: 200, TOPPING_TOI_DA: 10,   // TOPPING-1: số loại topping tối đa một dòng (thân App)
   KHOA_GUI: /^[A-Za-z0-9-]{16,64}$/,
   NHO_KHOA_GIAY: 24 * 3600,      // gửi lại cùng khoá trong 24 giờ → đơn cũ; quá → KHOA_GUI_DA_DUNG (khoá duy nhất mãi trong CSDL)
   LUOI_GIAY: 10,                 // lưới thứ hai: cùng giỏ, đơn trước còn cho_tra
@@ -51,9 +53,11 @@ const THAY_DUOC = "(a.xong = 1 OR p.trang_thai = 'da_thu')";   // đơn App mà 
 // Mã lỗi của taoPhien / chotPhien giữ nguyên khi trả App; mã khác → DON_KHONG_HOP_LE (lời báo giữ nguyên) — mọi mã App nhận có trong hợp đồng.
 const GIU_MA = ['CACH_KHONG_KHOP', 'CHUA_CO_PIN', 'PIN_SAI', 'PIN_DANG_KHOA', 'PAYOS_CHUA_CAU_HINH', 'PAYOS_LOI', 'KHO_BAN',
   'HANG_CHI_CAP', 'GOI_HANG_KHONG_BAN', 'DA_CO_HANG_CAO_HON',   // KH-THE-1: mã chặn thẻ của quầy (orders.js), lời báo giữ nguyên
-  'NAP_KHONG_GOP', 'GOI_NAP_KHONG_CO', 'NAP_CHI_TIEN_MAT_QR', 'THE_KHONG_TRA_VI'];   // KH-NAP-1: mã nạp + chỉ trả tiền thật của quầy, lời giữ nguyên
+  'NAP_KHONG_GOP', 'GOI_NAP_KHONG_CO', 'NAP_CHI_TIEN_MAT_QR', 'THE_KHONG_TRA_VI',   // KH-NAP-1: mã nạp + chỉ trả tiền thật của quầy, lời giữ nguyên
+  'TOPPING_KHONG_CHO_MON', 'TOPPING_SO_PHAN', 'TOPPING_KHONG_BAN_RIENG'];   // TOPPING-1: mã chặn topping của quầy (utils/topping.js), lời giữ nguyên
 const TRUONG_THE = ['hang_id', 'loai', 'so_luong', 'so_thang'];   // dòng thẻ chỉ nhận đúng các khoá này (không giá, không ghi chú)
 const TRUONG_NAP = ['loai', 'ma_goi', 'so_luong'];   // KH-NAP-1: dòng nạp — cùng khuôn danh sách trắng
+const TRUONG_TOPPING = ['ma', 'so_phan'];   // TOPPING-1: topping trong dòng món — cùng khuôn danh sách trắng
 const CHU_MA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const truGiay = (giay) => new Date(Date.parse(getNow() + 'Z') - giay * 1000).toISOString().slice(0, 19);
@@ -63,7 +67,7 @@ const sinhMa = () => 'A' + [...crypto.randomBytes(8)].map((b) => CHU_MA[b % CHU_
 const bamGio = (b) => crypto.createHash('sha256').update(JSON.stringify([
   Array.isArray(b.mon) ? b.mon.map((m) => (m?.loai === 'the' ? ['the', m.hang_id ?? null, m.so_thang ?? null, m.so_luong ?? 1]   // bỏ trống = 1 (docGio)
     : m?.loai === 'nap' ? ['nap', m.ma_goi ?? null, m.so_luong ?? 1]   // KH-NAP-1: dòng nạp băm riêng một dạng
-      : [m?.ma ?? null, m?.so_luong ?? null, m?.ghi_chu || null])) : null,
+      : [m?.ma ?? null, m?.so_luong ?? null, m?.ghi_chu || null, ...(m?.topping !== undefined ? [m.topping] : [])])) : null,   // TOPPING-1: chỉ thêm KHI CÓ
   b.ma_giam || null, b.cach_nhan ?? null, b.cach_tra ?? null,
   ...(Array.isArray(b.vouchers) && b.vouchers.length ? [b.vouchers] : [])])).digest('hex');   // VOUCHER-2: chỉ thêm KHI CÓ — khoá gửi App cũ không lệch
 
@@ -128,7 +132,11 @@ function docGio(b) {
     }
     if (!m || typeof m.ma !== 'string' || !m.ma || !Number.isInteger(m.so_luong) || m.so_luong < 1 || m.so_luong > GIOI.SL_TOI_DA) return sai;
     if (m.ghi_chu != null && (typeof m.ghi_chu !== 'string' || m.ghi_chu.length > GIOI.GHI_CHU_TOI_DA)) return sai;
-    dong.push({ ma: m.ma, so_luong: m.so_luong, ghi_chu: (m.ghi_chu || '').trim() || null });
+    // TOPPING-1: topping [{ ma, so_phan }] (danh sách trắng khoá); số phần / danh sách của món do taoDon kiểm (cùng hàm với quầy — utils/topping.js).
+    if (m.topping !== undefined && !(Array.isArray(m.topping) && m.topping.length <= GIOI.TOPPING_TOI_DA
+      && m.topping.every((t) => t && typeof t.ma === 'string' && t.ma && Object.keys(t).every((x) => TRUONG_TOPPING.includes(x))))) return sai;
+    dong.push({ ma: m.ma, so_luong: m.so_luong, ghi_chu: (m.ghi_chu || '').trim() || null,
+      ...(m.topping?.length ? { topping: m.topping.map((t) => ({ ma: t.ma, so_phan: t.so_phan })) } : {}) });
   }
   const the = dong.filter((d) => d.loai === 'the');
   if (the.length > 1) return thanLoi('NHIEU_THE');
@@ -149,22 +157,29 @@ async function kiemGio() {
   return !m.dang_mo ? thanLoi('NGOAI_GIO') : !m.nhan_don ? thanLoi('QUA_GIO_NHAN_DON') : null;
 }
 
-/** Món App → items của taoDon, theo ĐÚNG danh sách /menu thấy (layMenuQuay). Tồn chưa rõ (null) không chặn (Q7). */
+/** Món App → items của taoDon, theo ĐÚNG danh sách /menu thấy (menuApp — món của nhóm tắt "hiện trên App" → MON_KHONG_BAN). Tồn chưa rõ (null) không chặn (Q7). */
 async function dungItems(mon) {
-  const theoMa = new Map((await layMenuQuay()).map((p) => [p.unique_id, p]));
+  const theoMa = new Map((await menuApp()).map((p) => [p.unique_id, p]));
   const can = new Map();
   for (const m of mon) {
     const p = theoMa.get(m.ma);
-    if (!p || !p.sellable) return thanLoi('MON_KHONG_BAN', { ma: m.ma });
+    if (!p || !p.sellable || (p.la_topping && !(p.gia_ban_rieng > 0))) return thanLoi('MON_KHONG_BAN', { ma: m.ma });   // TOPPING-1: topping không bán riêng
     can.set(m.ma, (can.get(m.ma) || 0) + m.so_luong);
+    for (const t of m.topping || []) {   // TOPPING-1: topping cộng vào cùng bảng cần (cùng topping ở nhiều ly cộng dồn)
+      const pt = theoMa.get(t.ma);
+      if (!pt || !pt.sellable) return thanLoi('MON_KHONG_BAN', { ma: t.ma });
+      if (Number.isInteger(t.so_phan) && t.so_phan > 0) can.set(t.ma, (can.get(t.ma) || 0) + t.so_phan * m.so_luong);
+    }
   }
   for (const [ma, sl] of can) {
     const p = theoMa.get(ma);
     if (!p.khong_quan_kho && typeof p.stock_quantity === 'number' && sl > p.stock_quantity) return thanLoi('HET_HANG', { ma });
   }
   return {
-    items: mon.map((m) => { const p = theoMa.get(m.ma); return { sx_product_type: p.sx_product_type, sx_product_id: p.sx_product_id, quantity: m.so_luong, note: m.ghi_chu }; }),
+    items: mon.map((m) => { const p = theoMa.get(m.ma); return { sx_product_type: p.sx_product_type, sx_product_id: p.sx_product_id, quantity: m.so_luong, note: m.ghi_chu,
+      ...(m.topping ? { topping: m.topping.map((t) => { const pt = theoMa.get(t.ma); return { sx_product_type: pt.sx_product_type, sx_product_id: pt.sx_product_id, so_phan: t.so_phan }; }) } : {}) }; }),
     ten: mon.map((m) => theoMa.get(m.ma).name),
+    tenTopping: mon.map((m) => (m.topping || []).map((t) => theoMa.get(t.ma).name)),   // TOPPING-1: tên topping theo thứ tự gửi (taoDon giữ thứ tự)
   };
 }
 
@@ -209,17 +224,21 @@ async function baoGia(khach, gio, d) {
     .filter(([, n]) => n > 0).map(([loai, so_tien]) => ({ loai, so_tien }))
     .concat(ct.vouchers.filter((v) => v.so_tien > 0).map((v) => ({ loai: v.ship ? 'voucher_ship' : 'voucher', so_tien: v.so_tien, ma: v.ma })));   // VOUCHER-2
   // Ghép dòng giỏ ↔ dòng taoDon: dòng thẻ theo dải product_id (taoDon đẩy thẻ SAU món), dòng món theo thứ tự — `j` = chỉ số trong gio.mon / d.ten.
-  const monCt = ct.items.filter((x) => !laDongThe(x.product_id) && !laDongNap(x.product_id)), theCt = ct.items.find((x) => laDongThe(x.product_id));
+  // TOPPING-1: dòng topping (cha ≠ null) không phải dòng giỏ — ghép vào `topping` của dòng món cha, theo thứ tự App gửi.
+  const monCt = ct.items.filter((x) => !laDongThe(x.product_id) && !laDongNap(x.product_id) && x.cha == null), theCt = ct.items.find((x) => laDongThe(x.product_id));
+  const tpCua = (it) => ct.items.filter((x) => x.cha != null && x.cha === ct.items.indexOf(it));
   const napCt = ct.items.find((x) => laDongNap(x.product_id));   // KH-NAP-1: dòng nạp theo dải product_id như dòng thẻ
   let j = 0;
   const ghep = gio.dong.map((g) => (g.loai === 'the' ? { g, it: theCt } : g.loai === 'nap' ? { g, it: napCt } : { g, it: monCt[j], j: j++ }));
   return {
     maDung, ghep, vouchersDung: ct.vouchers.map((v) => v.ma),   // VOUCHER-2: tạo phiên chỉ gửi voucher báo giá đã nhận (voucher hỏng đã báo ở voucher_loi)
     bao: {
-      dong: ghep.map(({ g, it }) => (g.loai === 'the'
+      dong: ghep.map(({ g, it, j }) => (g.loai === 'the'
         ? { loai: 'the', hang_id: g.hang_id, so_thang: g.so_thang, ma: null, so_luong: 1, don_gia: it.unit_price, thanh_tien: it.unit_price }
         : g.loai === 'nap' ? { loai: 'nap', ma_goi: g.ma_goi, ma: null, so_luong: 1, don_gia: it.unit_price, thanh_tien: it.unit_price }
-        : { ma: g.ma, so_luong: it.quantity, don_gia: it.unit_price, thanh_tien: it.unit_price * it.quantity })),   // = itemTotal của taoDon; Σ = subtotal
+        : { ma: g.ma, so_luong: it.quantity, don_gia: it.unit_price, thanh_tien: it.unit_price * it.quantity,   // = itemTotal của taoDon; Σ (gồm topping) = subtotal
+          ...(g.topping ? { topping: tpCua(it).map((x, k) => ({ ma: g.topping[k].ma, ten: d.tenTopping[j][k], so_phan: x.so_phan, don_gia: x.unit_price,
+            thanh_tien: x.unit_price * x.quantity })) } : {}) })),
       tam_tinh: ct.subtotal, giam, phi_giao: 0, tong: ct.total, ma_giam_loi: maLoi,
       voucher_loi: ct.voucher_loi.map(({ ma, code, error }) => ({ ma, code, error })),
     },
@@ -386,7 +405,7 @@ async function tomTatDonThat(rows) {
   const cho = ids.map(() => '?').join(',');
   for (const o of await query(`SELECT * FROM pos_orders WHERE id IN (${cho})`, ids)) kq.set(o.id, { o });
   for (const m of await query(`SELECT order_id, SUM(quantity) AS n, (SELECT product_name FROM pos_order_items i WHERE i.order_id = g.order_id ORDER BY i.id LIMIT 1) AS ten
-      FROM pos_order_items g WHERE order_id IN (${cho}) GROUP BY order_id`, ids)) Object.assign(kq.get(m.order_id) || {}, { n: Number(m.n), ten: m.ten });
+      FROM pos_order_items g WHERE order_id IN (${cho}) AND dong_cha_id IS NULL GROUP BY order_id`, ids)) Object.assign(kq.get(m.order_id) || {}, { n: Number(m.n), ten: m.ten });   // TOPPING-1: số ly, không đếm topping
   // HUY-1 (H): tiền đã hoàn vào tài khoản CHÍNH khách của đơn (SĐT đơn = SĐT token; ví mẹ không tính)
   for (const h of await query(`SELECT t.order_id, SUM(t.amount) AS n FROM pos_balance_transactions t JOIN pos_orders o ON o.id = t.order_id AND o.customer_phone = t.customer_phone
       WHERE t.type = 'refund' AND t.order_id IN (${cho}) GROUP BY t.order_id`, ids)) Object.assign(kq.get(h.order_id) || {}, { hoan: Number(h.n) });
@@ -422,13 +441,15 @@ async function chiTietDon(phone, ma) {
   const r = await queryOne(`${CAU_DON} WHERE ma_app = ? OR ma_bill = ? LIMIT 1`, [phone, phone, ma, ma]);
   if (!r) return null;
   const mon = r.loai
-    ? (await query(`SELECT oi.product_id, oi.product_name, oi.quantity, oi.unit_price, oi.flash_unit_price, oi.tier_unit_price, oi.total_price, oi.notes,
+    ? gomTopping(await query(`SELECT oi.id, oi.dong_cha_id, oi.product_id, oi.product_name, oi.quantity, oi.unit_price, oi.flash_unit_price, oi.tier_unit_price, oi.total_price, oi.notes,
         pp.sx_product_type, pp.sx_product_id FROM pos_order_items oi LEFT JOIN pos_products pp ON pp.id = oi.product_id
         WHERE oi.order_id = ? ORDER BY oi.id`, [r.oid])).map((d) => ({
-      ma: d.sx_product_type != null ? `${d.sx_product_type}_${d.sx_product_id}` : null, ten: d.product_name, so_luong: d.quantity,
-      don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price, thanh_tien: d.total_price, ghi_chu: d.notes, ...(laDongThe(d.product_id) ? { loai: 'the' } : laDongNap(d.product_id) ? { loai: 'nap' } : {}) }))
+      ma: maDong(d), ten: d.product_name, so_luong: d.quantity,
+      don_gia: d.flash_unit_price || d.tier_unit_price || d.unit_price, thanh_tien: d.total_price, ghi_chu: d.notes, ...(laDongThe(d.product_id) ? { loai: 'the' } : laDongNap(d.product_id) ? { loai: 'nap' } : {}),
+      ...(d.topping.length ? { topping: d.topping.map(({ dong: t, so_phan }) => ({ ma: maDong(t), ten: t.product_name, so_phan,   // TOPPING-1: dòng con gom vào ly
+        don_gia: t.flash_unit_price || t.tier_unit_price || t.unit_price, thanh_tien: t.total_price })) } : {}) }))
     : JSON.parse(r.than).dong.map((d) => ({ ma: d.ma, ten: d.ten, so_luong: d.so_luong, don_gia: d.don_gia, thanh_tien: d.thanh_tien, ghi_chu: d.ghi_chu,
-      ...(d.loai ? { loai: d.loai } : {}) }));
+      ...(d.loai ? { loai: d.loai } : {}), ...(d.topping ? { topping: d.topping } : {}) }));
   return { ...tomDon(r, (await tomTatDonThat([r])).get(r.oid)), mon, hoa_don: r.loai ? await hoaDonCua(r.oid, !!r.ma_app) : [] };
 }
 
@@ -468,7 +489,8 @@ async function dsQuay() {
     id: r.id, oid: r.oid, ma: r.ma, ma_bill: r.code, so_hd: soHdCuaMa(r.code), gio: r.luc_chot, ten_khach: r.customer_name,   // oid: HUY-1 huỷ qua route quầy
     co_the: dong.find((d) => d.loai === 'the')?.ten ?? null,   // KH-THE-1: quầy không pha dòng thẻ — chỉ hiện nhãn
     co_nap: dong.find((d) => d.loai === 'nap')?.ten ?? null,   // KH-NAP-1: dòng nạp cũng không pha
-    mon: dong.filter((d) => !d.loai).map((d) => ({ ten: d.ten, so_luong: d.so_luong, ghi_chu: d.ghi_chu })),
+    mon: dong.filter((d) => !d.loai).map((d) => ({ ten: d.ten, so_luong: d.so_luong, ghi_chu: d.ghi_chu,
+      ...(d.topping ? { topping: d.topping.map((t) => ({ ten: t.ten, so_phan: t.so_phan })) } : {}) })),   // TOPPING-1: người pha thấy topping
     da_tra: r.giu_vi + r.con_lai, tra_vi: r.giu_vi, tra_qr: r.con_lai,
     tien_trinh: tienTrinh({ trang_thai: r.p_tt, het_han: r.het_han }, { status: r.status }, r.tien_trinh_quay),
     nguoi_lam: r.nguoi_lam, luc_lam: r.luc_lam, nguoi_xong: r.nguoi_xong, luc_xong: r.luc_xong,
@@ -484,4 +506,5 @@ async function doiTienTrinh(id, buoc, nguoi) {
   return r.changes === 1;
 }
 
-module.exports = { baoGiaKhach, datDon, dsDon, chiTietDon, huyDon, dsQuay, doiTienTrinh, tienTrinh, giuLuotDat, gioCanPhaChe, GIOI };
+module.exports = { baoGiaKhach, datDon, dsDon, chiTietDon, huyDon, dsQuay, doiTienTrinh, tienTrinh, giuLuotDat, gioCanPhaChe, GIOI,
+  bamGio };   // TOPPING-1: bài thử so băm giỏ không topping với công thức v18 (khoá gửi đang sống không lệch)

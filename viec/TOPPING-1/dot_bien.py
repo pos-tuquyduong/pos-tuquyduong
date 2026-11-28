@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""TOPPING-1 — đột biến cho MỖI chỗ vá: VS- (vá sai cách) và BV- (bỏ vá). Chạy ở GỐC kho:
+    python3 viec/TOPPING-1/dot_bien.py [tên...]      (không tên = chạy hết; có ĐỐI CHỨNG trước)
+    python3 viec/TOPPING-1/dot_bien.py --liet-ke      (chỉ in danh sách)
+
+Khuôn viec/TIEN-KHOA-2/dot_bien.py: chép server/ và client/src/ ra thư mục tạm (BẢN CHÉP THẬT — chỉ node_modules nối symlink), thay chuỗi (mỗi
+chuỗi phải khớp ĐÚNG số lần ghi sẵn — không khớp là HỎNG, K3), chạy `node cong_cu/thu_TOPPING1.js --may-chu <bản sao>/server` (bài đọc client/src
+của bản sao cạnh server). Cờ `--bo` tạm (27.11, khi 8 file chưa vào Phạm vi) đã BỎ — chạy đủ mọi mục.
+BẮT = thoát ≠ 0 VÀ có dòng `✗` khớp mẫu ĐÚNG ca phải bắt. Bài sập (thoát 2) hoặc đỏ không khớp mẫu = LẠC. Xanh trọn = SỐNG.
+Không đụng server/ thật, data/, Turso.
+"""
+import os, re, shutil, subprocess, sys, tempfile
+from concurrent.futures import ThreadPoolExecutor
+
+sys.dont_write_bytecode = True
+GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+BAI = 'cong_cu/thu_TOPPING1.js'
+DM, DT, HD, HDC, IP = 'server/routes/damages.js', 'server/utils/diemThat.js', 'server/routes/hoaDon.js', 'client/src/utils/hoaDon.js', 'client/src/utils/inPhieu.js'
+TP, O, K, P = 'server/utils/topping.js', 'server/routes/orders.js', 'server/kho/banHang.js', 'server/routes/products.js'
+A, KH, MK, GH, NC = 'server/utils/donApp.js', 'server/routes/kh/index.js', 'server/utils/manKhach.js', 'server/utils/giaoHang.js', 'server/nang_cap/036_topping.js'
+
+# (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
+DOT_BIEN = [
+  # ── D1: máy chủ tự tra giá topping ──
+  ('VS-tin-gia-topping-cua-man', [(TP, 'quantity: phan * sl, unit_price: p.price, total_price: p.price * phan * sl,',
+     'quantity: phan * sl, unit_price: t.unit_price ?? p.price, total_price: (t.unit_price ?? p.price) * phan * sl,', 1)], r'✗ T1[23]'),
+  ('BV-dong-cha-id', [(O, "           item.cha != null ? idDong[item.cha] : null],", '           null],', 1)], r'✗ T12b'),
+  # ── D2: chặn sai ──
+  ('VS-topping-ngoai-danh-sach-lot', [(TP, 'if (!laTopping(p) || !choPhep.includes(Number(p.id)))', 'if (!laTopping(p))', 1)], r'✗ T14 '),
+  ('VS-qua-3-phan-lot', [(TP, 'phan > TOPPING_TOI_DA_PHAN ||', 'phan > TOPPING_TOI_DA_PHAN + 1 ||', 1)], r'✗ T15b'),
+  ('VS-ban-rieng-khi-khong-gia', [(TP, "? { gia: g } : { loi: loi('TOPPING_KHONG_BAN_RIENG'", "? { gia: g } : { gia: p.price, loi0: loi('TOPPING_KHONG_BAN_RIENG'", 1)],
+   r'✗ T16'),
+  # ── D3: tiền ──
+  ('VS-bo-giam-hang-topping', [(O, 'if (it.is_package_item || it.is_membership_item || it.is_nap_item) continue;',
+     'if (it.is_package_item || it.is_membership_item || it.is_nap_item || it.cha != null) continue;', 1)], r'✗ T18'),
+  ('VS-voucher-bo-topping', [(O, 'const khongGiam = (it) => !!(it.is_package_item || it.is_membership_item || it.is_nap_item);',
+     'const khongGiam = (it) => !!(it.is_package_item || it.is_membership_item || it.is_nap_item || it.cha != null);', 1)], r'✗ T19'),
+  ('VS-voucher-nhom-bo-topping', [(O, '(khop(orderItems[i]) || (orderItems[i].cha != null && khop(orderItems[orderItems[i].cha])))', 'khop(orderItems[i])', 1)],
+   r'✗ T21'),
+  # ── D4: kho ──
+  ('VS-kho-dem-tung-dong', [(K, "if (p.kieu === 'lam_san') { cong(ra.thanhPham, p.id, sl); continue; }",
+     "if (p.kieu === 'lam_san') { ra.thanhPham.set(p.id, Math.max(ra.thanhPham.get(p.id) || 0, sl)); continue; }", 1)], r'✗ T24 hai dòng'),
+  ('BV-kho-mo-topping', [(K, '  for (const i of det) {', '  for (const i of (Array.isArray(items) ? items : [])) {', 1)], r'✗ T25 '),
+  ('VS-huy-khong-tra-topping', [(K, "WHERE don_hang_id = ? AND su_co = ? AND trang_thai = 'da_duyet'`,\n    [lyDo, nguoi, luc, orderId, SU_CO_BAN]);",
+     "WHERE don_hang_id = ? AND su_co = ? AND trang_thai = 'da_duyet' AND id NOT IN (SELECT d.phieu_id FROM kho_phieu_dong d JOIN pos_products x ON x.id = d.san_pham_id WHERE x.la_topping = 1)`,\n    [lyDo, nguoi, luc, orderId, SU_CO_BAN]);", 1)],
+   r'✗ T27'),
+  # ── B: cài đặt + nâng cấp ──
+  ('BV-kiem-topping-cho-mon', [(P, "if (tpMoi.length && ((doi.la_topping ?? Number(cu.la_topping)) === 1", "if (false && ((doi.la_topping ?? Number(cu.la_topping)) === 1", 1)],
+   r'✗ T05'),
+  ('BV-036-chep-ghi-chu', [(NC, "    await tx.run('UPDATE pos_products SET ghi_chu_nhanh = ? WHERE id = ? AND ghi_chu_nhanh IS NULL', [JSON.stringify(THEO_NHOM[p.category] || DU_PHONG), p.id]);\n", '', 1)],
+   r'✗ T03 '),
+  # ── D5: App KH ──
+  ('BV-bo-kiem-topping-app', [(A, '      ...(m.topping ? { topping: m.topping.map((t) => { const pt = theoMa.get(t.ma);',
+     '      ...(false ? { topping: m.topping.map((t) => { const pt = theoMa.get(t.ma);', 1)], r'✗ T3[13] '),
+  ('VS-bao-gia-app-lech-dong', [(A, '!laDongNap(x.product_id) && x.cha == null)', '!laDongNap(x.product_id))', 1)], r'✗ T3[12]'),
+  ('VS-bam-gio-bo-topping', [(A, ", ...(m?.topping !== undefined ? [m.topping] : [])])) : null,", '])) : null,', 1)], r'✗ T34b'),
+  ('BV-menu-app-topping', [(KH, ': { ...monKhach(p, dsHang), topping: p.topping.map((id) => theoId.get(id)).filter((t) => t && t.sellable).map(tp) }));',
+     ': { ...monKhach(p, dsHang), topping: [] }));', 1)], r'✗ T30 '),
+  ('BV-man-khach-loc-topping', [(MK, '.filter((p) => p.sellable && (!p.la_topping || p.gia_ban_rieng > 0))', '.filter((p) => p.sellable)', 1)], r'✗ T46'),
+  ('VS-so-mon-giao-dem-topping', [(GH, 'const soMonDon = (dong) => (dong || []).filter((x) => x.dong_cha_id == null).reduce(',
+     'const soMonDon = (dong) => (dong || []).reduce(', 1)], r'✗ T47'),
+  # ── Q7: sự cố theo ly ──
+  ('VS-den-bo-topping', [(DM, 'da_tra: d.da_tra + tatCa.filter(', 'da_tra: d.da_tra + 0 * tatCa.filter(', 1)], r'✗ T28d'),
+  ('BV-bao-theo-ly', [(DM, "AND product_code = ? AND dong_cha_id IS NULL`, [order_id, product_code]);", "AND product_code = ?`, [order_id, product_code]);", 1)],
+   r'✗ T28[be]'),
+  ('VS-diem-den-theo-co-ly', [(DT, 'if (!batDiem(x)) { m.tat += gia(x); m.coTat = true; }', 'if (!batDiem(ly)) { m.tat += gia(x); m.coTat = true; }', 1)], r'✗ T28c'),
+  # ── soát vòng 1 ──
+  ('VS-den-ma-mot-mon-tru-hai-lan', [('server/utils/tienDaTra.js', ': d.dong_cha_id != null ? 0 : Math.max(0, giaNhom(d, i) - giam) }));',
+     ': Math.max(0, gia[i] - giam) }));', 1)], r'✗ T28g'),
+  ('VS-sua-mon-kiem-danh-sach-cu', [(P, "dsTp !== undefined ? dsTp : doi.la_topping === 1 ? docDs(cu.topping_cho_mon) : [];",
+     'dsTp !== undefined ? dsTp : docDs(cu.topping_cho_mon);', 1)], r'✗ T05d'),
+  ('VS-topping-co-ghi-chu-o-quay', [(P, 'ghi_chu_nhanh: laTopping(p) ? [] : docDs(p.ghi_chu_nhanh),', 'ghi_chu_nhanh: docDs(p.ghi_chu_nhanh),', 1)], r'✗ T48c'),
+  # ── soát vòng 2 ──
+  ('BV-con-hang-topping', [(KH, "    con_hang: t.khong_quan_kho ? true : typeof t.stock_quantity === 'number' ? t.stock_quantity > 0 : null });",
+     '    con_hang: true });', 1)], r'✗ T30d'),
+  ('VS-mot-mon-chon-topping', [(O, 'findEligibleItemForGroup(query, discountCodeGroupId, orderItems.filter((it) => it.cha == null));',
+     'findEligibleItemForGroup(query, discountCodeGroupId, orderItems);', 1)], r'✗ T43b'),
+  ('VS-so-mon-app-da-tra', [(A, 'AND dong_cha_id IS NULL GROUP BY order_id', 'GROUP BY order_id', 1)], r'✗ T35b'),
+  ('BV-chi-tiet-da-tra-gom', [(A, '? gomTopping(await query(', '? ((x) => x.map((d) => ({ ...d, topping: [] })))(await query(', 1)], r'✗ T35c'),
+  ('VS-hoa-don-app-sl', [('server/utils/dongHoaDon.js', 'm.topping ? m.ten : `${m.sl} x ${m.ten}`', '`${m.sl} x ${m.ten}`', 1)], r'✗ T45'),
+  ('VS-item-count', [(O, 'WHERE order_id = o.id AND dong_cha_id IS NULL) as item_count', 'WHERE order_id = o.id) as item_count', 1)], r'✗ T47b'),
+  # ── soát vòng 3 (vòng sửa 4) ──
+  ('BV-mon-khong-ban-topping-rieng', [(A, ' || (p.la_topping && !(p.gia_ban_rieng > 0))) return thanLoi', ') return thanLoi', 1)], r'✗ T49 '),
+  ('BV-trang-khoa-topping', [(A, ' && Object.keys(t).every((x) => TRUONG_TOPPING.includes(x))))) return sai;', '))) return sai;', 1)], r'✗ T33c'),
+  ('VS-bam-gio-luon-them-topping', [(A, '...(m?.topping !== undefined ? [m.topping] : [])', 'm?.topping ?? null', 1)], r'✗ T34c'),
+  ('BV-hang-hong-gom-topping', [(DM, 'const gia = Number(dong.gia) + (Number(dong.sl) > 0 ? Math.round(Number(tpLy.tien) / Number(dong.sl)) : 0);',
+     'const gia = Number(dong.gia);', 1)], r'✗ T28h'),
+  ('BV-ds-quay-topping', [(A, '      ...(d.topping ? { topping: d.topping.map((t) => ({ ten: t.ten, so_phan: t.so_phan })) } : {}) })),',
+     '      ...(false ? { topping: d.topping.map((t) => ({ ten: t.ten, so_phan: t.so_phan })) } : {}) })),', 1)], r'✗ T35d'),
+  ('VS-man-khach-bo-cong', [(MK, 'ten: it.cha != null ? `+ ${ten}` : ten,', 'ten,', 1)], r'✗ T46b'),
+  # ── C4: hoá đơn / tem / pha chế ──
+  ('BV-hoa-don-topping-cua', [(HD, "...(cha >= 0 ? { topping_cua: cha,", '...(false ? { topping_cua: cha,', 1)], r'✗ T09 '),
+  ('VS-hoa-don-mat-phan-tram', [(HD, 'items.filter((m) => m.dong_cha_id == null && m.tier_unit_price != null', 'items.filter((m) => m.tier_unit_price != null', 1)],
+   r'✗ T09d'),
+  ('BV-to-hoa-don-topping', [(HDC, "ten: x.topping_cua != null ? `+ ${x.ten}", 'ten: false ? `+ ${x.ten}', 1)], r'✗ T09c'),
+  ('BV-tem-gom-topping', [(IP, '  for (const m of dongLy(don?.items)) {\n    if (!laMonPha', '  for (const m of (don?.items || []).map((x) => ({ ...x, tp: [] }))) {\n    if (!laMonPha', 1)],
+   r'✗ T10 '),
+  ('VS-tem-chi-don-moi', [(IP, ': d.dong_cha_id != null ? ds.find(', ': false ? ds.find(', 1)], r'✗ T10 tem \(in lại'),
+  ('VS-pha-che-gop-khac-topping', [(IP, "\\u0000${ghiChu}\\u0000${m.tp.join('\\u0001')}`", "\\u0000${ghiChu}`", 1)], r'✗ T44'),
+]
+
+
+def ban_sao(thay):
+  """Chép server/ + client/src/ ra thư mục tạm, áp các thay thế. Trả (thư mục, lỗi|None)."""
+  tmp = tempfile.mkdtemp(prefix='dotbien_topping1_')
+  shutil.copytree(os.path.join(GOC, 'server'), os.path.join(tmp, 'server'), ignore=shutil.ignore_patterns('node_modules'))
+  shutil.copytree(os.path.join(GOC, 'client', 'src'), os.path.join(tmp, 'client', 'src'))
+  os.symlink(os.path.join(GOC, 'node_modules'), os.path.join(tmp, 'node_modules'))
+  for f, goc, moi, n in thay:
+    p = os.path.join(tmp, f)
+    if not os.path.realpath(p).startswith(os.path.realpath(tmp) + os.sep):
+      return tmp, f'{f}: đích ghi nằm NGOÀI thư mục tạm'   # K5
+    s = open(p, encoding='utf-8').read()
+    if s.count(goc) != n:
+      return tmp, f'{f}: khớp {s.count(goc)} lần, cần {n}'
+    open(p, 'w', encoding='utf-8').write(s.replace(goc, moi))
+  return tmp, None
+
+
+def lenh(tmp):
+  return ['node', os.path.join(GOC, BAI), '--may-chu', os.path.join(tmp, 'server')]
+
+
+def sach(ra):
+  return re.sub(r'\x1b\[[0-9;]*m', '', ra)
+
+
+def chay(ten, thay, mau):
+  tmp, loi = ban_sao(thay)
+  try:
+    if loi:
+      return ten, 'HỎNG', loi
+    r = subprocess.run(lenh(tmp), cwd=GOC, capture_output=True, text=True, timeout=600)
+    ra = sach((r.stdout or '') + (r.stderr or ''))
+    hong = [l.strip() for l in ra.splitlines() if '✗' in l]
+    if r.returncode == 2 or 'BÀI SẬP' in ra:
+      return ten, 'LẠC', 'bài sập: ' + (hong[-1] if hong else ra.strip().splitlines()[-1][:160] if ra.strip() else '')
+    if r.returncode == 0:
+      return ten, 'SỐNG', 'bài xanh trọn'
+    khop = [l for l in hong if re.search(mau, l)]
+    return (ten, 'BẮT', khop[0][:140]) if khop else (ten, 'LẠC', f'đỏ nhưng không khớp {mau}: ' + ' | '.join(h[:60] for h in hong[:3]))
+  except subprocess.TimeoutExpired:
+    return ten, 'LẠC', 'quá hạn 600 s'
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+def doi_chung():
+  tmp, _ = ban_sao([])
+  try:
+    r = subprocess.run(lenh(tmp), cwd=GOC, capture_output=True, text=True, timeout=600)
+    ra = sach((r.stdout or '') + (r.stderr or ''))
+    m = re.search(r'(\d+) đạt · (\d+) hỏng', ra)
+    return r.returncode == 0 and m is not None and m.group(2) == '0', (m.group(0) if m else ra[-200:])
+  finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+if __name__ == '__main__':
+  if '--help' in sys.argv or '-h' in sys.argv:
+    print(__doc__); sys.exit(0)
+  chon = [a for a in sys.argv[1:] if not a.startswith('--')]
+  if '--liet-ke' in sys.argv:
+    for t, *_ in DOT_BIEN: print(t)
+    sys.exit(0)
+  ds = [d for d in DOT_BIEN if not chon or d[0] in chon]
+  if chon and len(ds) != len(chon):
+    sys.exit('tên không có trong danh sách: ' + ', '.join(set(chon) - {d[0] for d in ds}))
+  ok, dong = doi_chung()
+  print(f'ĐỐI CHỨNG (bản chưa đột biến): {"XANH" if ok else "ĐỎ"} · {dong}')
+  if not ok:
+    sys.exit('đối chứng đỏ — không chạy đột biến (K3)')
+  with ThreadPoolExecutor(max_workers=3) as ex:
+    kq = list(ex.map(lambda d: chay(*d), ds))
+  for ten, tt, ghi in kq: print(f'{tt:5} {ten} — {ghi}')
+  dem = {t: sum(1 for _, x, _ in kq if x == t) for t in ('BẮT', 'SỐNG', 'HỎNG', 'LẠC')}
+  print(f"TỔNG: {len(kq)} đột biến · BẮT {dem['BẮT']} · SỐNG {dem['SỐNG']} · HỎNG {dem['HỎNG']} · LẠC {dem['LẠC']}")
+  sys.exit(0 if dem['BẮT'] == len(kq) else 1)

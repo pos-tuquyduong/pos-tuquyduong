@@ -46,7 +46,7 @@ function detTo(to, the = []) {
   if (to.nhan) ds.push(dong('nhan', to.nhan, '', { dam: true }));
   ds.push(dong('gio', dau.gio, dau.nhan_vien ? `${dau.nhan_nv ? dau.nhan_nv + ': ' : ''}${dau.nhan_vien}` : ''));
   ds.push(dong('khach', dau.nhan_khach, dau.khach, { dam: true }));
-  to.mon.forEach((m, i) => ds.push(dong(the[i] != null ? 'the' : 'mon', `${m.sl} x ${m.ten}`, m.tien, { gach: m.tien_goc, ghi_chu: the[i] || m.ghi_chu })));
+  to.mon.forEach((m, i) => ds.push(dong(the[i] != null ? 'the' : 'mon', m.topping ? m.ten : `${m.sl} x ${m.ten}`, m.tien, { gach: m.tien_goc, ghi_chu: the[i] || m.ghi_chu })));   // TOPPING-1: dòng "+ topping x<phần>" như tờ quầy
   for (const d of to.tien) ds.push(dong(d.khoa, d.ten, d.tien, { dam: d.dam }));
   for (const d of [...to.thanh_toan, ...to.diem]) ds.push(d.khoa.startsWith('tieu_de') ? dong('tieu_de', d.ten) : dong(d.khoa, d.ten, d.tien, { dam: d.dam }));
   for (const c of to.chan) ds.push(dong('chan', c.chu));

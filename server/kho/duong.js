@@ -24,6 +24,7 @@ const phatSinh = require('./phatSinh');
 const banHang = require('./banHang');   // KHO-3a
 const viec = require('./viec');   // KHO-GON-1
 const kiemKe = require('./kiemKe');   // KHO-GON-1
+const { docAnhMon } = require('../utils/anhMon');   // ANH-MON-1
 
 const router = express.Router();
 const QUAN_LY = checkRole('owner', 'manager');
@@ -96,7 +97,11 @@ for (const [duong, bang, cot] of [['nhom', 'kho_nhom_nguyen_lieu', ['ten', 'thu_
 }
 
 // ── Sản phẩm & công thức ──
-router.get('/san-pham', QUAN_LY, doc(() => duLieu.docSanPham(csdl)));
+// ANH-MON-1: kèm đường dẫn ảnh từng món (màn Sản phẩm hiện / tải / xoá ảnh)
+router.get('/san-pham', QUAN_LY, doc(async () => {
+  const [kq, anh] = await Promise.all([duLieu.docSanPham(csdl), docAnhMon(csdl)]);
+  return { ...kq, san_pham: kq.san_pham.map((p) => ({ ...p, anh: anh.get(p.id) ?? null })) };
+}));
 
 router.get('/san-pham/:id/trien-khai', QUAN_LY, async (req, res) => {
   const soPhan = Number(req.query.so_phan);

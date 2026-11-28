@@ -1,6 +1,6 @@
 // Settings.jsx - HOÀN CHỈNH với Quản lý Nhân viên + Backup + HÓA ĐƠN (Phase A)
 import { useState, useEffect, Fragment } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productsApi, usersApi, api } from '../utils/api';
 import { ngayVN, hienNgayGio } from '../utils/ngayVN';
@@ -20,6 +20,7 @@ import GoiNap from './CaiDat/GoiNap';   // NAP-1: thẻ Gói nạp tiền (quy�
 import TichDiem from './CaiDat/TichDiem';   // DIEM-MON-1: công tắc tích điểm theo món / gói / hạng
 import KhoaSaoLuuPos from './CaiDat/KhoaSaoLuuPos';   // SAOLUU-DEM-1: khoá sao lưu tự động lên Google Drive (chỉ chủ quán)
 import MauVoucher from './CaiDat/MauVoucher';   // VOUCHER-2: mẫu voucher + số voucher tối đa mỗi đơn
+import PinChuQuan from './CaiDat/PinChuQuan';   // GIAO-DIEN-2: đặt / đổi PIN chủ quán (tách khỏi thẻ Hạng)
 import AppKhachHang from './CaiDat/AppKhachHang';   // ND-API-1: khoá sao lưu chỉ đọc nội dung App (chỉ chủ quán)
 import CaiDatChuong from '../components/CaiDatChuong';
 import { FormThongTinMon } from '../components/ThongTinMon';
@@ -41,10 +42,22 @@ export default function Settings() {
     permissions: 'manage_permissions', backup: 'export_data', loyalty: 'manage_settings',
     rewards: 'manage_promotions', signup: 'manage_settings', flash: 'manage_settings',
     tiers: 'manage_promotions', gioHoatDong: 'manage_settings', inPhieu: 'manage_settings', manKhach: 'manage_settings', chuongTrinh: 'manage_promotions', giaoHang: 'manage_settings', quangCao: 'manage_settings',
+    appKh: 'chi_chu_quan', pin: 'chi_chu_quan',
   };
+  // GIAO-DIEN-2: /settings?the=<mã thẻ> mở THẲNG thẻ đó (nút ở trang Quản lý); không có ?the= → vẫn là trang Cài đặt đủ hàng nhóm / thẻ.
+  const TEN_THE = {
+    products: 'Giá bán & nhóm món', packages: 'Gói sản phẩm (tạm ngưng)', goiNap: 'Gói nạp tiền', users: 'Tài khoản nhân viên', permissions: 'Ai được làm gì',
+    backup: 'Sao lưu', loyalty: 'Điểm & quà', rewards: 'Kho quà', signup: 'Quà khách mới', flash: 'Giờ vàng', tiers: 'Hạng thành viên', gioHoatDong: 'Giờ mở cửa',
+    inPhieu: 'In phiếu kho', manKhach: 'Màn khách', chuongTrinh: 'Chương trình', giaoHang: 'Giao hàng', quangCao: 'Quảng cáo trên App', appKh: 'App khách hàng', pin: 'PIN chủ quán',
+  };
+  const [timKiem, datTimKiem] = useSearchParams();
+  const theUrl = timKiem.get('the');
+  const theHopLe = (t) => !!t && !!TAB_PERMISSION[t] && hasPermission(TAB_PERMISSION[t]);
+  const theRieng = !!theUrl;
   const firstVisibleTab = Object.keys(TAB_PERMISSION).find(t => hasPermission(TAB_PERMISSION[t])) || 'products';
 
-  const [tab, setTab] = useState(firstVisibleTab);
+  const [tab, setTab] = useState(theHopLe(theUrl) ? theUrl : firstVisibleTab);
+  useEffect(() => { if (theHopLe(theUrl) && theUrl !== tab) setTab(theUrl); }, [theUrl]);
   const [products, setProducts] = useState([]);
   const [monMoThongTin, setMonMoThongTin] = useState(null); // KH-SP-1: món đang mở ô "Thông tin món" (unique id)
   const [users, setUsers] = useState([]);
@@ -238,7 +251,7 @@ export default function Settings() {
     ]},
     { ma: 'hethong', ten: 'Hệ thống', the: [
       ['users', 'manage_users'], ['permissions', 'manage_permissions'],
-      ['backup', 'export_data'],
+      ['backup', 'export_data'], ['pin', 'chi_chu_quan'],
       ['appKh', 'chi_chu_quan'],   // ND-API-1: không vai trò nào có quyền tên này → hasPermission chỉ đúng với chủ quán
     ]},
   ];
@@ -271,11 +284,14 @@ export default function Settings() {
       const n = demThayDoi();
       if (n > 0 && !window.confirm(
         `Còn ${n} thay đổi chưa lưu ở bảng giá. Rời đi sẽ mất. Vẫn rời?`
-      )) return;
+      )) return false;
     }
-    if (t !== tab && tab !== 'products' && coChuaLuu() && !window.confirm('Còn thay đổi chưa lưu ở thẻ này. Rời đi sẽ mất. Vẫn rời?')) return;
+    if (t !== tab && tab !== 'products' && coChuaLuu() && !window.confirm('Còn thay đổi chưa lưu ở thẻ này. Rời đi sẽ mất. Vẫn rời?')) return false;
     setTab(t);
+    return true;
   };
+  // GIAO-DIEN-2: đổi thẻ ngay trong màn "thẻ riêng" (liên kết Điểm & quà → Kho quà / Quà khách mới): hỏi như doiThe rồi ghi ?the= vào đường dẫn
+  const moThe = (t) => { if (doiThe(t) !== false) datTimKiem({ the: t }, { replace: true }); };
 
   const chonNhom = (n) => {
     const ds = theXemDuoc(n);
@@ -920,9 +936,11 @@ export default function Settings() {
 
   return (
     <>
-      <header className="page-header"><h1 className="page-title">⚙️ Cài đặt</h1></header>
+      <header className="page-header"><h1 className="page-title">{theRieng ? TEN_THE[tab] || 'Cài đặt' : '⚙️ Cài đặt'}</h1></header>
       <div className="page-content">
-        <CongQr />
+        {theRieng && <div style={{ marginBottom: '0.75rem' }}><Link to="/quan-ly">← Quản lý</Link></div>}
+        {!theRieng && <CongQr />}
+        {!theRieng && (<>
 
         {/* POS-BOCUC-v1: hang chon NHOM. Hang the ben duoi chi hien the
             thuoc nhom dang chon, nen moi hang chi con 2-4 the. */}
@@ -1037,11 +1055,22 @@ export default function Settings() {
           </button>
           )}
         </div>
+        </>)}
+
+        {theRieng && ['loyalty', 'rewards', 'signup'].includes(tab) && (   // GIAO-DIEN-2: Điểm & quà gồm ba thẻ; hai thẻ kia không có nút riêng ở Quản lý
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+            {[['loyalty', '🎁 Điểm thưởng', 'manage_settings'], ['rewards', '🎫 Kho quà', 'manage_promotions'], ['signup', '🆕 Quà khách mới', 'manage_settings']]
+              .filter(([t, , q]) => t !== tab && hasPermission(q))
+              .map(([t, ten]) => <button key={t} className="btn btn-outline" onClick={() => moThe(t)}>{ten}</button>)}
+          </div>
+        )}
 
         <div className="card">
           {loading ? <div className="loading">Đang tải...</div> : tab === 'products' ? (
             /* TAB GIÁ BÁN */
             <>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 0.75rem' }}>Giá sửa ở Kho › Sản phẩm; ở đây chỉnh nhóm đặc biệt và món tặng khách mới.</p>
+              <NhomMon duocSua={hasPermission('manage_settings')} />
               {/* POS-MOTNUTLUU-v1: MOT nut luu ca gia lan tick voucher.
                   Truoc day hai nut rieng cho cung mot bang, kem mot dong giai
                   thich — go gia xong bam nham nut la mat phan vua go. */}
@@ -1101,7 +1130,7 @@ export default function Settings() {
                           color: p.category === 'tea' ? '#f59e0b' : '#22c55e',
                           fontSize: '0.85rem'
                         }}>
-                          {p.category === 'juice' ? 'Nước ép' : 'Trà'}
+                          {p.nhom_ten || p.category}
                         </span>
                       </td>
                       <td>
@@ -2080,6 +2109,8 @@ export default function Settings() {
             <CaiDatManKhach />
           ) : tab === 'chuongTrinh' ? (
             <CaiDatChuongTrinh />
+          ) : tab === 'pin' ? (
+            <PinChuQuan />
           ) : tab === 'appKh' ? (
             <AppKhachHang />
           ) : tab === 'goiNap' ? (
@@ -2359,5 +2390,70 @@ export default function Settings() {
         }
       `}</style>
     </>
+  );
+}
+
+// NHOM-MON-1: Cài đặt › Giá bán & nhóm món — MỘT danh sách nhóm cho quầy, App KH, Kho. Mã nhóm không đổi; chỉ tên, thứ tự, hai công tắc. Máy chủ chặn (409) xoá nhóm còn món / nhóm gốc.
+function NhomMon({ duocSua }) {
+  const [ds, setDs] = useState(null);
+  const [tenMoi, setTenMoi] = useState('');
+  const [suaMa, setSuaMa] = useState(null);
+  const [tenSua, setTenSua] = useState('');
+  const [xem, setXem] = useState([]);
+  const [dang, setDang] = useState(false);
+  const tai = async () => {
+    try {
+      const [n, x] = await Promise.all([api.get('/products/nhom'), api.get('/products/nhom/xem-truoc')]);
+      setDs(n.data || []); setXem(x.data || []);
+    } catch (e) { baoLoiTu('tải nhóm món', e); }
+  };
+  useEffect(() => { tai(); }, []);
+  const lam = async (viec, fn) => {
+    if (dang) return;
+    setDang(true);
+    try { await fn(); await tai(); } catch (e) { baoLoiTu(viec, e); } finally { setDang(false); }
+  };
+  const doiViTri = (i, d) => { const m = ds.map((g) => g.ma); [m[i], m[i + d]] = [m[i + d], m[i]]; return lam('đổi thứ tự', () => api.put('/products/nhom-thu-tu', { ma: m })); };
+  const nhomTrenApp = [...new Map(xem.map((x) => [x.nhom, x])).values()].sort((a, b) => a.nhom_thu_tu - b.nhom_thu_tu);
+  if (!ds) return null;
+  return (
+    <div className="card" style={{ marginBottom: '1rem', background: '#fafafa' }}>
+      <div className="card-title">Nhóm món</div>
+      <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 0.5rem' }}>Tên và thứ tự ở đây đổi cho cả quầy, App khách hàng và Kho. Mã nhóm giữ nguyên nên ghi chú nhanh, voucher, đơn cũ không đổi.</p>
+      <table className="table">
+        <thead><tr><th>Nhóm</th><th>Hiện ở quầy</th><th>Hiện trên App</th>{duocSua && <th></th>}</tr></thead>
+        <tbody>
+          {ds.map((g, i) => (
+            <tr key={g.ma}>
+              <td>{suaMa === g.ma
+                ? <input className="input" value={tenSua} maxLength={40} onChange={(e) => setTenSua(e.target.value)} />
+                : <strong>{g.ten}</strong>}</td>
+              <td><input type="checkbox" checked={!!g.hien_quay} disabled={!duocSua || dang} onChange={(e) => lam('đổi hiện ở quầy', () => api.put(`/products/nhom/${g.ma}`, { hien_quay: e.target.checked ? 1 : 0 }))} /></td>
+              <td><input type="checkbox" checked={!!g.hien_app} disabled={!duocSua || dang} onChange={(e) => lam('đổi hiện trên App', () => api.put(`/products/nhom/${g.ma}`, { hien_app: e.target.checked ? 1 : 0 }))} /></td>
+              {duocSua && (
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  <button className="btn btn-outline" disabled={dang || i === 0} onClick={() => doiViTri(i, -1)}>Lên</button>{' '}
+                  <button className="btn btn-outline" disabled={dang || i === ds.length - 1} onClick={() => doiViTri(i, 1)}>Xuống</button>{' '}
+                  {suaMa === g.ma
+                    ? <button className="btn btn-primary" disabled={dang} onClick={() => lam('sửa tên nhóm', async () => { await api.put(`/products/nhom/${g.ma}`, { ten: tenSua }); setSuaMa(null); })}>Lưu tên</button>
+                    : <button className="btn btn-outline" disabled={dang} onClick={() => { setSuaMa(g.ma); setTenSua(g.ten); }}>Sửa tên</button>}{' '}
+                  <button className="btn btn-outline" disabled={dang} onClick={() => { if (window.confirm(`Xoá nhóm "${g.ten}"? Chỉ xoá được nhóm không còn món.`)) lam('xoá nhóm', () => api.delete(`/products/nhom/${g.ma}`)); }}><Trash2 size={14} /></button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {duocSua && (
+        <div className="flex gap-1 mt-1">
+          <input className="input" placeholder="Tên nhóm mới" value={tenMoi} maxLength={40} onChange={(e) => setTenMoi(e.target.value)} />
+          <button className="btn btn-primary" disabled={dang || !tenMoi.trim()} onClick={() => lam('thêm nhóm', async () => { await api.post('/products/nhom', { ten: tenMoi }); setTenMoi(''); })}><Plus size={16} /> Thêm nhóm</button>
+        </div>
+      )}
+      <div style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
+        <strong>Xem trước: khách thấy trên App</strong>
+        <div>{nhomTrenApp.length ? nhomTrenApp.map((n) => `${n.nhom_ten} (${xem.filter((x) => x.nhom === n.nhom).length} món)`).join(' · ') : 'Chưa có món nào hiện trên App'}</div>
+      </div>
+    </div>
   );
 }

@@ -99,6 +99,25 @@ function laMonPha(m, nhomTheoMa, cfg) {
   return !(nhom && cfg.khong_pha.includes(nhom));
 }
 
+/**
+ * TOPPING-1: dòng đơn → dòng LY, mỗi ly mang `tp` = ["+ <topping> x<phần>"]; dòng topping không thành tem / dòng pha chế riêng.
+ * Nhận CẢ hai dạng: đơn vừa tạo (POST /orders — `cha` = chỉ số dòng cha) và đơn đã lưu (GET /orders/:id — `dong_cha_id` = id dòng cha).
+ * Dòng con không tìm được cha (dữ liệu hỏng) → giữ như dòng thường (không giấu hàng đã bán). Cùng luật với server/utils/topping.js gomTopping.
+ */
+function dongLy(items) {
+  const ds = Array.isArray(items) ? items : [];
+  const chaCua = (d) => (d.cha != null ? ds[d.cha] : d.dong_cha_id != null ? ds.find((x) => Number(x.id) === Number(d.dong_cha_id)) : null);
+  const goc = ds.filter((d) => !chaCua(d));
+  const tp = new Map(goc.map((d) => [d, []]));
+  for (const d of ds) {
+    const c = chaCua(d);
+    if (!c || !tp.has(c)) continue;
+    const phan = d.so_phan ?? Math.round(Number(d.quantity) / Math.max(1, Number(c.quantity)));
+    tp.get(c).push(`+ ${d.product_name || ''}${phan > 1 ? ` x${phan}` : ''}`);
+  }
+  return goc.map((d) => ({ ...d, tp: tp.get(d) }));
+}
+
 function khachTem(don) {
   const ten = String(don?.customer_name || '').trim();
   const sdt = String(don?.customer_phone || '').replace(/\D/g, '');
@@ -114,12 +133,12 @@ export function dungTem(don, nhomTheoMa, cfg, inLai = false, settings = null) {
   const tenKhach = String(don?.customer_name || '').trim() === KHACH_LE ? '' : String(don?.customer_name || '').trim();
   const dau = settings ? chuTem(settings, 'tem_dau', tenKhach) : '';
   const chan = settings ? chuTem(settings, 'tem_chan', tenKhach) : '';
-  for (const m of don?.items || []) {
+  for (const m of dongLy(don?.items)) {
     if (!laMonPha(m, nhomTheoMa, cfg)) continue;
     const n = soLy(m);
     for (let i = 1; i <= n; i++) {
       tem.push({
-        kieu: 'tem', ten: cat(String(m.product_name || '')), ghiChu: cat(ghiChuMon(m)), khach: khachTem(don),
+        kieu: 'tem', ten: cat(String(m.product_name || '')), ...(m.tp.length ? { topping: m.tp.map(cat) } : {}), ghiChu: cat(ghiChuMon(m)), khach: khachTem(don),
         ma: rutGonMa(don.code), gio: gioHHmm(don.created_at), stt: `${i}/${n}`, inLai, chuInLai: inLai && settings ? chuTem(settings, 'tem_in_lai', tenKhach) : 'IN LẠI', dau, chan,
       });
     }
@@ -130,12 +149,12 @@ export function dungTem(don, nhomTheoMa, cfg, inLai = false, settings = null) {
 /** Gộp cùng món + cùng ghi chú; không giá tiền. */
 export function dungPhieuPhaChe(don, nhomTheoMa, cfg, inLai = false) {
   const gop = new Map();
-  for (const m of don?.items || []) {
+  for (const m of dongLy(don?.items)) {
     const sl = laMonPha(m, nhomTheoMa, cfg) ? soLy(m) : 0;
     if (!sl) continue;
     const ghiChu = ghiChuMon(m);
-    const khoa = `${m.product_code || m.product_name}\u0000${ghiChu}`;
-    const dong = gop.get(khoa) || { sl: 0, ten: String(m.product_name || ''), ghiChu };
+    const khoa = `${m.product_code || m.product_name}\u0000${ghiChu}\u0000${m.tp.join('\u0001')}`;   // TOPPING-1: khác topping = dòng riêng
+    const dong = gop.get(khoa) || { sl: 0, ten: String(m.product_name || ''), ghiChu, ...(m.tp.length ? { topping: m.tp } : {}) };
     dong.sl += sl;
     gop.set(khoa, dong);
   }

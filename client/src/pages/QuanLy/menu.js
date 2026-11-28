@@ -1,5 +1,5 @@
 /**
- * QuanLy/menu.js — menu POS (BH-2, chủ quán duyệt 27.10) và lưới trang Quản lý. HÀM THUẦN: không React, không mạng.
+ * QuanLy/menu.js — menu POS (BH-2, chủ quán duyệt 27.10) và 6 nhóm trang Quản lý (GIAO-DIEN-2). HÀM THUẦN: không React, không mạng.
  * Chỉ dời đường dẫn: mọi đường cũ vẫn mở được (App.jsx), quyền giữ đúng như từng mục cũ. Bài thử: cong_cu/thu_BH2.js.
  * `coQuyen(tên)` = hasPermission của AuthContext. Icon do Layout.jsx gắn theo đường dẫn.
  */
@@ -38,17 +38,64 @@ const LOI_THEM = {
 };
 export const loiThem = (man, coQuyen) => (LOI_THEM[man] || []).filter((l) => hien(coQuyen, l.quyen));
 
-const O_QUAN_LY = [
-  { ten: 'Sản phẩm & công thức', ghiChu: 'Món, công thức, giá', loi: [{ to: '/kho', ten: 'Mở Kho' }] },
-  { ten: 'Nguyên liệu', ghiChu: 'Tồn, lô, hạn dùng', loi: [{ to: '/kho', ten: 'Mở Kho' }] },
-  { ten: 'Khuyến mãi & thành viên', ghiChu: 'Mã giảm giá, hạng thẻ', loi: [{ to: '/discount-codes', ten: 'Mã chiết khấu', quyen: 'manage_users' }, { to: '/settings', ten: 'Hạng thành viên', quyen: 'manage_users' }] },
-  { ten: 'Con người', ghiChu: 'Người dùng, phân quyền', loi: [{ to: '/settings', ten: 'Người dùng', quyen: 'manage_users' }] },
-  { ten: 'Khách và tiền', ghiChu: 'Khách, số dư, hoàn tiền, đối soát', loi: [{ to: '/customers', ten: 'Khách hàng và số dư' }, { to: '/refunds', ten: 'Hoàn tiền', quyen: 'approve_refund' }, { to: '/reports', ten: 'Báo cáo / đối soát', quyen: 'view_reports' }] },
-  { ten: 'Báo cáo', ghiChu: 'Doanh thu, đối soát', loi: [{ to: '/reports', ten: 'Báo cáo', quyen: 'view_reports' }] },
-  { ten: 'Cài đặt', ghiChu: 'Cài đặt chung, hoá đơn', loi: [{ to: '/settings', ten: 'Cài đặt', quyen: 'manage_users' }, { to: '/invoice-settings', ten: 'Cài đặt hoá đơn', quyen: 'manage_users' }] },
+// GIAO-DIEN-2: 6 nhóm của trang Quản lý (M1), mỗi nút mở THẲNG đúng màn. `quyen` = ĐÚNG quyền thẻ / màn trước đây; `tuKhoa` cho ô tìm nhanh.
+// `?the=` = mã thẻ trong Settings.jsx (NHOM_THE). Thẻ `packages` (gói tạm ngưng) cố ý không có nút; `signup`, `rewards` mở từ màn Điểm & quà.
+const NHOM_QUAN_LY = [
+  { ten: 'Món & giá', nut: [
+    { ten: 'Món, giá & công thức', to: '/kho', tuKhoa: ['san pham', 'cong thuc', 'mon', 'gia', 'nguyen lieu', 'ton kho'] },
+    { ten: 'Giá bán & nhóm món', to: '/settings?the=products', quyen: 'manage_settings', tuKhoa: ['nhom dac biet', 'mon tang khach moi', 'gia ban'] },
+    { ten: 'Gói nạp tiền', to: '/settings?the=goiNap', quyen: 'manage_products', tuKhoa: ['nap tien', 'goi nap'] },
+  ] },
+  { ten: 'Khách & thẻ', nut: [
+    { ten: 'Danh sách khách', to: '/customers', tuKhoa: ['khach hang', 'vi', 'so du', 'diem', 'sinh nhat', 'nap tien'] },
+    { ten: 'Hạng thành viên', to: '/settings?the=tiers', quyen: 'manage_promotions', tuKhoa: ['hang vang', 'kim cuong', 'the thanh vien', 'goi hang'] },
+    { ten: 'Điểm & quà', to: '/settings?the=loyalty', quyen: 'manage_settings', tuKhoa: ['tich diem', 'doi qua', 'kho qua', 'khach moi'] },
+  ] },
+  { ten: 'Khuyến mãi', nut: [
+    { ten: 'Mã giảm giá', to: '/discount-codes', quyen: 'manage_users', tuKhoa: ['ma chiet khau', 'voucher', 'khuyen mai'] },
+    { ten: 'Giờ vàng', to: '/settings?the=flash', quyen: 'manage_settings', tuKhoa: ['flash sale', 'giam gia gio'] },
+    { ten: 'Chương trình', to: '/settings?the=chuongTrinh', quyen: 'manage_promotions', tuKhoa: ['khuyen mai', 'combo'] },
+    { ten: 'Quảng cáo trên App', to: '/settings?the=quangCao', quyen: 'manage_settings', tuKhoa: ['banner', 'app khach'] },
+  ] },
+  { ten: 'Tiền & báo cáo', nut: [
+    { ten: 'Đối soát tiền', to: '/reports?tab=doisoat', quyen: 'view_reports', tuKhoa: ['doi soat', 'chot ca', 'tien mat', 'chuyen khoan'] },
+    { ten: 'Hoàn tiền', to: '/refunds', quyen: 'approve_refund', tuKhoa: ['tra tien', 'huy don'] },
+    { ten: 'Báo cáo doanh thu', to: '/reports', quyen: 'view_reports', tuKhoa: ['doanh thu', 'thuc thu', 'bao cao'] },
+  ] },
+  { ten: 'Nhân viên', nut: [
+    { ten: 'Tài khoản nhân viên', to: '/settings?the=users', quyen: 'manage_users', tuKhoa: ['nguoi dung', 'mat khau', 'tai khoan'] },
+    { ten: 'Ai được làm gì', to: '/settings?the=permissions', quyen: 'manage_permissions', tuKhoa: ['phan quyen', 'quyen han'] },
+  ] },
+  { ten: 'Cài đặt quán', nut: [
+    { ten: 'Giờ mở cửa', to: '/settings?the=gioHoatDong', quyen: 'manage_settings', tuKhoa: ['gio hoat dong', 'dong cua', 'chuong don app'] },
+    { ten: 'Giao hàng', to: '/settings?the=giaoHang', quyen: 'manage_settings', tuKhoa: ['ship', 'ahamove', 'phi giao'] },
+    { ten: 'In bill & tem', to: '/invoice-settings', quyen: 'manage_users', tuKhoa: ['may in', 'hoa don', 'tem', 'bill'] },
+    { ten: 'In phiếu kho', to: '/settings?the=inPhieu', quyen: 'manage_settings', tuKhoa: ['may in', 'kho giay', 'phieu kho'] },
+    { ten: 'Màn khách', to: '/settings?the=manKhach', quyen: 'manage_settings', tuKhoa: ['man hinh khach', 'may tinh bang'] },
+    { ten: 'PIN chủ quán', to: '/settings?the=pin', quyen: 'chi_chu_quan', tuKhoa: ['ma pin', 'doi pin', 'mat khau'] },   // chỉ chủ quán: không vai trò nào có quyền này
+    { ten: 'Sao lưu', to: '/settings?the=backup', quyen: 'export_data', tuKhoa: ['backup', 'khoi phuc', 'google drive'] },
+    { ten: 'App khách hàng', to: '/settings?the=appKh', quyen: 'chi_chu_quan', tuKhoa: ['app', 'noi dung app'] },
+  ] },
 ];
 
-/** Lưới trang Quản lý: lối cần quyền mà người dùng không có bị ẩn; ô không còn lối nào thì ẩn cả ô. */
+/** Lưới trang Quản lý: nút cần quyền mà người dùng không có bị ẩn; nhóm hết nút thì ẩn cả nhóm. */
 export function luoiQuanLy(coQuyen) {
-  return O_QUAN_LY.map((o) => ({ ...o, loi: o.loi.filter((l) => hien(coQuyen, l.quyen)) })).filter((o) => o.loi.length > 0);
+  return NHOM_QUAN_LY.map((g) => ({ ...g, nut: g.nut.filter((n) => hien(coQuyen, n.quyen)) })).filter((g) => g.nut.length > 0);
+}
+
+/** Bỏ dấu + chữ thường: "Giờ Mở Cửa" → "gio mo cua". */
+export const boDau = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+
+/** Ô tìm nhanh: chuỗi rỗng → đủ nhóm; ngược lại chỉ còn nút có tên / từ khoá chứa chuỗi (không dấu). Quyền áp như luoiQuanLy. */
+export function timMuc(chuoi, coQuyen) {
+  const q = boDau(chuoi);
+  const luoi = luoiQuanLy(coQuyen);
+  if (!q) return luoi;
+  return luoi.map((g) => ({ ...g, nut: g.nut.filter((n) => boDau([n.ten, ...n.tuKhoa].join(' ')).includes(q)) })).filter((g) => g.nut.length > 0);
+}
+
+/** Enter trong ô tìm: còn ĐÚNG một nút thì trả nút đó, ngược lại null. */
+export function nutDuyNhat(nhom) {
+  const nut = nhom.flatMap((g) => g.nut);
+  return nut.length === 1 ? nut[0] : null;
 }

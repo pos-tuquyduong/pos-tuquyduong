@@ -109,6 +109,10 @@ async function datDiemLay(b) {
   } catch (e) { return loiAhamove(e); }
 }
 
+/** GIAO-4: phí báo cho KHÁCH chỉ nhận số nguyên > 0 — Ahamove báo 0 / âm (lỗi bên Ahamove) không thành "miễn phí giao" (chủ quán 19.11).
+ *  Chỉ đường "Tính phí" — đường gọi xe giữ quy tắc riêng (phí 0 = chưa biết, GIAO-3 C). */
+const phiHopLe = (phi) => Number.isInteger(phi) && phi > 0;
+
 /** "Tính phí": giờ nhận đơn → địa chỉ → Ahamove báo phí → quá km thì chặn → lưu báo phí (đơn dùng mã này). */
 async function taoBaoPhi(b, nguoi) {
   if (!aha.daCai()) return loiAhamove({ code: 'AHAMOVE_CHUA_CAI' });
@@ -120,6 +124,10 @@ async function taoBaoPhi(b, nguoi) {
     const d = await phanGiaiDiaChi(b || {});
     if (d.loi) return d;
     const bp = await aha.baoPhi({ lay: { ...cd.diem_lay, sdt: cd.sdt_quan }, giao: d, loaiXe });
+    if (!phiHopLe(bp.phi)) {   // TRƯỚC khi lưu báo phí: không dòng pos_giao_bao_phi nào mang phí ≤ 0
+      console.warn(`[GIAO] phi_0 total_price=${bp.phi_tho.total_price} total_fee=${bp.phi_tho.total_fee}`);
+      return loi(502, 'AHAMOVE_PHI_0', 'Ahamove báo phí 0đ — bấm Tính phí lại (nếu lặp lại, gọi Ahamove kiểm tra)');
+    }
     if (bp.km > cd.km_toi_da) return loi(400, 'QUA_KHOANG_CACH', `Quá xa: ${bp.km} km (quán giao tối đa ${cd.km_toi_da} km)`);
     const ma = crypto.randomBytes(16).toString('hex'), hetHan = lechGiay(now, BAO_PHI_HAN_PHUT * 60);
     await run(`INSERT INTO pos_giao_bao_phi (ma, dia_chi, lat, lng, km, loai_xe, phi, het_han, nguoi_tao, tao_luc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -472,6 +480,9 @@ const choTinBao = () => Promise.all([...tinDangXuLy]);
 
 // ─── Màn Giao hàng (E, F, I) ───
 /** Giờ gợi ý gọi tài xế = giờ nhận + (món của nó + món các đơn đang pha trước nó) × phút/món − phút tìm xe; không sớm hơn giờ nhận. */
+/** TOPPING-1: số món (ly) của một đơn để tính giờ gọi tài xế — dòng topping (dong_cha_id) không phải một ly. */
+const soMonDon = (dong) => (dong || []).filter((x) => x.dong_cha_id == null).reduce((s, x) => s + Number(x.quantity || 0), 0);
+
 function gioGoiTaiXe(nhanLuc, soMon, cd) {
   return lechGiay(nhanLuc, Math.max(0, soMon * cd.phut_moi_mon - cd.phut_tim_xe) * 60);
 }
@@ -503,12 +514,13 @@ async function danhSach(docLaiNgay = false) {
   }));
   if (daDoc.some(Boolean)) ds = await doc();
   await phiHuy;
-  const mon = ds.length ? await query(`SELECT order_id, product_name, quantity, notes FROM pos_order_items WHERE order_id IN (${ds.map(() => '?').join(',')}) ORDER BY id`,
+  const mon = ds.length ? await query(`SELECT order_id, product_name, quantity, notes, dong_cha_id FROM pos_order_items WHERE order_id IN (${ds.map(() => '?').join(',')}) ORDER BY id`,
     ds.map((c) => c.order_id)) : [];
   let monTruoc = 0;
   return ds.map((c) => {
-    const m = mon.filter((x) => x.order_id === c.order_id).map((x) => ({ ten: x.product_name, sl: Number(x.quantity), ghi_chu: x.notes || '' }));
-    const soMon = m.reduce((s, x) => s + x.sl, 0);
+    const dongDon = mon.filter((x) => x.order_id === c.order_id);
+    const m = dongDon.map((x) => ({ ten: x.dong_cha_id != null ? `+ ${x.product_name}` : x.product_name, sl: Number(x.quantity), ghi_chu: x.notes || '' }));
+    const soMon = soMonDon(dongDon);
     let goiLuc = null;
     if (c.trang_thai === 'dang_pha' && c.nhan_luc) { monTruoc += soMon; goiLuc = gioGoiTaiXe(c.nhan_luc, monTruoc, cd); }
     return {
@@ -572,4 +584,5 @@ async function doiSoatGiao(q, tu, den) {
 module.exports = {
   LOAI_XE, MAC_DINH, kiemCaiDat, docCaiDat, goiY, datDiemLay, taoBaoPhi, docBaoPhiDon, ghiChuyenDon, kiemHuyDonGiao, chotHuyGiao, xoaDonGiao,
   donGiaoDangChay, dongChuyenKhiHoan, laQuanLy, goiXe, dongThe, huyChuyenGiao, nhanTinBaoNen, choTinBao, gioGoiTaiXe, danhSach, nhanDon, inTem, giaoTrenHoaDon, doiSoatGiao,
+  soMonDon,
 };

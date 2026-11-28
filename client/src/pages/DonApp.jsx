@@ -91,7 +91,8 @@ export default function DonApp() {
               {d.co_the && <div style={{ fontSize: 13, color: '#5b21b6', fontWeight: 600 }}>{d.co_the} — {d.tien_trinh === 'da_huy' ? 'đơn đã huỷ, thẻ đã thu hồi' : 'đã lên hạng, không pha'}</div>}
               <ul style={{ margin: '4px 0 6px 18px', padding: 0 }}>
                 {d.mon.map((m, i) => (
-                  <li key={i}>{m.so_luong} × {m.ten}{m.ghi_chu ? <em style={{ color: '#b45309' }}> — {m.ghi_chu}</em> : null}</li>
+                  <li key={i}>{m.so_luong} × {m.ten}{(m.topping || []).map((t) => <span key={t.ten}> · + {t.ten}{t.so_phan > 1 ? ` x${t.so_phan}` : ''}</span>)}{/* TOPPING-1 */}
+                    {m.ghi_chu ? <em style={{ color: '#b45309' }}> — {m.ghi_chu}</em> : null}</li>
                 ))}
               </ul>
               {d.tien_trinh === 'da_tra' && (
