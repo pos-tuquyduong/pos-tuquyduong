@@ -45,7 +45,7 @@
 - F5 → thử tay: xem mục CHƯA KIỂM / báo cáo
 
 ## Phát hiện (không sửa — ngoài phạm vi hoặc phiếu cấm)
-1. **Emoji còn lại ở nội dung client/src: 195 chỗ / 46 file `.jsx`** (grep dải U+1F300–1FAFF, U+2600–27BF; phiếu đếm 222/48 lúc chưa trừ 6 tiêu đề đã đổi + dòng chú thích). Nhiều nhất: Settings 50, Orders 28, Reports 17, Customers 10, DoiSoat 7, InvoicePreview 8 (in — Cấm). Màn Bán hàng còn 1 chỗ vẽ: chip voucher "🎟 <mo_ta>" — bị khoá bởi thu_VOUCHER2 Q14c + bản mẫu ban_mau_pos → để nguyên. Làm đợt sau (GIAO-DIEN-4b, cùng màn Kho sau KHO-GON-2).
+1. **Emoji còn lại ở client/src: 216 ký tự emoji trên 195 DÒNG / 46 file `.jsx`** (dải U+1F300–1FAFF, U+2600–27BF; `Grep count` đếm DÒNG = 195; phiếu đếm 222 ký tự lúc chưa trừ 6 tiêu đề đã đổi). Nhiều nhất: Settings 50, Orders 28, Reports 17, Customers 10, DoiSoat 7, InvoicePreview 8 (in — Cấm). Màn Bán hàng còn 1 chỗ vẽ: chip voucher "🎟 <mo_ta>" — bị khoá bởi thu_VOUCHER2 Q14c + bản mẫu ban_mau_pos → để nguyên. Làm đợt sau (GIAO-DIEN-4b, cùng màn Kho sau KHO-GON-2).
 2. `client/src/pages/Kho/index.jsx:79` còn `<h1 className="page-title">📦 Quản lý kho</h1>` (Cấm — KHO-GON-2).
 3. Lời chào "Chào buổi …, <tên>" và ô "Đã bán / Doanh thu" trong mẫu: KHÔNG làm (phiếu D5 — cần dữ liệu / quyền). Nút "In bill · mang ra bàn" viền vàng trong mẫu: màn thật KHÔNG có nút này (phiếu cấm thêm nút) → không làm.
 4. Hàng chip nhóm hôm nay KHÔNG có số đếm (BanHangMoi.jsx) → không thêm (phiếu cấm phép tính mới). Vòng đỏ số lượng trong giỏ ở góc thẻ món (D1): màn chưa có số lượng theo món → không làm.
