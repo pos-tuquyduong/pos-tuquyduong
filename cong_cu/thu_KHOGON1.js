@@ -687,6 +687,30 @@ async function main() {
   const tcC14 = await goi('ql', 'POST', `/kho/phieu/${pxC14.phieu?.id}/tu-choi`, { ly_do: 'pha nhầm' });
   k('Q14c từ chối phiếu chờ Nước cam sau lần chỉnh tay GỪNG (không chạm Nước cam) → KHÔNG dòng cam', tcC14.status === 200 && (await demTC()) === tcTruoc14,
     `${moTa(tcC14)} · ${tcTruoc14} → ${await demTC()}`);
+  const anhC14 = JSON.parse((await mot("SELECT anh FROM kho_chot WHERE che_do = 'chinhtay' ORDER BY id DESC LIMIT 1"))?.anh || '[]');
+  k('Q14e chỉnh tay NGUYÊN LIỆU → ảnh chốt ghi đúng cột nguyen_lieu_id (không san_pham_id)', anhC14.length === 1 && Number(anhC14[0].nguyen_lieu_id) === Number(nGung)
+    && anhC14[0].san_pham_id == null, JSON.stringify(anhC14));
+  // Q14d (vế MÓN của lọc): lần chốt CHỈ chạm Nước cam (không chạm nguyên liệu Cam của phiếu) → từ chối phiếu chờ Nước cam → CÓ dòng cam
+  datGio('2026-12-02T21:59:40');
+  const pxD14 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }], ma_gui: 'pxD14' });
+  datGio('2026-12-02T21:59:45');
+  const tonD14 = await goi('chu', 'GET', '/kho/ton');
+  const ctD14 = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: await tonSP(sNC), ly_do: 'đếm Nước cam, đúng', moc: tonD14.moc, moc_luc: tonD14.moc_luc, ma_gui: 'ctD14' });
+  datGio('2026-12-02T21:59:50');
+  const tcTruocD14 = await demTC();
+  const tcD14 = await goi('ql', 'POST', `/kho/phieu/${pxD14.phieu?.id}/tu-choi`, { ly_do: 'pha nhầm' });
+  k('Q14d chỉnh tay CHỈ Nước cam rồi từ chối phiếu chờ Nước cam → CÓ dòng cam (vế món)', ctD14.status === 200 && tcD14.status === 200 && (await demTC()) === tcTruocD14 + 1,
+    `${moTa(ctD14)} · ${moTa(tcD14)} · ${tcTruocD14} → ${await demTC()}`);
+  // Q14f (ngưỡng ≥): lần chốt CÙNG GIÂY với lúc tạo phiếu vẫn tính là "kể từ lúc tạo" (thà chặn thừa)
+  datGio('2026-12-02T21:59:55');
+  const pxF14 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }], ma_gui: 'pxF14' });
+  const tonF14 = await goi('chu', 'GET', '/kho/ton');
+  const ctF14 = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: await tonSP(sNC), ly_do: 'đếm cùng giây', moc: tonF14.moc, moc_luc: tonF14.moc_luc, ma_gui: 'ctF14' });
+  datGio('2026-12-02T21:59:58');
+  const tcTruocF14 = await demTC();
+  const tcF14 = await goi('ql', 'POST', `/kho/phieu/${pxF14.phieu?.id}/tu-choi`, { ly_do: 'pha nhầm' });
+  k('Q14f phiếu tạo CÙNG GIÂY với lần chỉnh tay → từ chối → CÓ dòng cam (luc >= tao_luc)', ctF14.status === 200 && tcF14.status === 200 && (await demTC()) === tcTruocF14 + 1,
+    `${moTa(ctF14)} · ${moTa(tcF14)} · ${tcTruocF14} → ${await demTC()}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] chỉnh tồn tay');
