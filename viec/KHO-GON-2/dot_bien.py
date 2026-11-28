@@ -34,7 +34,7 @@ DOT_BIEN = [
   ('VS-nut-khong-khoa-thieu', [(CPC, "disabled={khoa || thieu.length > 0}", "disabled={dangGui}", 1)], r'✗ A3g '),
   # ── A4 / Q2: món nồi, trừ lô gói (đột biến chủ quán dặn: đưa lại cách trừ thảo dược) ──
   ('VS-goi-trien-khai', [(D, "lapPhieuXuat(mon, await docBangCongThuc(tx), await phaChe.docLamSan(tx))", "lapPhieuXuat(mon, await docBangCongThuc(tx))", 1)], r'✗ A4f '),
-  ('BV-goi-khong-chan-lo', [(D, "    if (manh.some((m) => m.lo_id == null)) {", "    if (false) {", 1)], r'✗ A4[hi] '),
+  ('BV-goi-khong-chan-lo', [(D, "    if (manh.some((m) => m.lo_id == null)) {", "    if (false) {", 1)], r'✗ A4m '),
   ('VS-noi-khong-nhan', [(CPC, "(m.me_ra ? n * m.me_ra : n)", "(n)", 1)], r'✗ A4l '),
   ('VS-me-ra-nhan-0', [(R, "Number.isFinite(me.me_ra) && me.me_ra > 0", "Number.isFinite(me.me_ra) && me.me_ra >= 0", 1)], r'✗ A4b '),
   ('VS-so-noi-khong-chan-me', [(D, "Math.abs(m.so_phan / meRa - Math.round(m.so_phan / meRa)) < 1e-6", "true", 1)], r'✗ A4g '),
