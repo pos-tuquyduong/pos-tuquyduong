@@ -647,7 +647,7 @@ BÀI HỌC:
 - Bằng chứng: bài mới trên code trước vòng 8 (7401acde) 139 đạt · 3 hỏng (✗ Q14a ly ảo NC 3 · ✗ Q14b khoá oan flan · ✗ Q14c cam oan); sau vá 142 đạt · 0
   hỏng; đột biến 75/75 BẮT.
 
-## Danh sách đủ tên đột biến (cuối, 75 — `python3 viec/KHO-GON-1/dot_bien.py --liet-ke`)
+## Danh sách đủ tên đột biến (sau vòng 8, 75 — `python3 viec/KHO-GON-1/dot_bien.py --liet-ke`)
 VS-sinh-viec-2-lan · BV-bo-not-exists · VS-ca-toi-thay-viec-sang · VS-nv-thay-viec-ql · VS-qua-gio-lech-1 · VS-xong-hai-lan · VS-mo-lai-quan-ly ·
 BV-bo-chan-viec-ngoai-phan · BV-bo-tu-xong-goi-hang · BV-bo-tu-xong-pha-che · BV-bo-tu-xong-kiem-ke · VS-kiemke-lo-so-may · VS-kiemke-thieu-so-lot ·
 VS-lech-khong-ghi-chu-lot · VS-kiemke-bat-ghi-chu · VS-kiemke-bao-dong-lech · VS-cho-duyet-khong-tinh · BV-bo-chan-ma-gui-khac-che-do ·
@@ -663,3 +663,145 @@ BV-bo-chan-hai-nguoi-chot · VS-ql-chinh-tay-khi-tat · BV-bo-kiem-quyen-chinh-t
 BV-bo-tab-viec-dau · VS-vong-hoi-thu-hai.
 Đã bỏ qua các vòng (vế đã bỏ — lý do ở bang_chung_do.txt): BV-bo-kiem-duyet-xen-giua · VS-ma-gui-tra-thieu-anh · VS-q9-cho-dien-ket-qua · VS-q9-hien-cho-dien ·
 BV-bo-khoa-q9 · VS-q12-chi-kiem-ke · VS-q12-kk-moi-mon · BV-bo-dau-vet-khop.
+
+## Soát bảo mật — lần 6 (28.11, HEAD 729fe3b3 — sau vòng sửa 8)
+Trước lọc: 0 · sau lọc: 0. Báo cáo (nguyên văn):
+
+No vulnerabilities found.
+
+I focused on what fix round 8 changed (5626f8ab..729fe3b3) under `server/kho/`. As you asked, I only used read-only `git diff` and `grep`/`sed`, and ran no tests or `node`.
+
+- **Who can create the 'chinhtay' kho_chot rows:** the only caller of `kiemKe.chinhTay` is `POST /chinh-tay` (`server/kho/duong.js:416`). It is gated by `QUAN_LY` (owner or manager). On top of that, `duocChinhTay` (`duong.js:363`) lets a manager through only when the owner has turned on `ql_chinh_tay`. Staff cannot reach this path. The row it now always writes snapshots just the one item being adjusted. The item is looked up on the server and the name comes from the database (`kiemKe.js:221-223`), so a caller cannot put other items into the snapshot and lock their result entry. The other path that creates kho_chot rows is staff stock counts through `POST /kiem-ke`, which is owner-accepted (Q12) and was not changed in this round.
+- **SQL injection:** none. `chotCham` (`server/kho/duLieu.js:322-329`), the new `canhBaoSauChot` query (`server/kho/viec.js:137-140`) and the INSERT in `chinhTay` all use bound `?` parameters. Matching item ids happens in JavaScript after `Number()`.
+- **JSON parsing:** `JSON.parse(c.anh)` is inside try/catch, and the result is checked with `Array.isArray` before use. The data is written by the server itself. There is no eval and no way to reach prototype pollution.
+- **Data exposure:** no new response fields. `chinhTay` returns the same shape as before (`{ phieu_id }`, or `{ phieu_id: null, khong_doi: true }`). The only new export is the internal helper `chotCham`, and no route serves it.
+- **Removed locks** (the per-voucher `ly_do` lock and the KK-line check): this only changes the stock-count/result locking rule. It touches no money, permissions or customer data, so it is not a security issue.
+
+One possible extra stock-count record, not a security issue: when the count is unchanged, a request with the same `maGui` (the client's anti-double-submit code) is not caught as a repeat. The early repeat check only looks at KK vouchers, and the kho_chot row does not store `maGui`. So pressing twice with no change writes two identical 'chinhtay' rows. This has no security or money impact.
+
+(Phiên chính: vòng 9 chỉ thêm ca thử, đột biến và sửa một chú thích — không đổi mã chạy, nên lần soát bảo mật này vẫn áp cho HEAD.)
+
+SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập — lần cuối sau vòng sửa 8 (28.11, HEAD 729fe3b3) — chép nguyên văn
+Nói ngắn: vòng 8 đã sửa đúng cả hai lỗi nặng của lần soát trước và lỗi nhẹ về dòng cam. Chỉnh tay nay luôn để lại một dấu vết theo món. Khoá kết quả pha chế chỉ còn một luật, theo món và giờ. Mình không tìm thấy lỗi nặng nào mới. Còn 4 lỗi nhẹ, đều là thiếu ca thử hoặc ghi chép: 3 đột biến mình tự dựng sống sót, một chú thích trong bước 033 đã sai, và phần "Thử" trong trang_thai.md vẫn chưa ghi.
+
+```
+ĐẠT  (không còn lỗi NẶNG; còn 4 lỗi NHẸ dưới đây)
+
+LỖI TÌM ĐƯỢC:
+- server/kho/viec.js:138–139 (dòng cam canhBaoSauChot lọc theo thứ) — K3 — NHẸ. Không có ca nào mà lần chốt CHỈ chạm món của phiếu chờ. Ở Q4b/Q4d/Q4e, ảnh kiểm kê luôn có cả Cam, là nguyên liệu của phiếu Nước cam, nên vế nguyên liệu luôn khớp. Đột biến tự dựng M2 (bỏ vế món, chỉ giữ vế nguyen_lieu_id) → SỐNG, bài xanh trọn. bang_chung_do.txt chỉ khai vế NGUYÊN LIỆU là CHƯA KIỂM. Vế MÓN, đúng chỗ Q14 đòi "lọc theo món", cũng chưa được ca nào khoá mà không khai. Ca thiếu: phiếu chờ Nước cam → chỉnh tay CHỈ Nước cam → từ chối → phải có dòng cam. Đột biến M1 (bỏ vế nguyên liệu) cũng SỐNG, nhưng vế này đã khai CHƯA KIỂM theo dặn của chủ quán.
+- server/kho/kiemKe.js:242–243 (ảnh kho_chot 'chinhtay' `[cotCua(m)]`) — K3/K5 — NHẸ. Đột biến M6 (ảnh luôn ghi `san_pham_id`) → SỐNG. Không ca nào khoá việc chỉnh tay NGUYÊN LIỆU ghi đúng cột. Nếu cột sai: món nào trùng số id với nguyên liệu sẽ bị khoá oan, và phiếu chờ có nguyên liệu đó mất dòng cam. Q14c không bắt được vì id Gừng ≠ id Nước cam.
+- server/kho/duLieu.js:324 (`WHERE luc >= ?`) — K3 (so ngưỡng thì phải có ca ngay trên và ngay dưới) — NHẸ. Đột biến M3 (`>=` → `>`) → SỐNG. Không có ca nào phiếu tạo CÙNG GIÂY với lần chốt. Code đang chọn đúng chiều an toàn (thà 409 thừa), nhưng không có ca giữ chiều đó.
+- server/nang_cap/033_viec_kho.js:8–9 — K1 (chú thích là khẳng định) — NHẸ. Chú thích vẫn ghi "`chinhtay` = chỉnh tay gõ ĐÚNG số máy (không phiếu KK)". Từ vòng 8, kiemKe.js:242 ghi 'chinhtay' cho MỌI lần chỉnh tay: đổi lô, chỉ trừ phiếu chờ, trộn hay không đổi.
+- viec/KHO-GON-1/trang_thai.md — NHẸ. Phần "Thử" của phiếu vẫn chưa có (grep "390" chỉ ra trong các đoạn chép bài soát). Còn thiếu: 3 thao tác thử tay ở màn 390 px, kết quả `cong.js chay` sau vòng 8, mục CHƯA KIỂM cho phần chỉ có ở màn. Có thể phiên chính ghi ở bước cuối.
+
+KIỂM LỖI LẦN SOÁT TRƯỚC (sau vòng 7):
+- Lỗi 1, NẶNG (phiếu KHÁC đã duyệt cùng món ra ly ảo): ĐÃ SỬA. kiemKe.js:241–243 nay luôn chèn kho_chot 'chinhtay' kèm ảnh của đúng món. Ca Q14a (thu_KHOGON1.js:650–664) chạy thật: đỏ trên 7401acde ("NC 3"), xanh trên HEAD. Đột biến BV-bo-dau-vet-chinh-tay BẮT.
+- Lỗi 2, NẶNG (khoá oan món khác cùng phiếu): ĐÃ SỬA. duLieu.js:332 ketQuaDaChot = monDaChot, đã bỏ vế ly_do. Ca Q14b (dòng 665–677) đi đúng vế ly_do: NC đã bán hết lô nên phần thiếu trừ vào phiếu chờ. Đột biến VS-khoa-theo-phieu (đưa lại khoá theo phiếu) BẮT. Q13a vẫn 409, đúng điều kiện chủ quán đặt.
+- Bỏ vế dòng KK: hợp lệ. Mọi chỗ gọi ghiKK (kiemKe.js:99/108, gọi từ luuKiem và chinhTay) đều kèm kho_chot: kiemKe.js:204 và :242. Mình đã grep `git grep "'KK'" 5cbfc26^ -- server`: trên main chỉ có CHECK ở 001_kho.js:75. Main chưa có code nào tạo phiếu KK, nên production không có dữ liệu KK cũ để lọt.
+- Dòng cam lọc theo món (NHẸ): ĐÃ SỬA. viec.js:133–140 dùng chotCham, cùng hàm với khoá. Chú thích đã khớp code. Ca Q14c có, đột biến VS-canh-bao-khong-loc BẮT. Còn hở: xem lỗi 1 ở trên.
+- trang_thai: đã có mục "Vòng sửa 7" và "Vòng sửa 8". Q13 và Q14 đã chuyển sang "đã trả lời". Phần "Thử" vẫn thiếu.
+
+BẢNG ĐƯỜNG ĐẾM → DẤU VẾT (ketQuaDaChot = monDaChot → chotCham, duLieu.js:322–332):
+| Đường đếm | Dấu vết | Khoá | Ca |
+|---|---|---|---|
+| kiểm kê | kho_chot kiemke (kiemKe.js:204) | ✓ | Q9a, Q12b |
+| bàn giao | kho_chot bangiao (:204) | ✓ | (C3) |
+| chỉnh tay đổi lô | kho_chot chinhtay (:242) | ✓ | Q12a |
+| chỉnh tay chỉ trừ phiếu chờ | kho_chot chinhtay | ✓ | Q13a, Q14a |
+| chỉnh tay trộn | kho_chot chinhtay | ✓ | không có ca riêng (cùng một dòng chèn) |
+| chỉnh tay không đổi | kho_chot chinhtay | ✓ | Q13b |
+| bấm lại cùng mã (có phiếu KK) | trả da_co ở :219–220, lần đầu đã ghi | ✓ | — |
+| lỗi 409 trong ghiKK | rollback, không dấu vết | đúng | — |
+
+Không khoá oan: món khác cùng phiếu (Q14b ✓) · phiếu tạo sau lần chốt (Q12d ✓) · món không có trong ảnh (Q12f ✓) · chỉnh tay nguyên liệu không khoá món (đúng theo code, nhưng KHÔNG có ca, M6 sống). Không còn đường nào lọt.
+
+NGHI NGỜ:
+- kiemKe.js:217–221: mã gửi (ma_gui) chỉ tra trên phiếu KK. Bấm lại cùng mã ở nhánh "không đổi" hoặc "chỉ trừ phiếu chờ" sẽ thêm một dòng kho_chot nữa, và lần bấm lại trả khong_doi. Mình lần theo code thì không trừ đôi (gốc đã phản ánh phiếu chờ bị giảm), màn báo "có thể lần bấm trước đã lưu". Vô hại.
+- dsPhieu (duLieu.js:440–441): phiếu nhiều món mà một món đã có kết quả và món kia đã bị chốt vẫn hiện "chờ điền". Chỉ là hiển thị, DsPhieu.jsx:14 không dùng cho_dien. Còn từ lần trước.
+- 033_viec_kho.js:61 sửa thẳng CHECK của kho_chot. Main chưa chạy bước 033 nên production an toàn. Còn từ lần trước.
+- Đơn giản: chotCham → monDaChot → ketQuaDaChot là ba lớp gọi mỏng. Có thể gộp, không bắt buộc.
+
+NGHIỆM THU:    31/32 · mục thiếu: "Thử" (390 px, cong.js sau vòng 8, CHƯA KIỂM phần màn).
+Có đủ: A1–A3 · B1–B6 · C1–C6 · D1 · D2 · E1 · E2 · 8/8 đột biến phiếu đòi (mình đã chạy lại: BẮT 8/8) · Q1 · Q4 · Q5 · Q8 · Q9 · Q10 · Q11 · Q12 · Q13 · Q14 (a, b, c) · B6.
+Đã chạy:
+- `node cong_cu/thu_KHOGON1.js` → 142 đạt · 0 hỏng.
+- `dot_bien.py`, 22 tên (6 của vòng 8 + 8 phiếu đòi + 8 Q11/Q12/Q8) → ĐỐI CHỨNG XANH 142 · BẮT 22/22.
+- 6 đột biến tự dựng trong scratchpad (/tmp/claude-0/-home-user-pos-tuquyduong/091cd924-2cc0-5131-961e-5d5b6be32002/scratchpad/db_them.py): M4 bỏ dấu vết chinhtay khỏi khoá → BẮT Q12a · M5 tính từ duyet_luc thay vì tao_luc → BẮT Q9a · M1, M2, M3, M6 → SỐNG (lỗi nhẹ ở trên).
+- P1: vòng 8 không đụng client/src. Lần cuối client/src đổi là 169b2bd2, cùng commit với client/dist.
+
+CHƯA SOÁT ĐƯỢC: không chạy npm test, --day-du, cong.js (theo dặn) · không chạy lại đủ 75 đột biến (chạy 22 tên) · chưa chạy giao diện thật (390 px, in, màn chỉnh tay) · ca "phát sinh nguyên liệu chờ + chốt + từ chối" chưa dựng.
+
+BÀI HỌC:
+- KHOÁ: bộ lọc có HAI vế (món · nguyên liệu) thì mỗi vế cần MỘT ca mà CHỈ vế đó khớp. Ca có ảnh chạm cả hai vế che mất vế còn lại (M2 sống dù Q4b–Q4e đều xanh).
+- NGUYÊN TẮC (K1): đổi ý nghĩa một giá trị (che_do 'chinhtay' từ "chỉ khi khớp" thành "mọi lần chỉnh tay") thì grep mọi chú thích mô tả giá trị đó, kể cả trong bước nâng cấp CSDL (033:8).
+```
+
+## Vòng sửa 9 — chat soát thay (LUAT §6.5: lần soát cuối chỉ còn lỗi NHẸ, không đụng tiền / điểm / ví / bảo mật)
+Chỉ đúng 4 lỗi nhẹ lần soát nêu (không đổi mã chạy):
+- Q14d: lần chốt CHỈ chạm Nước cam → từ chối phiếu chờ Nước cam → có dòng cam (vế MÓN của lọc) — đột biến VS-loc-bo-ve-mon BẮT.
+- Q14e: chỉnh tay NGUYÊN LIỆU → ảnh kho_chot ghi cột nguyen_lieu_id — đột biến VS-anh-luon-san-pham BẮT.
+- Q14f: lần chốt CÙNG GIÂY với lúc tạo phiếu vẫn tính (`luc >= tao_luc`) — đột biến VS-chot-luc-lon-hon BẮT.
+- Chú thích `server/nang_cap/033_viec_kho.js` sửa: 'chinhtay' = MỌI lần chỉnh tay. Grep K4 "ĐÚNG số máy" trong server + client/src → còn 1 chỗ (duong.js:349,
+  nói khác chuyện — đúng), không chỗ nào sai.
+- Mục "Thử" ghi dưới đây.
+- Bằng chứng: 145 đạt · 0 hỏng; đột biến lượt đủ 78/78 BẮT (đối chứng xanh 145); SỐ CA thu_KHO2a 86 · thu_KHOGON1 145 (bang_chung_do.txt).
+- Dòng mã (server + client/src + bộ kiểm, so 5cbfc26): +1119 / −23 — trong ngân sách ≈ 1.125.
+
+SOÁT LẦN CUỐI: chat soát thay
+
+## Danh sách đủ tên đột biến (cuối, 78)
+75 tên ở mục "sau vòng 8" + VS-loc-bo-ve-mon · VS-anh-luon-san-pham · VS-chot-luc-lon-hon.
+
+## Thử
+Máy đã chạy (28.11, sau vòng 9):
+- `node cong_cu/thu_KHOGON1.js` 145 đạt · 0 hỏng · `python3 viec/KHO-GON-1/dot_bien.py` 78/78 BẮT.
+- `npm test -- --day-du` (chạy một mình): PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
+- `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1`: ghi ở mục "Kiểm sau vòng sửa 9".
+
+Ba thao tác chủ quán thử tay trên điện thoại (màn rộng 390 px), sau khi gộp và Render chạy bản mới:
+1. Đăng nhập NHÂN VIÊN → Kho: tab đầu là "Việc hôm nay". Bấm "Kiểm kê & chốt cuối ngày" → màn KHÔNG hiện số máy; để trống một ô rồi bấm Chốt → báo
+   thiếu số; gõ đủ rồi Chốt → chỉ thấy "đã chốt".
+2. Đăng nhập CHỦ QUÁN → Kho → "Diễn biến hôm nay": thấy dòng cam "lệch, chưa giải thích" của lần chốt vừa rồi (nếu có lệch) và mục "Cần chú ý".
+3. Chủ quán → Tồn kho → chỉnh tay một món: màn ghi "Máy ghi X …"; gõ đúng X rồi lưu → "Không có gì thay đổi"; gõ số khác + lý do → tồn đổi, có dòng cam
+   "chỉnh tay" trong Diễn biến.
+
+CHƯA KIỂM (chỉ có ở màn, máy không kiểm được): nhớ ca đang chọn · nút "Làm" của việc · 4 gợi ý việc · in phiếu bàn giao có chỗ ký · nút Chốt dính đáy màn
+· chữ ± ở phiếu KK · hiển thị "Máy ghi X — đã tính phiếu chờ duyệt ±n" · bố cục 390 px nói chung. Máy chủ: vế nguyên liệu của dòng cam khi lần chốt chỉ chạm
+nguyên liệu phiếu chờ (chủ quán dặn không mở rộng luật cho phiếu nhận chờ duyệt — KHO-GON-2) · bấm lại cùng mã ở nhánh "không đổi" ghi thêm một dòng
+kho_chot (vô hại, không trừ đôi — cả hai người soát cùng thấy).
+
+## Kiểm sau vòng sửa 9 (phiên chính, 28.11)
+- `npm test -- --day-du`: PASS 132 · FAIL 0 · CẢNH BÁO 1.
+- `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1`: xem dòng cuối báo cáo.
+
+## Báo cáo
+```
+VIỆC:        KHO-GON-1 — Kho gọn: việc hôm nay · kiểm kê tối / bàn giao sáng · chỉnh tồn tay · diễn biến & cần chú ý
+ĐÃ SỬA:      server/nang_cap/033_viec_kho.js — 5 bảng mới (kho_viec_mau, kho_viec, kho_dien_bien, kho_dien_bien_xem, kho_chot) + cột kiem_hang_ngay
+             server/kho/viec.js — sinh / xong / mở lại việc, diễn biến, dòng cam sau chốt (lọc theo món), cần chú ý (gồm pha tại chỗ hết nguyên liệu)
+             server/kho/kiemKe.js — kiểm kê mù, bàn giao, chỉnh tay (luôn để dấu vết kho_chot), mốc chống đua, trừ phiếu chờ (Q8), bỏ phần lô giữ (Q10)
+             server/kho/duLieu.js — khoá kết quả pha chế MỘT luật theo món + giờ (chotCham / monDaChot)
+             server/kho/tinh.js · server/kho/duong.js — hằng số, giờ; đường /viec, /viec-mau, /cai-dat-viec, /kiem-ke, /chinh-tay, /dien-bien, /ton
+             server/routes/backup.js — sao lưu 5 bảng mới
+             client/src/pages/Kho/ (ViecHomNay, KiemKe, CaiDatKho, TonKho, index, XemPhieu, kho.css) + client/dist build lại
+BÀI THỬ:     thu_KHOGON1.js trên gốc → ĐỎ (9 đạt · 86 hỏng); mỗi vòng sửa đỏ trên code trước vòng (vòng 8: ✗ Q14a · Q14b · Q14c); sau vá → XANH 145/145;
+             đột biến 78/78 BẮT; SỐ CA thu_KHO2a 86 · thu_KHOGON1 145
+ĐÃ RÀ K4:    grep "kho_chot" trong server/kho → mọi đường đếm (kiemKe.js luuKiem + chinhTay) đều ghi; grep "ghiKK" → 2 chỗ gọi, cả hai kèm kho_chot;
+             grep "ĐÚNG số máy" → chú thích 033 đã sửa, chỗ còn lại đúng nghĩa
+CHƯA KIỂM:   phần chỉ có ở màn (mục "Thử"); bố cục 390 px; in thật; vế nguyên liệu dòng cam khi chốt chỉ chạm nguyên liệu phiếu chờ; bấm lại cùng mã
+             ở nhánh không đổi ghi thêm một dòng kho_chot (vô hại)
+GIT:         xem dòng HEAD ĐÃ KIỂM bên dưới (git log --oneline -2 ở báo cáo cuối phiên)
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài học
+```
+
+## Bài học
+- KHOÁ: khoá kết quả pha chế dựa trên MỘT dấu vết theo MÓN + GIỜ mà MỌI đường đếm đều ghi (kho_chot) — dấu vết gắn lên một phiếu (ly_do) vừa hở phiếu
+  khác cùng món, vừa khoá oan món khác cùng phiếu.
+- KHOÁ: bộ lọc có HAI vế (món · nguyên liệu) → mỗi vế một ca mà CHỈ vế đó khớp; ca chạm cả hai vế che vế kia (M2 sống dù Q4b–Q4e xanh).
+- NGUYÊN TẮC (K3): chỉ bỏ một vế khoá sau khi đã có ca đi ĐÚNG vế đó (vòng 6 bỏ daKiemKe vì "thừa" → mở lại đường món ảo).
+- NGUYÊN TẮC (K1): đổi ý nghĩa một giá trị (che_do 'chinhtay') → grep mọi chú thích mô tả giá trị đó, kể cả bước nâng cấp CSDL.
+- BỎ: khoá theo phiếu qua ly_do "kiểm kê: đếm thiếu" và vế dòng KK — thay bằng một luật monDaChot.
+
+HEAD ĐÃ KIỂM: 4742daa9
