@@ -604,6 +604,49 @@ async function main() {
   const nc23 = await tonSP(sNC);
   const kq23 = await goi('nv', 'POST', `/kho/phieu/${px23.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 1 });
   k('Q12d (K5) phiếu tạo SAU lần chốt cuối → ghi kết quả pha chế bình thường (200, tồn −1)', kq23.status === 200 && gan(await tonSP(sNC), nc23 - 1), `${moTa(kq23)} · ${await tonSP(sNC)}`);
+  const dsPX = ((await goi('nv', 'GET', '/kho/phieu?loai=PX')).phieu || []).find((x) => x.id === px22.phieu?.id);
+  k('Q12e danh sách phiếu: phiếu đã bị chốt món hiện kết quả "đã điền"', dsPX?.ket_qua === 'da_dien', JSON.stringify(dsPX && { id: dsPX.id, ket_qua: dsPX.ket_qua }));
+  // Q12f (K5): chốt / chỉnh tay món A KHÔNG khoá kết quả món B cùng phiếu (B bán hết nên không có trong ảnh chốt)
+  datGio('2026-12-02T21:50:00');
+  const px24 = await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }, { san_pham_id: sFlan, so_phan: 1 }], ma_gui: 'px24' });
+  await ban(sFlan, 1);
+  datGio('2026-12-02T21:50:30');
+  const ton24 = await goi('chu', 'GET', '/kho/ton');
+  await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: (await tonSP(sNC)) - 1, ly_do: 'vỡ 1', moc: ton24.moc, moc_luc: ton24.moc_luc, ma_gui: 'ct24' });
+  datGio('2026-12-02T21:51:00');
+  const r24 = await goi('nv', 'GET', '/kho/kiem-ke?che_do=kiemke');
+  const kk24 = await guiKK('nv', [{ nguyen_lieu_id: nCam, thuc: await tonNL(nCam) }, { san_pham_id: sNC, thuc: await tonSP(sNC) }], 'kk24', '', r24);
+  datGio('2026-12-02T21:51:30');
+  const kq24f = await goi('nv', 'POST', `/kho/phieu/${px24.phieu?.id}/ket-qua`, { san_pham_id: sFlan, so_thuc: 1 });
+  const kq24n = await goi('nv', 'POST', `/kho/phieu/${px24.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 1 });
+  k('Q12f cùng phiếu: Nước cam (đã chỉnh tay + chốt) → 409; Bánh flan (không bị chạm, bán hết nên không có trong ảnh chốt) → ghi kết quả 200', kk24.status === 200
+    && kq24n.status === 409 && kq24f.status === 200, `${moTa(kk24)} · NC ${moTa(kq24n)} · flan ${moTa(kq24f)}`);
+  // Q13 (a): chỉnh tay chỉ trừ vào phiếu CHỜ (không phiếu KK, không ảnh chốt) → duyệt → ghi kết quả → phải bị chặn (khoá Q9)
+  datGio('2026-12-02T21:53:00');
+  await ban(sNC, await tonSP(sNC));
+  const px25 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 5 }], ma_gui: 'px25' });
+  datGio('2026-12-02T21:53:30');
+  const ton25 = await goi('chu', 'GET', '/kho/ton');
+  const kkTruoc25 = await demKK();
+  const ct25 = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: 4, ly_do: 'vỡ 1 ly mới pha', moc: ton25.moc, moc_luc: ton25.moc_luc, ma_gui: 'ct25' });
+  datGio('2026-12-02T21:54:00');
+  await goi('ql', 'POST', `/kho/phieu/${px25.phieu?.id}/duyet`);
+  const kq25 = await goi('nv', 'POST', `/kho/phieu/${px25.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 5 });
+  k('Q13a pha 5 chờ → chỉnh tay 4 (chỉ trừ vào phiếu chờ, không phiếu KK) → duyệt → ghi kết quả 5 → 409 KQ_DA_KIEM_KE, tồn giữ 4', ct25.status === 200
+    && (await demKK()) === kkTruoc25 && kq25.status === 409 && kq25.code === 'KQ_DA_KIEM_KE' && gan(await tonSP(sNC), 4), `${moTa(ct25)} · ${moTa(kq25)} · NC ${await tonSP(sNC)}`);
+  const xem25 = await goi('nv', 'GET', `/kho/phieu/${px25.phieu?.id}`);
+  k('Q13c phiếu đó hiện kết quả "đã chốt"', xem25.theo_mon?.[0]?.ket_qua?.trang_thai === 'da_dien', JSON.stringify(xem25.theo_mon?.[0]?.ket_qua));
+  // Q13 (b): chỉnh tay gõ ĐÚNG số máy (không đổi gì) cũng là một lần đếm → khoá kết quả như kiểm kê đếm khớp
+  datGio('2026-12-02T21:55:00');
+  const px26 = await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 3 }], ma_gui: 'px26' });
+  datGio('2026-12-02T21:55:30');
+  const ton26 = await goi('chu', 'GET', '/kho/ton');
+  const nc26 = await tonSP(sNC);
+  const ct26 = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: nc26, ly_do: 'đếm lại, đúng', moc: ton26.moc, moc_luc: ton26.moc_luc, ma_gui: 'ct26' });
+  datGio('2026-12-02T21:56:00');
+  const kq26 = await goi('nv', 'POST', `/kho/phieu/${px26.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 2 });
+  k('Q13b chỉnh tay gõ đúng số máy (khong_doi) → ghi kết quả pha chế → 409, tồn giữ', ct26.khong_doi === true && kq26.status === 409 && kq26.code === 'KQ_DA_KIEM_KE'
+    && gan(await tonSP(sNC), nc26), `${JSON.stringify(ct26)} · ${moTa(kq26)} · NC ${await tonSP(sNC)} / ${nc26}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] chỉnh tồn tay');
