@@ -7,7 +7,8 @@ import SoSach from '../components/SoSach';   // NAP-1: sổ sách tiền nạp
 import { useAuth } from '../contexts/AuthContext';
 import { ngayVN, hienNgay } from '../utils/ngayVN';
 import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
-import { Calendar, TrendingUp, TrendingDown, Truck, Percent, Tag } from 'lucide-react';
+import { Calendar, TrendingUp, TrendingDown, Truck, Percent, Tag, BarChart3 } from 'lucide-react';
+import TieuDeMan from '../components/TieuDeMan';   // GIAO-DIEN-4
 
 export default function Reports() {
   const [report, setReport] = useState(null);
@@ -129,7 +130,7 @@ export default function Reports() {
   return (
     <>
       <header className="page-header">
-        <h1 className="page-title">📊 Báo cáo</h1>
+        <TieuDeMan icon={BarChart3} ten="Báo cáo" />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 
             className={`btn ${activeTab === 'daily' ? 'btn-primary' : 'btn-outline'}`}

@@ -9,8 +9,9 @@ import { ngayVN, hienNgay } from '../utils/ngayVN';
 import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 import { 
   Plus, Edit2, Trash2, Search, X, Check, 
-  Percent, DollarSign, Calendar, Tag, Copy, CheckCircle
+  Percent, DollarSign, Calendar, Tag, Copy, CheckCircle, Ticket
 } from 'lucide-react';
+import TieuDeMan from '../components/TieuDeMan';   // GIAO-DIEN-4
 
 // GIO-VN-1: hạn mã so theo NGÀY giờ VN trên cột thật valid_from / valid_to (GET /discount-codes trả SELECT * pos_discount_codes) — cùng cách
 // máy chủ (discount-codes.js: getToday() so valid_from / valid_to), không theo đồng hồ điện thoại.
@@ -263,7 +264,7 @@ export default function DiscountCodes() {
   return (
     <>
       <header className="page-header">
-        <h1 className="page-title">🎫 Mã chiết khấu</h1>
+        <TieuDeMan icon={Ticket} ten="Mã chiết khấu" />
         <button className="btn btn-primary" onClick={() => openModal()}>
           <Plus size={18} /> Tạo mã
         </button>

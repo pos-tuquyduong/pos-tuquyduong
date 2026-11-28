@@ -18,7 +18,8 @@ import { chuanSdtQuay } from '../utils/maApp';   // QUAY-UI-1 C: cùng cách chu
 import ViKhach from '../components/ViKhach';   // GIAO-DIEN-1 C: khu Ví (thay màn Số dư cũ)
 import MaAppSoMoi from '../components/MaAppSoMoi';
 import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
-import { Plus, X, RefreshCw } from 'lucide-react';
+import { Plus, X, RefreshCw, Users } from 'lucide-react';
+import TieuDeMan from '../components/TieuDeMan';   // GIAO-DIEN-4
 
 // Màn rộng (≥ 1024px) vẽ hai cột; hẹp thì danh sách → chi tiết toàn màn.
 function useRong(truyVan) {
@@ -588,7 +589,7 @@ export default function Customers() {
   return (
     <>
       <header className="page-header">
-        <h1 className="page-title">👥 Khách hàng</h1>
+        <TieuDeMan icon={Users} ten="Khách hàng" />
         <div className="flex gap-1">
           <button className="btn btn-outline" onClick={loadCustomers} aria-label="Tải lại"><RefreshCw size={16} /></button>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> Thêm khách</button>

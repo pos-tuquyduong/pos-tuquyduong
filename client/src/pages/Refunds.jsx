@@ -1,7 +1,8 @@
 // Refunds.jsx
 import { useState, useEffect } from 'react';
 import { refundsApi } from '../utils/api';
-import { Check, X } from 'lucide-react';
+import { Check, X, Undo2 } from 'lucide-react';
+import TieuDeMan from '../components/TieuDeMan';   // GIAO-DIEN-4
 import { baoXong, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
 
 export default function Refunds() {
@@ -40,7 +41,7 @@ export default function Refunds() {
   return (
     <>
       <header className="page-header">
-        <h1 className="page-title">💸 Yêu cầu hoàn tiền</h1>
+        <TieuDeMan icon={Undo2} ten="Yêu cầu hoàn tiền" />
         <span className="badge badge-warning">{pending.length} chờ duyệt</span>
       </header>
       <div className="page-content">

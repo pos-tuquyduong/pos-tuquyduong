@@ -20,10 +20,14 @@ import {
   Bell
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import logo from '../assets/logo_TQD_bieu_tuong.png';   // GIAO-DIEN-4: logo thương hiệu (cùng bản TheQr.jsx dùng)
 import { dungMenu, soDo } from '../pages/QuanLy/menu';
 // POS-DODNO-v1: goi qua lop chung, KHONG fetch tran (luat banh coc cua bo kiem)
 import { soNoApi } from '../utils/api';
 import { useDonApp, DaiDonApp } from './DonAppNoi';   // KH-MUA-1 + GIAO-DIEN-1: đơn App + chuông, dải báo ở đầu trang, số đỏ ở menu
+
+// GIAO-DIEN-4 C1: khẩu hiệu dưới logo — MỘT chỗ (để đóng gói cho quán khác chỉ sửa dòng này)
+const KHAU_HIEU = 'Đông Y Dưỡng Thể';
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
@@ -87,8 +91,9 @@ export default function Layout() {
       {/* Sidebar - Desktop */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <img src="/icons/icon-72x72.png" alt="Logo" style={{ width: '36px', height: '36px', borderRadius: '8px' }} />
-          <span>Tứ Quý Đường</span>
+          <img src={logo} alt="Tứ Quý Đường" />
+          <b className="sidebar-ten">Tứ Quý Đường</b>
+          <small className="sidebar-khau-hieu">{KHAU_HIEU}</small>
         </div>
 
         {/* POS-DODNO-v1: chi hien khi CO viec ket — khong co thi khong chiem cho */}
@@ -114,7 +119,7 @@ export default function Layout() {
                 </>}
           </div>
         )}
-        <nav className="sidebar-nav" style={{ flex: 1, paddingTop: '0.5rem' }}>
+        <nav className="sidebar-nav">
           {navItems.map((item) => {
             return (
               <NavLink
@@ -131,26 +136,12 @@ export default function Layout() {
           })}
         </nav>
 
-        <div className="sidebar-footer" style={{ 
-          padding: '1rem 1.5rem', 
-          borderTop: '1px solid rgba(255,255,255,0.15)' 
-        }}>
-          <div style={{ marginBottom: '0.75rem' }}>
-            <div style={{ fontWeight: 600 }}>{user?.display_name || user?.username}</div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-              {user?.role === 'owner' ? 'Owner' : user?.role === 'manager' ? 'Manager' : 'Staff'}
-            </div>
+        <div className="sidebar-chan">
+          <div className="sidebar-nguoi">
+            {user?.display_name || user?.username}
+            <small>{user?.role === 'owner' ? 'Owner' : user?.role === 'manager' ? 'Manager' : 'Staff'}</small>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="btn btn-outline"
-            style={{ 
-              width: '100%', 
-              justifyContent: 'center',
-              color: '#94a3b8',
-              borderColor: '#475569'
-            }}
-          >
+          <button onClick={handleLogout} className="btn btn-outline sidebar-thoat">
             <LogOut size={16} />
             Đăng xuất
           </button>
@@ -195,7 +186,7 @@ export default function Layout() {
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-menu-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <img src="/icons/icon-72x72.png" alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '6px' }} />
+                <img src={logo} alt="Tứ Quý Đường" style={{ width: '32px', height: '32px' }} />
                 <span>Tứ Quý Đường</span>
               </div>
               <button onClick={() => setMobileMenuOpen(false)}>

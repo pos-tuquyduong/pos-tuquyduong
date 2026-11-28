@@ -13,7 +13,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ordersApi, productsApi } from '../utils/api';
 import { getLogo } from '../utils/logoCache';
-import { Eye, Printer, X, Check, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle } from 'lucide-react';
+import { Eye, Printer, X, Check, Banknote, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, AlertTriangle, Receipt } from 'lucide-react';
+import TieuDeMan from '../components/TieuDeMan';   // GIAO-DIEN-4
 import InvoicePrint from '../components/InvoicePrint';
 import HopHuyDon, { hienNutHuy } from '../components/HopHuyDon';   // HUY-1
 import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
@@ -431,7 +432,7 @@ export default function Orders() {
   return (
     <>
       <header className="page-header">
-        <h1 className="page-title">📦 Đơn hàng</h1>
+        <TieuDeMan icon={Receipt} ten="Đơn hàng" />
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {[
             { key: 'today', label: 'Hôm nay' },

@@ -7,7 +7,8 @@ import { ngayVN, hienNgayGio } from '../utils/ngayVN';
 import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';
 import { coChuaLuu } from '../components/thayDoiKho.js';
 import ThanhLuu from '../components/ThanhLuu';
-import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2 } from 'lucide-react';
+import { Save, Plus, Users, Package, Download, Upload, Database, X, Edit2, Key, Trash2, Settings as IconCaiDat } from 'lucide-react';
+import TieuDeMan from '../components/TieuDeMan';   // GIAO-DIEN-4
 import GioHoatDong from './CaiDat/GioHoatDong';
 import InPhieu from './CaiDat/InPhieu';   // KHO-IN-1: khổ + số bản in phiếu kho
 import CaiDatManKhach from './CaiDat/ManKhach';   // MANKHACH-1
@@ -936,7 +937,7 @@ export default function Settings() {
 
   return (
     <>
-      <header className="page-header"><h1 className="page-title">{theRieng ? TEN_THE[tab] || 'Cài đặt' : '⚙️ Cài đặt'}</h1></header>
+      <header className="page-header"><TieuDeMan icon={IconCaiDat} ten={theRieng ? TEN_THE[tab] || 'Cài đặt' : 'Cài đặt'} /></header>
       <div className="page-content">
         {theRieng && <div style={{ marginBottom: '0.75rem' }}><Link to="/quan-ly">← Quản lý</Link></div>}
         {!theRieng && <CongQr />}
