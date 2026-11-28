@@ -280,8 +280,10 @@ async function main() {
     const sp = docCl('pages/Kho/SanPham.jsx');
     const bh = docCl('pages/BanHang/BanHangMoi.jsx');
     const am = docCl('pages/BanHang/AnhMon.jsx');
-    k('H1 SanPham.jsx: hằng số có tên 400 × 400 và chất lượng 0,7 MỘT chỗ', /CO_ANH\s*=\s*400\b/.test(sp) && /CHAT_LUONG_ANH\s*=\s*0\.7\b/.test(sp));
-    k('H2 SanPham.jsx: cắt vuông giữa, WebP rồi JPEG, có nút Xoá ảnh', /toBlob/.test(sp) && /image\/webp/.test(sp) && /image\/jpeg/.test(sp) && />Xoá ảnh<\/button>/.test(sp) && /api\.delete\(`\/products\/\$\{sp\.id\}\/anh`\)/.test(sp));
+    const anhKho = docCl('pages/Kho/anh.js');   // KHO-GON-2: thu nhỏ gom MỘT chỗ (anh.js) — SanPham nhập từ đó
+    k('H1 anh.js: hằng số có tên 400 × 400 và chất lượng 0,7 MỘT chỗ; SanPham dùng ANH_MON', /CO_ANH\s*=\s*400\b/.test(anhKho) && /CHAT_LUONG_ANH\s*=\s*0\.7\b/.test(anhKho)
+      && /thuNhoAnh\(tep, ANH_MON\)/.test(sp));
+    k('H2 anh.js cắt vuông giữa, WebP rồi JPEG; SanPham.jsx có nút Xoá ảnh', /toBlob/.test(anhKho) && /image\/webp/.test(anhKho) && /image\/jpeg/.test(anhKho) && /vuong: true/.test(anhKho) && />Xoá ảnh<\/button>/.test(sp) && /api\.delete\(`\/products\/\$\{sp\.id\}\/anh`\)/.test(sp));
     k('H3 SanPham.jsx: tải qua api.request (không fetch trần)', /\/anh/.test(sp) && !/\bfetch\s*\(/.test(sp));
     k('H4 AnhMon.jsx: ảnh lười, chỗ giữ chỗ cố định, chữ viết tắt khi chưa có / lỗi', /loading="lazy"/.test(am) && /aspect-ratio|aspectRatio/.test(am + docCl('pages/BanHang/banHang.css')) && /onError/.test(am));
     k('H5 thẻ món (BanHangMoi.jsx) dùng AnhMon', (bh.match(/<AnhMon\b/g) || []).length >= 2, `${(bh.match(/<AnhMon\b/g) || []).length} chỗ`);

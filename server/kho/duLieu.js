@@ -155,15 +155,16 @@ async function themPhieu(tx, { loai, tuDuyet, nguoi, luc, nccId = null, ghiChu =
 }
 
 /** Tạo phiếu PX: dòng thành phẩm (+số phần) + dòng xuất nháp (−lượng, theo món). tuDuyet → ghi kho ngay, CÙNG giao dịch. */
-async function taoPhieuXuat(tx, { mon, nguoi, tuDuyet, thayCho = null, lyDo = null, maGui = null, luc, lucLam }) {
+async function taoPhieuXuat(tx, { mon, nguoi, tuDuyet, thayCho = null, lyDo = null, maGui = null, luc, lucLam, chanThieu = false }) {
   const phaChe = require('./phaChe');   // muộn: phaChe.js dùng hàm của file này
   const px = lapPhieuXuat(mon, await docBangCongThuc(tx), await phaChe.docLamSan(tx));
   if (px.thieu_cong_thuc.length) {
     const ten = await tenSanPham(tx, px.thieu_cong_thuc);
     return { loi: [400, { error: `Món chưa có công thức: ${ten.join(', ')}`, code: 'MON_CHUA_CONG_THUC' }] };
   }
-  // KHO-GON-2 Q1: tạo mới (mọi vai trò) mà kho không đủ → chặn; chủ quán SỬA phiếu cũ (thayCho) không chặn nguyên liệu — gói thiếu vẫn 409 ở ghiKho
-  if (thayCho == null) {
+  // KHO-GON-2 Q1: đường tạo phiếu của người dùng (POST /phieu-xuat truyền chanThieu) mà kho không đủ → chặn; chủ quán SỬA phiếu cũ (suaPhieu) không chặn
+  // nguyên liệu — gói thiếu vẫn 409 ở ghiKho. Bộ dựng món thử của bài thử (cong_cu/gia_lap/monThu.js) gọi thẳng, không cờ — dựng lô khi kho rỗng.
+  if (chanThieu) {
     const thieu = await phaChe.kiemDuKho(tx, px.theo_mon.flatMap((m) => m.nguyen_lieu), luc);
     if (thieu) return thieu;
   }

@@ -34,10 +34,14 @@ export default function DinhMuc({ vaiTro }) {
     dinh_muc: O.filter((t) => (nhap[m.san_pham_id]?.[t] ?? '') !== '').map((t) => ({ thu: t === '' ? null : t, so_luong: Number(nhap[m.san_pham_id][t]) })) }), `Đã lưu ${m.ten}`);
   const luuLech = (n) => lam(() => api.put(`/kho/nhom-cong-thuc/${n.id}`, { ten: n.ten, thu_tu: n.thu_tu, lech_cho_phep: lech[n.id] === '' ? null : Number(lech[n.id]) }), `Đã lưu ${n.ten}`);
   const luuHanMuc = (khoa) => lam(() => api.put('/settings', { settings: { [khoa]: String(hanMuc[khoa]).trim() } }), 'Đã lưu hạn mức');
+  const doiCongTac = () => lam(() => api.put('/settings', { settings: { kho_px_nv_can_duyet: dl.nv_can_duyet ? '0' : '1' } }), 'Đã đổi công tắc');   // KHO-GON-2: cùng công tắc ở Cài đặt kho
 
   if (!dl) return loi ? <div className="kho-loi">{loi}</div> : <p>Đang tải…</p>;
   return (
     <div>
+      {vaiTro === 'owner' && (
+        <label className="kho-hang"><input type="checkbox" checked={!dl.nv_can_duyet} disabled={dang} onChange={doiCongTac} /> Nhân viên xuất kho không cần duyệt</label>
+      )}
       {vaiTro === 'owner' && [['kho_han_muc_dat_hang', 'han_muc_dat_hang', 'Hạn mức đặt hàng quản lý tự duyệt (đ)'], ['kho_han_muc_noi_bo', 'han_muc_noi_bo', 'Hạn mức dùng nội bộ / người / ngày (đ)']]
         .map(([khoa, truong, nhan]) => (
           <div key={khoa} className="kho-dong">

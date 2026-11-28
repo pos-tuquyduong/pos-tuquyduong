@@ -430,8 +430,10 @@ async function main() {
   k('D5 MỘT hàm làm tròn gọn (soGon) ở chung.js; ô sửa công thức + ô sửa phiếu dùng nó, SanPham bỏ bản so() chép', /export const soGon = /.test(chung)
     && /soGon\(d\.luong_hien\)/.test(sp) && /soGon\(d\.luong_hien\)/.test(xp) && !/^const so = /m.test(sp));
   const cd = doc(path.join(kd, 'CaiDatKho.jsx'));
-  k('E2d công tắc ở Cài đặt kho, nhãn "Nhân viên xuất kho không cần duyệt" (chỉ chủ quán); bỏ khỏi Định mức', /Nhân viên xuất kho không cần duyệt/.test(cd) && /kho_px_nv_can_duyet/.test(cd)
-    && !/kho_px_nv_can_duyet/.test(doc(path.join(kd, 'DinhMuc.jsx'))));
+  const dmx = doc(path.join(kd, 'DinhMuc.jsx'));
+  k('E2d công tắc ở Cài đặt kho, nhãn "Nhân viên xuất kho không cần duyệt" (chỉ chủ quán); Định mức cùng nhãn, không còn nhãn ngược "cần duyệt"',
+    /Nhân viên xuất kho không cần duyệt/.test(cd) && /kho_px_nv_can_duyet/.test(cd) && /checked=\{!cd\.nv_can_duyet\}/.test(cd)
+    && !/Nhân viên xuất kho cần duyệt/.test(dmx) && /checked=\{!dl\.nv_can_duyet\}/.test(dmx));
   const css = doc(path.join(kd, 'kho.css'));
   k('C1 màn hẹp: nút − / + ≥ 40 px, thanh nút chính dính đáy, không tràn ngang', /\.kho-nut-so[^}]*min-width: 2\.5rem/.test(css) && /\.kho-chan[^}]*position: sticky[^}]*bottom: 0/.test(css)
     && /@media \(max-width: 420px\)/.test(css) && /overflow-x: hidden/.test(css));

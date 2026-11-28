@@ -269,7 +269,7 @@ const timMaGui = async (req) => (maGuiCua(req) ? Number((await csdl.queryOne('SE
 const kemDienBien = async (req, tx, luc, r) => { if (!r.loi) await viec.sauTaoPhieu(tx, r.id, req.user.username, luc); return r; };
 router.post('/phieu-xuat', NHAN_VIEN, (req, res, next) => (monHopLe(req.body?.mon) ? next() : soPhanSai(res)), ghiPhieu(async (req, tx, luc) => kemDienBien(req, tx, luc,
   await duLieu.taoPhieuXuat(tx, { mon: monHopLe(req.body.mon), nguoi: req.user.username, maGui: maGuiCua(req), luc, lucLam: luc,
-    tuDuyet: VAI_QUAN_LY.includes(req.user.role) || !(await duLieu.nvCanDuyet(tx)) })), timMaGui));
+    tuDuyet: VAI_QUAN_LY.includes(req.user.role) || !(await duLieu.nvCanDuyet(tx)), chanThieu: true })), timMaGui));   // KHO-GON-2 Q1
 
 // ── KHO-2b: đặt hàng · nhận hàng · phát sinh. THAN: thân yêu cầu → đối số hàm tạo — MỘT chỗ cho tạo và sửa. ──
 const soId = (x) => (Number(x) > 0 ? Number(x) : null);
