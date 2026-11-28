@@ -20,7 +20,7 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 139
+SỐ CA cong_cu/thu_KHOGON1.js: 142
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
@@ -128,3 +128,16 @@ code 017faf0d + bài mới):
   Trên code đã sửa (afd701c0): 139 đạt · 0 hỏng.
   Bước 033 sửa thẳng CHECK kho_chot.che_do (thêm 'chinhtay'): bước chưa chạy trên production (nhánh chưa merge) — không cần bước nâng cấp mới.
   Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên afd701c0): ĐỐI CHỨNG XANH · 139 đạt — TỔNG 75 · BẮT 75 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+Vòng sửa 8 (chủ quán 28.11: Q14 theo đề xuất + cảnh báo sau chốt lọc theo món): bài đổi ở 1e2db8e8 (Q14a, Q14b, Q14c — chạy THẬT, đúng hai lỗi người soát
+lần theo code). Chạy trên code TRƯỚC vòng 8 (cây 1e2db8e8 = code 7401acde + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 139 đạt · 3 hỏng
+   ✗ Q14a chỉnh tay chỉ trừ vào phiếu chờ (không phiếu KK) → phiếu KHÁC đã duyệt cùng món ghi kết quả → 409, tồn giữ 2 (không ly ảo)  — HTTP 200 · HTTP 200 · NC 3
+   ✗ Q14b cùng phiếu chờ [Nước cam, Bánh flan], chỉnh tay Nước cam → Bánh flan ghi kết quả 200; Nước cam 409  — flan HTTP 409 · KQ_DA_KIEM_KE
+   ✗ Q14c từ chối phiếu chờ Nước cam sau lần chỉnh tay GỪNG (không chạm Nước cam) → KHÔNG dòng cam  — 3 → 4
+  Trên code đã sửa (cafc8259): 142 đạt · 0 hỏng — Q13a vẫn 409 (điều kiện chủ quán đặt để bỏ khoá theo phiếu).
+  Bỏ 4 đột biến của vế đã bỏ: BV-bo-khoa-q9 (khoá theo phiếu — thay bằng VS-khoa-theo-phieu: đưa lại khoá phiếu → Q14b đỏ) · VS-q12-chi-kiem-ke ·
+  VS-q12-kk-moi-mon (vế dòng KK thừa: mọi đường tạo KK nay đều ghi kho_chot) · BV-bo-dau-vet-khop (neo đổi — thay bằng BV-bo-dau-vet-chinh-tay +
+  VS-dau-vet-chi-khi-doi). Thêm VS-canh-bao-khong-loc (Q14c).
+  Vế chotCham nhánh nguyên liệu (cảnh báo sau chốt khi phiếu chờ chỉ chạm nguyên liệu, vd phát sinh nguyên liệu chờ): CHƯA KIỂM bằng đột biến — chưa có
+  ca (phiếu nhận chờ không mở rộng theo dặn của chủ quán; phát sinh nguyên liệu chờ + chốt + từ chối chưa dựng).
