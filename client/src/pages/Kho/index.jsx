@@ -8,10 +8,11 @@
  * KHO-GON-1: tab ĐẦU "Việc hôm nay" (mọi vai trò; chủ / quản lý: huy hiệu số diễn biến chưa xem — CÙNG vòng hỏi 30 s); "Làm" mở Pha chế hoặc
  * màn Kiểm kê / Nhận bàn giao (kk / bg — không có nút tab riêng); tab "Cài đặt kho" (chủ / quản lý).
  * KHO-GON-2 D3: thẻ nguyên liệu mở từ Tồn kho / Nguyên liệu / dải dưới ngưỡng của Việc hôm nay — ngăn xếp màn `ngan` (thẻ › Nhận hàng …), nút "← màn
- * trước" + dòng đường dẫn; nội dung tab KHÔNG tháo ra khi mở thẻ HOẶC mở phiếu (ẩn bằng display) → quay lại giữ bộ lọc, ô tìm, vị trí cuộn. Màn vừa GHI
- * phiếu (Pha chế, Nhận hàng, Phát sinh, Đặt hàng) dựng lại mới (key lanTao — mã lần bấm mới, không giữ số cũ); Danh sách phiếu tải lại khi đóng phiếu.
+ * trước" + dòng đường dẫn; nội dung tab KHÔNG tháo ra khi mở thẻ HOẶC mở phiếu (ẩn bằng display) → quay lại giữ bộ lọc, ô tìm; vị trí cuộn của cửa sổ
+ * nhớ lúc mở, trả lại lúc đóng (trang cuộn theo cửa sổ — ẩn danh sách làm trang ngắn lại). Đóng phiếu / thẻ → `lanDong` tăng: màn ghi phiếu (Pha chế,
+ * Nhận hàng, Phát sinh, Đặt hàng) dựng lại mới (số mới, mã lần bấm mới), Danh sách phiếu / Tồn kho / Nguyên liệu / Việc hôm nay tải lại số mà GIỮ bộ lọc.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../utils/api';
 import PhaChe from './PhaChe';
@@ -61,8 +62,8 @@ export default function Kho() {
   const [soChuaSan, setSoChuaSan] = useState(0);
   const [monMo, setMonMo] = useState(null);   // KHO-3a: id món mở từ tab Chưa sẵn sàng bán
   const [ngan, setNgan] = useState([]);   // KHO-GON-2 D3: [{ man: 'the', id, ten }, { man: 'nhan' | 'xuat' | 'chinh', ten }?]
-  const [lanTao, setLanTao] = useState(0);   // tăng khi một màn vừa ghi phiếu → màn đó dựng lại mới
-  const [lanDong, setLanDong] = useState(0);   // tăng khi đóng phiếu → Danh sách phiếu tải lại (giữ bộ lọc)
+  const [lanDong, setLanDong] = useState(0);   // tăng khi đóng phiếu / thẻ → màn ghi phiếu dựng lại, danh sách tải lại (giữ bộ lọc)
+  const cuon = useRef(0);   // vị trí cuộn cửa sổ lúc mở phiếu / thẻ từ danh sách
 
   const taiChoDuyet = useCallback(() => {
     if (!quanLy) return;
@@ -78,12 +79,19 @@ export default function Kho() {
     return () => clearInterval(t);
   }, [taiChoDuyet]);
 
+  const dangMo = !!(phieuMo || ngan.length);
+  const nhoCuon = () => { if (!dangMo) cuon.current = window.scrollY; };
+  useEffect(() => {
+    if (dangMo) window.scrollTo(0, 0);
+    else requestAnimationFrame(() => window.scrollTo(0, cuon.current));
+  }, [dangMo]);
   const dongPhieu = () => { setPhieuMo(null); taiChoDuyet(); setLanDong((n) => n + 1); };
-  const moPhieuSauGhi = (id) => { setPhieuMo(id); setLanTao((n) => n + 1); };
-  const moThe = (id, ten) => setNgan([{ man: 'the', id, ten }]);
+  const moPhieuTuDs = (id) => { nhoCuon(); setPhieuMo(id); };
+  const moThe = (id, ten) => { nhoCuon(); setNgan([{ man: 'the', id, ten }]); };
+  const luiNgan = () => { if (ngan.length === 1) setLanDong((n) => n + 1); setNgan(ngan.slice(0, -1)); };
   const tenTab = tabs.find((t) => t.ma === tab)?.ten || 'Kho';
   const dinh = ngan[ngan.length - 1];
-  const doiTab = (ma) => { setNgan([]); setTab(ma); };
+  const doiTab = (ma) => { if (ngan.length) setLanDong((n) => n + 1); setNgan([]); setTab(ma); };
 
   return (
     <div>
@@ -105,22 +113,22 @@ export default function Kho() {
         {phieuMo && <XemPhieu id={phieuMo} vaiTro={vaiTro} tenDangNhap={user?.username} moPhieu={setPhieuMo} dong={dongPhieu} />}
         {!phieuMo && dinh && (
           <div>
-            <button className="btn btn-outline" onClick={() => setNgan(ngan.slice(0, -1))}>← {ngan.length > 1 ? ngan[ngan.length - 2].ten : tenTab}</button>
+            <button className="btn btn-outline" onClick={luiNgan}>← {ngan.length > 1 ? ngan[ngan.length - 2].ten : tenTab}</button>
             <div className="kho-duong-dan">{[tenTab, ...ngan.map((n) => n.ten)].join(' › ')}</div>
             <TheNguyenLieu id={ngan[0].id} man={dinh.man === 'the' ? null : dinh.man} moMan={(man, ten) => setNgan([ngan[0], { man, ten }])} veThe={() => setNgan([ngan[0]])} />
           </div>
         )}
         <div style={{ display: ngan.length || phieuMo ? 'none' : undefined }}>
-        {tab === 'viec' && <ViecHomNay vaiTro={vaiTro} moTab={setTab} doiSoMoi={setSoMoi} moThe={moThe} />}
+        {tab === 'viec' && <ViecHomNay vaiTro={vaiTro} moTab={setTab} doiSoMoi={setSoMoi} moThe={moThe} lamMoi={lanDong} />}
         {(tab === 'kk' || tab === 'bg') && <KiemKe key={tab} cheDo={tab === 'kk' ? 'kiemke' : 'bangiao'} xong={() => setTab('viec')} />}
         {tab === 'caidat' && <CaiDatKho vaiTro={vaiTro} />}
-        {tab === 'pc' && <PhaChe key={lanTao} moPhieu={moPhieuSauGhi} />}
-        {tab === 'nh' && <NhanHang key={lanTao} moPhieu={moPhieuSauGhi} />}
-        {tab === 'ps' && <PhatSinh key={lanTao} moPhieu={moPhieuSauGhi} />}
-        {tab === 'dh' && <DatHang key={lanTao} moPhieu={moPhieuSauGhi} />}
-        {tab === 'ton' && <TonKho moThe={moThe} />}
-        {tab === 'phieu' && <DsPhieu choDuyet={quanLy ? choDuyet : []} moPhieu={setPhieuMo} lamMoi={lanDong} />}
-        {tab === 'nl' && <NguyenLieu vaiTro={vaiTro} moThe={moThe} />}
+        {tab === 'pc' && <PhaChe key={lanDong} moPhieu={moPhieuTuDs} />}
+        {tab === 'nh' && <NhanHang key={lanDong} moPhieu={moPhieuTuDs} />}
+        {tab === 'ps' && <PhatSinh key={lanDong} moPhieu={moPhieuTuDs} />}
+        {tab === 'dh' && <DatHang key={lanDong} moPhieu={moPhieuTuDs} />}
+        {tab === 'ton' && <TonKho moThe={moThe} lamMoi={lanDong} />}
+        {tab === 'phieu' && <DsPhieu choDuyet={quanLy ? choDuyet : []} moPhieu={moPhieuTuDs} lamMoi={lanDong} />}
+        {tab === 'nl' && <NguyenLieu vaiTro={vaiTro} moThe={moThe} lamMoi={lanDong} />}
         {tab === 'cs' && <ChuaSan doiSo={setSoChuaSan} moSanPham={(id) => { setMonMo(id); setTab('sp'); }} />}
         {tab === 'sp' && <SanPham vaiTro={vaiTro} moId={monMo} />}
         {tab === 'dm' && <DinhMuc vaiTro={vaiTro} />}

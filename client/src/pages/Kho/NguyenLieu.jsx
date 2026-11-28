@@ -18,7 +18,7 @@ const SAP_XEP = {
 };
 const MAU = { ten: '', nhom_id: '', nha_cung_cap_id: '', don_vi_luu: 'kg', don_vi_hien: 'g', he_so_doi: 0.001, gia_nhap: '', ton_toi_thieu: '', han_ngay: '', ghi_chu: '', dang_dung: 1 };
 
-export default function NguyenLieu({ vaiTro, moThe }) {
+export default function NguyenLieu({ vaiTro, moThe, lamMoi = 0 }) {
   const suaDuoc = vaiTro === 'owner' || vaiTro === 'manager';
   const [dl, setDl] = useState({ nguyen_lieu: [], nhom: [], nha_cung_cap: [] });
   const [loi, setLoi] = useState('');
@@ -31,7 +31,7 @@ export default function NguyenLieu({ vaiTro, moThe }) {
   const [danhMuc, setDanhMuc] = useState(false);
 
   const tai = () => api.get('/kho/nguyen-lieu').then(setDl).catch((e) => setLoi(e.message));
-  useEffect(() => { tai(); }, []);
+  useEffect(() => { tai(); }, [lamMoi]);   // KHO-GON-2 D3: tải lại khi đóng thẻ nguyên liệu (giữ bộ lọc, ô tìm)
 
   const ds = useMemo(() => {
     const t = boDau(tim.trim());

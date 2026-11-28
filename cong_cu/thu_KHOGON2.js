@@ -390,6 +390,11 @@ async function main() {
   const dmAt = theAt.dung_cho_mon || [];
   k('D1i thẻ Atiso tính CÙNG cách Pha chế: dùng cho Gói trà (đủ 10 gói), KHÔNG cho Trà nồi (trà trừ lô gói, không trừ thảo dược)',
     dmAt.some((m) => m.san_pham_id === sGoi && m.du_phan === 10) && !dmAt.some((m) => m.san_pham_id === sTra), js(dmAt));
+  const sPT = await themMon('G6', 'Trà atiso pha nhanh');   // pha tại chỗ, thành phần gói — BÁN thì triển khai xuống Atiso (banHang không đổi)
+  await goi('chu', 'PUT', `/kho/san-pham/${sPT}`, { kieu: 'pha_tai_cho', cong_thuc: [{ thanh_phan_id: sGoi, luong: 0.04 }] });
+  const dmAt2 = (await goi('nv', 'GET', `/kho/nguyen-lieu/${nAtiso}/the`)).dung_cho_mon || [];
+  k('D1j món PHA TẠI CHỖ có thành phần gói: thẻ Atiso VẪN liệt kê (đường bán trừ thảo dược) — 1 phần 0.4, đủ 250 phần',
+    dmAt2.some((m) => m.san_pham_id === sPT && gan(m.mot_phan, 0.4) && m.du_phan === 250) && !dmAt2.some((m) => m.san_pham_id === sTra), js(dmAt2));
   const theKo = await goi('nv', 'GET', '/kho/nguyen-lieu/999999/the');
   await ghiDb("INSERT INTO kho_phieu_dong (phieu_id, nguyen_lieu_id, so_luong, loai) VALUES (?, ?, -100, 'xuat')", [lg.phieu?.id, nAtiso]);   // Atiso về 0
   const theHet = await goi('nv', 'GET', `/kho/nguyen-lieu/${nAtiso}/the`);
@@ -436,8 +441,11 @@ async function main() {
     /ngan/.test(idx) && /←/.test(idx) && /' › '/.test(idx) && /display: ngan\.length \|\| phieuMo \? 'none'/.test(idx) && /TheNguyenLieu/.test(idx)
     && !/!phieuMo && tab ===/.test(idx) && !/!phieuMo && \(tab ===/.test(idx));
   const dsp = doc(path.join(kd, 'DsPhieu.jsx'));
-  k('D3d màn vừa ghi phiếu dựng lại mới (key lanTao); danh sách phiếu tải lại khi đóng phiếu mà GIỮ bộ lọc', (idx.match(/key=\{lanTao\} moPhieu=\{moPhieuSauGhi\}/g) || []).length === 4
-    && /lamMoi=\{lanDong\}/.test(idx) && /\[loc, lamMoi\]/.test(dsp));
+  k('D3d đóng phiếu / thẻ → màn ghi phiếu dựng lại (key lanDong), Danh sách phiếu · Tồn kho · Nguyên liệu · Việc hôm nay tải lại mà GIỮ bộ lọc',
+    (idx.match(/key=\{lanDong\} moPhieu=\{moPhieuTuDs\}/g) || []).length === 4 && (idx.match(/lamMoi=\{lanDong\}/g) || []).length === 4 && /\[loc, lamMoi\]/.test(dsp)
+    && ['TonKho', 'NguyenLieu', 'ViecHomNay'].every((f) => /\[lamMoi\]\);/.test(doc(path.join(kd, f + '.jsx')))) && /if \(ngan\.length === 1\) setLanDong/.test(idx));
+  k('D3e vị trí cuộn: nhớ lúc mở phiếu / thẻ từ danh sách, mở thì lên đầu, đóng thì trả lại', /cuon\.current = window\.scrollY/.test(idx)
+    && /window\.scrollTo\(0, cuon\.current\)/.test(idx) && /if \(dangMo\) window\.scrollTo\(0, 0\)/.test(idx));
   k('D3b mở thẻ từ Tồn kho, Nguyên liệu và dải dưới ngưỡng ở Việc hôm nay', /moThe/.test(doc(path.join(kd, 'TonKho.jsx'))) && /moThe/.test(doc(path.join(kd, 'NguyenLieu.jsx')))
     && /moThe/.test(doc(path.join(kd, 'ViecHomNay.jsx'))));
   k('D3c lưu xong ở thẻ → về đúng thẻ, tải lại số (xong → tai lại)', /xongViec|veThe|taiLai\(\)/.test(tnl));

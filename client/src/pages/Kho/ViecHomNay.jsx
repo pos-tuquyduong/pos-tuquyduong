@@ -16,7 +16,7 @@ const KHOA_CA = 'kho_ca_hom_nay';
 const docCa = (ngay) => { try { const x = JSON.parse(localStorage.getItem(KHOA_CA) || 'null'); return x?.ngay === ngay ? x.ca : null; } catch { return null; } };
 const nhoCa = (ngay, ca) => { try { localStorage.setItem(KHOA_CA, JSON.stringify({ ngay, ca })); } catch { /* không nhớ được: lần sau chọn lại */ } };
 
-export default function ViecHomNay({ vaiTro, moTab, doiSoMoi, moThe }) {   // KHO-GON-2 D3: moThe — chạm tên nguyên liệu dưới ngưỡng mở thẻ
+export default function ViecHomNay({ vaiTro, moTab, doiSoMoi, moThe, lamMoi = 0 }) {   // KHO-GON-2 D3: moThe — chạm tên nguyên liệu dưới ngưỡng mở thẻ
   const quanLy = vaiTro === 'owner' || vaiTro === 'manager';
   const [dl, setDl] = useState(null);
   const [ca, setCa] = useState(null);
@@ -34,7 +34,7 @@ export default function ViecHomNay({ vaiTro, moTab, doiSoMoi, moThe }) {   // KH
       if (quanLy) { const d = await api.get('/kho/dien-bien'); setDb(d); doiSoMoi?.(d.chua_xem); }
     } catch (e) { setLoi(e.message); }
   }, [ca, quanLy, doiSoMoi]);
-  useEffect(() => { tai(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { tai(); }, [lamMoi]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const ghi = async (lam, viecGi, xong) => {
     setDang(true);

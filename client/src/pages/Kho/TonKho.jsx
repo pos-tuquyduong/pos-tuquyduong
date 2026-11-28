@@ -16,7 +16,7 @@ const SAP_XEP = {
 };
 const HAN = { sap_het: ['kho-am', 'sắp hết hạn'], qua_han: ['kho-am kho-dam', 'quá hạn'] };
 
-export default function TonKho({ moThe }) {
+export default function TonKho({ moThe, lamMoi = 0 }) {
   const [dl, setDl] = useState(null);
   const [loi, setLoi] = useState('');
   const [loai, setLoai] = useState('nl');
@@ -26,7 +26,7 @@ export default function TonKho({ moThe }) {
   const [chinh, setChinh] = useState(null);   // thứ đang chỉnh tay
 
   const tai = () => api.get('/kho/ton').then(setDl).catch((e) => setLoi(e.message));
-  useEffect(() => { tai(); }, []);
+  useEffect(() => { tai(); }, [lamMoi]);   // KHO-GON-2 D3: tải lại khi đóng thẻ nguyên liệu (giữ bộ lọc, ô tìm)
   const nutChinh = (t) => dl.duoc_chinh_tay && (
     <button className="btn btn-sm btn-outline" onClick={(e) => { e.stopPropagation(); setChinh(t); }}>Chỉnh tồn tay</button>);
   const ds = useMemo(() => {
