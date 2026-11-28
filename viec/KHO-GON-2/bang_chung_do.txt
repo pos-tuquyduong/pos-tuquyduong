@@ -1,0 +1,51 @@
+KHO-GON-2 — bằng chứng ĐỎ trên code gốc (28.11.2026)
+
+Gốc = aa9785f (main có KHO-GON-1 #110, ANH-MON-1 #109 — code của nhánh trước khi vá: e90747a ghép đúng cây này, 0641161 chỉ đổi phiếu).
+Lệnh như cổng A11 — cả cây gốc (git archive) + bản HIỆN TẠI của từng bài:
+  python3 viec/KHO-GON-2/dot_bien.py --cay-goc aa9785f
+
+== cong_cu/thu_KHOGON2.js (bài mới) — trên gốc: thoát 1 · 14 đạt · 73 hỏng (lần đầu, commit 1fcca020, 87 ca); bản cuối cũng thoát 1
+   ✗ A4a lưu me_ra 25 + me_ghi "+ 5 L nước" → đọc lại đúng  — HTTP 200 · undefined · undefined
+   ✗ A2a 1 nguyên liệu: tồn 10, 3 / phần → 3  — undefined
+   ✗ A3a hai món mỗi món ≤ tối đa nhưng TỔNG vượt → 409 THIEU_NGUYEN_LIEU … — HTTP 200
+   ✗ A4f pha 2 nồi (50 ly): lô trà 50, lô gói còn 8, thảo dược KHÔNG đổi — trà 50 · gói 10 · Atiso 80 · Cỏ 26
+   ✗ E1a nhân viên / quản lý / chủ quán nhận → đã duyệt NGAY … — nv: cho_duyet · lô 0
+   ✗ B3a JPEG thật 200 KB → 200 — HTTP 403 · DUONG_LA
+   ✗ D1a tồn + nhãn: Cam 2 < ngưỡng 5 → duoi_nguong — HTTP 403 · DUONG_LA
+   … (+ mọi phép dò màn: PhaChe / NhanHang / anh.js / TheNguyenLieu / index / CaiDatKho / kho.css chưa có)
+   Xanh trên gốc (đúng ý — ca "phải KHÔNG bị chặn" / 403 / hồi quy có sẵn): Nền · A4d · A2i · A4e · A4k · E3b · E3c · E2a · E2b · E2c · B3k · B4d · B4e · D1g;
+   mỗi ca có đột biến gỡ vế tương ứng BẮT (vd VS-cong-tac-bo-qua → E2c, VS-nv-doi-cong-tac → E2b, BV-bo-kiem-quyen-xem-anh → B4d).
+
+== cong_cu/thu_KHO2a.js (bài cũ SỬA — LUAT §6.8: luật đổi theo Q1 / Q2 chủ quán duyệt 28.11; §6.9: thêm ca E1b đỏ trên gốc) — trên gốc: thoát 1 · 84 đạt · 3 hỏng
+   ✗ E1b tạo phiếu khi kho thiếu (Đường 0, cần 0.1) → 409 THIEU_NGUYEN_LIEU, không thêm phiếu, tồn Đường vẫn 0  — HTTP 200
+   ✗ C3b phiếu sau cùng ngày, khác ma_gui → số kế tiếp PX-261107-003  — PX-261107-004
+   ✗ C3c số phiếu không trùng (002 cho lần bấm hai lần)  — PX-261107-003
+   Bản GỐC của bài chạy trên code MỚI: đỏ (C1 409 KHONG_DU_TON Siro đường, E1 tồn âm không còn) → bài sửa thường, KHÔNG phải "## Bài thử cũ sửa".
+
+== cong_cu/thu_KHO2b.js (bài cũ SỬA — LUAT §6.8: E1 nhận cộng ngay) — trên gốc: thoát 1 · 74 đạt · 5 hỏng
+   ✗ B1 phiếu nhận cộng kho NGAY (đã duyệt, người nhận = người duyệt); bấm duyệt lại → 409 PHIEU_DA_XU_LY — HTTP 403 · TU_DUYET
+   ✗ B2 nhận → mỗi dòng một lô … người khác duyệt lại → 409 — HTTP 200
+   ✗ B4b phiếu nhận nốt phần thiếu → đơn đóng … — pn2 cho_duyet
+   ✗ B3 … phiếu đã cộng → từ chối 409; chủ quán huỷ → tồn trừ lại
+   ✗ B8/C1 mua lẻ: chủ quán nhận → cộng NGAY +0.1 … — HTTP 403 · TU_DUYET
+
+== cong_cu/thu_SAOLUU2.js (bài cũ SỬA — LUAT §6.7: danh sách miễn xuất Excel thêm kho_anh_phieu, vẫn so BẰNG) — trên gốc: thoát 1 · 36 đạt · 4 hỏng
+   ✗ D2e danh sách bảng cố ý không xuất Excel là ĐÚNG [pos_anh_mon, kho_anh_phieu] — ["pos_anh_mon"]
+   ✗ D2f · D2g · D2h
+
+== cong_cu/thu_ANHMON1.js (bài cũ SỬA — LUAT §6.7/6.8: thu nhỏ gom về anh.js; danh sách miễn thêm kho_anh_phieu) — trên gốc: thoát 1 · 74 đạt · 3 hỏng
+   ✗ G5 backup.js: bảng ảnh KHÔNG trong BACKUP_TABLES … có tên trong BANG_KHONG_XUAT_EXCEL
+   ✗ H1 anh.js: hằng số có tên 400 × 400 và chất lượng 0,7 MỘT chỗ; SanPham dùng ANH_MON
+   ✗ H2 anh.js cắt vuông giữa, WebP rồi JPEG; SanPham.jsx có nút Xoá ảnh
+
+Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-2/dot_bien.py --so-ca aa9785f — mọi bài thoát 0):
+SỐ CA cong_cu/thu_ANHMON1.js: 77
+SỐ CA cong_cu/thu_KHO2a.js: 87
+SỐ CA cong_cu/thu_KHO2b.js: 79
+SỐ CA cong_cu/thu_KHOGON2.js: 88
+SỐ CA cong_cu/thu_SAOLUU2.js: 40
+
+Đột biến (python3 viec/KHO-GON-2/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 87 đạt — TỔNG 26 · BẮT 23 · SỐNG 3 (VS-toi-da-bo-1-nguyen-lieu: thứ chặn luôn
+đứng đầu · BV-goi-khong-chan-lo: lúc tạo / duyệt đã chặn, chỉ đường SỬA tới ghiKho · VS-nv-doi-cong-tac: quản lý ca thử chưa có quyền cài đặt → 403 vì lý do
+khác, K3) → thêm A2b (thứ chặn đứng sau), A4m (chủ quán sửa vượt gói), E2b cấp manage_settings cho quản lý. Lượt 2 (bài 88 ca): ĐỐI CHỨNG XANH · 88 đạt —
+TỔNG 26 · BẮT 26 · SỐNG 0 · HỎNG 0 · LẠC 0.

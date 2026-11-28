@@ -37,3 +37,39 @@
   làm 10 gói → pha 2 nồi + đột biến đưa lại cách trừ thảo dược.
 - Q3 = đồng ý · Q5 = đề xuất · ngân sách ~520 code + ~480 thử chấp nhận. Kế hoạch theo mục 11 (không cột so_noi).
 - Song song GIAO-DIEN-4 (không đụng Kho/**); xung đột client/dist chat ghép lúc gộp.
+
+## Bước 4–6 — bài thử, sửa, kiểm (28.11.2026)
+- Bài mới `cong_cu/thu_KHOGON2.js` (88 ca) — đỏ trên gốc aa9785f (14 đạt · 73 hỏng lần đầu). Bằng chứng: `viec/KHO-GON-2/bang_chung_do.txt`.
+- Bài cũ sửa (LUAT §6.7–6.9, bài sửa thường — đều đỏ trên gốc): thu_KHO2a (Q1/Q2 + ca E1b), thu_KHO2b (E1), thu_SAOLUU2 D2e–h (Q3), thu_ANHMON1 G5 · H1 · H2.
+- `npm test`: PASS 134 · FAIL 0 (CẢNH BÁO 1 có sẵn). `--day-du`: dist khớp src; ĐỎ ở giả lập KB24 (`cong_cu/gia_lap/kich_ban.js` — NGOÀI Phạm vi) → `## Câu hỏi` cuối file.
+
+### Chỗ vá → đột biến (`viec/KHO-GON-2/dot_bien.py`, 26 / 26 BẮT, đối chứng xanh 88 đạt)
+| Chỗ vá | Đột biến | Ca bắt |
+|---|---|---|
+| tinh.toiDa (A2) | VS-toi-da-bo-1-nguyen-lieu · VS-toi-da-lam-tron-sai | A2b · A2c |
+| chặn thiếu lúc tạo — cờ chanThieu ở POST /phieu-xuat (Q1) | BV-bo-chan-thieu · VS-chan-bang-ton | A3a–c · A3e |
+| chặn thiếu lúc duyệt (duLieu.duyetPhieu) | BV-bo-chan-luc-duyet | A3d |
+| chủ quán sửa KHÔNG chặn (K5) | VS-chan-ca-khi-sua | A3f |
+| nút "Xem phiếu & in" khoá khi thiếu (PhaChe.jsx) | VS-nut-khong-khoa-thieu | A3g |
+| trừ lô gói thay vì thảo dược (Q2 — đột biến chủ quán dặn) | VS-goi-trien-khai | A4f |
+| gói thiếu lô → 409 ở ghiKho (đường sửa) | BV-goi-khong-chan-lo | A4m |
+| màn nhân nồi × mẻ | VS-noi-khong-nhan | A4l |
+| kiểm me_ra > 0 | VS-me-ra-nhan-0 | A4b |
+| số nồi chỉ khi chẵn mẻ | VS-so-noi-khong-chan-me | A4g |
+| kiểu ảnh theo byte đầu | VS-anh-tin-duoi-file | B3b |
+| cỡ ảnh ≤ 400 KB | VS-anh-khong-gioi-han | B3c |
+| ≤ 3 ảnh trong câu ghi | VS-anh-qua-so | B3e · B3f |
+| người gắn ảnh (Q5) | VS-anh-nguoi-khac-gan | B3g |
+| phiếu huỷ không gắn | BV-anh-phieu-huy | B3j |
+| quyền đọc ảnh = quyền xem phiếu | BV-bo-kiem-quyen-xem-anh | B4d |
+| đọc ảnh theo cặp (phiếu, ảnh) | VS-anh-doc-khong-theo-phieu | B4c |
+| sửa phiếu nhận giữ ảnh | BV-sua-pn-mat-anh | B4f |
+| thẻ bỏ giá cho nhân viên | VS-the-lo-gia | D1e |
+| số gọn ô sửa (D5) | BV-so-gon | D5 |
+| nhận cộng ngay (E1) | VS-nhan-van-cho-duyet | E1a |
+| công tắc xuất kho (E2, có sẵn — khoá hành vi) | VS-cong-tac-bo-qua · VS-nv-doi-cong-tac · BV-xuat-nv-khong-duyet-khi-tat | E2c · E2b · E2a |
+
+Tên đột biến: VS-toi-da-bo-1-nguyen-lieu, VS-toi-da-lam-tron-sai, BV-bo-chan-thieu, BV-bo-chan-luc-duyet, VS-chan-ca-khi-sua, VS-chan-bang-ton,
+VS-nut-khong-khoa-thieu, VS-goi-trien-khai, BV-goi-khong-chan-lo, VS-noi-khong-nhan, VS-me-ra-nhan-0, VS-so-noi-khong-chan-me, VS-anh-tin-duoi-file,
+VS-anh-khong-gioi-han, VS-anh-qua-so, VS-anh-nguoi-khac-gan, BV-anh-phieu-huy, BV-bo-kiem-quyen-xem-anh, VS-anh-doc-khong-theo-phieu, BV-sua-pn-mat-anh,
+VS-the-lo-gia, BV-so-gon, VS-nhan-van-cho-duyet, VS-cong-tac-bo-qua, VS-nv-doi-cong-tac, BV-xuat-nv-khong-duyet-khi-tat
