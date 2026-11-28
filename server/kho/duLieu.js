@@ -6,7 +6,7 @@
  */
 const { addDaysToDateString } = require('../utils/helpers');
 const { gonTen, chuanHoaTen, doiDonVi, laTrungKhoa, SAP_HET_HAN_NGAY, thuCuaNgay, chonDinhMuc, canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong,
-  trangThaiKetQua, trangThaiHan, bangPhieu, hanMuc, tongTien, trongHanMuc, conLaiDon, HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SAI_SO } = require('./tinh');
+  trangThaiKetQua, trangThaiHan, bangPhieu, hanMuc, tongTien, trongHanMuc, conLaiDon, HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SAI_SO, LY_DO_KIEM_KE } = require('./tinh');
 
 const soHoacNull = (x) => (x === '' || x == null || !Number.isFinite(Number(x)) ? null : Number(x));
 
@@ -295,7 +295,7 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
   if (p.trang_thai !== 'da_duyet' || p.thay_cho_id != null) {
     return { loi: [409, { error: 'Phiếu này không điền kết quả được (chưa duyệt, đã huỷ hoặc là phiếu sửa)', code: 'PHIEU_KHONG_DIEN' }] };
   }
-  if (await monDaChot(tx, spId, p.tao_luc)) {   // KHO-GON-1 Q9 + Q12: số thật đã được đếm / chỉnh tay (kể cả lần kiểm kê giảm phiếu chờ) — điền lúc này tính lệch HAI lần
+  if (await ketQuaDaChot(tx, p, spId)) {   // KHO-GON-1 Q9 + Q12 + Q13: số thật đã được đếm / chỉnh tay — điền lúc này tính lệch HAI lần
     return { loi: [409, { error: 'Phiếu đã được kiểm kê chốt số — không điền kết quả pha chế nữa', code: 'KQ_DA_KIEM_KE' }] };
   }
   if (trangThaiKetQua(p.duyet_luc.slice(0, 10), luc.slice(0, 10), false, false) === 'tu_chot') {
@@ -317,8 +317,8 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
 const ngayLam = (p) => String(p.duyet_luc || p.tao_luc).slice(0, 10);
 const ketQuaPhieu = (p, homNay, duKetQua) => (p.loai === 'PX' && p.trang_thai === 'da_duyet' ? trangThaiKetQua(ngayLam(p), homNay, duKetQua, p.thay_cho_id != null) : null);
 
-/** KHO-GON-1 Q12 (a): món đã có lần chốt kiểm kê / bàn giao (kho_chot — kể cả đếm khớp) hoặc phiếu chỉnh tồn KK chạm món đó KỂ TỪ lúc tạo phiếu
- *  pha chế → số thật đã được đếm, kết quả pha chế của món đó coi như đã chốt. */
+/** KHO-GON-1 Q12 (a): món đã có lần chốt kiểm kê / bàn giao / chỉnh tay khớp (kho_chot — kể cả đếm khớp) hoặc phiếu chỉnh tồn KK chạm món đó KỂ TỪ lúc
+ *  tạo phiếu pha chế → số thật đã được đếm, kết quả pha chế của món đó coi như đã chốt. */
 async function monDaChot(csdl, spId, tuLuc) {
   if (await csdl.queryOne(`SELECT 1 FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id WHERE p.loai = 'KK' AND p.trang_thai = 'da_duyet'
     AND d.san_pham_id = ? AND p.tao_luc >= ? LIMIT 1`, [spId, tuLuc])) return true;
@@ -328,10 +328,13 @@ async function monDaChot(csdl, spId, tuLuc) {
   }
   return false;
 }
-/** Trạng thái kết quả "chờ điền" mà mọi món (spIds) đã được chốt (Q12) → "đã điền". */
+/** MỘT vị từ cho chặn ghi và hiển thị. Ba dấu vết, mỗi đường đếm để lại một: kho_chot (kiểm kê · bàn giao · chỉnh tay khớp — Q13b) · dòng KK (chỉnh tay đổi
+ *  lô) · ly_do "kiểm kê: đếm thiếu" trên CHÍNH phiếu (phần thiếu trừ vào phiếu chờ — Q9, Q13a: chỉnh tay chỉ trừ vào phiếu chờ không có hai dấu kia). */
+const ketQuaDaChot = async (csdl, p, spId) => String(p.ly_do || '').includes(LY_DO_KIEM_KE) || monDaChot(csdl, spId, p.tao_luc);
+/** Trạng thái kết quả "chờ điền" mà mọi món (spIds) đã được chốt → "đã điền". */
 const ketQuaCoChot = async (csdl, p, tt, spIds) => {
   if (tt !== 'cho_dien' || !spIds.length) return tt;
-  for (const id of spIds) if (!(await monDaChot(csdl, id, p.tao_luc))) return tt;
+  for (const id of spIds) if (!(await ketQuaDaChot(csdl, p, id))) return tt;
   return 'da_dien';
 };
 

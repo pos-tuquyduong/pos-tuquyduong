@@ -5,7 +5,8 @@
  * - kho_viec: việc của MỘT ngày — chép từ mẫu lúc sinh (sửa mẫu áp dụng từ ngày sau); UNIQUE(ngay, mau_id) chống sinh đôi;
  *   việc gọi hàng gắn nguyen_lieu_id — một việc CHƯA XONG mỗi nguyên liệu mỗi ngày.
  * - kho_dien_bien: nhật ký dòng chữ (chu_y = 1 → tô cam). kho_dien_bien_xem: đã xem tới id nào, theo NGƯỜI.
- * - kho_chot: một lần chốt kiểm kê / nhận bàn giao, `anh` = JSON tồn sau chốt từng thứ + ghi chú.
+ * - kho_chot: một lần chốt kiểm kê / nhận bàn giao, `anh` = JSON tồn sau chốt từng thứ + ghi chú; `chinhtay` = chỉnh tay gõ ĐÚNG số máy (không phiếu KK)
+ *   — dấu vết "đã đếm, khớp" để khoá kết quả pha chế (chủ quán 28.11 Q13b).
  */
 const MAU_MAC_DINH = [
   ['Nhận bàn giao', 'nv', '08:00', 'bangiao', 1],
@@ -57,7 +58,7 @@ module.exports.chay = async (tx, { themCot }) => {
   await tx.run('CREATE TABLE IF NOT EXISTS kho_dien_bien_xem (nguoi TEXT PRIMARY KEY, den_id INTEGER NOT NULL DEFAULT 0)');
   await tx.run(`CREATE TABLE IF NOT EXISTS kho_chot (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    che_do TEXT NOT NULL CHECK (che_do IN ('kiemke', 'bangiao')),
+    che_do TEXT NOT NULL CHECK (che_do IN ('kiemke', 'bangiao', 'chinhtay')),
     ngay TEXT NOT NULL,
     luc TEXT NOT NULL,
     nguoi TEXT NOT NULL,
