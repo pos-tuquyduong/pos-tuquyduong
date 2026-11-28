@@ -5,8 +5,8 @@
  * - kho_viec: việc của MỘT ngày — chép từ mẫu lúc sinh (sửa mẫu áp dụng từ ngày sau); UNIQUE(ngay, mau_id) chống sinh đôi;
  *   việc gọi hàng gắn nguyen_lieu_id — một việc CHƯA XONG mỗi nguyên liệu mỗi ngày.
  * - kho_dien_bien: nhật ký dòng chữ (chu_y = 1 → tô cam). kho_dien_bien_xem: đã xem tới id nào, theo NGƯỜI.
- * - kho_chot: một lần chốt kiểm kê / nhận bàn giao, `anh` = JSON tồn sau chốt từng thứ + ghi chú; `chinhtay` = chỉnh tay gõ ĐÚNG số máy (không phiếu KK)
- *   — dấu vết "đã đếm, khớp" để khoá kết quả pha chế (chủ quán 28.11 Q13b).
+ * - kho_chot: một lần chốt kiểm kê / nhận bàn giao / chỉnh tay, `anh` = JSON tồn sau chốt từng thứ + ghi chú; `chinhtay` = MỌI lần chỉnh tay (đổi
+ *   lô, chỉ trừ phiếu chờ, hay không đổi) — dấu vết theo món để khoá kết quả pha chế và lọc dòng cam (chủ quán 28.11 Q13b, Q14).
  */
 const MAU_MAC_DINH = [
   ['Nhận bàn giao', 'nv', '08:00', 'bangiao', 1],
