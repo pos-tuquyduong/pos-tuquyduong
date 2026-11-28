@@ -1,0 +1,32 @@
+GIAO-DIEN-4 — bằng chứng ĐỎ trên code CHƯA VÁ (cây của commit PHIẾU 08392a6, giải nén bằng `git archive`, node_modules nối vào CHỈ để chạy)
+
+1) cong_cu/thu_GIAODIEN4.js (bài mới) chạy trên bản chưa vá: node cong_cu/thu_GIAODIEN4.js --goc <bản chưa vá>   → thoát 1
+   SỐ CA 99 trên bản chưa vá (ca dựng component không chạy được khi file chưa có) · 25 đạt · 74 hỏng. Các ca ĐẠT trên bản chưa vá là: 7 ca bộ bắt
+   "đỏ toàn cục" tự thử (0a–0g, đúng vai trò: bài không tự xanh oan), tên biến cũ còn (A1), chỗ cố ý đỏ (A2e), .btn-primary (A4c), F2c, B1e/B2, C1f, C3,
+   D2e/D2i/D2k (hành vi ANH-MON-1 giữ nguyên), D3b, D5a–d, E1a/E1f, F1b — ca khoá luồng hợp lệ (K5), không phải ca phải đỏ.
+   Dòng đỏ tiêu biểu:
+  ✗ A1 :root --do = #b91c1c  — undefined            (… 10 biến màu)
+  ✗ A2a ngoài khối in KHÔNG còn quy tắc trần (h1–h6, strong/b, td/th, input/select/textarea, placeholder) sai màu  — body → #78716c | h1 → #b91c1c | …
+  ✗ A2c chữ trong ô nhập = chữ than … — #991B1B / #991B1B / #DC2626
+  ✗ A3a index.html có <link> Google Fonts …
+  ✗ A4a body: nền kem + họa tiết mây (SVG data URI), KHÔNG gradient hồng  — linear-gradient(180deg, #fef7ed 0%, #fdf2f8 50%, #fee2e2 100%)
+  ✗ A4b .card … KHÔNG backdrop-filter  — rgba(255,255,255,0.85) | … | blur(10px)
+  ✗ F2a body: phông cũ 'Inter', -apple-system + màu #78716c  —  |      (chưa có khối @media print)
+  ✗ B1c Refunds.jsx / Orders.jsx / Customers.jsx / Reports.jsx / DiscountCodes.jsx / Settings.jsx: tiêu đề dùng <TieuDeMan, không emoji  —  <h1 className="page-title">💸 Yêu cầu hoàn tiền</h1> …
+  ✗ B1a dựng được components/TieuDeMan.jsx  — Build failed
+  ✗ C1a khẩu hiệu "Đông Y Dưỡng Thể" xuất hiện đúng MỘT lần trong Layout.jsx (hằng số có tên) và hằng đó được vẽ
+  ✗ D1a tinh.js có hàm nhanTon
+  ✗ D2c chưa ảnh (null): vẽ <svg> ly, KHÔNG <img>, KHÔNG chữ viết tắt "TT" …  — <span class="bh-anh" … background:#fed7aa;font-size:… >TT
+  ✗ D4a .bh-cot-gio nền giấy + mép dưới răng cưa (mask)  — #fff | undefined
+  ✗ E1b nhóm "Món & giá": mau = vang + có tên icon  — mau=undefined icon=undefined
+  ✗ F1a kiem_tra_truoc_khi_giao.js có chayBaiThat('cong_cu/thu_GIAODIEN4.js')
+   Trên code ĐÃ VÁ: 104 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_GIAODIEN4.js: 104
+
+2) cong_cu/thu_ANHMON1.js (bản sửa theo LUAT §6.8 — chủ quán duyệt hành vi hình ly thay chữ viết tắt, phiếu D2) chạy trên bản chưa vá → 73 đạt · 4 hỏng:
+  ✗ H8 chưa có ảnh (null): KHÔNG <img>, vẽ hình ly <svg> … hết chữ viết tắt "TT"  — <span class="bh-anh" … >TT
+  ✗ H9 ảnh chuỗi rỗng: KHÔNG <img>, vẽ hình ly <svg> (hết chữ "CP")  — … >C…
+  ✗ H10 cùng món → cùng hình (không nhảy màu mỗi lần vẽ)
+  ✗ H12 khung chọn món: topping CHƯA ảnh vẽ hình ly … hết chữ "TD" …  — 1 img
+   Trên code ĐÃ VÁ: 77 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_ANHMON1.js: 77
