@@ -118,3 +118,38 @@ Sự cố của việc này (bước 11.1): (a) người soát vòng 1 chỉ ra 
 | 6 | Dọn lời dặn đã có phép kiểm làm thay (11.3) | — | Không có lời dặn mới nào trong `KHUON_LOI.md` / `CLAUDE.md` bị phép kiểm thay; không đề xuất xoá. `KHUON_LOI.md` không đụng nên không đổi `khuon_loi_toi_da`. |
 
 Tổng: KHOÁ 2 (1 đề xuất, 1 đã làm) · NGUYÊN TẮC 2 (đề xuất) · BỎ 1.
+
+## Kết quả kiểm cuối
+- `node cong_cu/thu_GIAODIEN3.js`: 31 đạt · 0 hỏng. Trên gốc `294cd013`: 21 đạt · 10 hỏng (`bang_chung_do.txt`, `SỐ CA cong_cu/thu_GIAODIEN3.js: 31`).
+- `python3 viec/GIAO-DIEN-3/dot_bien.py`: đối chứng XANH; TỔNG 29: BẮT 29 · SỐNG 0 · LẠC 0 · HỎNG 0.
+- `npm test -- --day-du` (ở commit `6e7c8d2f`, CSS không đổi sau đó; `8b92df10` chỉ đổi bài thử + dot_bien): PASS 137 · FAIL 0 · CẢNH BÁO 1 (sẵn có `packages.js:196`, không thuộc việc này). Có dòng "dist đã commit KHỚP với src hiện tại".
+- Cổng `node tu_chay/cong.js chay . 294cd013^ HEAD viec/GIAO-DIEN-3` (đứng ở HEAD `76f35e4`, cây sạch): lần 1 ✗ [A16] (dòng `SỐ CA` thiếu đường dẫn — đã sửa ở `76f35e41`); lần 2:
+✓ CỔNG CHẠY ĐẠT
+
+## Đếm nghiệm thu (từng mục, có bằng chứng)
+- A1 `.main-content { min-width: 0 }` ngoài @media, không đổi flex/margin-left: `client/src/index.css` (khối `.main-content`) · T1a–T1e + đột biến 8 cái · Chrome: 390/820/1.280 = 390/820/1.280.
+- A2 `html { -webkit-text-size-adjust / text-size-adjust: 100% }`, viewport giữ `maximum-scale=5.0`: `index.css` (sau `* {…}`) · T2a–c, T3a–c · 4 + 3 đột biến.
+- B1 khối `@media (min-width: 769px) { .kho-tabs { flex-wrap: wrap; overflow-x: visible } }` cuối `kho.css` (chỉ thêm, `git diff` không sửa dòng cũ) · T4a–e · 8 đột biến; Chrome: 820 → 3 hàng, 1.280 → 2 hàng, 390 → 1 hàng cuộn.
+- C1 `cong_cu/thu_GIAODIEN3.js` (31 ca) gắn ở `kiem_tra_truoc_khi_giao.js` (`chayBaiThat('cong_cu/thu_GIAODIEN3.js')`, ca C1; bộ kiểm báo "bài chạy thật cong_cu/thu_GIAODIEN3.js xanh") · đỏ trên gốc 10 ca, đột biến + đối chứng.
+- C2 build `client/dist` (`index-5va6XdKv.css`, `index-DSCoG4sS.js`) · `npm test -- --day-du` xanh · cổng `chay` ĐẠT.
+- C3 đo Chrome: bảng ở mục "Đo bề ngang bằng Chrome" ở trên (390/820/1.280 đều BẰNG màn khi bảng có khung cuộn).
+- C4 thử tay: để chủ quán, xem báo cáo bên dưới (CHƯA KIỂM bằng máy thật).
+Mục thiếu bằng chứng: không có.
+
+## BÁO CÁO
+```
+VIỆC:        GIAO-DIEN-3 — Màn hình vừa khít mọi thiết bị (điện thoại · máy tính bảng · máy tính): hết tràn ngang
+ĐÃ SỬA:      client/src/index.css — html text-size-adjust 100% (ngay sau `* {…}`); `.main-content` thêm `min-width: 0`; `.table-responsive { overflow-x: auto }` (lớp 5 chỗ .jsx đã dùng mà chưa có CSS — thêm ở vòng sửa 1, NGOÀI A1/A2/B1 của phiếu)
+             client/src/pages/Kho/kho.css:41–42 — thêm cuối file khối @media (min-width: 769px) { .kho-tabs { flex-wrap: wrap; overflow-x: visible } }
+             cong_cu/thu_GIAODIEN3.js (mới, 31 ca) · kiem_tra_truoc_khi_giao.js — 1 dòng gắn bài · client/dist/** build lại · viec/GIAO-DIEN-3/{dot_bien.py,ke_hoach.md,bang_chung_do.txt,trang_thai.md}
+BÀI THỬ:     chạy trên bản chưa vá (294cd013) → ĐỎ ở T1a/b/c (min-width), T2a/b/c (text-size-adjust), T4b/c (hàng tab 769 px), T5a (table-responsive), C1 (chưa gắn bộ kiểm) = 10 ca đỏ / 31; sau khi vá → 31 đạt · 0 hỏng. Đột biến 29/29 BẮT (đối chứng xanh).
+ĐÃ RÀ K4:    grep `kho-tabs` trong client/src → 6 chỗ: 2 định nghĩa (kho.css:2, kho.css:42) + 4 chỗ dùng (Kho/index.jsx:74, ChonNguyenLieu.jsx:26, NguyenLieu.jsx:126, TonKho.jsx:40) — cả 4 cùng được wrap ở ≥ 769 px, chủ ý. grep `table-responsive` → 5 chỗ .jsx (DoiSoat 123/147, DiscountCodes 335, Reports 317/358), nay có CSS. grep `className="table"` → 14 chỗ; bảng không bọc (Settings 7 chỗ, Refunds:51, ViKhach:112) ghi `## Phát hiện` vì .jsx bị Cấm. `.main-content` chỉ ở index.css (gốc + @media 768), con flex duy nhất cạnh sidebar fixed.
+CHƯA KIỂM:   (1) Thử tay trên iPhone / iPad / PC thật (C4) — Chrome giả lập `isMobile` + trang dựng lại từ CSS thật, KHÔNG phải trang Kho thật có dữ liệu; (2) chữ nhỏ `.kho-nho` hết bị phóng to trên iPhone THẬT (Safari) — chỉ chắc theo cách khoá thuộc tính text-size-adjust, Chromium không tự phóng chữ nên không đo được; (3) bảng trần trong Settings / Refunds / ViKhach: còn thò ra ngoài thẻ ở điện thoại (608 px đo trên bản dựng) — chưa sửa, chờ phiếu .jsx; (4) KHO-GON-1 sửa song song kho.css / dist — xung đột chat ghép lúc gộp; (5) người soát vòng 2 nghi lưới `.grid-2` — đo trang dựng không tái hiện, chưa đo trang Báo cáo thật.
+GIT:         76f35e41 GIAO-DIEN-3: bang_chung_do — dòng SỐ CA đúng dạng cổng A16   (commit đổi code cuối: 8b92df10; sau 76f35e41 chỉ còn commit ghi trang_thai.md này)
+             26188280 GIAO-DIEN-3: trang_thai — báo cáo soát hai vòng, đo Chrome, bài học, phát hiện
+BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài học phía trên
+```
+
+Thử tay cho chủ quán (C4): (1) điện thoại: Kho › Sản phẩm & công thức — không kéo ngang được, thẻ 1 cột, chữ nhỏ đúng cỡ; mở một món — mọi ô / nút nằm trong màn. (2) máy tính: Kho thấy đủ 11 tab, không phải cuộn ngang. (3) điện thoại: Bán hàng, Đơn, Khách vẫn như cũ; thêm: Hoàn tiền và Cài đặt (có bảng) có thể vẫn kéo ngang — đã ghi ở Phát hiện.
+
+HEAD ĐÃ KIỂM: 76f35e41
