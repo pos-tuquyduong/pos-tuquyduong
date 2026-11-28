@@ -238,8 +238,10 @@ export function dungHoaDon(hd, settings, { lien = 'khach', inLai = false } = {})
       gio: gioHienThi(hd?.don?.gio), nhan_vien: hd?.don?.nhan_vien || '', khach: khach.la_khach_le === false ? khach.ten : (khach.ten || 'Khách lẻ'),
       giao: hd?.giao?.dia_chi ? `GIAO HÀNG: ${hd.giao.dia_chi}` : '',   // GIAO-1: đơn giao Ahamove
     },
+    // TOPPING-1: dòng topping (topping_cua) in "+ <tên> x<phần>" ngay dưới ly, không "sl x" — giá theo cùng cách giá hạng của món.
     mon: (hd?.mon || []).map((x) => ({
-      sl: x.so_luong, ten: x.ten, ghi_chu: x.ghi_chu || '', gia_goc: x.gia_goc, gia_hang: x.gia_hang ?? null,
+      ...(x.topping_cua != null ? { topping: true } : {}),
+      sl: x.so_luong, ten: x.topping_cua != null ? `+ ${x.ten}${x.so_phan > 1 ? ` x${x.so_phan}` : ''}` : x.ten, ghi_chu: x.ghi_chu || '', gia_goc: x.gia_goc, gia_hang: x.gia_hang ?? null,
       tien: dinhDangTien(x.thanh_tien), tien_goc: x.gia_hang != null ? dinhDangTien(x.thanh_tien_goc) : '',
       chu_giam: x.gia_hang != null ? chuGiaGoc(x.thanh_tien_goc, x.thanh_tien) : '',
     })),

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bản thử Topping & ghi chú theo món — POS</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: bản thử màn Bán hàng có topping, chủ quán bấm thử · IDEA: khung chọn món như thực đơn nhỏ — chạm ảnh topping là thêm
+   COLOUR/TYPE: đỏ #b91c1c như màn Bán hàng thật, nền xám nhạt, Be Vietnam Pro · LAYOUT: thanh chế độ, lưới món trái, giỏ phải; điện thoại 2 trang */
+:root{color-scheme:light;--do:#b91c1c;--do-nhat:#fee2e2;--xanh:#15803d;--xam:#64748b;--vien:#e2e8f0;--nen:#f8fafc;--muc:#1e293b}
+*{box-sizing:border-box;min-width:0}[hidden]{display:none!important}
+body{margin:0;background:var(--nen);color:var(--muc);font:16px/1.45 'Be Vietnam Pro',system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit;font-size:16px}
+.tren{position:sticky;top:0;z-index:30;background:#1e293b;color:#fff;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;font-size:14px}
+.tren b{font-size:15px}.tren select,.tren button{min-height:38px;border-radius:8px;border:1px solid #475569;background:#334155;color:#fff;padding:0 10px}
+.tren .bat{background:var(--do);border-color:var(--do)}
+.vo{max-width:1280px;margin:0 auto;padding:12px}
+.than{display:flex;gap:12px;align-items:flex-start}
+.cot-mon{flex:1;display:flex;flex-direction:column;gap:10px}
+.cot-gio{width:380px;flex:none;background:#fff;border:1px solid var(--vien);border-radius:14px;position:sticky;top:66px;max-height:calc(100vh - 80px);display:flex;flex-direction:column}
+.khach{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--vien);border-radius:12px;padding:8px}
+.khach select{flex:1;min-height:44px;border:1.5px solid var(--vien);border-radius:8px;padding:0 10px;background:#fff}
+.the-hang{font-size:12px;background:#fef3c7;color:#92400e;border-radius:999px;padding:2px 10px;font-weight:700;white-space:nowrap}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{border:1.5px solid var(--vien);background:#fff;border-radius:999px;padding:0 16px;min-height:44px;font-weight:600}
+.tab.bat{background:var(--do);border-color:var(--do);color:#fff}
+.luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px}
+.mon{position:relative;text-align:left;background:#fff;border:1.5px solid var(--vien);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.mon:disabled{opacity:.4;cursor:not-allowed}
+.anh{width:100%;aspect-ratio:4/3;border-radius:10px;display:grid;place-items:center;font-size:30px;font-weight:800;color:#fff}
+.mon-ten{font-weight:700;line-height:1.25}
+.nhan-top{position:absolute;top:12px;left:12px;font-size:11px;font-weight:700;background:rgba(255,255,255,.92);color:var(--do);border-radius:999px;padding:2px 8px}
+.gia{font-weight:700;color:var(--do)}.gia-goc{text-decoration:line-through;color:var(--xam);font-weight:400;font-size:.85em;margin-right:4px}
+.nho{font-size:13px;color:var(--xam)}
+.gio-dau{padding:12px 14px;font-weight:700;border-bottom:1px solid var(--vien);display:flex;justify-content:space-between;align-items:center}
+.gio-ds{flex:1;overflow-y:auto}
+.dong{display:flex;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid #f1f5f9;padding:10px 14px;gap:10px}
+.dong .anh-nho{width:42px;height:42px;border-radius:8px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800}
+.dong-ten{flex:1}.dong-tp{font-size:13px;color:#334155}.dong-gc{font-size:13px;color:var(--xam);font-style:italic}
+.dong-tien{text-align:right;white-space:nowrap}
+.trong{padding:32px 16px;text-align:center;color:var(--xam)}
+.tien{display:flex;justify-content:space-between;padding:2px 14px;font-size:15px}.tien.tong{font-size:21px;font-weight:800;padding:8px 14px}
+.chan-gio{border-top:1px solid var(--vien);padding:8px 0 12px}
+.nut{border:0;border-radius:10px;padding:0 16px;min-height:48px;font-weight:700;background:var(--do);color:#fff}
+.nut:disabled{background:#cbd5e1;color:#64748b;cursor:not-allowed}
+.nut.phu{background:#fff;color:var(--muc);border:1.5px solid var(--vien)}
+.nut.xanh{background:var(--xanh)}
+.nut.lon{width:calc(100% - 28px);margin:6px 14px 0}
+.canh{margin:6px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;font-size:14px}
+/* khung chọn món */
+.lop{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+.khung{background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:92vh;overflow:auto;display:flex;flex-direction:column}
+.khung-dau{display:flex;gap:12px;padding:16px 16px 8px;align-items:center}
+.khung-dau .anh{width:64px;height:64px;aspect-ratio:auto;font-size:24px;flex:none}
+.khung-than{padding:4px 16px 12px;display:flex;flex-direction:column;gap:12px}
+.muc-t{font-size:13px;font-weight:700;color:var(--xam);text-transform:uppercase;letter-spacing:.04em}
+.tp-luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.tp{position:relative;border:1.5px solid var(--vien);background:#fff;border-radius:12px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-height:116px}
+.tp .anh{width:52px;height:52px;aspect-ratio:auto;font-size:18px}
+.tp.chon{border-color:var(--do);background:#fff5f5}
+.tp:disabled{opacity:.4;cursor:not-allowed}
+.tp .so{position:absolute;top:4px;right:4px;background:var(--do);color:#fff;border-radius:999px;min-width:24px;height:24px;font-size:13px;font-weight:800;display:grid;place-items:center}
+.tp .bot{position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:999px;border:1px solid var(--vien);background:#fff;font-weight:800;line-height:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--vien);background:#fff;border-radius:999px;padding:0 14px;min-height:42px;font-weight:600}
+.chip.chon{border-color:var(--do);color:var(--do);background:#fff5f5}
+.go{min-height:46px;border:1.5px solid var(--vien);border-radius:10px;padding:0 12px;width:100%}
+.khung-chan{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--vien);padding:12px 16px;display:flex;gap:10px;align-items:center}
+.solY{display:flex;align-items:center;gap:6px}.solY button{width:44px;height:44px;border-radius:10px;border:1.5px solid var(--vien);background:#fff;font-size:22px;font-weight:700}.solY b{min-width:26px;text-align:center;font-size:18px}
+.bao{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:60;padding:12px 18px;border-radius:12px;color:#fff;font-size:15px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw}
+.bao.tot{background:var(--xanh)}.bao.loi{background:#991b1b}
+/* hoá đơn / tem */
+.giay{background:#fff;border:1px dashed #94a3b8;border-radius:6px;padding:12px;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;width:300px}
+.giay .r{display:flex;justify-content:space-between;gap:8px}.giay .tp-in{padding-left:12px;color:#334155}
+.tem{background:#fff;border:1px dashed #94a3b8;border-radius:6px;padding:8px;font:12px/1.35 ui-monospace,Menlo,monospace;width:190px;height:142px;overflow:hidden}
+.tem b{font-size:18px}
+.hai-cot{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+/* cài đặt */
+.the{background:#fff;border:1px solid var(--vien);border-radius:14px;padding:14px 16px}
+.bang{width:100%;border-collapse:collapse}.bang th,.bang td{padding:8px;text-align:left;vertical-align:middle;border-bottom:1px solid #f1f5f9}.bang th{font-size:13px;color:var(--xam)}
+.bang input[type=number],.bang input[type=text]{min-height:40px;border:1.5px solid var(--vien);border-radius:8px;padding:0 8px;width:100%}
+.huongdan{background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:10px 14px;font-size:14px}
+.hoi{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;font-size:14px}
+@media(max-width:760px){
+  .than{display:block}.cot-gio{width:100%;position:static;max-height:none}
+  .luoi{grid-template-columns:repeat(2,1fr)}
+  .lop{align-items:flex-end;padding:0}.khung{border-radius:18px 18px 0 0;max-height:94vh}
+  .tp-luoi{grid-template-columns:repeat(3,1fr)}
+  .tren span.an-dt{display:none}
+  .giay{width:100%}
+  .bang thead{display:none}.bang tr{display:grid;grid-template-columns:44px 1fr 1fr;gap:6px 8px;padding:10px 0;border-bottom:1px solid #f1f5f9;align-items:end}
+  .bang td{padding:0;border:0}.bang td.ten{grid-column:2/4}.bang td[data-n]::before{content:attr(data-n);display:block;font-size:12px;color:var(--xam)}
+  .bang td.con{grid-column:1;grid-row:2;font-size:12px;align-self:center}.bang td.gt{grid-column:2;grid-row:2}.bang td.gr{grid-column:3;grid-row:2}
+}
+</style>
+</head>
+<body>
+<div class="tren">
+  <b>Bản thử Topping</b>
+  <button type="button" data-act="man:ban" id="nBan" class="bat">Bán hàng</button>
+  <button type="button" data-act="man:hd" id="nHd">Hoá đơn &amp; tem</button>
+  <button type="button" data-act="man:cd" id="nCd">Cài đặt topping</button>
+  <span class="an-dt" style="color:#cbd5e1">Số liệu, ảnh là ví dụ — ảnh thật chủ quán tải lên</span>
+</div>
+<div class="vo" id="vo"></div>
+<div id="lop"></div>
+<div id="bao"></div>
+
+<script>
+{
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const vnd = (n) => Math.round(Number(n) || 0).toLocaleString('vi-VN') + 'đ';
+const TOI_DA_PHAN = 3;   // tối đa phần mỗi topping / ly (DAC_TA 1.7)
+
+const D = {
+  // topping = sản phẩm kho POS kiểu "topping": có công thức, tồn theo lô, hết thì mờ
+  tp: [
+    { id: 1, ten: 'Thạch nha đam', gia: 5000, rieng: 10000, mau: '#16a34a', ky: 'NĐ', con: 40 },
+    { id: 2, ten: 'Nếp cẩm', gia: 8000, rieng: 15000, mau: '#6d28d9', ky: 'NC', con: 25 },
+    { id: 3, ten: 'Hạt é', gia: 5000, mau: '#334155', ky: 'HÉ', con: 30 },
+    { id: 4, ten: 'Kỷ tử', gia: 5000, mau: '#dc2626', ky: 'KT', con: 20 },
+    { id: 5, ten: 'Long nhãn', gia: 8000, mau: '#a16207', ky: 'LN', con: 0 },
+    { id: 6, ten: 'Trân châu đen', gia: 6000, rieng: 12000, mau: '#1f2937', ky: 'TC', con: 35 },
+    { id: 7, ten: 'Đậu đỏ', gia: 6000, rieng: 12000, mau: '#9f1239', ky: 'ĐĐ', con: 18 },
+    { id: 8, ten: 'Nước cốt dừa', gia: 5000, mau: '#94a3b8', ky: 'CD', con: 22 },
+  ],
+  nhom: [{ ma: 'tra', ten: 'Trà' }, { ma: 'ep', ten: 'Nước ép' }, { ma: 'caphe', ten: 'Cà phê' }, { ma: 'tauhu', ten: 'Tàu hũ' }],
+  mon: [
+    { id: 1, ten: 'Trà Dưỡng Nhan', nhom: 'tra', gia: 35000, mau: '#be185d', ky: 'DN', tp: [1, 2, 3, 4, 5], gc: ['Ít đá', 'Không đá', 'Ít ngọt', 'Nóng'] },
+    { id: 2, ten: 'Trà Phổ Nhĩ Táo Đỏ', nhom: 'tra', gia: 29000, mau: '#7c2d12', ky: 'PN', tp: [1, 4, 5], gc: ['Ít đá', 'Không đá', 'Ít ngọt', 'Nóng'] },
+    { id: 3, ten: 'Hồng Tân Sinh', nhom: 'ep', gia: 39000, mau: '#e11d48', ky: 'HT', tp: [], gc: ['Ít đá', 'Không đá', 'Không đường'] },
+    { id: 4, ten: 'Lục Tân Khí', nhom: 'ep', gia: 39000, mau: '#15803d', ky: 'LT', tp: [], gc: [] },
+    { id: 5, ten: 'Cà Phê Đen', nhom: 'caphe', gia: 19000, mau: '#44403c', ky: 'CF', tp: [], gc: ['Ít đường', 'Không đường', 'Nóng', 'Đá riêng'] },
+    { id: 6, ten: 'Tàu Hũ Nước Đường Gừng', nhom: 'tauhu', gia: 20000, mau: '#ca8a04', ky: 'TH', tp: [6, 7, 8, 2], gc: ['Ít ngọt', 'Nhiều gừng', 'Không gừng'] },
+  ],
+  khach: [{ id: 0, ten: 'Khách lẻ', hang: null, pt: 0 }, { id: 1, ten: 'Chị Hoa · 0912 xxx 345', hang: 'Vàng', pt: 10 }],
+};
+let man = 'ban', nhomChon = 'all', khachId = 0, gio = [], khung = null, daThu = null, trangDt = 'mon';
+const tpCua = (id) => D.tp.find((x) => x.id === id), monCua = (id) => D.mon.find((x) => x.id === id);
+const khach = () => D.khach.find((k) => k.id === khachId);
+const giamHang = (g) => Math.round(g * (100 - khach().pt) / 100);   // giảm hạng áp CẢ topping (chủ quán 22.10)
+const anh = (o, cls = 'anh', st = '') => `<div class="${cls}" style="background:${o.mau};${st}">${esc(o.ky)}</div>`;
+function giaLy(m, tps) { return m.gia + tps.reduce((a, t) => a + tpCua(t.id).gia * t.so, 0); }
+// Topping bán riêng = dòng giỏ có rieng = id topping (giá "bán riêng", trừ kho 1 phần)
+const monDong = (d) => d.rieng ? { ten: tpCua(d.rieng).ten + ' (phần riêng)', gia: tpCua(d.rieng).rieng, mau: tpCua(d.rieng).mau, ky: tpCua(d.rieng).ky } : monCua(d.mon);
+function bao(t, l = 'tot') { const el = document.getElementById('bao'); el.innerHTML = `<div class="bao ${l}" role="${l === 'loi' ? 'alert' : 'status'}">${esc(t)}</div>`; clearTimeout(bao.t); bao.t = setTimeout(() => { el.innerHTML = ''; }, 2600); }
+// Hai ly cùng món, cùng topping, cùng ghi chú = gộp số ly; khác = dòng riêng
+const khoa = (d) => (d.rieng ? 'r' + d.rieng : d.mon) + '|' + d.tps.map((t) => t.id + 'x' + t.so).sort().join(',') + '|' + d.gc.slice().sort().join(',') + '|' + d.go;
+// Tồn topping còn đủ cho cả giỏ? (một hàm cho lúc chọn và lúc thu)
+function tpCanTrongGio(tId, boDong) { return gio.reduce((a, d, i) => a + (i === boDong ? 0 : ((d.tps.find((t) => t.id === tId)?.so || 0) + (d.rieng === tId ? 1 : 0)) * d.sl), 0); }
+function conChoKhung(tId) { return tpCua(tId).con - tpCanTrongGio(tId, khung?.sua ?? -1); }
+function thieuTrongGio() { return D.tp.filter((t) => tpCanTrongGio(t.id, -1) > t.con).map((t) => t.ten); }
+
+/* ── Bán hàng ── */
+function ve_ban() {
+  const hep = window.innerWidth <= 760;
+  const mons = D.mon.filter((m) => nhomChon === 'all' || m.nhom === nhomChon);
+  const cotMon = `<div class="cot-mon">
+    <div class="khach"><select data-in="khach" aria-label="Khách">${D.khach.map((k) => `<option value="${k.id}" ${k.id === khachId ? 'selected' : ''}>${esc(k.ten)}</option>`).join('')}</select>${khach().hang ? `<span class="the-hang">${khach().hang} −${khach().pt}%</span>` : ''}</div>
+    <div class="tabs"><button class="tab ${nhomChon === 'all' ? 'bat' : ''}" data-act="nhom:all">Tất cả</button>${D.nhom.map((n) => `<button class="tab ${nhomChon === n.ma ? 'bat' : ''}" data-act="nhom:${n.ma}">${esc(n.ten)}</button>`).join('')}${D.tp.some((t) => t.rieng) ? `<button class="tab ${nhomChon === 'topping' ? 'bat' : ''}" data-act="nhom:topping">Topping</button>` : ''}</div>
+    <div class="luoi">${nhomChon === 'topping' ? D.tp.filter((t) => t.rieng).map((t) => { const g = giamHang(t.rieng);
+      return `<button class="mon" data-act="tpRieng:${t.id}" ${daThu || t.con <= tpCanTrongGio(t.id, -1) ? 'disabled' : ''}>${anh(t)}<span class="mon-ten">${esc(t.ten)} <span class="nho">(phần riêng)</span></span><span>${g < t.rieng ? `<span class="gia-goc">${vnd(t.rieng)}</span>` : ''}<span class="gia">${vnd(g)}</span></span><span class="nho">${t.con <= tpCanTrongGio(t.id, -1) ? 'Hết' : 'chạm là vào giỏ'}</span></button>`; }).join('') : ''}${(nhomChon === 'topping' ? [] : mons).map((m) => { const g = giamHang(m.gia); const coTuy = m.tp.length || m.gc.length;
+      return `<button class="mon" data-act="mon:${m.id}" ${daThu ? 'disabled' : ''}>${m.tp.length ? '<span class="nhan-top">+ topping</span>' : ''}${anh(m)}<span class="mon-ten">${esc(m.ten)}</span><span>${g < m.gia ? `<span class="gia-goc">${vnd(m.gia)}</span>` : ''}<span class="gia">${vnd(g)}</span></span>${coTuy ? '' : '<span class="nho">chạm là vào giỏ</span>'}</button>`; }).join('')}</div>
+    <div class="huongdan"><b>Thử:</b> chạm "Trà Dưỡng Nhan" → chạm ảnh topping (chạm thêm = thêm phần, nút − để bớt), chọn "Ít đá", gõ ghi chú → Thêm vào giỏ. Chạm "Hồng Tân Sinh" (không topping) — vào giỏ luôn nếu không có ghi chú nhanh. Đổi khách sang "Chị Hoa" để thấy giảm hạng áp cả topping. "Long nhãn" đang hết → mờ. Tab "Topping": mua riêng một phần topping.</div>
+  </div>`;
+  const thieu = thieuTrongGio();
+  const tongGoc = gio.reduce((a, d) => a + giaLy(monDong(d), d.tps) * d.sl, 0), tong = gio.reduce((a, d) => a + giamHang(giaLy(monDong(d), d.tps)) * d.sl, 0);
+  const cotGio = `<div class="cot-gio">
+    <div class="gio-dau"><span>${hep ? '<button class="nut phu" style="min-height:38px" data-act="dt:mon">← Món</button> ' : ''}Giỏ · ${gio.reduce((a, d) => a + d.sl, 0)} ly</span><button class="nut phu" style="min-height:38px" data-act="xoaHet" ${gio.length && !daThu ? '' : 'disabled'}>Xoá hết</button></div>
+    <div class="gio-ds">${gio.length ? gio.map((d, i) => { const m = monDong(d), g = giaLy(m, d.tps);
+      return `<button class="dong" data-act="sua:${i}" ${daThu ? 'disabled' : ''}>${anh(m, 'anh-nho')}<span class="dong-ten"><b>${d.sl} × ${esc(m.ten)}</b>
+        ${d.tps.map((t) => `<div class="dong-tp">+ ${esc(tpCua(t.id).ten)}${t.so > 1 ? ' ×' + t.so : ''} <span class="nho">${vnd(tpCua(t.id).gia * t.so)}</span></div>`).join('')}
+        ${d.gc.length || d.go ? `<div class="dong-gc">${esc([...d.gc, d.go].filter(Boolean).join(', '))}</div>` : ''}</span>
+        <span class="dong-tien">${khach().pt ? `<div class="gia-goc">${vnd(g * d.sl)}</div>` : ''}<b>${vnd(giamHang(g) * d.sl)}</b></span></button>`; }).join('') : '<div class="trong">Chạm món để thêm vào giỏ</div>'}</div>
+    <div class="chan-gio">
+      ${khach().pt && gio.length ? `<div class="tien"><span>Giá gốc</span><span>${vnd(tongGoc)}</span></div><div class="tien"><span>Giảm hạng ${khach().hang} (cả topping)</span><span>−${vnd(tongGoc - tong)}</span></div>` : ''}
+      <div class="tien tong"><span>Tổng</span><span>${vnd(tong)}</span></div>
+      ${thieu.length ? `<div class="canh">Topping không đủ cho giỏ: ${esc(thieu.join(', '))} — sửa dòng có topping này.</div>` : ''}
+      ${daThu ? `<button class="nut xanh lon" data-act="man:hd">Đã thu · xem hoá đơn &amp; tem</button><button class="nut phu lon" data-act="donMoi">Đơn mới</button>`
+        : `<button class="nut lon" data-act="thu" ${gio.length && !thieu.length ? '' : 'disabled'}>Thu tiền mặt · ${vnd(tong)}</button><div class="nho" style="padding:4px 14px">(Phần thu tiền giữ như màn hiện nay — bản thử chỉ mô phỏng một nút.)</div>`}
+    </div></div>`;
+  if (hep) return trangDt === 'mon' ? cotMon + (gio.length ? `<button class="nut lon" style="position:sticky;bottom:10px;width:100%;margin:10px 0 0" data-act="dt:gio">Xem giỏ · ${gio.reduce((a, d) => a + d.sl, 0)} ly · ${vnd(tong)}</button>` : '') : cotGio;
+  return `<div class="than">${cotMon}${cotGio}</div>`;
+}
+function moKhung(monId, sua) {
+  const m = monCua(monId), d = sua != null ? gio[sua] : null;
+  khung = { mon: monId, sua, tps: d ? d.tps.map((t) => ({ ...t })) : [], gc: d ? [...d.gc] : [], go: d ? d.go : '', sl: d ? d.sl : 1 };
+  veKhung();
+}
+function veKhung() {
+  const el = document.getElementById('lop');
+  if (!khung) { el.innerHTML = ''; return; }
+  const m = monCua(khung.mon), g1 = giaLy(m, khung.tps);
+  el.innerHTML = `<div class="lop" data-act="nen"><div class="khung" role="dialog" aria-modal="true" aria-label="${esc(m.ten)}">
+    <div class="khung-dau">${anh(m)}<div style="flex:1"><h2 style="margin:0;font-size:19px">${esc(m.ten)}</h2><div>${khach().pt ? `<span class="gia-goc">${vnd(m.gia)}</span>` : ''}<span class="gia">${vnd(giamHang(m.gia))}</span></div></div><button class="nut phu" style="min-height:40px" data-act="dongKhung" aria-label="Đóng">✕</button></div>
+    <div class="khung-than">
+      ${m.tp.length ? `<div class="muc-t">Topping · chạm thêm để tăng phần (tối đa ${TOI_DA_PHAN})</div><div class="tp-luoi">${m.tp.map((id) => { const t = tpCua(id), c = khung.tps.find((x) => x.id === id), con = conChoKhung(id) - (c ? c.so * khung.sl : 0), het = t.con <= 0;
+        return `<button class="tp ${c ? 'chon' : ''}" data-act="tp:${id}" ${het ? 'disabled' : ''} aria-label="${esc(t.ten)}">${c ? `<span class="so">${c.so}</span><span class="bot" data-act="tpBot:${id}" role="button" aria-label="Bớt ${esc(t.ten)}">−</span>` : ''}${anh(t)}<span style="font-size:13px;font-weight:600;line-height:1.2">${esc(t.ten)}</span><span class="nho">${het ? 'Hết' : '+' + vnd(giamHang(t.gia))}</span>${!het && con < 5 ? `<span class="nho" style="color:#b45309">còn ${Math.max(0, con)} phần</span>` : ''}</button>`; }).join('')}</div>` : ''}
+      ${m.gc.length ? `<div class="muc-t">Ghi chú nhanh</div><div class="chips">${m.gc.map((x) => `<button class="chip ${khung.gc.includes(x) ? 'chon' : ''}" data-act="gc:${x}">${esc(x)}</button>`).join('')}</div>` : ''}
+      <input class="go" type="text" maxlength="120" value="${esc(khung.go)}" data-in="go" placeholder="Ghi chú khác (tự gõ)" aria-label="Ghi chú khác">
+    </div>
+    <div class="khung-chan"><div class="solY"><button data-act="sl:-1" aria-label="Bớt ly">−</button><b>${khung.sl}</b><button data-act="sl:1" aria-label="Thêm ly">+</button></div>
+      <button class="nut" style="flex:1" data-act="luuKhung">${khung.sua != null ? 'Lưu' : 'Thêm vào giỏ'} · ${vnd(giamHang(g1) * khung.sl)}</button>
+      ${khung.sua != null ? '<button class="nut phu" data-act="xoaDong">Xoá</button>' : ''}</div>
+  </div></div>`;
+}
+
+/* ── Hoá đơn & tem ── */
+function ve_hd() {
+  const ds = daThu ? daThu.gio : gio;
+  if (!ds.length) return '<div class="the">Chưa có đơn. Sang "Bán hàng", thêm món có topping rồi bấm Thu.</div>';
+  const kh = daThu ? daThu.khach : khach(), gh = (g) => Math.round(g * (100 - kh.pt) / 100);
+  const goc = ds.reduce((a, d) => a + giaLy(monDong(d), d.tps) * d.sl, 0), tong = ds.reduce((a, d) => a + gh(giaLy(monDong(d), d.tps)) * d.sl, 0);
+  const tems = []; ds.forEach((d) => { for (let i = 0; i < d.sl; i++) tems.push(d); });
+  return `<h1 style="margin:0 0 6px;font-size:22px">Hoá đơn &amp; tem ly</h1><p class="nho" style="margin:0 0 10px">Giữ bố cục hoá đơn hiện nay, chỉ thêm dòng topping dưới mỗi món. Hoá đơn không có ảnh.</p>
+  <div class="hai-cot"><div class="giay"><div style="text-align:center"><b>TỨ QUÝ ĐƯỜNG</b><br>SỐ BILL <b style="font-size:22px">0016</b></div><hr>
+    ${ds.map((d) => { const m = monDong(d), g = giaLy(m, d.tps); return `<div class="r"><span>${d.sl} x ${esc(m.ten)}</span><span>${kh.pt ? `<s>${vnd(m.gia * d.sl)}</s> ` : ''}${vnd(gh(m.gia) * d.sl)}</span></div>
+      ${d.tps.map((t) => `<div class="r tp-in"><span>+ ${esc(tpCua(t.id).ten)}${t.so > 1 ? ' x' + t.so : ''}</span><span>${vnd(gh(tpCua(t.id).gia) * t.so * d.sl)}</span></div>`).join('')}
+      ${d.gc.length || d.go ? `<div class="tp-in">(${esc([...d.gc, d.go].filter(Boolean).join(', '))})</div>` : ''}`; }).join('')}
+    <hr><div class="r"><span>Giá gốc</span><span>${vnd(goc)}</span></div>${kh.pt ? `<div class="r"><span>Giảm hạng ${kh.hang}</span><span>-${vnd(goc - tong)}</span></div>` : ''}<div class="r"><b>TỔNG HÓA ĐƠN</b><b>${vnd(tong)}</b></div>
+    <div class="r"><span>Tiền mặt</span><span>${vnd(tong)}</span></div></div>
+  <div><div class="muc-t" style="margin-bottom:6px">Tem ly · ${tems.length} tem (mỗi ly một tem)</div><div class="hai-cot">${tems.map((d, i) => `<div class="tem"><b>#0016</b> <span>${i + 1}/${tems.length}</span><br><b style="font-size:13px">${esc(monDong(d).ten)}</b>
+    ${d.tps.map((t) => `<div>+ ${esc(tpCua(t.id).ten)}${t.so > 1 ? ' x' + t.so : ''}</div>`).join('')}${d.gc.length || d.go ? `<div><i>${esc([...d.gc, d.go].filter(Boolean).join(', '))}</i></div>` : ''}<div class="nho">14:32</div></div>`).join('')}</div></div></div>`;
+}
+
+/* ── Cài đặt ── */
+let cdMon = 1;
+function ve_cd() {
+  const m = monCua(cdMon);
+  return `<h1 style="margin:0 0 6px;font-size:22px">Cài đặt › Topping &amp; ghi chú theo món</h1>
+  <div class="the"><h2 style="margin:0 0 6px;font-size:17px">1. Danh sách topping</h2><p class="nho" style="margin:0 0 8px">Mỗi topping là một món trong Kho (có công thức, làm sẵn theo lô, có hạn). Hết hàng / hết hạn → tự mờ ở quầy và App KH. Ảnh: chạm ô ảnh để tải lên. Ô "Bán riêng" có giá → topping hiện ở tab <b>Topping</b> của màn Bán hàng (và App KH), bán như một món; để trống = chỉ thêm vào ly.</p>
+  <table class="bang"><thead><tr><th>Ảnh</th><th>Tên</th><th style="width:110px">Giá thêm vào ly</th><th style="width:130px">Bán riêng (giá)</th><th>Còn (kho)</th></tr></thead><tbody>
+  ${D.tp.map((t) => `<tr><td>${anh(t, 'anh', 'width:40px;height:40px;aspect-ratio:auto;font-size:13px')}</td><td class="ten"><input type="text" value="${esc(t.ten)}" data-in="tpTen:${t.id}" aria-label="Tên"></td><td class="gt" data-n="Giá thêm vào ly"><input type="number" min="0" step="1000" value="${t.gia}" data-in="tpGia:${t.id}" aria-label="Giá"></td><td class="gr" data-n="Bán riêng (giá)"><input type="number" min="0" step="1000" value="${t.rieng || ''}" placeholder="không bán riêng" data-in="tpRiengGia:${t.id}" aria-label="Giá bán riêng"></td><td class="con ${t.con ? '' : 'nho'}">${t.con ? t.con + ' phần' : 'Hết'}</td></tr>`).join('')}
+  </tbody></table><p class="nho" style="margin:8px 0 0">Thêm topping mới: Kho › Sản phẩm &amp; công thức → kiểu "Topping".</p></div>
+  <div class="the"><h2 style="margin:0 0 6px;font-size:17px">2. Món nào được thêm gì</h2>
+  <div class="chips" style="margin-bottom:10px">${D.mon.map((x) => `<button class="chip ${x.id === cdMon ? 'chon' : ''}" data-act="cdMon:${x.id}">${esc(x.ten)}</button>`).join('')}</div>
+  <div class="muc-t">Topping cho ${esc(m.ten)}</div><div class="chips" style="margin:6px 0 12px">${D.tp.map((t) => `<button class="chip ${m.tp.includes(t.id) ? 'chon' : ''}" data-act="cdTp:${t.id}">${m.tp.includes(t.id) ? '✓ ' : ''}${esc(t.ten)}</button>`).join('')}</div>
+  <div class="muc-t">Ghi chú nhanh cho ${esc(m.ten)}</div><div class="chips" style="margin:6px 0">${m.gc.map((x, i) => `<button class="chip chon" data-act="cdGcXoa:${i}" aria-label="Xoá ${esc(x)}">${esc(x)} ✕</button>`).join('') || '<span class="nho">Chưa có — món này chạm là vào giỏ</span>'}</div>
+  <div class="chips"><input class="go" style="flex:1;max-width:260px" type="text" id="gcMoi" placeholder="Thêm ghi chú nhanh, vd Ít đá"><button class="nut phu" data-act="cdGcThem">Thêm</button></div>
+  <div class="chips" style="margin-top:12px"><button class="nut phu" data-act="cdChep">Chép cài đặt này cho cả nhóm "${esc(D.nhom.find((n) => n.ma === m.nhom).ten)}"</button></div></div>
+  <div class="hoi"><b>Đã định sẵn theo các quyết định cũ của bạn:</b> giảm hạng áp cả topping · mỗi topping tối đa ${TOI_DA_PHAN} phần / ly · topping hết thì không bán (cả App KH) · App KH thấy đúng topping và ghi chú như quầy · topping bán riêng được (tab Topping) · mã giảm / voucher % áp cả topping.</div>`;
+}
+
+function ve() {
+  document.getElementById('vo').innerHTML = man === 'ban' ? ve_ban() : man === 'hd' ? ve_hd() : ve_cd();
+  for (const [id, m] of [['nBan', 'ban'], ['nHd', 'hd'], ['nCd', 'cd']]) document.getElementById(id).classList.toggle('bat', man === m);
+}
+function themVaoGio(d) {
+  const k = khoa(d), i = gio.findIndex((x) => khoa(x) === k);
+  if (i >= 0) gio[i].sl += d.sl; else gio.push(d);
+}
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const [a, ...r] = el.dataset.act.split(':'), v = r.join(':');
+  if (a === 'nen') { if (e.target === el) { khung = null; veKhung(); } return; }
+  if (a === 'tpBot') e.stopPropagation();
+  ({
+    man: () => { man = v; ve(); window.scrollTo({ top: 0 }); },
+    nhom: () => { nhomChon = v; ve(); },
+    dt: () => { trangDt = v; ve(); },
+    mon: () => { const m = monCua(+v);
+      if (!m.tp.length && !m.gc.length) { themVaoGio({ mon: m.id, tps: [], gc: [], go: '', sl: 1 }); ve(); bao('Đã thêm ' + m.ten); return; }
+      moKhung(+v); },
+    sua: () => { const d = gio[+v]; if (d.rieng) { if (d.sl > 1) d.sl--; else gio.splice(+v, 1); ve(); bao('Đã bớt 1 phần'); return; } moKhung(d.mon, +v); },
+    tpRieng: () => { themVaoGio({ rieng: +v, mon: null, tps: [], gc: [], go: '', sl: 1 }); ve(); bao('Đã thêm ' + tpCua(+v).ten + ' phần riêng'); },
+    dongKhung: () => { khung = null; veKhung(); },
+    tp: () => { const id = +v, c = khung.tps.find((x) => x.id === id);
+      if (c && c.so >= TOI_DA_PHAN) return bao(`Tối đa ${TOI_DA_PHAN} phần mỗi topping`, 'loi');
+      const can = ((c?.so || 0) + 1) * khung.sl;
+      if (can > conChoKhung(id)) return bao(`${tpCua(id).ten} chỉ còn ${Math.max(0, conChoKhung(id))} phần`, 'loi');
+      if (c) c.so++; else khung.tps.push({ id, so: 1 }); veKhung(); },
+    tpBot: () => { const id = +v, c = khung.tps.find((x) => x.id === id); if (!c) return; c.so--; if (!c.so) khung.tps = khung.tps.filter((x) => x.id !== id); veKhung(); },
+    gc: () => { khung.gc = khung.gc.includes(v) ? khung.gc.filter((x) => x !== v) : [...khung.gc, v]; veKhung(); },
+    sl: () => { const n = Math.max(1, khung.sl + +v);
+      const vuot = khung.tps.find((t) => t.so * n > conChoKhung(t.id)); if (vuot) return bao(`${tpCua(vuot.id).ten} không đủ cho ${n} ly`, 'loi');
+      khung.sl = n; veKhung(); },
+    luuKhung: () => { const d = { mon: khung.mon, tps: khung.tps, gc: khung.gc, go: khung.go.trim(), sl: khung.sl };
+      if (khung.sua != null) gio.splice(khung.sua, 1); themVaoGio(d); const sua = khung.sua != null; khung = null; veKhung(); ve(); bao(sua ? 'Đã sửa dòng' : 'Đã thêm vào giỏ'); },
+    xoaDong: () => { gio.splice(khung.sua, 1); khung = null; veKhung(); ve(); },
+    xoaHet: () => { gio = []; ve(); },
+    thu: () => { daThu = { gio: JSON.parse(JSON.stringify(gio)), khach: khach() };
+      for (const d of gio) { for (const t of d.tps) tpCua(t.id).con -= t.so * d.sl; if (d.rieng) tpCua(d.rieng).con -= d.sl; }   // máy chủ trừ kho topping cùng giao dịch với đơn
+      ve(); bao('Đã thu — kho đã trừ món và topping'); },
+    donMoi: () => { gio = []; daThu = null; trangDt = 'mon'; ve(); },
+    cdMon: () => { cdMon = +v; ve(); },
+    cdTp: () => { const m = monCua(cdMon), id = +v; m.tp = m.tp.includes(id) ? m.tp.filter((x) => x !== id) : [...m.tp, id]; ve(); },
+    cdGcXoa: () => { monCua(cdMon).gc.splice(+v, 1); ve(); },
+    cdGcThem: () => { const t = document.getElementById('gcMoi').value.trim(); if (!t) return; const m = monCua(cdMon); if (!m.gc.includes(t)) m.gc.push(t); ve(); },
+    cdChep: () => { const m = monCua(cdMon), ds = D.mon.filter((x) => x.nhom === m.nhom && x.id !== m.id); ds.forEach((x) => { x.tp = [...m.tp]; x.gc = [...m.gc]; }); ve(); bao(`Đã chép cho ${ds.length} món cùng nhóm`); },
+  }[a] || (() => {}))();
+});
+document.addEventListener('input', (e) => {
+  const el = e.target.closest('[data-in]'); if (!el) return;
+  const [a, k] = el.dataset.in.split(':');
+  ({ khach: () => { khachId = +el.value; ve(); }, go: () => { khung.go = el.value; },
+    tpTen: () => { tpCua(+k).ten = el.value; }, tpGia: () => { tpCua(+k).gia = Math.max(0, +el.value || 0); }, tpRiengGia: () => { tpCua(+k).rieng = Math.max(0, +el.value || 0) || 0; } }[a] || (() => {}))();
+});
+document.addEventListener('change', (e) => { if (e.target.matches('[data-in="khach"]')) { khachId = +e.target.value; ve(); } });
+window.addEventListener('resize', () => { clearTimeout(ve.t); ve.t = setTimeout(ve, 150); });
+ve();
+}
+</script>
+</body>
+</html>

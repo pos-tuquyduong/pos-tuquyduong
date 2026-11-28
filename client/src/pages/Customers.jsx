@@ -1,12 +1,16 @@
 /**
- * POS - Customers Page
- * Hiện danh sách khách từ SX + POS với STT, subscription info, relationship
- * Phase B: Click vào row để mở modal sửa ghi chú khách + địa chỉ (KHACH-CK-1: đã bỏ chiết khấu riêng từng khách)
+ * POS - Customers Page (GIAO-DIEN-2, mẫu M5 / M6 chủ quán duyệt 17.11)
+ * Danh sách khách trong POS + chip lọc (QuanLy/locKhach.js) + chi tiết 3 số chính: Số dư · Điểm · Hạng.
+ * Máy tính (≥ 1024px): hai cột (danh sách | chi tiết). Hẹp: danh sách → chi tiết TOÀN MÀN có "← Khách hàng"; Back trình duyệt về danh sách (?khach=<SĐT>).
+ * Chi tiết: nút Nạp tiền · Sửa thông tin (ghi chú khách, địa chỉ, ngày sinh) · Thêm… (đổi quà, mã App, cấp hạng, người thân) + hai tab Đơn gần đây | Voucher.
+ * /customers?phone=<SĐT> (GOI-1) mở thẳng khách đó. KHACH-CK-1: không còn chiết khấu riêng từng khách.
  */
 
-import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { api, customersV2Api, registrationsApi, hangApi } from '../utils/api';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { api, customersV2Api, registrationsApi, hangApi, ordersApi } from '../utils/api';
+import { ngayVN, hienNgayGio } from '../utils/ngayVN';
+import { locKhach, BO_LOC } from './QuanLy/locKhach';
 import { useAuth } from '../contexts/AuthContext';
 import CapHang from '../components/CapHang';   // HANG-1: cấp hạng (chủ quán + PIN) + nhật ký hạng
 import MaDangNhapApp from '../components/MaDangNhapApp';
@@ -14,12 +18,28 @@ import { chuanSdtQuay } from '../utils/maApp';   // QUAY-UI-1 C: cùng cách chu
 import ViKhach from '../components/ViKhach';   // GIAO-DIEN-1 C: khu Ví (thay màn Số dư cũ)
 import MaAppSoMoi from '../components/MaAppSoMoi';
 import { baoXong, baoLoi, baoLoiTu } from '../components/thongBaoKho.js';   // BAO-1a
-import { Search, Plus, X, Phone, Users, RefreshCw, User, FileText } from 'lucide-react';
+import { Plus, X, RefreshCw } from 'lucide-react';
+
+// Màn rộng (≥ 1024px) vẽ hai cột; hẹp thì danh sách → chi tiết toàn màn.
+function useRong(truyVan) {
+  const [rong, setRong] = useState(() => !!(typeof window !== 'undefined' && window.matchMedia && window.matchMedia(truyVan).matches));
+  useEffect(() => {
+    if (!window.matchMedia) return undefined;
+    const m = window.matchMedia(truyVan);
+    const doi = () => setRong(m.matches);
+    m.addEventListener('change', doi); doi();
+    return () => m.removeEventListener('change', doi);
+  }, [truyVan]);
+  return rong;
+}
+
+const ddmm = (iso) => (iso ? `${String(iso).slice(8, 10)}/${String(iso).slice(5, 7)}` : '');
+const nhanDon = { cancelled: 'Đã huỷ', refunded: 'Đã hoàn' };
 
 export default function Customers() {
   const { hasPermission } = useAuth();
   const [customers, setCustomers] = useState([]);
-  const [stats, setStats] = useState({ total: 0, synced: 0, pending: 0, hasBalance: 0, totalBalance: 0 });
+  const [tongGui, setTongGui] = useState(0);   // GIAO-DIEN-1: tổng khách đang gửi quán
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -36,7 +56,12 @@ export default function Customers() {
   const [khachTrung, setKhachTrung] = useState(null);   // QUAY-UI-1 C: khách đã có ngay khi gõ đủ SĐT (máy chủ vẫn chặn 409 khi lưu)
 
   // Modal chi tiết khách hàng (ghi chú POS)
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const rong = useRong('(min-width: 1024px)');
+  const dieuHuong = useNavigate();
+  const daDayUrl = useRef(false);   // đã đẩy ?khach= vào lịch sử → nút "← Khách hàng" lùi một bước thay vì thêm mục mới
+  const [panel, setPanel] = useState(null);   // null | 'nap' | 'sua' | 'them'
+  const [tab, setTab] = useState('don');   // 'don' | 'voucher'
+  const [donGan, setDonGan] = useState({ dang: false, ds: [], loi: '' });
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   // CT-1a: ngày sinh nhập MỘT lần (trống → nhân viên nào cũng nhập); đã có → chỉ người có quyền sua_ngay_sinh sửa, bắt lý do
   const [ngaySinh, setNgaySinh] = useState({ gia: '', lyDo: '', sua: false, loi: '', dangLuu: false });
@@ -77,13 +102,7 @@ export default function Customers() {
       const allCustomers = data.customers || [];
 
       setCustomers(allCustomers);
-      setStats({
-        total: allCustomers.length,
-        synced: allCustomers.filter(c => c.is_synced).length,
-        pending: allCustomers.filter(c => c.is_pending).length,
-        hasBalance: allCustomers.filter(c => c.balance > 0).length,
-        totalBalance: allCustomers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0)   // GIAO-DIEN-1: tổng khách đang gửi quán
-      });
+      setTongGui(allCustomers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0));
       return allCustomers;
     } catch (err) {
       baoLoiTu('tải danh sách khách', err);
@@ -93,19 +112,15 @@ export default function Customers() {
     }
   };
 
-  // Filter và search
-  const filteredCustomers = customers.filter(c => {
-    if (filter === 'synced' && !c.is_synced) return false;
-    if (filter === 'pending' && !c.is_pending) return false;
-    if (filter === 'has_balance' && (!c.balance || c.balance <= 0)) return false;
+  // Tải lại danh sách rồi cập nhật khách đang xem theo số mới
+  const lamMoiKhach = async () => {
+    const ds = await loadCustomers();
+    const moi = ds?.find((x) => x.phone === selectedCustomer?.phone);
+    if (moi) setSelectedCustomer(moi);
+  };
 
-    if (search) {
-      const q = search.toLowerCase();
-      if (!c.name?.toLowerCase().includes(q) && !c.phone?.includes(q)) return false;
-    }
-
-    return true;
-  });
+  // Lọc + tìm (hàm thuần QuanLy/locKhach.js; "hôm nay" theo giờ VN)
+  const filteredCustomers = locKhach(customers, { tim: search, loc: filter, homNay: ngayVN() });
 
   // QUAY-UI-1 C: gõ đủ SĐT → tự tra (cửa đọc khách sẵn có); đã có khách → báo + mờ nút Lưu. Câu trả về muộn của số cũ bị bỏ.
   useEffect(() => {
@@ -149,7 +164,7 @@ export default function Customers() {
           baoLoiTu('nhận mã trên bill (khách đã lưu)', eMa);
         }
       }
-      baoXong(`Đã thêm khách ${formData.name || formData.phone}. Chờ đồng bộ với SX.${phat}`);
+      baoXong(`Đã thêm khách ${formData.name || formData.phone}.${phat}`);
       setShowModal(false);
       setFormData({
         phone: '', name: '', notes: '',
@@ -167,37 +182,64 @@ export default function Customers() {
     }
   };
 
-  // Mở modal chi tiết khi click vào row
-  const [goiDangDung, setGoiDangDung] = useState(null);   // GOI-2 (Q5.3): dòng khách ở theo-khach (so_dang_dung, con_lai) — cùng số với Báo cáo
-  const openDetailModal = (customer) => {
+  // Chọn một khách: dọn trạng thái chi tiết, nạp hạng + đơn gần đây + voucher. Câu trả về muộn của khách cũ bị bỏ (dangTai).
+  const dangTai = useRef(null);
+  const chonKhach = (customer) => {
+    dangTai.current = customer.phone || null;
     setSelectedCustomer(customer);
-    setGoiDangDung(null);
-    api.get(`/packages/customer-packages/theo-khach?phone=${encodeURIComponent(customer.phone)}`)
-      .then(r => setGoiDangDung((r.data || [])[0] || null)).catch(() => setGoiDangDung(null));
+    setPanel(null);
+    setTab('don');
     setShowRedeem(false);
     setRedeemResult(null);
     setRewards([]);
     setVouchers([]);
+    setDonGan({ dang: !!customer.phone, ds: [], loi: '' });
     setNgaySinh({ gia: '', lyDo: '', sua: false, loi: '', dangLuu: false });
     setDetailForm({
       discount_note: customer.discount_note || '',
       address: customer.address || ''
     });
-    setShowDetailModal(true);
     loadMembershipStatus(customer.phone);
+    if (!customer.phone) return;
+    const sdt = customer.phone;
+    ordersApi.list({ customer_phone: sdt, limit: 10 })
+      .then((r) => { if (dangTai.current === sdt) setDonGan({ dang: false, ds: r.orders || [], loi: '' }); })
+      .catch((e) => { if (dangTai.current === sdt) setDonGan({ dang: false, ds: [], loi: e.message || 'Không tải được đơn' }); });
+    loyaltyApi('GET', `/api/pos/loyalty/vouchers/${encodeURIComponent(sdt)}`)
+      .then((v) => { if (dangTai.current === sdt && v.success) setVouchers(v.data || []); })
+      .catch(() => {});   // voucher chỉ để xem; lỗi tải thì tab hiện "chưa có" — đổi quà vẫn tải lại khi mở
+  };
+  // Hẹp: mở chi tiết = đẩy ?khach=<SĐT> vào lịch sử để nút Back của trình duyệt về danh sách
+  const moKhach = (customer) => {
+    chonKhach(customer);
+    if (!rong && customer.phone) { daDayUrl.current = true; setSearchParams({ khach: customer.phone }); }
+  };
+  const dongChiTiet = () => {
+    if (daDayUrl.current) { daDayUrl.current = false; dieuHuong(-1); return; }
+    setSelectedCustomer(null);
+    if (searchParams.get('khach')) setSearchParams({}, { replace: true });
   };
 
   // GOI-1 (Q4): /customers?phone=<SĐT> (bấm tên khách ở Báo cáo → Gói SP) — tải xong danh sách thì mở đúng khách đó, MỘT lần:
-  // xoá tham số ngay, để các lần tải lại sau (lưu khách, đổi quà) không mở lại modal.
+  // xoá tham số ngay, để các lần tải lại sau (lưu khách, đổi quà) không mở lại chi tiết.
   const [searchParams, setSearchParams] = useSearchParams();
   const sdtMo = searchParams.get('phone');
+  const khachUrl = searchParams.get('khach');
   useEffect(() => {
     if (!sdtMo || loading) return;
-    setSearchParams({}, { replace: true });
     const kh = customers.find(c => c.phone === sdtMo);
-    if (kh) openDetailModal(kh);
+    setSearchParams(kh && !rong ? { khach: sdtMo } : {}, { replace: true });
+    if (kh) chonKhach(kh);
     else if (customers.length) baoLoi(`Không tìm thấy khách ${sdtMo}`, 'Số này chưa có trong danh sách khách.');
   }, [sdtMo, loading]);
+  // Back / Forward trình duyệt trên màn hẹp: ?khach= mất → về danh sách; ?khach= có mà chưa mở đúng khách đó → mở
+  useEffect(() => {
+    if (loading || sdtMo) return;
+    if (!khachUrl) { if (!rong && selectedCustomer) setSelectedCustomer(null); return; }
+    if (selectedCustomer?.phone === khachUrl) return;
+    const kh = customers.find(c => c.phone === khachUrl);
+    if (kh) chonKhach(kh);
+  }, [khachUrl, loading]);
 
   // ─── LOY-2: đổi quà tại quầy — dùng ĐÚNG 3 API mà app KH sẽ gọi (không viết logic riêng) ───
   const loyaltyApi = async (method, url, body) => {
@@ -283,8 +325,8 @@ export default function Customers() {
       }
       
       baoXong(`Đã cập nhật thông tin cho ${selectedCustomer.name || selectedCustomer.phone}`);
-      setShowDetailModal(false);
-      loadCustomers();
+      setPanel(null);
+      lamMoiKhach();
     } catch (err) {
       baoLoiTu('cập nhật thông tin khách', err);
     } finally {
@@ -300,7 +342,7 @@ export default function Customers() {
       setSelectedCustomer((c) => ({ ...c, ngay_sinh: r.ngay_sinh }));
       setNgaySinh({ gia: '', lyDo: '', sua: false, loi: '', dangLuu: false });
       baoXong(`Đã lưu ngày sinh của ${selectedCustomer.name || selectedCustomer.phone}`);
-      loadCustomers();
+      lamMoiKhach();
     } catch (err) {
       setNgaySinh((n) => ({ ...n, loi: err.message || 'Không lưu được ngày sinh', dangLuu: false }));
     }
@@ -318,243 +360,251 @@ export default function Customers() {
     { value: 'khác', label: 'Khác' }
   ];
 
-  const getStatusBadge = (customer) => {
-    if (customer.is_synced) {
-      return <span className="badge badge-success">🟢 Đã đồng bộ</span>;
-    }
-    if (customer.is_pending) {
-      return <span className="badge badge-warning">🟡 Chờ đồng bộ</span>;
-    }
-    if (customer.is_retail) {
-      return <span className="badge badge-gray">⚪ Khách lẻ</span>;
-    }
-    return null;
-  };
-
   const formatMoney = (amount) => {
     return (amount || 0).toLocaleString() + 'đ';
   };
+
+  const kh = selectedCustomer;
+  const hang = membershipStatus || kh?.membership || null;
+  const coHang = !!hang && !!hang.tier_name && hang.status !== 'none';
+  const chuHang = !coHang ? '—' : hang.tier_name;
+  const phuHang = !coHang ? '' : hang.status === 'expired' ? `hết hạn ${ddmm(hang.expires_at)}`.trim()
+    : hang.vo_han ? 'Không thời hạn' : hang.expires_at ? `hết hạn ${ddmm(hang.expires_at)}` : `còn ${hang.days_remaining} ngày`;
+  const o = { background: '#f8fafc', borderRadius: 8, padding: '0.6rem 0.75rem' };
+  const nhanO = { fontSize: '0.75rem', color: '#64748b' };
+  const nutPanel = (ma, ten) => (
+    <button type="button" className={`btn ${panel === ma ? 'btn-primary' : 'btn-outline'}`} onClick={() => setPanel(panel === ma ? null : ma)}>{ten}</button>
+  );
+
+  const danhSach = () => (
+    <div className="card">
+      <input type="text" className="input mb-2" placeholder="Tìm khách (tên hoặc SĐT)" aria-label="Tìm khách" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex gap-1 mb-2" style={{ flexWrap: 'wrap' }}>
+        {BO_LOC.map(([ma, ten]) => (
+          <button key={ma} className={`btn ${filter === ma ? 'btn-primary' : 'btn-outline'}`} onClick={() => setFilter(ma)}>{ten}</button>
+        ))}
+      </div>
+      {loading ? (
+        <div className="loading">Đang tải...</div>
+      ) : filteredCustomers.length === 0 ? (
+        <div className="text-gray text-center" style={{ padding: '2rem' }}>Không có khách hàng nào</div>
+      ) : (
+        <div>
+          {filteredCustomers.map((c, idx) => {
+            const chon = !!kh && (c.phone ? c.phone === kh.phone : c === kh);
+            const conHan = c.membership?.tier_name && c.membership.status !== 'none';
+            return (
+              <div key={c.phone || idx} role="button" tabIndex={0} className="kh-dong" onClick={() => moKhach(c)} onKeyDown={(e) => { if (e.key === 'Enter') moKhach(c); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.6rem 0.5rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', minHeight: 52, background: chon ? '#ede9fe' : undefined }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700 }}>{c.name || 'Chưa có tên'}</div>
+                  <div className="text-sm text-gray">{c.phone || '(trống)'}</div>
+                  {c.discount_note && (
+                    <div className="text-sm" style={{ color: '#dc2626' }}>💬 {c.discount_note}</div>
+                  )}
+                </div>
+                {c.balance > 0 && <span style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 600 }}>{formatMoney(c.balance)}</span>}
+                {conHan && (
+                  <span style={{ fontWeight: 700, padding: '2px 7px', borderRadius: 5, fontSize: '0.75rem', whiteSpace: 'nowrap',
+                    background: c.membership.status === 'expired' ? '#fee2e2' : c.membership.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
+                    color: c.membership.status === 'expired' ? '#b91c1c' : c.membership.status === 'expiring_soon' ? '#92400e' : '#5b3ea3' }}>
+                    {c.membership.tier_name}{c.membership.status === 'expired' && ' (hết hạn)'}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  const chiTiet = () => (
+    <div className="card" style={{ padding: '1rem' }}>
+      {!rong && <button type="button" className="btn btn-outline" style={{ marginBottom: '0.75rem' }} onClick={dongChiTiet}>← Khách hàng</button>}
+      <div style={{ fontSize: '1.4rem', fontWeight: 700 }}>{kh.name || 'Khách lẻ'}</div>
+      <div style={{ color: '#64748b', margin: '2px 0 0.75rem' }}>{kh.phone || 'Chưa có SĐT'}{kh.ngay_sinh ? ` · sinh nhật ${ddmm(kh.ngay_sinh)}` : ''}</div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: '0.75rem' }}>
+        <div style={o}><div style={nhanO}>Số dư</div><b style={{ color: kh.balance > 0 ? '#16a34a' : '#64748b' }}>{formatMoney(kh.balance)}</b></div>
+        <div style={o}><div style={nhanO}>Điểm</div><b style={{ color: kh.points > 0 ? '#7c3aed' : '#94a3b8' }}>{kh.points || 0}</b></div>
+        <div style={o}><div style={nhanO}>Hạng</div><b>{chuHang}</b>{phuHang && <div style={{ fontSize: '0.72rem', color: hang?.status === 'expired' ? '#b91c1c' : '#64748b' }}>{phuHang}</div>}</div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: '0.75rem' }}>
+        {kh.phone && nutPanel('nap', 'Nạp tiền')}
+        {nutPanel('sua', 'Sửa thông tin')}
+        {nutPanel('them', 'Thêm…')}
+      </div>
+
+      {panel === 'nap' && (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <ViKhach khach={kh} onDoi={lamMoiKhach} />
+        </div>
+      )}
+
+      {panel === 'sua' && (
+        <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: 8, marginBottom: '0.75rem' }}>
+          {canEditNote(kh) ? (
+            <>
+              <div className="form-group">
+                <label className="form-label">💬 Ghi chú khách (in trên hoá đơn)</label>
+                <input type="text" className="input" value={detailForm.discount_note}
+                  onChange={(e) => setDetailForm({...detailForm, discount_note: e.target.value})} placeholder="VD: Ít ngọt, không đá..." />
+              </div>
+              <div className="form-group">
+                <label className="form-label">📍 Địa chỉ (hiển thị trên hóa đơn)</label>
+                <input type="text" className="input" value={detailForm.address}
+                  onChange={(e) => setDetailForm({...detailForm, address: e.target.value})} placeholder="VD: 123 Nguyễn Trãi, Thanh Xuân, Hà Nội" />
+              </div>
+                {/* CT-1a: ngày sinh — nhập MỘT lần; KHÔNG lưu số căn cước */}
+                <div className="form-group">
+                  <label className="form-label">🎂 Ngày sinh (nhập một lần)</label>
+                  {selectedCustomer.ngay_sinh && !ngaySinh.sua ? (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <b>{selectedCustomer.ngay_sinh.split('-').reverse().join('/')}</b>
+                      {hasPermission('sua_ngay_sinh')
+                        ? <button type="button" className="btn btn-outline" onClick={() => setNgaySinh((n) => ({ ...n, sua: true, gia: selectedCustomer.ngay_sinh }))}>Sửa</button>
+                        : <span style={{ fontSize: 12, color: '#6b7280' }}>Chỉ chủ quán sửa được</span>}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <input type="date" className="input" style={{ flex: '0 1 170px' }} value={ngaySinh.gia} onChange={(e) => setNgaySinh((n) => ({ ...n, gia: e.target.value }))} />
+                      {selectedCustomer.ngay_sinh && (
+                        <input type="text" className="input" style={{ flex: '1 1 200px' }} maxLength={200} placeholder="Lý do sửa (bắt buộc)" value={ngaySinh.lyDo}
+                          onChange={(e) => setNgaySinh((n) => ({ ...n, lyDo: e.target.value }))} />
+                      )}
+                      <button type="button" className="btn btn-primary" onClick={luuNgaySinh}
+                        disabled={ngaySinh.dangLuu || !ngaySinh.gia || (!!selectedCustomer.ngay_sinh && !ngaySinh.lyDo.trim())}>
+                        {ngaySinh.dangLuu ? 'Đang lưu…' : 'Lưu ngày sinh'}
+                      </button>
+                      {ngaySinh.sua && <button type="button" className="btn btn-outline" onClick={() => setNgaySinh((n) => ({ ...n, sua: false, loi: '' }))}>Bỏ</button>}
+                    </div>
+                  )}
+                  {ngaySinh.loi && <div style={{ color: '#b91c1c', fontSize: 13, marginTop: 4 }}>{ngaySinh.loi}</div>}
+                  {!selectedCustomer.ngay_sinh && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Khách chưa có ngày sinh. Nhập theo căn cước khách đưa xem — POS không lưu số căn cước.</div>}
+                </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setPanel(null)}>Đóng</button>
+                <button type="button" className="btn btn-primary" onClick={handleSaveDetail} disabled={submitting}>{submitting ? 'Đang lưu...' : 'Lưu thay đổi'}</button>
+              </div>
+            </>
+          ) : (
+            <div style={{ color: '#991b1b' }}>
+              <div style={{ fontWeight: 500, marginBottom: '0.5rem' }}>⚠️ Không thể sửa ghi chú</div>
+              <div style={{ fontSize: '0.85rem' }}>Khách chưa có SĐT — sửa thông tin khách để thêm SĐT trước</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {panel === 'them' && (
+        <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: 8, marginBottom: '0.75rem' }}>
+          {kh.phone && (
+            <button className="btn btn-outline" style={{ marginBottom: 8 }} onClick={() => (showRedeem ? setShowRedeem(false) : openRedeem())}>
+              {showRedeem ? 'Đóng đổi quà' : '🎫 Đổi quà'}
+            </button>
+          )}
+            {/* LOY-2: khu đổi quà tại quầy */}
+            {showRedeem && (
+              <div style={{ marginTop: '12px', padding: '10px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px' }}>
+                {redeemResult && (
+                  <div style={{ padding: '10px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', marginBottom: '10px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>✅ Mã voucher: {redeemResult.code}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#166534', marginTop: '2px' }}>
+                      {redeemResult.reward_name} · hạn {redeemResult.expires_at} · đã trừ {redeemResult.points_spent} điểm, còn {redeemResult.points_left}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#166534', marginTop: '4px' }}>
+                      Đọc mã này cho khách. Dùng được <b>1 lần</b> rồi hết hiệu lực — khách tặng ai cũng được.
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Kho quà</div>
+                {rewards.length === 0 ? (
+                  <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Chưa có quà. Thêm ở Cài đặt → 🎫 Kho quà.</div>
+                ) : rewards.map(r => {
+                  const enough = (selectedCustomer.points || 0) >= r.points_cost;
+                  return (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderTop: '1px solid #f3e8ff' }}>
+                      <div style={{ fontSize: '0.85rem' }}>
+                        {r.name}
+                        <span style={{ color: '#7c3aed', fontWeight: 600, marginLeft: '6px' }}>{r.points_cost} điểm</span>
+                      </div>
+                      <button className="btn btn-primary" style={{ padding: '4px 12px', fontSize: '0.78rem' }} disabled={!enough || redeeming}
+                        title={enough ? '' : 'Khách chưa đủ điểm'}
+                        onClick={() => doRedeem(r)}>
+                        {redeeming ? '...' : 'Đổi'}
+                      </button>
+                    </div>
+                  );
+                })}
+
+              </div>
+            )}
+          {kh.phone && <MaDangNhapApp key={selectedCustomer.phone} sdt={selectedCustomer.phone} />}
+          <CapHang sdt={kh.phone} coQuyen={hasPermission('cap_hang')} onDoi={() => loadMembershipStatus(kh.phone)} />
+          {kh.relationship && kh.parent_name && (
+            <div style={{ marginTop: '8px', padding: '8px', background: '#f3e8ff', borderRadius: '6px', fontSize: '0.85rem' }}>
+              {kh.relationship} của <strong>{kh.parent_name}</strong>
+            </div>
+          )}
+        </div>
+      )}
+
+      {kh.notes && (
+        <div style={{ marginBottom: '0.75rem', padding: '8px', background: '#f1f5f9', borderRadius: '6px', fontSize: '0.85rem', color: '#64748b' }}>
+          <span style={{ fontStyle: 'italic' }}>Ghi chú: {kh.notes}</span>
+        </div>
+      )}
+
+      <div className="flex gap-1 mb-2">
+        {[['don', 'Đơn gần đây'], ['voucher', `Voucher (${vouchers.length})`]].map(([ma, ten]) => (
+          <button key={ma} className={`btn ${tab === ma ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab(ma)}>{ten}</button>
+        ))}
+      </div>
+      {tab === 'don' ? (
+        donGan.dang ? <div className="loading">Đang tải...</div>
+          : donGan.loi ? <div className="alert alert-danger">Chưa tải được đơn: {donGan.loi}</div>
+          : donGan.ds.length === 0 ? <div className="text-gray">Chưa có đơn nào.</div>
+          : donGan.ds.map((d) => (
+            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 0', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+              <span><b>{d.order_code}</b> · {hienNgayGio(d.created_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+              <span>{formatMoney(d.total)}{nhanDon[d.status] ? ` · ${nhanDon[d.status]}` : ''}</span>
+            </div>
+          ))
+      ) : (
+        vouchers.length === 0 ? <div className="text-gray">Chưa có voucher nào chưa dùng.</div>
+          : vouchers.map((v) => (
+            <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+              <span><b>{v.code}</b> · {v.reward_name || '—'}</span>
+              <span style={{ color: '#64748b' }}>hạn {v.expires_at || '—'}</span>
+            </div>
+          ))
+      )}
+    </div>
+  );
 
   return (
     <>
       <header className="page-header">
         <h1 className="page-title">👥 Khách hàng</h1>
         <div className="flex gap-1">
-          <button className="btn btn-outline" onClick={loadCustomers}>
-            <RefreshCw size={16} />
-          </button>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            <Plus size={16} /> Thêm khách
-          </button>
+          <button className="btn btn-outline" onClick={loadCustomers} aria-label="Tải lại"><RefreshCw size={16} /></button>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}><Plus size={16} /> Thêm khách</button>
         </div>
       </header>
 
       <div className="page-content">
         <MaAppSoMoi />
+        <div className="text-sm text-gray mb-2">💵 Khách đang gửi quán: <b>{formatMoney(tongGui)}</b></div>
 
-        {/* Stats */}
-        <div className="grid grid-4 mb-2">
-          <div className="stat-card">
-            <div className="stat-label">Tổng KH</div>
-            <div className="stat-value">{stats.total}</div>
+        {rong ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 2fr) 3fr', gap: '1rem', alignItems: 'start' }}>
+            {danhSach()}
+            {kh ? chiTiet() : <div className="card text-gray" style={{ padding: '2rem', textAlign: 'center' }}>Chọn một khách ở bên trái</div>}
           </div>
-          <div className="stat-card">
-            <div className="stat-label">🟢 Đã đồng bộ SX</div>
-            <div className="stat-value">{stats.synced}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">🟡 Chờ đồng bộ</div>
-            <div className="stat-value">{stats.pending}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">💰 Có số dư</div>
-            <div className="stat-value">{stats.hasBalance}</div>
-          </div>
-          <div className="stat-card" style={{ background: '#dbeafe' }}>
-            <div className="stat-label">💵 Khách đang gửi quán</div>
-            <div className="stat-value">{formatMoney(stats.totalBalance)}</div>
-          </div>
-        </div>
-
-        {/* Search & Filter */}
-        <div className="card">
-          <form onSubmit={handleSearch} className="flex gap-1 mb-2">
-            <input
-              type="text"
-              className="input"
-              placeholder="Tìm theo SĐT hoặc tên..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <button type="submit" className="btn btn-primary">
-              <Search size={16} /> Tìm
-            </button>
-          </form>
-
-          <div className="flex gap-1 mb-2" style={{ flexWrap: 'wrap' }}>
-            {[
-              { key: 'all', label: 'Tất cả' },
-              { key: 'synced', label: '🟢 Đã đồng bộ' },
-              { key: 'pending', label: '🟡 Chờ đồng bộ' },
-              { key: 'has_balance', label: '💰 Có số dư' }
-            ].map(f => (
-              <button
-                key={f.key}
-                className={`btn ${filter === f.key ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setFilter(f.key)}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Table */}
-          {loading ? (
-            <div className="loading">Đang tải...</div>
-          ) : filteredCustomers.length === 0 ? (
-            <div className="text-gray text-center" style={{ padding: '2rem' }}>
-              Không có khách hàng nào
-            </div>
-          ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px' }}>#</th>
-                  <th>SĐT</th>
-                  <th>Tên KH</th>
-                  <th>Gói đăng ký</th>
-                  <th style={{ textAlign: 'right' }}>Số dư</th>
-                  <th style={{ textAlign: 'right' }}>🎁 Điểm</th>
-                  <th>Hạng</th>
-                  <th>Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCustomers.map((c, idx) => (
-                  <tr 
-                    key={c.phone || idx}
-                    onClick={() => openDetailModal(c)}
-                    style={{ cursor: 'pointer' }}
-                    className="hover-row"
-                  >
-                    <td className="text-gray">{idx + 1}</td>
-                    <td>
-                      <div className="flex flex-center gap-1">
-                        <Phone size={14} className="text-gray" />
-                        {c.phone || <span className="text-gray">(trống)</span>}
-                      </div>
-                    </td>
-                    <td>
-                      <div>
-                        <strong>{c.name || 'Chưa có tên'}</strong>
-                      </div>
-                      {c.relationship && c.parent_name && (
-                        <div className="text-sm" style={{ color: '#8b5cf6' }}>
-                          <User size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                          {c.relationship} của <strong>{c.parent_name}</strong>
-                        </div>
-                      )}
-                      {c.children_count > 0 && (
-                        <div className="text-sm text-gray">
-                          <Users size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                          Có {c.children_count} người nhận
-                        </div>
-                      )}
-                      {c.notes && (
-                        <div className="text-sm text-gray">
-                          <FileText size={10} style={{ display: 'inline', marginRight: '4px' }} />
-                          {c.notes}
-                        </div>
-                      )}
-                      {c.discount_note && (
-                        <div className="text-sm" style={{ color: '#dc2626' }}>
-                          💬 {c.discount_note}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      {c.subscriptions && c.subscriptions.length > 0 ? (
-                        c.subscriptions.map((sub, i) => (
-                          <div key={i} className="text-sm" style={{ marginBottom: '2px' }}>
-                            <span className="badge badge-info" style={{ marginRight: '4px' }}>
-                              {sub.product_name || sub.product_type}
-                            </span>
-                            {sub.group_name && (
-                              <span 
-                                className="badge" 
-                                style={{ 
-                                  background: sub.group_color || '#e2e8f0',
-                                  color: '#1e293b'
-                                }}
-                              >
-                                {sub.group_name}
-                              </span>
-                            )}
-                            {sub.cycles > 1 && (
-                              <span className="text-gray"> ({sub.cycles} CT)</span>
-                            )}
-                          </div>
-                        ))
-                      ) : c.requested_product ? (
-                        <div className="text-sm">
-                          <span className="badge badge-warning">
-                            {c.requested_product}
-                          </span>
-                          {c.requested_cycles && (
-                            <span className="text-gray"> ({c.requested_cycles} CT)</span>
-                          )}
-                          <div className="text-gray" style={{ fontSize: '0.7rem' }}>
-                            Chờ xếp nhóm
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-gray">-</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span className="font-bold" style={{ 
-                        color: c.balance > 0 ? '#22c55e' : '#64748b' 
-                      }}>
-                        {formatMoney(c.balance)}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span className="font-bold" style={{ color: c.points > 0 ? '#7c3aed' : '#94a3b8' }}>
-                        {c.points || 0}
-                      </span>
-                    </td>
-                    <td>
-                      {!c.membership ? (
-                        <span className="text-gray">-</span>
-                      ) : (
-                        <span style={{
-                          fontWeight: 700, padding: '2px 7px', borderRadius: 5, fontSize: '0.75rem', whiteSpace: 'nowrap',
-                          background: c.membership.status === 'expired' ? '#fee2e2' : c.membership.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
-                          color: c.membership.status === 'expired' ? '#b91c1c' : c.membership.status === 'expiring_soon' ? '#92400e' : '#5b3ea3',
-                        }} title={c.membership.status === 'expired' ? 'Đã hết hạn' : c.membership.vo_han ? 'Không thời hạn' : `Còn ${c.membership.days_remaining} ngày`}>
-                          {c.membership.tier_name}{c.membership.status !== 'active' && ` (${c.membership.status === 'expired' ? 'hết hạn' : c.membership.days_remaining + 'n'})`}
-                        </span>
-                      )}
-                    </td>
-                    <td>{getStatusBadge(c)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          
-          {/* Hướng dẫn */}
-          <div style={{ 
-            marginTop: '1rem', 
-            padding: '0.75rem', 
-            background: '#f0f9ff', 
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            color: '#0369a1'
-          }}>
-            💡 Click vào dòng khách hàng để cài đặt chiết khấu và ghi chú
-          </div>
-        </div>
+        ) : (kh ? chiTiet() : danhSach())}
       </div>
 
       {/* Add Customer Modal */}
@@ -687,275 +737,8 @@ export default function Customers() {
           </div>
         </div>
       )}
-
-      {/* Modal Chi tiết khách hàng - Ghi chú khách */}
-      {showDetailModal && selectedCustomer && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="modal" style={{ maxWidth: '450px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title">
-                👤 Chi tiết khách hàng
-              </div>
-              <button className="btn btn-outline" onClick={() => setShowDetailModal(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="modal-body">
-              {/* Thông tin cơ bản */}
-              <div style={{ 
-                padding: '1rem', 
-                background: '#f8fafc', 
-                borderRadius: '8px',
-                marginBottom: '1rem'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
-                      {selectedCustomer.name || 'Khách lẻ'}
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '4px' }}>
-                      <Phone size={14} style={{ marginRight: '6px', display: 'inline', verticalAlign: 'middle' }} />
-                      {selectedCustomer.phone}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    {getStatusBadge(selectedCustomer)}
-                    <div style={{ marginTop: '8px', fontWeight: 600, color: selectedCustomer.balance > 0 ? '#22c55e' : '#64748b' }}>
-                      💰 {formatMoney(selectedCustomer.balance)}
-                    </div>
-                    <div style={{ marginTop: '4px', fontWeight: 600, color: selectedCustomer.points > 0 ? '#7c3aed' : '#94a3b8' }}>
-                      🎁 {selectedCustomer.points || 0} điểm
-                    </div>
-                    {selectedCustomer.phone && (
-                      <button className="btn btn-outline" style={{ marginTop: '6px', padding: '4px 10px', fontSize: '0.78rem' }}
-                        onClick={() => (showRedeem ? setShowRedeem(false) : openRedeem())}>
-                        {showRedeem ? 'Đóng' : '🎫 Đổi quà'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {selectedCustomer.phone && <MaDangNhapApp key={selectedCustomer.phone} sdt={selectedCustomer.phone} />}
-
-                <ViKhach khach={selectedCustomer} onDoi={async () => {
-                  const ds = await loadCustomers();
-                  const moi = ds?.find((x) => x.phone === selectedCustomer.phone);
-                  if (moi) setSelectedCustomer(moi);
-                }} />
-
-                {goiDangDung?.so_dang_dung > 0 && (
-                  <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', fontSize: '0.85rem' }}>
-                    <Link to={`/reports?tab=packages&phone=${encodeURIComponent(selectedCustomer.phone)}`} style={{ color: '#7c3aed', fontWeight: 600 }}>
-                      📦 Gói đang dùng: {goiDangDung.so_dang_dung} gói · còn {goiDangDung.con_lai} túi →
-                    </Link>
-                  </div>
-                )}
-
-                {/* TIER-1c: hạng thành viên hiện tại */}
-                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: '0.85rem' }}>
-                    {!membershipStatus || membershipStatus.status === 'none' ? (
-                      <span style={{ color: '#94a3b8' }}>Chưa có hạng thành viên</span>
-                    ) : (
-                      <span>
-                        <span style={{
-                          fontWeight: 700, padding: '2px 8px', borderRadius: 5, fontSize: '0.8rem',
-                          background: membershipStatus.status === 'expired' ? '#fee2e2' : membershipStatus.status === 'expiring_soon' ? '#fef3c7' : '#ede9fe',
-                          color: membershipStatus.status === 'expired' ? '#b91c1c' : membershipStatus.status === 'expiring_soon' ? '#92400e' : '#5b3ea3',
-                        }}>{membershipStatus.tier_name}</span>
-                        {membershipStatus.status === 'expired' ? (
-                          <span style={{ color: '#b91c1c', marginLeft: 6 }}>Đã hết hạn</span>
-                        ) : membershipStatus.status === 'expiring_soon' ? (
-                          <span style={{ color: '#92400e', marginLeft: 6 }}>Còn {membershipStatus.days_remaining} ngày</span>
-                        ) : (
-                          <span style={{ color: '#64748b', marginLeft: 6 }}>{membershipStatus.vo_han ? 'Không thời hạn' : `Còn ${membershipStatus.days_remaining} ngày`}</span>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <CapHang sdt={selectedCustomer.phone} coQuyen={hasPermission('cap_hang')} onDoi={() => loadMembershipStatus(selectedCustomer.phone)} />
-
-                {/* LOY-2: khu đổi quà tại quầy */}
-                {showRedeem && (
-                  <div style={{ marginTop: '12px', padding: '10px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px' }}>
-                    {redeemResult && (
-                      <div style={{ padding: '10px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', marginBottom: '10px' }}>
-                        <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>✅ Mã voucher: {redeemResult.code}</div>
-                        <div style={{ fontSize: '0.85rem', color: '#166534', marginTop: '2px' }}>
-                          {redeemResult.reward_name} · hạn {redeemResult.expires_at} · đã trừ {redeemResult.points_spent} điểm, còn {redeemResult.points_left}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#166534', marginTop: '4px' }}>
-                          Đọc mã này cho khách. Dùng được <b>1 lần</b> rồi hết hiệu lực — khách tặng ai cũng được.
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px' }}>Kho quà</div>
-                    {rewards.length === 0 ? (
-                      <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Chưa có quà. Thêm ở Cài đặt → 🎫 Kho quà.</div>
-                    ) : rewards.map(r => {
-                      const enough = (selectedCustomer.points || 0) >= r.points_cost;
-                      return (
-                        <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderTop: '1px solid #f3e8ff' }}>
-                          <div style={{ fontSize: '0.85rem' }}>
-                            {r.name}
-                            <span style={{ color: '#7c3aed', fontWeight: 600, marginLeft: '6px' }}>{r.points_cost} điểm</span>
-                          </div>
-                          <button className="btn btn-primary" style={{ padding: '4px 12px', fontSize: '0.78rem' }} disabled={!enough || redeeming}
-                            title={enough ? '' : 'Khách chưa đủ điểm'}
-                            onClick={() => doRedeem(r)}>
-                            {redeeming ? '...' : 'Đổi'}
-                          </button>
-                        </div>
-                      );
-                    })}
-
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, margin: '10px 0 6px' }}>Ví voucher ({vouchers.length})</div>
-                    {vouchers.length === 0 ? (
-                      <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Chưa có voucher nào chưa dùng.</div>
-                    ) : vouchers.map(v => (
-                      <div key={v.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', borderTop: '1px solid #f3e8ff', fontSize: '0.82rem' }}>
-                        <span><b>{v.code}</b> · {v.reward_name || '—'}</span>
-                        <span style={{ color: '#64748b' }}>hạn {v.expires_at || '—'}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {selectedCustomer.relationship && selectedCustomer.parent_name && (                  <div style={{ marginTop: '8px', padding: '8px', background: '#f3e8ff', borderRadius: '6px', fontSize: '0.85rem' }}>
-                    <User size={14} style={{ display: 'inline', marginRight: '6px', color: '#8b5cf6' }} />
-                    {selectedCustomer.relationship} của <strong>{selectedCustomer.parent_name}</strong>
-                  </div>
-                )}
-
-                {selectedCustomer.subscriptions && selectedCustomer.subscriptions.length > 0 && (
-                  <div style={{ marginTop: '8px' }}>
-                    {selectedCustomer.subscriptions.map((sub, i) => (
-                      <span key={i} className="badge badge-info" style={{ marginRight: '4px' }}>
-                        {sub.product_name || sub.product_type}
-                        {sub.group_name && ` - ${sub.group_name}`}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Ghi chú từ SX (readonly) */}
-                {selectedCustomer.notes && (
-                  <div style={{ marginTop: '8px', padding: '8px', background: '#f1f5f9', borderRadius: '6px', fontSize: '0.85rem', color: '#64748b' }}>
-                    <FileText size={12} style={{ display: 'inline', marginRight: '6px' }} />
-                    <span style={{ fontStyle: 'italic' }}>Ghi chú SX: {selectedCustomer.notes}</span>
-                  </div>
-                )}
-              </div>
-
-              {canEditNote(selectedCustomer) ? (
-                <>
-                  {/* Ghi chú khách — cột discount_note, in trên hoá đơn */}
-                  <div className="form-group">
-                    <label className="form-label">
-                      💬 Ghi chú khách (in trên hoá đơn)
-                    </label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={detailForm.discount_note}
-                      onChange={(e) => setDetailForm({...detailForm, discount_note: e.target.value})}
-                      placeholder="VD: Ít ngọt, không đá..."
-                    />
-                  </div>
-
-                  {/* Địa chỉ giao hàng */}
-                  <div className="form-group">
-                    <label className="form-label">
-                      📍 Địa chỉ (hiển thị trên hóa đơn)
-                    </label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={detailForm.address}
-                      onChange={(e) => setDetailForm({...detailForm, address: e.target.value})}
-                      placeholder="VD: 123 Nguyễn Trãi, Thanh Xuân, Hà Nội"
-                    />
-                  </div>
-
-                  {/* CT-1a: ngày sinh — nhập MỘT lần; KHÔNG lưu số căn cước */}
-                  <div className="form-group">
-                    <label className="form-label">🎂 Ngày sinh (nhập một lần)</label>
-                    {selectedCustomer.ngay_sinh && !ngaySinh.sua ? (
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <b>{selectedCustomer.ngay_sinh.split('-').reverse().join('/')}</b>
-                        {hasPermission('sua_ngay_sinh')
-                          ? <button type="button" className="btn btn-outline" onClick={() => setNgaySinh((n) => ({ ...n, sua: true, gia: selectedCustomer.ngay_sinh }))}>Sửa</button>
-                          : <span style={{ fontSize: 12, color: '#6b7280' }}>Chỉ chủ quán sửa được</span>}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <input type="date" className="input" style={{ flex: '0 1 170px' }} value={ngaySinh.gia} onChange={(e) => setNgaySinh((n) => ({ ...n, gia: e.target.value }))} />
-                        {selectedCustomer.ngay_sinh && (
-                          <input type="text" className="input" style={{ flex: '1 1 200px' }} maxLength={200} placeholder="Lý do sửa (bắt buộc)" value={ngaySinh.lyDo}
-                            onChange={(e) => setNgaySinh((n) => ({ ...n, lyDo: e.target.value }))} />
-                        )}
-                        <button type="button" className="btn btn-primary" onClick={luuNgaySinh}
-                          disabled={ngaySinh.dangLuu || !ngaySinh.gia || (!!selectedCustomer.ngay_sinh && !ngaySinh.lyDo.trim())}>
-                          {ngaySinh.dangLuu ? 'Đang lưu…' : 'Lưu ngày sinh'}
-                        </button>
-                        {ngaySinh.sua && <button type="button" className="btn btn-outline" onClick={() => setNgaySinh((n) => ({ ...n, sua: false, loi: '' }))}>Bỏ</button>}
-                      </div>
-                    )}
-                    {ngaySinh.loi && <div style={{ color: '#b91c1c', fontSize: 13, marginTop: 4 }}>{ngaySinh.loi}</div>}
-                    {!selectedCustomer.ngay_sinh && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Khách chưa có ngày sinh. Nhập theo căn cước khách đưa xem — POS không lưu số căn cước.</div>}
-                  </div>
-                </>
-              ) : (
-                <div style={{ 
-                  padding: '1rem', 
-                  background: '#fef2f2', 
-                  borderRadius: '8px',
-                  border: '1px solid #fecaca',
-                  marginBottom: '1rem',
-                  color: '#991b1b'
-                }}>
-                  <div style={{ fontWeight: 500, marginBottom: '0.5rem' }}>
-                    ⚠️ Không thể sửa ghi chú
-                  </div>
-                  <div style={{ fontSize: '0.85rem' }}>
-                    Khách hàng chưa có SĐT. Vui lòng bổ sung SĐT ở hệ thống SX trước khi sửa ghi chú.
-                  </div>
-                </div>
-              )}
-
-            </div>
-            <div className="modal-footer">
-              <button 
-                type="button" 
-                className="btn btn-outline" 
-                onClick={() => setShowDetailModal(false)}
-              >
-                Đóng
-              </button>
-              {canEditNote(selectedCustomer) && (
-                <button 
-                  type="button" 
-                  className="btn btn-primary" 
-                  onClick={handleSaveDetail}
-                  disabled={submitting}
-                >
-                  {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       <style>{`
-        .hover-row:hover {
-          background-color: #f8fafc !important;
-        }
-        .hover-row:hover td {
-          background-color: #f8fafc !important;
-        }
+        .kh-dong:hover { background-color: #f8fafc; }
       `}</style>
     </>
   );

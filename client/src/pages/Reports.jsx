@@ -22,7 +22,7 @@ export default function Reports() {
   const [searchParams, setSearchParams] = useSearchParams();
   const goiLoc = Number(searchParams.get('goi')) || null;
   const { hasPermission } = useAuth();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'packages' ? 'packages' : 'daily'); // daily, discount, packages
+  const [activeTab, setActiveTab] = useState(['packages', 'doisoat'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'daily'); // daily, discount, packages, doisoat (GIAO-DIEN-2: nút Đối soát tiền ở Quản lý)
 
   // GOI-2 (Q1, Q2): máy chủ gom MỖI KHÁCH MỘT DÒNG (`theo-khach`) + lọc Đang dùng / Lâu chưa lấy / Đã xong; ?goi= (từ Cài đặt) và ?phone=
   // (từ chi tiết khách) lọc sẵn; tìm tên / SĐT tại màn. Gói: Đã xong (lấy đủ) · Đã kết thúc (chủ quán kết thúc, Q4).
@@ -236,7 +236,7 @@ export default function Reports() {
                     <div className="stat-value text-success">
                       {formatPrice(report?.thuc_thu)}
                     </div>
-                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>= tiền mặt + chuyển khoản thật nhận</div>
+                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>= tiền thật vào quán (gồm tiền khách nạp, đã trừ hoàn) — khớp tab Đối soát</div>
                   </div>
                 </div>
 

@@ -1,0 +1,64 @@
+TOPPING-1 — bằng chứng ĐỎ trên code gốc (27.11.2026)
+
+1) cong_cu/thu_TOPPING1.js — chạy trên cây gốc (commit 48caccf2: chỉ thêm bài thử, server/ client/ chưa đổi):
+   node cong_cu/thu_TOPPING1.js
+   ... (trích)
+   ✗ B2: bài chạy hết mục  — Error: Cannot find module '.../server/nang_cap/036_topping.js'
+   ✗ T12 1 ly trà + 2 phần nếp cẩm × 2 ly = 45.000×2 + 10.000×2×2 = 130.000đ  — 90000
+   ✗ T14 topping không thuộc danh sách của món (Cam không cài topping) → TOPPING_KHONG_CHO_MON  — HTTP 200
+   ✗ T18 khách Vàng 10 %: trà 45.000 + thạch 7.505 → giảm 4.500 + 751 = 5.251, tổng 47.254đ  — HTTP 200 · 40500 · 4500
+   ✗ T19 voucher 20.000đ + voucher 10 % trên 130.000 (gồm topping) → 20.000 + 11.000, tổng 99.000đ  — HTTP 200 · 63000
+   ✗ T24 hai dòng cùng topping tổng 7 > tồn 6 → HET_HANG (ngay trên)  — HTTP 200
+   ✗ T28d đền ly thứ hai đủ 55.000 (gồm topping) → qua  — HTTP 400 · VUOT_GIA · Tiền đền tối đa: 45,000đ
+   ✗ T09 dữ liệu hoá đơn: dòng topping trỏ ly (topping_cua) ...
+   ✗ T31 đơn App có topping = đơn quầy cùng giỏ (150.000đ)  — HTTP 200 · 110000 · 110000
+   TỔNG: 14 đạt · 69 hỏng · 83 ca
+   (sau đó bỏ ca T37 — quầy đang tạm ngưng gói, GOI_TAM_DUNG: luồng "ly từ gói + topping" không có ở quầy → CHƯA KIỂM.)
+
+   (Lịch sử: lần 27.11 trước khi mở Phạm vi, HEAD c6cf0705 — 76 đạt · 10 hỏng · 86 ca, đột biến tạm `--bo C4,Q7` 19/19. Đã cũ.)
+
+   Bản bài HIỆN TẠI (sau thêm T44b, T09d, T05d/T05e, T28g, T48c) chạy LẠI trên cây gốc acc8892 (git archive + chép bài vào), 27.11:
+   ✗ T28g mã "giảm 1 món" + topping: đơn 42.500; đền 42.501 → VUOT_GIA … — 22500 · HTTP 400 · VUOT_GIA · Tiền đền tối đa: 22,500đ …
+   ✗ T09d topping nhóm đặc biệt giảm % riêng (20 %: 8.000), ly 10 % … — 40500 · [40500] · 10
+   TỔNG: 16 đạt · 72 hỏng · 88 ca   (mục B / C sập sớm trên gốc nên in ít ca hơn trên code vá)
+   Ca vòng sửa 1 chạy trên code TRƯỚC vòng sửa (commit 7b87c0c9, đã có tính năng): ✗ T05d (HTTP 400 TOPPING_KHONG_HOP_LE) · ✗ T48c · ✗ T28g
+   (Tiền đền tối đa: 22,500đ) — TỔNG: 89 đạt · 3 hỏng · 92 ca.
+   Sau vá (HEAD e17f9486): TỔNG: 92 đạt · 0 hỏng · 92 ca. Đột biến (không cờ bỏ qua): đối chứng 92 đạt · 0 hỏng; 31/31 BẮT.
+
+   Vòng sửa 2 (thêm T43b, T30d, T35b, T35c, T45, T47b — phủ chỗ vá ĐÃ có), bản bài 216397b3 chạy LẠI trên cây gốc acc8892:
+   ✗ T43b … — 15000 · ✗ T30d … — HTTP 200 · undefined · ✗ T35c … (không topping[]) · ✗ T45 … ("2 x Trà Dưỡng Nhan TP1", không dòng "+")
+   ✓ T35b, ✓ T47b (gốc không ghi dòng topping nên đếm đúng tự nhiên — giá trị của hai ca nằm ở đột biến VS-so-mon-app-da-tra, VS-item-count trên code vá)
+   TỔNG: 18 đạt · 76 hỏng · 94 ca. Trên code vá: TỔNG: 98 đạt · 0 hỏng · 98 ca.
+
+3) Bài thử cũ phải đổi vì hành vi chủ quán duyệt đổi (LUAT §6.7 / §6.8) — bản MỚI chạy trên cây gốc acc8892 (git archive + chép bài mới vào):
+   cong_cu/thu_KH1.js    → ✗ E5 mỗi món ĐÚNG bộ khoá danh sách trắng — 156 đạt · 1 hỏng
+   cong_cu/thu_KHAPI2.js → ✗ E3 trường cũ y nguyên (…) — 100 đạt · 1 hỏng
+   cong_cu/thu_KHSP1.js  → ✗ C3 mỗi món ĐÚNG bộ khoá: 8 cũ + 5 mới + anh, không trường nào khác — 42 đạt · 1 hỏng
+   cong_cu/thu_KHO1.js   → ✗ D1 pos_products KHÔNG thêm cột — 111 đạt · 1 hỏng
+   cong_cu/thu_BH1.js    → ✗ E8 … thiếu hàm coTuyChon · ✗ E9 · ✗ E10 · ✗ E11 · ✗ E12 · ✗ E13 — 68 đạt · 6 hỏng
+   (bản GỐC các bài này chạy trên code mới: ĐỎ — npm test 27.11: KH1 E5, KHAPI2 E3, KHO1 D1, KHSP1 C3 + E1; BH1 E6 thiếu hàm ghiChuMacDinh.)
+
+   Vòng sửa 4 (soát vòng 3: thêm T49 mã lỗi, T33c, T34c, T35d, T46b, T28h; đổi tên T30b, T39), bản bài 0ce1e9c8 chạy LẠI trên cây gốc acc8892:
+   ✗ T28h — {"unit_price":45000,"damage_value":45000} · ✗ T49 — HTTP 200 · ✗ T33c — HTTP 200 · ✗ T34c · ✗ T35d (không topping) · ✗ T46b (không dòng "+")
+   TỔNG: 18 đạt · 81 hỏng · 99 ca. Trên code vá (HEAD 0ce1e9c8): TỔNG: 103 đạt · 0 hỏng · 103 ca. Đột biến 43/43 BẮT, đối chứng 103/0.
+   T28h trên code TRƯỚC vòng sửa 4: chính là đột biến BV-hang-hong-gom-topping (gỡ phần topping) → BẮT.
+
+SỐ CA cong_cu/thu_TOPPING1.js: 103
+SỐ CA ban_mau_pos/thu/thu_topping.js: 30
+SỐ CA cong_cu/thu_BH1.js: 74
+SỐ CA cong_cu/thu_KH1.js: 157
+SỐ CA cong_cu/thu_KHAPI2.js: 101
+SỐ CA cong_cu/thu_KHSP1.js: 43
+SỐ CA cong_cu/thu_KHO1.js: 112
+SỐ CA cong_cu/thu_NHOMMON1.js: 50
+
+2) ban_mau_pos/thu/thu_topping.js — trên bản mẫu gốc (chưa sửa ban_mau_pos.html): eval `A={…tpThem…}` → ReferenceError
+   (hàm topping chưa có) → chay_thu.sh tính SẬP = hỏng. Sau sửa: 30 đạt · 0 hỏng; cả bộ 156 → 186 đạt · 0 hỏng.
+
+4) cong_cu/thu_NHOMMON1.js — bài của NHOM-MON-1 (PR #107, đã merge main aa9eff80) phải sửa 3 ca vì TOPPING-1 đổi hành vi
+   (ghiChuMacDinh.js bỏ → ghi chú theo từng món, bước 036 chép bộ cũ theo mã nhóm; lưới món = spBan; hợp đồng lên v20). Chạy lại 27.11 (chat bàn 41):
+   Bản bài MỚI chạy trên cây gốc main aa9eff80 (git archive + chép bài vào):
+   ✗ A7: bài chạy hết mục — ENOENT .../server/nang_cap/036_topping.js (ca A7d) · ✗ A4e (không có spBan)
+   TỔNG: 48 đạt · 2 hỏng (50 ca). Trên code vá (HEAD afa6ea1b): 50 đạt · 0 hỏng.
+   Bản GỐC bài (main) chạy trên code mới: ĐỎ — ✗ A7 (ENOENT ghiChuMacDinh.js) · ✗ A4e · ✗ A6a (PHIEN_BAN 19) — 47 đạt · 3 hỏng
+   → bài sửa thường (LUAT §6.8), không thuộc "## Bài thử cũ sửa".

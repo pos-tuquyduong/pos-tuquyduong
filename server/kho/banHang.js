@@ -50,7 +50,11 @@ const chuaSan = (p, bang) => !p.kieu || p.kieu === 'chua_dinh_luong' || !(bang[p
 /** items → cần gì: thành phẩm (món làm sẵn → SL), nguyên liệu (món pha tại chỗ → triển khai × SL, cả giỏ), từng món, món chưa sẵn sàng. */
 function canCuaItems(items, { mon, bang }) {
   const ra = { thanhPham: new Map(), nguyenLieu: new Map(), phaCua: new Map(), chua: [] };
-  for (const i of Array.isArray(items) ? items : []) {
+  // TOPPING-1: thân thô (phiên giữ hàng, tạo phiên) gửi topping LỒNG trong dòng món → mở thành dòng { topping, phần × số ly }; orderItems đã dẹt
+  // (truKhoDon chỉ chép product_id / quantity) nên không đếm hai lần. Cùng topping ở nhiều ly cộng dồn ở `cong` bên dưới.
+  const det = (Array.isArray(items) ? items : []).flatMap((i) => [i, ...(Array.isArray(i?.topping) ? i.topping : [])
+    .map((t) => ({ ...t, quantity: Number.isInteger(t?.so_phan) && t.so_phan > 0 ? t.so_phan * Number(i.quantity) : 0 }))]);
+  for (const i of det) {
     const p = timMon(mon, i);
     const sl = Number(i?.quantity);
     if (!p || !(sl > 0)) continue;   // món không bán / SL sai: taoDonGoc tự chặn

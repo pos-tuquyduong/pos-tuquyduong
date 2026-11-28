@@ -691,7 +691,7 @@ export function HoaDonTo({ to, size = '80mm', logo = '' }) {
       {to.mon.map((m, i) => (
         <div key={i} style={{ marginBottom: 3 }}>
           <div style={hang}>
-            <span>{m.sl} x {m.ten}</span>
+            <span style={m.topping ? { paddingLeft: 12 } : undefined}>{m.topping ? m.ten : `${m.sl} x ${m.ten}`}</span>{/* TOPPING-1 */}
             <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
               {m.tien_goc && <s style={{ color: '#666', marginRight: 4 }}>{m.tien_goc}</s>}
               <b>{m.tien}</b>

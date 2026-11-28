@@ -7,12 +7,67 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
 import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
+import ToppingMon, { DanhSachTopping } from './ToppingMon';   // TOPPING-1 (B3)
 
 const KIEU = { pha_tai_cho: 'Pha tại chỗ', lam_san: 'Làm sẵn (theo lô)', chua_dinh_luong: 'Chưa định lượng' };
 const so = (x) => Number(Number(x).toFixed(3)).toLocaleString('vi-VN');
 const hien = (d) => `${so(d.luong_hien)} ${d.don_vi_hien || d.don_vi_luu || ''}`;   // luong_hien do máy chủ đổi (tinh.doiDonVi)
 // Giá NULL = chưa có giá (món nhập từ SX); giá 0 thật (hàng tặng) là hợp lệ. MỘT vị từ cho cả số đếm lẫn lọc.
 const chuaCoGia = (p) => !!p.is_active && p.price === null;
+
+// ── ANH-MON-1: ảnh món. Thu nhỏ NGAY Ở MÁY (cắt vuông giữa → CO_ANH × CO_ANH, WebP, máy không ra WebP thì JPEG); máy chủ chỉ kiểm + lưu (≤ 120 KB). ──
+const CO_ANH = 400;            // cạnh ảnh sau thu nhỏ (px)
+const CHAT_LUONG_ANH = 0.7;    // chất lượng WebP / JPEG
+const kb = (byte) => `${Math.max(1, Math.round(byte / 1024))} KB`;
+
+async function thuNhoAnh(tep) {
+  const bm = await createImageBitmap(tep);
+  const canh = Math.min(bm.width, bm.height);
+  const cv = document.createElement('canvas');
+  cv.width = CO_ANH; cv.height = CO_ANH;
+  cv.getContext('2d').drawImage(bm, (bm.width - canh) / 2, (bm.height - canh) / 2, canh, canh, 0, 0, CO_ANH, CO_ANH);
+  if (bm.close) bm.close();
+  const lam = (kieu) => new Promise((xong) => cv.toBlob(xong, kieu, CHAT_LUONG_ANH));
+  const web = await lam('image/webp');
+  return web && web.type === 'image/webp' ? web : lam('image/jpeg');
+}
+
+/** Ô ảnh trong màn sửa món: chọn / chụp → thu nhỏ → tải; hiện cỡ sau thu nhỏ; nút Xoá ảnh. Quyền do máy chủ kiểm (manage_settings). */
+function AnhMonSua({ sp, onDoi }) {
+  const [anh, setAnh] = useState(sp.anh || null);
+  const [co, setCo] = useState(null);
+  const [dang, setDang] = useState(false);
+  const chon = async (e) => {
+    const tep = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!tep || dang) return;
+    setDang(true);
+    try {
+      const khoi = await thuNhoAnh(tep);
+      if (!khoi) throw new Error('Máy này không thu nhỏ được ảnh — thử ảnh khác');
+      const kq = await api.request(`/products/${sp.id}/anh`, { method: 'PUT', headers: { 'Content-Type': khoi.type }, body: khoi });
+      setAnh(kq.anh); setCo(kq.co); onDoi();
+      baoXong(`Đã lưu ảnh ${sp.name}`);
+    } catch (err) { baoLoiTu('tải ảnh', err); } finally { setDang(false); }
+  };
+  const xoa = async () => {
+    if (dang) return;
+    setDang(true);
+    try { await api.delete(`/products/${sp.id}/anh`); setAnh(null); setCo(null); onDoi(); baoXong(`Đã xoá ảnh ${sp.name}`); }
+    catch (err) { baoLoiTu('xoá ảnh', err); } finally { setDang(false); }
+  };
+  return (
+    <div className="kho-hang" style={{ marginBottom: '0.75rem', alignItems: 'center' }}>
+      <span style={{ width: 72, height: 72, borderRadius: 12, background: '#f1f5f9', overflow: 'hidden', flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        {anh ? <img src={anh} alt="" width={72} height={72} style={{ objectFit: 'cover' }} /> : <span className="kho-nho">Chưa có</span>}
+      </span>
+      <label className="btn btn-outline">{dang ? 'Đang tải…' : anh ? 'Đổi ảnh' : 'Chọn / chụp ảnh'}
+        <input type="file" accept="image/*" disabled={dang} onChange={chon} style={{ display: 'none' }} /></label>
+      {anh && <button className="btn btn-outline" disabled={dang} onClick={xoa}>Xoá ảnh</button>}
+      <span className="kho-nho">{co ? `Ảnh ${CO_ANH}×${CO_ANH} · ${kb(co)}` : `Ảnh được thu về ${CO_ANH}×${CO_ANH}`}</span>
+    </div>
+  );
+}
 
 export default function SanPham({ vaiTro, moId }) {
   const chuQuan = vaiTro === 'owner';
@@ -53,6 +108,7 @@ export default function SanPham({ vaiTro, moId }) {
       )}
       <div className="kho-hang"><input className="input" placeholder="Tìm món" value={tim} onChange={(e) => setTim(e.target.value)} />
         {quanLy && <button className="btn btn-primary" onClick={() => setThemMoi(true)}>+ Thêm món</button>}</div>
+      {quanLy && <DanhSachTopping />}
       {theoNhom.map((n) => (
         <div key={n.id ?? 'chua'} style={{ marginBottom: '1rem' }}>
           <h3 className="card-title">{n.ten}</h3>
@@ -71,10 +127,12 @@ export default function SanPham({ vaiTro, moId }) {
 }
 
 // ── KHO-3a A4 / A5: thông tin bán của món (tạo mới khi sp = null) ──
-function ThongTinMon({ sp, dong }) {
+function ThongTinMon({ sp, dong, onDoiAnh }) {
   const [f, setF] = useState({ name: sp?.name ?? '', category: sp?.category ?? 'juice', price: sp?.price ?? '', unit: sp?.unit ?? 'ly',
     sort_order: sp?.sort_order ?? 0, is_active: sp ? Number(sp.is_active) : 1 });
   const [dang, setDang] = useState(false);
+  const [dsNhom, setDsNhom] = useState([]);   // NHOM-MON-1: nhóm chọn từ danh sách chung (Cài đặt › Nhóm món), không gõ tay
+  useEffect(() => { api.get('/products/nhom').then((r) => setDsNhom(r.data || [])).catch((e) => baoLoiTu('tải nhóm món', e)); }, []);
   const doi = (gt) => setF({ ...f, ...gt });
   const luu = async () => {
     if (dang) return;
@@ -96,9 +154,12 @@ function ThongTinMon({ sp, dong }) {
   return (
     <div className="card" style={{ padding: '1rem', marginBottom: '0.75rem' }}>
       <h3 className="card-title">{sp ? 'Thông tin bán' : 'Thêm món'}</h3>
+      {sp && <AnhMonSua sp={sp} onDoi={onDoiAnh} />}
       <div className="kho-form">
         <label>Tên món<input className="input" value={f.name} onChange={(e) => doi({ name: e.target.value })} /></label>
-        <label>Nhóm (tab ở màn Bán hàng)<input className="input" value={f.category} onChange={(e) => doi({ category: e.target.value })} /></label>
+        <label>Nhóm (tab ở màn Bán hàng)<select className="input" value={f.category} onChange={(e) => doi({ category: e.target.value })}>
+          {(dsNhom.some((g) => g.ma === f.category) ? dsNhom : [...dsNhom, { ma: f.category, ten: f.category }]).map((g) => <option key={g.ma} value={g.ma}>{g.ten}</option>)}
+        </select></label>
         <label>Giá bán (đồng)<input className="input" type="number" min="0" step="1000" value={f.price ?? ''} onChange={(e) => doi({ price: e.target.value })} /></label>
         <label>Đơn vị<input className="input" value={f.unit} onChange={(e) => doi({ unit: e.target.value })} /></label>
         <label>Thứ tự<input className="input" type="number" step="1" value={f.sort_order} onChange={(e) => doi({ sort_order: e.target.value })} /></label>
@@ -118,6 +179,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
   const [ket, setKet] = useState(null);
   const [loi, setLoi] = useState('');
   const [dang, setDang] = useState(false);   // BAO-1a D: đang lưu công thức → khóa nút
+  const [daDoiAnh, setDaDoiAnh] = useState(false);   // ANH-MON-1: đổi / xoá ảnh → quay lại thì nạp lại danh sách
   const [sua, setSua] = useState(null);   // { kieu, nhom_id, dong: [{ loai: 'nl' | 'sp', id, so (đơn vị hiện / phần) }] }
 
   const tinh = async () => {
@@ -146,7 +208,8 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
 
   return (
     <div>
-    {quanLy && <ThongTinMon sp={sp} dong={(doi) => { if (doi) dong(true); }} />}
+    {quanLy && <ThongTinMon sp={sp} dong={(doi) => { if (doi) dong(true); }} onDoiAnh={() => setDaDoiAnh(true)} />}
+    {quanLy && <ToppingMon sp={sp} />}
     <div className="card" style={{ padding: '1rem' }}>
       <h3 className="card-title">{sp.name}</h3>
       <div className="kho-nho" style={{ marginBottom: '0.75rem' }}>{KIEU[sp.kieu]} · công thức cho 1 {sp.category === 'tea' ? 'gói' : 'phần'}
@@ -213,7 +276,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
       <div className="kho-hang" style={{ marginTop: '1rem' }}>
         {sua && <button className="btn btn-primary" disabled={dang} onClick={luu}>{dang ? 'Đang lưu…' : 'Lưu công thức'}</button>}
         {!sua && chuQuan && <button className="btn btn-primary" onClick={batSua}>Sửa công thức</button>}
-        <button className="btn btn-outline" onClick={() => (sua ? setSua(null) : dong(false))}>{sua ? 'Huỷ' : 'Quay lại'}</button>
+        <button className="btn btn-outline" onClick={() => (sua ? setSua(null) : dong(daDoiAnh))}>{sua ? 'Huỷ' : 'Quay lại'}</button>
       </div>
     </div>
     </div>

@@ -220,7 +220,7 @@ nhom('C · BÁNH CÓC — chỉ được siết, không được nới');
 
 // C1 — fetch trần ngoài api.js. NGƯỠNG CHỈ ĐƯỢC GIẢM.
 // Dọn xong một file thì hạ số này xuống, không bao giờ tăng.
-const NGUONG_FETCH = 21; // 22 -> 21: TIEN-KHOA-2 thu no Orders.jsx qua ordersApi.payDebt (31 -> 22: BO-MAN-CU-1 xoa Sales.jsx + CustomerSearch.jsx)
+const NGUONG_FETCH = 20; // 21 -> 20: GIAO-DIEN-2 xoa Registrations.jsx + CustomerInput.jsx; 22 -> 21: TIEN-KHOA-2 thu no Orders.jsx qua ordersApi.payDebt (31 -> 22: BO-MAN-CU-1 xoa Sales.jsx + CustomerSearch.jsx)
 {
   let n = 0;
   const theoFile = {};
@@ -512,6 +512,7 @@ chayBaiThat('cong_cu/thu_GIAODIEN1.js');   // GIAO-DIEN-1: dải Đơn App, Số
 chayBaiThat('cong_cu/thu_GIAO1.js');   // GIAO-1: giao Ahamove ở quầy — phí ship do máy chủ báo, gọi xe một lần, tin báo về, huỷ theo bước, Đối soát
 chayBaiThat('cong_cu/thu_GIAO2.js');   // GIAO-2: tin báo Ahamove trả lời ngay, xử lý sau; đọc lại dự phòng cập nhật được thẻ; nút Tải lại hỏi Ahamove ngay
 chayBaiThat('cong_cu/thu_GIAO3.js');   // GIAO-3: lý do giao thất bại + hàng trả về quán, phí Ahamove không về 0, Đối soát có hạn chờ, Thực thu do máy chủ tính, hộp lý do
+chayBaiThat('cong_cu/thu_GIAO4.js');   // GIAO-4: Ahamove báo phí 0đ / âm → chặn ở Tính phí (502 AHAMOVE_PHI_0), không lưu báo phí; gọi xe không đổi
 chayBaiThat('cong_cu/thu_DOISOATNHANH.js');   // DOISOAT-NHANH: Đối soát log từng bước, hạn mỗi câu + cả lượt (không treo), dừng khi khách bỏ, [CHAM] đang chờ k câu
 chayBaiThat('cong_cu/thu_NAP1.js');   // NAP-1: gói nạp ở quầy, ví hai ngăn (tiền nạp / thưởng nạp), điểm khi tiêu ví, sổ sách tiền nạp
 chayBaiThat('cong_cu/thu_DIEMMON1.js');   // DIEM-MON-1: tích điểm theo món / gói / hạng — chỉ cộng phần dòng bật, trừ theo dòng (CÁCH 2), I8
@@ -821,7 +822,11 @@ chayBaiThat('cong_cu/thu_KHO1.js');   // KHO-1: bảng kho, nâng cấp dữ li�
 chayBaiThat('cong_cu/thu_KHO2a.js');   // KHO-2a: pha chế, phiếu xuất có duyệt, thành phẩm vào kho, tồn, danh sách phiếu
 chayBaiThat('cong_cu/thu_KHO2b.js');   // KHO-2b: đặt hàng có hạn mức, nhận hàng người khác duyệt, xử lý phát sinh, tồn
 chayBaiThat('cong_cu/thu_KHO3a.js');   // KHO-3a: menu từ POS, bán trừ kho POS cùng giao dịch, giữ hàng, lưới an toàn, gỡ SX
+chayBaiThat('cong_cu/thu_KHOGON1.js');   // KHO-GON-1: việc hôm nay, kiểm kê tối đếm mù / bàn giao sáng (phiếu KK), chỉnh tồn tay, diễn biến
+chayBaiThat('cong_cu/thu_NHOMMON1.js');   // NHOM-MON-1: nhóm món dùng chung (chat bàn 41 gắn khi ghép — máy NHOM-MON-1 chưa gắn)
+chayBaiThat('cong_cu/thu_TOPPING1.js');   // TOPPING-1: topping theo món, bán riêng, tiền / kho / sự cố / hoá đơn / tem / App KH
 chayBaiThat('cong_cu/thu_KHSP1.js');   // KH-SP-1: thông tin ngắn của món (bước 005, cửa ghi, /api/kh/menu)
+chayBaiThat('cong_cu/thu_ANHMON1.js');   // ANH-MON-1: ảnh nhỏ cho món (bước 037, tải / xoá / đọc ảnh, menu có anh, ô ảnh quầy, hợp đồng v21)
 chayBaiThat('cong_cu/thu_KHQUAY2.js');   // KH-QUAY-2: ô mã App cho số mới, hoá đơn khách chỉ còn khổ nhiệt
 chayBaiThat('cong_cu/thu_KHOIN1.js');   // KHO-IN-1: cài đặt in phiếu kho (80mm / A5 / A4, số bản), ô khổ hoá đơn mặc định ghi đúng khoá
 chayBaiThat('cong_cu/thu_MANKHACH1.js');   // MANKHACH-1: màn khách — ghép máy, khoá riêng, QR + món lúc thu, nội dung rảnh, cài đặt, thu hồi
@@ -831,6 +836,7 @@ chayBaiThat('cong_cu/thu_KHACHAPP1.js');   // KHACH-APP-1: khách MỘT nguồn 
 chayBaiThat('cong_cu/thu_QUAYUI1.js');   // QUAY-UI-1: màn Bán hàng / Lịch sử đơn theo bản mẫu đã chốt
 chayBaiThat('cong_cu/thu_VOUCHER2.js');   // VOUCHER-2: mẫu voucher, nhiều voucher một đơn + mã chung, voucher ship, không áp lên thẻ / gói / nạp, trả voucher khi huỷ
 chayBaiThat('cong_cu/thu_DANGNHAP2.js');   // DANG-NHAP-2: đăng nhập POS giới hạn 5 lần sai / 15 phút theo cặp (tên + IP), 20 lần theo IP, câu báo chung
+chayBaiThat('cong_cu/thu_GIAODIEN2.js');   // GIAO-DIEN-2: Quản lý 6 nhóm + tìm nhanh, nút mở thẳng đúng màn, gỡ chữ / trang SX, Khách hàng gọn, Hạng thành viên, chữ Thực thu
 // KHO-2a (bài học, K3): vị từ async trong every / some / filter / find của bài thử LUÔN đúng (Promise là truthy) — ca xanh oan. Bản đầu
 // thu_KHO2a.js (715a7e7) có `['so_lan_in', 'ma_gui'].every(async (c) => …)` ở ca E6.
 const MAU_VI_TU_ASYNC = /\.(every|some|filter|find|findIndex)\(\s*async\b/;

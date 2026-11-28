@@ -679,15 +679,16 @@ async function main() {
     const banHang = sach(doc('client/src/pages/BanHang/tinh.js'));
     const banHangMoi = sach(doc('client/src/pages/BanHang/BanHangMoi.jsx'));
     const khachHang = sach(doc('client/src/pages/Customers.jsx'));
-    k('G1 thẻ Hạng (pages/CaiDat/HangThe.jsx): ▲ ▼ thứ bậc, "+ Thêm hạng", "+ Thêm gói", Bán / Chỉ cấp, Lưu', hang.length > 0 && ['▲', '▼', '+ Thêm hạng', '+ Thêm gói', 'Chỉ cấp', 'chi_cap'].every((x) => hang.includes(x)));
-    k('G1b xoá hạng bấm 2 lần ("Bấm lần nữa để xoá"), KHÔNG hộp thoại trình duyệt', hang.includes('Bấm lần nữa để xoá') && !/\bconfirm\s*\(|\balert\s*\(|\bprompt\s*\(/.test(hang));
+    k('G1 thẻ Hạng (pages/CaiDat/HangThe.jsx): ▲ ▼ thứ bậc, "+ Thêm hạng", "+ Thêm gói", Bán / Chỉ cấp, Lưu', hang.length > 0 && ['▲', '▼', '+ Thêm hạng', '+ Thêm gói', 'Chỉ chủ quán cấp', 'chi_cap'].every((x) => hang.includes(x)));
+    k('G1b xoá hạng bấm 2 lần ("Bấm lần nữa để xoá"), KHÔNG hộp thoại trình duyệt', hang.includes('Bấm lần nữa để xoá') && !/\balert\s*\(|\bprompt\s*\(/.test(hang) && !/\bconfirm\s*\(/.test((hang.match(/const xoa = \(h\) => \{[\s\S]*?\n  \};/) || [''])[0]));   // GIAO-DIEN-2 E1: chỉ chỗ ĐỔI hạng đang sửa mới hỏi (moHangKhac) — xoá hạng vẫn bấm 2 lần
     k('G1c không ô % combo (COMBO-1a), không ô số tháng hiệu lực chung, không giá thẻ cũ', !/combo/i.test(hang) && !hang.includes('valid_months') && !hang.includes('card_price'));
     k('G1d Settings.jsx dùng HangThe, bỏ bảng hạng cũ (không còn card_price / valid_months / setTierValidMonths)', caiDat.includes('<HangThe')
       && !caiDat.includes('card_price') && !caiDat.includes('valid_months') && !caiDat.includes('setTierValidMonths'));
-    k('G1e đặt PIN chủ quán ở thẻ Hạng (chỉ chủ quán, gõ mật khẩu)', hang.includes('hangApi.datPin(') && hang.includes('mat_khau') && hang.includes("user?.role === 'owner'")
+    const pinChu = sach(doc('client/src/pages/CaiDat/PinChuQuan.jsx'));   // GIAO-DIEN-2 B4: đặt / đổi PIN tách sang màn riêng
+    k('G1e đặt PIN chủ quán ở màn PinChuQuan.jsx (chỉ chủ quán, gõ mật khẩu)', pinChu.includes('hangApi.datPin(') && pinChu.includes('mat_khau') && pinChu.includes("user?.role === 'owner'")
       && api.includes("api.post('/membership/pin-chu-quan', { mat_khau: matKhau, pin, pin_lai: pinLai, pin_cu: pinCu })"));
-    k('G1g (câu 4 b1) đã có PIN: ô "PIN cũ" hiện và gửi kèm khi đổi; KHÔNG nút "quên PIN"', /\{coPin && \(?\s*<input[^>]*placeholder="PIN cũ"/.test(hang)
-      && /hangApi\.datPin\(\s*pin\.mat_khau\s*,\s*pin\.pin\s*,\s*pin\.pin_lai\s*,\s*pin\.pin_cu\s*\)/.test(hang) && !/quên\s*PIN/i.test(hang));
+    k('G1g (câu 4 b1) đã có PIN: ô "PIN cũ" hiện và gửi kèm khi đổi; KHÔNG nút "quên PIN"', /\{coPin && \(?\s*<input[^>]*placeholder="PIN cũ"/.test(pinChu)
+      && /hangApi\.datPin\(\s*pin\.mat_khau\s*,\s*pin\.pin\s*,\s*pin\.pin_lai\s*,\s*pin\.pin_cu\s*\)/.test(pinChu) && !/quên\s*PIN/i.test(pinChu + hang));
     const khoaGio = (banHang.match(/export function khoaTinh\([\s\S]*?\n\}/) || [''])[0];
     k('G2 Bán hàng: giỏ gửi membership_buy { tier_id, so_thang }, khoá tính tiền có so_thang, khoá dòng thẻ có so_thang',
       /membership_buy:\s*\{\s*tier_id:\s*the\.the\.tier_id,\s*so_thang:\s*the\.the\.so_thang\s*\}/.test(banHang)
