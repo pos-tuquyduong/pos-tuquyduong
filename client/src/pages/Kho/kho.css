@@ -38,3 +38,5 @@
 .kho-dong .input.kho-hep { flex: 0 1 6rem; min-width: 4.5rem; }
 .kho-buoc { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.5rem; }
 .kho-buoc .btn { padding: 0.9rem 0.5rem; }
+/* GIAO-DIEN-3 — máy tính / máy tính bảng ngang: hàng tab xuống dòng, thấy đủ mọi tab (điện thoại ≤ 768 px giữ một hàng cuộn ngang) */
+@media (min-width: 769px) { .kho-tabs { flex-wrap: wrap; overflow-x: visible; } }

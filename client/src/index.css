@@ -40,6 +40,9 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* GIAO-DIEN-3: iPhone không tự phóng chữ khi trang rộng hơn màn (người dùng vẫn phóng to bằng hai ngón) */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
 body {
   font-family: 'Inter', -apple-system, sans-serif;
   background: linear-gradient(180deg, #FEF7ED 0%, #FDF2F8 50%, #FEE2E2 100%);
@@ -105,7 +108,8 @@ input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }
   border-left-color: var(--accent); 
 }
 
-.main-content { flex: 1; margin-left: 240px; }
+/* GIAO-DIEN-3: min-width 0 — con của flex không được kéo CẢ TRANG rộng ra bằng nội dung bên trong (hàng tab, bảng) */
+.main-content { flex: 1; margin-left: 240px; min-width: 0; }
 
 .page-header {
   background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(254,247,237,0.9) 100%);
