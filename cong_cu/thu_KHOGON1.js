@@ -647,6 +647,46 @@ async function main() {
   const kq26 = await goi('nv', 'POST', `/kho/phieu/${px26.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 2 });
   k('Q13b chỉnh tay gõ đúng số máy (khong_doi) → ghi kết quả pha chế → 409, tồn giữ', ct26.khong_doi === true && kq26.status === 409 && kq26.code === 'KQ_DA_KIEM_KE'
     && gan(await tonSP(sNC), nc26), `${JSON.stringify(ct26)} · ${moTa(kq26)} · NC ${await tonSP(sNC)} / ${nc26}`);
+  // Q14 (A): chỉnh tay CHỈ trừ vào phiếu chờ A → phiếu B ĐÃ duyệt cùng món (lô bán hết, chưa ghi kết quả) cũng phải bị khoá
+  datGio('2026-12-02T21:57:00');
+  await ban(sNC, await tonSP(sNC));
+  const pxB14 = await goi('ql', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 5 }], ma_gui: 'pxB14' });
+  await ban(sNC, 5);
+  const pxA14 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 3 }], ma_gui: 'pxA14' });
+  datGio('2026-12-02T21:57:30');
+  const tonA14 = await goi('chu', 'GET', '/kho/ton');
+  const kkTruocA14 = await demKK();
+  const ctA14 = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: 2, ly_do: 'vỡ 1', moc: tonA14.moc, moc_luc: tonA14.moc_luc, ma_gui: 'ctA14' });
+  datGio('2026-12-02T21:58:00');
+  await goi('ql', 'POST', `/kho/phieu/${pxA14.phieu?.id}/duyet`);
+  const kqB14 = await goi('nv', 'POST', `/kho/phieu/${pxB14.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 6 });
+  k('Q14a chỉnh tay chỉ trừ vào phiếu chờ (không phiếu KK) → phiếu KHÁC đã duyệt cùng món ghi kết quả → 409, tồn giữ 2 (không ly ảo)', ctA14.status === 200
+    && (await demKK()) === kkTruocA14 && kqB14.status === 409 && gan(await tonSP(sNC), 2), `${moTa(ctA14)} · ${moTa(kqB14)} · NC ${await tonSP(sNC)}`);
+  // Q14 (B): chỉnh tay món A trừ vào phiếu chờ [A, B] → món B (chưa được đếm) vẫn ghi kết quả được
+  datGio('2026-12-02T21:58:30');
+  await ban(sNC, await tonSP(sNC));
+  const pxAB = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 2 }, { san_pham_id: sFlan, so_phan: 2 }], ma_gui: 'pxAB14' });
+  datGio('2026-12-02T21:58:40');
+  const tonAB = await goi('chu', 'GET', '/kho/ton');
+  const ctAB = await goi('chu', 'POST', '/kho/chinh-tay', { san_pham_id: sNC, thuc: 1, ly_do: 'vỡ 1', moc: tonAB.moc, moc_luc: tonAB.moc_luc, ma_gui: 'ctAB14' });
+  datGio('2026-12-02T21:58:50');
+  await goi('ql', 'POST', `/kho/phieu/${pxAB.phieu?.id}/duyet`);
+  const kqAB = await goi('nv', 'POST', `/kho/phieu/${pxAB.phieu?.id}/ket-qua`, { san_pham_id: sFlan, so_thuc: 1 });
+  const kqABnc = await goi('nv', 'POST', `/kho/phieu/${pxAB.phieu?.id}/ket-qua`, { san_pham_id: sNC, so_thuc: 2 });
+  k('Q14b cùng phiếu chờ [Nước cam, Bánh flan], chỉnh tay Nước cam → Bánh flan ghi kết quả 200; Nước cam 409', ctAB.status === 200 && kqAB.status === 200
+    && kqABnc.status === 409, `${moTa(ctAB)} · flan ${moTa(kqAB)} · NC ${moTa(kqABnc)}`);
+  await ban(sFlan, await tonSP(sFlan));   // nền: Bánh flan về 0 lô cho ca B6
+  // Q14c (K5): dòng cam "phiếu chờ bị từ chối sau lần chốt" chỉ khi lần chốt CHẠM món của phiếu đó
+  datGio('2026-12-02T21:59:10');
+  const pxC14 = await goi('nv', 'POST', '/kho/phieu-xuat', { mon: [{ san_pham_id: sNC, so_phan: 1 }], ma_gui: 'pxC14' });
+  datGio('2026-12-02T21:59:20');
+  const tonC14 = await goi('chu', 'GET', '/kho/ton');
+  await goi('chu', 'POST', '/kho/chinh-tay', { nguyen_lieu_id: nGung, thuc: await tonNL(nGung), ly_do: 'đếm Gừng, đúng', moc: tonC14.moc, moc_luc: tonC14.moc_luc, ma_gui: 'ctC14' });
+  datGio('2026-12-02T21:59:30');
+  const tcTruoc14 = await demTC();
+  const tcC14 = await goi('ql', 'POST', `/kho/phieu/${pxC14.phieu?.id}/tu-choi`, { ly_do: 'pha nhầm' });
+  k('Q14c từ chối phiếu chờ Nước cam sau lần chỉnh tay GỪNG (không chạm Nước cam) → KHÔNG dòng cam', tcC14.status === 200 && (await demTC()) === tcTruoc14,
+    `${moTa(tcC14)} · ${tcTruoc14} → ${await demTC()}`);
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[D] chỉnh tồn tay');
