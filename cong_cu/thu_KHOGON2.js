@@ -47,6 +47,7 @@ const logGoc = console.log, loiGoc = console.error, canhGoc = console.warn;
 const imLang = () => { console.log = () => {}; console.error = () => {}; console.warn = () => {}; };
 const noiLai = () => { console.log = logGoc; console.error = loiGoc; console.warn = canhGoc; };
 const nap = (ten) => { try { return require(path.join(MAY_CHU, ten)); } catch (e) { return { loiNap: e.message }; } };
+const js = (x) => String(JSON.stringify(x));
 const gan = (a, b) => Math.abs(Number(a) - Number(b)) < 1e-9;
 const coKhoa = (x, ds) => (Array.isArray(x) ? x.some((v) => coKhoa(v, ds))
   : x && typeof x === 'object' ? Object.entries(x).some(([kh, v]) => ds.includes(kh) || coKhoa(v, ds)) : false);
@@ -90,7 +91,7 @@ async function main() {
       const headers = ai ? { Authorization: 'Bearer ' + the[ai] } : {};
       if (body) headers['Content-Type'] = 'application/json';
       if (raw) headers['Content-Type'] = raw.kieu;
-      const r = await fetch(goc + url, { method, headers, body: raw ? raw.byte : body ? JSON.stringify(body) : undefined });
+      const r = await fetch(goc + url, { method, headers, body: raw ? raw.byte : body ? js(body) : undefined });
       let j = {}; try { j = await r.json(); } catch { /* không phải JSON */ }
       return { ...j, status: r.status };
     } finally { noiLai(); }
@@ -177,12 +178,12 @@ async function main() {
   let p0 = await pc();
   const monCua = (p, id) => (p.mon || []).find((m) => m.san_pham_id === id) || {};
   k('A2e GET /pha-che: Nước cam (0.2 Cam, Cam 1) → toi_da 5, mot_phan có Cam 0.2', monCua(p0, sNC).toi_da === 5
-    && (monCua(p0, sNC).mot_phan || []).some((d) => d.khoa === `nl:${nCam}` && gan(d.luong, 0.2)), JSON.stringify(monCua(p0, sNC)).slice(0, 200));
+    && (monCua(p0, sNC).mot_phan || []).some((d) => d.khoa === `nl:${nCam}` && gan(d.luong, 0.2)), js(monCua(p0, sNC)).slice(0, 200));
   k('A2f Cam mật ong (0.3 Cam · 0.1 Mật ong) → toi_da 3 (Cam chặn)', monCua(p0, sCM).toi_da === 3, String(monCua(p0, sCM).toi_da));
   k('A2g món dùng gói, gói hết → toi_da 0', monCua(p0, sTra).toi_da === 0 && (monCua(p0, sTra).mot_phan || []).some((d) => d.khoa === `sp:${sGoi}`),
-    JSON.stringify(monCua(p0, sTra)).slice(0, 200));
+    js(monCua(p0, sTra)).slice(0, 200));
   const khoCam = (p0.kho || []).find((x) => x.khoa === `nl:${nCam}`) || {};
-  k('A2h bảng kho có tên + tồn để màn cộng chân "Thiếu:"', khoCam.ten === 'Cam' && gan(khoCam.ton, 1) && 'don_vi' in khoCam, JSON.stringify(khoCam));
+  k('A2h bảng kho có tên + tồn để màn cộng chân "Thiếu:"', khoCam.ten === 'Cam' && gan(khoCam.ton, 1) && 'don_vi' in khoCam, js(khoCam));
   k('A1a mỗi món có nhom_id + me_ra + me_ghi; danh sách nhóm đi kèm', Array.isArray(p0.nhom) && 'nhom_id' in monCua(p0, sNC) && monCua(p0, sTra).me_ra === 25
     && monCua(p0, sTra).me_ghi === '+ 5 L nước' && monCua(p0, sTX).me_ra === null);
   k('A2i nhân viên không nhận khoá giá ở /pha-che', !coKhoa(p0, ['gia_nhap', 'don_gia', 'gia_von']));
@@ -194,7 +195,7 @@ async function main() {
   const a3a = await px('ql', [{ san_pham_id: sNC, so_phan: 3 }, { san_pham_id: sCM, so_phan: 2 }], 'a3a');   // 0.6 + 0.6 = 1.2 Cam > 1
   k('A3a hai món mỗi món ≤ tối đa nhưng TỔNG vượt → 409 THIEU_NGUYEN_LIEU, có dòng Cam (cần 1.2, có 1); không phiếu, tồn giữ',
     a3a.status === 409 && a3a.code === 'THIEU_NGUYEN_LIEU' && (a3a.thieu || []).some((t) => t.ten === 'Cam' && gan(t.can, 1.2) && gan(t.co, 1))
-    && (await demPhieu('PX')) === demPX && gan(await tonNL(nCam), 1), `${moTa(a3a)} · ${JSON.stringify(a3a.thieu)}`);
+    && (await demPhieu('PX')) === demPX && gan(await tonNL(nCam), 1), `${moTa(a3a)} · ${js(a3a.thieu)}`);
   const a3b = await px('chu', [{ san_pham_id: sNC, so_phan: 6 }], 'a3b');
   k('A3b một món vượt (6 × 0.2 = 1.2) → 409 (chủ quán tạo mới cũng chặn)', a3b.status === 409 && a3b.code === 'THIEU_NGUYEN_LIEU', moTa(a3b));
   const a3c = await px('nv', [{ san_pham_id: sNC, so_phan: 6 }], 'a3c');
@@ -227,7 +228,7 @@ async function main() {
   const xemTra = await goi('nv', 'GET', `/kho/phieu/${tra.phieu?.id}`);
   const tmTra = (xemTra.theo_mon || [])[0] || {};
   k('A5a phiếu nồi: theo món có so_noi 2, me_ra 25, me_ghi; tổng có dòng gói 2', tmTra.so_noi === 2 && tmTra.me_ra === 25 && tmTra.me_ghi === '+ 5 L nước'
-    && (xemTra.tong || []).some((t) => t.ten === 'Gói trà atiso' && gan(t.luong, 2)), `${JSON.stringify(tmTra).slice(0, 160)} · ${JSON.stringify(xemTra.tong).slice(0, 160)}`);
+    && (xemTra.tong || []).some((t) => t.ten === 'Gói trà atiso' && gan(t.luong, 2)), `${js(tmTra).slice(0, 160)} · ${js(xemTra.tong).slice(0, 160)}`);
   const tra31 = await px('ql', [{ san_pham_id: sTra, so_phan: 30 }], 'tra30');   // máy cũ gửi số ly lẻ mẻ
   const x31 = await goi('nv', 'GET', `/kho/phieu/${tra31.phieu?.id}`);
   k('A4g K5 máy chưa tải lại gửi so_phan 30 (không chẵn mẻ) cho món có mẻ → 200, so_noi null, gói −1.2', tra31.status === 200 && ((x31.theo_mon || [])[0] || {}).so_noi === null
@@ -247,7 +248,7 @@ async function main() {
   const bang = { [sTra]: [{ thanh_phan_id: sGoi, luong: 0.04 }], [sGoi]: [{ nguyen_lieu_id: nAtiso, luong: 10 }] };
   const tkMacDinh = tk({ goc: sTra, bang }, 25);
   k('A4k trienKhai MẶC ĐỊNH không đổi (bán hàng gọi thẳng — Cấm): gói vẫn triển khai xuống Atiso 10', tkMacDinh.length === 1 && tkMacDinh[0].nguyen_lieu_id === nAtiso && gan(tkMacDinh[0].luong, 10),
-    JSON.stringify(tkMacDinh));
+    js(tkMacDinh));
 
   // ═════════════════════════════════════════════════════════════════════════
   muc('[E] luật duyệt: nhận hàng ai cũng cộng ngay · xuất theo công tắc · phiếu nhận cũ chờ duyệt như cũ');
@@ -337,7 +338,7 @@ async function main() {
   k('B3k chưa đăng nhập → 401; vai trò ngoài owner / manager / staff → 403', b3l.status === 401 && b3m.status === 403, `${moTa(b3l)} · ${moTa(b3m)}`);
   const xA = await goi('nv2', 'GET', `/kho/phieu/${idA}`);
   k('B4a chi tiết phiếu có danh sách 3 ảnh (id, kiểu, cỡ) — KHÔNG kèm byte', (xA.anh || []).length === 3 && xA.anh.every((a) => a.id > 0 && a.kieu && a.co > 0 && !('du_lieu' in a)),
-    JSON.stringify(xA.anh));
+    js(xA.anh));
   const aDau = (xA.anh || [])[0] || {};
   const docA = await goi('nv2', 'GET', `/kho/phieu/${idA}/anh/${aDau.id}`);
   k('B4b người xem được phiếu (nhân viên khác) đọc ảnh → đúng byte gốc', docA.status === 200 && docA.kieu === 'image/jpeg'
@@ -350,7 +351,7 @@ async function main() {
   k('B4d vai trò không xem được phiếu → 403 cả phiếu lẫn ảnh; chưa đăng nhập → 401', docLa.status === 403 && xLa.status === 403 && docKo.status === 401 && !docLa.du_lieu,
     `${moTa(docLa)} · ${moTa(xLa)} · ${moTa(docKo)}`);
   const ds = await goi('chu', 'GET', '/kho/phieu?loai=PN');
-  k('B4e danh sách phiếu không kèm byte ảnh', ds.status === 200 && !JSON.stringify(ds).includes('du_lieu'));
+  k('B4e danh sách phiếu không kèm byte ảnh', ds.status === 200 && !js(ds).includes('du_lieu'));
   const suaA = await goi('chu', 'POST', `/kho/phieu/${idA}/sua`, { dong: [{ nguyen_lieu_id: nMat, luong: 2 }], ly_do: 'nhầm số' });
   const xMoi = await goi('nv', 'GET', `/kho/phieu/${suaA.phieu?.id}`);
   k('B4f chủ quán sửa phiếu nhận → phiếu mới GIỮ 3 ảnh hoá đơn (đường song song K4)', suaA.status === 200 && (xMoi.anh || []).length === 3, `${moTa(suaA)} · ${(xMoi.anh || []).length}`);
@@ -368,13 +369,13 @@ async function main() {
   const choCam = await px('nv', [{ san_pham_id: sNC, so_phan: 1 }], 'theCho');   // phiếu chờ chạm Cam
   const theCam = await goi('nv', 'GET', `/kho/nguyen-lieu/${nCam}/the`);
   const nl = theCam.nguyen_lieu || {};
-  k('D1a tồn + nhãn: Cam 2 < ngưỡng 5 → duoi_nguong', theCam.status === 200 && gan(nl.ton, 2) && nl.nhan === 'duoi_nguong' && nl.ten === 'Cam', `${moTa(theCam)} · ${JSON.stringify(nl)}`);
-  k('D1b phiếu chờ duyệt chạm Cam có trong thẻ', (theCam.cho_duyet || []).some((p) => p.phieu_id === choCam.phieu?.id && gan(p.luong, 0.2)), JSON.stringify(theCam.cho_duyet));
+  k('D1a tồn + nhãn: Cam 2 < ngưỡng 5 → duoi_nguong', theCam.status === 200 && gan(nl.ton, 2) && nl.nhan === 'duoi_nguong' && nl.ten === 'Cam', `${moTa(theCam)} · ${js(nl)}`);
+  k('D1b phiếu chờ duyệt chạm Cam có trong thẻ', (theCam.cho_duyet || []).some((p) => p.phieu_id === choCam.phieu?.id && gan(p.luong, 0.2)), js(theCam.cho_duyet));
   const dm = (theCam.dung_cho_mon || []);
   k('D1c "Dùng cho món": Nước cam đủ 10 phần, Cam mật ong đủ 6 (theo Cam: 2 ÷ 0.3)', dm.some((m) => m.san_pham_id === sNC && m.du_phan === 10) && dm.some((m) => m.san_pham_id === sCM && m.du_phan === 6),
-    JSON.stringify(dm));
+    js(dm));
   k('D1d lô đang có (còn, hạn, nhận lúc) + lịch sử nhập / xuất (số phiếu, người)', (theCam.lo || []).length >= 1 && (theCam.lo || []).every((l) => l.con > 0 && 'han_dung' in l && l.tao_luc)
-    && (theCam.lich_su || []).some((d) => d.so_phieu && d.nguoi && d.loai === 'PN'), `${JSON.stringify(theCam.lo).slice(0, 120)} · ${(theCam.lich_su || []).length}`);
+    && (theCam.lich_su || []).some((d) => d.so_phieu && d.nguoi && d.loai === 'PN'), `${js(theCam.lo).slice(0, 120)} · ${(theCam.lich_su || []).length}`);
   k('D1e nhân viên không nhận khoá giá ở thẻ; quản lý nhận', !coKhoa(theCam, ['gia_nhap', 'don_gia', 'gia_von']) && coKhoa(await goi('ql', 'GET', `/kho/nguyen-lieu/${nCam}/the`), ['gia_nhap']));
   const theAt = await goi('nv', 'GET', `/kho/nguyen-lieu/${nAtiso}/the`);
   const theKo = await goi('nv', 'GET', '/kho/nguyen-lieu/999999/the');
@@ -413,7 +414,7 @@ async function main() {
   const postTnl = [...tnl.matchAll(/api\.(post|put|delete)\(\s*[`'"]([^`'"]+)/g)].map((m) => m[2]);
   k('D2a thẻ: ba nút "＋ Nhận hàng" · "− Xuất / hao hụt" · "Chỉnh tồn", đi đúng đường có sẵn (không đường ghi mới)',
     /＋ Nhận hàng/.test(tnl) && /− Xuất \/ hao hụt/.test(tnl) && /Chỉnh tồn/.test(tnl) && postTnl.length >= 2
-    && postTnl.every((d) => ['/kho/phieu-nhan', '/kho/phieu-phat-sinh'].includes(d)) && /ChinhTonTay/.test(tnl), JSON.stringify(postTnl));
+    && postTnl.every((d) => ['/kho/phieu-nhan', '/kho/phieu-phat-sinh'].includes(d)) && /ChinhTonTay/.test(tnl), js(postTnl));
   const ct = doc(path.join(kd, 'ChinhTonTay.jsx'));
   k('D2b Chỉnh tồn: MỘT khối dùng chung cho Tồn kho và thẻ (/kho/chinh-tay), chỉ hiện khi duoc_chinh_tay', /\/kho\/chinh-tay/.test(ct) && /ChinhTonTay/.test(doc(path.join(kd, 'TonKho.jsx')))
     && !/\/kho\/chinh-tay/.test(doc(path.join(kd, 'TonKho.jsx'))) && /duoc_chinh_tay/.test(tnl));
