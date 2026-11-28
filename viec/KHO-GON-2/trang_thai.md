@@ -29,3 +29,11 @@
 ## Bước 3 — kế hoạch
 - `viec/KHO-GON-2/ke_hoach.md` — phiếu "Chờ duyệt kế hoạch" → commit, push, DỪNG. Có 4 câu hỏi cho chủ quán (Q1, Q2, Q3, Q5 — kế hoạch mục 9; Q4 đã bỏ sau soát, mục 11). Agent chỉ đọc đã soát kế hoạch 4 câu; sửa theo soát ở mục 11.
 - Kho nông (bản chụp): npm test đỏ ở thu_BH2 G1 vì thiếu commit cbbb809 → git fetch --unshallow (chỉ tải lịch sử, không đổi file).
+
+## Duyệt kế hoạch (28.11.2026 — chủ quán qua chat)
+- Q1 = đề xuất: màn khoá nút + máy chủ chặn 409 THIEU_NGUYEN_LIEU lúc TẠO / DUYỆT phiếu xuất pha chế; chủ quán sửa phiếu cũ không chặn.
+- Q2 = đề xuất + bổ sung: làm gói = phiếu xuất món gói (trừ thảo dược, cộng lô gói — đường có sẵn); pha trà từ gói → CHỈ trừ lô gói (hạn gần
+  trước), KHÔNG trừ thảo dược lần hai; không đủ → 409 KHONG_DU_TON; bán / đặt hàng / phát sinh giữ nguyên (Phát hiện). Thêm MỘT ca trọn chuỗi
+  làm 10 gói → pha 2 nồi + đột biến đưa lại cách trừ thảo dược.
+- Q3 = đồng ý · Q5 = đề xuất · ngân sách ~520 code + ~480 thử chấp nhận. Kế hoạch theo mục 11 (không cột so_noi).
+- Song song GIAO-DIEN-4 (không đụng Kho/**); xung đột client/dist chat ghép lúc gộp.
