@@ -12,6 +12,8 @@ const { getNow } = require('../utils/helpers');
 const { COT_THONG_TIN, chuanThongTin, docThongTin } = require('../utils/thongTinMon');
 const { trongGiaoDich, loiGhi } = require('./wallets');
 const { tonMenu } = require('../kho/banHang');
+const crypto = require('crypto');
+const { GIOI_HAN_ANH, DO_DAI_PHIEN_BAN, CACHE_ANH, duongAnh, docAnhMon, loaiAnh } = require('../utils/anhMon');   // ANH-MON-1
 const { TOPPING_TOI_DA_PHAN, docDs, laTopping, docGhiChuNhanh } = require('../utils/topping');   // TOPPING-1
 
 const router = express.Router();
@@ -46,6 +48,7 @@ async function layMenuQuay(category, cho) {
     category ? [category] : []
   );
   const kho = await tonMenu({ query, queryOne }, getNow());
+  const anhMon = await docAnhMon({ query });   // ANH-MON-1: đường dẫn ảnh (null nếu chưa có / kho ảnh hỏng)
   // TOPPING-1: topping của món = id trong topping_cho_mon CÒN là topping đang bán (bỏ cờ / ngừng bán → tự rơi khỏi danh sách).
   const dsTopping = new Set((await query('SELECT id FROM pos_products WHERE is_active = 1 AND la_topping = 1')).map((r) => Number(r.id)));
   return ds.filter((p) => !cho || Number(cho === 'app' ? p.nhom_hien_app : p.nhom_hien_quay) === 1).map((p) => {
@@ -53,6 +56,7 @@ async function layMenuQuay(category, cho) {
     return {
       ...p,
       unique_id: `${p.sx_product_type}_${p.sx_product_id}`,
+      anh: anhMon.get(p.id) ?? null,
       // POS-TONCU-v1: thiếu giá thì null, không 0 (?? giữ giá 0 thật). KHO-3a: món chưa công thức không bán được (quầy hiện mờ, App không thấy).
       price: p.price ?? null,
       sellable: typeof p.price === 'number' && p.price > 0 && !k.chua_cong_thuc,
@@ -427,6 +431,54 @@ router.delete('/nhom/:ma', authenticate, checkPermission('manage_settings'), asy
 
 // KHO-3a C1: SX đã ngắt — danh sách món chỉ quản lý trong POS.
 router.post('/sync-from-sx', authenticate, (req, res) => res.status(410).json({ error: 'Đã ngắt kết nối SX — thêm / sửa món ở Kho › Sản phẩm', code: 'SX_DA_NGAT' }));
+
+// ── ANH-MON-1: ảnh nhỏ của món. Một ảnh / món trong CSDL; đọc công khai (đường dẫn mang phiên bản = băm nội dung → nhớ lâu an toàn). ──
+// Bộ đọc thân thô đứng SAU xác thực + quyền (không quyền thì không đọc byte nào); quá GIOI_HAN_ANH → 413 ANH_QUA_LON (MỘT chỗ chặn).
+const soMon = (req, res, next) => (/^\d+$/.test(req.params.id) ? next() : next('route'));   // chỉ chữ số — Number('0x9') / Number('1e1') không được trỏ sang món khác (như PUT /:id)
+const docThanAnh = express.raw({ type: () => true, limit: GIOI_HAN_ANH });
+const nhanAnh = (req, res, next) => docThanAnh(req, res, (e) => {
+  if (!e) return next();
+  if (e.type === 'entity.too.large') return res.status(413).json({ error: 'Ảnh quá lớn (tối đa 120 KB) — chọn ảnh khác', code: 'ANH_QUA_LON' });
+  res.status(400).json({ error: 'Không đọc được ảnh', code: 'ANH_KHONG_HOP_LE' });
+});
+
+/** PUT /api/pos/products/:id/anh — thân = byte ảnh (JPEG / PNG / WebP thật). Tải lại = thay. */
+router.put('/:id/anh', soMon, authenticate, checkPermission('manage_settings'), nhanAnh, async (req, res) => {
+  const id = Number(req.params.id);
+  const kieu = Buffer.isBuffer(req.body) ? loaiAnh(req.body) : null;   // kiểu THẬT theo byte đầu, bỏ qua Content-Type khách khai
+  if (!kieu) return res.status(400).json({ error: 'Ảnh phải là JPEG, PNG hoặc WebP thật', code: 'ANH_KHONG_HOP_LE' });
+  try {
+    if (!(await queryOne('SELECT 1 AS co FROM pos_products WHERE id = ?', [id]))) return res.status(404).json({ error: 'Không thấy món', code: 'KHONG_THAY' });
+    const phienBan = crypto.createHash('sha256').update(req.body).digest('hex').slice(0, DO_DAI_PHIEN_BAN);
+    await run(`INSERT INTO pos_anh_mon (product_id, kieu, du_lieu, co, phien_ban, sua_luc) VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(product_id) DO UPDATE SET kieu = excluded.kieu, du_lieu = excluded.du_lieu, co = excluded.co, phien_ban = excluded.phien_ban, sua_luc = excluded.sua_luc`,
+    [id, kieu, req.body.toString('base64'), req.body.length, phienBan, getNow()]);
+    res.json({ success: true, anh: duongAnh(id, phienBan), co: req.body.length });
+  } catch (err) { loiGhi(res, err); }
+});
+
+/** DELETE /api/pos/products/:id/anh — xoá ảnh (chưa có ảnh cũng 200: lặp lại được). */
+router.delete('/:id/anh', soMon, authenticate, checkPermission('manage_settings'), async (req, res) => {
+  try {
+    await run('DELETE FROM pos_anh_mon WHERE product_id = ?', [Number(req.params.id)]);
+    res.json({ success: true });
+  } catch (err) { loiGhi(res, err); }
+});
+
+/** GET /api/pos/products/anh/:id/:phienBan — CÔNG KHAI (quầy, App KH, màn khách), không lộ gì ngoài byte ảnh. Phiên bản không khớp bản hiện tại → 404. */
+router.get('/anh/:id/:phienBan', async (req, res) => {
+  const { id, phienBan } = req.params;
+  const khongCo = () => res.status(404).json({ error: 'Không có ảnh', code: 'ANH_KHONG_CO' });
+  if (!/^\d+$/.test(id) || !/^[0-9a-f]+$/.test(phienBan)) return khongCo();
+  try {
+    const a = await queryOne('SELECT kieu, du_lieu FROM pos_anh_mon WHERE product_id = ? AND phien_ban = ?', [Number(id), phienBan]);
+    if (!a) return khongCo();
+    res.set({ 'Content-Type': a.kieu, 'Cache-Control': CACHE_ANH, 'X-Content-Type-Options': 'nosniff' }).send(Buffer.from(a.du_lieu, 'base64'));
+  } catch (err) {
+    console.error('GET /products/anh:', err.message);
+    res.status(500).json({ error: 'Lỗi máy chủ, thử lại sau', code: 'LOI_MAY_CHU' });
+  }
+});
 
 module.exports = router;
 module.exports.layMenuQuay = layMenuQuay; // KH-API-1: /api/kh/menu

@@ -1,6 +1,6 @@
 # Hợp đồng cổng `/api/kh` — POS ↔ App KH
 
-PHIEN_BAN: 20
+PHIEN_BAN: 21
 NGAY: 2026-11-27
 DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-TOMTAT-1 + KH-THE-1) + HUY-1 + VOUCHER-2 + QC-APP-1 + KH-NAP-1 (utils/lichSuVi.js, routes/goi-nap.js, routes/thanh-toan.js, utils/viKhach.js, routes/quang-cao.js, nang_cap/028_quang_cao.js, routes/chuong-trinh.js, routes/tiers.js, server/routes/kh/index.js, loi.js, middleware/khachAuth.js, utils/pinKhach.js, utils/maKhach.js,
   routes/wallets.js loiGhi, routes/signup-codes.js, utils/giaHang.js, utils/gioHoatDong.js, utils/donApp.js, utils/dongHoaDon.js, utils/giuCho.js, utils/membershipStatus.js, nang_cap/003_xung_ho_khach.js,
@@ -35,7 +35,7 @@ DOC_TU_CODE: POS main (KH-SP-1 + KH-MUA-1 + CT-1a + HANG-1 + CK-NOIDUNG-1 + KH-T
 | `GET /toi` | có | — | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh, qr, hang, so_du_vi }` — `hang { id, ten, phan_tram, phan_tram_nhom_dac_biet, het_han } \| null` (hạng CAO NHẤT còn hạn; `het_han` null = không thời hạn — v10); `so_du_vi` xem dưới |
 | `PUT /toi` | có | `{ ten?, xung_ho?, dia_chi?, ngay_sinh? }` — ít nhất một khoá; xem "Hồ sơ" và "Ghi chú v9" | `khach { sdt, ten, ngay_tao, xung_ho, dia_chi, ngay_sinh }` |
 | `POST /gia-han` | có | — | `token`, `het_han` — xem "Tự gia hạn" |
-| `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, nhom_ten, nhom_thu_tu, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4"; `ghi_chu_nhanh[]`, `topping[]` + cấp ngoài `topping_toi_da_phan` (v20): xem "Ghi chú v20"; `nhom_ten`, `nhom_thu_tu` (v19): xem nhật ký v19 |
+| `GET /menu` | không bắt buộc | — (không token: ≤ 300 lần / phút mỗi IP, vượt → 429 `QUA_NHIEU_LAN`) | `data[] { ma, ten, nhom, nhom_ten, nhom_thu_tu, gia, con_hang, ton_cu, ton_luc, gia_hang[] { hang_id, gia }, nhu_cau[], the_chat[], mo_ta, cong_dung, thanh_phan, anh }` — `con_hang` có thể `null`; trường mới (v4) xem "Ghi chú v4"; `anh` (v21): xem "Ghi chú v21"; `ghi_chu_nhanh[]`, `topping[]` + cấp ngoài `topping_toi_da_phan` (v20): xem "Ghi chú v20"; `nhom_ten`, `nhom_thu_tu` (v19): xem nhật ký v19 |
 | `GET /diem` | có | — | `points`, `history` |
 | `GET /voucher` | có | `?all=1` lấy cả mã đã dùng / hết hạn | `data[]`, `ma_khach_moi` — mỗi dòng `data[]` thêm `mo_ta`, `nguon`, `kieu` (v15): xem "Ghi chú v15" |
 | `GET /vi` | có | `?trang=N` (20 dòng / trang) | `trang`, `con_nua`, `data[] { ngay, loai, so_tien, thuong, ma_don, ghi_chu }` — lịch sử tài khoản của chính khách; xem "Ghi chú v17" |
@@ -237,9 +237,15 @@ Thêm vào MỖI đơn của `GET /don` và vào `don` của `GET /don/:ma` (ch�
   `dang_bat` luôn `true` (chỉ trả chương trình đang bật VÀ trong thời gian chạy — ngày bắt đầu / kết thúc tính cả ngày đó, giờ VN). Chỉ HIỂN THỊ ("áp dụng tại
   quán"): mức ưu đãi và điều kiện KHÔNG trả ra; App KHÔNG áp chương trình lên đơn App.
 
+### Ghi chú v21 — ảnh món (`anh` trong `/menu`, ANH-MON-1)
+- `anh` = đường dẫn TƯƠNG ĐỐI của ảnh món, dạng `/api/pos/products/anh/<id món>/<phiên bản>` (App ghép với địa chỉ máy chủ POS đang dùng cho `/api/kh`), hoặc `null`
+  khi món chưa có ảnh. Đọc KHÔNG cần token. Ảnh vuông (quầy thu về 400 × 400 trước khi tải lên; máy chủ chỉ kiểm kiểu thật JPEG / PNG / WebP và ≤ 120 KB). Đường dẫn mang phiên bản nội dung: đổi ảnh → đường dẫn mới; ảnh
+  trả `Cache-Control: public, max-age=31536000, immutable` — App nhớ lâu được, KHÔNG tự ghép đường dẫn, luôn lấy từ `/menu`. Đường dẫn cũ sau khi đổi / xoá ảnh → 404
+  (`ANH_KHONG_CO`); ảnh lỗi → App hiện chữ viết tắt như khi `null`. Không cửa mới dưới `/api/kh`, không trường mới, không mã lỗi mới của `/api/kh`.
+
 ### Ghi chú v4 — thông tin ngắn của món (`/menu`)
-- Mỗi món thêm: `nhu_cau[]`, `the_chat[]` (mảng MÃ; chưa nhập → `[]`), `mo_ta`, `cong_dung`, `thanh_phan` (chữ; chưa nhập → `null`), `anh` (luôn
-  `null` — ảnh món làm sau, KH-SP-2; App giữ ô ảnh chờ). Quầy nhập ở Cài đặt → Sản phẩm; không trường nào khác của `/menu` đổi.
+- Mỗi món thêm: `nhu_cau[]`, `the_chat[]` (mảng MÃ; chưa nhập → `[]`), `mo_ta`, `cong_dung`, `thanh_phan` (chữ; chưa nhập → `null`), `anh` (từ v21, ANH-MON-1:
+  đường dẫn ảnh món hoặc `null` nếu chưa có — xem "Ghi chú v21"; trước v21 luôn `null`). Quầy nhập ở Cài đặt → Sản phẩm; không trường nào khác của `/menu` đổi.
 - Mã `nhu_cau` ∈ `ngu_ngon` (Ngủ ngon) · `dep_da` (Đẹp da) · `am_bung` (Ấm bụng) · `tinh_tao` (Tỉnh táo) · `bo_khi` (Bổ khí) · `giai_nhiet` (Giải nhiệt).
   Mã `the_chat` ∈ `binh_hoa` (Bình hoà) · `khi_hu` (Khí hư) · `duong_hu` (Dương hư) · `am_hu` (Âm hư) · `dam_thap` (Đàm thấp) · `thap_nhiet`
   (Thấp nhiệt) · `huyet_u` (Huyết ứ) · `khi_uat` (Khí uất) · `dac_bam` (Đặc bẩm). Nguồn mã: `server/utils/thongTinMon.js`; mã mới thì thêm vào
@@ -367,7 +373,7 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
 <!-- HOP_DONG_MAY_DOC -->
 ```json
 {
-  "phien_ban": 20,
+  "phien_ban": 21,
   "goc": "/api/kh",
   "cua": [
     { "pt": "POST", "duong": "/dang-nhap/xin-ma", "token": false, "tra": ["lay_ma_tai_quay"] },
@@ -493,3 +499,5 @@ Lỗi máy bất ngờ ở hai cửa này → 500 `LOI_MAY_CHU` như mọi cửa
   `GET /don/:ma` thêm `topping[]` vào dòng món; `so_mon` không đếm topping. 3 mã lỗi mới (`TOPPING_KHONG_CHO_MON`, `TOPPING_SO_PHAN`, `TOPPING_KHONG_BAN_RIENG`).
   "Đã hẹn": bỏ `GET /ghi-chu-nhanh` (nằm trong `/menu`). Không xoá / đổi tên trường cũ — App v18 / v19 không gửi topping là chạy nguyên. (Số v19 lấy theo main
   `acc8892`; NHOM-MON-1 gộp trước thì lấy số kế tiếp lúc gộp.)
+- v21 · 27.11.2026 · ANH-MON-1 (chat bàn 41 ghép sau NHOM-MON-1 v19 + TOPPING-1 v20 → v21): `GET /menu` — `anh` đổi nghĩa từ "luôn `null`" thành đường dẫn ảnh món (tương đối, đọc công khai, nhớ lâu theo phiên bản) hoặc `null` khi
+  chưa có ảnh. Không thêm / xoá / đổi tên trường, không cửa mới, không mã lỗi mới — App v18–v20 đọc `anh` null / chuỗi đều chạy (chuỗi: bỏ qua cũng được).

@@ -27,6 +27,8 @@
 .bh-mon-bao > .bh-mon { flex: 1; padding-right: 2rem; }
 .bh-mon:disabled { opacity: 0.4; cursor: not-allowed; }
 .bh-mon-ten { font-weight: 700; }
+.bh-anh { aspect-ratio: 1; flex: none; border-radius: 10px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: #475569; }
+.bh-anh img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bh-mon-ton { font-size: 0.75rem; color: var(--bh-xam); }
 .bh-gia { font-weight: 700; color: var(--bh-do); }
 .bh-gia-goc { text-decoration: line-through; color: var(--bh-xam); font-weight: 400; margin-right: 0.35rem; font-size: 0.85em; }
@@ -102,7 +104,6 @@
 .bh-tp.bh-chon { border-color: #16a34a; background: #f0fdf4; }
 .bh-tp:disabled { opacity: 0.4; cursor: not-allowed; }
 .bh-tp-so { position: absolute; top: 2px; right: 6px; color: #16a34a; }
-.bh-tp-anh { width: 30px; height: 30px; border-radius: 8px; background: #fde68a; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; }
 .bh-tp-ten { font-size: 0.85rem; font-weight: 600; line-height: 1.2; text-align: center; }
 .bh-tp-con { color: #b45309; }
 .bh-tp-bot { min-width: 40px; min-height: 44px; border: 1.5px solid var(--bh-vien); border-radius: 8px; background: #fff; font-size: 1.2rem; cursor: pointer; }

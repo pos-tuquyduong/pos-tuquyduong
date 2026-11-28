@@ -43,8 +43,8 @@ const monKhach = (p, dsHang) => ({
   con_hang: p.khong_quan_kho ? true : typeof p.stock_quantity === 'number' ? p.stock_quantity > 0 : null,
   ton_cu: !!p.ton_cu, ton_luc: p.ton_luc || null,
   gia_hang: giaCacHang(p.price, p.is_special_group, dsHang),
-  // KH-SP-1: thông tin ngắn nhập ở màn Sản phẩm POS; chưa nhập → [] / null. Ảnh món làm sau (KH-SP-2).
-  nhu_cau: p.nhu_cau, the_chat: p.the_chat, mo_ta: p.mo_ta, cong_dung: p.cong_dung, thanh_phan: p.thanh_phan, anh: null,
+  // KH-SP-1: thông tin ngắn nhập ở màn Sản phẩm POS; chưa nhập → [] / null. ANH-MON-1: `anh` = đường dẫn ảnh món (do layMenuQuay) hoặc null.
+  nhu_cau: p.nhu_cau, the_chat: p.the_chat, mo_ta: p.mo_ta, cong_dung: p.cong_dung, thanh_phan: p.thanh_phan, anh: p.anh ?? null,
   ghi_chu_nhanh: p.ghi_chu_nhanh || [],   // TOPPING-1 (layMenuQuay đã trả [] cho topping)
 });
 /**

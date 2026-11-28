@@ -1,0 +1,53 @@
+ANH-MON-1 — bằng chứng ĐỎ (làm lại 27.11 sau khi ghép main 25adb0fa: NHOM-MON-1 + TOPPING-1, và thêm ảnh topping + danh sách miễn sao lưu)
+Lệnh: python3 viec/ANH-MON-1/dot_bien.py --goc 25adb0fa [--bai <bài>]   (chép server/ + client/src/ của main 25adb0fa ra thư mục tạm, chạy bài thử HIỆN TẠI bằng --may-chu)
+
+═ cong_cu/thu_ANHMON1.js trên cây 25adb0fa (chưa có việc ANH-MON-1):
+  ✗ A1 chủ tải JPEG 80 KB → 200  — HTTP 404
+  ✗ A2 câu trả lời có `anh` là đường dẫn (chuỗi, bắt đầu "/")  — {}
+  ✗ A3 đọc lại KHÔNG token → 200, đúng từng byte  — HTTP 0, 0 byte
+  ✗ A4 Content-Type = image/jpeg (theo byte thật)  — undefined
+  ✗ A5 Cache-Control dài (≥ 1 năm, immutable)
+  ✗ A6 nosniff (không để trình duyệt đoán kiểu)
+  ✗ A7 /api/kh/menu: `anh` = đường dẫn ảnh  — null
+  ✗ A8 menu quầy: `anh` = đường dẫn ảnh
+  ✗ A10 CSDL: kiểu image/jpeg, cỡ 81920 byte  — null
+  ✗ B1 PDF khai image/jpeg → 400 ANH_KHONG_HOP_LE  — HTTP 404
+  ✗ B: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_anh_mon
+  ✗ C1 đúng 120 KB → 200  — HTTP 404
+  ✗ C2 120 KB + 1 byte → 413 ANH_QUA_LON  — HTTP 404
+  ✗ C: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_anh_mon
+  ✗ D: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_anh_mon
+  ✗ E: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_anh_mon
+  ✗ F3 menu quầy: món không ảnh `anh: null`
+  ✗ F4 Kho › Sản phẩm: mỗi món có khoá `anh` (null khi chưa có)  — HTTP 200
+  ✗ F5 Kho › Sản phẩm: món có ảnh trả đúng đường dẫn
+  ✗ F: bài chạy hết mục  — SQLITE_ERROR: no such table: pos_anh_mon
+  ✗ G1 pos_anh_mon có đủ cột product_id, kieu, du_lieu, co, phien_ban, sua_luc
+  ✗ G2 pos_nang_cap ghi bước 37
+  ✗ G3 product_id UNIQUE — hai hàng cho một món bị CSDL từ chối
+  ✗ H1 … H5 (SanPham.jsx thiếu hằng số / canvas / nút Xoá ảnh / api.request; chưa có AnhMon.jsx; thẻ món 0 chỗ dùng AnhMon)
+  ✗ H7 dựng được AnhMon.jsx để vẽ thử  — Build failed (file chưa có)
+  ✗ H11 khung chọn món: topping CÓ ảnh vẽ <img> đúng đường dẫn
+  ✗ H12 khung chọn món: topping CHƯA ảnh hiện chữ viết tắt "TD", chỉ MỘT <img>
+  ✗ H14 danh sách topping ở Kho (ToppingMon.jsx) hiện ảnh
+  11 đạt · 32 hỏng
+THOÁT 1 (trên cây 25adb0fa)
+(Ca I1–I4 về hợp đồng v21 / BAO_APPKH đọc file ở GỐC kho nên không đỏ trong lệnh --goc; đã đỏ ở lần chạy trực tiếp trên cây chưa vá lần đầu: 6 đạt · 32 hỏng.)
+
+═ cong_cu/thu_SAOLUU2.js (bài CŨ sửa thêm ca D2e–D2h) trên cây 25adb0fa:
+  ✗ D2e danh sách bảng cố ý không xuất Excel là ĐÚNG [pos_anh_mon] (không nới thêm bảng khác)  — []
+  ✗ D2f bỏ pos_anh_mon khỏi danh sách miễn → phép chốt BẮT (thiếu đúng pos_anh_mon)
+  ✗ D2g danh sách miễn chỉ còn trong dòng CHÚ THÍCH → phép chốt BẮT
+  ✗ D2h bảng mới KHÁC (không có trong danh sách miễn) thiếu → vẫn BẮT, dù danh sách miễn có mặt
+  36 đạt · 4 hỏng
+THOÁT 1 (trên cây 25adb0fa)
+
+═ Vòng sửa 1 (soát độc lập /ra-soat bắt K4: PUT / DELETE /:id/anh không khoá ^\d+$, Number('0x9') = 9 trỏ sang món khác).
+  Ca D8 D9 thêm vào thu_ANHMON1.js (commit "vòng sửa 1 — ca D8 D9") CHẠY TRÊN products.js CHƯA khoá → ĐỎ:
+  ✗ D8 PUT mã món dạng 0x… (Number() đọc được) → 404, không ghi vào món khác  — HTTP 200
+  ✗ D9 DELETE mã món dạng 0x… → 404, ảnh món kia còn nguyên  — HTTP 200 · 0 hàng      (ảnh của món khác BỊ XOÁ)
+  75 đạt · 2 hỏng
+  Sau khoá `soMon` (products.js): 77 đạt · 0 hỏng. Đột biến BV-anh-id-khong-khoa-so / BV-anh-xoa-id-khong-khoa-so bắt đúng D8 / D9.
+
+SỐ CA cong_cu/thu_ANHMON1.js: 77
+SỐ CA cong_cu/thu_SAOLUU2.js: 40
