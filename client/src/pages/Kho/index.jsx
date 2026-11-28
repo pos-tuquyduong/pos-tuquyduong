@@ -7,6 +7,8 @@
  * KHO-3a A7: tab "Chưa sẵn sàng bán" (chủ / quản lý) có số đếm; "Mở món" mở thẳng món ở Sản phẩm & công thức.
  * KHO-GON-1: tab ĐẦU "Việc hôm nay" (mọi vai trò; chủ / quản lý: huy hiệu số diễn biến chưa xem — CÙNG vòng hỏi 30 s); "Làm" mở Pha chế hoặc
  * màn Kiểm kê / Nhận bàn giao (kk / bg — không có nút tab riêng); tab "Cài đặt kho" (chủ / quản lý).
+ * KHO-GON-2 D3: thẻ nguyên liệu mở từ Tồn kho / Nguyên liệu / dải dưới ngưỡng của Việc hôm nay — ngăn xếp màn `ngan` (thẻ › Nhận hàng …), nút "← màn
+ * trước" + dòng đường dẫn; nội dung tab KHÔNG tháo ra khi mở thẻ (ẩn bằng display) → quay lại giữ bộ lọc, ô tìm, vị trí cuộn.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,6 +28,7 @@ import ChuaSan from './ChuaSan';
 import ViecHomNay from './ViecHomNay';
 import KiemKe from './KiemKe';
 import CaiDatKho from './CaiDatKho';
+import TheNguyenLieu from './TheNguyenLieu';   // KHO-GON-2
 import './kho.css';
 import './inPhieuKho.css';
 
@@ -56,6 +59,7 @@ export default function Kho() {
   const [choDuyet, setChoDuyet] = useState([]);
   const [soChuaSan, setSoChuaSan] = useState(0);
   const [monMo, setMonMo] = useState(null);   // KHO-3a: id món mở từ tab Chưa sẵn sàng bán
+  const [ngan, setNgan] = useState([]);   // KHO-GON-2 D3: [{ man: 'the', id, ten }, { man: 'nhan' | 'xuat' | 'chinh', ten }?]
 
   const taiChoDuyet = useCallback(() => {
     if (!quanLy) return;
@@ -72,6 +76,10 @@ export default function Kho() {
   }, [taiChoDuyet]);
 
   const dongPhieu = () => { setPhieuMo(null); taiChoDuyet(); };
+  const moThe = (id, ten) => setNgan([{ man: 'the', id, ten }]);
+  const tenTab = tabs.find((t) => t.ma === tab)?.ten || 'Kho';
+  const dinh = ngan[ngan.length - 1];
+  const doiTab = (ma) => { setNgan([]); setTab(ma); };
 
   return (
     <div>
@@ -79,10 +87,10 @@ export default function Kho() {
         <h1 className="page-title">📦 Quản lý kho</h1>
       </header>
       <div className="page-content">
-        {!phieuMo && (
+        {!phieuMo && !ngan.length && (
           <div className="kho-tabs">
             {tabs.map((t) => (
-              <button key={t.ma} className={`kho-tab ${tab === t.ma ? 'on' : ''}`} onClick={() => setTab(t.ma)}>
+              <button key={t.ma} className={`kho-tab ${tab === t.ma ? 'on' : ''}`} onClick={() => doiTab(t.ma)}>
                 {t.ten}{t.ma === 'phieu' && choDuyet.length > 0 && <span className="kho-huy-hieu">{choDuyet.length}</span>}
                 {t.ma === 'cs' && soChuaSan > 0 && <span className="kho-huy-hieu">{soChuaSan}</span>}
                 {t.ma === 'viec' && soMoi > 0 && <span className="kho-huy-hieu">{soMoi}</span>}
@@ -91,20 +99,29 @@ export default function Kho() {
           </div>
         )}
         {phieuMo && <XemPhieu id={phieuMo} vaiTro={vaiTro} tenDangNhap={user?.username} moPhieu={setPhieuMo} dong={dongPhieu} />}
-        {!phieuMo && tab === 'viec' && <ViecHomNay vaiTro={vaiTro} moTab={setTab} doiSoMoi={setSoMoi} />}
+        {!phieuMo && dinh && (
+          <div>
+            <button className="btn btn-outline" onClick={() => setNgan(ngan.slice(0, -1))}>← {ngan.length > 1 ? ngan[ngan.length - 2].ten : tenTab}</button>
+            <div className="kho-duong-dan">{[tenTab, ...ngan.map((n) => n.ten)].join(' › ')}</div>
+            <TheNguyenLieu id={ngan[0].id} man={dinh.man === 'the' ? null : dinh.man} moMan={(man, ten) => setNgan([ngan[0], { man, ten }])} veThe={() => setNgan([ngan[0]])} />
+          </div>
+        )}
+        <div style={{ display: ngan.length ? 'none' : undefined }}>
+        {!phieuMo && tab === 'viec' && <ViecHomNay vaiTro={vaiTro} moTab={setTab} doiSoMoi={setSoMoi} moThe={moThe} />}
         {!phieuMo && (tab === 'kk' || tab === 'bg') && <KiemKe key={tab} cheDo={tab === 'kk' ? 'kiemke' : 'bangiao'} xong={() => setTab('viec')} />}
         {!phieuMo && tab === 'caidat' && <CaiDatKho vaiTro={vaiTro} />}
         {!phieuMo && tab === 'pc' && <PhaChe moPhieu={setPhieuMo} />}
         {!phieuMo && tab === 'nh' && <NhanHang moPhieu={setPhieuMo} />}
         {!phieuMo && tab === 'ps' && <PhatSinh moPhieu={setPhieuMo} />}
         {!phieuMo && tab === 'dh' && <DatHang moPhieu={setPhieuMo} />}
-        {!phieuMo && tab === 'ton' && <TonKho />}
+        {!phieuMo && tab === 'ton' && <TonKho moThe={moThe} />}
         {!phieuMo && tab === 'phieu' && <DsPhieu choDuyet={quanLy ? choDuyet : []} moPhieu={setPhieuMo} />}
-        {!phieuMo && tab === 'nl' && <NguyenLieu vaiTro={vaiTro} />}
+        {!phieuMo && tab === 'nl' && <NguyenLieu vaiTro={vaiTro} moThe={moThe} />}
         {!phieuMo && tab === 'cs' && <ChuaSan doiSo={setSoChuaSan} moSanPham={(id) => { setMonMo(id); setTab('sp'); }} />}
         {!phieuMo && tab === 'sp' && <SanPham vaiTro={vaiTro} moId={monMo} />}
         {!phieuMo && tab === 'dm' && <DinhMuc vaiTro={vaiTro} />}
         {!phieuMo && tab === 'sx' && <NhapSx />}
+        </div>
       </div>
     </div>
   );

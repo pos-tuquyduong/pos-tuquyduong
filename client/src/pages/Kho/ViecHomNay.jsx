@@ -16,7 +16,7 @@ const KHOA_CA = 'kho_ca_hom_nay';
 const docCa = (ngay) => { try { const x = JSON.parse(localStorage.getItem(KHOA_CA) || 'null'); return x?.ngay === ngay ? x.ca : null; } catch { return null; } };
 const nhoCa = (ngay, ca) => { try { localStorage.setItem(KHOA_CA, JSON.stringify({ ngay, ca })); } catch { /* không nhớ được: lần sau chọn lại */ } };
 
-export default function ViecHomNay({ vaiTro, moTab, doiSoMoi }) {
+export default function ViecHomNay({ vaiTro, moTab, doiSoMoi, moThe }) {   // KHO-GON-2 D3: moThe — chạm tên nguyên liệu dưới ngưỡng mở thẻ
   const quanLy = vaiTro === 'owner' || vaiTro === 'manager';
   const [dl, setDl] = useState(null);
   const [ca, setCa] = useState(null);
@@ -61,6 +61,7 @@ export default function ViecHomNay({ vaiTro, moTab, doiSoMoi }) {
         <span className="kho-nho">{dl.ngay.split('-').reverse().join('/')}{ca && ` · ca ${ca === 'sang' ? 'sáng' : 'tối'}`} · xong {daXong}/{dl.viec.length}</span></div>
       {dl.duoi_nguong.length > 0 && (
         <div className="kho-canh"><b>Nguyên liệu dưới ngưỡng:</b>
+          {dl.duoi_nguong.map((n) => <button key={'the' + n.id} className="kho-lien-ket" onClick={() => moThe && moThe(n.id, n.ten)}>{n.ten} ›</button>)}
           {dl.duoi_nguong.map((n) => (n.da_giao ? <span key={n.id} className="kho-nho">đã giao gọi {n.ten}</span>
             : <button key={n.id} disabled={dang} onClick={() => themViec({ nguyen_lieu_id: n.id }, `Đã giao việc gọi thêm ${n.ten}`)}>Giao việc gọi thêm {n.ten} (còn {so(n.ton_hien)} {n.don_vi})</button>))}
         </div>

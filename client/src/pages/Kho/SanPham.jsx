@@ -8,29 +8,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
 import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
 import ToppingMon, { DanhSachTopping } from './ToppingMon';   // TOPPING-1 (B3)
+import { so, soGon } from './chung';   // KHO-GON-2 D5
+import { thuNhoAnh, ANH_MON, CO_ANH, kb } from './anh';   // KHO-GON-2: thu nhỏ dùng chung
 
 const KIEU = { pha_tai_cho: 'Pha tại chỗ', lam_san: 'Làm sẵn (theo lô)', chua_dinh_luong: 'Chưa định lượng' };
-const so = (x) => Number(Number(x).toFixed(3)).toLocaleString('vi-VN');
 const hien = (d) => `${so(d.luong_hien)} ${d.don_vi_hien || d.don_vi_luu || ''}`;   // luong_hien do máy chủ đổi (tinh.doiDonVi)
 // Giá NULL = chưa có giá (món nhập từ SX); giá 0 thật (hàng tặng) là hợp lệ. MỘT vị từ cho cả số đếm lẫn lọc.
 const chuaCoGia = (p) => !!p.is_active && p.price === null;
 
-// ── ANH-MON-1: ảnh món. Thu nhỏ NGAY Ở MÁY (cắt vuông giữa → CO_ANH × CO_ANH, WebP, máy không ra WebP thì JPEG); máy chủ chỉ kiểm + lưu (≤ 120 KB). ──
-const CO_ANH = 400;            // cạnh ảnh sau thu nhỏ (px)
-const CHAT_LUONG_ANH = 0.7;    // chất lượng WebP / JPEG
-const kb = (byte) => `${Math.max(1, Math.round(byte / 1024))} KB`;
-
-async function thuNhoAnh(tep) {
-  const bm = await createImageBitmap(tep);
-  const canh = Math.min(bm.width, bm.height);
-  const cv = document.createElement('canvas');
-  cv.width = CO_ANH; cv.height = CO_ANH;
-  cv.getContext('2d').drawImage(bm, (bm.width - canh) / 2, (bm.height - canh) / 2, canh, canh, 0, 0, CO_ANH, CO_ANH);
-  if (bm.close) bm.close();
-  const lam = (kieu) => new Promise((xong) => cv.toBlob(xong, kieu, CHAT_LUONG_ANH));
-  const web = await lam('image/webp');
-  return web && web.type === 'image/webp' ? web : lam('image/jpeg');
-}
+// ── ANH-MON-1: ảnh món. Thu nhỏ NGAY Ở MÁY (anh.js — cắt vuông giữa, WebP / JPEG); máy chủ chỉ kiểm + lưu (≤ 120 KB). ──
 
 /** Ô ảnh trong màn sửa món: chọn / chụp → thu nhỏ → tải; hiện cỡ sau thu nhỏ; nút Xoá ảnh. Quyền do máy chủ kiểm (manage_settings). */
 function AnhMonSua({ sp, onDoi }) {
@@ -43,7 +29,7 @@ function AnhMonSua({ sp, onDoi }) {
     if (!tep || dang) return;
     setDang(true);
     try {
-      const khoi = await thuNhoAnh(tep);
+      const khoi = await thuNhoAnh(tep, ANH_MON);
       if (!khoi) throw new Error('Máy này không thu nhỏ được ảnh — thử ảnh khác');
       const kq = await api.request(`/products/${sp.id}/anh`, { method: 'PUT', headers: { 'Content-Type': khoi.type }, body: khoi });
       setAnh(kq.anh); setCo(kq.co); onDoi();
@@ -187,9 +173,10 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
     try { setKet((await api.get(`/kho/san-pham/${sp.id}/trien-khai?so_phan=${soPhan}`)).nguyen_lieu); } catch (e) { setLoi(e.message); }
   };
   const batSua = () => setSua({ kieu: sp.kieu, nhom_id: sp.nhom_id ?? '', han_ngay: sp.han_ngay ?? '', cho_ban_thieu: Number(sp.cho_ban_thieu) === 1,
+    me_ra: sp.me_ra ?? '', me_ghi: sp.me_ghi ?? '',
     dong: sp.cong_thuc.map((d) => (d.nguyen_lieu_id
-    ? { loai: 'nl', id: d.nguyen_lieu_id, so: d.luong_hien }
-    : { loai: 'sp', id: d.thanh_phan_id, so: d.luong })) });
+    ? { loai: 'nl', id: d.nguyen_lieu_id, so: soGon(d.luong_hien) }
+    : { loai: 'sp', id: d.thanh_phan_id, so: soGon(d.luong) })) });
   const doiDong = (i, gt) => setSua({ ...sua, dong: sua.dong.map((d, j) => (j === i ? { ...d, ...gt } : d)) });
   const luu = async () => {
     setLoi('');
@@ -200,7 +187,8 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
     setDang(true);
     try {
       await api.put(`/kho/san-pham/${sp.id}`, { kieu: sua.kieu, nhom_id: sua.nhom_id ? Number(sua.nhom_id) : null, han_ngay: sua.han_ngay === '' ? null : Number(sua.han_ngay),
-        cong_thuc: congThuc, cho_ban_thieu: sua.kieu === 'pha_tai_cho' && sua.cho_ban_thieu ? 1 : 0 });
+        cong_thuc: congThuc, cho_ban_thieu: sua.kieu === 'pha_tai_cho' && sua.cho_ban_thieu ? 1 : 0,
+        ...(sua.kieu === 'lam_san' && { me_ra: sua.me_ra === '' ? null : Number(sua.me_ra), me_ghi: sua.me_ghi }) });   // KHO-GON-2 A4
       baoXong(`Đã lưu công thức ${sp.name}`);
       dong(true);
     } catch (e) { baoLoiTu('lưu công thức', e); } finally { setDang(false); }
@@ -214,6 +202,7 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
       <h3 className="card-title">{sp.name}</h3>
       <div className="kho-nho" style={{ marginBottom: '0.75rem' }}>{KIEU[sp.kieu]} · công thức cho 1 {sp.category === 'tea' ? 'gói' : 'phần'}
         {sp.kieu === 'lam_san' && ` · hạn dùng ${sp.han_ngay ? sp.han_ngay + ' ngày' : 'chưa đặt'}`}
+        {sp.kieu === 'lam_san' && sp.me_ra && ` · đun theo nồi: mỗi mẻ ra ${so(sp.me_ra)}${sp.me_ghi ? ` (${sp.me_ghi})` : ''}`}
         {sp.kieu === 'pha_tai_cho' && Number(sp.cho_ban_thieu) === 1 && <span className="kho-thieu"> · cho bán khi thiếu nguyên liệu (ghi âm)</span>}</div>
       {!sua && (
         <>
@@ -252,6 +241,16 @@ function ChiTiet({ sp, dl, nl, chuQuan, quanLy, dong }) {
             <label>Hạn dùng thành phẩm (ngày)
               <input className="input" type="number" min="1" step="1" value={sua.han_ngay} onChange={(e) => setSua({ ...sua, han_ngay: e.target.value })} />
             </label>
+            {sua.kieu === 'lam_san' && (
+              <>
+                <label>Mỗi mẻ ra (số đơn vị — trống = không đun theo nồi)
+                  <input className="input" type="number" min="0" step="any" inputMode="decimal" value={sua.me_ra} onChange={(e) => setSua({ ...sua, me_ra: e.target.value })} />
+                </label>
+                <label>Ghi chú mẻ (vd "+ 5 L nước")
+                  <input className="input" maxLength={60} value={sua.me_ghi} onChange={(e) => setSua({ ...sua, me_ghi: e.target.value })} />
+                </label>
+              </>
+            )}
             {sua.kieu === 'pha_tai_cho' && (
               <label className="kho-hang"><input type="checkbox" checked={sua.cho_ban_thieu} onChange={(e) => setSua({ ...sua, cho_ban_thieu: e.target.checked })} />
                 Cho bán khi thiếu nguyên liệu (vẫn bán, ghi âm, báo đỏ ở Tồn kho)</label>

@@ -1,6 +1,8 @@
 /**
  * KHO-GON-1 — Cài đặt kho (chủ / quản lý): số ca + cho quản lý chỉnh tồn tay (CHỈ chủ quán đổi — Q2), việc cố định hằng ngày (thêm, sửa, lên / xuống,
  * xoá việc thường), ngưỡng cảnh báo + "Kiểm hằng ngày" từng nguyên liệu. Sửa mẫu việc áp dụng từ ngày sau (máy chủ).
+ * KHO-GON-2 E2: công tắc "Nhân viên xuất kho không cần duyệt" (dời từ Định mức; CHỈ chủ quán — máy chủ chặn ở PUT /settings). Bật = khoá
+ * kho_px_nv_can_duyet '0': nhân viên xuất (pha chế, phát sinh) trừ ngay + Diễn biến; tắt (mặc định) = chờ chủ / quản lý duyệt.
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
@@ -43,7 +45,10 @@ export default function CaiDatKho({ vaiTro }) {
       </div>
       <label className="kho-hang"><input type="checkbox" checked={cd.ql_chinh_tay} disabled={!chuQuan || dang}
         onChange={(e) => ghi(() => api.put('/kho/cai-dat-viec', { ql_chinh_tay: e.target.checked ? 1 : 0 }), 'đổi quyền chỉnh tay', 'Đã lưu')} /> Cho quản lý chỉnh tồn tay</label>
-      {!chuQuan && <p className="kho-nho">Chỉ chủ quán đổi số ca và quyền chỉnh tồn tay.</p>}
+      <label className="kho-hang"><input type="checkbox" checked={!cd.nv_can_duyet} disabled={!chuQuan || dang}
+        onChange={(e) => ghi(() => api.put('/settings', { settings: { kho_px_nv_can_duyet: e.target.checked ? '0' : '1' } }), 'đổi công tắc xuất kho', 'Đã lưu')} />
+        Nhân viên xuất kho không cần duyệt (pha chế, phát sinh trừ ngay — chủ / quản lý xem ở Diễn biến)</label>
+      {!chuQuan && <p className="kho-nho">Chỉ chủ quán đổi số ca, quyền chỉnh tồn tay và công tắc xuất kho.</p>}
 
       <h4 className="kho-muc">Việc cố định hằng ngày</h4>
       {mau.map((m, i) => (

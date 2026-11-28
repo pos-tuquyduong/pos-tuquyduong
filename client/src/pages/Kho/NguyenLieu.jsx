@@ -1,6 +1,7 @@
 /**
  * KHO-1 — Nguyên liệu: tìm (gõ không dấu vẫn ra), sắp xếp, tab theo nhóm, ô "Thiếu thông tin"; thêm / sửa / ngừng dùng / xoá
  * (máy chủ chặn xoá nguyên liệu đang dùng); quản lý nhóm + nhà cung cấp. Nhân viên chỉ xem.
+ * KHO-GON-2 D1/D3: chạm một nguyên liệu → thẻ nguyên liệu (moThe); chủ / quản lý sửa bằng nút "Sửa" trên thẻ của danh sách.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../utils/api';
@@ -17,7 +18,7 @@ const SAP_XEP = {
 };
 const MAU = { ten: '', nhom_id: '', nha_cung_cap_id: '', don_vi_luu: 'kg', don_vi_hien: 'g', he_so_doi: 0.001, gia_nhap: '', ton_toi_thieu: '', han_ngay: '', ghi_chu: '', dang_dung: 1 };
 
-export default function NguyenLieu({ vaiTro }) {
+export default function NguyenLieu({ vaiTro, moThe }) {
   const suaDuoc = vaiTro === 'owner' || vaiTro === 'manager';
   const [dl, setDl] = useState({ nguyen_lieu: [], nhom: [], nha_cung_cap: [] });
   const [loi, setLoi] = useState('');
@@ -130,8 +131,9 @@ export default function NguyenLieu({ vaiTro }) {
       </div>
       <div className="kho-luoi">
         {ds.map((n) => (
-          <div key={n.id} className={`kho-the ${n.dang_dung ? '' : 'ngung'}`} onClick={() => suaDuoc && setSua({ ...n })}>
+          <div key={n.id} className={`kho-the ${n.dang_dung ? '' : 'ngung'}`} onClick={() => (moThe ? moThe(n.id, n.ten) : suaDuoc && setSua({ ...n }))}>
             <b>{n.ten}{!n.dang_dung && ' · ngừng dùng'}</b>
+            {suaDuoc && moThe && <button className="btn btn-sm btn-outline" style={{ float: 'right' }} onClick={(e) => { e.stopPropagation(); setSua({ ...n }); }}>Sửa</button>}
             <div className="kho-nho">{n.nhom_ten || 'Chưa có nhóm'} · đơn vị {n.don_vi_hien || n.don_vi_luu}</div>
             <div className="kho-nho">
               {n.gia_nhap !== undefined && <>Giá {n.gia_nhap === null ? <span className="kho-thieu">chưa có</span> : `${tien(n.gia_nhap)}/${n.don_vi_luu}`}{' · '}</>}

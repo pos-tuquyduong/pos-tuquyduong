@@ -1,6 +1,8 @@
 /** KHO-2a — hàm hiển thị dùng chung của màn Kho (không có quy tắc nghiệp vụ: máy chủ tính hết). */
 export const boDau = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 export const so = (x) => (x == null ? '—' : Number(Number(x).toFixed(3)).toLocaleString('vi-VN'));
+/** KHO-GON-2 D5: số gọn cho Ô NHẬP (không dấu nghìn — ô number đọc được): 4.1999999 → '4.2'. Không đổi số lưu. */
+export const soGon = (x) => (x == null || x === '' ? '' : String(Number(Number(x).toFixed(3))));
 export const tien = (x) => (x == null ? '—' : Number(x).toLocaleString('vi-VN') + 'đ');
 /** '2026-11-07T06:00:00' → '06:00 07/11' (chuỗi giờ VN của máy chủ, không đổi múi giờ). */
 export const gio = (luc) => (luc ? `${luc.slice(11, 16)} ${luc.slice(8, 10)}/${luc.slice(5, 7)}` : '—');

@@ -430,7 +430,8 @@ router.post('/viec-mau/:id/len', QUAN_LY, ghiVaTra((req, tx) => viec.doiThuTu(tx
 router.post('/viec-mau/:id/xuong', QUAN_LY, ghiVaTra((req, tx) => viec.doiThuTu(tx, idCua(req), 1)));
 router.delete('/viec-mau/:id', QUAN_LY, ghiVaTra((req, tx) => viec.xoaMau(tx, idCua(req))));
 
-router.get('/cai-dat-viec', QUAN_LY, doc(() => viec.docCaiDat(csdl)));
+// KHO-GON-2 E2: kèm công tắc "nhân viên xuất kho cần duyệt" (khoá kho_px_nv_can_duyet — đổi qua PUT /settings, chỉ chủ quán) cho màn Cài đặt kho
+router.get('/cai-dat-viec', QUAN_LY, doc(async () => ({ ...(await viec.docCaiDat(csdl)), nv_can_duyet: await duLieu.nvCanDuyet(csdl) })));
 // Số ca · cho quản lý chỉnh tay: chỉ chủ quán (Q2 — cùng luật 29.10 "cài đặt kho chỉ chủ quán"). Không gửi = giữ.
 router.put('/cai-dat-viec', CHU_QUAN, ghiVaTra(async (req, tx, luc) => {
   const b = req.body || {};

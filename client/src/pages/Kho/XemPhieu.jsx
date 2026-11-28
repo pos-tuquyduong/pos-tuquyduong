@@ -3,11 +3,14 @@
  * C kết quả (✓ một chạm / sửa số + ghi chú; vàng khi lệch quá ngưỡng; "tự chốt" khi qua ngày). Mọi số do máy chủ trả — ở đây chỉ hiện.
  * In: POST /in đếm lần (lần ≥ 2 in "IN LẠI · LẦN n") rồi window.print(); máy in lỗi không đụng sổ. Phiếu chờ duyệt tự làm mới 15 s.
  * KHO-2b: DH / PN / PS hiện bảng dòng (BangDong) thay cho A/B/C; đơn vượt hạn mức chỉ chủ quán thấy nút Duyệt; chủ quán sửa số từng dòng.
+ * KHO-GON-2: dòng gói (thành phần làm sẵn — san_pham_id) trong A/B; món đun nồi "× n nồi" + "1 nồi = … → ra n phần"; chỗ ký Người pha / Quản lý;
+ * phiếu nhận: ảnh hoá đơn (đọc qua api.get → data:, ai xem được phiếu thì xem được ảnh), "＋ Ảnh hoá đơn" cho người nhận / chủ / quản lý (≤ 3).
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
 import { baoXong, baoLoiTu } from '../../components/thongBaoKho.js';   // BAO-1a
-import { so, tien, gio, TRANG_THAI, TEN_SU_CO, veLuu } from './chung';
+import { so, soGon, tien, gio, TRANG_THAI, TEN_SU_CO, veLuu } from './chung';
+import { thuNhoAnh, guiAnhPhieu, ANH_HOA_DON, SO_ANH_HOA_DON, kb } from './anh';
 import { docInPhieuKho, thuTuNutIn } from '../../utils/inPhieu';
 
 const LAM_MOI_MS = 15000;
@@ -16,6 +19,46 @@ const KHO_IN = { a5: '@page { size: A5; margin: 8mm; }', a4: '@page { size: A4; 
 const NHAN_NUT_IN = { a5: 'In A5', a4: 'In A4' };
 const luong = (n) => `${so(n.luong_hien)} ${n.don_vi || ''}`;
 const TEN_LOAI = { DH: 'Đơn đặt hàng', PN: 'Phiếu nhận hàng', PS: 'Phiếu xử lý phát sinh', KK: 'Phiếu kiểm kê' };
+const khoaDong = (n) => (n.nguyen_lieu_id != null ? `nl${n.nguyen_lieu_id}` : `sp${n.san_pham_id}`);
+
+/** KHO-GON-2 B4: ảnh hoá đơn của phiếu nhận — đọc từng ảnh qua đường có kiểm quyền phiếu; chạm phóng to; gắn thêm (thu nhỏ ở máy). */
+function AnhHoaDon({ p, anh, duocGan, daDoi }) {
+  const [src, setSrc] = useState({});
+  const [to, setTo] = useState(null);
+  const [dang, setDang] = useState(false);
+  useEffect(() => {
+    for (const a of anh) {
+      if (!src[a.id]) api.get(`/kho/phieu/${p.id}/anh/${a.id}`).then((r) => setSrc((s) => ({ ...s, [a.id]: `data:${r.kieu};base64,${r.du_lieu}` }))).catch(() => {});
+    }
+  }, [anh, p.id]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const them = async (e) => {
+    const tep = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!tep || dang) return;
+    setDang(true);
+    try {
+      const khoi = await thuNhoAnh(tep, ANH_HOA_DON);
+      if (!khoi) throw new Error('Máy này không thu nhỏ được ảnh — thử ảnh khác');
+      const r = await guiAnhPhieu(p.id, khoi);
+      baoXong(`Đã gắn ảnh hoá đơn (${kb(r.anh.co)})`);
+      daDoi();
+    } catch (err) { baoLoiTu('gắn ảnh hoá đơn', err); } finally { setDang(false); }
+  };
+  if (!anh.length && !duocGan) return null;
+  return (
+    <div className="kho-khong-in">
+      <h4 className="kho-muc">Ảnh hoá đơn ({anh.length}/{SO_ANH_HOA_DON})</h4>
+      <div className="kho-anh-hd">
+        {anh.map((a) => (src[a.id] ? <img key={a.id} src={src[a.id]} alt="Ảnh hoá đơn" onClick={() => setTo(src[a.id])} /> : <span key={a.id} className="kho-nho">Đang tải ảnh…</span>))}
+        {duocGan && anh.length < SO_ANH_HOA_DON && (
+          <label className="btn btn-outline">{dang ? 'Đang gửi…' : '＋ Ảnh hoá đơn'}
+            <input type="file" accept="image/*" capture="environment" disabled={dang} onChange={them} style={{ display: 'none' }} /></label>
+        )}
+      </div>
+      {to && <div className="kho-anh-to" onClick={() => setTo(null)}><img src={to} alt="Ảnh hoá đơn" /></div>}
+    </div>
+  );
+}
 
 /** KHO-2b: bảng dòng của DH / PN / PS — dòng lệch đơn / ngoài đơn tô vàng (cờ máy chủ); đơn đã duyệt kèm phần còn chờ nhận. */
 function BangDong({ dl, kho }) {
@@ -128,7 +171,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         {!laPX && <BangDong dl={dl} kho={kho} />}
         {laPX && <h4 className="kho-muc">A · Tổng cần lấy</h4>}
         {dl.tong.map((n) => (
-          <div key={n.nguyen_lieu_id} className={`kho-dong ${n.am ? 'kho-am' : ''}`}>
+          <div key={khoaDong(n)} className={`kho-dong ${n.am ? 'kho-am' : ''}`}>
             <span className="kho-o">☐</span><span style={{ flex: 1 }}>{n.ten}</span><b>{luong(n)}</b>
             {n.am && <span className="kho-khong-in"> · tồn âm</span>}
             {n.don_gia != null && <span className="kho-nho kho-khong-in"> · {tien(n.don_gia)}</span>}
@@ -138,10 +181,12 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         {laPX && <h4 className="kho-muc">B · Định lượng từng công thức</h4>}
         {dl.theo_mon.map((m) => (
           <div key={m.san_pham_id} className="kho-mon">
-            <b>{m.ten} — {so(m.so_phan)} phần</b>{m.han_dung && <span className="kho-nho"> · hạn {gio(m.han_dung)}</span>}
+            <b>{m.ten} — {m.so_noi ? `${m.so_noi} nồi · ` : ''}{so(m.so_phan)} phần</b>{m.han_dung && <span className="kho-nho"> · hạn {gio(m.han_dung)}</span>}
+            {m.me_ra && <div className="kho-nho">1 nồi = {m.nguyen_lieu.map((n) => `${so(n.mot_phan_hien * m.me_ra)} ${n.don_vi || ''} ${n.ten}`).join(' + ')}
+              {m.me_ghi ? ` ${m.me_ghi}` : ''} → ra {so(m.me_ra)} phần</div>}
             {m.gia_von != null && <span className="kho-nho kho-khong-in"> · giá vốn {tien(m.gia_von)}/phần</span>}
             {m.nguyen_lieu.map((n) => (
-              <div key={n.nguyen_lieu_id} className="kho-dong"><span style={{ flex: 1 }}>{n.ten}</span><b>{luong(n)}</b>
+              <div key={khoaDong(n)} className="kho-dong"><span style={{ flex: 1 }}>{n.ten}</span><b>{luong(n)}</b>
                 <span className="kho-nho"> · 1 phần {so(n.mot_phan_hien)} {n.don_vi}</span></div>
             ))}
           </div>
@@ -174,7 +219,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
             </div>
           );
         })}
-        {kho && <div className="kho-nho" style={{ marginTop: '0.6rem' }}>{laPX ? 'Người lấy hàng: ________ · Người pha: ________' : 'Người lập: ________ · Người nhận / duyệt: ________'}</div>}
+        {kho && <div className="kho-nho" style={{ marginTop: '0.6rem' }}>{laPX ? 'Người lấy hàng: ________ · Người pha: ________ · Quản lý: ________' : 'Người lập: ________ · Người nhận / duyệt: ________'}</div>}
     </>
   );
 
@@ -184,6 +229,9 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         {Array.from({ length: kho ? mac.ban : 1 }, (_, i) => <div key={i} className="kho-ban">{noiDung}</div>)}
       </div>
 
+      {p.loai === 'PN' && (
+        <AnhHoaDon p={p} anh={dl.anh || []} daDoi={tai} duocGan={p.trang_thai !== 'huy' && (quanLy || p.nguoi_tao === tenDangNhap)} />
+      )}
       {loi && <div className="kho-loi">{loi}</div>}
       {sua && (
         <div className="card kho-khong-in" style={{ padding: '0.75rem', marginTop: '0.75rem' }}>
@@ -214,7 +262,7 @@ export default function XemPhieu({ id, vaiTro, tenDangNhap, moPhieu, dong }) {
         {chuQuan && ['cho_duyet', 'da_duyet'].includes(p.trang_thai) && p.su_co !== 'ban_hang' && !sua && (   // KHO-3a: phiếu bán chỉ đổi theo đơn
           <>
             {(laPX || daDuyet) && <button className="btn btn-outline" onClick={() => setSua(laPX ? Object.fromEntries(dl.theo_mon.map((m) => [m.san_pham_id, String(m.so_phan)]))
-              : Object.fromEntries(dl.dong.map((d) => [d.id, String(d.luong_hien)])))}>Sửa</button>}
+              : Object.fromEntries(dl.dong.map((d) => [d.id, soGon(d.luong_hien)])))}>Sửa</button>}
             <button className="btn btn-outline" disabled={dangGhi} onClick={huy}>Huỷ phiếu</button>
           </>
         )}
