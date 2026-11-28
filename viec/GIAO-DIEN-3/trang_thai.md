@@ -153,3 +153,14 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài 
 Thử tay cho chủ quán (C4): (1) điện thoại: Kho › Sản phẩm & công thức — không kéo ngang được, thẻ 1 cột, chữ nhỏ đúng cỡ; mở một món — mọi ô / nút nằm trong màn. (2) máy tính: Kho thấy đủ 11 tab, không phải cuộn ngang. (3) điện thoại: Bán hàng, Đơn, Khách vẫn như cũ; thêm: Hoàn tiền và Cài đặt (có bảng) có thể vẫn kéo ngang — đã ghi ở Phát hiện.
 
 HEAD ĐÃ KIỂM: 76f35e41
+
+## Chat ghép main (28.11, bàn 42)
+- Chat soát: diff c4b370cc..50d3cfad — index.css (`.main-content` min-width 0 · `html` text-size-adjust 100% · `.table-responsive` cuộn ngang) + kho.css
+  (tab xuống dòng ≥ 769 px) đúng phiếu; `.table-responsive` (vòng sửa 1) trong Phạm vi index.css, hợp mục tiêu. ĐẠT.
+- Ghép main `aa9785f5` (KHO-GON-1 #110) → `749cdf6a`. Xung đột: kho.css (giữ khối KHO-GON-1 `.kho-kiem` / `.kho-chan`, khối GIAO-DIEN-3 để cuối) · client/dist
+  (build lại từ src đã ghép).
+- Kiểm trên `749cdf6a` (máy chat): `--day-du` PASS 137 · FAIL 1 · CẢNH BÁO 1 — FAIL duy nhất thu_NDAPI1.js (môi trường máy chat, đỏ y hệt trên main);
+  thu_GIAODIEN3 · thu_KHOGON1 xanh. Chrome (index.css + kho.css sau ghép, 13 tab Kho): scrollWidth 390 → 390 · 820 → 820 · 1.280 → 1.280.
+
+HEAD ĐÃ KIỂM: 749cdf6a
+
