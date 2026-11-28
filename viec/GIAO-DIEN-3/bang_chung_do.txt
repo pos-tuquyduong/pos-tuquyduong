@@ -1,0 +1,25 @@
+GIAO-DIEN-3 — bằng chứng ĐỎ: bài thử cong_cu/thu_GIAODIEN3.js (bản sau vòng sửa 1) chạy trên code CHƯA VÁ
+(index.css / kho.css / client/index.html / kiem_tra_truoc_khi_giao.js lấy nguyên từ commit PHIẾU 294cd013, truyền bằng --goc)
+Lệnh: node cong_cu/thu_GIAODIEN3.js --goc <bản chép của 294cd013>        → thoát 1
+
+  ✓ 0a … 0l  (12 ca bộ đọc CSS giả — đạt trên cả gốc lẫn bản vá, đúng vai trò: bài thử không tự xanh oan)
+  ✗ T1a điện thoại 390 px: min-width = 0  — undefined
+  ✗ T1b biên 768 / 769 px: min-width = 0 cả hai phía (không chỉ nằm trong @media 768)  — undefined / undefined
+  ✗ T1c máy tính bảng 820 px và máy tính 1280 px: min-width = 0  — undefined / undefined
+  ✓ T1d KHÔNG đổi flex / margin-left
+  ✓ T1e KHÔNG giấu tràn bằng overflow-x: hidden
+  ✗ T2a html có -webkit-text-size-adjust: 100%  — undefined
+  ✗ T2b html có text-size-adjust: 100% (chuẩn)  — undefined
+  ✗ T2c áp mọi cỡ màn (không nằm trong @media): 1280 px cũng 100%
+  ✓ T3a · T3b · T3c (viewport đã đúng sẵn — ca khoá cho khỏi hỏng về sau)
+  ✗ T5a `.table-responsive` có overflow-x: auto ở điện thoại 390 px và máy tính 1280 px  — undefined / undefined
+  ✓ T5b bảng vẫn 600 px ở điện thoại, 100% ở máy tính (hành vi cũ — ca khoá)
+  ✓ T4a điện thoại: KHÔNG wrap, overflow-x: auto (hành vi cũ — ca khoá)
+  ✗ T4b máy tính bảng 820 px, biên 769 px và máy tính 1280 px: flex-wrap: wrap + overflow-x: visible  — 769: undefined/auto · 1280: undefined/auto
+  ✗ T4c flex-wrap: wrap CHỈ nằm trong đúng MỘT khối `@media (min-width: 769px)`
+  ✓ T4d · T4e
+  ✗ C1 có chayBaiThat('cong_cu/thu_GIAODIEN3.js')
+
+21 đạt · 10 hỏng
+
+SỐ CA cong_cu/thu_GIAODIEN3.js: 31

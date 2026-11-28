@@ -44,3 +44,5 @@
 .kho-chan { position: sticky; bottom: 0; z-index: 5; background: #fff; border-top: 1px solid #e2e8f0; padding: 0.6rem 0; margin-top: 0.75rem;
   display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; }
 .kho-chan .btn { padding: 0.8rem 1.2rem; font-size: 1.05rem; }
+/* GIAO-DIEN-3 — máy tính / máy tính bảng ngang: hàng tab xuống dòng, thấy đủ mọi tab (điện thoại ≤ 768 px giữ một hàng cuộn ngang) */
+@media (min-width: 769px) { .kho-tabs { flex-wrap: wrap; overflow-x: visible; } }
