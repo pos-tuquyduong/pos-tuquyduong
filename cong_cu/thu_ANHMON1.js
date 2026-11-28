@@ -271,7 +271,7 @@ async function main() {
     noiLai();
     k('G4 chạy lại bước nâng cấp: không hỏng', lai.hong === null, String(lai.hong));
     { const bk = doc('server/routes/backup.js');
-      k('G5 backup.js: bảng ảnh KHÔNG trong BACKUP_TABLES (Excel hằng ngày) và có tên trong BANG_KHONG_XUAT_EXCEL', !/name:\s*'pos_anh_mon'/.test(bk) && /BANG_KHONG_XUAT_EXCEL\s*=\s*\['pos_anh_mon'\]/.test(bk)); }
+      k('G5 backup.js: bảng ảnh KHÔNG trong BACKUP_TABLES (Excel hằng ngày) và có tên trong BANG_KHONG_XUAT_EXCEL', !/name:\s*'pos_anh_mon'/.test(bk) && /BANG_KHONG_XUAT_EXCEL\s*=\s*\['pos_anh_mon', 'kho_anh_phieu'\]/.test(bk)); }   // KHO-GON-2 Q3 (LUAT §6.7: vẫn so bằng)
   });
 
   // ═════════════════════════════════════════════════════════════════════════

@@ -127,7 +127,7 @@ async function main() {
     && (await mot('SELECT lech_cho_phep FROM kho_nhom_cong_thuc WHERE id = ?', [nhomAm.id || 0]))?.lech_cho_phep === null, moTa(nhomAm));
   const luuSP = (id, than) => goi('chu', 'PUT', `/kho/san-pham/${id}`, than);
   const kqSP = [
-    await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: 5, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] }),
+    await luuSP(s3, { kieu: 'pha_tai_cho', nhom_id: null, han_ngay: 5, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] }),
     await luuSP(s1, { kieu: 'lam_san', nhom_id: nhomA.id ?? null, han_ngay: 2, cong_thuc: [{ nguyen_lieu_id: n1, luong: 0.2 }, { thanh_phan_id: s3, luong: 0.5 }] }),
     await luuSP(s2, { kieu: 'lam_san', nhom_id: nhomB.id ?? null, cong_thuc: [{ nguyen_lieu_id: n2, luong: 0.005 }] }),
     await luuSP(s4, { kieu: 'pha_tai_cho', nhom_id: null, cong_thuc: [{ nguyen_lieu_id: n1, luong: 0.01 }] }),
@@ -137,16 +137,16 @@ async function main() {
   k('E0 PUT /san-pham/:id nhận hạn dùng (han_ngay) — Nước cam 2 ngày; không gửi trường thì KHÔNG xoá hạn đã có',
     kqSP.every((r) => r.status === 200) && Number((await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s1]))?.han_ngay) === 2,
     kqSP.map(moTa).join(' | '));
-  await luuSP(s3, { kieu: 'lam_san', nhom_id: null, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
+  await luuSP(s3, { kieu: 'pha_tai_cho', nhom_id: null, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
   k('E0b sửa công thức không gửi han_ngay → hạn 5 giữ nguyên', Number((await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s3]))?.han_ngay) === 5);
-  const e0c = await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: 0.5, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
+  const e0c = await luuSP(s3, { kieu: 'pha_tai_cho', nhom_id: null, han_ngay: 0.5, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
   k('E0c hạn dùng không nguyên (0.5 ngày) → 400 HAN_SAI, hạn giữ 5', e0c.status === 400 && e0c.code === 'HAN_SAI'
     && Number((await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s3]))?.han_ngay) === 5, moTa(e0c));
   // K5: SanPham.jsx LUÔN gửi han_ngay — null khi ô trống; '' từ ô nhập; 1 = ngay trên ngưỡng
   const hanS3 = async () => (await mot('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [s3]))?.han_ngay;
   const e0d = [];
   for (const h of [null, '', 1, 3650, 0, 3651, true, '0x10', 1e9, 5]) {
-    const r = await luuSP(s3, { kieu: 'lam_san', nhom_id: null, han_ngay: h, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
+    const r = await luuSP(s3, { kieu: 'pha_tai_cho', nhom_id: null, han_ngay: h, cong_thuc: [{ nguyen_lieu_id: n3, luong: 0.1 }] });
     e0d.push(`${r.status}:${await hanS3()}`);
   }
   k('E0d hạn trống (null / \'\') → 200, bỏ hạn; 1 / 3650 (trần) → 200; 0 / 3651 / true / \'0x10\' / 1e9 → 400 HAN_SAI giữ hạn cũ; 5 → 200',
@@ -165,6 +165,8 @@ async function main() {
   const loB = await themLo('nguyen_lieu_id', n1, 1, '2026-11-10T00:00:00');
   const loC = await themLo('nguyen_lieu_id', n1, 3, '2026-11-01T00:00:00');   // quá hạn từ trước
   await themLo('nguyen_lieu_id', n2, 1, null);
+  // KHO-GON-2 Q1 (chủ quán 28.11): phiếu xuất thiếu nguyên liệu bị CHẶN — Đường có 0.5 kg nhưng chỉ ở lô ĐÃ HẾT HẠN (tồn vẫn tính, không lô nào trừ được)
+  const loDuongHet = await themLo('nguyen_lieu_id', n3, 0.5, '2026-11-01T00:00:00');
   await themLo('san_pham_id', s1, 4, '2026-11-08T08:00:00');
   await themLo('san_pham_id', s1, 5, '2026-11-06T07:00:00');
   await themLo('san_pham_id', s1, 3, '2026-11-07T20:00:00');
@@ -243,8 +245,10 @@ async function main() {
     JSON.stringify(xuatN1.map((d) => [d.lo_id === null ? null : Number(d.lo_id), Number(d.so_luong)])) === JSON.stringify([[loB, -1], [loA, -0.5], [null, -0.5]])
     && (await so("SELECT COUNT(*) FROM kho_phieu_dong WHERE lo_id = ? AND phieu_id <> (SELECT phieu_id FROM kho_lo WHERE id = ?)", [loC, loC])) === 0, JSON.stringify(xuatN1));
   const t1 = await tonQL();
-  k('E1 Đường không có lô → vẫn ghi, tồn −0.5 (âm, cờ đỏ ở tồn và ở phiếu)', gan(t1.nl(n3).ton, -0.5) && t1.nl(n3).am === true && tong(c1, n3).am === true
-    && (await so('SELECT COUNT(*) FROM kho_phieu_dong WHERE phieu_id = ? AND nguyen_lieu_id = ? AND lo_id IS NULL', [c1id || 0, n3])) === 1, JSON.stringify(t1.nl(n3)));
+  // KHO-GON-2 (LUAT §6.8 — luật đổi theo Q1): tồn đủ nhưng chỉ ở lô hết hạn → vẫn ghi (dòng không lô), lô hết hạn KHÔNG bị trừ, tồn về 0 (không âm)
+  k('E1 Đường chỉ có lô hết hạn → vẫn ghi dòng không lô, lô hết hạn không bị trừ, tồn 0', gan(t1.nl(n3).ton, 0) && t1.nl(n3).am === false
+    && (await so('SELECT COUNT(*) FROM kho_phieu_dong WHERE phieu_id = ? AND nguyen_lieu_id = ? AND lo_id IS NULL', [c1id || 0, n3])) === 1
+    && (await so('SELECT COUNT(*) FROM kho_phieu_dong WHERE lo_id = ? AND phieu_id = ?', [loDuongHet, c1id || 0])) === 0, JSON.stringify(t1.nl(n3)));
   const loS1 = await mot('SELECT * FROM kho_lo WHERE phieu_id = ? AND san_pham_id = ?', [c1id || 0, s1]);
   const loS2 = await mot('SELECT * FROM kho_lo WHERE phieu_id = ? AND san_pham_id = ?', [c1id || 0, s2]);
   k('E3 mỗi món một lô: Nước cam 10 phần hạn = giờ làm + 2 ngày (2026-11-09T06:00:00); Trà kỷ tử chưa có hạn → lô không hạn, vẫn vào',

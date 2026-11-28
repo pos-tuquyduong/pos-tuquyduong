@@ -1,6 +1,6 @@
 /**
  * KHO-2a — Định mức (chủ / quản lý): mỗi món làm sẵn "mọi ngày" + 7 ô theo thứ (trống = theo mọi ngày); "% lệch cho phép" theo nhóm món;
- * công tắc "Nhân viên xuất kho cần duyệt" (chỉ chủ quán — máy chủ kiểm). KHO-2b: cạnh đó hai hạn mức (đồng) đặt hàng / dùng nội bộ — chỉ chủ quán.
+ * công tắc "Nhân viên xuất kho không cần duyệt" (chỉ chủ quán — máy chủ kiểm; KHO-GON-2: cùng công tắc ở Cài đặt kho, bật = khoá kho_px_nv_can_duyet '0'). KHO-2b: cạnh đó hai hạn mức (đồng) đặt hàng / dùng nội bộ — chỉ chủ quán.
  */
 import { useEffect, useState } from 'react';
 import { api } from '../../utils/api';
