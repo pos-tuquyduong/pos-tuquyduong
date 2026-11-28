@@ -259,11 +259,11 @@ const ghiKhoTheoLoai = (tx, loai, id, luc) => ({
 
 /** Duyệt / từ chối: CÙNG điều kiện khoá trong câu ghi (chờ duyệt + người duyệt khác người tạo) — hai người bấm cùng lúc chỉ một lần ghi. */
 async function duyetPhieu(tx, id, nguoi, luc, vaiTro) {
-  const p = await tx.queryOne('SELECT loai, trang_thai FROM kho_phieu WHERE id = ?', [id]);
+  const p = await tx.queryOne('SELECT loai, trang_thai, nguoi_tao FROM kho_phieu WHERE id = ?', [id]);
   if (p?.loai === 'DH' && p.trang_thai === 'cho_duyet' && vaiTro !== 'owner' && await dhCanChuQuan(tx, id)) {
     return { loi: [403, { error: 'Đơn vượt hạn mức đặt hàng — chỉ chủ quán duyệt', code: 'CAN_CHU_QUAN' }] };
   }
-  if (p?.loai === 'PX' && p.trang_thai === 'cho_duyet') {   // KHO-GON-2 Q1: duyệt lúc kho đã không còn đủ → chặn (đọc TRƯỚC câu khoá: sau nó dòng phiếu đã vào tồn)
+  if (p?.loai === 'PX' && p.trang_thai === 'cho_duyet' && p.nguoi_tao !== nguoi) {   // KHO-GON-2 Q1 (người tạo tự duyệt → 403 TU_DUYET như cũ, ở câu khoá): duyệt lúc kho đã không còn đủ → chặn (đọc TRƯỚC câu khoá: sau nó dòng phiếu đã vào tồn)
     const can = (await tx.query("SELECT nguyen_lieu_id, san_pham_id, so_luong FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'xuat'", [id]))
       .map((d) => ({ nguyen_lieu_id: d.nguyen_lieu_id == null ? null : Number(d.nguyen_lieu_id), san_pham_id: Number(d.san_pham_id), luong: -Number(d.so_luong) }));
     const thieu = await require('./phaChe').kiemDuKho(tx, can, luc);

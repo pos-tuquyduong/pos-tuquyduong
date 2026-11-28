@@ -4,6 +4,7 @@
  */
 const tinh = require('./tinh');
 const duLieu = require('./duLieu');
+const phaChe = require('./phaChe');
 
 const SO_DONG_LICH_SU = 30;
 
@@ -15,12 +16,13 @@ async function docThe(csdl, id, luc) {
   const choDuyet = await csdl.query(`SELECT p.id AS phieu_id, p.so_phieu, p.loai, p.nguoi_tao, SUM(d.so_luong) AS luong FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id
     WHERE d.nguyen_lieu_id = ? AND p.trang_thai = 'cho_duyet' AND p.loai <> 'DH' GROUP BY p.id ORDER BY p.id DESC`, [id]);
   const bang = await duLieu.docBangCongThuc(csdl);
+  const lamSan = await phaChe.docLamSan(csdl);   // soát vòng 1: CÙNG cách triển khai với Pha chế — món dùng gói không tính theo thảo dược
   const mon = await csdl.query(`SELECT p.id, p.name, COALESCE(s.kieu, 'chua_dinh_luong') AS kieu FROM pos_products p LEFT JOIN kho_san_pham s ON s.pos_product_id = p.id
     WHERE p.is_active = 1 AND EXISTS (SELECT 1 FROM kho_cong_thuc c WHERE c.san_pham_id = p.id) ORDER BY p.sort_order, p.name`);
   const dungCho = [];
   for (const m of mon) {
     let mot = null;
-    try { mot = tinh.trienKhai({ goc: Number(m.id), bang }, 1).find((d) => d.nguyen_lieu_id === id); } catch { /* công thức vòng — bỏ qua món này */ }
+    try { mot = tinh.trienKhai({ goc: Number(m.id), bang }, 1, lamSan).find((d) => d.nguyen_lieu_id === id); } catch { /* công thức vòng — bỏ qua món này */ }
     if (mot) dungCho.push({ san_pham_id: Number(m.id), ten: m.name, kieu: m.kieu, mot_phan: mot.luong, mot_phan_hien: tinh.doiDonVi(mot.luong, n.he_so_doi || 1),
       du_phan: tinh.toiDa([{ khoa: 'nl', luong: mot.luong }], new Map([['nl', n.ton]])) });
   }

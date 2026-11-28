@@ -50,6 +50,10 @@ DOT_BIEN = [
   # ── D: thẻ nguyên liệu · số gọn ──
   ('VS-the-lo-gia', [(R, "    res.json(anGia(req) ? tinh.boGia(r) : r);\n  } catch (e) { console.error('Lỗi đọc thẻ nguyên liệu:'", "    res.json(r);\n  } catch (e) { console.error('Lỗi đọc thẻ nguyên liệu:'", 1)], r'✗ D1e '),
   ('BV-so-gon', [(CSP, "so: soGon(d.luong_hien) }", "so: d.luong_hien }", 1)], r'✗ D5 '),
+  ('VS-so-gon-cat-3-so', [('client/src/pages/Kho/chung.js', "Number(Number(x).toPrecision(12))", "Number(Number(x).toFixed(3))", 1)], r'✗ D5b '),
+  ('VS-the-trien-khai-tha', [('server/kho/theNguyenLieu.js', "tinh.trienKhai({ goc: Number(m.id), bang }, 1, lamSan)", "tinh.trienKhai({ goc: Number(m.id), bang }, 1)", 1)], r'✗ D1i '),
+  ('VS-gia-von-goi', [(D, "(d.nguyen_lieu_id == null ? d.don_gia ?? null :", "(d.nguyen_lieu_id == null ? null :", 1)], r'✗ A4n '),
+  ('VS-pha-che-thao-tab-khi-mo-phieu', [('client/src/pages/Kho/index.jsx', "display: ngan.length || phieuMo ? 'none'", "display: ngan.length ? 'none'", 1)], r'✗ D3a '),
   # ── E: luật duyệt (tên chủ quán đặt) ──
   ('VS-nhan-van-cho-duyet', [(NH, "tuDuyet: true, nguoi, luc, nccId, ghiChu, donId", "tuDuyet: ep, nguoi, luc, nccId, ghiChu, donId", 1), (NH, "  await ghiKhoNhan(tx, id, luc);\n  return { id };", "  if (ep) await ghiKhoNhan(tx, id, luc);\n  return { id };", 1)], r'✗ E1a '),
   ('VS-cong-tac-bo-qua', [(R, "VAI_QUAN_LY.includes(req.user.role) || !(await duLieu.nvCanDuyet(tx)), chanThieu: true", "VAI_QUAN_LY.includes(req.user.role), chanThieu: true", 1)], r'✗ E2c '),

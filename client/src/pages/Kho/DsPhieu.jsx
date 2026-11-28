@@ -18,7 +18,7 @@ function DongPhieu({ p, mo }) {
   );
 }
 
-export default function DsPhieu({ choDuyet, moPhieu }) {
+export default function DsPhieu({ choDuyet, moPhieu, lamMoi = 0 }) {   // KHO-GON-2 D3: lamMoi tăng khi đóng phiếu → tải lại, GIỮ bộ lọc
   const [loc, setLoc] = useState({ loai: '', trang_thai: '', tu: '', den: '', ban_hang: '' });   // KHO-3a: phiếu bán ẩn mặc định
   const [ds, setDs] = useState([]);
   const [loi, setLoi] = useState('');
@@ -26,7 +26,7 @@ export default function DsPhieu({ choDuyet, moPhieu }) {
   useEffect(() => {
     const qs = new URLSearchParams(Object.entries(loc).filter(([, v]) => v)).toString();
     api.get('/kho/phieu' + (qs ? '?' + qs : '')).then((r) => setDs(r.phieu)).catch((e) => setLoi(e.message));
-  }, [loc]);
+  }, [loc, lamMoi]);
   const o = (ten, phanTu) => <label className="kho-nho">{ten}{phanTu}</label>;
 
   return (

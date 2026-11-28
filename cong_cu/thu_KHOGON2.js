@@ -240,6 +240,10 @@ async function main() {
   const suaTra = await goi('chu', 'POST', `/kho/phieu/${tra.phieu?.id}/sua`, { mon: [{ san_pham_id: sTra, so_phan: 500 }], ly_do: 'gõ nhầm' });   // 20 gói > 8.8 sau huỷ
   k('A4m chủ quán SỬA phiếu nồi vượt số gói → 409 KHONG_DU_TON (lô thành phẩm không âm — đường sửa không qua kiểm lúc tạo), phiếu cũ nguyên, gói 6.8',
     suaTra.status === 409 && suaTra.code === 'KHONG_DU_TON' && (await ttCua(tra.phieu?.id)) === 'da_duyet' && gan(await tonSP(sGoi), 6.8), `${moTa(suaTra)} · gói ${await tonSP(sGoi)}`);
+  const loTra = await mot('SELECT gia_von FROM kho_lo WHERE phieu_id = ? AND san_pham_id = ?', [tra.phieu?.id, sTra]);
+  const loGoi = await mot('SELECT gia_von FROM kho_lo WHERE phieu_id = ? AND san_pham_id = ?', [lg.phieu?.id, sGoi]);
+  k('A4n giá vốn: gói = 10 × 10.000 + 2 × 10.000 = 120.000; lô trà = 2 gói × 120.000 ÷ 50 ly = 4.800 (lấy giá lô gói, không giá thảo dược)',
+    Number(loGoi?.gia_von) === 120000 && Number(loTra?.gia_von) === 4800, js([loGoi, loTra]));
   const traCho = await px('nv', [{ san_pham_id: sTra, so_phan: 25 }], 'tracho');
   await px('ql', [{ san_pham_id: sTra, so_phan: 150 }], 'tra6noi');   // trừ 6 gói → còn 0.8 < 1
   const traDuyet = await goi('ql', 'POST', `/kho/phieu/${traCho.phieu?.id}/duyet`);
@@ -383,6 +387,9 @@ async function main() {
     && (theCam.lich_su || []).some((d) => d.so_phieu && d.nguoi && d.loai === 'PN'), `${js(theCam.lo).slice(0, 120)} · ${(theCam.lich_su || []).length}`);
   k('D1e nhân viên không nhận khoá giá ở thẻ; quản lý nhận', !coKhoa(theCam, ['gia_nhap', 'don_gia', 'gia_von']) && coKhoa(await goi('ql', 'GET', `/kho/nguyen-lieu/${nCam}/the`), ['gia_nhap']));
   const theAt = await goi('nv', 'GET', `/kho/nguyen-lieu/${nAtiso}/the`);
+  const dmAt = theAt.dung_cho_mon || [];
+  k('D1i thẻ Atiso tính CÙNG cách Pha chế: dùng cho Gói trà (đủ 10 gói), KHÔNG cho Trà nồi (trà trừ lô gói, không trừ thảo dược)',
+    dmAt.some((m) => m.san_pham_id === sGoi && m.du_phan === 10) && !dmAt.some((m) => m.san_pham_id === sTra), js(dmAt));
   const theKo = await goi('nv', 'GET', '/kho/nguyen-lieu/999999/the');
   await ghiDb("INSERT INTO kho_phieu_dong (phieu_id, nguyen_lieu_id, so_luong, loai) VALUES (?, ?, -100, 'xuat')", [lg.phieu?.id, nAtiso]);   // Atiso về 0
   const theHet = await goi('nv', 'GET', `/kho/nguyen-lieu/${nAtiso}/the`);
@@ -425,13 +432,23 @@ async function main() {
     && !/\/kho\/chinh-tay/.test(doc(path.join(kd, 'TonKho.jsx'))) && /duoc_chinh_tay/.test(tnl));
   k('D1h thẻ hiện: tồn chữ to, phiếu chờ, Dùng cho món, lô, lịch sử', /Dùng cho món/.test(tnl) && /cho_duyet/.test(tnl) && /lich_su/.test(tnl) && /\.lo\b|lo\.map|\.lo\.map/.test(tnl));
   const idx = doc(path.join(kd, 'index.jsx'));
-  k('D3a điều hướng: ngăn xếp màn, nút "←" màn trước + dòng đường dẫn "›"; danh sách ẩn bằng display (không tháo) để giữ lọc / cuộn',
-    /ngan/.test(idx) && /←/.test(idx) && /' › '/.test(idx) && /display: [^}]*'none'/.test(idx) && /TheNguyenLieu/.test(idx));
+  k('D3a điều hướng: ngăn xếp màn, "←" + đường dẫn "›"; nội dung tab ẩn bằng display khi mở thẻ HOẶC phiếu, không còn tháo theo phieuMo',
+    /ngan/.test(idx) && /←/.test(idx) && /' › '/.test(idx) && /display: ngan\.length \|\| phieuMo \? 'none'/.test(idx) && /TheNguyenLieu/.test(idx)
+    && !/!phieuMo && tab ===/.test(idx) && !/!phieuMo && \(tab ===/.test(idx));
+  const dsp = doc(path.join(kd, 'DsPhieu.jsx'));
+  k('D3d màn vừa ghi phiếu dựng lại mới (key lanTao); danh sách phiếu tải lại khi đóng phiếu mà GIỮ bộ lọc', (idx.match(/key=\{lanTao\} moPhieu=\{moPhieuSauGhi\}/g) || []).length === 4
+    && /lamMoi=\{lanDong\}/.test(idx) && /\[loc, lamMoi\]/.test(dsp));
   k('D3b mở thẻ từ Tồn kho, Nguyên liệu và dải dưới ngưỡng ở Việc hôm nay', /moThe/.test(doc(path.join(kd, 'TonKho.jsx'))) && /moThe/.test(doc(path.join(kd, 'NguyenLieu.jsx')))
     && /moThe/.test(doc(path.join(kd, 'ViecHomNay.jsx'))));
   k('D3c lưu xong ở thẻ → về đúng thẻ, tải lại số (xong → tai lại)', /xongViec|veThe|taiLai\(\)/.test(tnl));
   const chung = doc(path.join(kd, 'chung.js'));
   const sp = doc(path.join(kd, 'SanPham.jsx'));
+  const soGonSrc = (chung.match(/^export const soGon = (.*);$/m) || [])[1];
+  const soGon = (() => { try { return new Function('return ' + soGonSrc)(); } catch { return () => 'LỖI'; } })();
+  const giuSo = [1 / 30, 1 / 300, 0.0004, 0.0005, 0.04, 2.5].every((x) => Math.abs(Number(soGon(x)) - x) <= 1e-12 * x);
+  k('D5b số gọn KHÔNG đổi số lưu: 0.0042 × 1000 → "4.2"; 1/30 · 1/300 · 0.0004 · 0.0005 giữ đúng (lệch ≤ 1e-12 tương đối); null → ""',
+    soGon(0.0042 * 1000) === '4.2' && soGon(4.199999999999999) === '4.2' && giuSo && soGon(null) === '' && soGon(0.0004) === '0.0004',
+    js([soGon(0.0042 * 1000), soGon(1 / 30), soGon(0.0004)]));
   k('D5 MỘT hàm làm tròn gọn (soGon) ở chung.js; ô sửa công thức + ô sửa phiếu dùng nó, SanPham bỏ bản so() chép', /export const soGon = /.test(chung)
     && /soGon\(d\.luong_hien\)/.test(sp) && /soGon\(d\.luong_hien\)/.test(xp) && !/^const so = /m.test(sp));
   const cd = doc(path.join(kd, 'CaiDatKho.jsx'));
