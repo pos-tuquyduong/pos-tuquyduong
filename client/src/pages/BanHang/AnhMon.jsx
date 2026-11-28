@@ -14,7 +14,7 @@ const MAU_NHOM = {
 const MAU_MAC_DINH = { nuoc: '#c4573b', nen: '#f3e3cf' };
 
 /** Màu nước + màu nền của một nhóm món. Nhóm lạ / rỗng / không truyền → màu mặc định. */
-export const mauNhom = (nhom) => (typeof nhom === 'string' && Object.hasOwn(MAU_NHOM, nhom) ? MAU_NHOM[nhom] : MAU_MAC_DINH);
+export const mauNhom = (nhom) => (typeof nhom === 'string' && Object.prototype.hasOwnProperty.call(MAU_NHOM, nhom) ? MAU_NHOM[nhom] : MAU_MAC_DINH);
 
 /** Hình ly vẽ (cao `kich` px, tỉ lệ 84 : 104). Dùng ở ô ảnh món và ô icon của chip nhóm. */
 export function HinhLy({ nhom, kich = 40 }) {

@@ -355,7 +355,7 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
       <ThanhKhach khach={khach} hang={hang} onChon={chonKhach} onBo={boKhach} />
       <div className="bh-hang-tren">
         {['all', ...dsNhom].map((n) => (
-          <button key={n} className={`bh-tab${nhom === n ? ' bh-chon' : ''}`} onClick={() => setNhom(n)}><i className="bh-tab-ic">{n === 'all' ? <LayoutGrid size={16} /> : <HinhLy nhom={n} kich={18} />}</i>{n === 'all' ? 'Tất cả' : tenNhom[n] || n}</button>
+          <button key={n} className={`bh-tab bh-tab-co-ic${nhom === n ? ' bh-chon' : ''}`} onClick={() => setNhom(n)}><i className="bh-tab-ic">{n === 'all' ? <LayoutGrid size={16} /> : <HinhLy nhom={n} kich={18} />}</i>{n === 'all' ? 'Tất cả' : tenNhom[n] || n}</button>
         ))}
         {dsRieng.length > 0 && <button className={`bh-tab${nhom === NHOM_TOPPING ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_TOPPING)}>Topping</button>}
         {dsGoiNap.length > 0 && <button className={`bh-tab${nhom === NHOM_NAP ? ' bh-chon' : ''}`} onClick={() => setNhom(NHOM_NAP)}>Nạp tiền</button>}
@@ -365,9 +365,11 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
         {nhom === NHOM_NAP && dsGoiNap.map((g) => (
           <div key={`nap-${g.id}`} className="bh-mon-bao">
             <button className="bh-mon" onClick={() => chamNap(g)}>
-              <span className="bh-mon-ten">{g.ten}</span>
-              <span><span className="bh-gia">{vnd(g.khach_tra)}</span></span>
-              <span className="bh-mon-ton">Vào tài khoản {vnd(g.vao_tk)}</span>
+              <span className="bh-chu-mon">
+                <span className="bh-mon-ten">{g.ten}</span>
+                <span><span className="bh-gia">{vnd(g.khach_tra)}</span></span>
+                <span className="bh-mon-ton">Vào tài khoản {vnd(g.vao_tk)}</span>
+              </span>
             </button>
           </div>
         ))}
@@ -376,16 +378,18 @@ export default function BanHangMoi({ kieu, onDoiKieu }) {
           return (
             <div key={`the-${tier.id}-${so_thang}`} className="bh-mon-bao">
               <button className="bh-mon" disabled={caoHon} onClick={() => chamThe(tier, { so_thang, gia })}>
-                <span className="bh-mon-ten">{tier.name} · {so_thang} tháng</span>
-                <span><span className="bh-gia">{vnd(gia)}</span></span>
-                {caoHon && <span className="bh-mon-ton">Khách có hạng cao hơn</span>}
+                <span className="bh-chu-mon">
+                  <span className="bh-mon-ten">{tier.name} · {so_thang} tháng</span>
+                  <span><span className="bh-gia">{vnd(gia)}</span></span>
+                  {caoHon && <span className="bh-mon-ton">Khách có hạng cao hơn</span>}
+                </span>
               </button>
             </div>
           );
         })}
         {nhom === NHOM_THE && hangChiCap(dsHang).map((t) => (
           <div key={`cap-${t.id}`} className="bh-mon-bao">
-            <button className="bh-mon" disabled><span className="bh-mon-ten">{t.name}</span><span className="bh-mon-ton">Chủ quán cấp</span></button>
+            <button className="bh-mon" disabled><span className="bh-chu-mon"><span className="bh-mon-ten">{t.name}</span><span className="bh-mon-ton">Chủ quán cấp</span></span></button>
           </div>
         ))}
         {nhom !== NHOM_NAP && nhom !== NHOM_THE && dsMon.map((s) => {

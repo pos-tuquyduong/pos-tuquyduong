@@ -56,7 +56,7 @@ export default function KhungChonMon({ sp, dong, dsTopping = [], gio = [], giaHa
                 <div key={t.id} className="bh-tp-bao">
                   <button className={`bh-tp${n ? ' bh-chon' : ''}`} disabled={het} onClick={() => them(t)} aria-label={t.name}>
                     {n > 0 && <b className="bh-tp-so">{n}</b>}
-                    <AnhMon anh={t.anh} ten={t.name} kich={40} />
+                    <AnhMon anh={t.anh} nhom={t.category} kich={40} />
                     <span className="bh-tp-ten">{t.name}</span>
                     <span className="bh-mon-ton">{het ? 'Hết' : `+${vnd(giaHang(t))}`}</span>
                     {!het && conLai < NGUONG_CON && <span className="bh-mon-ton bh-tp-con">còn {Math.max(0, conLai)} phần</span>}

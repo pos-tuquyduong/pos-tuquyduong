@@ -139,7 +139,7 @@ input::placeholder, textarea::placeholder { color: var(--phu); opacity: 0.8; }
   color: #fff;
   font-weight: 600;
 }
-.nav-item.active::before { content: ''; position: absolute; left: -0.875rem; top: 9px; bottom: 9px; width: 4px; border-radius: 0 4px 4px 0; background: var(--dat-nhat); }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 4px; border-radius: 0 4px 4px 0; background: var(--dat-nhat); }
 .nav-item.active svg { color: var(--dat-nhat); }
 
 .sidebar-chan { padding: 0.75rem 0.5rem 0; border-top: 1px solid rgba(232, 196, 106, 0.35); }
@@ -926,8 +926,8 @@ input::placeholder, textarea::placeholder { color: var(--phu); opacity: 0.8; }
 .ql-mau-lam { --mau: #29406b; --mau-nhat: #dde4f1; }
 .ql-mau-do { --mau: #b91c1c; --mau-nhat: #fbe0dc; }
 .ql-mau-luc { --mau: #3f7a45; --mau-nhat: #dfeedd; }
-.ql-the-ten { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; font-family: var(--font-chu-dep); font-size: 1rem; font-weight: 700; color: var(--do-dam); background: linear-gradient(90deg, var(--mau-nhat), transparent); }
-.ql-the-o { flex: none; width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--mau); color: #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
+.ql-the-ten { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; font-family: var(--font-chu-dep); font-size: 1rem; font-weight: 700; color: var(--do-dam); background: linear-gradient(90deg, var(--mau-nhat, #f7ecd0), transparent); }
+.ql-the-o { flex: none; width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--mau, var(--dat)); color: #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
 .ql-nut-hang { display: flex; flex-direction: column; }
 .ql-nut { display: flex; align-items: center; justify-content: space-between; border: 0; border-top: 1px dashed #ecdcc6; border-radius: 0; background: transparent; color: var(--chu); padding: 0.625rem 1rem; font-weight: 400; }
 .ql-chevron { display: inline; color: var(--dat); font-size: 1.1rem; line-height: 1; }
@@ -948,4 +948,6 @@ input::placeholder, textarea::placeholder { color: var(--phu); opacity: 0.8; }
   h1, h2, h3, h4, h5, h6 { color: #B91C1C; }
   strong, b { color: #991B1B; }
   td, th { color: #78716C; }
+  .card-title { font-family: inherit; font-size: 1rem; font-weight: 600; color: #B91C1C; }
+  .table th { color: #B91C1C; }
 }

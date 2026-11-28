@@ -31,8 +31,8 @@ export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDu
   return (
     <div className="bh-chan-gio">
       <div className="bh-to">
-        <button className={`bh-nut ${cachTra === 'tien_mat' ? '' : 'bh-phu'}`} onClick={() => chonCach('tien_mat')}><IconTien />Tiền mặt</button>
-        <button className={`bh-nut ${cachTra === 'chuyen_khoan' ? '' : 'bh-phu'}`} onClick={() => chonCach('chuyen_khoan')}><IconQr />Chuyển khoản</button>
+        <button className={`bh-nut bh-nut-ic ${cachTra === 'tien_mat' ? '' : 'bh-phu'}`} onClick={() => chonCach('tien_mat')}><IconTien />Tiền mặt</button>
+        <button className={`bh-nut bh-nut-ic ${cachTra === 'chuyen_khoan' ? '' : 'bh-phu'}`} onClick={() => chonCach('chuyen_khoan')}><IconQr />Chuyển khoản</button>
         <button className={`bh-nut ${trongTK ? '' : 'bh-phu'}`} disabled={!!lyDoMo} onClick={() => chonCach('tai_khoan')}>Trừ tài khoản</button>
       </div>
       {lyDoMo && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem' }}>Trừ tài khoản: {lyDoMo}</div>}

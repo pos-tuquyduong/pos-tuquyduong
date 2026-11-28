@@ -19,7 +19,8 @@
 .bh-hai-trang .bh-cot-mon, .bh-hai-trang .bh-cot-gio { width: 100%; height: 100%; }
 
 .bh-hang-tren { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-.bh-tab { display: inline-flex; align-items: center; gap: 0.45rem; border: 1px solid var(--vien); background: var(--giay); border-radius: 999px; padding: 0.5rem 1rem 0.5rem 0.5rem; font-weight: 500; cursor: pointer; min-height: 44px; }
+.bh-tab { display: inline-flex; align-items: center; gap: 0.45rem; border: 1px solid var(--vien); background: var(--giay); border-radius: 999px; padding: 0.5rem 1rem; font-weight: 500; cursor: pointer; min-height: 44px; }
+.bh-tab-co-ic { padding-left: 0.5rem; }
 .bh-tab-ic { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #f3e3cf; color: var(--do-dam); font-style: normal; }
 .bh-tab.bh-chon { background: var(--bh-do); border-color: var(--bh-do); color: #fff; box-shadow: 0 3px 10px rgba(185,28,28,0.28); }
 .bh-tab.bh-chon .bh-tab-ic { background: rgba(255,253,248,0.92); }
@@ -37,7 +38,7 @@
 .bh-mon-bao > .bh-mon { flex: 1; }
 .bh-mon:disabled { filter: grayscale(0.85); opacity: 0.55; cursor: not-allowed; }
 .bh-mon-ten { font-weight: 600; font-size: 14.5px; }
-.bh-anh { aspect-ratio: 1; flex: none; border-radius: 10px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--phu); }
+.bh-anh { aspect-ratio: 1; flex: none; border-radius: 10px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; }
 .bh-anh svg { display: block; }
 .bh-anh img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bh-mon-ton { font-size: 0.75rem; color: var(--bh-xam); }
@@ -71,13 +72,14 @@
 .bh-nut.bh-lon { width: calc(100% - 1.8rem); margin: 0.4rem 0.9rem 0; }
 
 .bh-thanh-gio { flex: none; }
-.bh-thanh-gio .bh-nut { border-radius: 16px; color: #fff3df; background: linear-gradient(180deg, #931c1b, #7f1d1d); box-shadow: 0 8px 18px rgba(127,29,29,0.35); }
+.bh-thanh-gio .bh-nut { border-radius: 16px; background: linear-gradient(180deg, #931c1b, #7f1d1d); box-shadow: 0 8px 18px rgba(127,29,29,0.35); }
 .bh .bh-thanh-gio .bh-nut { color: #fff3df; }
 .bh-loi { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; gap: 0.5rem; }
 .bh-ghi-chu-ngu { font-size: 0.8rem; color: var(--bh-xam); }
 
 .bh-to { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; padding: 0.5rem 0.9rem 0; }
-.bh-to button { display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding-left: 0.5rem; padding-right: 0.5rem; }
+.bh-to button { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+.bh-to .bh-nut-ic { flex-direction: row; align-items: center; justify-content: center; gap: 0.4rem; padding-left: 0.5rem; padding-right: 0.5rem; }   /* chỉ hai nút Tiền mặt / Chuyển khoản có icon */
 .bh-to small { font-weight: 400; opacity: 0.85; }
 .bh-bao { padding: 0.5rem 0.9rem; font-weight: 700; font-size: 1.1rem; }
 .bh-bao.bh-du { color: var(--bh-xanh); }
