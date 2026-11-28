@@ -805,3 +805,16 @@ BÀI HỌC:     KHOÁ 2 · NGUYÊN TẮC 2 · BỎ 1 — chi tiết ở ## Bài 
 - BỎ: khoá theo phiếu qua ly_do "kiểm kê: đếm thiếu" và vế dòng KK — thay bằng một luật monDaChot.
 
 HEAD ĐÃ KIỂM: 4742daa9
+
+## Chat ghép main (28.11, bàn 42)
+- Chat soát thay vòng 9 (LUAT §6.5): đọc 6d75c5e6 + 4742daa9 — chỉ chú thích 033 + 3 đột biến + 3 ca (Q14d/e/f), không đổi mã chạy; đúng 4 lỗi nhẹ lần soát cuối nêu + mục Thử. ĐẠT.
+- Ghép main `c4b370cc` (#105 GIAO-4 · #106 GIAO-DIEN-2 · #107 NHOM-MON-1 · #108 TOPPING-1 · #109 ANH-MON-1) vào nhánh → `7f0076af`. Xung đột: kiem_tra_truoc_khi_giao.js
+  (giữ cả thu_KHOGON1 lẫn thu_NHOMMON1 / thu_TOPPING1) · server/kho/duong.js (giữ require viec / kiemKe lẫn docAnhMon) · client/dist (build lại từ src đã ghép).
+  backup.js tự gộp (bảng KHO-GON-1 + pos_nhom_mon + BANG_KHONG_XUAT_EXCEL). Bước nâng cấp: 033 (việc này) chạy sau 035–037 đã có trên production — bộ chạy
+  bỏ qua theo số bước (chay.js), bảng không trùng (033: kho_viec* / kho_dien_bien* / kho_chot / cột kho_nguyen_lieu; 035–037: pos_nhom_mon / pos_products /
+  pos_order_items / pos_anh_mon). 034 vẫn để dành KHO-GON-2.
+- Kiểm trên `7f0076af` (máy chat): `node kiem_tra_truoc_khi_giao.js --day-du` PASS 136 · FAIL 1 · CẢNH BÁO 1 — FAIL duy nhất `thu_NDAPI1.js` (8 ✗ "quá 500 KB"),
+  ĐỎ y hệt trên main `c4b370cc` chưa ghép (môi trường máy chat: xlsx thay bằng bản registry, không phải lỗi việc này). thu_KHOGON1 · thu_KHO2a · thu_TOPPING1 ·
+  thu_NHOMMON1 · thu_ANHMON1 · thu_HOPDONG_KH · thu_SAOLUU2 xanh. Cổng chạy: xem kết quả PR.
+
+HEAD ĐÃ KIỂM: 7f0076af
