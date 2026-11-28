@@ -22,6 +22,20 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
+Soát LẦN CUỐI sau vòng sửa 7 còn 2 lỗi NẶNG ở số tồn, cùng MỘT gốc: khoá Q9 vừa trả lại (ly_do "kiểm kê: đếm thiếu") gắn theo PHIẾU, không theo MÓN.
+Sửa đúng phải bỏ chính khoá Q9 chủ quán vừa bảo trả lại → máy DỪNG hỏi:
+
+- **Q14 · Khoá kết quả pha chế theo MÓN + GIỜ cho mọi đường đếm.** Hai lỗi người soát lần theo code:
+  (A) hở: chỉnh tay chỉ trừ vào phiếu chờ A → chỉ phiếu A bị khoá; một phiếu B ĐÃ duyệt cùng món (lô đã bán hết) vẫn ghi kết quả được → có thể ra ly ảo.
+  (B) khoá oan: phiếu chờ có [Nước cam, Bánh flan]; chỉnh tay Nước cam trừ vào phiếu đó → cả phiếu bị khoá → Bánh flan (chưa hề được đếm) không ghi
+  kết quả được → lô Bánh flan giữ số chuẩn dù pha thiếu.
+  **[đề xuất]** Chỉnh tay LUÔN để lại MỘT dấu vết theo món (dòng `kho_chot` loại chỉnh tay, ảnh đúng món đó) — cả khi đổi lô, chỉ trừ phiếu chờ, trộn hay
+  không đổi — giống kiểm kê / bàn giao. Khoá kết quả = "món đó có lần chốt kể từ lúc tạo phiếu" (một luật). Bỏ khoá theo phiếu (ly_do) — CHỈ sau khi có
+  ca (A) và ca (B) chạy thật và Q13a vẫn bị chặn. Ca Q13a (pha 5 chờ → chỉnh tay 4 → duyệt → ghi 5) vẫn 409 vì có dấu vết món.
+  Cùng lượt: dòng cam "phiếu chờ bị từ chối sau lần chốt" lọc theo món (hiện lần chỉnh tay khớp bất kỳ thứ gì cũng làm hiện cam oan).
+- **Xin phép vòng sửa 8** cho Q14 + 1 lỗi nhẹ (cảnh báo sau chốt lọc theo món). Ngân sách ≈ 1.125 dòng, không tăng đáng kể.
+
+## Câu hỏi đã trả lời (Q13, ngày 28.11 — (a) + (b), vòng sửa 7)
 Soát LẦN CUỐI sau vòng sửa 6 còn MỘT lỗi NẶNG ở số tồn — do CHÍNH vòng 6 gây ra (máy bỏ vế `daKiemKe` của Q9 vì tưởng Q12 đã bao trùm; sai — K3: đột
 biến sống báo THIẾU CA, không chứng minh vế thừa). Chủ quán dặn "còn lỗi tồn thì dừng hỏi" → máy DỪNG:
 
@@ -554,3 +568,66 @@ BÀI HỌC:
 - `npm test -- --day-du`: PASS 132 · FAIL 0 · CẢNH BÁO 1 (chạy một mình).
 - `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1` trên HEAD a98310e7: ✓ CỔNG CHẠY ĐẠT
 - Còn Q13 (lỗi NẶNG tồn do vòng 6) → DỪNG hỏi; báo cáo 7 mục + 3 thao tác thử tay ghi khi việc xong.
+
+## Vòng sửa 7 (chủ quán cho phép 28.11 — Q13 (a) + (b) + 3 lỗi nhẹ)
+- duLieu.ketQuaDaChot = ly_do "kiểm kê: đếm thiếu" trên phiếu (khoá Q9 trả lại) HOẶC monDaChot — MỘT vị từ cho chặn ghi và hiển thị (ca Q13a, Q13c).
+- kiemKe.chinhTay không đổi → dòng kho_chot `chinhtay` (dấu vết "đã đếm, khớp"); bước 033 CHECK thêm 'chinhtay' (bước chưa chạy trên production) — ca Q13b.
+- Nhẹ: ca Q12e (danh sách phiếu "đã điền"), Q12f (K5 món khác cùng phiếu / món không có trong ảnh) + 3 đột biến; chú thích sửa.
+- Bằng chứng: bài mới trên code trước vòng 7 (017faf0d) 137 đạt · 2 hỏng (✗ Q13a · ✗ Q13b); sau vá 139 đạt · 0 hỏng; đột biến 75/75 BẮT.
+
+## Soát bảo mật — lần 5 (28.11, HEAD 5626f8ab — sau vòng sửa 7)
+Trước lọc: 0 · sau lọc: 0. Báo cáo (nguyên văn, dòng đầu): "No vulnerabilities found."
+Người soát đã kiểm: chỉnh tay vẫn chỉ chủ / quản lý được bật (QUAN_LY + duocChinhTay); dòng `chinhtay` chỉ ghi trong kiemKe.chinhTay — nhân viên không tạo
+được; nhân viên không gắn được dấu ly_do (POST /phieu-xuat không nhận lyDo; tu-choi / huy / sua là QL / chủ và ghiKetQua đã chặn phiếu huỷ / phiếu
+sửa); khoá chỉ thêm điều kiện OR — không có lối gỡ khoá; INSERT mới tham số hoá; ảnh chỉ số tồn + lý do của người chỉnh, không trả cho nhân viên; 033
+chỉ nới CHECK.
+
+SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập — lần cuối sau vòng sửa 7 (28.11, HEAD 5626f8ab) — chép nguyên văn
+KHÔNG ĐẠT
+
+Nói ngắn: vòng 7 đã sửa đúng cả ba việc chủ quán dặn ở Q13. Thứ nhất, ca người soát trước dựng (pha 5 chờ → chỉnh tay 4 → duyệt → ghi kết quả 5) nay bị chặn 409. Thứ hai, chỉnh tay gõ đúng số máy nay có để lại dấu vết. Thứ ba, 3 lỗi nhẹ có ca và đột biến. 6/6 đột biến của vòng 6–7 mình chạy đều BẮT. Nhưng đường "chỉnh tay mà phần thiếu trừ HẾT vào phiếu pha chế chờ" vẫn chỉ để dấu vết trên CHÍNH phiếu chờ, và dấu vết đó tính cho cả phiếu, không theo từng món. Từ đó có hai lỗi tồn, đọc code là thấy chắc chắn:
+- (A) Một phiếu ĐÃ duyệt khác cùng món, lô đã bán hết, vẫn ghi kết quả được → có thể ra ly ảo.
+- (B) Món B nằm cùng phiếu chờ, chưa hề được đếm, bị khoá oan (K5).
+Hai lỗi chữa chung một cách đơn giản (xem dưới).
+
+LỖI TÌM ĐƯỢC:
+- server/kho/kiemKe.js:114–121 + :238–241 · server/kho/duLieu.js:322–333 — NẶNG (tồn) — K4 (đường song song của Q12). Đường "chỉnh tay chỉ trừ vào phiếu chờ" không ghi dòng KK, vì ghiKK trả id null ở dòng 97/119. Nó cũng không ghi kho_chot, vì ở dòng 233–236 chỉ nhánh khớp mới ghi. Dấu vết duy nhất là ly_do trên phiếu chờ A (dòng 141). Còn phiếu B cùng món đã duyệt, lô đã bán hết thì loConThat (dòng 87–91) bỏ lô đó ra. Khi ghi kết quả cho B, ketQuaDaChot (duLieu.js:333) chỉ xét ly_do của B (rỗng) và monDaChot (không có KK, không có kho_chot), nên trả false → 200.
+  - Lần theo code, chưa chạy (xem CHƯA SOÁT): B duyệt 5 NC (lô 5), bán 5 → lô 0, chưa ghi kết quả (thật pha được 6, còn 1). Nhân viên pha A 3 (chờ), vỡ 2. Chủ quán đếm 2 → chỉnh tay 2 (máy 3). Phần thiếu 1 trừ vào A (A còn 2, có ly_do). Duyệt A. Nhân viên ghi kết quả B = 6 → +1 vào lô B. Tồn 3, thật 2 → 1 ly ảo.
+  - Q12 đòi khoá "khi đã có lần chỉnh tay chạm món đó kể từ lúc tạo phiếu". Kiểm kê / bàn giao đã khoá đúng vì luôn ghi kho_chot (kiemKe.js:204).
+- server/kho/duLieu.js:333 (`String(p.ly_do).includes(LY_DO_KIEM_KE)`) — NẶNG (tồn, chặn oan) — K5. Phiếu PX có thể gồm NHIỀU món (taoPhieuXuat, duLieu.js:179–183). Chỉnh tay món A trừ vào phiếu chờ [A, B] → ly_do của cả phiếu → kết quả món B bị 409 dù B chưa được đếm (chỉnh tay chỉ đếm A). B pha thiếu so với chuẩn mà không ghi được → lô B giữ số chuẩn → có ly ảo B.
+  - Ở đường kiểm kê thì không sao: B có trong danh sách (phiếu chờ được tính, Q4), nằm trong ảnh chốt nên khoá là đúng. Chỉ đường chỉnh tay mới khoá oan.
+  - Ca Q12f ("món khác cùng phiếu") không phủ vế này: px24 do quản lý tạo nên tự duyệt, có lô → đi vế dòng KK, không đi vế ly_do.
+  - Đúng chữ Q13a ("phiếu có lý do → khoá") nhưng sai tinh thần "số thật đã được đếm".
+  - **Gợi ý sửa chung cho cả hai lỗi:** chinhTay LUÔN ghi một dòng kho_chot 'chinhtay' với ảnh của đúng món đó, cả khi khớp lẫn khi đổi. Như vậy mọi đường đếm (kiểm kê · bàn giao · chỉnh tay đổi lô / chỉ trừ phiếu chờ / không đổi / trộn) để lại CÙNG một dấu vết theo món + giờ, và monDaChot khoá đúng từng món, từng phiếu tạo trước. Khi đó vế ly_do thừa thật. Muốn bỏ vế này thì phải thêm 2 ca trên (ca A: phiếu khác đã duyệt cùng món · ca B: món khác cùng phiếu chờ) và giữ Q13a xanh. Đây là bài học vòng 6: chỉ bỏ vế sau khi đã có ca.
+- server/kho/viec.js:134–136 (canhBaoSauChot) — NHẸ — K4/K1. Vòng 7 thêm dòng kho_chot 'chinhtay', nên câu `SELECT 1 FROM kho_chot WHERE luc >= ?` (không lọc món) nay coi một lần chỉnh tay KHỚP ở BẤT KỲ thứ gì (cả nguyên liệu) là "lần chốt": từ chối / huỷ một phiếu chờ của món khác cũng ra dòng cam "đã được tính vào lần chốt" (báo oan). Ngược lại, chỉnh tay CÓ đổi (phiếu KK) lại không làm hiện dòng cam này → không nhất quán. Chú thích dòng 133 còn ghi "kiểm kê / bàn giao". (Nếu theo gợi ý trên thì nên lọc theo món hoặc bỏ 'chinhtay' khỏi câu này.)
+- viec/KHO-GON-1/trang_thai.md — NHẸ: chưa có mục "Vòng sửa 7"; Q13 vẫn nằm ở "## Câu hỏi" (chưa chuyển sang đã trả lời); phần "Thử" (3 thao tác 390 px, kết quả cong.js sau vòng 7, CHƯA KIỂM phần chỉ có ở màn) vẫn thiếu. bang_chung_do.txt đã ghi đúng vòng 7 (137/2 trên code trước vòng 7 → 139/0; 75/75).
+
+Lỗi lần soát trước (sau vòng 6) — kiểm từng mục: Q13a, ca SOAT-A: đã sửa (Q13a xanh; BV-bo-khoa-q9 BẮT) — còn hở đường song song (lỗi 1) và khoá oan (lỗi 2) · Q13b: đã sửa (kiemKe.js:233–236; BV-bo-dau-vet-khop BẮT) · dsPhieu "đã điền": có ca Q12e, VS-q12-ds-bo BẮT · K5 món khác / món không có trong ảnh: có ca Q12f, VS-q12-kk-moi-mon và VS-q12-anh-moi-mon BẮT · chú thích duLieu.js:320/331 và tinh.js:203: đã sửa, nay khớp code · "Thử": vẫn thiếu.
+
+Các đường đếm và dấu vết mà ketQuaDaChot đọc:
+| Đường đếm | Dấu vết | Kết quả |
+|---|---|---|
+| kiểm kê | kho_chot 'kiemke', luôn ghi (kiemKe.js:204) | ✓ |
+| bàn giao | kho_chot 'bangiao' | ✓ |
+| chỉnh tay đổi lô (cộng hoặc trừ) | dòng KK có san_pham_id | ✓ |
+| chỉnh tay trộn (lô + phiếu chờ) | dòng KK + ly_do | ✓ |
+| chỉnh tay không đổi | kho_chot 'chinhtay' | ✓ |
+| chỉnh tay CHỈ trừ vào phiếu chờ | chỉ ly_do trên phiếu đó | ✗ hở phiếu khác cùng món (lỗi 1) · ✗ khoá oan món khác cùng phiếu (lỗi 2) |
+
+NGHI NGỜ:
+- 033_viec_kho.js:61 sửa thẳng CHECK của kho_chot. Kho nào đã chạy bản 033 cũ của nhánh này (kho thử Replit, nếu có) sẽ giữ CHECK cũ → chỉnh tay khớp lỗi 500. Main chưa có 033 (`git log --all -- 033` chỉ ra 2 commit của nhánh) nên production an toàn.
+- dsPhieu (duLieu.js:437–439): phiếu nhiều món mà một món đã có kết quả, món kia đã chốt → ketQuaCoChot xét cả món đã có kết quả → vẫn hiện "chờ điền" (chỉ là hiển thị).
+- Mỗi lần bấm lại cùng mã ở nhánh khớp lại thêm một dòng kho_chot (vô hại).
+
+NGHIỆM THU:    28/31 · mục thiếu: Q12 (đường chỉnh tay chỉ trừ vào phiếu chờ không khoá phiếu đã duyệt cùng món) · Q13 (khoá oan món khác cùng phiếu; thiếu ca) · "Thử" (390 px, cong.js sau vòng 7, CHƯA KIỂM phần màn). Có đủ: A1–A3 · B1–B6 · C1–C6 · D1 · D2 · E1 · E2; 8/8 đột biến phiếu đòi (75 tên); Q1 · Q4 · Q5 · Q8 · Q9 · Q10 · Q11 · B6. Đã chạy: `node cong_cu/thu_KHOGON1.js` 139 đạt · 0 hỏng · `dot_bien.py` 6 tên (BV-bo-khoa-q9, BV-bo-dau-vet-khop, VS-q12-ds-bo, VS-q12-kk-moi-mon, VS-q12-anh-moi-mon, VS-q12-cho-dien-sau-chot): ĐỐI CHỨNG XANH 139 · BẮT 6/6 · P1: vòng 7 không đụng client/src → kết quả P1 lần trước giữ.
+
+CHƯA SOÁT ĐƯỢC: hai lỗi NẶNG chỉ lần theo code, CHƯA chạy thật (người gác chặn chạy bản chép bài thử vì file có tên biến khoá; người soát dừng, không lách) — phiên chính nên dựng ca thật: lỗi 1 theo dãy việc trên, lỗi 2: nhân viên tạo phiếu chờ [Nước cam 2, Bánh flan 2] → chỉnh tay Nước cam về 1 → duyệt → ghi kết quả Bánh flan 1 (hiện sẽ ra 409) · ca báo oan canhBaoSauChot cũng chỉ đọc code · không chạy npm test, --day-du, cong.js (theo dặn); không chạy lại đủ 75 đột biến; chưa chạy giao diện thật.
+
+BÀI HỌC:
+- KHOÁ: khoá kết quả pha chế phải dựa trên MỘT dấu vết gắn theo MÓN + GIỜ mà MỌI đường đếm đều ghi (kho_chot). Dấu vết gắn lên một phiếu cụ thể (ly_do) vừa hở các phiếu khác cùng món, vừa khoá oan món khác cùng phiếu.
+- NGUYÊN TẮC (K4/K5): vá một đường song song thì liệt kê đủ cả hai chiều cho từng đường. Chiều thứ nhất: mọi phiếu CÙNG MÓN tạo trước lần đếm phải bị khoá. Chiều thứ hai: mọi MÓN KHÁC cùng phiếu chưa được đếm phải KHÔNG bị khoá. Mỗi chiều một ca, và ca phải đi đúng vế đang thử (Q12f đi vế dòng KK nên không phủ vế ly_do).
+
+## Kiểm sau vòng sửa 7 (phiên chính, 28.11)
+- `node cong_cu/thu_KHOGON1.js` 139 đạt · 0 hỏng · đột biến 75/75 BẮT (bang_chung_do.txt).
