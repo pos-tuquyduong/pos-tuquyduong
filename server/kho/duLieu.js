@@ -6,7 +6,7 @@
  */
 const { addDaysToDateString } = require('../utils/helpers');
 const { gonTen, chuanHoaTen, doiDonVi, laTrungKhoa, SAP_HET_HAN_NGAY, thuCuaNgay, chonDinhMuc, canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong,
-  trangThaiKetQua, trangThaiHan, bangPhieu, hanMuc, tongTien, trongHanMuc, conLaiDon, HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SAI_SO, LY_DO_KIEM_KE } = require('./tinh');
+  trangThaiKetQua, trangThaiHan, bangPhieu, hanMuc, tongTien, trongHanMuc, conLaiDon, HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SAI_SO } = require('./tinh');
 
 const soHoacNull = (x) => (x === '' || x == null || !Number.isFinite(Number(x)) ? null : Number(x));
 
@@ -317,20 +317,19 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
 const ngayLam = (p) => String(p.duyet_luc || p.tao_luc).slice(0, 10);
 const ketQuaPhieu = (p, homNay, duKetQua) => (p.loai === 'PX' && p.trang_thai === 'da_duyet' ? trangThaiKetQua(ngayLam(p), homNay, duKetQua, p.thay_cho_id != null) : null);
 
-/** KHO-GON-1 Q12 (a): món đã có lần chốt kiểm kê / bàn giao / chỉnh tay khớp (kho_chot — kể cả đếm khớp) hoặc phiếu chỉnh tồn KK chạm món đó KỂ TỪ lúc
- *  tạo phiếu pha chế → số thật đã được đếm, kết quả pha chế của món đó coi như đã chốt. */
-async function monDaChot(csdl, spId, tuLuc) {
-  if (await csdl.queryOne(`SELECT 1 FROM kho_phieu_dong d JOIN kho_phieu p ON p.id = d.phieu_id WHERE p.loai = 'KK' AND p.trang_thai = 'da_duyet'
-    AND d.san_pham_id = ? AND p.tao_luc >= ? LIMIT 1`, [spId, tuLuc])) return true;
+/** KHO-GON-1 Q12 + Q14: MỘT dấu vết theo món + giờ — mọi đường đếm (kiểm kê · bàn giao · chỉnh tay: đổi lô / chỉ trừ phiếu chờ / không đổi) ghi một dòng
+ *  kho_chot có ảnh từng thứ. Món đã có lần chốt KỂ TỪ lúc tạo phiếu pha chế → số thật đã được đếm, kết quả pha chế của món đó coi như đã chốt. */
+async function chotCham(csdl, thu, tuLuc) {   // thu = [{ san_pham_id } | { nguyen_lieu_id }] — có lần chốt nào kể từ tuLuc mà ảnh chạm một thứ trong đó
+  const trung = (a, t) => (t.san_pham_id ? Number(a.san_pham_id) === Number(t.san_pham_id) : Number(a.nguyen_lieu_id) === Number(t.nguyen_lieu_id));
   for (const c of await csdl.query('SELECT anh FROM kho_chot WHERE luc >= ?', [tuLuc])) {
-    let anh = []; try { anh = JSON.parse(c.anh) || []; } catch { /* ảnh hỏng: bỏ qua lần chốt này */ }
-    if (anh.some((a) => Number(a.san_pham_id) === Number(spId))) return true;
+    let anh = []; try { anh = JSON.parse(c.anh); } catch { /* ảnh hỏng: bỏ qua lần chốt này */ }
+    if (Array.isArray(anh) && anh.some((a) => thu.some((t) => trung(a, t)))) return true;
   }
   return false;
 }
-/** MỘT vị từ cho chặn ghi và hiển thị. Ba dấu vết, mỗi đường đếm để lại một: kho_chot (kiểm kê · bàn giao · chỉnh tay khớp — Q13b) · dòng KK (chỉnh tay đổi
- *  lô) · ly_do "kiểm kê: đếm thiếu" trên CHÍNH phiếu (phần thiếu trừ vào phiếu chờ — Q9, Q13a: chỉnh tay chỉ trừ vào phiếu chờ không có hai dấu kia). */
-const ketQuaDaChot = async (csdl, p, spId) => String(p.ly_do || '').includes(LY_DO_KIEM_KE) || monDaChot(csdl, spId, p.tao_luc);
+const monDaChot = (csdl, spId, tuLuc) => chotCham(csdl, [{ san_pham_id: Number(spId) }], tuLuc);
+/** MỘT vị từ cho chặn ghi và hiển thị (Q14: bỏ khoá theo PHIẾU qua ly_do — nó hở phiếu khác cùng món và khoá oan món khác cùng phiếu). */
+const ketQuaDaChot = (csdl, p, spId) => monDaChot(csdl, spId, p.tao_luc);
 /** Trạng thái kết quả "chờ điền" mà mọi món (spIds) đã được chốt → "đã điền". */
 const ketQuaCoChot = async (csdl, p, tt, spIds) => {
   if (tt !== 'cho_dien' || !spIds.length) return tt;
@@ -468,5 +467,5 @@ async function docTon(csdl, bayGio) {
 
 module.exports = { docNguyenLieu, cotNguyenLieu, themNguyenLieu, suaNguyenLieu, xoaNguyenLieu, docBangCongThuc, docSanPham, luuSanPham,
   demThieu, tenSanPham, hanLo, nvCanDuyet, docPhaChe, docDinhMuc, luuDinhMuc, taoPhieuXuat, duyetPhieu, tuChoiPhieu, huyPhieu,
-  suaPhieu, ghiKetQua, docPhieu, dsPhieu, docTon,
+  suaPhieu, ghiKetQua, docPhieu, dsPhieu, docTon, chotCham,
   KHOA_HAN_MUC_DAT_HANG, KHOA_HAN_MUC_NOI_BO, DA_DUYET, theoId, dauHoi, conLaiTheoLo, docHanMuc, soPhieuMoi, themPhieu, docConLaiDon };

@@ -230,15 +230,18 @@ async function chinhTay(tx, { than, nguoi, luc, maGui, lyDo }) {
   if (g.loi) return g;
   const dc = thuc - g.goc;
   if (g.hien + dc < -tinh.SAI_SO) return loi(409, 'KHO_TON_DOI', 'Tồn vừa đổi — tải lại');
-  if (Math.abs(dc) <= tinh.SAI_SO) {   // Q11: màn báo "Không có gì thay đổi" · Q13b: vẫn để dấu vết "đã đếm, khớp" (khoá kết quả pha chế như kiểm kê đếm khớp)
-    await tx.run("INSERT INTO kho_chot (che_do, ngay, luc, nguoi, ghi_chu_chung, anh) VALUES ('chinhtay', ?, ?, ?, ?, ?)", [luc.slice(0, 10), luc, nguoi, lyDo,
-      JSON.stringify([{ [cotCua(m)]: maCua(m), ten: co.ten, chot: gon(g.hien), thuc: gon(thuc), goc: gon(g.goc), lech: 0, ghi_chu: lyDo }])]);
-    return { phieu_id: null, khong_doi: true };
+  const khongDoi = Math.abs(dc) <= tinh.SAI_SO;
+  let phieuId = null;
+  if (!khongDoi) {
+    const r = await ghiKK(tx, [{ m: { ...m, ten: co.ten }, dc, ghiChu: lyDo }], { nguoi, luc, lyDo, maGui, ghiChu: 'Chỉnh tồn tay' });
+    if (r.loi) return r;
+    phieuId = r.id;
+    await viec.ghiDienBien(tx, { luc, loai: 'chinh_tay', nguoi, chuY: true, phieuId, chiTiet: `${co.ten} ${gon(g.goc)} → ${gon(thuc)} (${lyDo})` });
   }
-  const r = await ghiKK(tx, [{ m: { ...m, ten: co.ten }, dc, ghiChu: lyDo }], { nguoi, luc, lyDo, maGui, ghiChu: 'Chỉnh tồn tay' });
-  if (r.loi) return r;
-  await viec.ghiDienBien(tx, { luc, loai: 'chinh_tay', nguoi, chuY: true, phieuId: r.id, chiTiet: `${co.ten} ${gon(g.goc)} → ${gon(thuc)} (${lyDo})` });
-  return { phieu_id: r.id };
+  // Q13b + Q14: LUÔN để MỘT dấu vết theo món (như kiểm kê / bàn giao) — đổi lô, chỉ trừ phiếu chờ, trộn hay không đổi — để khoá kết quả pha chế theo món + giờ
+  await tx.run("INSERT INTO kho_chot (che_do, ngay, luc, nguoi, phieu_id, ghi_chu_chung, anh) VALUES ('chinhtay', ?, ?, ?, ?, ?, ?)", [luc.slice(0, 10), luc, nguoi, phieuId, lyDo,
+    JSON.stringify([{ [cotCua(m)]: maCua(m), ten: co.ten, chot: gon(g.hien + dc), thuc: gon(thuc), goc: gon(g.goc), lech: gon(dc), ghi_chu: lyDo }])]);
+  return khongDoi ? { phieu_id: null, khong_doi: true } : { phieu_id: phieuId };   // Q11: không đổi → màn báo "Không có gì thay đổi"
 }
 
 /** Q11: số máy chủ DÙNG khi chỉnh tay (gồm phiếu chờ — Q4) cho những thứ đang có phiếu chờ: [{ nguyen_lieu_id | san_pham_id, ton, cho }]. */

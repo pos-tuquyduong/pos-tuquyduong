@@ -130,10 +130,14 @@ async function sauTaoPhieu(tx, id, nguoi, luc) {
   }
 }
 
-/** Q4: phiếu CHỜ DUYỆT (chưa từng duyệt) bị từ chối / huỷ mà đã có lần chốt kiểm kê / bàn giao từ lúc nó được tạo → lần chốt đã tính nó → dòng cam. */
+/** Q4: phiếu CHỜ DUYỆT (chưa từng duyệt) bị từ chối / huỷ / sửa mà đã có lần chốt (kiểm kê · bàn giao · chỉnh tay) CHẠM một thứ của phiếu kể từ lúc nó
+ *  được tạo → lần chốt đã tính nó → dòng cam. Lọc theo thứ (Q14) — lần chốt thứ khác không báo. */
 async function canhBaoSauChot(tx, id, nguoi, luc) {
   const p = await tx.queryOne("SELECT so_phieu, tao_luc, duyet_luc, loai FROM kho_phieu WHERE id = ? AND loai <> 'DH'", [id]);
-  if (!p || p.duyet_luc || !(await tx.queryOne('SELECT 1 FROM kho_chot WHERE luc >= ? LIMIT 1', [p.tao_luc]))) return;
+  if (!p || p.duyet_luc) return;
+  const thu = (await tx.query('SELECT DISTINCT nguyen_lieu_id, san_pham_id FROM kho_phieu_dong WHERE phieu_id = ?', [id]))
+    .map((d) => (d.nguyen_lieu_id != null ? { nguyen_lieu_id: Number(d.nguyen_lieu_id) } : { san_pham_id: Number(d.san_pham_id) }));
+  if (!(await duLieu.chotCham(tx, thu, p.tao_luc))) return;
   await ghiDienBien(tx, { luc, loai: 'tu_choi_sau_chot', nguoi, chuY: true, phieuId: id,
     chiTiet: `${p.so_phieu} đã được tính vào lần chốt — kiểm lại: ${chuoiDong(await dongCua(tx, id))}` });
 }
