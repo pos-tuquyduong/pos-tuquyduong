@@ -15,7 +15,7 @@ const LAM_MOI_MS = 15000;
 const KHO_IN = { a5: '@page { size: A5; margin: 8mm; }', a4: '@page { size: A4; margin: 12mm; }' };
 const NHAN_NUT_IN = { a5: 'In A5', a4: 'In A4' };
 const luong = (n) => `${so(n.luong_hien)} ${n.don_vi || ''}`;
-const TEN_LOAI = { DH: 'Đơn đặt hàng', PN: 'Phiếu nhận hàng', PS: 'Phiếu xử lý phát sinh' };
+const TEN_LOAI = { DH: 'Đơn đặt hàng', PN: 'Phiếu nhận hàng', PS: 'Phiếu xử lý phát sinh', KK: 'Phiếu kiểm kê' };
 
 /** KHO-2b: bảng dòng của DH / PN / PS — dòng lệch đơn / ngoài đơn tô vàng (cờ máy chủ); đơn đã duyệt kèm phần còn chờ nhận. */
 function BangDong({ dl, kho }) {
@@ -29,7 +29,7 @@ function BangDong({ dl, kho }) {
         <div key={d.id} className={`kho-dong ${d.lech || d.ngoai_don ? 'kho-vang' : ''}`}>
           {p.loai === 'DH' && <span className="kho-o">☐</span>}
           <span style={{ flex: 1 }}>{d.ten}{d.ngoai_don && ' · ngoài đơn'}{d.han_dung && <span className="kho-nho"> · hạn {gio(d.han_dung)}</span>}</span>
-          <b>{luong(d)}</b>
+          <b>{d.loai === 'kiem_ke' && (d.tang ? '+' : '−')}{luong(d)}</b>
           {d.don_gia != null && <span className="kho-nho kho-khong-in"> · {tien(d.don_gia)}</span>}
         </div>
       ))}

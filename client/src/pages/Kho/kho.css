@@ -38,3 +38,9 @@
 .kho-dong .input.kho-hep { flex: 0 1 6rem; min-width: 4.5rem; }
 .kho-buoc { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.5rem; }
 .kho-buoc .btn { padding: 0.9rem 0.5rem; }
+/* KHO-GON-1 — kiểm kê / bàn giao: điện thoại 390 px mỗi dòng một thẻ, nút chốt dính đáy màn */
+.kho-kiem .kho-the.kho-dong { flex-wrap: wrap; margin-bottom: 0.5rem; }
+.kho-kiem .kho-the.kho-dong > .input:not(.kho-hep) { flex: 1 1 12rem; }
+.kho-chan { position: sticky; bottom: 0; z-index: 5; background: #fff; border-top: 1px solid #e2e8f0; padding: 0.6rem 0; margin-top: 0.75rem;
+  display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; }
+.kho-chan .btn { padding: 0.8rem 1.2rem; font-size: 1.05rem; }

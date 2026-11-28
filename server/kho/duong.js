@@ -4,6 +4,9 @@
  * KHO-2a: chủ — mọi thứ · quản lý — định mức, tạo + duyệt phiếu, xem giá · nhân viên — Pha chế, tạo phiếu, tồn KHÔNG giá. Đường lạ → 403.
  * KHO-2b: đặt hàng (DH) · nhận hàng (PN) · phát sinh (PS) — mọi vai trò tạo; duyệt / từ chối quản lý (người KHÁC người tạo), đơn vượt hạn mức chỉ chủ quán;
  * sửa / huỷ chỉ chủ quán. Hàm tạo ở nhapHang.js / phatSinh.js.
+ * KHO-GON-1: việc hôm nay (mọi vai trò) · mẫu việc, ngưỡng (chủ / quản lý) · số ca, cho quản lý chỉnh tay, mở lại việc (chủ quán) · kiểm kê / bàn giao
+ * (mọi vai trò, phiếu KK đã duyệt ngay) · chỉnh tồn tay (chủ quán; quản lý khi công tắc bật) · diễn biến (chủ / quản lý). Tạo PX / PN / PS → ghi diễn biến
+ * + tự xong việc trong CÙNG giao dịch (viec.sauTaoPhieu).
  * Ghi: trongGiaoDich + loiGhi dùng chung (kho bận → 409 KHO_BAN).
  */
 const fs = require('fs');
@@ -19,6 +22,8 @@ const nhapSx = require('./nhapSx');
 const nhapHang = require('./nhapHang');
 const phatSinh = require('./phatSinh');
 const banHang = require('./banHang');   // KHO-3a
+const viec = require('./viec');   // KHO-GON-1
+const kiemKe = require('./kiemKe');   // KHO-GON-1
 const { docAnhMon } = require('../utils/anhMon');   // ANH-MON-1
 
 const router = express.Router();
@@ -246,10 +251,11 @@ router.put('/dinh-muc', QUAN_LY, async (req, res) => {
 // Nhân viên tạo → chờ duyệt (trừ khi chủ quán tắt công tắc); quản lý / chủ → tự duyệt. Cùng ma_gui (bấm hai lần) → trả phiếu đã tạo.
 const maGuiCua = (req) => (req.body?.ma_gui ? String(req.body.ma_gui).slice(0, 80) : null);
 const timMaGui = async (req) => (maGuiCua(req) ? Number((await csdl.queryOne('SELECT id FROM kho_phieu WHERE ma_gui = ?', [maGuiCua(req)]))?.id) || null : null);
-router.post('/phieu-xuat', NHAN_VIEN, (req, res, next) => (monHopLe(req.body?.mon) ? next() : soPhanSai(res)), ghiPhieu(async (req, tx, luc) => (
-  duLieu.taoPhieuXuat(tx, { mon: monHopLe(req.body.mon), nguoi: req.user.username, maGui: maGuiCua(req), luc, lucLam: luc,
-    tuDuyet: VAI_QUAN_LY.includes(req.user.role) || !(await duLieu.nvCanDuyet(tx)) })
-), timMaGui));
+/** KHO-GON-1: tạo phiếu xong (không lỗi) → diễn biến + tự xong việc, cùng giao dịch (bấm hai lần: lần sau rollback, không ghi đôi). */
+const kemDienBien = async (req, tx, luc, r) => { if (!r.loi) await viec.sauTaoPhieu(tx, r.id, req.user.username, luc); return r; };
+router.post('/phieu-xuat', NHAN_VIEN, (req, res, next) => (monHopLe(req.body?.mon) ? next() : soPhanSai(res)), ghiPhieu(async (req, tx, luc) => kemDienBien(req, tx, luc,
+  await duLieu.taoPhieuXuat(tx, { mon: monHopLe(req.body.mon), nguoi: req.user.username, maGui: maGuiCua(req), luc, lucLam: luc,
+    tuDuyet: VAI_QUAN_LY.includes(req.user.role) || !(await duLieu.nvCanDuyet(tx)) })), timMaGui));
 
 // ── KHO-2b: đặt hàng · nhận hàng · phát sinh. THAN: thân yêu cầu → đối số hàm tạo — MỘT chỗ cho tạo và sửa. ──
 const soId = (x) => (Number(x) > 0 ? Number(x) : null);
@@ -262,7 +268,8 @@ const THAN = {
 const TAO = { DH: nhapHang.taoDatHang, PN: nhapHang.taoPhieuNhan, PS: phatSinh.taoPhatSinh };
 const nguoiCua = (req, luc) => ({ nguoi: req.user.username, vaiTro: req.user.role, quanLy: VAI_QUAN_LY.includes(req.user.role), maGui: maGuiCua(req), luc });
 for (const [duong, loai] of [['phieu-dat', 'DH'], ['phieu-nhan', 'PN'], ['phieu-phat-sinh', 'PS']]) {
-  router.post(`/${duong}`, NHAN_VIEN, ghiPhieu((req, tx, luc) => TAO[loai](tx, { ...THAN[loai](req.body || {}), ...nguoiCua(req, luc) }), timMaGui));
+  router.post(`/${duong}`, NHAN_VIEN, ghiPhieu(async (req, tx, luc) => kemDienBien(req, tx, luc,
+    await TAO[loai](tx, { ...THAN[loai](req.body || {}), ...nguoiCua(req, luc) })), timMaGui));
 }
 router.get('/goi-y-nhap', NHAN_VIEN, doc((req) => nhapHang.goiYNhap(csdl, getNow()).then((r) => (anGia(req) ? tinh.boGia(r) : r))));
 router.get('/phat-sinh/goi-y', NHAN_VIEN, doc((req) => phatSinh.goiY(csdl, String(req.query.su_co || ''), getNow()).then((r) => (anGia(req) ? tinh.boGia(r) : r))));
@@ -287,6 +294,7 @@ router.post('/phieu/:id/duyet', QUAN_LY, ghiPhieu(async (req, tx, luc) => {
 
 router.post('/phieu/:id/tu-choi', QUAN_LY, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx, luc) => {
   const r = await duLieu.tuChoiPhieu(tx, Number(req.params.id), req.user.username, lyDoCua(req), luc);
+  if (!r.loi) await viec.canhBaoSauChot(tx, Number(req.params.id), req.user.username, luc);   // KHO-GON-1 Q4
   return r.loi ? r : { id: Number(req.params.id) };
 }));
 
@@ -306,6 +314,7 @@ router.post('/phieu/:id/ket-qua', NHAN_VIEN, (req, res, next) => {
 
 router.post('/phieu/:id/huy', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiPhieu(async (req, tx, luc) => {
   const r = await duLieu.huyPhieu(tx, Number(req.params.id), lyDoCua(req), req.user.username, luc);
+  if (!r.loi) await viec.canhBaoSauChot(tx, Number(req.params.id), req.user.username, luc);   // KHO-GON-1 Q4: huỷ phiếu còn chờ = từ chối
   return r.loi ? r : { id: Number(req.params.id) };
 }));
 
@@ -317,21 +326,109 @@ router.post('/phieu/:id/sua', CHU_QUAN, (req, res, next) => (lyDoCua(req) ? next
   const id = Number(req.params.id);
   const cu = await tx.queryOne('SELECT loai, trang_thai, don_id, nha_cung_cap_id, ghi_chu, su_co FROM kho_phieu WHERE id = ?', [id]);
   if (!cu || cu.loai === 'PX') {
-    return monHopLe(req.body.mon) ? duLieu.suaPhieu(tx, id, monHopLe(req.body.mon), req.user.username, lyDoCua(req), luc)
-      : { loi: [400, LOI_SO_PHAN] };
+    if (!monHopLe(req.body.mon)) return { loi: [400, LOI_SO_PHAN] };
+    const sua = await duLieu.suaPhieu(tx, id, monHopLe(req.body.mon), req.user.username, lyDoCua(req), luc);
+    if (!sua.loi) await viec.canhBaoSauChot(tx, id, req.user.username, luc);   // KHO-GON-1 Q4: sửa phiếu xuất CHỜ duyệt sau chốt
+    if (!sua.loi) await viec.ghiSuaPhieu(tx, id, sua.id, req.user.username, lyDoCua(req), luc);   // KHO-GON-1: đường sửa cũng ghi diễn biến
+    return sua;
   }
   if (!TAO[cu.loai]) return { loi: [400, { error: 'Loại phiếu này không sửa được', code: 'KHONG_SUA_DUOC' }] };
   if (cu.trang_thai === 'cho_duyet') return { loi: [409, { error: 'Chỉ sửa phiếu đã duyệt — phiếu chờ duyệt thì từ chối / huỷ rồi tạo lại', code: 'PHIEU_CHUA_DUYET' }] };
   // phiếu đã huỷ: huyPhieu trả 409 PHIEU_DA_XU_LY — cùng mã với phiếu xuất (LUAT §2)
   const huy = await duLieu.huyPhieu(tx, id, lyDoCua(req), req.user.username, luc);
   if (huy.loi) return huy;
-  return TAO[cu.loai](tx, { ...THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body }), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
+  await viec.canhBaoSauChot(tx, id, req.user.username, luc);   // KHO-GON-1 Q4: sửa = huỷ phiếu cũ
+  const moi = await TAO[cu.loai](tx, { ...THAN[cu.loai]({ nha_cung_cap_id: cu.nha_cung_cap_id, ghi_chu: cu.ghi_chu, su_co: cu.su_co, ...req.body }), donId: cu.don_id == null ? null : Number(cu.don_id), ...nguoiCua(req, luc), maGui: null,
     thayCho: id, lyDo: lyDoCua(req), ep: true });
+  if (!moi.loi) await viec.ghiSuaPhieu(tx, id, moi.id, req.user.username, lyDoCua(req), luc);
+  return moi;
 }));
 
 router.get('/mon-chua-san', QUAN_LY, doc(() => banHang.monChuaSan(csdl, getNow())));   // KHO-3a A7
 
-router.get('/ton', NHAN_VIEN, doc((req) => duLieu.docTon(csdl, getNow()).then((r) => (anGia(req) ? tinh.boGia(r) : r))));
+// KHO-GON-1: kèm quyền chỉnh tay (nút ở chi tiết một thứ) + mốc lúc đọc (C5 — kiemKe.js).
+router.get('/ton', NHAN_VIEN, doc(async (req) => {
+  const luc = getNow();
+  const r = await duLieu.docTon(csdl, luc);
+  const duoc = await duocChinhTay(csdl, req);
+  // Q11: người chỉnh tay thấy ĐÚNG số máy chủ dùng (gồm phiếu chờ — Q4) cho thứ đang có phiếu chờ; nhân viên không nhận
+  return { ...(anGia(req) ? tinh.boGia(r) : r), duoc_chinh_tay: duoc, ...(duoc && { ton_kiem: await kiemKe.tonKiemCoCho(csdl) }), moc: await kiemKe.docMoc(csdl), moc_luc: luc };
+}));
+
+// ═════════════════════════════ KHO-GON-1 — việc hôm nay · kiểm kê · bàn giao · chỉnh tay · diễn biến ═════════════════════════════
+/** Ghi trong giao dịch: lam(req, tx, luc) trả { loi } (rollback) hoặc dữ liệu trả về. */
+const ghiVaTra = (lam) => async (req, res) => {
+  try {
+    const kq = await trongGiaoDich(async (tx) => { const r = await lam(req, tx, getNow()); return r.loi ? { ...r, huy: true } : r; });
+    if (kq.loi) return res.status(kq.loi[0]).json(kq.loi[1]);
+    res.json({ success: true, ...kq });
+  } catch (e) { loiGhi(res, e); }
+};
+/** Chỉnh tồn tay: chủ quán luôn; quản lý chỉ khi chủ quán bật công tắc; còn lại không. */
+const duocChinhTay = async (csdl2, req) => req.user.role === 'owner' || (req.user.role === 'manager' && (await viec.docCaiDat(csdl2)).ql_chinh_tay);
+const caCua = (req) => (tinh.CA.includes(req.body?.ca) ? req.body.ca : null);
+const idCua = (req) => Number(req.params.id);
+const CHE_DO = ['kiemke', 'bangiao'];
+
+router.post('/viec/hom-nay', NHAN_VIEN, ghiVaTra((req, tx, luc) => viec.homNay(tx, { vaiTro: req.user.role, ca: caCua(req), luc })));
+router.post('/viec', NHAN_VIEN, ghiVaTra((req, tx, luc) => viec.themViec(tx, { ten: req.body?.ten, giao: req.body?.giao || undefined,
+  nguyenLieuId: soId(req.body?.nguyen_lieu_id), nguoi: req.user.username, luc })));
+router.post('/viec/:id/xong', NHAN_VIEN, ghiVaTra((req, tx, luc) => viec.xongViec(tx, { id: idCua(req), vaiTro: req.user.role, ca: caCua(req), nguoi: req.user.username, luc })));
+router.post('/viec/:id/mo-lai', CHU_QUAN, ghiVaTra((req, tx, luc) => viec.moLai(tx, { id: idCua(req), nguoi: req.user.username, luc })));
+
+router.get('/viec-mau', QUAN_LY, doc(async () => ({ mau: await viec.dsMau(csdl) })));
+router.post('/viec-mau', QUAN_LY, ghiVaTra((req, tx, luc) => viec.themMau(tx, req.body || {}, luc)));
+router.put('/viec-mau/:id', QUAN_LY, ghiVaTra((req, tx, luc) => viec.suaMau(tx, idCua(req), req.body || {}, luc)));
+router.post('/viec-mau/:id/len', QUAN_LY, ghiVaTra((req, tx) => viec.doiThuTu(tx, idCua(req), -1)));
+router.post('/viec-mau/:id/xuong', QUAN_LY, ghiVaTra((req, tx) => viec.doiThuTu(tx, idCua(req), 1)));
+router.delete('/viec-mau/:id', QUAN_LY, ghiVaTra((req, tx) => viec.xoaMau(tx, idCua(req))));
+
+router.get('/cai-dat-viec', QUAN_LY, doc(() => viec.docCaiDat(csdl)));
+// Số ca · cho quản lý chỉnh tay: chỉ chủ quán (Q2 — cùng luật 29.10 "cài đặt kho chỉ chủ quán"). Không gửi = giữ.
+router.put('/cai-dat-viec', CHU_QUAN, ghiVaTra(async (req, tx, luc) => {
+  const b = req.body || {};
+  const soCa = 'so_ca' in b ? [1, 2].find((x) => x === Number(b.so_ca)) : undefined;
+  const ql = 'ql_chinh_tay' in b ? [0, 1].find((x) => x === Number(b.ql_chinh_tay)) : undefined;
+  if (('so_ca' in b && soCa === undefined) || ('ql_chinh_tay' in b && ql === undefined)) {
+    return { loi: [400, { error: 'Số ca là 1 hoặc 2; cho quản lý chỉnh tay là 0 hoặc 1', code: 'CAI_DAT_KHONG_HOP_LE' }] };
+  }
+  await viec.luuCaiDat(tx, { soCa, qlChinhTay: ql }, luc);
+  return {};
+}));
+// Ngưỡng cảnh báo + "Kiểm hằng ngày": CHỈ hai cột này (PUT /nguyen-lieu ghi đè cả dòng — không thêm cột mới vào đó).
+router.put('/nguong', QUAN_LY, ghiVaTra(async (req, tx) => {
+  const ds = Array.isArray(req.body?.nguyen_lieu) ? req.body.nguyen_lieu : null;
+  const sai = !ds || ds.some((d) => !(Number(d?.id) > 0) || ('ton_toi_thieu' in d && d.ton_toi_thieu !== null && d.ton_toi_thieu !== '' && soKhongAm(d.ton_toi_thieu) === null)
+    || ('kiem_hang_ngay' in d && ![0, 1].includes(Number(d.kiem_hang_ngay))));
+  if (sai) return { loi: [400, { error: 'Ngưỡng là số ≥ 0 hoặc trống; kiểm hằng ngày là 0 hoặc 1', code: 'NGUONG_SAI' }] };
+  for (const d of ds) {
+    if ('ton_toi_thieu' in d) await tx.run('UPDATE kho_nguyen_lieu SET ton_toi_thieu = ? WHERE id = ?', [soKhongAm(d.ton_toi_thieu), Number(d.id)]);
+    if ('kiem_hang_ngay' in d) await tx.run('UPDATE kho_nguyen_lieu SET kiem_hang_ngay = ? WHERE id = ?', [Number(d.kiem_hang_ngay), Number(d.id)]);
+  }
+  return {};
+}));
+
+router.get('/kiem-ke', NHAN_VIEN, (req, res, next) => (CHE_DO.includes(req.query.che_do) ? next()
+  : res.status(400).json({ error: 'Chế độ là kiemke hoặc bangiao', code: 'CHE_DO_SAI' })), doc((req) => kiemKe.docDanhSach(csdl, req.query.che_do, getNow())));
+// Kiểm kê tối của NHÂN VIÊN: phản hồi POST chỉ "đã chốt" — không dòng / số lệch, không mã phiếu (Q5: không dò được số máy lúc lưu). Chủ / quản lý
+// nhận đủ. Đường ĐỌC khác vẫn cho nhân viên thấy số (chủ quán chốt Q6: giữ): Tồn kho, phiếu KK ở tab Phiếu, bàn giao (`may`).
+router.post('/kiem-ke', NHAN_VIEN, ghiVaTra(async (req, tx, luc) => {
+  if (!CHE_DO.includes(req.body?.che_do)) return { loi: [400, { error: 'Chế độ là kiemke hoặc bangiao', code: 'CHE_DO_SAI' }] };
+  const r = await kiemKe.luuKiem(tx, { cheDo: req.body.che_do, moc: req.body.moc, mocLuc: req.body.moc_luc, dongVao: req.body.dong, ghiChuChung: req.body.ghi_chu_chung,
+    nguoi: req.user.username, luc, maGui: maGuiCua(req) });
+  return r.loi || req.body.che_do !== 'kiemke' || VAI_QUAN_LY.includes(req.user.role) ? r : { chot_id: r.chot_id, da_chot: true };
+}));
+router.post('/chinh-tay', QUAN_LY, (req, res, next) => (lyDoCua(req) ? next() : thieuLyDo(res)), ghiVaTra(async (req, tx, luc) => {
+  if (!(await duocChinhTay(tx, req))) return { loi: [403, { error: 'Chủ quán chưa cho quản lý chỉnh tồn tay', code: 'CHI_CHU_QUAN' }] };
+  return kiemKe.chinhTay(tx, { than: req.body, nguoi: req.user.username, luc, maGui: maGuiCua(req), lyDo: lyDoCua(req) });
+}));
+
+router.get('/dien-bien', QUAN_LY, doc(async (req) => {
+  const luc = getNow();
+  return viec.dienBien(csdl, req.user.username, luc.slice(0, 10), await viec.monCanChuY(csdl, luc));
+}));
+router.get('/dien-bien/so', QUAN_LY, doc(async (req) => ({ chua_xem: await viec.soChuaXem(csdl, req.user.username, getNow().slice(0, 10)) })));
+router.post('/dien-bien/da-xem', QUAN_LY, ghiVaTra((req, tx) => viec.daXem(tx, req.user.username, req.body?.den_id)));
 
 // Đường lạ dưới /api/pos/kho → 403 (không 404 lộ cấu trúc, không rơi sang router khác).
 router.use((req, res) => res.status(403).json({ error: 'Không có quyền truy cập đường này', code: 'DUONG_LA' }));

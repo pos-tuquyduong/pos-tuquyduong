@@ -196,10 +196,10 @@ async function ghiKho(tx, phieuId, lucLam, luc) {
   const nlIds = [...new Set(xuat.map((d) => Number(d.nguyen_lieu_id)))];
   const gia = theoId(nlIds.length ? await tx.query(`SELECT id, gia_nhap FROM kho_nguyen_lieu WHERE id IN (${dauHoi(nlIds)})`, nlIds) : []);
   const giaCua = (d) => gia.get(Number(d.nguyen_lieu_id))?.gia_nhap ?? null;
-  for (const d of dong.filter((x) => x.loai === 'thanh_pham')) {
+  for (const d of dong.filter((x) => x.loai === 'thanh_pham')) {   // KHO-GON-1 Q8: kiểm kê có thể giảm phiếu chờ về 0 phần — không chia giá vốn cho 0
     const sp = await tx.queryOne('SELECT han_ngay FROM kho_san_pham WHERE pos_product_id = ?', [d.san_pham_id]);
     const cua = xuat.filter((x) => Number(x.cho_mon_id) === Number(d.san_pham_id));
-    const giaVon = cua.length && cua.every((x) => giaCua(x) != null) ? Math.round(cua.reduce((t, x) => t - x.so_luong * giaCua(x), 0) / d.so_luong) : null;
+    const giaVon = Number(d.so_luong) > 0 && cua.length && cua.every((x) => giaCua(x) != null) ? Math.round(cua.reduce((t, x) => t - x.so_luong * giaCua(x), 0) / d.so_luong) : null;
     const lo = await tx.run('INSERT INTO kho_lo (san_pham_id, so_luong, han_dung, gia_von, phieu_id, tao_luc) VALUES (?, ?, ?, ?, ?, ?)',
       [d.san_pham_id, d.so_luong, hanLo(lucLam, sp?.han_ngay), giaVon, phieuId, luc]);
     await tx.run('UPDATE kho_phieu_dong SET lo_id = ? WHERE id = ?', [Number(lo.lastInsertRowid), d.id]);
@@ -295,6 +295,9 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
   if (p.trang_thai !== 'da_duyet' || p.thay_cho_id != null) {
     return { loi: [409, { error: 'Phiếu này không điền kết quả được (chưa duyệt, đã huỷ hoặc là phiếu sửa)', code: 'PHIEU_KHONG_DIEN' }] };
   }
+  if (await ketQuaDaChot(tx, p, spId)) {   // KHO-GON-1 Q9 + Q12 + Q13: số thật đã được đếm / chỉnh tay — điền lúc này tính lệch HAI lần
+    return { loi: [409, { error: 'Phiếu đã được kiểm kê chốt số — không điền kết quả pha chế nữa', code: 'KQ_DA_KIEM_KE' }] };
+  }
   if (trangThaiKetQua(p.duyet_luc.slice(0, 10), luc.slice(0, 10), false, false) === 'tu_chot') {
     return { loi: [409, { error: 'Đã qua ngày — kết quả tự chốt đúng chuẩn. Sai thì chủ quán sửa phiếu', code: 'DA_TU_CHOT' }] };
   }
@@ -314,6 +317,26 @@ async function ghiKetQua(tx, { phieuId, spId, soThuc, ghiChu, nguoi, luc }) {
 const ngayLam = (p) => String(p.duyet_luc || p.tao_luc).slice(0, 10);
 const ketQuaPhieu = (p, homNay, duKetQua) => (p.loai === 'PX' && p.trang_thai === 'da_duyet' ? trangThaiKetQua(ngayLam(p), homNay, duKetQua, p.thay_cho_id != null) : null);
 
+/** KHO-GON-1 Q12 + Q14: MỘT dấu vết theo món + giờ — mọi đường đếm (kiểm kê · bàn giao · chỉnh tay: đổi lô / chỉ trừ phiếu chờ / không đổi) ghi một dòng
+ *  kho_chot có ảnh từng thứ. Món đã có lần chốt KỂ TỪ lúc tạo phiếu pha chế → số thật đã được đếm, kết quả pha chế của món đó coi như đã chốt. */
+async function chotCham(csdl, thu, tuLuc) {   // thu = [{ san_pham_id } | { nguyen_lieu_id }] — có lần chốt nào kể từ tuLuc mà ảnh chạm một thứ trong đó
+  const trung = (a, t) => (t.san_pham_id ? Number(a.san_pham_id) === Number(t.san_pham_id) : Number(a.nguyen_lieu_id) === Number(t.nguyen_lieu_id));
+  for (const c of await csdl.query('SELECT anh FROM kho_chot WHERE luc >= ?', [tuLuc])) {
+    let anh = []; try { anh = JSON.parse(c.anh); } catch { /* ảnh hỏng: bỏ qua lần chốt này */ }
+    if (Array.isArray(anh) && anh.some((a) => thu.some((t) => trung(a, t)))) return true;
+  }
+  return false;
+}
+const monDaChot = (csdl, spId, tuLuc) => chotCham(csdl, [{ san_pham_id: Number(spId) }], tuLuc);
+/** MỘT vị từ cho chặn ghi và hiển thị (Q14: bỏ khoá theo PHIẾU qua ly_do — nó hở phiếu khác cùng món và khoá oan món khác cùng phiếu). */
+const ketQuaDaChot = (csdl, p, spId) => monDaChot(csdl, spId, p.tao_luc);
+/** Trạng thái kết quả "chờ điền" mà mọi món (spIds) đã được chốt → "đã điền". */
+const ketQuaCoChot = async (csdl, p, tt, spIds) => {
+  if (tt !== 'cho_dien' || !spIds.length) return tt;
+  for (const id of spIds) if (!(await ketQuaDaChot(csdl, p, id))) return tt;
+  return 'da_dien';
+};
+
 /** Một phiếu đầy đủ (màn xem + in): bảng tổng (tồn hiện tại, cờ âm) + bảng theo món (lô, hạn, kết quả, lệch). */
 async function docPhieu(csdl, id, homNay) {
   const p = await csdl.queryOne(`SELECT p.*, (SELECT t.id FROM kho_phieu t WHERE t.thay_cho_id = p.id ORDER BY t.id DESC LIMIT 1) AS thay_bang_id
@@ -332,14 +355,15 @@ async function docPhieu(csdl, id, homNay) {
   const theo_mon = [];
   for (const m of b.theo_mon) {
     const d = kqDong.find((x) => Number(x.san_pham_id) === m.san_pham_id);
-    const tt = ketQuaPhieu(p, homNay, !!d);
+    const tt = await ketQuaCoChot(csdl, p, ketQuaPhieu(p, homNay, !!d), [m.san_pham_id]);
     const soThuc = d ? m.so_phan + Number(d.so_luong) : null;
     theo_mon.push({ ...m, han_dung: lo.get(m.lo_id)?.han_dung ?? null, gia_von: lo.get(m.lo_id)?.gia_von ?? null,
       ket_qua: tt && { trang_thai: tt, so_thuc: soThuc, ghi_chu: d?.ghi_chu ?? null, nguoi: d?.nguoi ?? null, luc: d?.luc ?? null,
         lech: d ? lechQuaNguong(m.so_phan, soThuc, await lechCuaMon(csdl, m.san_pham_id)) : false } });
   }
   const tong = b.tong.map((t) => ({ ...t, ton: Number(nl.get(t.nguyen_lieu_id)?.ton ?? 0), am: Number(nl.get(t.nguyen_lieu_id)?.ton ?? 0) < -1e-9 }));
-  return { phieu: { ...p, ket_qua: ketQuaPhieu(p, homNay, kqDong.length >= b.theo_mon.length) }, tong, theo_mon };
+  const ketQua = theo_mon.every((m) => m.ket_qua?.trang_thai === 'da_dien') && theo_mon.length ? 'da_dien' : ketQuaPhieu(p, homNay, kqDong.length >= b.theo_mon.length);
+  return { phieu: { ...p, ket_qua: ketQua }, tong, theo_mon };
 }
 
 /** KHO-2b: chuỗi id của một đơn và các đơn nó thay (sửa đơn = đơn mới thay_cho_id) — phiếu nhận của đơn cũ vẫn tính. */
@@ -376,7 +400,7 @@ async function docPhieuNhap(csdl, p, dong) {
     return { id: Number(d.id), loai: d.loai, nguyen_lieu_id: n ? Number(d.nguyen_lieu_id) : null, san_pham_id: d.san_pham_id == null ? null : Number(d.san_pham_id),
       ten: n ? n.ten : ten.get(Number(d.san_pham_id)), don_vi: n ? n.don_vi_hien || n.don_vi_luu : 'phần', luong, luong_hien: n ? doiDonVi(luong, n.he_so_doi || 1) : luong,
       don_gia: d.don_gia, han_dung: d.han_dung ?? lo.get(Number(d.lo_id))?.han_dung ?? null, lo_id: d.lo_id == null ? null : Number(d.lo_id),
-      cho_mon_id: d.cho_mon_id == null ? null : Number(d.cho_mon_id), ...(datCua && { ngoai_don: dat === undefined, lech: dat !== undefined && Math.abs(dat - luong) > SAI_SO }) };
+      cho_mon_id: d.cho_mon_id == null ? null : Number(d.cho_mon_id), ...(d.loai === 'kiem_ke' && { tang: Number(d.so_luong) > 0 }), ...(datCua && { ngoai_don: dat === undefined, lech: dat !== undefined && Math.abs(dat - luong) > SAI_SO }) };
   });
   const them = {};
   if (p.loai === 'DH') {
@@ -405,11 +429,13 @@ async function dsPhieu(csdl, loc, homNay) {
     (SELECT GROUP_CONCAT(sp.name || ' ×' || printf('%g', d.so_luong), ', ') FROM kho_phieu_dong d JOIN pos_products sp ON sp.id = d.san_pham_id
       WHERE d.phieu_id = p.id AND d.loai = 'thanh_pham') AS mon,
     (SELECT GROUP_CONCAT(DISTINCT COALESCE(l.ten, sp.name)) FROM kho_phieu_dong d LEFT JOIN kho_nguyen_lieu l ON l.id = d.nguyen_lieu_id
-      LEFT JOIN pos_products sp ON sp.id = d.san_pham_id WHERE d.phieu_id = p.id AND d.loai IN ('dat', 'nhap', 'phat_sinh')) AS hang
+      LEFT JOIN pos_products sp ON sp.id = d.san_pham_id WHERE d.phieu_id = p.id AND d.loai IN ('dat', 'nhap', 'phat_sinh', 'kiem_ke')) AS hang
     FROM kho_phieu p ${dk.length ? 'WHERE ' + dk.join(' AND ') : ''} ORDER BY p.id DESC LIMIT 300`, a);
   const ra = [];
   for (const p of ds) {
-    ra.push({ ...p, ket_qua: ketQuaPhieu(p, homNay, Number(p.so_ket_qua) >= Number(p.so_mon)),
+    const tt = ketQuaPhieu(p, homNay, Number(p.so_ket_qua) >= Number(p.so_mon));
+    ra.push({ ...p, ket_qua: tt === 'cho_dien' ? await ketQuaCoChot(csdl, p, tt, (await csdl.query("SELECT san_pham_id FROM kho_phieu_dong WHERE phieu_id = ? AND loai = 'thanh_pham'",
+      [p.id])).map((x) => Number(x.san_pham_id))) : tt,   // KHO-GON-1 Q12
       can_chu_quan: p.loai === 'DH' && p.trang_thai === 'cho_duyet' && await dhCanChuQuan(csdl, p.id) });
   }
   return { phieu: ra };
@@ -441,5 +467,5 @@ async function docTon(csdl, bayGio) {
 
 module.exports = { docNguyenLieu, cotNguyenLieu, themNguyenLieu, suaNguyenLieu, xoaNguyenLieu, docBangCongThuc, docSanPham, luuSanPham,
   demThieu, tenSanPham, hanLo, nvCanDuyet, docPhaChe, docDinhMuc, luuDinhMuc, taoPhieuXuat, duyetPhieu, tuChoiPhieu, huyPhieu,
-  suaPhieu, ghiKetQua, docPhieu, dsPhieu, docTon,
+  suaPhieu, ghiKetQua, docPhieu, dsPhieu, docTon, chotCham,
   KHOA_HAN_MUC_DAT_HANG, KHOA_HAN_MUC_NOI_BO, DA_DUYET, theoId, dauHoi, conLaiTheoLo, docHanMuc, soPhieuMoi, themPhieu, docConLaiDon };
