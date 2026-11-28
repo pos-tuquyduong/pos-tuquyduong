@@ -127,3 +127,4 @@ code 017faf0d + bài mới):
   Q12f (K5 món khác — VS-q12-kk-moi-mon, VS-q12-anh-moi-mon).
   Trên code đã sửa (afd701c0): 139 đạt · 0 hỏng.
   Bước 033 sửa thẳng CHECK kho_chot.che_do (thêm 'chinhtay'): bước chưa chạy trên production (nhánh chưa merge) — không cần bước nâng cấp mới.
+  Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên afd701c0): ĐỐI CHỨNG XANH · 139 đạt — TỔNG 75 · BẮT 75 · SỐNG 0 · HỎNG 0 · LẠC 0.
