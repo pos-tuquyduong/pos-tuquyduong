@@ -22,6 +22,9 @@
 - Bước 6: `npm test -- --day-du` PASS 132 · FAIL 0 · CẢNH BÁO 1 (cảnh báo cũ, không phải của việc này).
 
 ## Câu hỏi
+(không còn — chủ quán đồng ý Q14 theo đề xuất ngày 28.11, cho phép vòng sửa 8, ngân sách ≈ 1.125 dòng.)
+
+## Câu hỏi đã trả lời (Q14)
 Soát LẦN CUỐI sau vòng sửa 7 còn 2 lỗi NẶNG ở số tồn, cùng MỘT gốc: khoá Q9 vừa trả lại (ly_do "kiểm kê: đếm thiếu") gắn theo PHIẾU, không theo MÓN.
 Sửa đúng phải bỏ chính khoá Q9 chủ quán vừa bảo trả lại → máy DỪNG hỏi:
 
@@ -634,3 +637,29 @@ BÀI HỌC:
 - `npm test -- --day-du`: PASS 132 · FAIL 0 · CẢNH BÁO 1 (chạy một mình).
 - `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1` trên HEAD d9262f02: ✓ CỔNG CHẠY ĐẠT
 - Còn Q14 (lỗi NẶNG tồn: khoá theo phiếu thay vì theo món) → DỪNG hỏi; báo cáo 7 mục + 3 thao tác thử tay ghi khi việc xong.
+
+## Vòng sửa 8 (chủ quán cho phép 28.11 — Q14 theo đề xuất + cảnh báo sau chốt lọc theo món)
+- kiemKe.chinhTay LUÔN ghi một dòng kho_chot `chinhtay` với ảnh đúng món đó (đổi lô · chỉ trừ phiếu chờ · trộn · không đổi) — mọi đường đếm để lại CÙNG
+  một dấu vết theo món + giờ.
+- duLieu: khoá kết quả pha chế = MỘT luật `monDaChot` (chotCham đọc kho_chot) — bỏ khoá theo phiếu (ly_do) sau khi ca Q14a, Q14b chạy thật và Q13a vẫn 409
+  (đúng điều kiện chủ quán đặt); bỏ vế dòng KK (thừa: mọi đường tạo KK nay đều ghi kho_chot).
+- viec.canhBaoSauChot: dòng cam chỉ khi lần chốt CHẠM một thứ của phiếu (chotCham — cùng hàm với khoá) — ca Q14c.
+- Bằng chứng: bài mới trên code trước vòng 8 (7401acde) 139 đạt · 3 hỏng (✗ Q14a ly ảo NC 3 · ✗ Q14b khoá oan flan · ✗ Q14c cam oan); sau vá 142 đạt · 0
+  hỏng; đột biến 75/75 BẮT.
+
+## Danh sách đủ tên đột biến (cuối, 75 — `python3 viec/KHO-GON-1/dot_bien.py --liet-ke`)
+VS-sinh-viec-2-lan · BV-bo-not-exists · VS-ca-toi-thay-viec-sang · VS-nv-thay-viec-ql · VS-qua-gio-lech-1 · VS-xong-hai-lan · VS-mo-lai-quan-ly ·
+BV-bo-chan-viec-ngoai-phan · BV-bo-tu-xong-goi-hang · BV-bo-tu-xong-pha-che · BV-bo-tu-xong-kiem-ke · VS-kiemke-lo-so-may · VS-kiemke-thieu-so-lot ·
+VS-lech-khong-ghi-chu-lot · VS-kiemke-bat-ghi-chu · VS-kiemke-bao-dong-lech · VS-cho-duyet-khong-tinh · BV-bo-chan-ma-gui-khac-che-do ·
+VS-ma-gui-chi-so-che-do · BV-trong-khi-may-khac-chot · BV-bo-canh-bao-huy · BV-bo-canh-bao-sua · VS-dh-cho-tinh · VS-canh-bao-dh ·
+BV-bo-dong-tp-het-lo-chot-con · VS-kk-khong-dau · BV-bo-giam-phieu-cho · VS-q8-khong-ly-do · VS-q8-giam-ca-xuat · BV-bo-pha-het · VS-pha-het-bao-ca-con ·
+BV-bo-tru-lo-cho-giu · VS-q11-khong-ton-kiem · VS-q11-ton-kiem-cho-nv · VS-q11-bao-da-chinh · VS-q8-giam-cu-truoc · VS-gia-von-chia-0 ·
+VS-pha-het-ca-ban-khi-thieu · VS-pha-het-ca-lam-san · VS-kk-rong · BV-bo-dien-bien-sua · VS-q12-cho-dien-sau-chot · VS-q12-chi-chinh-tay ·
+VS-q12-khoa-ca-truoc · VS-q12-hien-cho-dien · VS-q8-giam-ca-phieu-duyet · BV-bo-dien-bien-sua-tao · VS-q12-ds-bo · VS-q12-anh-moi-mon ·
+BV-bo-dau-vet-chinh-tay · VS-dau-vet-chi-khi-doi · VS-canh-bao-khong-loc · VS-khoa-theo-phieu · BV-bo-canh-bao-tu-choi · VS-canh-bao-moi-tu-choi ·
+VS-ban-giao-chi-so-may · VS-nv-kiem-ke-ngoai-danh-sach · VS-kiem-ke-so-am-lot · VS-so-voi-may-thay-chot · VS-lech-gia-khi-vua-ban · VS-anh-chot-la-so-go ·
+BV-bo-chan-ton-moi-am · BV-bo-kiem-huy-xen-giua · VS-so-gio-chat · VS-da-giao-theo-danh-sach-loc · VS-ban-giao-khong-tra-may · BV-bo-kiem-moc-sai ·
+BV-bo-chan-hai-nguoi-chot · VS-ql-chinh-tay-khi-tat · BV-bo-kiem-quyen-chinh-tay · VS-chinh-tay-khong-ly-do · VS-chua-xem-chung-nguoi · VS-da-xem-vuot-id ·
+BV-bo-tab-viec-dau · VS-vong-hoi-thu-hai.
+Đã bỏ qua các vòng (vế đã bỏ — lý do ở bang_chung_do.txt): BV-bo-kiem-duyet-xen-giua · VS-ma-gui-tra-thieu-anh · VS-q9-cho-dien-ket-qua · VS-q9-hien-cho-dien ·
+BV-bo-khoa-q9 · VS-q12-chi-kiem-ke · VS-q12-kk-moi-mon · BV-bo-dau-vet-khop.

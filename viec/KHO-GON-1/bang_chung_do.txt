@@ -141,3 +141,4 @@ lần theo code). Chạy trên code TRƯỚC vòng 8 (cây 1e2db8e8 = code 7401a
   VS-dau-vet-chi-khi-doi). Thêm VS-canh-bao-khong-loc (Q14c).
   Vế chotCham nhánh nguyên liệu (cảnh báo sau chốt khi phiếu chờ chỉ chạm nguyên liệu, vd phát sinh nguyên liệu chờ): CHƯA KIỂM bằng đột biến — chưa có
   ca (phiếu nhận chờ không mở rộng theo dặn của chủ quán; phát sinh nguyên liệu chờ + chốt + từ chối chưa dựng).
+  Đột biến (trên cafc8259): lượt đủ ĐỐI CHỨNG XANH 142 · 75 đột biến · BẮT 73 · HỎNG 2 (neo cũ VS-q11-bao-da-chinh, VS-canh-bao-moi-tu-choi) → sửa neo, chạy lại riêng: BẮT 2/2. Tổng 75/75 BẮT.
