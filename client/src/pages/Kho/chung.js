@@ -1,9 +1,9 @@
 /** KHO-2a — hàm hiển thị dùng chung của màn Kho (không có quy tắc nghiệp vụ: máy chủ tính hết). */
 export const boDau = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 export const so = (x) => (x == null ? '—' : Number(Number(x).toFixed(3)).toLocaleString('vi-VN'));
-/** KHO-GON-2 D5: số gọn cho Ô NHẬP (không dấu nghìn — ô number đọc được): bỏ đuôi lỗi số thực (4.199999999999999 → '4.2') theo 12 CHỮ SỐ CÓ NGHĨA,
- *  KHÔNG cắt số chữ số thập phân — 1/30 giữ 0.0333333333333, 0.0004 giữ 0.0004 (soát vòng 1: cắt 3 chữ số làm đổi lượng công thức khi bấm Sửa → Lưu). */
-export const soGon = (x) => (x == null || x === '' ? '' : String(Number(Number(x).toPrecision(12))));
+/** KHO-GON-2 D5: số gọn cho Ô NHẬP (không dấu nghìn — ô number đọc được): bỏ đuôi lỗi số thực (4.199999999999999 → '4.2') theo 15 CHỮ SỐ CÓ NGHĨA,
+ *  KHÔNG cắt số chữ số thập phân — 1/30 giữ 0.0333333333333333, 0.0004 giữ 0.0004 (soát vòng 1: cắt 3 chữ số làm đổi lượng công thức khi bấm Sửa → Lưu). */
+export const soGon = (x) => (x == null || x === '' ? '' : String(Number(Number(x).toPrecision(15))));
 export const tien = (x) => (x == null ? '—' : Number(x).toLocaleString('vi-VN') + 'đ');
 /** '2026-11-07T06:00:00' → '06:00 07/11' (chuỗi giờ VN của máy chủ, không đổi múi giờ). */
 export const gio = (luc) => (luc ? `${luc.slice(11, 16)} ${luc.slice(8, 10)}/${luc.slice(5, 7)}` : '—');
