@@ -124,6 +124,17 @@ async function main() {
 
   const taoDH = (ai, than, maGui) => goi(ai, 'POST', '/kho/phieu-dat', { ...than, ma_gui: maGui });
   const taoPN = (ai, than, maGui) => goi(ai, 'POST', '/kho/phieu-nhan', { ...than, ma_gui: maGui });
+  // KHO-GON-2 E1 (chủ quán 27.11): phiếu nhận MỚI cộng kho ngay — phiếu nhận còn CHỜ chỉ còn là dữ liệu cũ trước nâng cấp: chèn thẳng như bản cũ đã ghi (E3)
+  let soCu = 0;
+  const pnChoCu = async (ai, dong, donId = null) => {
+    const id = Number((await ghiDb("INSERT INTO kho_phieu (loai, so_phieu, trang_thai, nguoi_tao, tao_luc, don_id) VALUES ('PN', ?, 'cho_duyet', ?, '2026-11-07T08:00:00', ?)",
+      [`PN-CU-${++soCu}`, tenDN[ai], donId]))?.lastInsertRowid);
+    for (const d of dong) {
+      await ghiDb("INSERT INTO kho_phieu_dong (phieu_id, nguyen_lieu_id, so_luong, don_gia, loai, nguoi, luc) VALUES (?, ?, ?, ?, 'nhap', ?, '2026-11-07T08:00:00')",
+        [id, d.nguyen_lieu_id, d.luong, d.don_gia ?? null, tenDN[ai]]);
+    }
+    return { status: 200, phieu: { id, trang_thai: 'cho_duyet', don_id: donId } };
+  };
   const taoPS = (ai, than, maGui) => goi(ai, 'POST', '/kho/phieu-phat-sinh', { ...than, ma_gui: maGui });
   const duyet = (ai, id) => goi(ai, 'POST', `/kho/phieu/${id}/duyet`);
   const caiDat = (ai, khoa, v) => goi(ai, 'PUT', '/settings', { settings: { [khoa]: v } });
@@ -206,18 +217,19 @@ async function main() {
     { nguyen_lieu_id: n3, luong: 1, don_gia: 15000 }], ghi_chu: 'HĐ 123' }, 'g-pn1');
   const pn1id = pn1.phieu?.id;
   const b1 = await duyet('ql', pn1id);
-  k('B1 phiếu nhận chờ duyệt; chính người tạo duyệt → 403 TU_DUYET; tồn + lô không đổi', pn1.status === 200 && pn1.phieu?.trang_thai === 'cho_duyet'
-    && b1.status === 403 && b1.code === 'TU_DUYET' && (await demLo()) === lo0 && bang(await tonTat(), tonB), `${moTa(pn1)} | ${moTa(b1)}`);
+  // KHO-GON-2 E1 (LUAT §6.8 — luật đổi): người nhận tạo là cộng NGAY, người nhận = người duyệt; bấm duyệt lại → 409, không cộng đôi
+  k('B1 phiếu nhận cộng kho NGAY (đã duyệt, người nhận = người duyệt); bấm duyệt lại → 409 PHIEU_DA_XU_LY, không thêm lô', pn1.status === 200 && pn1.phieu?.trang_thai === 'da_duyet'
+    && pn1.phieu?.nguoi_duyet === tenDN.ql && b1.status === 409 && b1.code === 'PHIEU_DA_XU_LY' && (await demLo()) === lo0 + 3, `${moTa(pn1)} | ${moTa(b1)}`);
   const goiY1 = await goi('ql', 'GET', '/kho/goi-y-nhap');
   const don1 = (goiY1.don_mo || []).find((d) => d.id === dh1);
   const cl = (d, id) => Number((d?.con_lai || []).find((x) => x.nguyen_lieu_id === id)?.con_lai);
-  k('B4 nhận thiếu (phiếu chờ duyệt cũng tính): đơn còn mở — Cam 0 · Gừng 0.4 · Kỷ tử 0.02', !!don1 && gan(cl(don1, n1), 0) && gan(cl(don1, n4), 0.4) && gan(cl(don1, n2), 0.02),
+  k('B4 nhận thiếu: đơn còn mở — Cam 0 · Gừng 0.4 · Kỷ tử 0.02', !!don1 && gan(cl(don1, n1), 0) && gan(cl(don1, n4), 0.4) && gan(cl(don1, n2), 0.02),
     JSON.stringify(don1 || goiY1.don_mo || moTa(goiY1)));
   const b2 = await duyet('ql2', pn1id);
   const loPN1 = await q('SELECT * FROM kho_lo WHERE phieu_id = ? ORDER BY id', [pn1id || 0]);
   const loCua = (id) => loPN1.find((l) => Number(l.nguyen_lieu_id) === id) || {};
   const tonB2 = await tonTat();
-  k('B2 người KHÁC duyệt → mỗi dòng một lô (lượng, giá vốn = giá nhập thật), tồn Cam +2 · Gừng +0.6 · Đường +1', b2.status === 200 && b2.phieu?.trang_thai === 'da_duyet'
+  k('B2 nhận → mỗi dòng một lô (lượng, giá vốn = giá nhập thật), tồn Cam +2 · Gừng +0.6 · Đường +1; người khác duyệt lại → 409', b2.status === 409
     && loPN1.length === 3 && Number(loCua(n1).so_luong) === 2 && Number(loCua(n1).gia_von) === 31000 && gan(tonB2[n1], tonB[n1] + 2) && gan(tonB2[n4], tonB[n4] + 0.6)
     && gan(tonB2[n3], tonB[n3] + 1), `${moTa(b2)} ${JSON.stringify(loPN1)}`);
   k('B7 hạn: trống + nguyên liệu có hạn 3 ngày → 2026-11-10T09:00:00; ngày gõ tay → cuối ngày đó; nguyên liệu không hạn → lô không hạn',
@@ -227,15 +239,16 @@ async function main() {
   const pn2 = await taoPN('nv', { don_id: dh1, dong: [{ nguyen_lieu_id: n4, luong: 0.4 }, { nguyen_lieu_id: n2, luong: 0.02 }] }, 'g-pn2');
   const dongSau = (await goi('ql', 'GET', '/kho/goi-y-nhap')).don_mo || [];
   const pn3 = await taoPN('nv', { don_id: dh1, dong: [{ nguyen_lieu_id: n1, luong: 1 }] }, 'g-pn3');
-  k('B4b phiếu nhận nốt phần thiếu → đơn đóng (không còn trong danh sách mở); nhận tiếp đơn đã đóng → 409 DON_DA_DONG', pn2.phieu?.trang_thai === 'cho_duyet'
+  k('B4b phiếu nhận nốt phần thiếu → đơn đóng (không còn trong danh sách mở); nhận tiếp đơn đã đóng → 409 DON_DA_DONG', pn2.phieu?.trang_thai === 'da_duyet'
     && !dongSau.some((d) => d.id === dh1) && pn3.status === 409 && pn3.code === 'DON_DA_DONG', `${moTa(pn2)} | ${moTa(pn3)}`);
+  // KHO-GON-2 E1: phiếu nhận đã cộng thì không "từ chối" được nữa — sai thì chủ quán huỷ (trừ lại), phần đó của đơn mở lại
   const b3a = await goi('ql', 'POST', `/kho/phieu/${pn2.phieu?.id}/tu-choi`, { ly_do: ' ' });
-  const tonB3 = await tonTat();
-  const b3b = await goi('ql', 'POST', `/kho/phieu/${pn2.phieu?.id}/tu-choi`, { ly_do: 'Hàng dập' });
+  const b3c = await goi('ql', 'POST', `/kho/phieu/${pn2.phieu?.id}/tu-choi`, { ly_do: 'Hàng dập' });
+  const b3b = await goi('chu', 'POST', `/kho/phieu/${pn2.phieu?.id}/huy`, { ly_do: 'Hàng dập' });
   const don1b = ((await goi('ql', 'GET', '/kho/goi-y-nhap')).don_mo || []).find((d) => d.id === dh1);
-  k('B3 từ chối thiếu lý do → 400; có lý do → huỷ, tồn không đổi', b3a.status === 400 && b3a.code === 'THIEU_LY_DO' && b3b.status === 200
-    && b3b.phieu?.trang_thai === 'huy' && bang(await tonTat(), tonB3), `${moTa(b3a)} | ${moTa(b3b)}`);
-  k('B5 phiếu nhận bị từ chối → phần đó MỞ LẠI (Gừng 0.4 · Kỷ tử 0.02)', !!don1b && gan(cl(don1b, n4), 0.4) && gan(cl(don1b, n2), 0.02), JSON.stringify(don1b));
+  k('B3 từ chối thiếu lý do → 400; phiếu đã cộng → từ chối 409; chủ quán huỷ có lý do → huỷ, tồn trừ lại đúng như trước phiếu', b3a.status === 400 && b3a.code === 'THIEU_LY_DO'
+    && b3c.status === 409 && b3c.code === 'PHIEU_DA_XU_LY' && b3b.status === 200 && b3b.phieu?.trang_thai === 'huy' && bang(await tonTat(), tonB2), `${moTa(b3a)} | ${moTa(b3c)} | ${moTa(b3b)}`);
+  k('B5 phiếu nhận bị huỷ → phần đó MỞ LẠI (Gừng 0.4 · Kỷ tử 0.02)', !!don1b && gan(cl(don1b, n4), 0.4) && gan(cl(don1b, n2), 0.02), JSON.stringify(don1b));
   const pn2b = await taoPN('nv', { don_id: dh1, dong: [{ nguyen_lieu_id: n4, luong: 0.4 }, { nguyen_lieu_id: n2, luong: 0.02 }] }, 'g-pn2b');
   await duyet('ql', pn2b.phieu?.id);
   const pnDon = await goi('ql', 'GET', `/kho/phieu/${pn1id}`);
@@ -245,12 +258,18 @@ async function main() {
   const pn4 = await taoPN('nv', { don_id: a8.phieu?.id, dong: [{ nguyen_lieu_id: n3, luong: 1 }] }, 'g-pn4');
   k('B9 nhận theo đơn CHƯA duyệt → 409 DON_KHONG_MO', pn4.status === 409 && pn4.code === 'DON_KHONG_MO', moTa(pn4));
   // C — mua lẻ
+  const tonC = await ton(n2);
   const c1 = await taoPN('chu', { dong: [{ nguyen_lieu_id: n2, luong: 0.1, don_gia: 95000 }] }, 'g-c1');
   const c1a = await duyet('chu', c1.phieu?.id);
-  const tonC = await ton(n2);
   const c1b = await duyet('ql', c1.phieu?.id);
-  k('B8/C1 mua lẻ (không đơn): chủ quán tạo vẫn chờ duyệt; chủ quán tự duyệt → 403 TU_DUYET; quản lý duyệt → +0.1', c1.phieu?.trang_thai === 'cho_duyet'
-    && c1.phieu?.don_id === null && c1a.status === 403 && c1a.code === 'TU_DUYET' && c1b.status === 200 && gan(await ton(n2), tonC + 0.1), `${moTa(c1)} | ${moTa(c1a)} | ${moTa(c1b)}`);
+  k('B8/C1 mua lẻ (không đơn): chủ quán nhận → cộng NGAY +0.1 (KHO-GON-2 E1 — trước đây kẹt chờ, kho trống); duyệt lại → 409, không cộng đôi', c1.phieu?.trang_thai === 'da_duyet'
+    && c1.phieu?.don_id === null && c1a.status === 409 && c1b.status === 409 && gan(await ton(n2), tonC + 0.1), `${moTa(c1)} | ${moTa(c1a)} | ${moTa(c1b)}`);
+  const cCu = await pnChoCu('chu', [{ nguyen_lieu_id: n2, luong: 0.1 }]);
+  const cCua = await duyet('chu', cCu.phieu.id);
+  const tonCCu = await ton(n2);
+  const cCub = await duyet('ql', cCu.phieu.id);
+  k('B8b phiếu nhận CŨ còn chờ (trước nâng cấp): chủ quán tự duyệt → 403 TU_DUYET; quản lý duyệt → +0.1 (luật cũ giữ cho phiếu cũ)', cCua.status === 403 && cCua.code === 'TU_DUYET'
+    && cCub.status === 200 && gan(await ton(n2), tonCCu + 0.1), `${moTa(cCua)} | ${moTa(cCub)}`);
   const c0 = await Promise.all([taoPN('nv', { dong: [] }), taoPN('nv', { dong: [{ nguyen_lieu_id: n1, luong: 0 }] }), taoPN('nv', { dong: [{ nguyen_lieu_id: n1, luong: 1, han_dung: '7/11' }] }),
     taoPN('nv', { dong: [{ nguyen_lieu_id: n1, luong: 1, don_gia: -5 }] })]);
   k('C0 phiếu nhận sai (không dòng / lượng 0 / hạn sai dạng / giá âm) → 400', c0.every((r) => r.status === 400), c0.map(moTa).join(' | '));
@@ -388,7 +407,7 @@ async function main() {
     && (await dongCua(pnS.phieu?.id)).length === 1, moTa(e4b));
   k('E4c sửa không gửi ghi chú / nhà cung cấp → phiếu mới GIỮ số hoá đơn "HĐ 777" và nhà cung cấp của phiếu cũ', e4b.phieu?.ghi_chu === 'HĐ 777'
     && Number(e4b.phieu?.nha_cung_cap_id) === ncc, JSON.stringify([e4b.phieu?.ghi_chu, e4b.phieu?.nha_cung_cap_id]));
-  const pnCho = await taoPN('chu', { dong: [{ nguyen_lieu_id: n4, luong: 5 }] }, 'g-pncho');
+  const pnCho = await pnChoCu('chu', [{ nguyen_lieu_id: n4, luong: 5 }]);   // KHO-GON-2: phiếu chờ chỉ còn ở dữ liệu cũ
   const tonE4d = await ton(n4);
   const e4d = await goi('chu', 'POST', `/kho/phieu/${pnCho.phieu?.id}/sua`, { ly_do: 'sửa', dong: [{ nguyen_lieu_id: n4, luong: 6 }] });
   k('E4d chủ quán sửa phiếu nhận CHỜ DUYỆT của chính mình → 409 PHIEU_CHUA_DUYET; không tự duyệt, tồn không đổi', e4d.status === 409 && e4d.code === 'PHIEU_CHUA_DUYET'
@@ -450,7 +469,7 @@ async function main() {
     return { kq, loMoi: (await demLo()) - lo1, dongMoi: (await dongCua(id)).length - d0, tt: await ttCua(id) };
   };
   const f2t = await tonTat();
-  const f2 = await dua(() => taoPN('nv', { dong: [{ nguyen_lieu_id: n2, luong: 0.05 }] }, 'g-f2'), (id) => duyet('ql', id), (id) => duyet('ql2', id));
+  const f2 = await dua(() => pnChoCu('nv', [{ nguyen_lieu_id: n2, luong: 0.05 }]), (id) => duyet('ql', id), (id) => duyet('ql2', id));   // KHO-GON-2: phiếu nhận cũ còn chờ
   k('F2 hai quản lý duyệt cùng phiếu nhận song song → một 200, một 409; MỘT lô; tồn cộng MỘT lần', f2.kq.filter((r) => r.status === 200).length === 1 && f2.kq.some(thua)
     && f2.loMoi === 1 && gan(await ton(n2), f2t[n2] + 0.05), `${f2.kq.map(moTa).join(' | ')} · lô +${f2.loMoi}`);
   const f4t = await tonTat();
