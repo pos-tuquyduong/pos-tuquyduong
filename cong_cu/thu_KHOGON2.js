@@ -169,7 +169,8 @@ async function main() {
   const td = tinh.toiDa || (() => undefined);
   const M = (o) => new Map(Object.entries(o));
   k('A2a 1 nguyên liệu: tồn 10, 3 / phần → 3', td([{ khoa: 'a', luong: 3 }], M({ a: 10 })) === 3, String(td([{ khoa: 'a', luong: 3 }], M({ a: 10 }))));
-  k('A2b 2 nguyên liệu → lấy nhỏ nhất (10/3 = 3, 10/2 = 5 → 3)', td([{ khoa: 'a', luong: 3 }, { khoa: 'b', luong: 2 }], M({ a: 10, b: 10 })) === 3);
+  k('A2b 2 nguyên liệu → lấy nhỏ nhất, kể cả khi thứ chặn đứng SAU (10/2 = 5, 10/3 = 3 → 3)', td([{ khoa: 'a', luong: 2 }, { khoa: 'b', luong: 3 }], M({ a: 10, b: 10 })) === 3
+    && td([{ khoa: 'a', luong: 3 }, { khoa: 'b', luong: 2 }], M({ a: 10, b: 10 })) === 3);
   k('A2c biên: 9 / 3 = 3 · 8.999 / 3 = 2 · 0.3 / 0.1 = 3 (số thực lẻ)', td([{ khoa: 'a', luong: 3 }], M({ a: 9 })) === 3 && td([{ khoa: 'a', luong: 3 }], M({ a: 8.999 })) === 2
     && td([{ khoa: 'a', luong: 0.1 }], M({ a: 0.3 })) === 3, `${td([{ khoa: 'a', luong: 0.1 }], M({ a: 0.3 }))}`);
   k('A2d tồn 0 / âm / không có → 0; công thức rỗng → null (không giới hạn)', td([{ khoa: 'a', luong: 1 }], M({ a: 0 })) === 0 && td([{ khoa: 'a', luong: 1 }], M({ a: -2 })) === 0
@@ -236,6 +237,9 @@ async function main() {
   const traQua = await px('ql', [{ san_pham_id: sTra, so_phan: 200 }], 'tra8noi');   // cần 8 gói, còn 6.8
   k('A4h không đủ gói → 409 KHONG_DU_TON, lô gói + thảo dược không đổi', traQua.status === 409 && traQua.code === 'KHONG_DU_TON' && gan(await tonSP(sGoi), 6.8)
     && gan(await tonNL(nAtiso), 100), `${moTa(traQua)} · gói ${await tonSP(sGoi)}`);
+  const suaTra = await goi('chu', 'POST', `/kho/phieu/${tra.phieu?.id}/sua`, { mon: [{ san_pham_id: sTra, so_phan: 500 }], ly_do: 'gõ nhầm' });   // 20 gói > 8.8 sau huỷ
+  k('A4m chủ quán SỬA phiếu nồi vượt số gói → 409 KHONG_DU_TON (lô thành phẩm không âm — đường sửa không qua kiểm lúc tạo), phiếu cũ nguyên, gói 6.8',
+    suaTra.status === 409 && suaTra.code === 'KHONG_DU_TON' && (await ttCua(tra.phieu?.id)) === 'da_duyet' && gan(await tonSP(sGoi), 6.8), `${moTa(suaTra)} · gói ${await tonSP(sGoi)}`);
   const traCho = await px('nv', [{ san_pham_id: sTra, so_phan: 25 }], 'tracho');
   await px('ql', [{ san_pham_id: sTra, so_phan: 150 }], 'tra6noi');   // trừ 6 gói → còn 0.8 < 1
   const traDuyet = await goi('ql', 'POST', `/kho/phieu/${traCho.phieu?.id}/duyet`);
@@ -290,6 +294,7 @@ async function main() {
   const e2q = await ps('ql', 'e2q');
   k('E2a công tắc TẮT (mặc định): nhân viên phát sinh + pha chế → chờ; quản lý → trừ ngay', e2a.phieu?.trang_thai === 'cho_duyet' && e2b.phieu?.trang_thai === 'cho_duyet'
     && e2q.phieu?.trang_thai === 'da_duyet', `${e2a.phieu?.trang_thai} · ${e2b.phieu?.trang_thai} · ${e2q.phieu?.trang_thai}`);
+  await ghiDb("INSERT OR REPLACE INTO pos_permissions (role, permission, allowed) VALUES ('manager', 'manage_settings', 1)");   // quản lý CÓ quyền cài đặt — ca chỉ thử luật kho_* chỉ chủ quán
   const ccNv = await goi('nv', 'PUT', '/settings', { settings: { kho_px_nv_can_duyet: '0' } });
   const ccQl = await goi('ql', 'PUT', '/settings', { settings: { kho_px_nv_can_duyet: '0' } });
   k('E2b nhân viên / quản lý đổi công tắc → 403', ccNv.status === 403 && ccQl.status === 403, `${moTa(ccNv)} · ${moTa(ccQl)}`);
