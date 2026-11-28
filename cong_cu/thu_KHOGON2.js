@@ -452,7 +452,7 @@ async function main() {
   const chung = doc(path.join(kd, 'chung.js'));
   const sp = doc(path.join(kd, 'SanPham.jsx'));
   const soGonSrc = (chung.match(/^export const soGon = (.*);$/m) || [])[1];
-  const soGon = (() => { try { return new Function('return ' + soGonSrc)(); } catch { return () => 'LỖI'; } })();
+  const soGon = (() => { try { const f = new Function('return ' + soGonSrc)(); return typeof f === 'function' ? f : () => 'CHƯA CÓ'; } catch { return () => 'LỖI'; } })();
   const giuSo = [1 / 30, 1 / 300, 0.0004, 0.0005, 0.04, 2.5].every((x) => Math.abs(Number(soGon(x)) - x) <= 1e-12 * x);
   k('D5b số gọn KHÔNG đổi số lưu: 0.0042 × 1000 → "4.2"; 1/30 · 1/300 · 0.0004 · 0.0005 giữ đúng (lệch ≤ 1e-12 tương đối); null → ""',
     soGon(0.0042 * 1000) === '4.2' && soGon(4.199999999999999) === '4.2' && giuSo && soGon(null) === '' && soGon(0.0004) === '0.0004',
