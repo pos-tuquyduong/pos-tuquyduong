@@ -42,10 +42,17 @@ Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-2/dot_bien.py --so-ca aa9785f 
 SỐ CA cong_cu/thu_ANHMON1.js: 77
 SỐ CA cong_cu/thu_KHO2a.js: 87
 SỐ CA cong_cu/thu_KHO2b.js: 79
-SỐ CA cong_cu/thu_KHOGON2.js: 88
+SỐ CA cong_cu/thu_KHOGON2.js: 94
 SỐ CA cong_cu/thu_SAOLUU2.js: 40
 
 Đột biến (python3 viec/KHO-GON-2/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 87 đạt — TỔNG 26 · BẮT 23 · SỐNG 3 (VS-toi-da-bo-1-nguyen-lieu: thứ chặn luôn
 đứng đầu · BV-goi-khong-chan-lo: lúc tạo / duyệt đã chặn, chỉ đường SỬA tới ghiKho · VS-nv-doi-cong-tac: quản lý ca thử chưa có quyền cài đặt → 403 vì lý do
 khác, K3) → thêm A2b (thứ chặn đứng sau), A4m (chủ quán sửa vượt gói), E2b cấp manage_settings cho quản lý. Lượt 2 (bài 88 ca): ĐỐI CHỨNG XANH · 88 đạt —
 TỔNG 26 · BẮT 26 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+Vòng sửa 1–2 (sau soát độc lập vòng 1, 2): bài thu_KHOGON2 thêm D5b · D1i · D1j · A4n · D3d · D3e, sửa D3a. Chạy lại trên gốc (A16):
+  python3 viec/KHO-GON-2/dot_bien.py --cay-goc aa9785f --bai cong_cu/thu_KHOGON2.js → thoát 1 (bản 94 ca, commit c4e738be)
+  node cong_cu/thu_KHOGON2.js --may-chu <git archive aa9785f>/server → 16 đạt · 78 hỏng
+  (bản trước c4e738be sập trên gốc ở D5b — hàm soGon chưa có; đã sửa cho đỏ đúng cách, không sập)
+Số ca trên code ĐÃ VÁ sau vòng sửa 2: SỐ CA cong_cu/thu_KHOGON2.js: 94 (các bài khác không đổi).
+Đột biến lượt 3 (bài 94 ca): ĐỐI CHỨNG XANH · 94 đạt — TỔNG 33 · BẮT 33 · SỐNG 0 · HỎNG 0 · LẠC 0.

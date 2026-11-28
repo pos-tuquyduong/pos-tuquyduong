@@ -105,3 +105,42 @@ BÀI HỌC: KHOÁ — "số gọn" chỉ để HIỂN THỊ; vào ô nhập ph�
 Lần 1 (28.11, /soat-bao-mat — subagent general-purpose, mốc aa9785f): lỗi trước lọc 0 · sau lọc 0 (không cần bước lọc). Báo cáo nguyên văn:
 No vulnerabilities found (no HIGH or MEDIUM findings at confidence ≥ 0.8). Checked: POST /phieu/:id/anh (NHAN_VIEN, soPhieu ^\d+$, duocGan trước khi đọc thân + lại trong giao dịch, kiểu theo byte đầu, cỡ ở express.raw, ≤ 3 ảnh trong câu INSERT … WHERE COUNT, SQL tham số); GET /phieu/:id/anh/:anhId (đọc theo cặp id + phieu_id, quyền = GET /phieu/:id, trả JSON, kieu do máy chủ kiểm; client không dangerouslySetInnerHTML / innerHTML / window.open); GET /nguyen-lieu/:id/the (chỉ đọc, boGia cho nhân viên phủ lo[].gia_von, nguyen_lieu.gia_nhap); GET /pha-che thêm boGia (siết); PUT /san-pham me_ra / me_ghi (CHU_QUAN, kiểm giá trị, ${cot} từ danh sách cố định); chép ảnh khi sửa (CHU_QUAN, chỉ PN); chanThieu chỉ siết; GET /cai-dat-viec thêm nv_can_duyet (QUAN_LY); backup.js; bước 034. Đã cân nhắc và bỏ vì chủ quán duyệt: nhận hàng tự duyệt (E1); nhân viên xem ảnh hoá đơn có thể thấy giá mua (Q5 — người nhận tự chụp).
 SOÁT BẢO MẬT: ĐẠT
+
+## Soát độc lập vòng 2 (/ra-soat, 28.11) — báo cáo nguyên văn (rút gọn định dạng)
+KHÔNG ĐẠT — 3 lỗi, cả 3 NHẸ (hiện sai trên màn, không đụng tiền / ghi kho / lộ thông tin); 2 do vòng sửa 1 gây ra.
+LỖI TÌM ĐƯỢC:
+1. server/kho/theNguyenLieu.js:19, :25 — NHẸ — K4 + K1: truyền lamSan cho MỌI món, kể cả pha tại chỗ; đường bán (banHang.js:63) vẫn triển khai xuống nguyên liệu → món pha tại chỗ có thành phần làm sẵn biến khỏi "Dùng cho món". Sửa: chỉ truyền khi m.kieu === 'lam_san'. D1i không có ca món pha tại chỗ (K3).
+2. client/src/pages/Kho/index.jsx:81–82, :116–119 — NHẸ — K4: Pha chế / Nhận hàng / Phát sinh / Đặt hàng dựng lại lúc MỞ phiếu, không lúc ĐÓNG; trong lúc xem phiếu kho đổi được (duyệt, huỷ, sửa, kết quả) → quay lại thấy số cũ, dễ tạo phiếu thứ hai. Sửa: dongPhieu tăng key. D3d chỉ dò chuỗi.
+3. client/src/pages/Kho/index.jsx:10–11, :113 — NHẸ — K1 + K4: chú thích hứa "giữ vị trí cuộn" nhưng trang cuộn theo cửa sổ (index.css:108) — ẩn danh sách làm trang ngắn lại, không về đúng chỗ; thẻ mở ở giữa trang. Tồn kho / Nguyên liệu chỉ tải một lần → sau thao tác trên thẻ quay lại vẫn tồn cũ.
+NGHI NGỜ: TU_DUYET trước kiểm kho đúng nhưng không có ca (phiếu xuất chờ chỉ do nhân viên tạo, nhân viên không vào được đường duyệt — nhánh này chỉ chạm dữ liệu cũ); D3a / D3d / C1 vẫn dò chuỗi; soGon lệch ~1e-15 tương đối khi Sửa → Lưu (dưới SAI_SO); A4n chỉ một lô gói một giá (chưa ca hai lô giá khác, lô gói không giá); KB24, chanThieu mặc định false, phạm vi Q2 — đã biết.
+NGHIỆM THU: 18/20 · thiếu D1 (món pha tại chỗ), D3 (cuộn, số cũ). CHƯA SOÁT ĐƯỢC: chỉ chạy lại VS-gia-von-goi; không thử trình duyệt; không xem Turso; chưa chạy cong.js chay.
+BÀI HỌC: KHOÁ — đổi "tháo khi mở" sang "dựng lại" phải liệt kê mọi thao tác GHI trong lúc màn kia mở + ca "quay lại thấy số mới". NGUYÊN TẮC — "cùng cách với màn X" chỉ đúng cho món đi qua màn X; thẻ gom món nhiều đường → mỗi loại món tính theo đường của nó, ca thử mỗi loại một món. BỎ — chú thích hứa "giữ vị trí cuộn" không có ca / phép đo.
+
+## Vòng sửa 2 (28.11 — LUAT §6.5: chỉ lỗi nhẹ → làm luôn)
+- theNguyenLieu.js: lamSan chỉ cho món lam_san (ca D1j: món pha tại chỗ có thành phần gói vẫn ở thẻ Atiso, 0.4 / phần, đủ 250) — VS-the-lam-san-moi-mon.
+- index.jsx: đóng phiếu / thẻ → `lanDong` tăng: màn ghi phiếu dựng lại (key lanDong), Danh sách phiếu / Tồn kho / Nguyên liệu / Việc hôm nay tải lại (prop lamMoi, giữ bộ lọc) — VS-dong-phieu-khong-lam-moi (D3d); nhớ window.scrollY lúc mở, lên đầu khi mở, trả lại khi đóng — BV-khong-tra-cuon (D3e). Chú thích đầu file sửa theo.
+- Không làm: ca hai lô gói giá khác / lô gói không giá (CHƯA KIỂM); ca TU_DUYET phiếu xuất thiếu kho (nhánh chỉ dữ liệu cũ chạm tới).
+- Kết quả: thu_KHOGON2 94 đạt · 0 hỏng; đột biến 33 / 33 BẮT (đối chứng 94); bằng chứng đỏ chạy lại (A16) — `bang_chung_do.txt`.
+- Tên đột biến thêm: VS-the-lam-san-moi-mon, VS-dong-phieu-khong-lam-moi, BV-khong-tra-cuon
+- Soát vòng 3 CHƯA chạy: chờ chủ quán trả lời Câu hỏi 1 (sửa một kịch bản giả lập ngoài Phạm vi) — soát sau khi sửa để soát đúng bản cuối.
+
+## Câu hỏi (28.11 — máy DỪNG ở đây)
+1. **Cho máy sửa 1 file NGOÀI Phạm vi: `cong_cu/gia_lap/kich_ban.js` kịch bản KB24.** Kịch bản giả lập này pha chế "KB24 làm sẵn" 2 phần khi
+   kho "NL thử" đang 0 (dữ liệu thử dựng bằng tồn âm). Luật Q1 bạn vừa duyệt chặn đúng việc đó (409 THIEU_NGUYEN_LIEU) → `--day-du` và cổng
+   đỏ ở `cong_cu/gia_lap/chay.js` + `cong_cu/thu_gia_lap.js`. **Đề xuất:** thêm vào KB24 một dòng nhận hàng NL thử trước khi pha chế
+   (`POST /kho/phieu-nhan` 1 kg — đi đúng đường thật), không đổi phép kiểm nào. Bạn chỉ cần trả lời "đồng ý thêm cong_cu/gia_lap/kich_ban.js
+   vào Phạm vi". (Bộ dựng món thử `cong_cu/gia_lap/monThu.js` cũng ngoài Phạm vi: nó gọi thẳng hàm nội bộ khi kho rỗng — máy đã để phép chặn
+   lúc tạo ở đường người dùng bấm (cờ `chanThieu` tại POST /phieu-xuat), không sửa file đó.)
+2. **Xác nhận phạm vi Q2:** máy làm "thành phần là món **làm sẵn** (mọi món kiểu Làm sẵn: gói, siro, cốt…) → phiếu pha chế trừ LÔ của nó".
+   Món chưa từng pha thành lô mà là thành phần của món khác sẽ bị 409 "Không đủ … trong kho — làm thêm trước". **Đề xuất:** giữ như vậy (đúng chữ
+   kế hoạch đã duyệt). Nếu bạn chỉ muốn áp cho gói trà thì báo để máy thu hẹp.
+3. **Nhắc trước khi deploy (không cần trả lời):** dữ liệu thật 27.11 có 33 nguyên liệu tồn 0 → sau deploy, phiếu pha chế bị chặn cho tới khi
+   nhân viên Nhận hàng (giờ cộng ngay) hoặc chủ quán Chỉnh tồn tay. Nên nhận hàng / chỉnh tồn đầu ngày đầu tiên.
+
+## Phát hiện
+- `cong_cu/thu_BAO1a.js` (ngoài Phạm vi) đếm đúng 4 nút khoá ở DinhMuc.jsx → công tắc xuất kho giữ ở CẢ Định mức và Cài đặt kho (cùng nhãn "không
+  cần duyệt", cùng khoá). Bỏ ở Định mức cần hạ ngưỡng đó 4 → 3.
+- Đặt hàng (nhapHang.taoDatHang), gợi ý nhập (goiYNhap mot_phan), phát sinh nội bộ (phatSinh.lapDong) và bán hàng vẫn tính thành phần làm sẵn theo
+  nguyên liệu gốc (Q2 giữ nguyên các đường này).
+- Ảnh hoá đơn chỉ nằm trong Turso (không vào Excel hằng ngày — Q3); sao lưu ảnh riêng là việc sau (gộp với Phát hiện ANH-MON-1).
+- Mặc định `chanThieu = false` ở duLieu.taoPhieuXuat: chỗ gọi mới phải tự truyền; đảo mặc định cần sửa monThu.js (ngoài Phạm vi).
