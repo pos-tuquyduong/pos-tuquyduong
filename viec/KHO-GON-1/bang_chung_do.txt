@@ -142,3 +142,15 @@ lần theo code). Chạy trên code TRƯỚC vòng 8 (cây 1e2db8e8 = code 7401a
   Vế chotCham nhánh nguyên liệu (cảnh báo sau chốt khi phiếu chờ chỉ chạm nguyên liệu, vd phát sinh nguyên liệu chờ): CHƯA KIỂM bằng đột biến — chưa có
   ca (phiếu nhận chờ không mở rộng theo dặn của chủ quán; phát sinh nguyên liệu chờ + chốt + từ chối chưa dựng).
   Đột biến (trên cafc8259): lượt đủ ĐỐI CHỨNG XANH 142 · 75 đột biến · BẮT 73 · HỎNG 2 (neo cũ VS-q11-bao-da-chinh, VS-canh-bao-moi-tu-choi) → sửa neo, chạy lại riêng: BẮT 2/2. Tổng 75/75 BẮT.
+
+== Vòng sửa 9 (chat soát thay, LUAT §6.5 — 4 lỗi NHẸ của lần soát cuối sau vòng 8; code không đổi hành vi) ==
+  Ca mới phủ vế đang SỐNG (code đã đúng, nên xanh trên cả code trước vòng 9 — bằng chứng đỏ là đột biến đưa lỗi trở lại):
+  - Q14d vế MÓN của lọc dòng cam (chỉnh tay CHỈ Nước cam → từ chối phiếu chờ Nước cam → có dòng cam) — VS-loc-bo-ve-mon BẮT (✗ Q14d · 3 → 3).
+  - Q14e ảnh kho_chot của chỉnh tay NGUYÊN LIỆU ghi cột nguyen_lieu_id — VS-anh-luon-san-pham BẮT (✗ Q14e · ảnh ra san_pham_id 3 "Gừng").
+  - Q14f ngưỡng luc >= tao_luc (chốt CÙNG GIÂY lúc tạo phiếu) — VS-chot-luc-lon-hon BẮT (✗ Q14f · 4 → 4).
+  Chú thích 033 sửa: 'chinhtay' = MỌI lần chỉnh tay (không còn "gõ ĐÚNG số máy").
+  Sau vòng 9: node cong_cu/thu_KHOGON1.js 145 đạt · 0 hỏng. Đột biến lượt đủ: ĐỐI CHỨNG XANH 145 · 78 đột biến · BẮT 78 · SỐNG 0 · HỎNG 0 · LẠC 0.
+  SỐ CA cong_cu/thu_KHO2a.js: 86
+  SỐ CA cong_cu/thu_KHOGON1.js: 145
+  Còn CHƯA KIỂM: vế nguyen_lieu của canhBaoSauChot khi lần chốt chỉ chạm nguyên liệu phiếu chờ (đột biến M1 của người soát SỐNG — chủ quán dặn không
+  mở rộng luật cho phiếu nhận chờ duyệt, KHO-GON-2) · bấm lại cùng ma_gui ở nhánh không đổi ghi thêm một dòng kho_chot (vô hại, không trừ đôi).
