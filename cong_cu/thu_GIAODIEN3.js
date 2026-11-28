@@ -39,7 +39,7 @@ function phanTich(css, dk = '') {   // → [{ dk, chon: [selector], khai: [[thu�
     if (a < 0) break;
     if (cham >= 0 && cham < a && /^\s*@/.test(s.slice(i, cham))) { i = cham + 1; continue; }   // @import / @charset
     const dau = s.slice(i, a).trim(), j = khoiNgoac(s, a), than = s.slice(a + 1, j - 1);
-    if (/^@media\b/i.test(dau)) ra.push(...phanTich(than, dau.replace(/\s+/g, ' ').toLowerCase()));
+    if (/^@media\b/i.test(dau)) ra.push(...phanTich(than, dau.replace(/\s+/g, ' ').replace(/\(\s*([\w-]+)\s*:\s*/g, '($1: ').replace(/\s*\)/g, ')').toLowerCase()));   // `(min-width:769px)` = `(min-width: 769px)`
     else if (!dau.startsWith('@')) {
       ra.push({
         dk, chon: dau.split(',').map((x) => x.trim()),
@@ -92,6 +92,8 @@ async function main() {
   k('0j media lạ (print) không áp; @keyframes không lẫn vào', dan('@media print { .a{c:1} } @keyframes x { from{c:2} to{c:3} }', '.a', 'c', 1280) === undefined
     && dan('@keyframes x { from{c:2} } .a{c:9}', '.a', 'c', 1280) === '9');
   k('0k @import / @charset không làm lệch', dan('@import url(x.css); .a{c:7}', '.a', 'c', 1280) === '7');
+  k('0l viết `@media(min-width:769px)` không dấu cách vẫn là điều kiện `(min-width: 769px)` (không đỏ oan)', phanTich('@media (min-width:769px){.a{c:1}}')[0].dk === '@media (min-width: 769px)'
+    && phanTich('@media  ( min-width : 769px ) {.a{c:1}}')[0].dk === '@media (min-width: 769px)');
 
   // ═══ A · khung chung (index.css) ═══
   muc('A1 · `.main-content { min-width: 0 }` ở quy tắc gốc — áp mọi cỡ màn');
@@ -120,6 +122,12 @@ async function main() {
   k('T3a có thẻ viewport với width=device-width', vpMap.width === 'device-width', vp);
   k('T3b KHÔNG có user-scalable=no / 0', !['no', '0'].includes(vpMap['user-scalable']), vp);
   k('T3c maximum-scale (nếu có) ≥ 2 — người dùng phóng to được', vpMap['maximum-scale'] === undefined || Number(vpMap['maximum-scale']) >= 2, vp);
+
+  muc('A3 · lớp `.table-responsive` (5 chỗ dùng: DoiSoat, DiscountCodes, Reports) phải có CSS cuộn ngang — bảng 600 px ở điện thoại không thò ra ngoài thẻ');
+  k('T5a `.table-responsive` có overflow-x: auto ở điện thoại 390 px và máy tính 1280 px', giaTri(luat, '.table-responsive', 'overflow-x', RONG.dienThoai) === 'auto' && giaTri(luat, '.table-responsive', 'overflow-x', RONG.mayTinh) === 'auto',
+    `${giaTri(luat, '.table-responsive', 'overflow-x', 390)} / ${giaTri(luat, '.table-responsive', 'overflow-x', 1280)}`);
+  k('T5b bảng vẫn 600 px ở điện thoại (quy tắc cũ `.table { min-width: 600px }` trong @media 768 không đổi) và 100% bề ngang ở máy tính',
+    giaTri(luat, '.table', 'min-width', RONG.dienThoai) === '600px' && giaTri(luat, '.table', 'min-width', RONG.mayTinh) === undefined && giaTri(luat, '.table', 'width', RONG.mayTinh) === '100%');
 
   // ═══ B · hàng tab Kho ═══
   muc('B1 · `.kho-tabs`: máy tính xuống dòng, điện thoại một hàng cuộn ngang');

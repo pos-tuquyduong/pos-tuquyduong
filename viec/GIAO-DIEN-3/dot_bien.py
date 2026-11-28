@@ -16,6 +16,7 @@ CAN_CHEP = [CSS, KHO, HTML, KT]
 MC = '.main-content { flex: 1; margin-left: 240px; min-width: 0; }'
 M768 = '  .main-content { margin-left: 0; padding-bottom: 80px; }'
 TS = 'html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }'
+TR = '.table-responsive { overflow-x: auto; }'
 KHOI = '@media (min-width: 769px) { .kho-tabs { flex-wrap: wrap; overflow-x: visible; } }'
 
 # (tên, [(file, chuỗi gốc, chuỗi thay, số lần khớp)], mẫu phải thấy trong dòng ✗)
@@ -45,6 +46,13 @@ DOT_BIEN = [
   ('VS-tab-van-cuon-ngang', [(KHO, 'flex-wrap: wrap; overflow-x: visible; } }', 'flex-wrap: wrap; overflow-x: auto; } }', 1)], r'✗ T4b '),
   ('VS-tab-khong-wrap-chi-visible', [(KHO, 'flex-wrap: wrap; overflow-x: visible; } }', 'flex-wrap: nowrap; overflow-x: visible; } }', 1)], r'✗ T4[bc] '),
   ('VS-tab-mat-hang-flex', [(KHO, '.kho-tabs { display: flex; gap: 0.5rem; overflow-x: auto;', '.kho-tabs { display: block; gap: 0.5rem; overflow-x: auto;', 1)], r'✗ T4d '),
+  # ── vòng sửa 1 (soát độc lập): lớp `.table-responsive` + các ca phụ soát chỉ ra ──
+  ('BV-bo-table-responsive', [(CSS, TR, '', 1)], r'✗ T5a '),
+  ('VS-table-responsive-hidden', [(CSS, TR, '.table-responsive { overflow-x: hidden; }', 1)], r'✗ T5a '),
+  ('VS-table-responsive-chi-dien-thoai', [(CSS, TR, '@media (max-width: 768px) { .table-responsive { overflow-x: auto; } }', 1)], r'✗ T5a '),
+  ('VS-bang-het-600px', [(CSS, '  .table { min-width: 600px; }', '  .table { min-width: 0; }', 1)], r'✗ T5b '),
+  ('BV-mat-margin-left-0-dien-thoai', [(CSS, M768, '  .main-content { padding-bottom: 80px; }', 1)], r'✗ T1d '),
+  ('VS-giau-tran-overflow-viet-tat', [(CSS, MC, '.main-content { flex: 1; margin-left: 240px; min-width: 0; overflow: hidden; }', 1)], r'✗ T1e '),
   # ── C1: nối vào bộ kiểm ──
   ('BV-quen-gan-bai-vao-bo-kiem', [(KT, "chayBaiThat('cong_cu/thu_GIAODIEN3.js');", "// chayBaiThat('cong_cu/thu_GIAODIEN3.js'); //", 1)], r'✗ C1 '),
 ]
