@@ -444,6 +444,8 @@ async function main() {
   k('F2 số thực 8 (chuẩn 10) + ghi chú → dòng −2 cùng lô, có người / giờ; tồn lô 8', f2.status === 200 && dongF2 && Number(dongF2.so_luong) === -2
     && dongF2.nguoi === 'nv_a' && dongF2.luc === '2026-11-07T06:00:00' && dongF2.ghi_chu === 'rơi một bình' && Number(dongF2.lo_id) === Number(loS1?.id)
     && (await tonLo(loS1?.id)) === 8 && tm(f2, s1).ket_qua?.trang_thai === 'da_dien', `${moTa(f2)} ${JSON.stringify(dongF2)}`);
+  // KHO-GON-2 Q1: phiếu xuất thiếu nguyên liệu bị chặn — nhập thêm hàng (lô không hạn) cho chuỗi phiếu kết quả bên dưới (trước đây đi bằng tồn âm)
+  for (const nl of [n1, n2, n3]) await themLo('nguyen_lieu_id', nl, 1000, null);
   const lechMon = async (sp, sl, thuc) => {
     const p = await px('ql', [{ san_pham_id: sp, so_phan: sl }], `g-lech-${sp}-${thuc}`);
     const r = await kq('ql', p.phieu?.id, { san_pham_id: sp, so_thuc: thuc });
