@@ -22,4 +22,4 @@ Lệnh: node cong_cu/thu_GIAODIEN3.js --goc <bản chép của 294cd013>        
 
 21 đạt · 10 hỏng
 
-SỐ CA thu_GIAODIEN3.js: 31
+SỐ CA cong_cu/thu_GIAODIEN3.js: 31
