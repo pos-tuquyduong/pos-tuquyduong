@@ -445,7 +445,7 @@ async function main() {
     && dongF2.nguoi === 'nv_a' && dongF2.luc === '2026-11-07T06:00:00' && dongF2.ghi_chu === 'rơi một bình' && Number(dongF2.lo_id) === Number(loS1?.id)
     && (await tonLo(loS1?.id)) === 8 && tm(f2, s1).ket_qua?.trang_thai === 'da_dien', `${moTa(f2)} ${JSON.stringify(dongF2)}`);
   // KHO-GON-2 Q1: phiếu xuất thiếu nguyên liệu bị chặn — nhập thêm hàng (lô không hạn) cho chuỗi phiếu kết quả bên dưới (trước đây đi bằng tồn âm)
-  for (const [nl, sl] of [[n1, 10], [n2, 1000], [n3, 1000]]) await themLo('nguyen_lieu_id', nl, sl, null);   // Cam vừa đủ — G1 cần Cam còn dưới ngưỡng 5
+  for (const [nl, sl] of [[n1, 8], [n2, 1000], [n3, 1000]]) await themLo('nguyen_lieu_id', nl, sl, null);   // Cam vừa đủ — G1 cần Cam còn dưới ngưỡng 5
   const lechMon = async (sp, sl, thuc) => {
     const p = await px('ql', [{ san_pham_id: sp, so_phan: sl }], `g-lech-${sp}-${thuc}`);
     const r = await kq('ql', p.phieu?.id, { san_pham_id: sp, so_thuc: thuc });
