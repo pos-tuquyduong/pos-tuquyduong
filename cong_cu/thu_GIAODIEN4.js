@@ -163,7 +163,7 @@ async function main() {
   muc('B1 · TieuDeMan');
   let TD = null;
   try { TD = dung(`import C from ${J(['components', 'TieuDeMan.jsx'])}; import { Receipt } from 'lucide-react'; import { renderToStaticMarkup } from 'react-dom/server'; import { createElement } from 'react';
-    export const ve = (p) => renderToStaticMarkup(createElement(C, { icon: Receipt, ...p }));`); } catch (e) { k('B1a dựng được components/TieuDeMan.jsx', false, String(e.message).split('\n')[0]); }
+    export const ve = (p) => renderToStaticMarkup(createElement(C, { icon: Receipt, ...p }));`); } catch (e) { k('B1a dựng được components/TieuDeMan.jsx', false, String(e.message).split('\n')[0]); k('B1b không emoji; có `phu` thì hiện thêm dòng phụ; không `phu` thì không', false, 'chưa dựng được TieuDeMan'); }   // đủ ca dù file chưa có → số ca không đổi giữa bản gốc và bản vá (cổng A16)
   if (TD) {
     const h = TD.ve({ ten: 'Đơn hàng' }), hp = TD.ve({ ten: 'Đơn hàng', phu: 'Hôm nay' });
     k('B1a vẽ <h1 class="page-title"> có chữ tên màn + ô icon <svg> TRƯỚC chữ', /<h1[^>]*class="page-title/.test(h) && />Đơn hàng</.test(h) && h.indexOf('<svg') > -1 && h.indexOf('<svg') < h.indexOf('Đơn hàng'), h.slice(0, 220));
@@ -211,7 +211,7 @@ async function main() {
       k('D1c không quản kho → "Pha ngay" (kể cả khi tồn ghi 0)', nt({ khong_quan_kho: 1, stock_quantity: 0 }) === 'Pha ngay' && nt({ khong_quan_kho: true }) === 'Pha ngay');
       k('D1d còn hàng → "Còn n" (ngay biên: 1 → "Còn 1"; 28 → "Còn 28")', nt({ stock_quantity: 1 }) === 'Còn 1' && nt({ stock_quantity: 28 }) === 'Còn 28');
       k('D1e không có số tồn (món chưa nạp tồn) → rỗng, KHÔNG bịa "Hết"', nt({}) === '' && nt({ stock_quantity: null }) === '' && nt({ stock_quantity: undefined }) === '');
-    }
+    } else for (const c of ['D1b', 'D1c', 'D1d', 'D1e']) k(`${c} (cần hàm nhanTon)`, false, 'tinh.js chưa có nhanTon');   // đủ ca dù hàm chưa có (cổng A16)
   }
   const bhm = DOCCL('pages', 'BanHang', 'BanHangMoi.jsx');
   k('D1f thẻ món (BanHangMoi.jsx) có khung hình + nhãn tồn từ nhanTon; nút vẫn disabled y như cũ', /className="bh-hinh"/.test(bhm) && /nhanTon\(s\)/.test(bhm) && /disabled=\{het \|\| chuaCT \|\| !coGia\(s\)\}/.test(bhm) && /onClick=\{\(\) => chamMon\(s\)\}/.test(bhm));
@@ -277,6 +277,24 @@ async function main() {
     [['vang', '#c8962e'], ['lam', '#29406b'], ['do', '#b91c1c'], ['luc', '#3f7a45']].every(([m, v]) => L(G(`.ql-mau-${m}`, '--mau')) === v), ['vang', 'lam', 'do', 'luc'].map((m) => G(`.ql-mau-${m}`, '--mau')).join(' '));
   k('E1e tên nhóm Playfair; mỗi dòng có "›" (.ql-nut::after hoặc .ql-chevron); máy tính vẫn lưới 3 cột', co(G('.ql-the-ten', 'font-family'), /playfair|font-chu-dep/) && /ql-chevron/.test(ql) && co(G('.ql-luoi', 'grid-template-columns', 1280), /repeat\(3/));
   k('E1f dòng danh sách ở điện thoại giữ GIAO-DIEN-2: cao ≥ 52px, 1 cột (≤ 768px)', /^(5[2-9]|[6-9]\d)px$/.test(L(G('.ql-nut', 'min-height', 390))) && co(G('.ql-luoi', 'grid-template-columns', 390), /^1fr$/));
+
+  // ═══ R · vòng sửa 1 (soát độc lập 28.11) — mỗi ca ứng một lỗi người soát tìm ra ═══
+  muc('R · lỗi soát độc lập: vạch vàng bị cắt · thẻ Nạp/Thẻ mất khung · .bh-to quá rộng · tờ in `.card-title` · ly topping · màu thiếu');
+  const so = (v) => { const m = /^(-?\d+(?:\.\d+)?)(px|rem)?$/.exec(L(v)); return m ? Number(m[1]) : NaN; };
+  k('R1 vạch vàng (.nav-item.active::before) nằm TRONG mục (left ≥ 0): `.sidebar-nav` có overflow-y nên phần nhô ra ngoài (left âm) bị CẮT mất',
+    so(G('.nav-item.active::before', 'left')) >= 0,`left=${G('.nav-item.active::before', 'left')} overflow-y=${G('.sidebar-nav', 'overflow-y')}`);
+  { const doan = bhm.split('<button className="bh-mon"').slice(1).map((d) => d.slice(0, d.indexOf('</button>')));
+    k('R2 MỌI thẻ `bh-mon` (món, Nạp tiền, Thẻ thành viên, Chủ quán cấp) bọc chữ trong .bh-chu-mon — .bh-mon không còn padding, thiếu khung thì chữ dính mép', doan.length >= 4 && doan.every((d) => /className="bh-chu-mon"/.test(d)), `${doan.length} thẻ · có khung: ${doan.filter((d) => /bh-chu-mon/.test(d)).length}`); }
+  k('R3a `.bh-to button` GIỮ cách xếp cột cũ (ô tiền khách đưa: số trên, "trả lại" dưới, canh trái)', co(GB('.bh-to button', 'flex-direction'), /^column$/) && co(GB('.bh-to button', 'align-items'), /^flex-start$/), `${GB('.bh-to button', 'flex-direction')} / ${GB('.bh-to button', 'align-items')}`);
+  { const tt = DOCCL('pages', 'BanHang', 'ThuTien.jsx');
+    k('R3b chỉ HAI nút có icon (Tiền mặt, Chuyển khoản) mang lớp riêng bh-nut-ic xếp hàng ngang giữa', co(GB('.bh-to .bh-nut-ic', 'flex-direction'), /^row$/) && (tt.match(/bh-nut-ic/g) || []).length === 2, `${(tt.match(/bh-nut-ic/g) || []).length} chỗ`); }
+  k('R4a in không đổi — lớp `.card-title` (tiêu đề phiếu Kho in: XemPhieu / KiemKe) trả đúng phông thừa hưởng + màu #b91c1c + cỡ 1rem như hôm nay', I('.card-title', 'color') === '#b91c1c' && I('.card-title', 'font-family') === 'inherit' && I('.card-title', 'font-size') === '1rem' && I('.card-title', 'font-weight') === '600', `${I('.card-title', 'color')} | ${I('.card-title', 'font-family')}`);
+  k('R4b in không đổi — `.table th` màu #b91c1c như hôm nay', I('.table th', 'color') === '#b91c1c', I('.table th', 'color'));
+  { const kc = DOCCL('pages', 'BanHang', 'KhungChonMon.jsx');
+    k('R5 KhungChonMon.jsx (trong Phạm vi): ô ảnh topping truyền nhóm (`nhom=`), không còn prop chết `ten=`', /<AnhMon\b[^>]*\bnhom=\{t\.category\}/.test(kc) && !/<AnhMon\b[^>]*\bten=/.test(kc)); }
+  k('R6 .ql-the-o: màu có dự phòng khi nhóm thiếu / lạ `mau` (var(--mau, …)) — không thành ô trong suốt chữ trắng', /^var\(--mau, ?var\(--dat\)\)$/.test(L(G('.ql-the-o', 'background'))), String(G('.ql-the-o', 'background')));
+  k('R7 chip nhóm: đệm hai bên bằng nhau (chip Topping / Nạp tiền / Thẻ không có ô icon); chip CÓ ô icon thu đệm trái bằng lớp riêng (bh-tab-co-ic)', /^\S+ \S+$/.test(L(GB('.bh-tab', 'padding'))) && so(GB('.bh-tab-co-ic', 'padding-left')) > 0 && /bh-tab-co-ic/.test(bhm), `${GB('.bh-tab', 'padding')} | ${GB('.bh-tab-co-ic', 'padding-left')}`);
+  k('R8 AnhMon không dùng Object.hasOwn (lần đầu xuất hiện ở client/src; iPad / iPhone cũ < iOS 15.4 sập cả màn Bán hàng)', !/Object\.hasOwn\(/.test(DOCCL('pages', 'BanHang', 'AnhMon.jsx')));
 
   // ═══ F · nối vào bộ kiểm ═══
   muc('F1 · nối vào bộ kiểm');

@@ -15,6 +15,7 @@ GOC = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 CSS, HTML, KT = 'client/src/index.css', 'client/index.html', 'kiem_tra_truoc_khi_giao.js'
 LAY, TD = 'client/src/components/Layout.jsx', 'client/src/components/TieuDeMan.jsx'
 AM, TI, BH, BC, TT = ('client/src/pages/BanHang/' + x for x in ('AnhMon.jsx', 'tinh.js', 'BanHangMoi.jsx', 'banHang.css', 'ThuTien.jsx'))
+KC = 'client/src/pages/BanHang/KhungChonMon.jsx'
 QL, MENU = 'client/src/pages/QuanLy/QuanLy.jsx', 'client/src/pages/QuanLy/menu.js'
 REF, ORD = 'client/src/pages/Refunds.jsx', 'client/src/pages/Orders.jsx'
 CAN_CHEP = [HTML, KT]   # + cả cây client/src (copytree)
@@ -78,6 +79,18 @@ DOT_BIEN = [
   ('BV-nhom-mat-mau', [(MENU, "icon: 'Megaphone', mau: 'do'", "icon: 'Megaphone', mau: 'luc'", 1)], r'✗ E1b '),
   ('BV-nhom-mat-icon', [(MENU, "icon: 'Wallet', mau: 'luc', ", "mau: 'luc', ", 1)], r'✗ E1[bc] '),
   ('VS-mau-luc-lech-ma', [(CSS, '.ql-mau-luc { --mau: #3f7a45;', '.ql-mau-luc { --mau: #3f7a46;', 1)], r'✗ E1d '),
+  # ── R: vòng sửa 1 (soát độc lập) ──
+  ('BV-vach-vang-lai-ra-ngoai', [(CSS, ".nav-item.active::before { content: ''; position: absolute; left: 0;", ".nav-item.active::before { content: ''; position: absolute; left: -0.875rem;", 1)], r'✗ R1 '),
+  ('BV-the-nap-mat-khung', [(BH, '<span className="bh-chu-mon">\n                <span className="bh-mon-ten">{g.ten}</span>', '<span>\n                <span className="bh-mon-ten">{g.ten}</span>', 1)], r'✗ R2 '),
+  ('VS-bh-to-lai-hang-ngang-moi-nut', [(BC, '.bh-to button { display: flex; flex-direction: column;', '.bh-to button { display: flex; flex-direction: row;', 1)], r'✗ R3a '),
+  ('BV-nut-icon-mat-lop-rieng', [(TT, "bh-nut bh-nut-ic ${cachTra === 'tien_mat'", "bh-nut ${cachTra === 'tien_mat'", 1)], r'✗ R3b '),
+  ('BV-in-card-title-bo', [(CSS, '  .card-title { font-family: inherit; font-size: 1rem; font-weight: 600; color: #B91C1C; }\n', '', 1)], r'✗ R4a '),
+  ('VS-in-card-title-sai-mau', [(CSS, '.card-title { font-family: inherit; font-size: 1rem; font-weight: 600; color: #B91C1C; }', '.card-title { font-family: inherit; font-size: 1rem; font-weight: 600; color: #7F1D1D; }', 1)], r'✗ R4a '),
+  ('BV-in-table-th-bo', [(CSS, '  .table th { color: #B91C1C; }\n}', '}', 1)], r'✗ R4b '),
+  ('BV-topping-khong-truyen-nhom', [(KC, '<AnhMon anh={t.anh} nhom={t.category} kich={40} />', '<AnhMon anh={t.anh} ten={t.name} kich={40} />', 1)], r'✗ R5 '),
+  ('BV-mau-the-khong-du-phong', [(CSS, 'background: var(--mau, var(--dat)); color: #fff;', 'background: var(--mau); color: #fff;', 1)], r'✗ R6 '),
+  ('VS-chip-lech-dem', [(BC, 'padding: 0.5rem 1rem; font-weight: 500;', 'padding: 0.5rem 1rem 0.5rem 0.5rem; font-weight: 500;', 1)], r'✗ R7 '),
+  ('BV-hasOwn-lai', [(AM, 'Object.prototype.hasOwnProperty.call(MAU_NHOM, nhom)', 'Object.hasOwn(MAU_NHOM, nhom)', 1)], r'✗ R8 '),
   # ── F1: nối vào bộ kiểm ──
   ('BV-quen-gan-bai-vao-bo-kiem', [(KT, "chayBaiThat('cong_cu/thu_GIAODIEN4.js');", "// chayBaiThat('cong_cu/thu_GIAODIEN4.js'); //", 1)], r'✗ F1a '),
 ]
