@@ -308,10 +308,10 @@ async function main() {
       const coAnh = ve({ anh: '/api/pos/products/anh/5/abcdef012345', ten: 'Thanh Tân Dưỡng', kich: 48 });
       k('H7 có ảnh: vẽ <img> đúng đường dẫn, ảnh lười, khung 48 × 48 viết sẵn', /<img[^>]*src="\/api\/pos\/products\/anh\/5\/abcdef012345"/.test(coAnh) && /loading="lazy"/.test(coAnh) && /width:48px;height:48px/.test(coAnh), coAnh.slice(0, 200));
       const khong = ve({ anh: null, ten: 'Thanh Tân Dưỡng' });
-      k('H8 chưa có ảnh (null): KHÔNG <img>, hiện chữ viết tắt "TT", khung 44 × 44 mặc định', !/<img/.test(khong) && />TT</.test(khong) && /width:44px;height:44px/.test(khong), khong.slice(0, 200));
+      k('H8 chưa có ảnh (null): KHÔNG <img>, vẽ hình ly <svg> (GIAO-DIEN-4 D2 — hết chữ viết tắt "TT"), khung 44 × 44 mặc định', !/<img/.test(khong) && /<svg/.test(khong) && !/>TT</.test(khong) && /width:44px;height:44px/.test(khong), khong.slice(0, 200));
       const rong = ve({ anh: '', ten: 'Cà phê' });
-      k('H9 ảnh chuỗi rỗng: KHÔNG <img>, chữ viết tắt "CP"', !/<img/.test(rong) && />CP</.test(rong), rong.slice(0, 200));
-      k('H10 cùng tên → cùng màu nền (không nhảy màu mỗi lần vẽ)', ve({ anh: null, ten: 'Ôn Dương Lộ' }) === ve({ anh: null, ten: 'Ôn Dương Lộ' }));
+      k('H9 ảnh chuỗi rỗng: KHÔNG <img>, vẽ hình ly <svg> (hết chữ "CP")', !/<img/.test(rong) && /<svg/.test(rong) && !/>CP</.test(rong), rong.slice(0, 200));
+      k('H10 cùng món → cùng hình (không nhảy màu mỗi lần vẽ)', /<svg/.test(ve({ anh: null, ten: 'Ôn Dương Lộ' })) && ve({ anh: null, ten: 'Ôn Dương Lộ' }) === ve({ anh: null, ten: 'Ôn Dương Lộ' }));
     }
     // Ảnh topping trong khung chọn món (TOPPING-1 + ANH-MON-1): vẽ KhungChonMon thật với 2 topping — một có ảnh, một chưa.
     let veKhung = null;
@@ -326,7 +326,7 @@ async function main() {
         gio: [], giaHang: (x) => x.price || 0, onLuu() {}, onXoa() {}, onDong() {},
       });
       k('H11 khung chọn món: topping CÓ ảnh vẽ <img> đúng đường dẫn', /<img[^>]*src="\/api\/pos\/products\/anh\/7\/0123456789ab"/.test(html), html.slice(0, 160));
-      k('H12 khung chọn món: topping CHƯA ảnh hiện chữ viết tắt "TD", chỉ MỘT <img> (không vẽ ảnh cho topping không có)', />TD</.test(html) && (html.match(/<img/g) || []).length === 1, `${(html.match(/<img/g) || []).length} img`);
+      k('H12 khung chọn món: topping CHƯA ảnh vẽ hình ly (GIAO-DIEN-4 D2 — hết chữ "TD"), chỉ MỘT <img> (không vẽ ảnh cho topping không có)', /<svg/.test(html) && !/>TD</.test(html) && (html.match(/<img/g) || []).length === 1, `${(html.match(/<img/g) || []).length} img`);
       k('H13 khung chọn món: tên + giá topping vẫn hiện (ảnh không che chữ)', /Trân Châu/.test(html) && /\+5/.test(html));
     }
     k('H14 danh sách topping ở Kho (ToppingMon.jsx) hiện ảnh', /<AnhMon\b/.test(docCl('pages/Kho/ToppingMon.jsx')));
