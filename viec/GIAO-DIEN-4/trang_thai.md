@@ -17,7 +17,7 @@
 - Bảng ca thử thiếu: B2/F3–F5 (ghi ở đây), sửa thu_ANHMON1 H8/H9/H10/H12 (LUAT §6.8) — đã làm.
 - Topping chưa ảnh cũng vẽ hình ly (phiếu D2 nói "ô topping vẫn vẽ gọn") — đã làm; nếu chủ quán thấy lạ, đổi bằng một cờ ở AnhMon.
 
-## Bảng "chỗ vá → đột biến" (cổng A17/A18) — `python3 viec/GIAO-DIEN-4/dot_bien.py` → TỔNG 48: BẮT 48 · SỐNG 0 · LẠC 0 · HỎNG 0 (đối chứng XANH)
+## Bảng "chỗ vá → đột biến" (cổng A17/A18) — `python3 viec/GIAO-DIEN-4/dot_bien.py` → TỔNG 59 (48 + 11 của vòng sửa 1): BẮT 59 · SỐNG 0 · LẠC 0 · HỎNG 0 (đối chứng XANH)
 | Chỗ vá | Đột biến |
 |---|---|
 | index.css: bỏ quy tắc đỏ toàn cục (A2) | BV-input-lai-do · BV-strong-lai-do · BV-td-lai-xam · BV-body-lai-xam · VS-o-nhap-van-do-lop |
@@ -31,6 +31,7 @@
 | bill giấy + nút trả tiền (D4) | BV-bill-het-rang-cua · BV-dong-gio-net-lien · VS-tong-het-playfair · BV-nut-tra-tien-het-icon · VS-icon-dem-dau-cach-lam-vo-chu-nut · BV-thanh-gio-het-do-dam |
 | menu.js + Quản lý (E1) | BV-nhom-mat-mau · BV-nhom-mat-icon · VS-mau-luc-lech-ma |
 | nối bộ kiểm (F1) | BV-quen-gan-bai-vao-bo-kiem |
+| vòng sửa 1 (R1–R8) | BV-vach-vang-lai-ra-ngoai · BV-the-nap-mat-khung · VS-bh-to-lai-hang-ngang-moi-nut · BV-nut-icon-mat-lop-rieng · BV-in-card-title-bo · VS-in-card-title-sai-mau · BV-in-table-th-bo · BV-topping-khong-truyen-nhom · BV-mau-the-khong-du-phong · VS-chip-lech-dem · BV-hasOwn-lai |
 
 ## Đếm từng mục nghiệm thu (bằng chứng)
 - A1 → thu_GIAODIEN4 A1 (11 ca) · A2 → 0a–0g, A2a–A2e · A3 → A3a–c · A4 → A4a–d · A5 → A5
@@ -38,7 +39,7 @@
 - C1 → C1a–g · C2 → C2a–b · C3 → C3
 - D1 → D1a–g · D2 → D2a–l (dựng AnhMon thật: tea/coffee/juice/nhóm lạ/không truyền nhóm/có ảnh/rỗng/cỡ nhỏ/id trùng) + thu_ANHMON1 H8–H12 · D3 → D3a–b · D4 → D4a–e · D5 → D5a–d
 - E1 → E1a–f (6 nhóm × 2 ca)
-- F1 → thu_GIAODIEN4 104 ca + nối bộ kiểm F1a/F1b + thu_GIAODIEN3 vẫn xanh · F2 → F2a–c + `git diff --name-only 08392a6 HEAD -- InvoicePrint InPhieu InvoicePreview Kho server ban_mau_pos` = 0 file
+- F1 → thu_GIAODIEN4 114 ca + nối bộ kiểm F1a/F1b + thu_GIAODIEN3 vẫn xanh · F2 → F2a–c + `git diff --name-only 08392a6 HEAD -- InvoicePrint InPhieu InvoicePreview Kho server ban_mau_pos` = 0 file
 - F3 → `npm run build` xong; `npm test` PASS 135 · FAIL 0 (trước khi thêm ca) ; `--day-du` PASS 139 · FAIL 0 · CẢNH BÁO 1 (có từ trước: route GET ghi ở `packages.js:196`, server — ngoài phạm vi); `bash ban_mau_pos/chay_thu.sh` TỔNG 186 đạt · 0 hỏng (bản mẫu không sửa)
 - F4 → Chrome (Playwright + `client/dist` thật + dữ liệu GIẢ): `banhang_*.png`, `quanly_*.png` ở 390 / 820 / 1280; `scrollWidth = clientWidth` cả 6 ảnh (VỪA KHÍT)
 - F5 → thử tay: xem mục CHƯA KIỂM / báo cáo
@@ -50,12 +51,25 @@
 4. Hàng chip nhóm hôm nay KHÔNG có số đếm (BanHangMoi.jsx) → không thêm (phiếu cấm phép tính mới). Vòng đỏ số lượng trong giỏ ở góc thẻ món (D1): màn chưa có số lượng theo món → không làm.
 5. Ở 820 px kiểu "Tự động" màn Bán hàng chia hai cột (thanh bên 240 + giỏ 380) nên cột món chỉ còn ~180 px, chip và thẻ xếp một cột — có từ trước (hình học cũ), không phải do việc này; cân nhắc cho tablet ≥ 768 ẩn thanh bên hoặc thu giỏ (cần chủ quán quyết).
 6. Chữ "Trừ tài khoản" ở nút mờ (disabled) và "Đã nhận tiền" chữ xám trên nền xanh khó đọc khi chưa bấm được (`.bh .bh-nut:disabled { color: #64748b }` đè lên `.bh-xanh`) — có từ trước.
-7. `strong/b` trơn từng được ép đỏ nay là chữ than: Orders.jsx (mã đơn), Refunds.jsx:56, Customers.jsx:572/580, DonApp.jsx:74, DoiSoat.jsx, Settings.jsx:1343 — theo luật "đỏ chỉ ở tiêu đề / giá / nút chính" của phiếu A2. Nếu muốn nổi bật lại chỗ nào thì thêm lớp riêng (A2 ghi lại): đã THÊM `.modal-header h2/h3` đỏ đậm (Settings.jsx:2131/2198, DiscountCodes.jsx:474 dùng h3 trần trong modal); `.text-gray`, `.stat-label` đổi sang chữ phụ #7C6F66.
+7. `strong/b` trơn từng được ép đỏ nay là chữ than: Orders.jsx (mã đơn), Refunds.jsx:57, Customers.jsx:572/580, DonApp.jsx:74, DoiSoat.jsx, Settings.jsx:1344 — theo luật "đỏ chỉ ở tiêu đề / giá / nút chính" của phiếu A2. Nếu muốn nổi bật lại chỗ nào thì thêm lớp riêng (A2 ghi lại): đã THÊM `.modal-header h2/h3` đỏ đậm (Settings.jsx:2131/2198, DiscountCodes.jsx:474 dùng h3 trần trong modal); `.text-gray`, `.stat-label` đổi sang chữ phụ #7C6F66.
 8. `<h1>` trơn còn ở DonThu.jsx:58 và InvoiceSettings.jsx:804 (kèm emoji ⚙️) — ngoài danh sách B1 / Cấm của phiếu.
-9. Màn Kho (Cấm) tự đẹp theo lớp chung nhưng mất đỏ ở h/b/td và `.kho-the b` (kho.css:10) — chấp nhận theo phiếu (GIAO-DIEN-4b).
+9. Màn Kho (Cấm) tự đẹp theo lớp chung nhưng mất đỏ ở h/b/td (quy tắc toàn cục đã gỡ) — chấp nhận theo phiếu (GIAO-DIEN-4b). `Kho/ToppingMon.jsx:24` còn truyền `ten=` (prop chết của AnhMon) và chưa truyền nhóm — file Cấm, làm ở GIAO-DIEN-4b.
+11. Chip voucher `bh-mon-ma`: mã món tự sinh dạng `MOI-<số>-<6 ký tự>` (server/routes/products.js:103) hiện dài trên thẻ món; font Google tải bằng `<link rel=stylesheet>` chặn vẽ trang lúc mạng chậm (phiếu A3 yêu cầu `<link>`; có thể đổi `media="print" onload` sau); CLAUDE.md §3 ghi "119 phép" bản mẫu, thực tế `chay_thu.sh` nay in 186.
 10. Bài thử `thu_ANHMON1.js`: H12 chỉ dò có `<svg` trong KhungChonMon — nếu sau này thêm icon lucide vào khung này, ca sẽ xanh oan; khoá chặt hơn bằng `data-` khi chạm tới.
 
 ## Ghi nhớ khi gộp (cho chat)
 - `client/dist` đã build lại ở HEAD của việc; chat gộp main (KHO-GON-2 sửa Kho/**) thì build lại.
 - 4 file in (InvoicePrint, InPhieu, InvoicePreview, inPhieuKho.css) không bị sửa; ngoài `@media print` ở index.css, bill / tem / phiếu pha chế in qua iframe riêng nên không thừa hưởng phông / màu mới (InvoicePrint.jsx:272 Arial riêng; InPhieu.jsx:88).
 - Kho in `window.print()` trên trang: khối `@media print` cuối index.css trả đúng phông `'Inter', -apple-system` + màu cũ của body / h1–h6 / strong / td / th — không đo được tờ in thật (CHƯA KIỂM).
+
+## Soát độc lập — lần 1 (nguyên văn tóm lược; báo cáo đầy đủ do agent phụ nộp, 28.11) — KHÔNG ĐẠT, 6 lỗi + nghi ngờ → VÒNG SỬA 1
+1. index.css `.nav-item.active::before { left: -0.875rem }` bị `.sidebar-nav { overflow-y: auto }` cắt → vạch vàng không hiện (thấy ở ảnh chụp) — K3/K2. ĐÃ SỬA (`left: 0`), ca R1 + BV-vach-vang-lai-ra-ngoai.
+2. Thẻ Nạp tiền / Thẻ thành viên / Chủ quán cấp mất khung `.bh-chu-mon` (`.bh-mon` không còn padding) — K5/K3. ĐÃ SỬA, R2 + BV-the-nap-mat-khung.
+3. `.bh-to button` đổi xếp hàng ngang áp cả ô tiền khách đưa — K4. ĐÃ SỬA (khôi phục cột; lớp riêng `bh-nut-ic` cho 2 nút icon), R3a/R3b + VS-bh-to-lai-hang-ngang-moi-nut + BV-nut-icon-mat-lop-rieng.
+4. Khối in không phủ lớp `.card-title` (tiêu đề phiếu Kho in) — K4/K1. ĐÃ SỬA (+ `.table th`), R4a/R4b + 3 đột biến.
+5. KhungChonMon.jsx:59 chưa truyền `nhom`, `ten` thành prop chết — K4. ĐÃ SỬA (ToppingMon.jsx là file Cấm → Phát hiện 9). R5 + BV-topping-khong-truyen-nhom.
+6. `.ql-the-o` thiếu `--mau` thành ô trong suốt — K5 nhẹ. ĐÃ SỬA (`var(--mau, var(--dat))`), R6.
+Nghi ngờ đã xử lý: đệm chip lệch (R7), `Object.hasOwn` (R8), dòng CSS thừa `.bh-thanh-gio .bh-nut{color}` và `.bh-anh{font-weight;color}` (đã xoá), số dòng trích lệch 1 (đã sửa). Còn ghi Phát hiện: ảnh món phủ khung (món có ảnh hiện ô 96px, chủ quán nên thử tay), font chặn vẽ, mã món dài.
+Nghiệm thu người soát đếm: 25/27, mục thiếu C1 (vạch vàng) — đã sửa; D3 chip đặc biệt (Topping / Nạp / Thẻ) không có ô icon: kế hoạch đã ghi, phiếu D3 chỉ đòi chip nhóm món.
+CHƯA SOÁT ĐƯỢC (người soát): Chrome bị người gác chặn → việc chụp ảnh do phiên chính làm; tờ in Kho thật chưa đo.
+BÀI HỌC (người soát) đã tiếp nhận ở mục Bài học cuối tệp.

@@ -1,9 +1,9 @@
 GIAO-DIEN-4 — bằng chứng ĐỎ trên code CHƯA VÁ (cây của commit PHIẾU 08392a6, giải nén bằng `git archive`, node_modules nối vào CHỈ để chạy)
 
 1) cong_cu/thu_GIAODIEN4.js (bài mới) chạy trên bản chưa vá: node cong_cu/thu_GIAODIEN4.js --goc <bản chưa vá>   → thoát 1
-   SỐ CA 99 trên bản chưa vá (ca dựng component không chạy được khi file chưa có) · 25 đạt · 74 hỏng. Các ca ĐẠT trên bản chưa vá là: 7 ca bộ bắt
+   SỐ CA 114 trên bản chưa vá (đủ ca dù TieuDeMan.jsx / nhanTon chưa có — cổng A16 không cảnh báo lệch) · 27 đạt · 87 hỏng (đã gồm 10 ca R1–R8 của vòng sửa 1 — đều ĐỎ trên code trước vòng sửa). Các ca ĐẠT trên bản chưa vá là: 7 ca bộ bắt
    "đỏ toàn cục" tự thử (0a–0g, đúng vai trò: bài không tự xanh oan), tên biến cũ còn (A1), chỗ cố ý đỏ (A2e), .btn-primary (A4c), F2c, B1e/B2, C1f, C3,
-   D2e/D2i/D2k (hành vi ANH-MON-1 giữ nguyên), D3b, D5a–d, E1a/E1f, F1b — ca khoá luồng hợp lệ (K5), không phải ca phải đỏ.
+   D2e/D2k (hành vi ANH-MON-1 giữ nguyên), D3b, D5a–d, E1a/E1f, F1b; R3a/R8 cũng đạt trên bản gốc (ca khoá hành vi cũ: `.bh-to button` xếp cột; chưa có Object.hasOwn) — ca khoá luồng hợp lệ (K5), không phải ca phải đỏ.
    Dòng đỏ tiêu biểu:
   ✗ A1 :root --do = #b91c1c  — undefined            (… 10 biến màu)
   ✗ A2a ngoài khối in KHÔNG còn quy tắc trần (h1–h6, strong/b, td/th, input/select/textarea, placeholder) sai màu  — body → #78716c | h1 → #b91c1c | …
@@ -20,8 +20,8 @@ GIAO-DIEN-4 — bằng chứng ĐỎ trên code CHƯA VÁ (cây của commit PHI
   ✗ D4a .bh-cot-gio nền giấy + mép dưới răng cưa (mask)  — #fff | undefined
   ✗ E1b nhóm "Món & giá": mau = vang + có tên icon  — mau=undefined icon=undefined
   ✗ F1a kiem_tra_truoc_khi_giao.js có chayBaiThat('cong_cu/thu_GIAODIEN4.js')
-   Trên code ĐÃ VÁ: 104 đạt · 0 hỏng.
-SỐ CA cong_cu/thu_GIAODIEN4.js: 104
+   Trên code ĐÃ VÁ: 114 đạt · 0 hỏng.
+SỐ CA cong_cu/thu_GIAODIEN4.js: 114
 
 2) cong_cu/thu_ANHMON1.js (bản sửa theo LUAT §6.8 — chủ quán duyệt hành vi hình ly thay chữ viết tắt, phiếu D2) chạy trên bản chưa vá → 73 đạt · 4 hỏng:
   ✗ H8 chưa có ảnh (null): KHÔNG <img>, vẽ hình ly <svg> … hết chữ viết tắt "TT"  — <span class="bh-anh" … >TT
@@ -30,3 +30,16 @@ SỐ CA cong_cu/thu_GIAODIEN4.js: 104
   ✗ H12 khung chọn món: topping CHƯA ảnh vẽ hình ly … hết chữ "TD" …  — 1 img
    Trên code ĐÃ VÁ: 77 đạt · 0 hỏng.
 SỐ CA cong_cu/thu_ANHMON1.js: 77
+
+3) VÒNG SỬA 1 (soát độc lập 28.11) — 10 ca mới R1–R8 chạy trên code TRƯỚC vòng sửa (HEAD 3ff68f0a + bài mới): SỐ CA 114 · 104 đạt · 10 hỏng
+  ✗ R1 vạch vàng (.nav-item.active::before) nằm TRONG mục (left ≥ 0) …  — left=-0.875rem overflow-y=auto
+  ✗ R2 MỌI thẻ `bh-mon` … bọc chữ trong .bh-chu-mon  — 4 thẻ · có khung: 1
+  ✗ R3a `.bh-to button` GIỮ cách xếp cột cũ  — undefined / center
+  ✗ R3b chỉ HAI nút có icon mang lớp riêng bh-nut-ic  — 0 chỗ
+  ✗ R4a in không đổi — lớp `.card-title` …  —  |
+  ✗ R4b in không đổi — `.table th` màu #b91c1c như hôm nay
+  ✗ R5 KhungChonMon.jsx: ô ảnh topping truyền nhóm, không còn prop chết `ten=`
+  ✗ R6 .ql-the-o: màu có dự phòng khi nhóm thiếu / lạ `mau`  — var(--mau)
+  ✗ R7 chip nhóm: đệm hai bên bằng nhau …  — 0.5rem 1rem 0.5rem 0.5rem | undefined
+  ✗ R8 AnhMon không dùng Object.hasOwn
+   Sau vòng sửa: 114 đạt · 0 hỏng.
