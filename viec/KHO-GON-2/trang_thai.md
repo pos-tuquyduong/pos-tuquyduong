@@ -91,3 +91,17 @@ NGHI NGỜ:
 NGHIỆM THU: 18/20 mục có bằng chứng · mục thiếu: D3 (XemPhieu vẫn tháo tab; D3a / D3c dò chuỗi), D5 (hành vi sai — đổi số lưu). B2, D2, C1 chỉ dò chuỗi.
 CHƯA SOÁT ĐƯỢC: --day-du chưa in kết quả kịp; không chạy dot_bien.py; không xem dữ liệu Turso; giao diện điện thoại không thử trình duyệt.
 BÀI HỌC: KHOÁ — "số gọn" chỉ để HIỂN THỊ; vào ô nhập phải có ca lưu-lại-không-sửa so bằng số gốc (1/30, 0.0004). NGUYÊN TẮC — lời duyệt có ngoặc ví dụ ("làm sẵn (gói)") thì phạm vi hẹp theo ví dụ; đổi dữ liệu bài cũ để né hành vi mới là dấu hiệu đang mở rộng. NGUYÊN TẮC — mỗi dòng S1–S5 cần một ca kiểm HÀNH VI, không chỉ dò chuỗi.
+
+## Vòng sửa 1 (28.11, sau soát vòng 1)
+- chung.js soGon: 15 chữ số có nghĩa, không cắt thập phân (ca D5b: 1/30, 1/300, 0.0004, 0.0005 giữ; 4.199999999999999 → 4.2) — đột biến VS-so-gon-cat-3-so.
+- index.jsx: nội dung tab ẩn bằng display khi mở thẻ HOẶC phiếu; màn vừa ghi phiếu dựng lại (key lanTao); DsPhieu tải lại khi đóng phiếu, giữ bộ lọc (D3a, D3d) — VS-pha-che-thao-tab-khi-mo-phieu.
+- theNguyenLieu.js: triển khai cùng tập làm sẵn như Pha chế (D1i) — VS-the-trien-khai-tha.
+- Ca giá vốn lô trà từ gói (A4n) — VS-gia-von-goi. duyetPhieu: người tạo tự duyệt báo 403 TU_DUYET trước kiểm kho.
+- Không sửa (ghi lại): mặc định chanThieu = false (monThu.js ngoài Phạm vi gọi thẳng — xem Câu hỏi 2); "→ ra n phần" (món không mang đơn vị trong dữ liệu Pha chế); ViecHomNay hai hàng nút (một mở thẻ, một giao việc — giữ nút giao việc KHO-GON-1).
+- Kết quả: thu_KHOGON2 92 đạt · 0 hỏng; đột biến 30 / 30 BẮT (đối chứng 92 đạt); npm test --day-du: PASS 136 · FAIL 2 (giả lập KB24 — Câu hỏi 1); dist khớp src.
+- Tên đột biến thêm: VS-so-gon-cat-3-so, VS-the-trien-khai-tha, VS-gia-von-goi, VS-pha-che-thao-tab-khi-mo-phieu
+
+## Soát bảo mật
+Lần 1 (28.11, /soat-bao-mat — subagent general-purpose, mốc aa9785f): lỗi trước lọc 0 · sau lọc 0 (không cần bước lọc). Báo cáo nguyên văn:
+No vulnerabilities found (no HIGH or MEDIUM findings at confidence ≥ 0.8). Checked: POST /phieu/:id/anh (NHAN_VIEN, soPhieu ^\d+$, duocGan trước khi đọc thân + lại trong giao dịch, kiểu theo byte đầu, cỡ ở express.raw, ≤ 3 ảnh trong câu INSERT … WHERE COUNT, SQL tham số); GET /phieu/:id/anh/:anhId (đọc theo cặp id + phieu_id, quyền = GET /phieu/:id, trả JSON, kieu do máy chủ kiểm; client không dangerouslySetInnerHTML / innerHTML / window.open); GET /nguyen-lieu/:id/the (chỉ đọc, boGia cho nhân viên phủ lo[].gia_von, nguyen_lieu.gia_nhap); GET /pha-che thêm boGia (siết); PUT /san-pham me_ra / me_ghi (CHU_QUAN, kiểm giá trị, ${cot} từ danh sách cố định); chép ảnh khi sửa (CHU_QUAN, chỉ PN); chanThieu chỉ siết; GET /cai-dat-viec thêm nv_can_duyet (QUAN_LY); backup.js; bước 034. Đã cân nhắc và bỏ vì chủ quán duyệt: nhận hàng tự duyệt (E1); nhân viên xem ảnh hoá đơn có thể thấy giá mua (Q5 — người nhận tự chụp).
+SOÁT BẢO MẬT: ĐẠT
