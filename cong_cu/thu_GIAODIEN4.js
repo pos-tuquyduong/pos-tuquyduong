@@ -73,7 +73,7 @@ const TRAN = /^[a-z][a-z0-9]*(::placeholder)?$/;
 function doToanCuc(css) {   // → ['strong,b → #991b1b', …] — danh sách quy tắc trần sai
     const ra = [];
   for (const r of phanTich(css)) {
-    if (r.dk) continue;
+    if (r.dk === '@media print') continue;   // CHỈ khối in được miễn; đỏ nằm trong @media khác (vd max-width 768) vẫn BỊ BẮT
     for (const c of r.chon) {
       if (!TRAN.test(c) || c === 'a') continue;     // `a` (liên kết) không nằm trong A2
       const mau = L((r.khai.filter(([p]) => p === 'color').pop() || [])[1]);
@@ -116,7 +116,7 @@ async function main() {
   k('0d input, select, textarea màu đỏ → BỊ BẮT', doToanCuc('input, select, textarea { color: #991B1B; }').length === 3);
   k('0e placeholder màu đỏ → BỊ BẮT', doToanCuc('input::placeholder, textarea::placeholder { color: #DC2626; opacity: 0.5; }').length === 2);
   k('0f đúng: td,th = chữ than; placeholder = chữ phụ; bộ chọn lớp (.input) không tính → KHÔNG bắt', doToanCuc('td, th { color: var(--chu); } input::placeholder { color: var(--phu); } .input { color: #991B1B; }').length === 0);
-  k('0g đỏ nằm trong @media print → KHÔNG bắt (khối in giữ nguyên hôm nay); đỏ ngoài khối → BẮT', doToanCuc('@media print { strong, b { color: #991B1B; } }').length === 0 && doToanCuc('@media (max-width: 768px) { strong { color: #991B1B; } } strong { color: #991B1B; }').length === 1);
+  k('0g đỏ nằm trong @media print → KHÔNG bắt (khối in giữ nguyên hôm nay); đỏ ngoài khối hoặc trong @media khác (max-width) → BẮT', doToanCuc('@media print { strong, b { color: #991B1B; } }').length === 0 && doToanCuc('@media (max-width: 768px) { strong { color: #991B1B; } } strong { color: #991B1B; }').length === 2 && doToanCuc('@media (max-width: 768px) { strong { color: #991B1B; } }').length === 1);
 
   // ═══ A · khung chung ═══
   muc('A1 · biến màu MỘT chỗ ở :root (giữ tên cũ, thêm tên mới)');
