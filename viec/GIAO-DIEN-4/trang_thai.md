@@ -73,3 +73,54 @@ Nghi ngờ đã xử lý: đệm chip lệch (R7), `Object.hasOwn` (R8), dòng C
 Nghiệm thu người soát đếm: 25/27, mục thiếu C1 (vạch vàng) — đã sửa; D3 chip đặc biệt (Topping / Nạp / Thẻ) không có ô icon: kế hoạch đã ghi, phiếu D3 chỉ đòi chip nhóm món.
 CHƯA SOÁT ĐƯỢC (người soát): Chrome bị người gác chặn → việc chụp ảnh do phiên chính làm; tờ in Kho thật chưa đo.
 BÀI HỌC (người soát) đã tiếp nhận ở mục Bài học cuối tệp.
+
+## Soát độc lập — lần 2 (HEAD 1d1dd7b8) — ĐẠT (0 lỗi NẶNG; chỉ lỗi NHẸ)
+Cả 6 lỗi lần 1 được xác nhận đã sửa đúng và không sinh lỗi mới (vạch vàng index.css:129 `left: 0`; 4 loại thẻ `bh-mon` đều có `.bh-chu-mon`; `.bh-to` chỉ 5 chỗ dùng, hai nút icon có `bh-nut-ic`; khối @media print so với 08392a6 đúng cho `.card-title` / `.table th` / body / h1–h6 / strong / td; KhungChonMon truyền nhóm; `.ql-the-o` có màu dự phòng). Nghiệm thu 20/21 (người soát chưa tự đo F5 — thử tay cho chủ quán).
+Lỗi NHẸ người soát báo và xử lý:
+- K3: bộ bắt "đỏ toàn cục" bỏ qua MỌI `@media` → ĐÃ SỬA (chỉ miễn `@media print`; ca 0g thêm "đỏ trong @media max-width → BỊ BẮT", vẫn 114 ca, 59/59 đột biến).
+- K1: "195" là số DÒNG, 216 ký tự emoji → ĐÃ SỬA ở Phát hiện 1; lời bằng chứng đỏ mâu thuẫn (8 ca R đỏ trên bản chưa vá, 10 ca trên code trước vòng sửa) → ĐÃ SỬA.
+- Ghi Phát hiện, không sửa: (a) `.btn-outline:hover { border-color: var(--dat) }` đè vạch nét đứt `.ql-nut` khi rê chuột — chỉ nhìn; (b) nhãn "Pha ngay" / "Còn n" vẫn hiện ở món chưa công thức / chưa giá (nút vẫn disabled, chữ "Chưa có công thức" vẫn có); (c) khẩu hiệu `font-style: italic` Playfair chỉ tải 600/700 thẳng → trình duyệt nghiêng giả (phiếu A3 chỉ định đúng bộ trọng số đó); (d) màu gõ cứng lặp trong CSS (`#fee2e2`, `#f3e3cf`, `#e7d5bf`, `#ecdcc6`, `rgba(232,196,106,…)`, `#931c1b`) — gom vào `:root` khi tiện (phiếu A1 chỉ cấm rải trong JSX); (e) logo 92 KB hiện 64px — làm bản 128px sau; (f) vòng đỏ số lượng trong giỏ ở thẻ món (D1): hàm `tpCanTrongGio` đã có nên làm được không thêm phép tính — để chủ quán quyết (Phát hiện 4 viết "chưa có số" là chưa chính xác: chưa HIỂN THỊ); (g) dải ⏳ việc kho kẹt ở thanh bên thụt hơn mục nav (margin 0.75rem + padding 0.875rem) — chưa chụp ảnh ở trạng thái có dải.
+CHƯA SOÁT ĐƯỢC (người soát): tờ in Kho thật; dải việc kho kẹt khi nhiều mục; ảnh món thật (ô 96px giữa khung 120px); font tải chặn vẽ lúc mạng chậm; ảnh 820 và quanly_*.
+
+## Bài học (bước 11)
+**KHOÁ** (đã làm — file trong Phạm vi, có ca đỏ trước):
+1. Ca R1–R8 (thu_GIAODIEN4.js) + 11 đột biến: mỗi lỗi lần 1 thành một ca (vạch vàng bị `overflow` cắt, thẻ mất khung, `.bh-to` quá rộng, khối in không phủ lớp, prop chết, màu thiếu biến, đệm chip lệch, `Object.hasOwn`).
+2. Bộ bắt "đỏ toàn cục" chỉ miễn đúng `@media print` (3fac0bfa).
+3. Cổng A16: bài mới phải in ĐỦ số ca ở cả bản gốc và bản vá (nhánh `else` ở B1a/D1) — làm cảnh báo lệch 99 ≠ 104 biến mất.
+**NGUYÊN TẮC** — đề xuất cho chat soát (KHUON_LOI.md ngoài Phạm vi), mở K9 "bài thử CSS chỉ đọc chuỗi":
+- K9 · Hiệu ứng nhô ra ngoài hộp (`::before` toạ độ âm, mask, bóng) bị `overflow` của tổ tiên cắt mà bài thử đọc-chuỗi vẫn xanh. Đã gây: vạch vàng thanh bên không hiện (soát lần 1). Dấu hiệu: `left/right/top` âm + tổ tiên có `overflow ≠ visible`. Chặn: ca đọc `overflow` của tổ tiên hoặc đặt trong hộp; mọi rule nhìn được phải có ảnh chụp (Chrome) trước khi báo xong.
+- K4 (bổ sung): gỡ/đổi rule chung → duyệt MỌI nơi dùng cùng lớp (`.bh-mon` → Nạp/Thẻ; `.bh-to button` → 3 nhóm; khối in → mọi lớp trang in dùng, kể cả `.card-title`).
+- K1 (bổ sung): ghi số kèm đơn vị (ký tự / dòng / file) và nói đúng phép đếm.
+- K5 (bổ sung): bỏ một dòng chữ thay bằng nhãn từ hàm khác → liệt kê mọi trạng thái cũ còn hiện song song.
+**BỎ**: lệnh bị người gác chặn (vòng `for`, `git stash`, lệnh ghép, chạy file có chữ SECRET khi chưa commit) và kho nông làm BH2/NDAPI1 đỏ giả — chỉ xảy ra vì môi trường, đã đổi lệnh / `--unshallow`.
+**Dọn**: không đề xuất xoá lời dặn nào (chưa có phép kiểm thay). `KHUON_LOI.md` không bị đổi.
+Ghi chú: CLAUDE.md §3 ghi "119 phép" của bản mẫu — `bash ban_mau_pos/chay_thu.sh` nay in 186 đạt (bản mẫu không sửa): chat cập nhật dòng này.
+
+## Báo cáo 7 mục
+```
+VIỆC:        GIAO-DIEN-4 — Làm đẹp POS theo mẫu chủ quán duyệt: giữ đỏ · vàng · kem, sơn mài + bill giấy, icon thay emoji
+ĐÃ SỬA:      client/src/index.css (biến màu :root, bỏ quy tắc đỏ toàn cục, nền kem + mây, thẻ giấy, nút, thanh bên sơn mài, thanh dưới, thẻ Quản lý, khối @media print giữ nguyên in) ·
+             client/index.html (Google Fonts) · components/Layout.jsx (logo, KHAU_HIEU "Đông Y Dưỡng Thể", chân thanh bên) · components/TieuDeMan.jsx (mới) ·
+             Refunds/Orders/Customers/Reports/DiscountCodes/Settings.jsx (chỉ dòng tiêu đề) · BanHang/AnhMon.jsx (hình ly theo nhóm) · tinh.js (nhanTon) ·
+             BanHangMoi.jsx (thẻ món, chip nhóm, thẻ Nạp/Thẻ) · ThuTien.jsx (2 icon) · banHang.css (thẻ món, bill giấy, thanh giỏ) · KhungChonMon.jsx ·
+             QuanLy/QuanLy.jsx + menu.js (icon + màu 6 nhóm) · client/dist (build lại) · cong_cu/thu_GIAODIEN4.js (mới) · cong_cu/thu_ANHMON1.js (H8/H9/H10/H12, LUAT §6.8) · kiem_tra_truoc_khi_giao.js (+1 dòng)
+BÀI THỬ:     thu_GIAODIEN4.js chạy trên bản chưa vá (08392a6) → ĐỎ: 27 đạt · 87 hỏng / 114 ca (A1 :root --do undefined, A2a quy tắc trần còn đỏ, A4b .card còn backdrop-filter,
+             F2a chưa có khối in, B1c 6 trang còn emoji, C1a chưa có khẩu hiệu, D1a chưa có nhanTon, D2c còn chữ "TT", D4a chưa có mask, E1b thiếu mau/icon …);
+             sau khi vá → XANH 114 đạt · 0 hỏng. thu_ANHMON1 (bản sửa): chưa vá 73 đạt · 4 hỏng (H8/H9/H10/H12) → vá 77 đạt · 0 hỏng.
+             Đột biến: 59 tên (VS-/BV-), 59/59 BẮT · 0 SỐNG · 0 LẠC · 0 HỎNG, có đối chứng XANH. npm test PASS 135 · FAIL 0 (CẢNH BÁO 1 có từ trước: packages.js:196 route GET ghi) ·
+             --day-du PASS 139 · FAIL 0 · chay_thu.sh 186 đạt · 0 hỏng · cong.js chay: ✓ CỔNG CHẠY ĐẠT (HEAD f8b7e7e5)
+ĐÃ RÀ K4:    grep emoji trong client/src/*.jsx → 216 ký tự / 195 dòng / 46 file (Phát hiện 1; 6 tiêu đề đã đổi, còn lại ngoài Phạm vi / Cấm / bị khoá bởi VOUCHER-2);
+             grep `<AnhMon` → 4 chỗ gọi (BanHangMoi ×2, KhungChonMon, Kho/ToppingMon — Cấm, Phát hiện 9); grep `.bh-to` → 5 chỗ dùng (ThuTien ×3 nhóm, KhungGiao ×2) đã duyệt;
+             grep `className="bh-mon"` → 4 loại thẻ, đều có .bh-chu-mon (ca R2); các lớp trang in Kho dùng (.card-title, h3/b/td/th) đã trả lại trong khối @media print
+CHƯA KIỂM:   (1) Tờ in thật của Kho / bill / tem — chỉ so quy tắc CSS và không sửa 4 file in; chủ quán in thử 1 bill + 1 phiếu Kho. (2) Ảnh món THẬT trong ô 96px giữa khung 120px
+             (ảnh chụp dùng dữ liệu giả, không ảnh). (3) Dải ⏳ việc kho kẹt ở thanh bên khi nhiều mục / màn thấp — chưa chụp ở trạng thái đó. (4) Phông Google tải lúc mạng chậm (chặn vẽ).
+             (5) Thử tay trên điện thoại thật (F5). (6) Từng màn Cài đặt / Khách hàng / Báo cáo / Kho sau khi gỡ màu đỏ toàn cục — chỉ rà 6 tiêu đề + chụp Bán hàng / Quản lý.
+             (7) 820 px kiểu "Tự động" chật (có từ trước, Phát hiện 5).
+GIT:         f8b7e7e5 GIAO-DIEN-4: sua loi hoi hon ho so (don vi emoji, loi bang chung do) · 3fac0bfa GIAO-DIEN-4: bo bat do toan cuc chi mien dung @media print (soat lan 2), ca 0g chat hon
+BÀI HỌC:     KHOÁ 3 · NGUYÊN TẮC 4 (đề xuất K9 + bổ sung K4/K1/K5) · BỎ 1 — chi tiết ở ## Bài học phía trên
+```
+F5 — 3 thao tác cho chủ quán thử tay: (1) máy tính: thanh bên đỏ sơn mài, logo + "Đông Y Dưỡng Thể", mục đang chọn có vạch vàng bên trái, icon thay emoji ở Đơn / Khách / Báo cáo;
+(2) điện thoại: Bán hàng — thẻ món có hình ly (hoặc ảnh), chạm món vào giỏ như cũ, thanh giỏ đỏ đậm đúng tổng; (3) in thử một bill: tờ in giống hệt hôm nay.
+
+✓ CỔNG CHẠY ĐẠT
+HEAD ĐÃ KIỂM: f8b7e7e5
