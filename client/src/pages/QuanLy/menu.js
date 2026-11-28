@@ -39,34 +39,35 @@ const LOI_THEM = {
 export const loiThem = (man, coQuyen) => (LOI_THEM[man] || []).filter((l) => hien(coQuyen, l.quyen));
 
 // GIAO-DIEN-2: 6 nhóm của trang Quản lý (M1), mỗi nút mở THẲNG đúng màn. `quyen` = ĐÚNG quyền thẻ / màn trước đây; `tuKhoa` cho ô tìm nhanh.
+// GIAO-DIEN-4 E1: mỗi nhóm có `icon` (TÊN icon lucide — QuanLy.jsx ánh xạ, menu.js vẫn thuần) và `mau` (vang · lam · do · luc = lớp .ql-mau-* ở index.css).
 // `?the=` = mã thẻ trong Settings.jsx (NHOM_THE). Thẻ `packages` (gói tạm ngưng) cố ý không có nút; `signup`, `rewards` mở từ màn Điểm & quà.
 const NHOM_QUAN_LY = [
-  { ten: 'Món & giá', nut: [
+  { ten: 'Món & giá', icon: 'Coffee', mau: 'vang', nut: [
     { ten: 'Món, giá & công thức', to: '/kho', tuKhoa: ['san pham', 'cong thuc', 'mon', 'gia', 'nguyen lieu', 'ton kho'] },
     { ten: 'Giá bán & nhóm món', to: '/settings?the=products', quyen: 'manage_settings', tuKhoa: ['nhom dac biet', 'mon tang khach moi', 'gia ban'] },
     { ten: 'Gói nạp tiền', to: '/settings?the=goiNap', quyen: 'manage_products', tuKhoa: ['nap tien', 'goi nap'] },
   ] },
-  { ten: 'Khách & thẻ', nut: [
+  { ten: 'Khách & thẻ', icon: 'Users', mau: 'lam', nut: [
     { ten: 'Danh sách khách', to: '/customers', tuKhoa: ['khach hang', 'vi', 'so du', 'diem', 'sinh nhat', 'nap tien'] },
     { ten: 'Hạng thành viên', to: '/settings?the=tiers', quyen: 'manage_promotions', tuKhoa: ['hang vang', 'kim cuong', 'the thanh vien', 'goi hang'] },
     { ten: 'Điểm & quà', to: '/settings?the=loyalty', quyen: 'manage_settings', tuKhoa: ['tich diem', 'doi qua', 'kho qua', 'khach moi'] },
   ] },
-  { ten: 'Khuyến mãi', nut: [
+  { ten: 'Khuyến mãi', icon: 'Megaphone', mau: 'do', nut: [
     { ten: 'Mã giảm giá', to: '/discount-codes', quyen: 'manage_users', tuKhoa: ['ma chiet khau', 'voucher', 'khuyen mai'] },
     { ten: 'Giờ vàng', to: '/settings?the=flash', quyen: 'manage_settings', tuKhoa: ['flash sale', 'giam gia gio'] },
     { ten: 'Chương trình', to: '/settings?the=chuongTrinh', quyen: 'manage_promotions', tuKhoa: ['khuyen mai', 'combo'] },
     { ten: 'Quảng cáo trên App', to: '/settings?the=quangCao', quyen: 'manage_settings', tuKhoa: ['banner', 'app khach'] },
   ] },
-  { ten: 'Tiền & báo cáo', nut: [
+  { ten: 'Tiền & báo cáo', icon: 'Wallet', mau: 'luc', nut: [
     { ten: 'Đối soát tiền', to: '/reports?tab=doisoat', quyen: 'view_reports', tuKhoa: ['doi soat', 'chot ca', 'tien mat', 'chuyen khoan'] },
     { ten: 'Hoàn tiền', to: '/refunds', quyen: 'approve_refund', tuKhoa: ['tra tien', 'huy don'] },
     { ten: 'Báo cáo doanh thu', to: '/reports', quyen: 'view_reports', tuKhoa: ['doanh thu', 'thuc thu', 'bao cao'] },
   ] },
-  { ten: 'Nhân viên', nut: [
+  { ten: 'Nhân viên', icon: 'UserCog', mau: 'lam', nut: [
     { ten: 'Tài khoản nhân viên', to: '/settings?the=users', quyen: 'manage_users', tuKhoa: ['nguoi dung', 'mat khau', 'tai khoan'] },
     { ten: 'Ai được làm gì', to: '/settings?the=permissions', quyen: 'manage_permissions', tuKhoa: ['phan quyen', 'quyen han'] },
   ] },
-  { ten: 'Cài đặt quán', nut: [
+  { ten: 'Cài đặt quán', icon: 'Store', mau: 'vang', nut: [
     { ten: 'Giờ mở cửa', to: '/settings?the=gioHoatDong', quyen: 'manage_settings', tuKhoa: ['gio hoat dong', 'dong cua', 'chuong don app'] },
     { ten: 'Giao hàng', to: '/settings?the=giaoHang', quyen: 'manage_settings', tuKhoa: ['ship', 'ahamove', 'phi giao'] },
     { ten: 'In bill & tem', to: '/invoice-settings', quyen: 'manage_users', tuKhoa: ['may in', 'hoa don', 'tem', 'bill'] },

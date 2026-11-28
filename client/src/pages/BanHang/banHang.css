@@ -1,36 +1,47 @@
 /* Màn Bán hàng (BH-1). Mọi lớp bắt đầu bằng bh- để không đụng lớp của các màn khác. */
-.bh { --bh-do: #b91c1c; --bh-do-nhat: #fee2e2; --bh-xanh: #15803d; --bh-xam: #64748b; --bh-vien: #e2e8f0;
+/* GIAO-DIEN-4: màu lấy từ biến chung ở index.css (đỏ · vàng · kem), không rải mã màu ở đây */
+.bh { --bh-do: var(--do); --bh-do-nhat: #fee2e2; --bh-xanh: #15803d; --bh-xam: var(--phu); --bh-vien: var(--vien);
   display: flex; flex-direction: column; gap: 0.5rem; height: calc(100vh - 90px); min-height: 480px; position: relative; }
 .bh * { box-sizing: border-box; }
-.bh button { color: #1e293b; font-family: inherit; }
+.bh button { color: var(--chu); font-family: inherit; }
 .bh b { color: inherit; }
 .bh .bh-nut { color: #fff; }
-.bh .bh-nut.bh-phu { color: #1e293b; }
+.bh .bh-nut.bh-phu { color: var(--chu); }
 .bh .bh-tab.bh-chon { color: #fff; }
 .bh .bh-chip.bh-chon { color: var(--bh-do); }
 .bh .bh-nut:disabled { color: #64748b; }
 .bh-than { flex: 1; min-height: 0; display: flex; gap: 0.75rem; }
 .bh-than.bh-hai-trang { display: block; }
 .bh-cot-mon { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; overflow: hidden; }
-.bh-cot-gio { width: 380px; display: flex; flex-direction: column; background: #fff; border: 1px solid var(--bh-vien); border-radius: 12px; overflow-y: auto; }
+.bh-cot-gio { width: 380px; display: flex; flex-direction: column; background: var(--giay); border: 1px solid var(--vien); border-bottom: 0; border-radius: 14px 14px 0 0; overflow-y: auto; padding-bottom: 14px;
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 6px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 6px repeat-x;
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 6px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 6px repeat-x; }
 .bh-hai-trang .bh-cot-mon, .bh-hai-trang .bh-cot-gio { width: 100%; height: 100%; }
 
 .bh-hang-tren { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-.bh-tab { border: 1.5px solid var(--bh-vien); background: #fff; border-radius: 999px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; min-height: 44px; }
-.bh-tab.bh-chon { background: var(--bh-do); border-color: var(--bh-do); color: #fff; }
+.bh-tab { display: inline-flex; align-items: center; gap: 0.45rem; border: 1px solid var(--vien); background: var(--giay); border-radius: 999px; padding: 0.5rem 1rem 0.5rem 0.5rem; font-weight: 500; cursor: pointer; min-height: 44px; }
+.bh-tab-ic { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #f3e3cf; color: var(--do-dam); font-style: normal; }
+.bh-tab.bh-chon { background: var(--bh-do); border-color: var(--bh-do); color: #fff; box-shadow: 0 3px 10px rgba(185,28,28,0.28); }
+.bh-tab.bh-chon .bh-tab-ic { background: rgba(255,253,248,0.92); }
 .bh-nut-nho { border: 1px solid var(--bh-vien); background: #fff; border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer; min-height: 40px; }
 
-.bh-luoi { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; align-content: start; padding-bottom: 0.5rem; }
+.bh-luoi { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem; align-content: start; padding-bottom: 0.5rem; }
 .bh-luoi.bh-khoa { opacity: 0.45; pointer-events: none; }
-.bh-mon { text-align: left; background: #fff; border: 1.5px solid var(--bh-vien); border-radius: 12px; padding: 0.7rem; cursor: pointer; min-height: 88px; display: flex; flex-direction: column; justify-content: space-between; gap: 0.3rem; }
+.bh-mon { text-align: left; background: var(--giay); border: 1px solid var(--vien); border-radius: 16px; padding: 0; overflow: hidden; cursor: pointer; min-height: 88px; display: flex; flex-direction: column; justify-content: flex-start; gap: 0; box-shadow: 0 1px 0 #f3e5d0, 0 6px 14px rgba(127,29,29,0.06); transition: transform .15s, box-shadow .15s; }
+.bh-mon:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(127,29,29,0.12); }
+.bh-hinh { position: relative; height: 120px; display: flex; align-items: center; justify-content: center; }
+.bh-nhan-ton { position: absolute; top: 8px; left: 8px; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,253,248,0.9); color: #92400e; border: 1px solid var(--dat-nhat); }
+.bh-chu-mon { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px 12px; min-width: 0; }
+.bh-mon-ma { font-size: 11px; color: var(--phu); letter-spacing: 0.06em; }
 .bh-mon-bao { position: relative; display: flex; }
-.bh-mon-bao > .bh-mon { flex: 1; padding-right: 2rem; }
-.bh-mon:disabled { opacity: 0.4; cursor: not-allowed; }
-.bh-mon-ten { font-weight: 700; }
-.bh-anh { aspect-ratio: 1; flex: none; border-radius: 10px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: #475569; }
+.bh-mon-bao > .bh-mon { flex: 1; }
+.bh-mon:disabled { filter: grayscale(0.85); opacity: 0.55; cursor: not-allowed; }
+.bh-mon-ten { font-weight: 600; font-size: 14.5px; }
+.bh-anh { aspect-ratio: 1; flex: none; border-radius: 10px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--phu); }
+.bh-anh svg { display: block; }
 .bh-anh img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bh-mon-ton { font-size: 0.75rem; color: var(--bh-xam); }
-.bh-gia { font-weight: 700; color: var(--bh-do); }
+.bh-gia { font-weight: 700; color: var(--bh-do); font-variant-numeric: tabular-nums; }
 .bh-gia-goc { text-decoration: line-through; color: var(--bh-xam); font-weight: 400; margin-right: 0.35rem; font-size: 0.85em; }
 
 .bh-khach { background: #fff; border: 1px solid var(--bh-vien); border-radius: 12px; padding: 0.5rem; position: relative; }
@@ -43,13 +54,14 @@
 
 .bh-gio-dau { padding: 0.7rem 0.9rem; font-weight: 700; border-bottom: 1px solid var(--bh-vien); display: flex; justify-content: space-between; align-items: center; }
 .bh-gio-ds { flex: 1 0 auto; min-height: 120px; }
-.bh-dong { display: flex; width: 100%; text-align: left; background: #fff; border: 0; border-bottom: 1px solid #f1f5f9; padding: 0.7rem 0.9rem; gap: 0.6rem; cursor: pointer; min-height: 56px; }
+.bh-dong { display: flex; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px dashed #e7d5bf; padding: 0.7rem 0.9rem; gap: 0.6rem; cursor: pointer; min-height: 56px; }
 .bh-dong-ten { flex: 1; min-width: 0; }
 .bh-dong-note { font-size: 0.8rem; color: var(--bh-xam); }
 .bh-dong-tien { text-align: right; white-space: nowrap; }
 .bh-trong { padding: 2rem 1rem; text-align: center; color: var(--bh-xam); }
 .bh-tien-dong { display: flex; justify-content: space-between; padding: 0.15rem 0.9rem; font-size: 0.9rem; }
-.bh-tien-dong.bh-tong { font-size: 1.25rem; font-weight: 800; padding: 0.5rem 0.9rem; }
+.bh-tien-dong.bh-tong { align-items: baseline; font-size: 1rem; font-weight: 600; padding: 0.7rem 0.9rem 0.5rem; margin-top: 0.4rem; border-top: 2px solid var(--chu); }
+.bh-tien-dong.bh-tong span:last-child { font-family: var(--font-chu-dep); font-weight: 700; font-size: 1.6rem; line-height: 1; color: var(--bh-do); font-variant-numeric: tabular-nums; }
 .bh-chan-gio { border-top: 1px solid var(--bh-vien); padding: 0.5rem 0 0.7rem; }
 
 .bh-nut { border: 0; border-radius: 10px; padding: 0.8rem 1rem; font-weight: 700; font-size: 1rem; cursor: pointer; min-height: 48px; background: var(--bh-do); color: #fff; }
@@ -59,11 +71,13 @@
 .bh-nut.bh-lon { width: calc(100% - 1.8rem); margin: 0.4rem 0.9rem 0; }
 
 .bh-thanh-gio { flex: none; }
+.bh-thanh-gio .bh-nut { border-radius: 16px; color: #fff3df; background: linear-gradient(180deg, #931c1b, #7f1d1d); box-shadow: 0 8px 18px rgba(127,29,29,0.35); }
+.bh .bh-thanh-gio .bh-nut { color: #fff3df; }
 .bh-loi { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; gap: 0.5rem; }
 .bh-ghi-chu-ngu { font-size: 0.8rem; color: var(--bh-xam); }
 
 .bh-to { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; padding: 0.5rem 0.9rem 0; }
-.bh-to button { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+.bh-to button { display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding-left: 0.5rem; padding-right: 0.5rem; }
 .bh-to small { font-weight: 400; opacity: 0.85; }
 .bh-bao { padding: 0.5rem 0.9rem; font-weight: 700; font-size: 1.1rem; }
 .bh-bao.bh-du { color: var(--bh-xanh); }

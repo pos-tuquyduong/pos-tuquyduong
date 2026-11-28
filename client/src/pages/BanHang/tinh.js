@@ -103,6 +103,15 @@ export const soDongMayChu = (gio) => gio.reduce((s, m) => s + 1 + (m.the ? 0 : m
 /** Món có giá bán dùng được? 0 / âm / thiếu / chữ → "Chưa có giá", không chạm được. */
 export const coGia = (sp) => typeof sp?.price === 'number' && sp.price > 0;
 
+/** GIAO-DIEN-4 D1: nhãn tồn góc thẻ món — chỉ ĐỌC hai trường món đã có (khong_quan_kho, stock_quantity), không tính gì thêm.
+ *  Không quản kho → "Pha ngay"; tồn 0 → "Hết"; còn n → "Còn n"; không có số tồn → rỗng (không bịa "Hết"). Khớp điều kiện `het` ở BanHangMoi (quản kho + tồn === 0). */
+export function nhanTon(sp) {
+  if (sp?.khong_quan_kho) return 'Pha ngay';
+  const n = sp?.stock_quantity;
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '';
+  return n === 0 ? 'Hết' : n > 0 ? `Còn ${n}` : '';
+}
+
 // ── Thêm vào giỏ / ghi chú ──────────────────────────────────────────────────
 /** Trả chuỗi lỗi (tiếng Việt) hoặc null nếu thêm được. soDangCo = số lượng món này đã trong giỏ. */
 export function kiemTraThem(sp, soDangCo, them = 1) {

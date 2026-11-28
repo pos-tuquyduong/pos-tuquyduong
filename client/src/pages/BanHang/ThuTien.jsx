@@ -10,6 +10,11 @@ import { conThieu, danhSachTo, duDuoc, lyDoKhongTru, nhanhNutThu, nutThuSang, tr
 const vnd = (n) => (Number(n) || 0).toLocaleString('vi-VN') + 'đ';
 const PHIM = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'];
 
+// GIAO-DIEN-4 D4: hai icon vẽ tay (nét lấy từ mẫu chủ quán duyệt) — không kéo thư viện icon vào file này; bài thử KET-NOI-1 dựng file này với React tối giản.
+const Ic = ({ children }) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>;
+const IconTien = () => <Ic><rect x="2.5" y="6" width="19" height="12" rx="2.5" /><circle cx="12" cy="12" r="2.6" /><path d="M6 9.5v5M18 9.5v5" /></Ic>;
+const IconQr = () => <Ic><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.5" /><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.5" /><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.5" /><path d="M14 14h2.5v2.5M20.5 14v6.5H14v-3" /></Ic>;
+
 export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDung, cachTra, onCachTra, cachConLai, onCachConLai, laNap, laThe, dungMe, onDungMe, dangGui, onThu }) {
   const [dua, setDua] = useState(0);
   const [moPhim, setMoPhim] = useState(false);
@@ -26,8 +31,8 @@ export default function ThuTien({ coSo, tong, phaiTra, khach, soDuDung, soDuMeDu
   return (
     <div className="bh-chan-gio">
       <div className="bh-to">
-        <button className={`bh-nut ${cachTra === 'tien_mat' ? '' : 'bh-phu'}`} onClick={() => chonCach('tien_mat')}>Tiền mặt</button>
-        <button className={`bh-nut ${cachTra === 'chuyen_khoan' ? '' : 'bh-phu'}`} onClick={() => chonCach('chuyen_khoan')}>Chuyển khoản</button>
+        <button className={`bh-nut ${cachTra === 'tien_mat' ? '' : 'bh-phu'}`} onClick={() => chonCach('tien_mat')}><IconTien />Tiền mặt</button>
+        <button className={`bh-nut ${cachTra === 'chuyen_khoan' ? '' : 'bh-phu'}`} onClick={() => chonCach('chuyen_khoan')}><IconQr />Chuyển khoản</button>
         <button className={`bh-nut ${trongTK ? '' : 'bh-phu'}`} disabled={!!lyDoMo} onClick={() => chonCach('tai_khoan')}>Trừ tài khoản</button>
       </div>
       {lyDoMo && <div className="bh-ghi-chu-ngu" style={{ padding: '0 0.9rem' }}>Trừ tài khoản: {lyDoMo}</div>}
