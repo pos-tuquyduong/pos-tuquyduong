@@ -395,7 +395,7 @@ async function main() {
   k('A2k mỗi dòng "Có … · tối đa …", nút − / + quanh ô số', /tối đa/.test(pcx) && /Có \{/.test(pcx) && /aria-label="Bớt"/.test(pcx) && /aria-label="Thêm"/.test(pcx));
   k('A3g dòng đỏ "Vượt — kho chỉ đủ" + chân "Thiếu: … (cần x, có y)" + nút "Xem phiếu & in" khoá khi thiếu / vượt',
     /Vượt — kho chỉ đủ/.test(pcx) && /Thiếu: /.test(pcx) && /cần \{/.test(pcx) && /Xem phiếu &amp; in|Xem phiếu & in/.test(pcx) && /disabled=\{[^}]*thieu\.length/.test(pcx));
-  k('A4l món nồi: nhập theo NỒI, gửi so_phan = nồi × me_ra; dòng "1 nồi = 1 … → ra n …"', /m\.me_ra \? n \* m\.me_ra : n/.test(pcx) && /1 nồi = 1 /.test(pcx) && /→ ra \{m\.me_ra\}/.test(pcx));
+  k('A4l món nồi: nhập theo NỒI, gửi so_phan = nồi × me_ra; dòng "1 nồi = … → ra n …"', /m\.me_ra \? n \* m\.me_ra : n/.test(pcx) && /1 nồi = /.test(pcx) && /→ ra \{m\.me_ra\}/.test(pcx));
   k('D4 dòng nhắc món pha tại chỗ không cần pha trước', /pha tại chỗ/.test(pcx) && /chỉ cần Nhận hàng/.test(pcx));
   const xp = doc(path.join(kd, 'XemPhieu.jsx'));
   k('A5b phiếu in: dòng nồi (so_noi, 1 nồi = …) + chỗ ký Người pha / Quản lý', /so_noi/.test(xp) && /1 nồi = /.test(xp) && /Người pha/.test(xp) && /Quản lý/.test(xp));
