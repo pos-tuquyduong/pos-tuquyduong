@@ -631,3 +631,6 @@ BÀI HỌC:
 
 ## Kiểm sau vòng sửa 7 (phiên chính, 28.11)
 - `node cong_cu/thu_KHOGON1.js` 139 đạt · 0 hỏng · đột biến 75/75 BẮT (bang_chung_do.txt).
+- `npm test -- --day-du`: PASS 132 · FAIL 0 · CẢNH BÁO 1 (chạy một mình).
+- `node tu_chay/cong.js chay . 5cbfc26^ HEAD viec/KHO-GON-1` trên HEAD d9262f02: ✓ CỔNG CHẠY ĐẠT
+- Còn Q14 (lỗi NẶNG tồn: khoá theo phiếu thay vì theo món) → DỪNG hỏi; báo cáo 7 mục + 3 thao tác thử tay ghi khi việc xong.
