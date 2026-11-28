@@ -20,7 +20,7 @@ Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11
 
 Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
 SỐ CA cong_cu/thu_KHO2a.js: 86
-SỐ CA cong_cu/thu_KHOGON1.js: 134
+SỐ CA cong_cu/thu_KHOGON1.js: 139
 
 Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
 đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
@@ -117,3 +117,13 @@ TRƯỚC vòng 6 (cây 523a701b = code c3a60aca + bài mới):
   ĐÍNH CHÍNH (soát lần cuối sau vòng 6): câu "vế daKiemKe thừa — Q12 bao trùm Q9" ở trên là SAI. Đúng cho kiểm kê / bàn giao (có kho_chot), sai cho
   chỉnh tay mà phần thiếu trừ hết vào phiếu chờ (không phiếu KK, không kho_chot) — người soát chạy thật: HEAD 200 ly ảo, trước vòng 6 409. Đột biến
   VS-q9-hien-cho-dien SỐNG là dấu hiệu THIẾU CA, không phải bằng chứng vế thừa (K3). Chờ chủ quán (Q13) để trả lại vế + ca + đột biến.
+
+Vòng sửa 7 (chủ quán 28.11: Q13 (a) + (b) + 3 lỗi nhẹ): bài đổi ở e8167ad3 (Q12e, Q12f, Q13a, Q13b, Q13c). Chạy trên code TRƯỚC vòng 7 (cây e8167ad3 =
+code 017faf0d + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 137 đạt · 2 hỏng
+   ✗ Q13a pha 5 chờ → chỉnh tay 4 (chỉ trừ vào phiếu chờ, không phiếu KK) → duyệt → ghi kết quả 5 → 409 KQ_DA_KIEM_KE, tồn giữ 4  — HTTP 200 · HTTP 200 · NC 5
+   ✗ Q13b chỉnh tay gõ đúng số máy (khong_doi) → ghi kết quả pha chế → 409, tồn giữ  — {"success":true,"phieu_id":null,"khong_doi":true} · HTTP 200 · NC 7 / 8
+  Xanh trên code trước vòng 7 (ca phủ thêm, mỗi ca có đột biến riêng): Q13c (bị che vì kết quả điền được — BV-bo-khoa-q9) · Q12e (VS-q12-ds-bo) ·
+  Q12f (K5 món khác — VS-q12-kk-moi-mon, VS-q12-anh-moi-mon).
+  Trên code đã sửa (afd701c0): 139 đạt · 0 hỏng.
+  Bước 033 sửa thẳng CHECK kho_chot.che_do (thêm 'chinhtay'): bước chưa chạy trên production (nhánh chưa merge) — không cần bước nâng cấp mới.
