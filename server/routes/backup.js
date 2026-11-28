@@ -163,7 +163,8 @@ const BACKUP_TABLES = [
 // ANH-MON-1 (chủ quán 27.11): bảng CỐ Ý không xuất Excel — ảnh món là base64 ~160.000 ký tự / ảnh, một ô Excel chứa tối đa 32.767 ký tự (xuất sẽ cắt cụt).
 // Phép chốt "đủ bảng" (cong_cu/thu_SAOLUU2.js D2c) miễn ĐÚNG các bảng ở đây; thêm bảng vào danh sách này phải có lý do ghi cạnh và hỏi chủ quán.
 // Ảnh chỉ nằm trong CSDL (Turso) — sao lưu ảnh riêng là việc khác (Phát hiện ANH-MON-1).
-const BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon'];
+// kho_anh_phieu (KHO-GON-2, chủ quán duyệt 28.11 Q3): ảnh hoá đơn phiếu nhận ≤ 400 KB base64 — vượt ô Excel 32.767 ký tự, cùng lý do pos_anh_mon.
+const BANG_KHONG_XUAT_EXCEL = ['pos_anh_mon', 'kho_anh_phieu'];
 const TRANG_ND = 'Nội dung App (JSON)';
 const BANG_KHOI_PHUC = BACKUP_TABLES.filter((t) => !t.nd);   // một chỗ lọc cho xem trước + khôi phục: trang mang nhãn bảng nd_* cũng không vào nd_*
 

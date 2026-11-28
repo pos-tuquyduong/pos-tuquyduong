@@ -1,8 +1,9 @@
 /**
  * KHO-2b — đặt hàng (DH) và nhận hàng (PN theo đơn / mua lẻ). Hàm tạo chạy trong giao dịch, trả { id } hoặc { loi: [http, thân] }.
  * DH: dòng 'dat' (+lượng, đơn giá = giá nhập lúc đặt) — KHÔNG vào tồn (duLieu.DA_DUYET). Chủ quán tự duyệt; quản lý tự duyệt khi tổng ≤ hạn mức.
- * PN: dòng 'nhap' (+lượng, giá thật, hạn) — luôn chờ người KHÁC duyệt; duyệt → mỗi dòng một lô (ghiKhoNhan). Giá nhập của nguyên liệu KHÔNG đổi
- * (chủ quán chốt 31.10). `ep` = chủ quán sửa phiếu: tự duyệt, bỏ kiểm đơn (phiếu mới giữ đơn của phiếu cũ).
+ * PN: dòng 'nhap' (+lượng, giá thật, hạn) — KHO-GON-2 E1 (chủ quán chốt 27.11): AI nhận cũng cộng kho NGAY (tự duyệt, mỗi dòng một lô — ghiKhoNhan,
+ * cùng giao dịch); phiếu nhận CŨ còn chờ duyệt (trước nâng cấp) vẫn duyệt như cũ (duLieu.duyetPhieu → ghiKhoNhan). Giá nhập của nguyên liệu KHÔNG đổi
+ * (chủ quán chốt 31.10). `ep` = chủ quán sửa phiếu: bỏ kiểm đơn (phiếu mới giữ đơn của phiếu cũ).
  */
 const { addDaysToDateString } = require('../utils/helpers');
 const tinh = require('./tinh');
@@ -54,12 +55,12 @@ async function taoPhieuNhan(tx, { donId, dong, nccId, ghiChu, nguoi, maGui, luc,
   }
   const ids = [...new Set(ds.map((d) => d.nguyen_lieu_id))];
   const han = duLieu.theoId(await tx.query(`SELECT id, han_ngay FROM kho_nguyen_lieu WHERE id IN (${duLieu.dauHoi(ids)})`, ids));
-  const id = await duLieu.themPhieu(tx, { loai: 'PN', tuDuyet: ep, nguoi, luc, nccId, ghiChu, donId, thayCho, lyDo, maGui });
+  const id = await duLieu.themPhieu(tx, { loai: 'PN', tuDuyet: true, nguoi, luc, nccId, ghiChu, donId, thayCho, lyDo, maGui });   // E1: người nhận chịu trách nhiệm
   for (const d of ds) {
     await tx.run("INSERT INTO kho_phieu_dong (phieu_id, nguyen_lieu_id, so_luong, don_gia, han_dung, loai, nguoi, luc) VALUES (?, ?, ?, ?, ?, 'nhap', ?, ?)",
       [id, d.nguyen_lieu_id, d.luong, d.don_gia, d.han ?? duLieu.hanLo(luc, han.get(d.nguyen_lieu_id)?.han_ngay), nguoi, luc]);
   }
-  if (ep) await ghiKhoNhan(tx, id, luc);
+  await ghiKhoNhan(tx, id, luc);
   return { id };
 }
 

@@ -30,12 +30,15 @@ function doiDonVi(so, heSo, veLuu = false) {
  * dòng = { nguyen_lieu_id, luong } hoặc { thanh_phan_id, luong } (lượng cho 1 đơn vị). Trả [{ nguyen_lieu_id, luong }].
  * Gặp vòng (kể cả A→A) → ném lỗi code CONG_THUC_VONG_LAP, `chuoi` = các id từ gốc tới chỗ lặp. Hình kim cương không phải vòng.
  */
-function trienKhai(congThuc, soPhan) {
+function trienKhai(congThuc, soPhan, dungLo = null) {
   const tong = new Map();
   const di = (spId, he, duong) => {
     for (const d of congThuc.bang[spId] || []) {
       if (d.nguyen_lieu_id != null) {
         tong.set(d.nguyen_lieu_id, (tong.get(d.nguyen_lieu_id) || 0) + he * d.luong);
+      } else if (dungLo && dungLo.has(d.thanh_phan_id)) {   // KHO-GON-2 Q2: thành phần làm sẵn (gói) → trừ LÔ của nó, không triển khai
+        const khoa = 'sp:' + d.thanh_phan_id;
+        tong.set(khoa, (tong.get(khoa) || 0) + he * d.luong);
       } else if (duong.includes(d.thanh_phan_id)) {
         const loi = new Error('Công thức vòng lặp');
         loi.code = 'CONG_THUC_VONG_LAP';
@@ -47,8 +50,21 @@ function trienKhai(congThuc, soPhan) {
     }
   };
   di(congThuc.goc, soPhan, [congThuc.goc]);
-  return [...tong].map(([nguyen_lieu_id, luong]) => ({ nguyen_lieu_id, luong }));
+  return [...tong].map(([k, luong]) => (typeof k === 'string' ? { san_pham_id: Number(k.slice(3)), luong } : { nguyen_lieu_id: k, luong }));
 }
+
+/** KHO-GON-2: khoá chung của một thứ trong kho — 'nl:<id>' (nguyên liệu) hoặc 'sp:<id>' (thành phẩm / gói). */
+const khoaThu = (d) => (d.nguyen_lieu_id != null ? 'nl:' + d.nguyen_lieu_id : 'sp:' + d.san_pham_id);
+
+/** KHO-GON-2 A2: làm được tối đa bao nhiêu đơn với tồn hiện có. motPhan = [{ khoa, luong }] cho 1 đơn vị, ton = Map khoa → số.
+ *  Công thức rỗng → null (không giới hạn); thiếu / âm → 0. SAI_SO: 0.3 / 0.1 = 2.999… vẫn là 3. */
+function toiDa(motPhan, ton) {
+  if (!motPhan.length) return null;
+  return Math.max(0, Math.min(...motPhan.map((d) => Math.floor(Math.max(0, Number(ton.get(d.khoa) ?? 0)) / d.luong + SAI_SO))));
+}
+
+/** KHO-GON-2 Q1: thứ cần vượt tồn. can = [{ khoa, luong }] (đã gộp), ton = Map khoa → số. Trả [{ khoa, can, co }]. */
+const thieuKho = (can, ton) => can.filter((d) => d.luong > Number(ton.get(d.khoa) ?? 0) + SAI_SO).map((d) => ({ khoa: d.khoa, can: d.luong, co: Number(ton.get(d.khoa) ?? 0) }));
 
 // ── KHO-2a: pha chế · phiếu xuất · kết quả · tồn ──
 const SAP_HET_HAN_NGAY = 1;   // còn ≤ 1 ngày → đỏ "sắp hết hạn" (chủ quán chốt 29.10)
@@ -74,10 +90,10 @@ const canLam = (dinhMuc, dangCo) => Math.max(0, dinhMuc - dangCo);
 /** Số ngày hạn dùng: chữ số thập phân nguyên, 1 … HAN_NGAY_TOI_DA, còn lại null (true, '0x10', 1.5, 0 đều null). MỘT vị từ cho PUT /san-pham, nhập SX, hanLo. */
 const soNgayNguyen = (x) => (/^\d+$/.test(String(x ?? '').trim()) && Number(x) >= 1 && Number(x) <= HAN_NGAY_TOI_DA ? Number(x) : null);
 
-/** mon = [{ san_pham_id, so_phan }] → { theo_mon: [{ san_pham_id, so_phan, nguyen_lieu }], thieu_cong_thuc: [id] }. MỘT hàm cho tạo và sửa phiếu. */
-function lapPhieuXuat(mon, bang) {
+/** mon = [{ san_pham_id, so_phan }] → { theo_mon: [{ san_pham_id, so_phan, nguyen_lieu (dòng nguyên liệu | dòng { san_pham_id } khi dungLo) }], thieu_cong_thuc: [id] }. MỘT hàm cho tạo và sửa phiếu. */
+function lapPhieuXuat(mon, bang, dungLo = null) {   // dungLo: chỉ phiếu xuất pha chế truyền (Q2) — đặt hàng / phát sinh giữ cách cũ
   const thieu_cong_thuc = mon.filter((m) => !(bang[m.san_pham_id] || []).length).map((m) => m.san_pham_id);
-  const theo_mon = thieu_cong_thuc.length ? [] : mon.map((m) => ({ ...m, nguyen_lieu: trienKhai({ goc: m.san_pham_id, bang }, m.so_phan) }));
+  const theo_mon = thieu_cong_thuc.length ? [] : mon.map((m) => ({ ...m, nguyen_lieu: trienKhai({ goc: m.san_pham_id, bang }, m.so_phan, dungLo) }));
   return { theo_mon, thieu_cong_thuc };
 }
 
@@ -124,20 +140,22 @@ function trangThaiHan(han, bayGio, mocSapHet) {
  * Dòng phiếu (đọc từ sổ — in lại sau khi sửa công thức vẫn đúng số) → bảng tổng + bảng theo món. nl: Map id → nguyên liệu; ten: Map spId → tên.
  * Lượng trả dương, theo đơn vị lưu; luong_hien theo đơn vị hiện.
  */
-function bangPhieu(dong, nl, ten) {
-  const hien = (id, luong) => {
+function bangPhieu(dong, nl, ten, donViSp = new Map()) {   // KHO-GON-2: dòng xuất có thể là gói (san_pham_id) — donViSp: Map spId → đơn vị bán
+  const hien = (khoa, luong) => {
+    const id = Number(khoa.slice(3));
+    if (khoa.startsWith('sp:')) return { san_pham_id: id, ten: ten.get(id), don_vi: donViSp.get(id) || 'phần', luong, luong_hien: luong };
     const n = nl.get(id) || {};
     return { nguyen_lieu_id: id, ten: n.ten, don_vi: n.don_vi_hien || n.don_vi_luu, luong, luong_hien: doiDonVi(luong, n.he_so_doi || 1) };
   };
   const gop = (ds) => {
     const m = new Map();
     for (const d of ds) {
-      const id = Number(d.nguyen_lieu_id);
-      const g = m.get(id) || { luong: 0, don_gia: d.don_gia };
+      const khoa = khoaThu({ nguyen_lieu_id: d.nguyen_lieu_id == null ? null : Number(d.nguyen_lieu_id), san_pham_id: Number(d.san_pham_id) });
+      const g = m.get(khoa) || { luong: 0, don_gia: d.don_gia };
       g.luong += -d.so_luong;
-      m.set(id, g);
+      m.set(khoa, g);
     }
-    return [...m].map(([id, g]) => ({ ...hien(id, g.luong), don_gia: g.don_gia }));
+    return [...m].map(([khoa, g]) => ({ ...hien(khoa, g.luong), don_gia: g.don_gia }));
   };
   const xuat = dong.filter((d) => d.loai === 'xuat');
   return {
@@ -220,4 +238,4 @@ function laTrungKhoa(loi) {
 module.exports = { KIEU_SAN_PHAM, SAP_HET_HAN_NGAY, HAN_NGAY_TOI_DA, gonTen, chuanHoaTen, chuanTenHienThi, doiDonVi, trienKhai, laTrungKhoa, thuCuaNgay, chonDinhMuc,
   canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong, trangThaiKetQua, trangThaiHan, bangPhieu, boGia,
   HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SU_CO, HAY_MUA_SO, HAY_MUA_NGAY, SAI_SO, hanMuc, tongTien, trongHanMuc, gopLuong, conLaiDon, chuanHan,
-  GIAO_VIEC, CA, LY_DO_KIEM_KE, chuanGio, quaGio, viecHienCho };
+  GIAO_VIEC, CA, LY_DO_KIEM_KE, chuanGio, quaGio, viecHienCho, khoaThu, toiDa, thieuKho };
