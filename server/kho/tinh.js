@@ -197,6 +197,21 @@ function chuanHan(x) {
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s) ? s : undefined;
 }
 
+// ── KHO-GON-1: việc hôm nay ──
+const GIAO_VIEC = ['nv', 'sang', 'toi', 'ql', 'tat_ca'];
+const CA = ['sang', 'toi'];
+const LY_DO_KIEM_KE = 'kiểm kê: đếm thiếu';   // Q8: lý do kiểm kê ghi lên phiếu pha chế chờ khi trừ phần thiếu vào nó (chỉ để người đọc phiếu biết; khoá kết quả pha chế theo món — duLieu.monDaChot, Q14)
+/** Giờ hạn "HH:mm" (00:00–23:59) — trống → null; sai dạng → undefined (đường trả 400). */
+const chuanGio = (x) => { const s = String(x ?? '').trim(); return !s ? null : /^([01]\d|2[0-3]):[0-5]\d$/.test(s) ? s : undefined; };
+/** Quá giờ: chưa xong, có hạn, phút hiện tại (giờ VN máy chủ) ĐÃ QUA phút hạn — đúng 20:00 chưa quá, 20:01 mới quá. */
+const quaGio = (viec, bayGio) => !viec.xong_luc && !!viec.gio_han && String(bayGio).slice(11, 16) > viec.gio_han;
+/** MỘT vị từ "việc này của ai" cho danh sách và nút Xong. Chủ / quản lý thấy hết; nhân viên không thấy việc ql; hai ca → nv · tat_ca · đúng ca. */
+function viecHienCho(viec, { vaiTro, soCa, ca }) {
+  if (vaiTro === 'owner' || vaiTro === 'manager') return true;
+  if (viec.giao === 'ql') return false;
+  return soCa !== 2 || viec.giao === 'nv' || viec.giao === 'tat_ca' || viec.giao === ca;
+}
+
 /** Lỗi do đụng khoá duy nhất / khoá chính (tên trùng, bước nâng cấp đã chạy). */
 function laTrungKhoa(loi) {
   return /SQLITE_CONSTRAINT_(UNIQUE|PRIMARYKEY)/.test(String(loi && loi.code)) || /UNIQUE constraint|PRIMARY KEY/i.test(String(loi && loi.message));
@@ -204,4 +219,5 @@ function laTrungKhoa(loi) {
 
 module.exports = { KIEU_SAN_PHAM, SAP_HET_HAN_NGAY, HAN_NGAY_TOI_DA, gonTen, chuanHoaTen, chuanTenHienThi, doiDonVi, trienKhai, laTrungKhoa, thuCuaNgay, chonDinhMuc,
   canLam, soNgayNguyen, lapPhieuXuat, chiaTheoLo, soPhieuKe, lechQuaNguong, trangThaiKetQua, trangThaiHan, bangPhieu, boGia,
-  HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SU_CO, HAY_MUA_SO, HAY_MUA_NGAY, SAI_SO, hanMuc, tongTien, trongHanMuc, gopLuong, conLaiDon, chuanHan };
+  HAN_MUC_DAT_HANG_MAC_DINH, HAN_MUC_NOI_BO_MAC_DINH, SU_CO, HAY_MUA_SO, HAY_MUA_NGAY, SAI_SO, hanMuc, tongTien, trongHanMuc, gopLuong, conLaiDon, chuanHan,
+  GIAO_VIEC, CA, LY_DO_KIEM_KE, chuanGio, quaGio, viecHienCho };

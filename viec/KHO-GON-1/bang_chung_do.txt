@@ -1,0 +1,156 @@
+KHO-GON-1 — bằng chứng ĐỎ trên code gốc (26.11.2026)
+
+Gốc = 5cbfc26 (PHIEU: KHO-GON-1; code y main acc88921). Lệnh như cổng A11 — cả cây gốc (git archive) + bản HIỆN TẠI của từng bài:
+  python3 viec/KHO-GON-1/dot_bien.py --cay-goc 5cbfc26
+
+== cong_cu/thu_KHOGON1.js (bài mới) — trên gốc: thoát 1 · 9 đạt · 86 hỏng (lần chạy đầu, bản 95 ca, commit c49c02ba)
+   ✗ A1 mẫu mặc định: 1 Nhận bàn giao (bangiao, 08:00) · 2 Pha sẵn (phache) · 3 Kiểm kê & chốt (kiemke, cuối)  — HTTP 403 · DUONG_LA
+   ✗ A1c giờ hạn "25:00" → 400 GIO_SAI  — HTTP 403 · DUONG_LA
+   ✗ A1d giao cho lạ → 400 GIAO_SAI
+   ✗ A1e thêm mẫu thường 200 (id số)
+   ✗ A1f xoá việc đặc biệt (bangiao) → 409 VIEC_KHONG_XOA  — HTTP 403 · DUONG_LA
+   ✗ A1g xoá việc thường → 200, mất khỏi danh sách
+   … (+82 dòng ✗: mọi đường mới chưa có → 403 DUONG_LA; E2a/E2b/B5f/E2c/S1/K1 tĩnh đỏ)
+   Xanh trên gốc (đúng ý — ca "phải 403" / hồi quy): Nền · A1b · A2a · B4b · D1d · D1e · B5b · B6b · B2c — có đột biến gỡ chặn tương ứng
+   (BV-bo-kiem-quyen-chinh-tay, VS-ql-chinh-tay-khi-tat, VS-mo-lai-quan-ly) bắt.
+   Bản hiện tại (thêm C5g sau lượt đột biến đầu) chạy lại trên gốc: thoát 1 (✗ A1 …, như trên).
+
+== cong_cu/thu_KHO2a.js (bài cũ SỬA — LUAT §6.8: hành vi đổi theo phiếu chủ quán duyệt, E2 tab đầu "Việc hôm nay") — trên gốc: thoát 1 · 85 đạt · 1 hỏng
+   ✗ K2 màn Kho: PhaChe · TonKho · DsPhieu · XemPhieu · DinhMuc có; tab đầu Việc hôm nay, thứ hai Pha chế
+
+Số ca trên code ĐÃ VÁ (python3 viec/KHO-GON-1/dot_bien.py --so-ca 5cbfc26 — mọi bài thoát 0):
+SỐ CA cong_cu/thu_KHO2a.js: 86
+SỐ CA cong_cu/thu_KHOGON1.js: 142
+
+Đột biến (python3 viec/KHO-GON-1/dot_bien.py): lượt 1 — ĐỐI CHỨNG XANH · 95 đạt — TỔNG 31 · BẮT 30 · SỐNG 1 (BV-bo-chan-ton-moi-am: thành phẩm
+đã có chặn ở chia lô, thiếu ca nguyên liệu) → thêm ca C5g, đột biến bám C5g: BẮT (đối chứng 96 đạt).
+
+Vòng sửa 1 (sau soát vòng 1): thêm ca B3d · C-ma_gui (dạng đủ) · C3f · C3g · C4d · C5h · C5i. Bài mới chạy trên code TRƯỚC vòng sửa:
+  python3 viec/KHO-GON-1/dot_bien.py --cay-goc 8d030468 --bai cong_cu/thu_KHOGON1.js → thoát 1 · 98 đạt · 4 hỏng
+   ✗ B3d nhân viên (không thấy việc giao ql) vẫn thấy Đường "đã giao" — không hiện lại nút  — da_giao false
+   ✗ C-ma_gui bấm lại cùng mã → trả lần đã ghi CÙNG dạng (có ảnh, lệch), không thêm phiếu  — anh undefined
+   ✗ C3f bàn giao trả cả số máy (sáng THẤY số): Nước cam máy = sau bán sau chốt  — không có may
+   ✗ C5i huỷ phiếu CÙNG GIÂY với lúc mở màn → vẫn 409 KHO_TON_DOI (so giờ >=, thà tải lại thừa)  — HTTP 200 · HTTP 200
+  Trên gốc 5cbfc26 bài vẫn đỏ (đường mới chưa có). Trên code đã sửa: 102 đạt · 0 hỏng (SỐ CA ở trên).
+  Đột biến: ĐỐI CHỨNG XANH · 102 đạt — TỔNG 36 · BẮT 36 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+Vòng sửa 2 (chủ quán trả lời Q4–Q7, 26.11): bài đổi ở commit 5c493380 (Q4a–c, Q5a, C4a mới — kiểm kê tối lệch không ghi chú vẫn lưu, C5c bỏ
+ghi chú, C5h theo Q4, C-ma_gui so dạng phản hồi). Chạy trên code TRƯỚC vòng sửa 2 (cây 5c493380 = code 9ba1e15f + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 98 đạt · 8 hỏng
+   ✗ Q5a phản hồi lưu kiểm kê của NHÂN VIÊN chỉ "đã chốt" — không số máy, không dòng lệch / số lệch, không mã phiếu  — có phieu_id, lech, anh
+   ✗ C-ma_gui bấm lại cùng mã → trả lần đã ghi CÙNG dạng (nhân viên: vẫn chỉ "đã chốt"), không thêm phiếu
+   ✗ C5c đếm thiếu 2 + bán 1 xen giữa → tồn = thực tế (−3 so với lúc mở)  — HTTP 400 · KHO_THIEU_GHI_CHU
+   ✗ C4a kiểm kê TỐI dòng lệch KHÔNG ghi chú → vẫn lưu (Q5 — không dò được số máy); chủ / quản lý thấy dòng cam "chưa giải thích"
+   ✗ C5h quản lý duyệt phiếu chờ xen giữa lúc đếm → 200, KHÔNG lệch giả (không phiếu KK), tồn sau duyệt = số đếm  — HTTP 409 · KHO_TON_DOI
+   ✗ Q4a pha 10 ly CHỜ duyệt → kiểm kê đếm (gồm 10 ly đó) → không phiếu KK → duyệt → tồn = số đếm (không cộng đôi thành +20)  — HTTP 400
+   ✗ Q4b phiếu chờ đã tính vào lần chốt rồi bị TỪ CHỐI → dòng cam ở Diễn biến để kiểm lại
+   ✗ Q4c (K5) từ chối phiếu chờ tạo SAU lần chốt cuối → KHÔNG thêm dòng cam  — (đỏ vì đếm dòng cam phụ thuộc Q4b; đột biến VS-canh-bao-moi-tu-choi bắt riêng)
+  Trên code đã sửa (2167e453): 106 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG XANH · 106 đạt — TỔNG 39 · BẮT 39 · SỐNG 0 · HỎNG 0 · LẠC 0.
+  Bỏ 2 đột biến: BV-bo-kiem-duyet-xen-giua (vế "duyệt phiếu cũ" đã bỏ theo Q4 — duyệt phiếu chờ không còn đổi tồn để kiểm), VS-ma-gui-tra-thieu-anh
+  (nhân viên không nhận ảnh nữa; màn in từ số đã gõ). Thêm 5: VS-kiemke-bat-ghi-chu · VS-kiemke-bao-dong-lech · VS-cho-duyet-khong-tinh ·
+  BV-bo-canh-bao-tu-choi · VS-canh-bao-moi-tu-choi.
+
+Sau soát bảo mật (commit a152c401 thêm ca Q5b, chạy trên code 2167e453 chưa vá): thoát 1 · 106 đạt · 1 hỏng
+   ✗ Q5b nhân viên gửi lại mã của lần kiểm kê với chế độ bàn giao / người khác gửi mã đó → 409 MA_GUI_TRUNG, không lộ ảnh chốt  — {"success":true,"chot_id":2,"phieu_id":6,"lech":[…]}
+  Sau vá (afc6b9fe): 107 đạt · 0 hỏng. Đột biến BV-bo-chan-ma-gui-khac-che-do · VS-ma-gui-chi-so-che-do: BẮT 2/2 (đối chứng 107 đạt).
+
+Vòng sửa 3 (sau soát vòng 2): bài đổi ở 909c1a65 + 25b40e2d (C3g mới, C3h, Q4d, Q4e, Q4f, C3i, C2f). Chạy trên code TRƯỚC vòng 3:
+  python3 viec/KHO-GON-1/dot_bien.py --cay-goc afc6b9fe --bai cong_cu/thu_KHOGON1.js → thoát 1
+   ✗ C2f xem phiếu KK: dòng trừ / cộng có dấu (Cam tang false, Nước cam tang true)  — [["Nước cam",null],["Cam",null]]
+   ✗ C3g bàn giao để trống hết khi máy ≠ chốt (bán sau chốt) → 400 KHO_THIEU_SO (phải gõ số thật), không kéo tồn về số chốt  — HTTP 400 · KHO_THIEU_GHI_CHU
+   ✗ C3h bàn giao để trống + có ghi chú khi máy ≠ chốt → 400 KHO_THIEU_SO, KHÔNG tạo hàng ảo (tồn giữ số máy)  — HTTP 200 · NC 14
+   ✗ C4b / C3d / C3e (kéo theo: phiếu KK hàng ảo của C3h làm mốc cũ → 409 KHO_DA_KIEM)
+   ✗ Q4e phiếu chờ đã tính vào lần chốt rồi bị chủ quán SỬA → dòng cam  — (lần chạy trên 6ca4d689^ code: HTTP 200 · 2)
+   ✗ Q4f (đếm dòng cam kéo theo Q4e)
+  Xanh trên code trước vòng 3 (ca phủ thêm, có đột biến riêng): Q4d (BV-bo-canh-bao-huy), C3i (BV-bo-dong-tp-het-lo-chot-con).
+  Trên code đã sửa (6ca4d689): 113 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG XANH · 113 đạt — TỔNG 48 · BẮT 48 (lượt đủ: 47 BẮT + 1 HỎNG do neo
+  VS-kiemke-thieu-so-lot cũ — sửa neo, chạy lại riêng: BẮT).
+
+Vòng sửa 4 (chủ quán 27.11: Q8 = (a) + B6 pha tại chỗ hết nguyên liệu): bài đổi ở 612a0a41 (Q8a, Q8b, Q8c, B6c; B6a đổi thành "có MỌI món của
+/mon-chua-san"). Chạy trên code TRƯỚC vòng 4 (cây 612a0a41 = code fa1392f4 + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 113 đạt · 4 hỏng
+   ✗ Q8a hết lô, 10 ly chờ duyệt, đếm 9 → 200; phiếu chờ còn 9 phần, lý do "kiểm kê: đếm thiếu 1", nguyên liệu phiếu vẫn trừ đủ 10 ly; dòng cam  — HTTP 409 · KHO_TON_DOI
+   ✗ Q8b quản lý duyệt phiếu đã giảm → lô 9 ly khớp số đếm, Cam = số đếm (không trừ đôi)  — HTTP 200 · NC 10
+   ✗ Q8c chủ quán CHỈNH TAY món đang có phiếu chờ (5 → thật 4) → 200, phiếu chờ còn 4 phần (không bị chặn)  — HTTP 409 · KHO_TON_DOI
+   ✗ B6c Cần chú ý báo món PHA TẠI CHỖ hết nguyên liệu: "Cà phê đen — Pha tại chỗ: hết Cà phê"; Cam ép (Cam còn) KHÔNG báo
+  Trên code đã sửa (3002c03d): 117 đạt · 0 hỏng. Đột biến: ĐỐI CHỨNG XANH · 117 đạt — TỔNG 53 · BẮT 53 (lượt đủ: 52 BẮT + 1 SỐNG
+  VS-q8-giam-ca-xuat — bản đột biến viết sai, không đổi hành vi (dòng xuất lượng âm bị `so_luong > 0` loại); viết lại "giảm nguyên liệu theo tỉ lệ",
+  chạy riêng: BẮT ✗ Q8a).
+
+Vòng sửa 5 (chủ quán 27.11: Q9 · Q10 · Q11 theo đề xuất + lỗi nhẹ lần soát cuối): bài đổi ở 4cef81f5 + 35517517 (Q4e2, Q8a2, Q9a, Q9b, Q11a, Q11a2,
+Q11b, Q8d, Q8e, Q10a, B6d; nền nhập thêm Cam). Chạy trên code TRƯỚC vòng 5 (cây 35517517 = code 33a9305d + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 121 đạt · 7 hỏng
+   ✗ Q4e2 sửa phiếu ghi diễn biến "Sửa phiếu" (tô cam) — số phiếu cũ → mới
+   ✗ Q8a2 phần thiếu trừ HẾT vào phiếu chờ → không tạo phiếu kiểm kê rỗng  — 3 → 4
+   ✗ Q9a phiếu đã bị kiểm kê giảm → ghi kết quả pha chế (10 ly) → 409 KQ_DA_KIEM_KE, lô giữ 9 (không ly ảo)  — HTTP 200 · NC 10
+   ✗ Q11a /ton cho người chỉnh tay trả số máy chủ DÙNG khi có phiếu chờ: Nước cam 5 (0 lô + 5 chờ duyệt)
+   ✗ Q11b gõ đúng số máy chủ dùng (5) → 200 khong_doi, không phiếu, không đổi phiếu chờ  — {"success":true,"phieu_id":27,"status":200}
+   ✗ Q8c (kéo theo Q11b: phiếu KK rỗng làm mốc cũ → 409 KHO_DA_KIEM)
+   ✗ Q10a phiếu hết hạn chờ duyệt giữ lô X + chỉnh tay đếm thiếu 1 → duyệt phiếu hết hạn sau đó 200 …  — cho_duyet · HTTP 200 · HTTP 409 · KHONG_DU_TON
+  Xanh trên code trước vòng 5 (ca phủ thêm, mỗi ca có đột biến riêng): Q9b (trên gốc bị che vì Q9a điền được kết quả) · Q11a2 · Q8d · Q8e · B6d.
+  Trên code đã sửa (1d9e9cda): 128 đạt · 0 hỏng.
+  Đột biến KHÔNG dựng được (vế phòng thủ, tương đương — không có đầu vào nào làm hành vi khác; ghi CHƯA KIỂM): giamPhieuCho `p.trang_thai = 'cho_duyet'`
+  (phần thiếu vượt lô ≤ phần phiếu chờ, vì gốc = lô + chờ) · UPDATE ly_do `AND trang_thai = 'cho_duyet'` (chỉ chọn phiếu chờ) · `d.loai = 'thanh_pham'`
+  (dòng xuất lượng âm đã bị `so_luong > 0` loại) · ghiKK `&& m.san_pham_id` (cần tồn nguyên liệu để kiểm LỚN hơn tổng lô còn thật —
+  chưa tìm ra đường tạo dữ liệu đó, không dựng được ca) · monCanChuY `p.is_active = 1` (tonMenu chỉ có món đang bán → món ngừng bán đã bị bỏ qua).
+  Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên 1d9e9cda): ĐỐI CHỨNG XANH · 128 đạt — TỔNG 65 · BẮT 65 · SỐNG 0 · HỎNG 0 · LẠC 0.
+  ĐÍNH CHÍNH (soát lần cuối sau vòng 5 bắt — K1/K3): 2 trong 5 "vế phòng thủ không dựng được" ở trên là SAI — dựng được:
+   · giamPhieuCho `p.trang_thai = 'cho_duyet'`: nhân viên pha A 5 (chờ), quản lý pha B 3 (tự duyệt, mới hơn), chỉnh tay đếm 2 → bỏ vế thì B (đã duyệt)
+     bị giảm về 0, lô B âm. Chưa có ca trong bài — làm ở vòng sửa sau.
+   · ghiKK `&& m.san_pham_id`: phiếu NHẬN nguyên liệu chờ duyệt (dòng 'nhap' chưa có lô, tongDong tính nó theo Q4) rồi đếm ít hơn → bỏ vế thì 409 oan.
+     Chưa có ca — làm ở vòng sửa sau (cũng là luồng K5 "phải không bị chặn").
+   Ba vế còn lại tương đương thật (người soát đồng ý): UPDATE ly_do `AND trang_thai` · `d.loai = 'thanh_pham'` · `p.is_active = 1`.
+
+Vòng sửa 6 (chủ quán 27.11: Q12 = (a) + lỗi nhẹ lần soát cuối sau vòng 5): bài đổi ở 523a701b (Q8f, Q12a, Q12b, Q12c, Q12d, Q4e3). Chạy trên code
+TRƯỚC vòng 6 (cây 523a701b = code c3a60aca + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 132 đạt · 2 hỏng
+   ✗ Q12a phiếu ĐÃ duyệt, chủ quán chỉnh tay món đó → ghi kết quả pha chế → 409 KQ_DA_KIEM_KE, tồn giữ số chỉnh tay (không trừ đôi)  — HTTP 200 · NC 10 / 11
+   ✗ Q12b kiểm kê đếm KHỚP (không phiếu KK) sau khi duyệt phiếu → ghi kết quả pha chế → 409, tồn giữ (không ly ảo)  — HTTP 200 · HTTP 200 · NC 16 / 15
+  Xanh trên code trước vòng 6 (ca phủ thêm, mỗi ca có đột biến riêng): Q8f (VS-q8-giam-ca-phieu-duyet — vế người soát dựng được) · Q12c (trên gốc bị che
+  vì kết quả điền được) · Q12d (K5) · Q4e3 (đường sửa DH / PN / PS đã ghi diễn biến từ vòng 5, nay có ca + BV-bo-dien-bien-sua-tao).
+  Trên code đã sửa (169b2bd2): 134 đạt · 0 hỏng.
+  KHÔNG thêm ca "phiếu nhận nguyên liệu CHỜ duyệt + đếm thiếu" (vế ghiKK `&& m.san_pham_id`): chủ quán dặn 27.11 — KHO-GON-2 cho nhận hàng cộng kho
+  ngay, không mở rộng luật cho phiếu nhận chờ. Vế đó: CHƯA KIỂM bằng đột biến.
+  Gộp Q9 vào Q12 (715e4e48): vế `daKiemKe` thừa — lượt đột biến đủ đầu tiên của vòng 6 cho VS-q9-hien-cho-dien SỐNG (Q12 đã khoá cùng ca) và
+  VS-q9-cho-dien-ket-qua HỎNG (neo đổi). Bỏ vế + bỏ 2 đột biến đó; Q9a / Q9b nay do VS-q12-cho-dien-sau-chot / VS-q12-hien-cho-dien canh.
+  Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên 4bcb39ab): ĐỐI CHỨNG XANH · 134 đạt — TỔNG 70 · BẮT 70 · SỐNG 0 · HỎNG 0 · LẠC 0.
+  ĐÍNH CHÍNH (soát lần cuối sau vòng 6): câu "vế daKiemKe thừa — Q12 bao trùm Q9" ở trên là SAI. Đúng cho kiểm kê / bàn giao (có kho_chot), sai cho
+  chỉnh tay mà phần thiếu trừ hết vào phiếu chờ (không phiếu KK, không kho_chot) — người soát chạy thật: HEAD 200 ly ảo, trước vòng 6 409. Đột biến
+  VS-q9-hien-cho-dien SỐNG là dấu hiệu THIẾU CA, không phải bằng chứng vế thừa (K3). Chờ chủ quán (Q13) để trả lại vế + ca + đột biến.
+
+Vòng sửa 7 (chủ quán 28.11: Q13 (a) + (b) + 3 lỗi nhẹ): bài đổi ở e8167ad3 (Q12e, Q12f, Q13a, Q13b, Q13c). Chạy trên code TRƯỚC vòng 7 (cây e8167ad3 =
+code 017faf0d + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 137 đạt · 2 hỏng
+   ✗ Q13a pha 5 chờ → chỉnh tay 4 (chỉ trừ vào phiếu chờ, không phiếu KK) → duyệt → ghi kết quả 5 → 409 KQ_DA_KIEM_KE, tồn giữ 4  — HTTP 200 · HTTP 200 · NC 5
+   ✗ Q13b chỉnh tay gõ đúng số máy (khong_doi) → ghi kết quả pha chế → 409, tồn giữ  — {"success":true,"phieu_id":null,"khong_doi":true} · HTTP 200 · NC 7 / 8
+  Xanh trên code trước vòng 7 (ca phủ thêm, mỗi ca có đột biến riêng): Q13c (bị che vì kết quả điền được — BV-bo-khoa-q9) · Q12e (VS-q12-ds-bo) ·
+  Q12f (K5 món khác — VS-q12-kk-moi-mon, VS-q12-anh-moi-mon).
+  Trên code đã sửa (afd701c0): 139 đạt · 0 hỏng.
+  Bước 033 sửa thẳng CHECK kho_chot.che_do (thêm 'chinhtay'): bước chưa chạy trên production (nhánh chưa merge) — không cần bước nâng cấp mới.
+  Đột biến (python3 viec/KHO-GON-1/dot_bien.py, trên afd701c0): ĐỐI CHỨNG XANH · 139 đạt — TỔNG 75 · BẮT 75 · SỐNG 0 · HỎNG 0 · LẠC 0.
+
+Vòng sửa 8 (chủ quán 28.11: Q14 theo đề xuất + cảnh báo sau chốt lọc theo món): bài đổi ở 1e2db8e8 (Q14a, Q14b, Q14c — chạy THẬT, đúng hai lỗi người soát
+lần theo code). Chạy trên code TRƯỚC vòng 8 (cây 1e2db8e8 = code 7401acde + bài mới):
+  node cong_cu/thu_KHOGON1.js → thoát 1 · 139 đạt · 3 hỏng
+   ✗ Q14a chỉnh tay chỉ trừ vào phiếu chờ (không phiếu KK) → phiếu KHÁC đã duyệt cùng món ghi kết quả → 409, tồn giữ 2 (không ly ảo)  — HTTP 200 · HTTP 200 · NC 3
+   ✗ Q14b cùng phiếu chờ [Nước cam, Bánh flan], chỉnh tay Nước cam → Bánh flan ghi kết quả 200; Nước cam 409  — flan HTTP 409 · KQ_DA_KIEM_KE
+   ✗ Q14c từ chối phiếu chờ Nước cam sau lần chỉnh tay GỪNG (không chạm Nước cam) → KHÔNG dòng cam  — 3 → 4
+  Trên code đã sửa (cafc8259): 142 đạt · 0 hỏng — Q13a vẫn 409 (điều kiện chủ quán đặt để bỏ khoá theo phiếu).
+  Bỏ 4 đột biến của vế đã bỏ: BV-bo-khoa-q9 (khoá theo phiếu — thay bằng VS-khoa-theo-phieu: đưa lại khoá phiếu → Q14b đỏ) · VS-q12-chi-kiem-ke ·
+  VS-q12-kk-moi-mon (vế dòng KK thừa: mọi đường tạo KK nay đều ghi kho_chot) · BV-bo-dau-vet-khop (neo đổi — thay bằng BV-bo-dau-vet-chinh-tay +
+  VS-dau-vet-chi-khi-doi). Thêm VS-canh-bao-khong-loc (Q14c).
+  Vế chotCham nhánh nguyên liệu (cảnh báo sau chốt khi phiếu chờ chỉ chạm nguyên liệu, vd phát sinh nguyên liệu chờ): CHƯA KIỂM bằng đột biến — chưa có
+  ca (phiếu nhận chờ không mở rộng theo dặn của chủ quán; phát sinh nguyên liệu chờ + chốt + từ chối chưa dựng).
+  Đột biến (trên cafc8259): lượt đủ ĐỐI CHỨNG XANH 142 · 75 đột biến · BẮT 73 · HỎNG 2 (neo cũ VS-q11-bao-da-chinh, VS-canh-bao-moi-tu-choi) → sửa neo, chạy lại riêng: BẮT 2/2. Tổng 75/75 BẮT.
+
+== Vòng sửa 9 (chat soát thay, LUAT §6.5 — 4 lỗi NHẸ của lần soát cuối sau vòng 8; code không đổi hành vi) ==
+  Ca mới phủ vế đang SỐNG (code đã đúng, nên xanh trên cả code trước vòng 9 — bằng chứng đỏ là đột biến đưa lỗi trở lại):
+  - Q14d vế MÓN của lọc dòng cam (chỉnh tay CHỈ Nước cam → từ chối phiếu chờ Nước cam → có dòng cam) — VS-loc-bo-ve-mon BẮT (✗ Q14d · 3 → 3).
+  - Q14e ảnh kho_chot của chỉnh tay NGUYÊN LIỆU ghi cột nguyen_lieu_id — VS-anh-luon-san-pham BẮT (✗ Q14e · ảnh ra san_pham_id 3 "Gừng").
+  - Q14f ngưỡng luc >= tao_luc (chốt CÙNG GIÂY lúc tạo phiếu) — VS-chot-luc-lon-hon BẮT (✗ Q14f · 4 → 4).
+  Chú thích 033 sửa: 'chinhtay' = MỌI lần chỉnh tay (không còn "gõ ĐÚNG số máy").
+  Sau vòng 9: node cong_cu/thu_KHOGON1.js 145 đạt · 0 hỏng. Đột biến lượt đủ: ĐỐI CHỨNG XANH 145 · 78 đột biến · BẮT 78 · SỐNG 0 · HỎNG 0 · LẠC 0.
+  SỐ CA cong_cu/thu_KHO2a.js: 86
+  SỐ CA cong_cu/thu_KHOGON1.js: 145
+  Còn CHƯA KIỂM: vế nguyen_lieu của canhBaoSauChot khi lần chốt chỉ chạm nguyên liệu phiếu chờ (đột biến M1 của người soát SỐNG — chủ quán dặn không
+  mở rộng luật cho phiếu nhận chờ duyệt, KHO-GON-2) · bấm lại cùng ma_gui ở nhánh không đổi ghi thêm một dòng kho_chot (vô hại, không trừ đôi).

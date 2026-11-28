@@ -822,6 +822,7 @@ chayBaiThat('cong_cu/thu_KHO1.js');   // KHO-1: bảng kho, nâng cấp dữ li�
 chayBaiThat('cong_cu/thu_KHO2a.js');   // KHO-2a: pha chế, phiếu xuất có duyệt, thành phẩm vào kho, tồn, danh sách phiếu
 chayBaiThat('cong_cu/thu_KHO2b.js');   // KHO-2b: đặt hàng có hạn mức, nhận hàng người khác duyệt, xử lý phát sinh, tồn
 chayBaiThat('cong_cu/thu_KHO3a.js');   // KHO-3a: menu từ POS, bán trừ kho POS cùng giao dịch, giữ hàng, lưới an toàn, gỡ SX
+chayBaiThat('cong_cu/thu_KHOGON1.js');   // KHO-GON-1: việc hôm nay, kiểm kê tối đếm mù / bàn giao sáng (phiếu KK), chỉnh tồn tay, diễn biến
 chayBaiThat('cong_cu/thu_NHOMMON1.js');   // NHOM-MON-1: nhóm món dùng chung (chat bàn 41 gắn khi ghép — máy NHOM-MON-1 chưa gắn)
 chayBaiThat('cong_cu/thu_TOPPING1.js');   // TOPPING-1: topping theo món, bán riêng, tiền / kho / sự cố / hoá đơn / tem / App KH
 chayBaiThat('cong_cu/thu_KHSP1.js');   // KH-SP-1: thông tin ngắn của món (bước 005, cửa ghi, /api/kh/menu)
